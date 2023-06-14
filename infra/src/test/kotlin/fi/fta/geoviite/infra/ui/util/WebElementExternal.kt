@@ -1,6 +1,6 @@
 import org.openqa.selenium.By
 import org.openqa.selenium.NoSuchElementException
-import org.openqa.selenium.StaleElementReferenceException
+import org.openqa.selenium.WebDriverException
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.ui.ExpectedConditions.*
 import java.time.Duration
@@ -33,10 +33,14 @@ fun WebElement.waitUntilChildExists(byCondition: By, timeout: Duration = default
         "Wait for child exists failed: parent=${getInnerHtml()} seekBy=$byCondition"
     }
 
-fun WebElement.waitUntilDoesNotExist(timeout: Duration = defaultWait) =
-    tryWait(timeout, { exists() }) {
-        "Wait for element disappearing failed: element=${getInnerHtml()}"
-    }
+fun WebElement.waitUntilExists(timeout: Duration = defaultWait) = tryWait(timeout, { exists() }) {
+    "Wait for element appearing failed: element=${getInnerHtml()}"
+}
+
+fun WebElement.waitUntilDoesNotExist(timeout: Duration = defaultWait) = tryWait(timeout, { !exists() }) {
+    "Wait for element disappearing failed: element=${getInnerHtml()}"
+}
+
 fun WebElement.waitUntilChildVisible(byCondition: By, timeout: Duration = defaultWait) =
     tryWait(timeout, visibilityOfNestedElementsLocatedBy(this, byCondition)) {
         "Wait for child visible failed: parent=${getInnerHtml()} seekBy=$byCondition"
@@ -60,6 +64,6 @@ fun WebElement.waitAndClick(timeout: Duration = defaultWait) {
 
 fun WebElement.exists(): Boolean = try {
     isDisplayed
-} catch (e: StaleElementReferenceException) {
+} catch (e: WebDriverException) {
     false
 }

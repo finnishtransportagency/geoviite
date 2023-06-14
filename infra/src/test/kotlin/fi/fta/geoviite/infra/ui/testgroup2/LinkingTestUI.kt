@@ -301,8 +301,9 @@ class LinkingTestUI @Autowired constructor(
         val endPoint = LOCATION_TRACK_H.second.segments.last().points.last()
 
         // TODO: GVT-1940 implement a way to know when the layer is clickable
-        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the first click might come too early
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(startPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(newStartPoint)
 
         locationInfoBox.valmis().assertAndClose("Raiteen päätepisteet päivitetty")
@@ -659,10 +660,13 @@ class LinkingTestUI @Autowired constructor(
 
 
         // TODO: GVT-1940 implement a way to know when the layer is clickable
-        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the first click might come too early
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryAlignmentStart)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryAlignmentEnd)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.first())
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.last())
         alignmentLinkinInfobox.linkita().assertAndClose("Raide linkitetty ja vanhentuneen geometrian linkitys purettu")
 
@@ -702,10 +706,13 @@ class LinkingTestUI @Autowired constructor(
         val referenceLineEndPoint = REFERENCE_LINE_ESP1.second.segments.first().points.last()
 
         // TODO: GVT-1940 implement a way to know when the layer is clickable
-        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the first click might come too early
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryTrackStartPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryTrackEndPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(referenceLineStartPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(referenceLineEndPoint)
 
         alignmentLinkingInfobox.linkita().assertAndClose("Raide linkitetty")
@@ -796,8 +803,8 @@ class LinkingTestUI @Autowired constructor(
             .tallenna(false)
             .assertAndClose("Ratanumero tallennettu")
 
-        assertThat(mapPage.navigationPanel.referenceLines()).noneMatch { it.name() == ESPOO_TRACK_NUMBER_2 }
-        assertThat(mapPage.navigationPanel.trackNumbers()).noneMatch { it.name() == ESPOO_TRACK_NUMBER_2 }
+        mapPage.navigationPanel.waitForTrackNumberNamesTo { names -> names.none(ESPOO_TRACK_NUMBER_2::equals) }
+        mapPage.navigationPanel.waitForReferenceLineNamesTo { names -> names.none(ESPOO_TRACK_NUMBER_2::equals) }
 
         //Click near deleted element point to clear tool panels
         //and then try to select deleted element to confirm it disappeared

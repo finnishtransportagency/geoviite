@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import browser
-import defaultWait
 import fi.fta.geoviite.infra.ui.util.ListContentItem
 import fi.fta.geoviite.infra.ui.util.ListModel
 import fi.fta.geoviite.infra.ui.util.byLiTag
@@ -18,7 +17,8 @@ import org.slf4j.LoggerFactory
 import tryWait
 import java.time.Duration
 
-// TODO: The contents of these lists should be implemented as own components using ListModel (see ListModel.kt)
+// TODO: GVT-1935 The contents of these lists should be implemented as own components using ListModel (see ListModel.kt)
+//   As an example, there is already a list for locationTracks, though some tests don't use it yet
 class MapNavigationPanel {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -74,7 +74,6 @@ class MapNavigationPanel {
         }
     }
 
-    // TODO: Replace these uses with the locationTracksList. Make similar lists for other concepts
     @Deprecated("Use mapNavigationPanel.locationTracksList instead")
     fun selectLocationTrack(locationTrackName: String) {
         logger.info("Select location track $locationTrackName")
@@ -106,6 +105,18 @@ class MapNavigationPanel {
                     .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Location tracks $it") }
                     .map { alignment -> alignment.name() }
             ) }
+    }
+
+    fun waitForReferenceLineNamesTo(namePredicate: (names: List<String>) -> Boolean) {
+        logger.info("Wait for reference line names to match expectation")
+        WebDriverWait(browser(), Duration.ofSeconds(5))
+            .until { _ -> namePredicate(referenceLines().map { l -> l.name() }) }
+    }
+
+    fun waitForTrackNumberNamesTo(namePredicate: (names: List<String>) -> Boolean) {
+        logger.info("Wait for track numbers to match expectation")
+        WebDriverWait(browser(), Duration.ofSeconds(5))
+            .until { _ -> namePredicate(trackNumbers().map { l -> l.name() }) }
     }
 
     fun selectTrackLayoutSwitch(switchName: String) {
@@ -153,7 +164,6 @@ class MapNavigationPanel {
     fun getListElements(listBy: By) = getChildrenWhenVisible(fetch(listBy), By.tagName("li"))
     fun waitUntilSwitchNotVisible(switchName: String) {
         tryWait(
-            defaultWait,
             { switches().none { it.name() == switchName } },
             { "Switch did not disappear from navigation: switch=$switchName visible=${switches().map { it.name() }}" },
         )
@@ -170,7 +180,7 @@ class LocationTracksNavigationList: ListModel<LocationTrackListItem>(
 
     fun waitUntilNameVisible(name: String) = waitUntilItemMatches { lt -> lt.name == name }
 
-    // TODO: This is now implemented for this list only, but there should be a generic qa-id-ish pattern to denote selections in all lists
+    // TODO: GVT-1935 implement a generic way to handle list selection status through qa-id
     override fun isSelected(element: WebElement): Boolean =
         element.findElement(By.xpath("./*[1]")).getAttribute("class").contains("selected")
 }

@@ -15,11 +15,14 @@ import waitUntilElementIsStale
 import waitUntilVisible
 import java.time.Duration
 
-// TODO: change code language (function names) to english.
-// TODO: Fetch elements by qa-id instead of localized texts
-// TODO: web element stalenessa should no longer be an issue - remove sleeps. If there is still an issue, it needs a different fix.
-// TODO: this file is too large: split into separate components
-// TODO: The fields here (and other test data) should perhaps be properly typed instead of strings. That would make them easier to compare.
+// TODO: GVT-1947 refactor these to match common style:
+//   Code language,
+//   Don't use localized strings as id
+//   This file is also too large: split into separate components
+//   The fields here (and other test data) should perhaps be properly typed instead of strings. That would make them easier to compare.
+// TODO: GVT-1939 Replace init-sleeps with reliable waits
+//   implement spinner-indicators for data that is still loading
+//   InfoBox already has waitUntilLoaded() that is called on init - it will wait for all spinners to disappear
 class GeometryPlanGeneralInfoBox(by: By) : InfoBox(by) {
     init {
         //Object initializes too quickly and webelement is not stable/ready
@@ -100,14 +103,18 @@ class LocationTrackGeneralInfoBox(by: By) : InfoBox(by) {
 
     fun muokkaaTietoja(): CreateEditLocationTrackDialog {
         startEditingInfoBoxValues()
-        // TODO: Find and remove all places where the element is fetched and remembered, like this one:
+        // TODO: GVT-1947 Find and remove all places where the element is fetched and remembered, like this dialog creation
+        //  To fix it:
+        //    Ensure the component inherit PageModel (this dialog does)
+        //    Change the constructor argument from (x: WebElement) to a function (fetchX: () -> WebElement) or By (elementBy: By)
+        //    Change the use-place constructor call to match
+        //      If the user is also inherited from pageModel, its own elementFetch or something derived from it can be used:
+        //        This Component(webElement) becomes Component(elementFetch)
+        //      If the user seeks the content with By, you can just pass that in
         return CreateEditLocationTrackDialog(webElement)
-        // TODO: To fix it:
-        // TODO: Change the constructor argument from (x: WebElement) to a function (fetchX: () -> WebElement)
-        // TODO: Change use places to lambdas: Component(webElement) becomes Component { webElement }
     }
 
-    // TODO: Sleep needed?
+    // TODO: GVT-1947 Sleep needed?
     fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
 }
 
@@ -141,9 +148,7 @@ class CreateEditLayoutSwitchDialog(val editedElement: WebElement): DialogPopUp()
     }
 }
 
-// TODO: This input editedElement is here to verify it going stale when the data updates
-// TODO: It's probably better to remove it and do the wait in the use-place instead, perhaps by waiting for desired data to show
-// TODO: The same affects all these dialogs
+// TODO: GVT-1939 This input editedElement is here to verify it going stale when the data updates. Use a generic pattern instead.
 class KmPostEditDialog(val editedElement: WebElement): DialogPopUp() {
 
     enum class TilaTyyppi(val uiText: String) {
@@ -221,9 +226,7 @@ class CreateEditLocationTrackDialog(val editedElement: WebElement): DialogPopUp(
         }
 
         val toaster = waitAndGetToasterElement()
-        // TODO: Get rid of unreliable sleep. This is the same in all these dialogs
-        // TODO: - perhaps the toaster should only be displayed after the view is stable?
-        // TODO: - otherwise, we could identify that it's updated by the changed data (wait until x is visible)
+        // TODO: GVT-1939 Get rid of unreliable sleep. This is the same in all these dialogs
         Thread.sleep(200) //location track list is unstable after deletion and there's no better fix for now
         return toaster
     }
@@ -358,16 +361,8 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
 
     fun linkita(): Toaster {
         logger.info("Link")
-        val elementBeforeClick = webElement
-        clickButtonByText("Linkitä")
-        val toaster = waitAndGetToasterElement()
-
-        //This works as a basic Thread.Sleep() if root element becomes stable very fast
-        try {
-            waitUntilElementIsStale(elementBeforeClick, Duration.ofSeconds(1))
-        } catch (_: TimeoutException) { }
-
-        return toaster
+        childButton(textContent("Linkitä")).clickAndWaitToDisappear()
+        return waitAndGetToasterElement()
     }
 
     fun pituusmittauslinja() = fieldValue("Pituusmittauslinja")
@@ -558,7 +553,7 @@ class SearchBox(val path: By): PageModel(path) {
     }
 
     fun searchResults(): List<SearchResult> {
-        // TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+        // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
         val searchResults = dropDown.listItems().map { SearchResult(it) }
         logger.info("Search results: ${searchResults.map { it.value() }}")
         return searchResults

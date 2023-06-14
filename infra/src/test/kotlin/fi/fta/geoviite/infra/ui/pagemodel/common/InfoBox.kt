@@ -12,7 +12,7 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
         logger.info("${this.javaClass.simpleName} loaded")
     }
 
-    // TODO: These label-content fields could be a component of their own
+    // TODO: GVT-1947 These label-content fields could be a component of their own
     private fun fieldValueBy(fieldName: String) = By.xpath(
         ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']"
     )
@@ -20,7 +20,7 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
 
     protected fun textField(fieldName: String) = childTextField(fieldValueBy(fieldName))
 
-    // TODO: logging in getters like this is ugly. Instead log in the use-place, if needed
+    // TODO: GVT-1947 logging in getters like this is ugly. Instead log in the use-place, if needed
     protected fun fieldValue(fieldName: String): String = textField(fieldName).text.also { value ->
         logger.info("Get field value: field=$fieldName value=$value")
     }

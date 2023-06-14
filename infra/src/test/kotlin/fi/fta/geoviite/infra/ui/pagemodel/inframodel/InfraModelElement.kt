@@ -14,6 +14,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 
 
+// TODO: GVT-1936 Use generic table model to handle this (modeling after ListModel)
 class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
     private val headerElement: WebElement get() = childElement(By.xpath("//table/thead/tr"))
 
@@ -26,9 +27,6 @@ class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
         emptyList()
     }
 
-    // TODO: These list elements hold a reference to the WebElement, risking staleness.
-    //  Use ListModel to replace this, or implement a similar structure for tables if the same doesn't apply.
-    @Deprecated("Element risks staleness")
     fun infraModelRows(): List<InfraModelRow> {
         logger.info("Get Infra Model rows")
         return rowElements().map { rowElement -> InfraModelRow(headerElement.findElements(By.tagName("th")).map {it.text}, rowElement) }
@@ -40,6 +38,7 @@ class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
     }
 }
 
+// TODO: GVT-1947 code language
 class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, row) {
     fun projektinNimi(): String = getColumnByName("Projektin nimi").text
     fun tiedostonimi(): String = getColumnByName("Nimi").text
@@ -63,6 +62,7 @@ class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
 
     fun addNimi(input: String) {
         changeToNewDropDownValue("Projektin nimi", listOf(input))
+            .assertAndClose("Uusi projekti luotu")
     }
 
     fun addOid(input: String) {
@@ -75,6 +75,7 @@ class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
 
     fun addNewSuunnitteluyritys(input: String) {
         changeToNewDropDownValue("Suunnitteluyritys", listOf(input))
+            .assertAndClose("Uusi suunnitteluyritys luotu")
     }
 }
 
@@ -91,6 +92,7 @@ class SijaintitiedotFormGroup(by: By) : FormGroup(by) {
 
     fun addRatanumero(ratanumero: String, kuvaus: String) {
         changeToNewDropDownValue("Ratanumero", listOf(ratanumero, kuvaus))
+            .assertAndClose("Ratanumero tallennettu")
         clickEditIcon("Ratanumero")
     }
 

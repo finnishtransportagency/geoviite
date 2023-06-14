@@ -62,7 +62,7 @@ open class ListModel<T: ListContentItem>(
         if (!isSelected(e)) e.waitAndClick()
     }
 
-    // TODO: Implement a generic way to communicate selection in lists from UI to tests
+    // TODO: GVT-1935 Implement a generic way to communicate selection in lists from UI to tests
     protected open fun isSelected(element: WebElement) = false
 
     protected fun getElementWhenMatches(check: (content: T) -> Boolean): Pair<Int, WebElement> =

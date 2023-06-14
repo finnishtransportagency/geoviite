@@ -36,7 +36,7 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
         clickEditIcon(fieldLabel)
     }
 
-    protected fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>) {
+    protected fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>): Toaster {
         logger.info("Add and change dropdown value field [$fieldLabel] to [$inputs]")
         clickEditIcon(fieldLabel)
         val dropDown = DropDown{ fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")) }
@@ -45,7 +45,10 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
         val dialogPopUp = DialogPopUpWithTextField()
         dialogPopUp.inputTextField(inputs)
         dialogPopUp.clickPrimaryButton()
-        clickEditIcon(fieldLabel)
+        return Toaster().also { t ->
+            t.waitUntilVisible()
+            clickEditIcon(fieldLabel)
+        }
     }
 
     protected fun fieldValueElement(fieldLabel: String) =

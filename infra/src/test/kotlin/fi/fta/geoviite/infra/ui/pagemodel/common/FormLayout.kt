@@ -25,7 +25,7 @@ open class FormLayout(getElement: () -> WebElement): PageModel(getElement){
         input.sendKeys(newFieldValue)
     }
 
-    // TODO: use qa-ids to find fields
+    // TODO: GVT-1947 use qa-ids to find fields. Don't give out WebElement - only data
     protected fun fieldValueElement(fieldLabel: String): WebElement = childElement(By.xpath(
         ".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']"
     ))
@@ -45,15 +45,4 @@ open class FormLayout(getElement: () -> WebElement): PageModel(getElement){
             dropDown.selectItem(input)
         }
     }
-
-    fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>) {
-        logger.info("Create and change dropdown $fieldLabel to [$inputs]")
-        val dropDown = DropDown{ fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")) }
-        dropDown.openDropdown()
-        dropDown.clickAddNew()
-        val dialogPopUp = DialogPopUpWithTextField()
-        dialogPopUp.inputTextField(inputs)
-        dialogPopUp.clickPrimaryButton()
-    }
-
 }

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory
 class ChangePreviewTable(val table: WebElement) {
     private val logger: Logger = LoggerFactory.getLogger(ChangePreviewTable::class.java)
 
-    // TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
     @Deprecated("Element risks staleness")
     fun changeRows(): List<ChangePreviewRow> {
         val header = header()

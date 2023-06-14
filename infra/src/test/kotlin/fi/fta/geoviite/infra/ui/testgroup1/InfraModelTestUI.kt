@@ -147,7 +147,7 @@ class InfraModelTestUI @Autowired constructor(
         lokiJaLinkitystiedotFormGroup.editLaadittu("elokuu", "1999")
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.laadittu())
 
-        uploadForm.tallenna()
+        uploadForm.tallenna(false)
         val infraModelPageAfterUpload = InfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList().infraModelRows()
         assertEquals(infraModelRowsBefore.size + 1, infraModelRowsAfterUpload.size)

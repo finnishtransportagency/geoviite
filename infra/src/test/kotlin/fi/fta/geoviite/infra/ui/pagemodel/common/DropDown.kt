@@ -21,7 +21,8 @@ class DropDown (elementFetch: () -> WebElement): PageModel(elementFetch) {
         clickChild(By.cssSelector("div.dropdown__header"))
     }
 
-    // TODO: This exposes elements directly to outside the class with a stale-risk
+    // TODO: GVT-1935 This exposes elements directly to outside the class with a stale-risk
+    //   Can be fixed by handling the contents like lists in ListModel
     @Deprecated("Element risks staleness")
     fun listItems() = childElements(By.cssSelector("li.dropdown__list-item span.dropdown__list-item-text"))
 

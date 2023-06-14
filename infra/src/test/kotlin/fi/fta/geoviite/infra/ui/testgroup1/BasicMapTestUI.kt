@@ -54,7 +54,7 @@ class BasicMapTestUI @Autowired constructor(
     fun createTestData() {
         clearAllTestData()
 
-        // TODO: Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
+        // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
         TRACK_NUMBER_WEST = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_1)
         val trackNumberEast = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_2)
         val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
@@ -82,9 +82,10 @@ class BasicMapTestUI @Autowired constructor(
         GEOMETRY_PLAN = geometryDao.fetchPlan(
             (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null)))
 
-        // TODO: Remove this block: if the test needs to be somewhere in the beginning, it should go there itself
         startGeoviite()
         goToMap()
+
+        // TODO: GVT-1945 Remove this: if the test needs to select something in the beginning, it should do that itself
         navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }

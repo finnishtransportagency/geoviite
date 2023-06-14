@@ -2,22 +2,23 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import browser
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
 import getElementsWhenVisible
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
 
 class InfraModelUploadAndEditForm: PageModel(By.className("infra-model-upload__form-column")) {
-    fun tallenna() {
+    fun tallenna(expectConfirm: Boolean = true) {
         val projectName = projektinTiedot().nimi()
 
-        clickButtonByText("Tallenna")
-        confirmSaving()
         logger.info("Saving infra model to database...")
+        clickButtonByText("Tallenna")
+        if (expectConfirm) confirmSaving()
+        Toaster().assertAndClose("IM-tiedosto tallennettu")
 
-        WebDriverWait(browser(), Duration.ofSeconds(20)).until(
+        WebDriverWait(browser(), Duration.ofSeconds(10)).until(
             ExpectedConditions.visibilityOfElementLocated(By.xpath("//td[text() = '$projectName']")))
     }
 
@@ -43,11 +44,7 @@ class InfraModelUploadAndEditForm: PageModel(By.className("infra-model-upload__f
 
     private fun confirmSaving() {
         //Confirm saving if confirmation dialog appears
-        try {
-            ConfirmDialog().tallenna()
-        } catch (ex: TimeoutException) {
-            logger.info("Confirm dialog did not appear")
-        }
+        ConfirmDialog().tallenna()
     }
 
 }

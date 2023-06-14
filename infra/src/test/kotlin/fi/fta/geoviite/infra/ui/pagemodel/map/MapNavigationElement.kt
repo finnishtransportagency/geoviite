@@ -6,7 +6,7 @@ import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-// TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+// TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
 @Deprecated("Element risks staleness")
 abstract class TrackLayoutElement(val element: WebElement) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -29,7 +29,7 @@ abstract class TrackLayoutElement(val element: WebElement) {
 
 }
 
-// TODO: These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
+// TODO: GVT-1935 These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
 class TrackLayoutSwitch(liElement: WebElement): TrackLayoutElement(liElement) {
     override fun name(): String = element.findElement(By.xpath("./span/span")).text
     override fun toString(): String = name()

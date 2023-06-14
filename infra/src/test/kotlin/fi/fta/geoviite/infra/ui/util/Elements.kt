@@ -16,6 +16,7 @@ import java.time.Duration
 private val logger: Logger = LoggerFactory.getLogger(PageModel::class.java)
 
 val defaultWait = Duration.ofSeconds(5L)
+val defaultPoll = Duration.ofMillis(200)
 
 fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {
 
@@ -123,12 +124,12 @@ fun waitUntilElementIsStale(element: WebElement, timeout: Duration = defaultWait
 
 fun waitUntilValueIs(element: WebElement, value: String, timeout: Duration = defaultWait) =
     tryWait(timeout, textToBePresentInElement(element, value)) {
-        "Wait for element value 'to be x' failed: element=${element.getInnerHtml()} value=$value"
+        "Wait for element value 'to be x' failed: expected=$value actual=${element.getInnerHtml()}"
     }
 
 fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = defaultWait) =
     tryWait(timeout, not(textToBePresentInElement(element, value))) {
-        "Wait for element value 'to not be x' failed: element=${element.getInnerHtml()} value=$value"
+        "Wait for element value 'to not be x' failed: expectedNot=$value element=${element.getInnerHtml()}"
     }
 
 fun waitUntilChildVisible(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) = tryWait(
@@ -172,15 +173,47 @@ fun getChildWhenMatches(
     }
 }
 
-fun tryWait(timeout: Duration, condition: ExpectedCondition<*>, lazyErrorMessage: () -> String) = try {
-    WebDriverWait(browser(), timeout).until(condition)
+fun tryWait(
+    condition: ExpectedCondition<*>,
+    lazyErrorMessage: () -> String,
+) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
+
+fun tryWait(
+    timeout: Duration = defaultWait,
+    condition: ExpectedCondition<*>,
+    lazyErrorMessage: () -> String,
+) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
+
+fun tryWait(
+    timeout: Duration = defaultWait,
+    pollInterval: Duration = defaultPoll,
+    condition: ExpectedCondition<*>,
+    lazyErrorMessage: () -> String,
+) = try {
+    WebDriverWait(browser(), timeout, pollInterval).until(condition)
 } catch (e: Exception) {
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e
 }
 
-fun tryWait(timeout: Duration, condition: () -> Boolean, lazyErrorMessage: () -> String) = try {
-    WebDriverWait(browser(), timeout).until { _ -> condition() }
+fun tryWait(
+    condition: () -> Boolean,
+    lazyErrorMessage: () -> String,
+) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
+
+fun tryWait(
+    timeout: Duration,
+    condition: () -> Boolean,
+    lazyErrorMessage: () -> String,
+) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
+
+fun tryWait(
+    timeout: Duration,
+    pollInterval: Duration,
+    condition: () -> Boolean,
+    lazyErrorMessage: () -> String,
+) = try {
+    WebDriverWait(browser(), timeout, pollInterval).until { _ -> condition() }
 } catch (e: Exception) {
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e

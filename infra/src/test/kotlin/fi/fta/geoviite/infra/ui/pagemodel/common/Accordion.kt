@@ -29,7 +29,7 @@ open class Accordion(by: By) : PageModel(by) {
         clickChild(By.cssSelector("span.accordion__header-title"))
     }
 
-    // TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
     @Deprecated("Element risks staleness")
     fun listItems() = childElements(By.cssSelector("li")).map { element -> AccordionListItem(element) }
 
