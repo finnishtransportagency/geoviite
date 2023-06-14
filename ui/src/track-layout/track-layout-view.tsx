@@ -15,7 +15,7 @@ import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-crea
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { BoundingBox } from 'model/geometry';
 import { PublishType } from 'common/common-model';
-import { LinkingState, LinkPoint } from 'linking/linking-model';
+import { LinkingState, LinkingType, LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
@@ -87,6 +87,10 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
     return (
         <div className={className} qa-id="track-layout-content">
             <ToolBar
+                disableNewMenu={
+                    props.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+                    props.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+                }
                 layerMenuVisible={layerMenuVisible}
                 publishType={props.publishType}
                 onMapLayerVisibilityChange={setLayerMenuVisible}
