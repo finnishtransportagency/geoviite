@@ -163,9 +163,12 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
             const textStartX = mToX(coordinates, angleTextStartM);
             const textStartY =
                 heightToY(coordinates, angleTextStartHeight) - pviAssistLineHeightPx - 2;
-            const aspectRatio = coordinates.meterHeightPx / coordinates.mMeterLengthPxOverM;
-            const angle =
-                geo.end.angle == null ? 0 : radsToDegrees(-Math.atan(geo.end.angle * aspectRatio));
+            const angle = radsToDegrees(
+                -Math.atan2(
+                    coordinates.meterHeightPx * (nextGeo.point.height - geo.point.height),
+                    coordinates.mMeterLengthPxOverM * (nextGeo.point.station - geo.point.station),
+                ),
+            );
             pvis.push(
                 <text
                     key={pviKey++}
