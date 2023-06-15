@@ -52,6 +52,10 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
         }
     }, [state.searchState]);
 
+    React.useEffect(() => {
+        infraModelListDelegates.onPlanChangeTimeChange();
+    }, [changeTimes.geometryPlan]);
+
     return (
         <div className={styles['tabs__tab-container']}>
             <ul className={styles['tabs__nav']}>
@@ -83,7 +87,6 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     <InfraModelListContainer
                         changeTimes={changeTimes}
                         clearInfraModelState={infraModelListDelegates.clearInfraModelState}
-                        onPlanChangeTimeChange={infraModelListDelegates.onPlanChangeTimeChange}
                         onSearchParamsChange={infraModelListDelegates.onSearchParamsChange}
                         onPrevPage={infraModelListDelegates.onPrevPage}
                         onNextPage={infraModelListDelegates.onNextPage}

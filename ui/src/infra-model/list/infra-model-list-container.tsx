@@ -12,7 +12,6 @@ export type InfraModelListContainerProps = {
     onNextPage: () => void;
     onPrevPage: () => void;
     clearInfraModelState: () => void;
-    onPlanChangeTimeChange: () => void;
 };
 
 export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = ({
@@ -21,12 +20,9 @@ export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = (
     onNextPage,
     onPrevPage,
     clearInfraModelState,
-    onPlanChangeTimeChange,
 }) => {
     const state = useInfraModelAppSelector((state) => state.infraModelList);
     const navigate = useAppNavigate();
-
-    React.useEffect(() => onPlanChangeTimeChange(), [changeTimes.geometryPlan]);
 
     const onSelectPlan = (planId: GeometryPlanId) => navigate('inframodel-edit', planId);
 
