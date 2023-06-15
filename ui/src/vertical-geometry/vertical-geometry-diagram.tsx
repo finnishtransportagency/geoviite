@@ -162,6 +162,9 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
     const [alignmentStartM, setAlignmentStartM] = useState<number>();
     const [alignmentEndM, setAlignmentEndM] = useState<number>();
     const [oldWidth, setOldWidth] = useState<number>();
+    const [startAndEndLoadedForAlignmentId, setStartAndEndLoadedForAlignmentId] =
+        useState<VerticalGeometryDiagramAlignmentId>();
+
     useResizeObserver({
         ref,
         onResize: ({ width }) => {
@@ -179,14 +182,16 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
     });
 
     useTwoPartEffect(
-        () => getStartAndEnd(alignmentId),
-        (startAndEnd) => {
+        () =>
+            getStartAndEnd(alignmentId).then((startAndEnd) => [startAndEnd, alignmentId] as const),
+        ([startAndEnd, loadingAlignmentId]) => {
             const start = startAndEnd?.start?.point?.m;
             const end = startAndEnd?.end?.point?.m;
             setStartM(start);
             setAlignmentStartM(start);
             setEndM(end);
             setAlignmentEndM(end);
+            setStartAndEndLoadedForAlignmentId(loadingAlignmentId);
         },
         [alignmentId, changeTimes.layoutLocationTrack, changeTimes.geometryPlan],
     );
@@ -208,6 +213,7 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
                         alignmentStartM={alignmentStartM}
                         alignmentEndM={alignmentEndM}
                         changeTimes={changeTimes}
+                        startAndEndLoadedForAlignmentId={startAndEndLoadedForAlignmentId}
                         {...rest}
                     />
                 )}
@@ -227,6 +233,7 @@ const VerticalGeometryDiagram: React.FC<{
     onSelect: (options: OnSelectOptions) => void;
     changeTimes: ChangeTimes;
     showArea: (area: BoundingBox) => void;
+    startAndEndLoadedForAlignmentId: VerticalGeometryDiagramAlignmentId | undefined;
 }> = ({
     alignmentId,
     diagramWidthPx,
@@ -239,6 +246,7 @@ const VerticalGeometryDiagram: React.FC<{
     onSelect,
     changeTimes,
     showArea,
+    startAndEndLoadedForAlignmentId,
 }) => {
     const delegates = createDelegates(TrackLayoutActions);
     const ref = useRef<HTMLDivElement>(null);
@@ -377,7 +385,9 @@ const VerticalGeometryDiagram: React.FC<{
         coordinates.mMeterLengthPxOverM > minimumPixelWidthToDrawTangentArrows;
 
     const stateIsConsistentByAlignmentId =
-        geometryLoadedForAlignmentId === alignmentId && heightsLoadedForAlignmentId === alignmentId;
+        geometryLoadedForAlignmentId === alignmentId &&
+        heightsLoadedForAlignmentId === alignmentId &&
+        startAndEndLoadedForAlignmentId === alignmentId;
 
     const snap =
         stateIsConsistentByAlignmentId &&
