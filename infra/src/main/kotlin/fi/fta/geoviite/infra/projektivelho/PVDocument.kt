@@ -14,7 +14,6 @@ enum class PVDocumentStatus {
     SUGGESTED,
     REJECTED,
     ACCEPTED,
-    FETCH_ERROR,
 }
 
 val pvProjectNameLength = 1..200
