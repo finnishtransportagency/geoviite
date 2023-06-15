@@ -168,9 +168,7 @@
                 "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi."
             },
             "geometry-segment": {
-                "title": "Vaaka- ja pystygeometriat",
                 "no-geometry-information": "Ei geometriatietoja valitulle segmentille.",
-                "no-segment-selected": "Valitse segmentti kartalta nähdäksesi sen geometriatiedot.",
                 "horizontal": "Vaakageometriat",
                 "vertical": "Pystygeometriat",
                 "chosen-segment": "Valittu kohta",

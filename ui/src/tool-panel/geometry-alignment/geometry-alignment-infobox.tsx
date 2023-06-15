@@ -20,7 +20,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
-import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type GeometryAlignmentInfoboxProps = {
@@ -132,18 +131,6 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                         onVisibilityChange({ ...visibilities, ...v });
                     }}
                 />
-            )}
-            {planHeader && (
-                <Infobox
-                    title={t('tool-panel.alignment.geometry-segment.title')}
-                    contentVisible={visibilities.geometry}
-                    onContentVisibilityChange={() => visibilityChange('geometry')}>
-                    <InfoboxContent>
-                        <InfoboxText
-                            value={t('tool-panel.alignment.geometry-segment.no-segment-selected')}
-                        />
-                    </InfoboxContent>
-                </Infobox>
             )}
         </React.Fragment>
     );
