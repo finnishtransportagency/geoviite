@@ -110,14 +110,10 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun updateTrackNumber() {
-        val trackNumber = getUnusedTrackNumber()
-        val originalTrackNumberVersion =
-            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).rowVersion
-        insertSomeOfficialReferenceLineFor(originalTrackNumberVersion.id)
-        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.2.3.4.5"))
+        val originalTrackNumber = establishedTrackNumber()
         val newTrackNumber = getUnusedTrackNumber()
         trackNumberService.update(
-            originalTrackNumberVersion.id,
+            originalTrackNumber.id,
             TrackNumberSaveRequest(
                 newTrackNumber,
                 FreeText("aoeu"),
@@ -125,8 +121,8 @@ class RatkoServiceIT @Autowired constructor(
                 TrackMeter(KmNumber("0123"), 0)
             )
         )
-        publishAndPush(trackNumbers = listOf(originalTrackNumberVersion))
-        val pushedRouteNumber = fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5"))
+        publishAndPush(trackNumbers = listOf(originalTrackNumber.version))
+        val pushedRouteNumber = fakeRatko.getPushedRouteNumber(originalTrackNumber.externalId)
         assertEquals(newTrackNumber.value, pushedRouteNumber[0].name)
         assertEquals("aoeu", pushedRouteNumber[0].description)
         assertEquals(RatkoRouteNumberStateType.VALID, pushedRouteNumber[0].state.name)
@@ -134,22 +130,18 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun deleteTrackNumber() {
-        val trackNumber = getUnusedTrackNumber()
-        val originalTrackNumberVersion =
-            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).rowVersion
-        insertSomeOfficialReferenceLineFor(originalTrackNumberVersion.id)
-        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.2.3.4.5"))
+        val trackNumber = establishedTrackNumber()
         trackNumberService.update(
-            originalTrackNumberVersion.id,
+            trackNumber.id,
             TrackNumberSaveRequest(
-                trackNumber,
+                trackNumber.trackNumberObject.number,
                 FreeText("augh"),
                 LayoutState.DELETED,
                 TrackMeter(KmNumber("0123"), 0)
             )
         )
-        publishAndPush(trackNumbers = listOf(originalTrackNumberVersion))
-        val pushedRouteNumber = fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5"))
+        publishAndPush(trackNumbers = listOf(trackNumber.version))
+        val pushedRouteNumber = fakeRatko.getPushedRouteNumber(trackNumber.externalId)
         assertEquals(RatkoRouteNumberStateType.NOT_VALID, pushedRouteNumber[0].state.name)
     }
 
@@ -542,18 +534,13 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun removeLocationTrackWithSwitch() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = layoutTrackNumberDao.insert(
-            trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"))
-        ).rowVersion.id
-        insertSomeOfficialReferenceLineFor(trackNumberId)
-        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0)))
-        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0)))
+        val trackNumber = establishedTrackNumber()
+        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0)))
+        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0)))
 
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
-        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.1.1.1.1"))
 
         publishAndPush(
             locationTracks = listOf(throughTrack.rowVersion, branchingTrack.rowVersion),
@@ -579,18 +566,13 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun modifySwitchJointPositionAccuracy() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = layoutTrackNumberDao.insert(
-            trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"))
-        ).rowVersion.id
-        insertSomeOfficialReferenceLineFor(trackNumberId)
-        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0)))
-        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0)))
+        val trackNumber = establishedTrackNumber()
+        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0)))
+        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0)))
 
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
-        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.1.1.1.1"))
 
         publishAndPush(
             locationTracks = listOf(throughTrack.rowVersion, branchingTrack.rowVersion),
@@ -619,11 +601,9 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun pushSwitch() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
-        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val trackNumber = establishedTrackNumber()
 
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
 
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
@@ -641,7 +621,7 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(listOf(listOf("1.2.3.4.5", "1.2.3.4.5"), listOf("2.3.4.5.6")),
             switchLocations.map { push -> push.nodecollection.nodes.map { n -> n.point.locationtrack!!.toString() } })
         assertEquals(
-            trackNumber.externalId!!.toString(),
+            trackNumber.externalId.toString(),
             switchLocations.map { s -> s.nodecollection.nodes.first().point.routenumber!!.toString() }.distinct()
                 .single()
         )
@@ -654,11 +634,9 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun moveSwitch() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
-        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val trackNumber = establishedTrackNumber()
 
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
 
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
@@ -674,14 +652,14 @@ class RatkoServiceIT @Autowired constructor(
         detachSwitchesFromTrack(branchingTrack.id)
 
         val differentThroughTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, externalId = null),
+            locationTrack(trackNumber.id, externalId = null),
             alignment(
                 segment(Point(0.0, 10.0), Point(5.0, 10.0), switchId = switch.id, endJointNumber = JointNumber(1)),
                 segment(Point(5.0, 10.0), Point(10.0, 10.0), switchId = switch.id, startJointNumber = JointNumber(3)),
             )
         )
         val differentBranchingTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, externalId = null),
+            locationTrack(trackNumber.id, externalId = null),
             alignment(
                 segment(Point(5.0, 10.0), Point(7.5, 10.5), switchId = switch.id, endJointNumber = JointNumber(3)),
                 segment(Point(7.5, 10.5), Point(10.0, 11.0), switchId = switch.id, startJointNumber = JointNumber(3))
@@ -711,18 +689,13 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun changeSwitchStateCategory() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = layoutTrackNumberDao.insert(
-            trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"))
-        ).rowVersion.id
-        insertSomeOfficialReferenceLineFor(trackNumberId)
-        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0)))
-        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0)))
+        val trackNumber = establishedTrackNumber()
+        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0)))
+        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0)))
 
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
-        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.1.1.1.1"))
 
         publishAndPush(
             locationTracks = listOf(throughTrack.rowVersion, branchingTrack.rowVersion),
@@ -796,47 +769,41 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun pushTrackNumberDeletion() {
-        val originalTrackNumberVersion = layoutTrackNumberDao.insert(trackNumber(getUnusedTrackNumber())).rowVersion
-        val trackNumberId = originalTrackNumberVersion.id
-        val trackNumber = layoutTrackNumberDao.fetch(originalTrackNumberVersion)
-        insertSomeOfficialReferenceLineFor(trackNumberId)
-        trackNumberService.saveDraft(trackNumber.copy(state = LayoutState.DELETED))
+        val trackNumber = establishedTrackNumber()
+        trackNumberService.saveDraft(trackNumber.trackNumberObject.copy(state = LayoutState.DELETED))
 
         val originalLocationTrackVersion = locationTrackService.saveDraft(
-            locationTrack(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            locationTrack(trackNumber.id), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         ).rowVersion
         val locationTrack = locationTrackDao.fetch(originalLocationTrackVersion)
         locationTrackService.saveDraft(locationTrack.copy(state = LayoutState.DELETED))
 
-        fakeRatko.hasRouteNumber(ratkoRouteNumber(id = trackNumber.externalId.toString()))
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = locationTrack.externalId.toString()))
 
         publishAndPush(
-            trackNumbers = listOf(originalTrackNumberVersion),
+            trackNumbers = listOf(trackNumber.version),
             locationTracks = listOf(originalLocationTrackVersion)
         )
-        assertEquals(listOf(""), fakeRatko.getRouteNumberPointDeletions(trackNumber.externalId!!.toString()))
+        assertEquals(listOf(""), fakeRatko.getRouteNumberPointDeletions(trackNumber.externalId.toString()))
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions(locationTrack.externalId!!.toString()))
     }
 
     @Test
     fun avoidPushingShortMetadata() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
-        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
-        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val trackNumber = establishedTrackNumber()
         val plan = plan(
-            trackNumberId,
+            trackNumber.id,
             LAYOUT_SRID,
             // elements don't matter, only the names being different matters since that makes the metadatas distinct
-            geometryAlignment(trackNumberId, elements = listOf(lineFromOrigin(1.0)), name = "foo"),
-            geometryAlignment(trackNumberId, elements = listOf(lineFromOrigin(1.0)), name = "bar"),
+            geometryAlignment(trackNumber.id, elements = listOf(lineFromOrigin(1.0)), name = "foo"),
+            geometryAlignment(trackNumber.id, elements = listOf(lineFromOrigin(1.0)), name = "bar"),
         )
         val fileContent = "<a></a>"
         val planVersion = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val planAlignments = geometryDao.fetchPlan(planVersion).alignments
 
         val locationTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, externalId = null),
+            locationTrack(trackNumber.id, externalId = null),
             alignment(
                 segment(Point(0.0, 0.0), Point(5.0, 0.0), sourceId = planAlignments[0].elements[0].id),
                 segment(Point(5.0, 0.0), Point(5.6, 0.0), sourceId = planAlignments[1].elements[0].id),
@@ -901,5 +868,27 @@ class RatkoServiceIT @Autowired constructor(
             ""
         )
         ratkoService.pushChangesToRatko()
+    }
+
+
+    private data class EstablishedTrackNumber(
+        val id: IntId<TrackLayoutTrackNumber>,
+        val externalId: Oid<TrackLayoutTrackNumber>,
+        val version: RowVersion<TrackLayoutTrackNumber>,
+        val trackNumberObject: TrackLayoutTrackNumber,
+    )
+
+    private fun establishedTrackNumber(oidString: String = "1.1.1.1.1"): EstablishedTrackNumber {
+        val oid = Oid<TrackLayoutTrackNumber>(oidString)
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberDaoResponse = layoutTrackNumberDao.insert(trackNumber(trackNumber, externalId = oid))
+        insertSomeOfficialReferenceLineFor(trackNumberDaoResponse.id)
+        fakeRatko.hasRouteNumber(ratkoRouteNumber(oidString))
+        return EstablishedTrackNumber(
+            id = trackNumberDaoResponse.id,
+            externalId = oid,
+            version = trackNumberDaoResponse.rowVersion,
+            trackNumberObject = layoutTrackNumberDao.fetch(trackNumberDaoResponse.rowVersion)
+        )
     }
 }
