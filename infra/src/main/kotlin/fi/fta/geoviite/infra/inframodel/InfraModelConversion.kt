@@ -67,12 +67,6 @@ fun toGvtPlan(
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.unsupported-version"
         )
     }
-    checkBlacklistedCodings(infraModel.project?.feature?.properties ?: emptyList()) { org ->
-        throw InframodelParsingException(
-            message = "Plan is from a blacklisted organization. org=${org}",
-            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.blacklisted-organization"
-        )
-    }
 
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
     val gvtSwitches =
@@ -165,13 +159,6 @@ fun parseUnits(
 private val SUPPORTED_INFRAMODEL_VERSIONS = listOf("4.0.3", "4.0.4")
 private fun isSupportedInframodelVersion(versionString: String?) =
     versionString == null || SUPPORTED_INFRAMODEL_VERSIONS.contains(versionString)
-
-private val BLACKLISTED_CODINGS = listOf("Tielaitos")
-
-private fun checkBlacklistedCodings(properties: List<InfraModelProperty>, onFail: (blacklistedCoding: String) -> Unit) =
-    properties
-        .find { prop -> BLACKLISTED_CODINGS.contains(prop.value) }
-        ?.let { org -> onFail(org.value) }
 
 fun parseTime(timeString: String): Instant =
     if (timeString.endsWith("Z")) Instant.parse(timeString)

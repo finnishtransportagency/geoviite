@@ -101,9 +101,10 @@ class PVClient @Autowired constructor(
         return getMandatory<PVApiDocument>("$FILE_DATA_PATH/$oid")
     }
 
-    fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String {
+    fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String? {
         logger.integrationCall("fetchFileContent", "oid" to oid, "version" to version)
-        return getMandatory<String>("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}")
+        return getOptional<String>("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}")
+            .also { content -> if (content == null) logger.warn("File content was null! oid=$oid") }
     }
 
     fun fetchDictionaries(): Map<PVDictionaryType, List<PVDictionaryEntry>> =

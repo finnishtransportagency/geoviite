@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.util
 
 import PVDictionaryCode
 import PVDictionaryName
+import PVProjectName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -182,6 +183,10 @@ fun ResultSet.getBboxOrNull(name: String): BoundingBox? =
 fun ResultSet.getPolygonPointList(name: String): List<Point> = verifyNotNull(name, ::getPolygonPointListOrNull)
 
 fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? = getString(name)?.let(::parse2DPolygon)
+
+fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+
+fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getString(name)?.let(::PVProjectName)
 
 fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName = verifyNotNull(name, ::getPVDictionaryNameOrNull)
 
