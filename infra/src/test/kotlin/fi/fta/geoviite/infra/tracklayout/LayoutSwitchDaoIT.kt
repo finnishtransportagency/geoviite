@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -20,7 +20,7 @@ import kotlin.test.assertContains
 @SpringBootTest
 class LayoutSwitchDaoIT @Autowired constructor(
     private val switchDao: LayoutSwitchDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun switchExternalIdIsUnique() {

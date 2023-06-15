@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -21,7 +21,7 @@ import kotlin.test.assertNull
 class LayoutKmPostServiceIT @Autowired constructor(
     private val kmPostService: LayoutKmPostService,
     private val kmPostDao: LayoutKmPostDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun nearbyKmPostsAreReturnedInOrder() {

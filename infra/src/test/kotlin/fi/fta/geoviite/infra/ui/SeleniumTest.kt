@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.ui
 
 import browser
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ui.pagemodel.common.MainNavigationBar
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
 import fi.fta.geoviite.infra.ui.util.TruncateDbDao
@@ -18,7 +18,7 @@ const val UI_TEST_USER = "UI_TEST_USER"
 
 @ExtendWith(E2ETestWatcher::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-open class SeleniumTest: ITTestBase(UI_TEST_USER) {
+open class SeleniumTest: DBTestBase(UI_TEST_USER) {
 
     @Value("\${geoviite.e2e.url}") val startUrlProp: String? = null
     val startUrl: String by lazy { requireNotNull(startUrlProp) }

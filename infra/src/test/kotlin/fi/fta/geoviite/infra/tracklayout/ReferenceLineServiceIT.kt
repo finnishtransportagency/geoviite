@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -28,7 +28,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     private val referenceLineService: ReferenceLineService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun creatingAndDeletingUnpublishedReferenceLineWithAlignmentWorks() {

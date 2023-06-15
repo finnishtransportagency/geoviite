@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -30,7 +30,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
     private val switchDao: LayoutSwitchDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
-): ITTestBase() {
+): DBTestBase() {
     @Test
     fun switchOwnerIsReturned() {
         val dummyOwner = SwitchOwner(id = IntId(4), name = MetaDataName("Cinia"))

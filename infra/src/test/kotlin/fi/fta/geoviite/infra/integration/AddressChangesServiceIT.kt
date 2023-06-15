@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -38,7 +38,7 @@ class AddressChangesServiceIT @Autowired constructor(
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val layoutKmPostDao: LayoutKmPostDao,
     val addressChangesService: AddressChangesService,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun addressChangesAreEmptyIfNothingCanBeGeocoded() {

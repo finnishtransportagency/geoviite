@@ -91,10 +91,6 @@ class BasicMapTestUI @Autowired constructor(
     }
 
     @Test
-//    @Disabled
-    fun launchBrowserForDebug() {}
-
-    @Test
     fun `Edit and discard location track changes`() {
         val locationTrackToBeEdited = EAST_LT_NAME
 

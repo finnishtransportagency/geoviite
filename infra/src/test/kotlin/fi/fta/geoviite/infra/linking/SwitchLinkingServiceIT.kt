@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
 import fi.fta.geoviite.infra.geography.TriangulationDirection
@@ -33,7 +33,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val switchStructureDao: SwitchStructureDao,
     private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao
-    ) : ITTestBase() {
+    ) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
     lateinit var switchAlignment_1_5_2: SwitchAlignment

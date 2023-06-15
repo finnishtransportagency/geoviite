@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.authorization.getCurrentUserName
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.geometryAlignment
@@ -42,7 +41,7 @@ class RatkoServiceIT @Autowired constructor(
     val fakeRatkoService: FakeRatkoService,
     val geometryDao: GeometryDao,
 
-    ) : ITTestBase() {
+    ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
         val sql = """

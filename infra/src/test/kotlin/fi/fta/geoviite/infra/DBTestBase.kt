@@ -16,7 +16,7 @@ import java.time.Instant
 
 const val TEST_USER = "TEST_USER"
 
-abstract class ITTestBase(val testUser: String = TEST_USER) {
+abstract class DBTestBase(val testUser: String = TEST_USER) {
     @Autowired
     var jdbcTemplate: NamedParameterJdbcTemplate? = null
     @Autowired

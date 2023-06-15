@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -22,7 +22,7 @@ class LinkingDaoIT @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
-): ITTestBase() {
+): DBTestBase() {
 
 
     @Test

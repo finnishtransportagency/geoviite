@@ -100,11 +100,11 @@ class LinkingTestUI @Autowired constructor(
         trackNumberDao.deleteDrafts()
     }
 
-//    @BeforeAll
     @BeforeEach
     fun createTestData() {
         clearAllTestData()
 
+        // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
         EspooTestData.switchStructures = switchStructureDao.fetchSwitchStructures()
 
         val trackNumber1 = createTrackLayoutTrackNumber(ESPOO_TRACK_NUMBER_1)
@@ -156,13 +156,8 @@ class LinkingTestUI @Autowired constructor(
 
         GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), boundinBox)))
 
-//    }
-//
-//    @BeforeEach
-//    fun goToMapPage() {
         clearDrafts()
-//        openBrowser()
-    startGeoviite()
+        startGeoviite()
 
         mapPage = goToMap()
         mapPage.luonnostila()
@@ -181,11 +176,6 @@ class LinkingTestUI @Autowired constructor(
         navigationPanel.selectReferenceLine(ESPOO_TRACK_NUMBER_1)
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
-
-
-    @Test
-    @Disabled
-    fun launchBrowserForDebug() { }
 
     @Test
     fun `Create a new location track and link geometry`() {
@@ -865,11 +855,6 @@ class LinkingTestUI @Autowired constructor(
         val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
         return referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
     }
-
-//    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>): IntId<LocationTrack> {
-//        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-//        return locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
-//    }
 
     fun getLocationTrackAndAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         return when (publishType) {

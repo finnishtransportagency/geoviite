@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 @SpringBootTest
 class ElementListingFileDaoIT @Autowired constructor(
     private val elementListingFileDao: ElementListingFileDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @BeforeEach
     fun setUp() {

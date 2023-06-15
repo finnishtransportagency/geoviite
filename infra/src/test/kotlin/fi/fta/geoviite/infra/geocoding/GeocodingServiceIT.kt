@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LinearUnit
@@ -14,8 +14,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -27,7 +27,7 @@ class GeocodingServiceIT @Autowired constructor(
     private val geocodingService: GeocodingService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geometryDao: GeometryDao,
-) : ITTestBase() {
+) : DBTestBase() {
 
     @Test
     fun `geocoding context can be generated from geometry plan`() {
