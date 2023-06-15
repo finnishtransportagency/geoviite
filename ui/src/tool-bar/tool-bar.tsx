@@ -54,6 +54,7 @@ export type ToolbarParams = {
     publishType: PublishType;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
+    disableNewMenu: boolean;
 };
 
 type LocationTrackItemValue = {
@@ -247,7 +248,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
-                            disabled={props.publishType !== 'DRAFT'}
+                            disabled={props.publishType !== 'DRAFT' || props.disableNewMenu}
                             onClick={() => setShowAddMenu(!showAddMenu)}
                         />
                     </WriteAccessRequired>

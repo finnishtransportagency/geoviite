@@ -82,19 +82,21 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     const [plansBeingLoaded, startLoadingPlan, finishLoadingPlan] = useSetState<GeometryPlanId>();
 
     React.useEffect(() => {
-        getGeometryPlanHeadersBySearchTerms(
-            MAX_PLAN_HEADERS,
-            0,
-            viewport.area,
-            ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
-            selectedTrackNumbers,
-            undefined,
-            SortByValue.UPLOADED_AT,
-            SortOrderValue.ASCENDING,
-        ).then((page) => {
-            setPlanHeadersInView(page.items);
-            setPlanHeaderCount(page.totalCount);
-        });
+        if (viewport.area) {
+            getGeometryPlanHeadersBySearchTerms(
+                MAX_PLAN_HEADERS,
+                0,
+                viewport.area,
+                ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+                selectedTrackNumbers,
+                undefined,
+                SortByValue.UPLOADED_AT,
+                SortOrderValue.ASCENDING,
+            ).then((page) => {
+                setPlanHeadersInView(page.items);
+                setPlanHeaderCount(page.totalCount);
+            });
+        }
     }, [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers.sort().join('')]);
 
     React.useEffect(

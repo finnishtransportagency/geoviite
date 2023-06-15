@@ -296,6 +296,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 trackNumberChangeTime={trackNumberChangeTime}
                                 onSelect={onSelect}
                                 selectedLayoutReferenceLine={selectedLayoutReferenceLine}
+                                disableAddButton={linkingState.type !== LinkingType.UnknownAlignment}
                                 onShowAddTrackNumberDialog={() => setShowAddTrackNumberDialog(true)}
                             />
                             <GeometryAlignmentLinkingLocationTrackCandidates
@@ -304,6 +305,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 locationTrackChangeTime={locationTrackChangeTime}
                                 onSelect={onSelect}
                                 selectedLayoutLocationTrack={selectedLayoutLocationTrack}
+                                disableAddButton={linkingState.type !== LinkingType.UnknownAlignment}
                                 onShowAddLocationTrackDialog={() =>
                                     setShowAddLocationTrackDialog(true)
                                 }
