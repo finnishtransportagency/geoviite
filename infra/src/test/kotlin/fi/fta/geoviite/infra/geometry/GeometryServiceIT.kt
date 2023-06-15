@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -23,7 +23,7 @@ class GeometryServiceIT @Autowired constructor(
     private val kmPostService: LayoutKmPostService,
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
-) : ITTestBase() {
+) : DBTestBase() {
 
     @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {

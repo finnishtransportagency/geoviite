@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.KmNumber
@@ -32,7 +32,7 @@ class InfraModelParsingIT @Autowired constructor(
     geographyService: GeographyService,
     switchStructureDao: SwitchStructureDao,
     val trackNumberDao: LayoutTrackNumberDao,
-): ITTestBase() {
+): DBTestBase() {
     private val coordinateSystemNameToSrid = geographyService.getCoordinateSystemNameToSridMapping()
     private val switchStructuresByType = switchStructureDao.fetchSwitchStructures().associateBy { it.type }
     private val switchTypeNameAliases = switchStructureDao.getInframodelAliases()

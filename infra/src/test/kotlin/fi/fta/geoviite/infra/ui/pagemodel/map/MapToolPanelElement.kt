@@ -1,17 +1,28 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.byText
+import fi.fta.geoviite.infra.ui.util.fetch
 import getElementWhenClickable
 import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import waitAndGetToasterElement
-import waitUntilChildDoesNotExist
+import waitUntilChildNotVisible
 import waitUntilElementIsStale
+import waitUntilVisible
+import java.time.Duration
 
+// TODO: GVT-1947 refactor these to match common style:
+//   Code language,
+//   Don't use localized strings as id
+//   This file is also too large: split into separate components
+//   The fields here (and other test data) should perhaps be properly typed instead of strings. That would make them easier to compare.
+// TODO: GVT-1939 Replace init-sleeps with reliable waits
+//   implement spinner-indicators for data that is still loading
+//   InfoBox already has waitUntilLoaded() that is called on init - it will wait for all spinners to disappear
 class GeometryPlanGeneralInfoBox(by: By) : InfoBox(by) {
     init {
         //Object initializes too quickly and webelement is not stable/ready
@@ -70,17 +81,16 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
 
     fun muokkaaAlkuLoppupistetta() {
         logger.info("Edit start/end point")
-        clickButton("Lyhennä alkua ja/tai loppua")
-        getButtonElementByContent("Valmis") //Only ensures that the infobox has changed to edit mode
+        clickButtonByText("Lyhennä alkua ja/tai loppua")
+        waitUntilVisible(byText("Valmis")) // Ensures that the infobox has changed to edit mode
     }
 
-    fun valmis(): Toaster{
-        clickButton("Valmis")
+    fun valmis(): Toaster {
+        clickButtonByText("Valmis")
         return waitAndGetToasterElement()
     }
 
-    fun peruuta() =
-        clickButton("Lopeta")
+    fun peruuta() = clickButtonByText("Lopeta")
 }
 
 class LocationTrackGeneralInfoBox(by: By) : InfoBox(by) {
@@ -92,11 +102,20 @@ class LocationTrackGeneralInfoBox(by: By) : InfoBox(by) {
     fun openRatanumero() = fieldElement("Ratanumero").findElement(By.cssSelector("a")).click()
 
     fun muokkaaTietoja(): CreateEditLocationTrackDialog {
-        editInfoBoxValues()
-        return CreateEditLocationTrackDialog(rootElement)
+        startEditingInfoBoxValues()
+        // TODO: GVT-1947 Find and remove all places where the element is fetched and remembered, like this dialog creation
+        //  To fix it:
+        //    Ensure the component inherit PageModel (this dialog does)
+        //    Change the constructor argument from (x: WebElement) to a function (fetchX: () -> WebElement) or By (elementBy: By)
+        //    Change the use-place constructor call to match
+        //      If the user is also inherited from pageModel, its own elementFetch or something derived from it can be used:
+        //        This Component(webElement) becomes Component(elementFetch)
+        //      If the user seeks the content with By, you can just pass that in
+        return CreateEditLocationTrackDialog(webElement)
     }
 
-    fun kohdistaKartalla() = clickButton("Kohdista kartalla").also { Thread.sleep(500) }
+    // TODO: GVT-1947 Sleep needed?
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
 }
 
 class CreateEditLayoutSwitchDialog(val editedElement: WebElement): DialogPopUp() {
@@ -105,7 +124,6 @@ class CreateEditLayoutSwitchDialog(val editedElement: WebElement): DialogPopUp()
         POISTUNUT_KOHDE("Poistunut kohde"),
         OLEMASSA_OLEVA_KOHDE("Olemassa oleva kohde")
     }
-    val content = FormLayout(By.className("dialog__content"))
 
     fun editVaihdetunnus(vaihdetunnus: String) = this {
         content.changeFieldValue("Vaihdetunnus", vaihdetunnus)
@@ -117,7 +135,7 @@ class CreateEditLayoutSwitchDialog(val editedElement: WebElement): DialogPopUp()
 
     fun tallenna(): Toaster {
         val isPoistunut = content.fieldValue("Tilakategoria") == Tilakategoria.POISTUNUT_KOHDE.uiText
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
 
         if (isPoistunut) {
             logger.info("Confirm saving changes")
@@ -130,6 +148,7 @@ class CreateEditLayoutSwitchDialog(val editedElement: WebElement): DialogPopUp()
     }
 }
 
+// TODO: GVT-1939 This input editedElement is here to verify it going stale when the data updates. Use a generic pattern instead.
 class KmPostEditDialog(val editedElement: WebElement): DialogPopUp() {
 
     enum class TilaTyyppi(val uiText: String) {
@@ -138,8 +157,6 @@ class KmPostEditDialog(val editedElement: WebElement): DialogPopUp() {
         KAYTOSTA_POISTETTU("Käytöstä poistettu"),
     }
 
-    val content = FormLayout(By.className("dialog__content"))
-
     fun editTasakmpistetunnus(tasakmpistetunnus: String) = this {
         content.changeFieldValue("Tasakmpistetunnus", tasakmpistetunnus)}
 
@@ -147,7 +164,7 @@ class KmPostEditDialog(val editedElement: WebElement): DialogPopUp() {
         content.changeFieldDropDownValue("Tila", tilaTyyppi.uiText)}
 
     fun tallenna(waitUntilRootIsStale: Boolean = true): Toaster {
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
         if (waitUntilRootIsStale) waitUntilElementIsStale(editedElement)
         return waitAndGetToasterElement()
     }
@@ -177,8 +194,6 @@ class CreateEditLocationTrackDialog(val editedElement: WebElement): DialogPopUp(
         RAITEEN_ALKU_JA_LOPPU("Raiteen alku ja loppu")
     }
 
-    val content = FormLayout(By.className("dialog__content"))
-
     fun editSijaintiraidetunnus(sijaintiraidetunnus: String) = this {
         content.changeFieldValue("Sijaintiraidetunnus", sijaintiraidetunnus) }
 
@@ -199,9 +214,9 @@ class CreateEditLocationTrackDialog(val editedElement: WebElement): DialogPopUp(
 
     fun tallenna(waitUntilRootIsStale: Boolean = true): Toaster {
         val isPoistettu = content.fieldValue("Tila") == TilaTyyppi.POISTETTU.uiText
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
         try {
-            if (waitUntilRootIsStale) waitUntilElementIsStale(element = editedElement, timeoutSeconds = 1)
+            if (waitUntilRootIsStale) waitUntilElementIsStale(editedElement, Duration.ofSeconds(1))
         } catch (ex: TimeoutException) {
             logger.warn("Root dialog never became stale or stabilized too fast")
         }
@@ -211,6 +226,7 @@ class CreateEditLocationTrackDialog(val editedElement: WebElement): DialogPopUp(
         }
 
         val toaster = waitAndGetToasterElement()
+        // TODO: GVT-1939 Get rid of unreliable sleep. This is the same in all these dialogs
         Thread.sleep(200) //location track list is unstable after deletion and there's no better fix for now
         return toaster
     }
@@ -230,8 +246,8 @@ class TrackNumberGeneralInfoBox(by: By) : InfoBox(by) {
     fun tila(): String = fieldValue("Tila")
     fun kuvaus(): String = fieldValue("Ratanumeron kuvaus")
     fun muokkaaTietoja(): CreateEditTrackNumberDialog {
-        editInfoBoxValues()
-        return CreateEditTrackNumberDialog(rootElement)
+        startEditingInfoBoxValues()
+        return CreateEditTrackNumberDialog(webElement)
     }
 }
 
@@ -241,8 +257,6 @@ class CreateEditTrackNumberDialog(val editedElement: WebElement): DialogPopUp() 
         KAYTOSTA_POISTETTU("Käytöstä poistettu"),
         POISTETTU("Poistettu")
     }
-
-    val content = FormLayout(By.className("dialog__content"))
 
     fun editTunnus(tunnus: String) = this {
         content.changeFieldValue("Tunnus", tunnus)
@@ -258,9 +272,9 @@ class CreateEditTrackNumberDialog(val editedElement: WebElement): DialogPopUp() 
 
     fun tallenna(waitUntilRootIsStale: Boolean = true): Toaster {
         val isPoistettu = content.fieldValue("Tila") == CreateEditLocationTrackDialog.TilaTyyppi.POISTETTU.uiText
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
         try {
-            if (waitUntilRootIsStale) waitUntilElementIsStale(element = editedElement, timeoutSeconds = 1)
+            if (waitUntilRootIsStale) waitUntilElementIsStale(editedElement, Duration.ofSeconds(1))
         } catch (ex: TimeoutException) {
             logger.warn("Root dialog never became stale or stabilized too fast")
         }
@@ -282,7 +296,7 @@ class ReferenceLineLocationInfoBox(by: By) : InfoBox(by) {
     fun todellinenPituus(): String = fieldValue("Todellinen pituus (m)")
     fun alkukoordinaatti(): String = fieldValue("Alkukoordinaatit TM35FIN")
     fun loppukoordinaatti(): String = fieldValue("Loppukoordinaatit TM35FIN")
-    fun kohdistaKartalla() = clickButton("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
 }
 
 class TrackNumberLogInfoBox(by: By) : InfoBox(by) {
@@ -295,8 +309,8 @@ class LayoutSwitchGeneralInfoBox(by: By) : InfoBox(by) {
     fun oidTunnus(): String = fieldValue("OID")
     fun tila(): String = fieldValue("Tila")
     fun muokkaaTietoja(): CreateEditLayoutSwitchDialog {
-        editInfoBoxValues()
-        return CreateEditLayoutSwitchDialog(rootElement)
+        startEditingInfoBoxValues()
+        return CreateEditLayoutSwitchDialog(webElement)
     }
 
 }
@@ -306,7 +320,7 @@ class LayoutSwitchAdditionalInfoInfoBox(by: By) : InfoBox(by) {
 }
 
 class SwitchStructureGeneralInfoBox(by: By) : InfoBox(by) {
-    fun tyyppi(): String = getChildElementStaleSafe(By.cssSelector("p")).text
+    fun tyyppi(): String = childText(By.cssSelector("p"))
     fun katisyys(): String = fieldValue("Kätisyys")
     fun turvavaihde(): String = fieldValue("Turvavaihde")
 }
@@ -314,8 +328,8 @@ class SwitchStructureGeneralInfoBox(by: By) : InfoBox(by) {
 class SwitchCoordinatesInfoBox(by: By) : InfoBox(by) {
     fun koordinaatit(): String = fieldValue("Koordinaatit (TM35FIN)")
     fun vaihteenLinjat(): List<SwitchLineAndTrack> {
-        val switchLines = getChildElementsStaleSafe(By.cssSelector("dt.switch-joint-infobox__joint-alignments-title")).map { it.text }
-        val switchTracks = getChildElementsStaleSafe(By.cssSelector("dd.switch-joint-infobox__location-tracks div span")).map { it.text}
+        val switchLines = childTexts(By.cssSelector("dt.switch-joint-infobox__joint-alignments-title"))
+        val switchTracks = childTexts(By.cssSelector("dd.switch-joint-infobox__location-tracks div span"))
         return switchLines.mapIndexed{ index, line -> SwitchLineAndTrack(line, switchTracks[index]) }
     }
     fun linjaJaRaide(linja: String) =
@@ -327,7 +341,7 @@ class GeometryAlignmentGeneralInfoBox(by: By) : InfoBox(by) {
     fun nimi() = fieldValue("Nimi")
     fun pituusmittauslinja() = fieldValue("Pituusmittauslinja")
 
-    fun kohdistaKartalla() = clickButton("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
 }
 
 open class LinkingInfoBox(by: By): InfoBox(by) {
@@ -335,28 +349,20 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
 
     fun aloitaLinkitys() {
         logger.info("Start linking")
-        clickButton("Aloita linkitys")
-        getButtonElementByContent("Peruuta") //ensures that the infobox has changed
+        clickButtonByText("Aloita linkitys")
+        waitChildVisible(byText("Peruuta")) //ensures that the infobox has changed
     }
 
     fun lisaaLinkitettavia() {
         logger.info("Add more linked alignments")
-        clickButton("Lisää linkitettäviä")
-        getButtonElementByContent("Peruuta")
+        clickButtonByText("Lisää linkitettäviä")
+        waitChildVisible(byText("Peruuta")) //ensures that the infobox has changed
     }
 
     fun linkita(): Toaster {
         logger.info("Link")
-        val elementBeforeClick = rootElement
-        clickButton("Linkitä")
-        val toaster = waitAndGetToasterElement()
-
-        //This works as a basic Thread.Sleep() if root element becomes stable very fast
-        try {
-            waitUntilElementIsStale(elementBeforeClick, timeoutSeconds = 1)
-        } catch (_: TimeoutException) { }
-
-        return toaster
+        childButton(byText("Linkitä")).clickAndWaitToDisappear()
+        return waitAndGetToasterElement()
     }
 
     fun pituusmittauslinja() = fieldValue("Pituusmittauslinja")
@@ -364,43 +370,39 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
 class GeometryKmPostLinkingInfoBox(by: By): LinkingInfoBox(by) {
     fun linkTo(name: String) {
         logger.info("Link to $name")
-        getChildElementStaleSafe(
-            By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']/div/span[text() = '$name']")
-        ).click()
+        clickChild(By.xpath(
+            ".//li[@class='geometry-km-post-linking-infobox__layout-km-post']/div/span[text() = '$name']"
+        ))
     }
 
     fun createNewTrackLayoutKmPost(): KmPostEditDialog {
         getElementWhenClickable(By.cssSelector("div.geometry-km-post-linking-infobox__search button")).click()
-        return KmPostEditDialog(rootElement)
+        return KmPostEditDialog(webElement)
     }
 
-    fun trackLayoutKmPosts(): List<String> {
-        val kmPosts = getChildElementsStaleSafe(
-            By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']/div/span")
-        ).map { element -> element.text }
-        logger.info("Track layout KM-posts [$kmPosts]")
-        return kmPosts
-    }
+    fun trackLayoutKmPosts(): List<String> = childTexts(By.xpath(
+        ".//li[@class='geometry-km-post-linking-infobox__layout-km-post']/div/span"
+    )).also { kmPosts -> logger.info("Track layout KM-posts [$kmPosts]") }
 }
 
 class GeometryAlignmentLinkingInfoBox(by: By): LinkingInfoBox(by) {
 
     fun linkTo(name: String) = this {
         logger.info("Link to $name")
-        getChildElementStaleSafe(
-            By.xpath(".//li[@class='geometry-alignment-infobox__alignment']/div/span[text() = '$name']")
-        ).click()
+        clickChild(By.xpath(
+            ".//li[@class='geometry-alignment-infobox__alignment']/div/span[text() = '$name']"
+        ))
     }
 
     fun createNewLocationTrack(): CreateEditLocationTrackDialog {
         logger.info("Create a new location track")
-        getElementWhenClickable(By.xpath("//button[@qa-id='create-location-track-button']")).click()
-        return CreateEditLocationTrackDialog(rootElement)
+        clickButtonByQaId("create-location-track-button")
+        return CreateEditLocationTrackDialog(webElement)
     }
 
     fun lukitseValinta() = this {
         logger.info("Lock selection")
-        clickButton("Lukitse valinta")
+        clickButtonByText("Lukitse valinta")
         //TODO: this might break things
         //getButtonElement("Poista valinta")
     }
@@ -409,28 +411,28 @@ class GeometryAlignmentLinkingInfoBox(by: By): LinkingInfoBox(by) {
 class GeometrySwitchGeneralInfoBox(by: By): InfoBox(by) {
     fun nimi() = fieldValue("Nimi")
     fun katisyys() = fieldValue("Kätisyys")
-    fun kohdistaKartalla() = clickButton("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
 
 }
 
 class GeometrySwitchLinkingInfoBox(by: By): LinkingInfoBox(by) {
     fun lukitseValinta() = this {
         logger.info("Lock selection")
-        clickButton("Lukitse valinta")
-        getButtonElementByContent("Poista valinta")
+        clickButtonByText("Lukitse valinta")
+        waitChildVisible(byText("Poista valinta"))
     }
 
     fun createNewTrackLayoutSwitch(): CreateEditLayoutSwitchDialog {
         logger.info("Create new track layout switch")
         getElementWhenClickable(By.cssSelector("div.geometry-switch-infobox__search-container button")).click()
-        return CreateEditLayoutSwitchDialog(rootElement)
+        return CreateEditLayoutSwitchDialog(webElement)
     }
 
     fun linkTo(name: String) {
         logger.info("Link to $name")
-        getChildElementStaleSafe(
-            By.xpath(".//li[@class='geometry-switch-infobox__switch']/span/span[text() = '$name']")
-        ).click()
+        clickChild(By.xpath(
+            ".//li[@class='geometry-switch-infobox__switch']/span/span[text() = '$name']"
+        ))
     }
 }
 
@@ -453,7 +455,7 @@ class MapLayerSettingsPanel(by: By) : PageModel(by) {
 
     fun close() = this {
         logger.info("Close map layer settings panel")
-        getChildElementStaleSafe(By.cssSelector("button")).click()
+        clickChild(By.cssSelector("button"))
     }
 
     fun selectSetting(setting: Setting, enable: Boolean = true) = this {
@@ -489,63 +491,69 @@ class AddEndPointDialog : DialogPopUp() {
     }
 
     private fun ok() = this  {
-        clickButton("OK")
-        getButtonElementByContent("Jatka")
+        clickButtonByText("OK")
+        waitUntilVisible(byText("Jatka"))
     }
 
     private fun selectRadioButton(buttonLabel: String) = this {
         logger.info("Select radio button $buttonLabel")
-        contentElement.findElement(By.xpath("//label[@class='radio' and span[text() = '$buttonLabel']]/span[@class='radio__visualization']")).click()
+        clickChild(By.xpath(
+            "//label[@class='radio' and span[text() = '$buttonLabel']]/span[@class='radio__visualization']"
+        ))
     }
 }
 
-class SwitchLinkingDialog(): DialogPopUp() {
+class SwitchLinkingDialog: DialogPopUp() {
     fun vaihdetyyppi(switchType: String) = this {
         logger.info("Select the switch type '$switchType'")
-        val dropDown = DropDown(getElementWhenVisible(By.cssSelector("div.dialog .dropdown")))
+        val dropDown = childComponent(By.cssSelector("div.dialog .dropdown"), ::DropDown)
         dropDown.openDropdown()
         dropDown.selectItem(switchType)
     }
 
     fun selectLocationTrack(switchLine: String, locationTrackName: String) = this {
         logger.info("Select $locationTrackName to switch line $switchLine")
-        val dropDown = DropDown(getElementWhenVisible(By.xpath("//label[text() = '$switchLine']/following-sibling::div[1]")))
+        val dropDown = childComponent(By.xpath("//label[text() = '$switchLine']/following-sibling::div[1]"), ::DropDown)
         dropDown.openDropdown()
         dropDown.selectItem(locationTrackName)
     }
 
     fun aloitaLinkitys() {
-        clickButton("Aloita linkitys")
+        clickButtonByText("Aloita linkitys")
     }
 }
 
-class ContinueAsAnotherTrackDialog(): DialogPopUp() {
+class ContinueAsAnotherTrackDialog: DialogPopUp() {
     fun valitseJatkuvaRaide(alignmentName: String) = this {
         logger.info("Select the alignment '$alignmentName' to continue with ")
-        val dropDown = DropDown(getElementWhenVisible(By.cssSelector("div.dialog .dropdown")))
+        val dropDown = childComponent(By.cssSelector("div.dialog .dropdown"), ::DropDown)
         dropDown.openDropdown()
         dropDown.selectItem(alignmentName)
     }
 
     fun jatka() = this {
-        clickButton("Jatka")
+        clickButtonByText("Jatka")
     }
 }
 
-class SearchBox(element: WebElement) {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val dropDown = DropDown(element)
+class SearchBox(val path: By): PageModel(path) {
+    val qaId = "search-box"
+    private val dropDown: DropDown get() = DropDown(elementFetch)
 
     fun search(input: String) {
-        dropDown.inputText((input))
+        clearQuery()
+        addToSearchInput(input)
+    }
+
+    fun addToSearchInput(input: String) {
+        dropDown.inputText(input)
         logger.info("Perform query: ${dropDown.currentValue()}")
-        waitUntilChildDoesNotExist(dropDown.element,
-            By.xpath(".//li[@class='dropdown__list-item dropdown__list-item--no-options' and contains(text(),'Ladataan...')]"))
+        waitUntilOpenAndNotLoading()
         logger.info("Search ready")
     }
 
     fun searchResults(): List<SearchResult> {
+        // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
         val searchResults = dropDown.listItems().map { SearchResult(it) }
         logger.info("Search results: ${searchResults.map { it.value() }}")
         return searchResults
@@ -566,6 +574,10 @@ class SearchBox(element: WebElement) {
         fun select() = resultRow.click()
     }
 
+    fun waitUntilOpenAndNotLoading() {
+        waitUntilVisible(By.className("dropdown__list"))
+        waitUntilChildNotVisible(fetch(By.className("dropdown__list")), byQaId("$qaId-loading"))
+    }
 }
 
 data class SwitchLineAndTrack (

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -26,7 +26,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
     val publicationDao: PublicationDao,
     val locationTrackDao: LocationTrackDao,
-): ITTestBase() {
+): DBTestBase() {
     lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
     lateinit var layoutPublishId: IntId<Publication>
     lateinit var locationTrackId: IntId<LocationTrack>

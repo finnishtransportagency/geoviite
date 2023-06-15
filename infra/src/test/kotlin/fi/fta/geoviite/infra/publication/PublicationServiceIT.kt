@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -40,7 +40,7 @@ class PublicationServiceIT @Autowired constructor(
     val switchDao: LayoutSwitchDao,
     val switchService: LayoutSwitchService,
     val calculatedChangesService: CalculatedChangesService,
-): ITTestBase() {
+): DBTestBase() {
 
     @BeforeEach
     fun clearDrafts() {

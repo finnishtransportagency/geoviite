@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory
 class ChangePreviewTable(val table: WebElement) {
     private val logger: Logger = LoggerFactory.getLogger(ChangePreviewTable::class.java)
 
+    // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    @Deprecated("Element risks staleness")
     fun changeRows(): List<ChangePreviewRow> {
         val header = header()
         return rowElements().map { rowElement -> ChangePreviewRow(header, rowElement) }
@@ -62,6 +64,3 @@ class ChangePreviewRow(header: List<String>, row: WebElement): TableRow(header, 
     fun nuolinappi(): WebElement = getColumnByName("Toiminnot").findElement(By.xpath("//button[@qa-id='stage-change-button']"))
     fun menu(): WebElement = getColumnByName("Toiminnot").findElement(By.xpath("//button[@qa-id='menu-button']"))
 }
-
-
-

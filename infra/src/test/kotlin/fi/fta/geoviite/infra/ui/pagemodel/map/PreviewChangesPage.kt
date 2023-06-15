@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import fi.fta.geoviite.infra.ui.util.byText
 import getElementWhenClickable
 import getElementWhenVisible
 import org.openqa.selenium.By
@@ -27,7 +28,7 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
             throw AssertionError("Following changes prevent publishing \n $errors")
         }
 
-        clickButton("Julkaise")
+        clickButtonByText("Julkaise")
 
         PreviewChangesSaveOrDiscardDialog().julkaise()
         return waitAndGetToasterElement()
@@ -81,7 +82,5 @@ class PreviewChangesSaveOrDiscardDialog: DialogPopUp() {
         clickButtonByQaId("publication-confirm")
     }
 
-    fun hylkaa() =
-        clickButton("Hylkää")
-
+    fun hylkaa() = childButton(byText("Hylkää")).clickAndWaitToDisappear()
 }

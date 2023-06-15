@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui
 
+import DEV_DEBUG
 import closeBrowser
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.TestWatcher
@@ -31,7 +32,7 @@ class E2ETestWatcher : TestWatcher {
 
     private fun finalize(op: () -> Unit = {}) =
         try { op() }
-        finally { closeBrowser() }
+        finally { if (!DEV_DEBUG) closeBrowser() }
 }
 
 fun ExtensionContext.getClassName(): String = requiredTestClass.let(Class<*>::getSimpleName)

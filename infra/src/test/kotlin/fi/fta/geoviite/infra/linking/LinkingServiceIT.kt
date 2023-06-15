@@ -1,8 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 
-import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -31,7 +30,7 @@ class LinkingServiceIT @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val kmPostService: LayoutKmPostService,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun alignmentGeometryLinkingWorks() {

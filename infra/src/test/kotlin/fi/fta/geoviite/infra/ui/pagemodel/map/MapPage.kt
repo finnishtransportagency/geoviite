@@ -4,7 +4,7 @@ import browser
 import clickElementAtPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutPoint
-import fi.fta.geoviite.infra.ui.pagemodel.MainNavigationBar
+import fi.fta.geoviite.infra.ui.pagemodel.common.MainNavigationBar
 import getElementWhenClickable
 import getElementWhenVisible
 import javaScriptExecutor
@@ -55,8 +55,7 @@ class MapPage {
         getElementWhenVisible(By.xpath(".//span[contains(text(), 'Luonnostila')]")).click()
     }
 
-    fun searchBox(): SearchBox =
-        SearchBox(getElementWhenVisible(By.xpath("//div[@qa-id='search-box']")))
+    fun searchBox(): SearchBox = SearchBox(By.xpath("//div[@qa-id='search-box']"))
 
     fun scrollMap(xOffset: Int, yOffset: Int) {
         logger.info("Scroll map x=$xOffset y=$yOffset")

@@ -47,7 +47,7 @@ class InfraModelPage: PageModel(By.xpath("//div[@qa-id='main-content-container']
 
     fun search(query: String) {
         logger.info("Search '$query'")
-        getChildElementStaleSafe(By.className("infra-model-list-search-result__table"))
+        waitChildVisible(By.className("infra-model-list-search-result__table"))
         val searchField = getElementWhenVisible(By.xpath("//div[@class='infra-model-search-form__auto-complete']//input"))
         clearInput(searchField)
         searchField.sendKeys(query)

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -23,7 +23,7 @@ class GeocodingDaoIT @Autowired constructor(
     val alignmentService: LayoutAlignmentService,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
-) : ITTestBase() {
+) : DBTestBase() {
 
     @Test
     fun trackNumberWithoutReferenceLineHasNoContext() {

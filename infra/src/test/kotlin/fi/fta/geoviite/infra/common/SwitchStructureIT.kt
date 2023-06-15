@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.common
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.*
 import org.junit.jupiter.api.Test
@@ -13,7 +13,7 @@ import kotlin.test.assertEquals
 @SpringBootTest
 class SwitchStructureIT @Autowired constructor(
     val switchStructureDao: SwitchStructureDao
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun shouldGetSwitchStructures() {

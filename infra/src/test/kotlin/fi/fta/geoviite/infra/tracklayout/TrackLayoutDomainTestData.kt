@@ -188,15 +188,19 @@ fun referenceLine(
 
 fun locationTrackAndAlignment(
     vararg segments: LayoutSegment,
+    name: String = "T001",
+    description: String = "test-alignment 001",
 ): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(IntId(0), segments.toList())
+    locationTrackAndAlignment(IntId(0), segments.toList(), name=name, description=description)
 
 
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     vararg segments: LayoutSegment,
+    name: String = "T001",
+    description: String = "test-alignment 001",
 ): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(trackNumberId, segments.toList())
+    locationTrackAndAlignment(trackNumberId, segments.toList(), name=name, description=description)
 
 
 fun locationTrackAndAlignment(
@@ -204,9 +208,11 @@ fun locationTrackAndAlignment(
     segments: List<LayoutSegment>,
     id: IntId<LocationTrack>? = null,
     draft: Draft<LocationTrack>? = null,
+    name: String = "T001",
+    description: String = "test-alignment 001",
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
-    val locationTrack = locationTrack(trackNumberId, alignment, id, draft)
+    val locationTrack = locationTrack(trackNumberId, alignment, id, draft, name, description=description)
     return locationTrack to alignment
 }
 

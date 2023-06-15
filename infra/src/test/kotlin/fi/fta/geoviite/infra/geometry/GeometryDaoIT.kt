@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import assertPlansMatch
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
@@ -27,7 +27,7 @@ const val TEST_NAME_PREFIX = "GEOM_DAO_IT_"
 class GeometryDaoIT @Autowired constructor(
     val geometryDao: GeometryDao,
     val locationTrackService: LocationTrackService,
-): ITTestBase() {
+): DBTestBase() {
 
     @BeforeEach
     fun init() {

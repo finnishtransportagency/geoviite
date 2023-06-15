@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
@@ -27,7 +27,7 @@ class PublicationDaoIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @BeforeEach
     fun setup() {

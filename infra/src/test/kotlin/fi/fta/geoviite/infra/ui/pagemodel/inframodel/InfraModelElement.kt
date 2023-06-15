@@ -6,37 +6,40 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.TableRow
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
+import getChildElements
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
-import java.time.Duration
 import java.time.LocalDateTime
 
 
+// TODO: GVT-1936 Use generic table model to handle this (modeling after ListModel)
 class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
-    private val header = getChildElementStaleSafe(By.xpath("//table/thead/tr"))
+    private val headerElement: WebElement get() = childElement(By.xpath("//table/thead/tr"))
 
-    fun rowElements(): List<WebElement> {
-        try {
-            return getChildElementsStaleSafe(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"), Duration.ofSeconds(2) )
-
-        } catch (ex: TimeoutException) {
-            return emptyList()
-        }
+    // TODO: GVT-1936 This should not wait at all but only get the current listing
+    //  If the caller wants to wait for some specific data to appear, it has to have a different condition anyhow
+    private fun rowElements(): List<WebElement> = try {
+        webElement.getChildElements(
+            By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"),
+        )
+    } catch (ex: TimeoutException) {
+        emptyList()
     }
 
     fun infraModelRows(): List<InfraModelRow> {
         logger.info("Get Infra Model rows")
-        return rowElements().map { rowElement -> InfraModelRow(header.findElements(By.tagName("th")).map {it.text}, rowElement) }
+        return rowElements().map { rowElement -> InfraModelRow(headerElement.findElements(By.tagName("th")).map {it.text}, rowElement) }
     }
 
     fun sortBy(colName: String) {
         logger.info("Select column $colName")
-        header.findElement(By.xpath(".//*[text() = '$colName']")).click()
+        headerElement.findElement(By.xpath(".//*[text() = '$colName']")).click()
     }
 }
 
+// TODO: GVT-1947 code language
 class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, row) {
     fun projektinNimi(): String = getColumnByName("Projektin nimi").text
     fun tiedostonimi(): String = getColumnByName("Nimi").text
@@ -55,23 +58,16 @@ class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, 
 
 class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
     fun nimi() = fieldValue("Projektin nimi")
-    fun oid() = fieldValue("Projektin OID")
     fun suunnitteluYritys() = fieldValue("Suunnitteluyritys")
 
     fun addNimi(input: String) {
         changeToNewDropDownValue("Projektin nimi", listOf(input))
-    }
-
-    fun addOid(input: String) {
-        clickEditIcon("Projektin OID")
-        val element = fieldValueElement("Projektin OID")
-
-        element.findElement(By.cssSelector("div.text-field__input input")).sendKeys(input)
-        clickEditIcon("Projektin OID")
+            .assertAndClose("Uusi projekti luotu")
     }
 
     fun addNewSuunnitteluyritys(input: String) {
         changeToNewDropDownValue("Suunnitteluyritys", listOf(input))
+            .assertAndClose("Uusi suunnitteluyritys luotu")
     }
 }
 
@@ -88,6 +84,7 @@ class SijaintitiedotFormGroup(by: By) : FormGroup(by) {
 
     fun addRatanumero(ratanumero: String, kuvaus: String) {
         changeToNewDropDownValue("Ratanumero", listOf(ratanumero, kuvaus))
+            .assertAndClose("Ratanumero tallennettu")
         clickEditIcon("Ratanumero")
     }
 
@@ -116,6 +113,6 @@ class LokiJaLinkitystiedotFormGroup(by: By) : FormGroup(by) {
 
 class ConfirmDialog(): DialogPopUp() {
     fun tallenna() {
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
     }
 }

@@ -14,7 +14,7 @@ const val TEST_ROLE_CODE = "it_tst"
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class MetaDataIT: ITTestBase() {
+class MetaDataIT: DBTestBase() {
 
     private data class VersionData(
         val name: String,

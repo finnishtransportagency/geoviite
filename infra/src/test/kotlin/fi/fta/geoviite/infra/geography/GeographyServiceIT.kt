@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geography
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Srid
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 class GeographyServiceIT @Autowired constructor(
     private val geographyService: GeographyService
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun someCoordinateSystemsAreReturnedAsDefault() {

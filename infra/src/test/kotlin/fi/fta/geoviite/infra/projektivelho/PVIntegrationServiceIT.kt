@@ -10,7 +10,7 @@ import PVDictionaryType.*
 import PVDocument
 import PVDocumentStatus
 import com.fasterxml.jackson.databind.ObjectMapper
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.util.FileName
@@ -63,7 +63,7 @@ class PVIntegrationServiceIT @Autowired constructor(
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
     private val jsonMapper: ObjectMapper,
-) : ITTestBase() {
+) : DBTestBase() {
 
     fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)
 

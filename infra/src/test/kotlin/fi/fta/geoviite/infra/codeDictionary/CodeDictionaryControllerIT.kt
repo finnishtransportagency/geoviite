@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.codeDictionary
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,7 +21,7 @@ import kotlin.text.Charsets.UTF_8
 class CodeDictionaryControllerIT @Autowired constructor(
     val objectMapper: ObjectMapper,
     val mockMvc: MockMvc,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun getFeatureTypesWorks() {

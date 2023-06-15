@@ -1,96 +1,83 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import browser
-import getElementWhenVisible
-import org.openqa.selenium.*
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
+import childElementExists
+import clickChildElement
+import defaultWait
+import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.byText
+import fi.fta.geoviite.infra.ui.util.fetch
+import getChildWhenMatches
+import getChildWhenVisible
+import getChildrenWhenVisible
+import org.openqa.selenium.By
+import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import waitUntilElementIsClickable
+import waitUntilChildMatches
+import waitUntilChildNotVisible
+import waitUntilChildVisible
 import java.time.Duration
 
-const val SCREENSHOTS_PATH = "build/reports/screenshots"
 
-abstract class PageModel(protected val rootByCondition: By) {
-    protected val logger: Logger = LoggerFactory.getLogger(PageModel::class.java)
+abstract class PageModel(protected val elementFetch: () -> WebElement) {
+    constructor(by: By): this(fetch(by))
+    constructor(parentFetch: () -> WebElement, by: By): this(fetch(parentFetch, by))
+    constructor(parent: PageModel, by: By): this(parent.elementFetch, by)
 
-    val rootElement: WebElement get() = getElementWhenVisible(rootByCondition, timeoutSeconds = 5)
+    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    val webElement: WebElement get() = elementFetch()
 
     protected inline operator fun <T> T.invoke(action: T.() -> Unit): T = apply(action)
 
-    protected open fun clickButton(buttonContent: String) {
-        logger.info("Click button '$buttonContent'")
-        val button = getButtonElementByContent(buttonContent)
-        try {
-            waitUntilElementIsClickable(button)
-            Thread.sleep(500) //Fixes problems where button cannot be clicked while enabled
-            button.click()
-        } catch (ex: StaleElementReferenceException) {
-            getButtonElementByContent(buttonContent).click()
-        }
+    protected fun <T> childComponent(by: By, creator: (() -> WebElement) -> T, timeout: Duration = defaultWait) =
+        creator { childElement(by, timeout) }
 
-    }
+    protected fun childTextField(by: By, timeout: Duration = defaultWait) = childComponent(by, ::TextField, timeout)
 
-    protected open fun clickButtonByQaId(qaId: String) {
-        logger.info("Click button qa-id=$qaId")
-        val button = getButtonElementByQaId(qaId)
-        try {
-            waitUntilElementIsClickable(button)
-            Thread.sleep(500) //Fixes problems where button cannot be clicked while enabled
-            button.click()
-        } catch (ex: StaleElementReferenceException) {
-            getButtonElementByContent(qaId).click()
-        }
+    protected fun childButton(by: By, timeout: Duration = defaultWait) = childComponent(by, ::Button, timeout)
 
-    }
+    protected fun clickButton(by: By, timeout: Duration = defaultWait) = childButton(by, timeout).click()
 
-    protected fun getButtonElementByContent(buttonContent: String) =
-        getChildElementStaleSafe(By.xpath(".//span[text() = '$buttonContent']"))
+    @Deprecated("Relevant buttons should be marked with qa-id and used via that, rather than content")
+    protected fun clickButtonByText(text: String, timeout: Duration = defaultWait) =
+        clickButton(byText(text), timeout)
 
-    protected fun getButtonElementByQaId(qaId: String) =
-        getChildElementStaleSafe(By.cssSelector("button[qa-id=$qaId]"))
+    protected fun clickButtonByQaId(id: String, timeout: Duration = defaultWait) =
+        clickButton(byQaId(id), timeout)
 
-    protected fun getChildElementStaleSafe(childByCondition: By): WebElement {
-        try {
-            waitUntilChildIsVisible(childByCondition)
-            return rootElement.findElement(childByCondition)
-        } catch (ex: WebDriverException) {
-            when (ex) {
-                is TimeoutException -> {
-                    logger.error("${rootElement.getAttribute("innerHTML")} -> $childByCondition TIMEOUT")
-                    throw ex
-                }
-                else -> throw ex
-            }
-        }
-    }
+    protected fun childElement(by: By, timeout: Duration = defaultWait): WebElement =
+        getChildWhenVisible(elementFetch, by, timeout)
 
-    protected fun getChildElementsStaleSafe(childByCondition: By, timeout: Duration = Duration.ofSeconds(5)): List<WebElement> {
-        try {
-            waitUntilChildIsVisible(childByCondition, timeout)
-            return rootElement.findElements(childByCondition)
-        } catch (ex: WebDriverException) {
-            when (ex) {
-                is TimeoutException -> {
-                    logger.error("$rootElement -> $childByCondition TIMEOUT")
-                    throw ex
-                }
-                else -> throw ex
-            }
-        }
-    }
+    protected fun childElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
+        getChildrenWhenVisible(elementFetch, by, timeout)
 
-    protected fun waitUntilChildIsVisible(childByCondition: By, timeout: Duration = Duration.ofSeconds(5)) {
-        try {
-            WebDriverWait(browser(), timeout)
-                .until(ExpectedConditions.visibilityOfNestedElementsLocatedBy(rootElement, childByCondition))
-        } catch (ex: TimeoutException) {
-            logger.warn("${rootElement.getAttribute("innerHTML")} did not include $childByCondition")
-            throw ex
-        }
-    }
+    protected fun clickChild(by: By, timeout: Duration = defaultWait) =
+        clickChildElement(elementFetch, by, timeout)
 
-    protected fun childElementExists(byCondition: By) =
-        rootElement.findElements(byCondition).isNotEmpty()
+    protected fun childText(by: By, timeout: Duration = defaultWait): String =
+        childElement(by, timeout).text
+
+    protected fun childTexts(by: By, timeout: Duration = defaultWait): List<String> =
+        childElements(by, timeout).map(WebElement::getText)
+
+    fun waitChildVisible(childBy: By, timeout: Duration = defaultWait) =
+        waitUntilChildVisible({ webElement }, childBy, timeout)
+
+    fun waitChildNotVisible(childBy: By, timeout: Duration = defaultWait) =
+        waitUntilChildNotVisible({ webElement }, childBy, timeout)
+
+    fun waitChildMatches(
+        childBy: By,
+        check: (index: Int, child: WebElement) -> Boolean,
+        timeout: Duration = defaultWait,
+    ) = waitUntilChildMatches(elementFetch, childBy, check, timeout)
+
+    fun childElementWhenMatches(
+        childBy: By,
+        check: (index: Int, child: WebElement) -> Boolean,
+        timeout: Duration = defaultWait,
+    ): Pair<Int, WebElement> = getChildWhenMatches(elementFetch, childBy, check, timeout)
+
+    protected fun childExists(by: By) = webElement.childElementExists(by)
 }

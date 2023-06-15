@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -21,7 +21,7 @@ class RatkoClientIT @Autowired constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
     private val fakeRatkoService: FakeRatkoService,
-) : ITTestBase() {
+) : DBTestBase() {
 
     lateinit var fakeRatko: FakeRatko
 

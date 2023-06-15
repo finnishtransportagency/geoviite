@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapNavigationPanel
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.EAST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACKNUMBER_1
@@ -23,12 +22,11 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenc
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutSwitch
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
-import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
 
@@ -41,12 +39,8 @@ class BasicMapTestUI @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
-    jdbcTemplate: NamedParameterJdbcTemplate,
-    @Value("\${geoviite.e2e.url}") private val url: String,
-) : SeleniumTest(jdbcTemplate) {
-    lateinit var mapPage: MapPage
+) : SeleniumTest() {
     val navigationPanel: MapNavigationPanel = MapNavigationPanel()
     val toolPanel: MapToolPanel = MapToolPanel()
 
@@ -56,10 +50,11 @@ class BasicMapTestUI @Autowired constructor(
     lateinit var EAST_LAYOUT_SWITCH: TrackLayoutSwitch
     lateinit var TRACK_NUMBER_WEST: TrackLayoutTrackNumber
 
-    @BeforeAll
+    @BeforeEach
     fun createTestData() {
         clearAllTestData()
 
+        // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
         TRACK_NUMBER_WEST = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_1)
         val trackNumberEast = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_2)
         val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
@@ -87,26 +82,20 @@ class BasicMapTestUI @Autowired constructor(
         GEOMETRY_PLAN = geometryDao.fetchPlan(
             (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null)))
 
-    }
+        startGeoviite()
+        goToMap()
 
-    @BeforeEach
-    fun goToMapPage() {
-        openBrowser()
-        mapPage = openGeoviite(url).navigationBar().kartta()
+        // TODO: GVT-1945 Remove this: if the test needs to select something in the beginning, it should do that itself
         navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
 
     @Test
-    @Disabled
-    fun launchBrowserForDebug() {}
-
-    @Test
-    fun `edit and discard location track changes`() {
+    fun `Edit and discard location track changes`() {
         val locationTrackToBeEdited = EAST_LT_NAME
 
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
-        mapPage.luonnostila()
+        navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
+        goToMap().luonnostila()
         val infobox = toolPanel.locationTrackGeneralInfo()
         val orgTunniste = infobox.tunniste()
         val orgTila = infobox.tila()
@@ -125,6 +114,7 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.editTila(CreateEditLocationTrackDialog.TilaTyyppi.KAYTOSTA_POISTETTU)
         editDialog.tallenna()
 
+        navigationPanel.locationTracksList.waitUntilNameVisible(editedTunnus)
         val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoboxAfterFirstEdit.tunniste())
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.sijainteraidetunnus())
@@ -132,7 +122,7 @@ class BasicMapTestUI @Autowired constructor(
         assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.kuvaus())
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
-        val previewChangesPage = mapPage.esikatselu()
+        val previewChangesPage = goToMap().esikatselu()
         val changePreviewTable = previewChangesPage.changesTable()
         assertTrue(changePreviewTable.changeRows().isNotEmpty())
 
@@ -146,7 +136,7 @@ class BasicMapTestUI @Autowired constructor(
         changedAligment.menu().click()
         previewChangesPage.hylkaaMuutos(nameColumnValue)
         previewChangesPage.palaaLuonnostilaan()
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
+        navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
 
         val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.tunniste())
@@ -158,11 +148,11 @@ class BasicMapTestUI @Autowired constructor(
     }
 
     @Test
-    fun `edit and save location track changes`() {
+    fun `Edit and save location track changes`() {
         val locationTrackToBeEdited = WEST_LT_NAME
 
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
-        mapPage.luonnostila()
+        navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
+        goToMap().luonnostila()
         val infobox = toolPanel.locationTrackGeneralInfo()
         val orgTunniste = infobox.tunniste()
         val orgTila = infobox.tila()
@@ -181,6 +171,7 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.editTila(CreateEditLocationTrackDialog.TilaTyyppi.KAYTOSTA_POISTETTU)
         editDialog.tallenna()
 
+        navigationPanel.locationTracksList.waitUntilNameVisible(editedTunnus)
         val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoboxAfterFirstEdit.tunniste())
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.sijainteraidetunnus())
@@ -188,7 +179,7 @@ class BasicMapTestUI @Autowired constructor(
         assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.kuvaus())
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
-        val previewChangesPage = mapPage.esikatselu()
+        val previewChangesPage = goToMap().esikatselu()
         val changePreviewTable = previewChangesPage.changesTable()
         assertTrue(changePreviewTable.changeRows().isNotEmpty())
 
@@ -199,8 +190,8 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(HKI_TRACKNUMBER_1, changedAligment.ratanumero())
         changedAligment.nuolinappi().click()
 
-        val notificationAfterSave = previewChangesPage.julkaise()
-        assertContains(notificationAfterSave.message, "Muutokset julkaistu")
+        val notificationAfterSave = previewChangesPage.julkaise().readAndClose()
+        assertContains(notificationAfterSave, "Muutokset julkaistu")
 
         val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.tunniste())
@@ -215,10 +206,5 @@ class BasicMapTestUI @Autowired constructor(
     fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) {
         val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
         referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
-    }
-
-    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) {
-        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-        locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion))
     }
 }

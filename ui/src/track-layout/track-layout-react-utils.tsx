@@ -12,7 +12,7 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { useLoader, useNullableLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus, useNullableLoader } from 'utils/react-utils';
 import {
     ChangeTimes,
     CoordinateSystem,
@@ -152,6 +152,17 @@ export function useTrackNumber(
     return useLoader(
         () => (id ? getTrackNumberById(id, publishType) : undefined),
         [id, publishType],
+    );
+}
+
+export function useTrackNumberWithStatus(
+    publishType: PublishType,
+    id: LayoutTrackNumberId | undefined | null,
+    changeTime: TimeStamp,
+): [LayoutTrackNumber | undefined, LoaderStatus] {
+    return useLoaderWithStatus(
+        () => (id ? getTrackNumberById(id, publishType, changeTime) : undefined),
+        [id, publishType, changeTime],
     );
 }
 
