@@ -1,4 +1,4 @@
-create type projektivelho.document_status as enum ('NOT_IM', 'FETCH_ERROR', 'SUGGESTED', 'REJECTED', 'ACCEPTED');
+create type projektivelho.document_status as enum ('NOT_IM', 'SUGGESTED', 'REJECTED', 'ACCEPTED');
 create type projektivelho.search_status as enum ('WAITING', 'FETCHING', 'FINISHED', 'ERROR');
 
 create table projektivelho.search
