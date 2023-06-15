@@ -276,9 +276,10 @@ class GeometryController @Autowired constructor(
     fun getPlanAlignmentStartAndEnd(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
-    ): AlignmentStartAndEnd? {
+    ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getPlanAlignmentStartAndEnd", "planId" to planId, "planAlignmentId" to planAlignmentId)
-        return geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId)
+        return toResponse(geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId))
+
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -289,7 +290,7 @@ class GeometryController @Autowired constructor(
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): List<KmHeights>? {
+    ): List<KmHeights> {
         logger.apiCall(
             "getPlanAlignmentHeights",
             "planId" to planId,
@@ -299,6 +300,7 @@ class GeometryController @Autowired constructor(
             "tickLength" to tickLength
         )
         return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
+            ?: emptyList()
     }
 
     @PreAuthorize(AUTH_ALL_READ)

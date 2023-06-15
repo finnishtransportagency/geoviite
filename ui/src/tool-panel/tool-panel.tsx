@@ -59,8 +59,8 @@ type ToolPanelProps = {
     publishType: PublishType;
     onDataChange: () => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    selectedTabId: string | undefined;
-    setSelectedTabId: (id: string | undefined) => void;
+    selectedAsset: ToolPanelAsset | undefined;
+    setSelectedAsset: (id: ToolPanelAsset | undefined) => void;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
     infoboxVisibilities: InfoboxVisibilities;
@@ -70,15 +70,28 @@ type ToolPanelProps = {
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
 };
 
+export type ToolPanelAsset = {
+    id: string;
+    type:
+        | 'LOCATION_TRACK'
+        | 'SWITCH'
+        | 'KM_POST'
+        | 'REFERENCE_LINE'
+        | 'TRACK_NUMBER'
+        | 'GEOMETRY_ALIGNMENT'
+        | 'GEOMETRY_PLAN'
+        | 'GEOMETRY_KM_POST'
+        | 'GEOMETRY_SWITCH';
+};
+
 type ToolPanelTab = {
-    id: GeometryPlanId;
+    asset: ToolPanelAsset;
     title: string;
     element: React.ReactElement;
 };
 
-export function toolPanelPlanTabId(planId: GeometryPlanId): string {
-    return 'plan-header_' + planId;
-}
+const isSameAsset = (a: ToolPanelAsset | undefined, b: ToolPanelAsset | undefined) =>
+    !!a && !!b && a.id === b.id && a.type === b.type;
 
 const ToolPanel: React.FC<ToolPanelProps> = ({
     planIds,
@@ -96,8 +109,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     publishType,
     onDataChange,
     onUnselect,
-    selectedTabId,
-    setSelectedTabId,
+    selectedAsset,
+    setSelectedAsset,
     startSwitchPlacing,
     viewport,
     infoboxVisibilities,
@@ -174,7 +187,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         }
         const planTabs = planHeaders.map((p: GeometryPlanHeader) => {
             return {
-                id: toolPanelPlanTabId(p.id),
+                asset: { type: 'GEOMETRY_PLAN', id: p.id },
                 title: p.fileName,
                 element: (
                     <GeometryPlanInfobox
@@ -185,7 +198,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         }
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const trackNumberTabs = trackNumberIds
@@ -193,7 +206,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             .filter(filterNotEmpty)
             .map((t) => {
                 return {
-                    id: 'track-number_' + t.id,
+                    asset: { type: 'TRACK_NUMBER', id: t.id },
                     title: t.number,
                     element: (
                         <TrackNumberInfoboxLinkingContainer
@@ -210,12 +223,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             onHoverOverPlanSection={onHoverOverPlanSection}
                         />
                     ),
-                };
+                } as ToolPanelTab;
             });
 
         const layoutKmPostTabs = kmPosts.filter(visibleByTypeAndPublishType).map((k) => {
             return {
-                id: 'km-post_' + k.id,
+                asset: { type: 'KM_POST', id: k.id },
                 title: k.kmNumber,
                 element: (
                     <KmPostInfobox
@@ -238,12 +251,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         }
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const geometryKmPostTabs = geometryKmPosts.map((k) => {
             return {
-                id: 'geometry-km-post_' + k.geometryItem.id,
+                asset: { type: 'GEOMETRY_KM_POST', id: k.geometryItem.id },
                 title: k.geometryItem.kmNumber,
                 element: (
                     <GeometryKmPostInfobox
@@ -261,12 +274,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         }
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const switchTabs = switches.filter(visibleByTypeAndPublishType).map((s) => {
             return {
-                id: 'switch_' + s.id,
+                asset: { type: 'SWITCH', id: s.id },
                 title: s.name,
                 element: (
                     <SwitchInfobox
@@ -289,7 +302,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         stopLinking={stopSwitchLinking}
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const uniqueGeometrySwitches = [
@@ -311,7 +324,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
         const geometrySwitchTabs = uniqueGeometrySwitches.map((s) => {
             return {
-                id: 'geometry-switch_' + s.id,
+                asset: { type: 'GEOMETRY_SWITCH', id: s.id },
                 title: s.name || '-',
                 element: (
                     <GeometrySwitchInfobox
@@ -329,12 +342,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onShowOnMap={onShowMapLocation}
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const locationTrackTabs = locationTracks.map((track) => {
             return {
-                id: 'location-track_' + track.id,
+                asset: { type: 'LOCATION_TRACK', id: track.id },
                 title: track.name,
                 element: (
                     <LocationTrackInfoboxLinkingContainer
@@ -353,12 +366,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onHoverOverPlanSection={onHoverOverPlanSection}
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const geometryAlignmentTabs = geometryAlignments.map((a) => {
             return {
-                id: 'geometry-alignment_' + a.geometryItem.id,
+                asset: { type: 'GEOMETRY_ALIGNMENT', id: a.geometryItem.id },
                 title: a.geometryItem.name,
                 element: (
                     <GeometryAlignmentLinkingContainer
@@ -374,7 +387,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         publishType={publishType}
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const allTabs = [
@@ -408,47 +421,61 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     ]);
 
     React.useEffect(() => {
-        const newTabs = tabs.filter((t) => !previousTabs.some((pt) => t.id == pt.id));
+        const newTabs = tabs.filter(
+            (t) => !previousTabs.some((pt) => isSameAsset(t.asset, pt.asset)),
+        );
 
         if (newTabs.length) {
-            if (selectedTabId && newTabs.some((nt) => nt.id == selectedTabId)) {
-                changeTab(selectedTabId);
+            if (selectedAsset && newTabs.some((nt) => isSameAsset(nt.asset, selectedAsset))) {
+                changeTab(selectedAsset);
             } else {
-                changeTab(tabs[0].id);
+                changeTab(tabs[0].asset);
             }
+        }
+
+        if (!tabs.length) {
+            setSelectedAsset(undefined);
         }
         setPreviousTabs(tabs);
     }, [tabs]);
 
-    function changeTab(tabId: string) {
-        let lockToTabId;
+    function changeTab(tab: ToolPanelAsset) {
+        let lockToAsset;
 
         if (linkingState?.type === LinkingType.LinkingAlignment) {
-            lockToTabId = tabs.find(
-                (t) => t.id === 'location-track_' + linkingState.layoutAlignmentId,
-            )?.id;
+            lockToAsset = tabs.find(
+                (t) =>
+                    t.asset.type === 'LOCATION_TRACK' &&
+                    t.asset.id === linkingState.layoutAlignmentId,
+            )?.asset;
         } else if (
             linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
             linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
             linkingState?.type === LinkingType.UnknownAlignment
         ) {
-            lockToTabId = tabs.find(
-                (t) => t.id === 'geometry-alignment_' + linkingState.geometryAlignmentId,
-            )?.id;
+            lockToAsset = tabs.find(
+                (t) =>
+                    t.asset.type === 'GEOMETRY_ALIGNMENT' &&
+                    t.asset.id === linkingState.geometryAlignmentId,
+            )?.asset;
         } else if (linkingState?.type === LinkingType.LinkingSwitch) {
-            lockToTabId = tabs.find((t) => {
+            lockToAsset = tabs.find((t) => {
                 return (
-                    t.id === 'geometry-switch_' + linkingState.suggestedSwitch.geometrySwitchId ||
-                    suggestedSwitches.some((s) => t.id === 'geometry-switch_' + s.id)
+                    (t.asset.type === 'GEOMETRY_SWITCH' &&
+                        t.asset.id === linkingState.suggestedSwitch.geometrySwitchId) ||
+                    suggestedSwitches.some((s) => t.asset.id === s.id)
                 );
-            })?.id;
+            })?.asset;
         } else if (linkingState?.type === LinkingType.LinkingKmPost) {
-            lockToTabId = tabs.find((t) => {
-                return t.id === 'geometry-km-post_' + linkingState.geometryKmPostId;
-            })?.id;
+            lockToAsset = tabs.find((t) => {
+                return (
+                    t.asset.type === 'GEOMETRY_KM_POST' &&
+                    t.asset.id === linkingState.geometryKmPostId
+                );
+            })?.asset;
         }
 
-        setSelectedTabId(lockToTabId ? lockToTabId : tabId);
+        setSelectedAsset(lockToAsset ? lockToAsset : tab);
     }
 
     return (
@@ -458,22 +485,22 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     {tabs.map((t) => {
                         return (
                             <Button
-                                key={t.id}
+                                key={t.asset.type + '_' + t.asset.id}
                                 variant={
-                                    selectedTabId == t.id
+                                    isSameAsset(t.asset, selectedAsset)
                                         ? ButtonVariant.PRIMARY
                                         : ButtonVariant.SECONDARY
                                 }
                                 size={ButtonSize.SMALL}
-                                onClick={() => changeTab(t.id)}
-                                isPressed={t.id == selectedTabId}>
+                                onClick={() => changeTab(t.asset)}
+                                isPressed={isSameAsset(t.asset, selectedAsset)}>
                                 {t.title}
                             </Button>
                         );
                     })}
                 </div>
             )}
-            {tabs.find((t) => t.id === selectedTabId)?.element || tabs[0]?.element}
+            {tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element || tabs[0]?.element}
         </div>
     );
 };

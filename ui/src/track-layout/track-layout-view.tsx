@@ -18,9 +18,12 @@ import { PublishType } from 'common/common-model';
 import { LinkingState, LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
-import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
+import VerticalGeometryDiagram, {
+    VerticalGeometryDiagramAlignmentId,
+} from 'vertical-geometry/vertical-geometry-diagram';
 import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
@@ -43,6 +46,7 @@ export type TrackLayoutViewProps = {
     onLayerMenuItemChange: (change: MapLayerMenuChange) => void;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
+    selectedToolPanelTab: ToolPanelAsset | undefined;
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
@@ -69,8 +73,31 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
         [firstSelectedLocationTrack, props.publishType],
     );
 
-    const verticalDiagramAlignmentId =
-        verticalDiagramPlanAlignmentId ?? verticalDiagramLayoutAlignmentId;
+    const hasGeometryAlignmentTab = (id: VerticalGeometryDiagramAlignmentId) =>
+        'planId' in id &&
+        props.selection.selectedItems.geometryAlignments.some(
+            (ga) => ga.geometryItem.id === id.alignmentId,
+        );
+
+    const hasLocationTrackTab = (id: VerticalGeometryDiagramAlignmentId) =>
+        'locationTrackId' in id &&
+        props.selection.selectedItems.locationTracks.some((lt) => lt === id.locationTrackId);
+
+    const [verticalDiagramAlignmentId, setVerticalDiagramAlignmentId] =
+        React.useState<VerticalGeometryDiagramAlignmentId>();
+    React.useEffect(() => {
+        if (props.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT') {
+            setVerticalDiagramAlignmentId(verticalDiagramPlanAlignmentId);
+        } else if (props.selectedToolPanelTab?.type === 'LOCATION_TRACK') {
+            setVerticalDiagramAlignmentId(verticalDiagramLayoutAlignmentId);
+        } else if (
+            !verticalDiagramAlignmentId ||
+            (!hasGeometryAlignmentTab(verticalDiagramAlignmentId) &&
+                !hasLocationTrackTab(verticalDiagramAlignmentId))
+        ) {
+            setVerticalDiagramAlignmentId(undefined);
+        }
+    }, [props.selectedToolPanelTab]);
 
     const showVerticalGeometryDiagram =
         props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;

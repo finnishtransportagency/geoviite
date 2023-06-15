@@ -34,6 +34,7 @@ import { addIfExists, subtract } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { GeometryPlanLayoutId } from 'geometry/geometry-model';
 import { ValueOf } from 'utils/type-utils';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -188,7 +189,7 @@ export type TrackLayoutState = {
     linkingState?: LinkingState;
     linkingIssuesSelectedBeforeLinking: boolean;
     switchLinkingSelectedBeforeLinking: boolean;
-    selectedToolPanelTabId: string | undefined;
+    selectedToolPanelTab: ToolPanelAsset | undefined;
     infoboxVisibilities: InfoboxVisibilities;
 };
 
@@ -200,7 +201,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     stagedPublicationRequestIds: initialPublicationRequestIds,
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
-    selectedToolPanelTabId: undefined,
+    selectedToolPanelTab: undefined,
     infoboxVisibilities: initialInfoboxVisibilities,
 };
 
@@ -482,9 +483,9 @@ const trackLayoutSlice = createSlice({
         },
         setToolPanelTab: (
             state: TrackLayoutState,
-            { payload }: PayloadAction<string | undefined>,
+            { payload }: PayloadAction<ToolPanelAsset | undefined>,
         ): void => {
-            state.selectedToolPanelTabId = payload;
+            state.selectedToolPanelTab = payload;
         },
     },
 });

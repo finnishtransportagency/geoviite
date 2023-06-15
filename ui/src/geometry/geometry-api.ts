@@ -343,8 +343,9 @@ export async function getPlanAlignmentStartAndEnd(
     planId: GeometryPlanId,
     alignmentId: GeometryAlignmentId,
 ): Promise<AlignmentStartAndEnd | undefined> {
-    return getThrowError<AlignmentStartAndEnd>(
+    return getWithDefault<AlignmentStartAndEnd | undefined>(
         `${GEOMETRY_URI}/plans/${planId}/start-and-end/${alignmentId}`,
+        undefined,
     );
 }
 
@@ -355,9 +356,10 @@ export async function getLocationTrackHeights(
     endDistance: number,
     tickLength: number,
 ): Promise<TrackKmHeights[]> {
-    return getThrowError(
+    return getWithDefault(
         `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
             queryParams({ startDistance, endDistance, tickLength }),
+        [],
     );
 }
 
