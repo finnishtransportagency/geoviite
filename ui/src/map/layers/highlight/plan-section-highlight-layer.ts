@@ -16,9 +16,9 @@ import Feature from 'ol/Feature';
 import { blueHighlightStyle } from 'map/layers/highlight/highlight-layer-utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { getPartialPolyLine } from 'utils/math-utils';
-import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import { ReferenceLineId } from 'track-layout/track-layout-model';
 
-const isReferenceLine = (header: AlignmentHeader, referenceLineId: LayoutTrackNumberId) =>
+const isReferenceLine = (header: AlignmentHeader, referenceLineId: ReferenceLineId) =>
     header.trackNumberId === referenceLineId && header.alignmentType === 'REFERENCE_LINE';
 
 function createFeatures(
