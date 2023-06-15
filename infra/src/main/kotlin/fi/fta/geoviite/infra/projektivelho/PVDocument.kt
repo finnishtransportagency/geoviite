@@ -1,9 +1,12 @@
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.assertSanitized
 import java.time.Instant
 
 enum class PVDocumentStatus {
@@ -11,13 +14,25 @@ enum class PVDocumentStatus {
     SUGGESTED,
     REJECTED,
     ACCEPTED,
+    FETCH_ERROR,
 }
 
-data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVDictionaryName, val state: PVDictionaryName)
+val pvProjectNameLength = 1..200
+val pvProjectNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\\\\\-–—+().,:;'/*]*\$")
+data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
+    : Comparable<PVProjectName>, CharSequence by value {
+    init { assertSanitized<PVProjectName>(value, pvProjectNameRegex, pvProjectNameLength) }
 
-data class PVProject(val oid: Oid<PVProject>, val name: PVDictionaryName, val state: PVDictionaryName)
+    @JsonValue
+    override fun toString(): String = value
+    override fun compareTo(other: PVProjectName): Int = value.compareTo(other.value)
+}
 
-data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVDictionaryName, val state: PVDictionaryName)
+data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVProjectName, val state: PVDictionaryName)
+
+data class PVProject(val oid: Oid<PVProject>, val name: PVProjectName, val state: PVDictionaryName)
+
+data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVProjectName, val state: PVDictionaryName)
 
 data class PVDocumentRejection(
     val id: IntId<PVDocumentRejection>,

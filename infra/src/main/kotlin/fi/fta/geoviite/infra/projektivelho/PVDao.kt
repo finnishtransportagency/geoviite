@@ -259,13 +259,13 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     fun fetchLatestDocument(): Pair<Oid<PVDocument>, Instant>? {
         val sql = """
-            select change_time, oid 
+            select document_change_time, oid 
             from projektivelho.document 
-            order by change_time desc, oid desc 
+            order by document_change_time desc, oid desc 
             limit 1
         """.trimIndent()
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
-            rs.getOid<PVDocument>("oid") to rs.getInstant("change_time")
+            rs.getOid<PVDocument>("oid") to rs.getInstant("document_change_time")
         }.firstOrNull()
             .also { v -> logger.daoAccess(FETCH, "${PVDocument::class.simpleName}.changeTime", v ?: "null") }
     }
@@ -388,13 +388,13 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         )
         return jdbcTemplate.query(sql, params) { rs, _ -> PVDocumentHeader(
             project = rs.getOidOrNull<PVProject>("project_oid")?.let{ oid ->
-                PVProject(oid, rs.getPVDictionaryName("project_name"), rs.getPVDictionaryName("project_state"))
+                PVProject(oid, rs.getPVProjectName("project_name"), rs.getPVDictionaryName("project_state"))
             },
             projectGroup = rs.getOidOrNull<PVProjectGroup>("project_group_oid")?.let { oid ->
-                PVProjectGroup(oid, rs.getPVDictionaryName("project_group_name"), rs.getPVDictionaryName("project_state"))
+                PVProjectGroup(oid, rs.getPVProjectName("project_group_name"), rs.getPVDictionaryName("project_state"))
             },
             assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
-                PVAssignment(oid, rs.getPVDictionaryName("assignment_name"), rs.getPVDictionaryName("project_state"))
+                PVAssignment(oid, rs.getPVProjectName("assignment_name"), rs.getPVDictionaryName("project_state"))
             },
             document = PVDocument(
                 id = rs.getIntId("id"),

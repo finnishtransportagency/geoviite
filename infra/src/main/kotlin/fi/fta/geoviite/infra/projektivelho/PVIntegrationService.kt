@@ -171,7 +171,7 @@ class PVIntegrationService @Autowired constructor(
                 file.latestVersion.name
             )
         }
-            ?: (false to "error.infra-model.parsing.generic")
+            ?: (false to "error.infra-model.missing-file")
         val xmlContent = if (passedValidation) file.content?.let(::censorAuthorIdentifyingInfo) else null
         val pvDocumentRowVersion = pvDao.insertDocumentMetadata(
             file.oid,

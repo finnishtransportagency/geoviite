@@ -67,12 +67,12 @@ fun toGvtPlan(
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.unsupported-version"
         )
     }
-    checkBlacklistedCodings(infraModel.project?.feature?.properties ?: emptyList()) { org ->
+    /*checkBlacklistedCodings(infraModel.project?.feature?.properties ?: emptyList()) { org ->
         throw InframodelParsingException(
             message = "Plan is from a blacklisted organization. org=${org}",
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.blacklisted-organization"
         )
-    }
+    }*/
 
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
     val gvtSwitches =

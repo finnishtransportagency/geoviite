@@ -47,6 +47,7 @@
         "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
         "infra-model": {
             "request-failed": "Pyyntö taustapalvelimelle epäonnistui",
+            "missing-file": "Tiedosto on tyhjä",
             "parsing": {
                 "generic": "Tiedoston jäsentäminen epäonnistui",
                 "xml-invalid": "Tiedoston rakenne on virheellinen. Varmista että merkistö (XML:n alkutagin encoding-kenttä) on oikein ja tiedosto on LandXML-tyyppinen.",

@@ -1,4 +1,4 @@
-create type projektivelho.document_status as enum ('NOT_IM', 'SUGGESTED', 'REJECTED', 'ACCEPTED');
+create type projektivelho.document_status as enum ('NOT_IM', 'FETCH_ERROR', 'SUGGESTED', 'REJECTED', 'ACCEPTED');
 create type projektivelho.search_status as enum ('WAITING', 'FETCHING', 'FINISHED', 'ERROR');
 
 create table projektivelho.search
@@ -15,7 +15,7 @@ select common.add_table_versioning('projektivelho', 'search');
 create table projektivelho.assignment
 (
   oid        varchar(50) primary key,
-  name       varchar(100)             not null,
+  name       varchar(200)             not null,
   state_code varchar(100)             not null references projektivelho.project_state (code),
   created_at timestamp with time zone not null,
   modified   timestamp with time zone not null
@@ -27,7 +27,7 @@ select common.add_table_versioning('projektivelho', 'assignment');
 create table projektivelho.project
 (
   oid        varchar(50) primary key,
-  name       varchar(100)             not null,
+  name       varchar(200)             not null,
   state_code varchar(100)             not null references projektivelho.project_state (code),
   created_at timestamp with time zone not null,
   modified   timestamp with time zone not null
@@ -39,7 +39,7 @@ select common.add_table_versioning('projektivelho', 'project');
 create table projektivelho.project_group
 (
   oid        varchar(50) primary key,
-  name       varchar(100)             not null,
+  name       varchar(200)             not null,
   state_code varchar(100)             not null references projektivelho.project_state (code),
   created_at timestamp with time zone not null,
   modified   timestamp with time zone not null
@@ -54,7 +54,7 @@ create table projektivelho.document
   oid                    varchar(50) unique            not null,
   status                 projektivelho.document_status not null,
   filename               varchar(100)                  not null,
-  description            varchar(150)                  null,
+  description            varchar(500)                  null,
   document_version       varchar(50)                   not null,
   document_change_time   timestamp with time zone      not null,
   document_type_code     varchar(50)                   not null references projektivelho.document_type (code),
