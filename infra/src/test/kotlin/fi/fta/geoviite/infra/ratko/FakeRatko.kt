@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
+import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
 import org.mockserver.matchers.Times
@@ -15,6 +16,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -27,7 +29,9 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 }
 
 class FakeRatko (port: Int) {
-    private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
+    private val mockServer: ClientAndServer =
+        ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
+
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -115,13 +119,34 @@ class FakeRatko (port: Int) {
 
     fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "PATCH")
 
-    fun getPushedMetadata(): List<RatkoMetadataAsset> = mockServer.retrieveRecordedRequests(
-        request().withPath("/api/assets/v1.2/")
-            .withMethod("POST")
-            .withBody(JsonBody.json(mapOf("type" to RatkoAssetType.METADATA.value)))
-    ).map { req ->
-        jsonMapper.readValue(req.bodyAsString)
-    }
+    private fun metadataFilterOn(pointField: String, oid: String) =
+        mapOf(
+            "locations" to listOf(
+                mapOf(
+                    "nodecollection" to mapOf(
+                        "nodes" to listOf(
+                            mapOf("point" to mapOf(pointField to (mapOf("id" to oid)))),
+                            mapOf("point" to mapOf(pointField to (mapOf("id" to oid)))),
+                        )
+                    )
+                )
+            )
+        )
+
+    fun getPushedMetadata(locationTrackOid: String? = null, routeNumberOid: String? = null): List<RatkoMetadataAsset> =
+        mockServer.retrieveRecordedRequests(
+            request().withPath("/api/assets/v1.2/")
+                .withMethod("POST")
+                .withBody(
+                    JsonBody.json(
+                        mapOf("type" to RatkoAssetType.METADATA.value) +
+                                (locationTrackOid?.let { oid -> metadataFilterOn("locationtrack", oid) } ?: mapOf()) +
+                                (routeNumberOid?.let { oid -> metadataFilterOn("routenumber", oid) } ?: mapOf())
+                    )
+                )
+        ).map { req ->
+            jsonMapper.readValue(req.bodyAsString)
+        }
 
     private fun putKmMs(nodeCollection: JsonNode) = nodeCollection.get("nodes").forEach { node ->
         val point = node.get("point") as ObjectNode
@@ -160,6 +185,11 @@ class FakeRatko (port: Int) {
         ).map { request ->
             jsonMapper.readValue(request.bodyAsString)
         }
+
+    fun getPushedSwitchGeometries(oid: String): List<List<RatkoAssetGeometry>> =
+        mockServer.retrieveRecordedRequests(
+            request().withPath("/api/assets/v1.2/${oid}/geoms").withMethod("PUT")
+        ).map { request -> jsonMapper.readValue(request.bodyAsString) }
 
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer.retrieveRecordedRequests(
