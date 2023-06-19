@@ -385,6 +385,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         planId={a.planId}
                         linkingState={linkingState}
                         publishType={publishType}
+                        verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                     />
                 ),
             } as ToolPanelTab;
