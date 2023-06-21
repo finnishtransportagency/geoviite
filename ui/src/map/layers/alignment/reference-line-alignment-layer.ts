@@ -7,14 +7,13 @@ import { PublishType } from 'common/common-model';
 import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import {
-    clearFeatures,
-    getMatchingAlignmentData,
-    MatchOptions,
-} from 'map/layers/utils/layer-utils';
-import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { createAlignmentFeatures } from 'map/layers/alignment/alignment-layer-utils';
+import {
+    createAlignmentFeatures,
+    getMatchingAlignments,
+} from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 
 let shownReferenceLinesCompare: string;
@@ -67,23 +66,14 @@ export function createReferenceLineAlignmentLayer(
         name: 'reference-line-alignment-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions) => {
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: undefined,
-            };
-
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const referenceLines = getMatchingAlignmentData(hitArea, features, matchOptions)
-                .map(({ header }) => header)
-                .filter(filterUniqueById((a) => a.id))
-                .slice(0, options.limit);
+            const referenceLines = getMatchingAlignments(hitArea, vectorSource, options);
 
             const trackNumberIds = deduplicate(
-                referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
+                referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),
             );
 
             return {
-                referenceLines: referenceLines.map((r) => r.id),
+                referenceLines: referenceLines.map((r) => r.header.id),
                 trackNumbers: trackNumberIds,
             };
         },

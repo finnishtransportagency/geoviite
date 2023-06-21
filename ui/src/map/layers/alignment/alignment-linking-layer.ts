@@ -8,11 +8,8 @@ import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
     clearFeatures,
-    getMatchingEntities,
-    getMatchingLinkPoints,
+    getIntersectingFeatures,
     getPlanarDistanceUnwrapped,
-    getTickStyle,
-    MatchOptions,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -29,9 +26,10 @@ import { filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
+import { getTickStyle } from '../utils/alignment-layer-utils';
 
 const linkPointRadius = 4;
-const LinkPointSelectedRadius = 6;
+const linkPointSelectedRadius = 6;
 const clusterLinkPointRadius = 7;
 const clusterLinkPointSelectedRadius = 9;
 
@@ -87,7 +85,7 @@ const geometryPointSelectedStyle = pointStyle(
 const geometryPointSelectedLargeStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedGeometryAlignmentInterval,
-    LinkPointSelectedRadius,
+    linkPointSelectedRadius,
     12,
 );
 
@@ -112,7 +110,7 @@ const layoutPointSelectedStyle = pointStyle(
 const layoutPointSelectedLargeStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedLayoutAlignmentInterval,
-    LinkPointSelectedRadius,
+    linkPointSelectedRadius,
     11,
 );
 
@@ -162,34 +160,25 @@ const clusterPointLayoutSelectedStyle = new Style({
     zIndex: 13,
 });
 
-export const FEATURE_PROPERTY_LINK_POINT = 'linkPoint';
-export const FEATURE_PROPERTY_CLUSTER_POINT = 'clusterPoint';
-export const FEATURE_PROPERTY_TYPE = 'type';
+const LINKING_FEATURE_TYPE_PROPERTY = 'type';
+const LINKING_FEATURE_DATA_PROPERTY = 'linking-data';
 
-function createLineFeature(
-    startPoint: LinkPoint,
-    endPoint: LinkPoint,
-    segmentStyle: Style,
-): Feature<LineString> {
-    const segmentFeature = new Feature({
-        geometry: new LineString([pointToCoords(startPoint), pointToCoords(endPoint)]),
-    });
-
-    segmentFeature.setStyle(segmentStyle);
-    return segmentFeature;
+enum FeatureType {
+    GeometryLine = 'geometryLine',
+    LayoutLine = 'layoutLine',
+    LayoutPoint = 'layoutPoint',
+    GeometryPoint = 'geometryPoint',
+    ClusterPoint = 'clusterPoint',
 }
 
-function createClusterPointFeature(
-    clusterPoint: ClusterPoint,
-    pointStyle: Style[],
-): Feature<Point> {
+function createClusterPointFeature(clusterPoint: ClusterPoint, pointStyle: Style): Feature<Point> {
     const pointFeature = new Feature({
         geometry: new Point(pointToCoords(clusterPoint)),
     });
 
     pointFeature.setStyle(pointStyle);
-    pointFeature.set(FEATURE_PROPERTY_TYPE, 'cluster');
-    pointFeature.set(FEATURE_PROPERTY_CLUSTER_POINT, clusterPoint);
+    pointFeature.set(LINKING_FEATURE_TYPE_PROPERTY, FeatureType.ClusterPoint);
+    pointFeature.set(LINKING_FEATURE_DATA_PROPERTY, clusterPoint);
 
     return pointFeature;
 }
@@ -197,65 +186,70 @@ function createClusterPointFeature(
 function createPointFeature(
     point: LinkPoint,
     pointStyle: Style[],
-    isGeometryAlignment: boolean,
-    parentPoint?: LinkPoint,
+    type: FeatureType,
 ): Feature<Point> {
     const pointFeature = new Feature({
         geometry: new Point(pointToCoords(point)),
     });
 
     pointFeature.setStyle(pointStyle);
-    pointFeature.set(FEATURE_PROPERTY_LINK_POINT, parentPoint ? parentPoint : point);
-    pointFeature.set(FEATURE_PROPERTY_TYPE, isGeometryAlignment ? 'geometry' : 'layout');
+    pointFeature.set(LINKING_FEATURE_TYPE_PROPERTY, type);
+    pointFeature.set(LINKING_FEATURE_DATA_PROPERTY, point);
 
     return pointFeature;
 }
 
+function createLineFeature(
+    points: LinkPoint[],
+    style: Style,
+    type: FeatureType,
+): Feature<LineString> {
+    const alignmentFeature = new Feature({
+        geometry: new LineString(points.map((p) => pointToCoords(p))),
+    });
+
+    alignmentFeature.setStyle(style);
+    alignmentFeature.set(LINKING_FEATURE_TYPE_PROPERTY, type);
+
+    return alignmentFeature;
+}
+
 function getClusterPointStyle(
     clusterPoint: ClusterPoint,
-    alignmentInterval: LinkInterval,
+    layoutInterval: LinkInterval,
     geometryInterval: LinkInterval,
 ): Style | undefined {
-    const alignmentFound =
-        clusterPoint.layoutPoint.id === alignmentInterval.start?.id ||
-        clusterPoint.layoutPoint.id === alignmentInterval.end?.id;
+    const layoutPointFound =
+        clusterPoint.layoutPoint.id === layoutInterval.start?.id ||
+        clusterPoint.layoutPoint.id === layoutInterval.end?.id;
 
-    const geometryFound =
+    const geometryPointFound =
         clusterPoint.geometryPoint.id === geometryInterval.start?.id ||
         clusterPoint.geometryPoint.id === geometryInterval.end?.id;
 
-    if (alignmentFound && geometryFound) return clusterPointBothSelectedStyle;
-    else if (!alignmentFound && !geometryFound) return clusterPointStyle;
-    else if (alignmentFound) return clusterPointLayoutSelectedStyle;
-    else if (geometryFound) return clusterPointGeometrySelectedStyle;
+    if (layoutPointFound && geometryPointFound) return clusterPointBothSelectedStyle;
+    else if (!layoutPointFound && !geometryPointFound) return clusterPointStyle;
+    else if (layoutPointFound) return clusterPointLayoutSelectedStyle;
+    else if (geometryPointFound) return clusterPointGeometrySelectedStyle;
 }
 
 function createClusterPointFeatures(
-    clusterPoints: ClusterPoint[] | undefined,
-    clusterPointUnselectedStyle: Style,
-    alignmentInterval: LinkInterval,
+    clusterPoints: ClusterPoint[],
+    unselectedStyle: Style,
+    layoutInterval: LinkInterval,
     geometryInterval: LinkInterval,
 ): Feature<Point>[] {
-    return (
-        clusterPoints?.map((point) => {
-            const clusterPointStyle = getClusterPointStyle(
-                point,
-                alignmentInterval,
-                geometryInterval,
-            );
+    return clusterPoints.map((point) => {
+        const clusterPointStyle = getClusterPointStyle(point, layoutInterval, geometryInterval);
 
-            return createClusterPointFeature(
-                point,
-                clusterPointStyle ? [clusterPointStyle] : [clusterPointUnselectedStyle],
-            );
-        }) ?? []
-    );
+        return createClusterPointFeature(point, clusterPointStyle ?? unselectedStyle);
+    });
 }
 
-function createPointLineFeatures(
+function createAlignmentFeature(
     points: LinkPoint[],
     clusterPoints: LinkPoint[],
-    segmentStyle: Style,
+    alignmentStyle: Style,
     pointStyleFunc: (
         point: LinkPoint,
         anotherPoint: LinkPoint | undefined,
@@ -264,23 +258,31 @@ function createPointLineFeatures(
     isGeometryAlignment: boolean,
 ): Feature<Point | LineString>[] {
     const features: Feature<Point | LineString>[] = [];
+    if (points.length >= 2) {
+        features.push(
+            createLineFeature(
+                points,
+                alignmentStyle,
+                isGeometryAlignment ? FeatureType.GeometryLine : FeatureType.LayoutLine,
+            ),
+        );
+    }
+
     points.forEach((point, index) => {
-        const nextPoint = points[index + 1];
-
-        if (nextPoint) {
-            const segmentFeature = createLineFeature(point, nextPoint, segmentStyle);
-            features.push(segmentFeature);
-        }
-
         if (!clusterPoints.find((cPoint) => cPoint.id === point.id)) {
             const pointStyles = pointStyleFunc(
                 point,
-                nextPoint ? nextPoint : points[index - 1],
-                index == 0 || index == points.length - 1,
+                points[index + 1] ?? points[index - 1],
+                index === 0 || index === points.length - 1,
             );
 
-            const pointFeature = createPointFeature(point, pointStyles, isGeometryAlignment);
-            features.push(pointFeature);
+            features.push(
+                createPointFeature(
+                    point,
+                    pointStyles,
+                    isGeometryAlignment ? FeatureType.GeometryPoint : FeatureType.LayoutPoint,
+                ),
+            );
         }
     });
 
@@ -293,22 +295,18 @@ function getStyleForSegmentTicksIfNeeded(
     style: Style,
 ): Style | undefined {
     return point.isSegmentEndPoint && controlPoint
-        ? getStyleForSegmentTicks(point, controlPoint, style)
+        ? getTickStyle(pointToCoords(point), pointToCoords(controlPoint), 6, 'start', style)
         : undefined;
 }
 
-function getStyleForSegmentTicks(point1: LinkPoint, point2: LinkPoint, style: Style): Style {
-    return getTickStyle(pointToCoords(point1), pointToCoords(point2), 6, 'start', style);
-}
-
 function getPointsByOrder(
-    allPoints: LinkPoint[],
+    points: LinkPoint[],
     orderStart?: number,
     orderEnd?: number,
 ): LinkPoint[] {
-    if (allPoints.length == 0 || orderStart == undefined || orderEnd == undefined) return [];
-    else if (orderEnd < allPoints[0].m || orderStart > allPoints[allPoints.length - 1].m) return [];
-    else return allPoints.filter((p) => p.m >= orderStart && p.m <= orderEnd);
+    if (points.length === 0 || orderStart === undefined || orderEnd === undefined) return [];
+    else if (orderEnd < points[0].m || orderStart > points[points.length - 1].m) return [];
+    else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
 function createAlignmentFeatures(
@@ -324,12 +322,7 @@ function createAlignmentFeatures(
     pointHighlightLargeStyle: Style,
     alignmentHighlightStyle: Style,
 ): Feature<Point | LineString>[] {
-    const highlightInterval =
-        highlightLinkPoint &&
-        highlightLinkPoint.m !== selectedLinkInterval.start?.m &&
-        highlightLinkPoint.m !== selectedLinkInterval.end?.m
-            ? createUpdatedInterval(selectedLinkInterval, highlightLinkPoint, true)
-            : selectedLinkInterval;
+    const highlightInterval = getHighlightInterval(selectedLinkInterval, highlightLinkPoint);
 
     const highlightIntervalStart = highlightInterval.start?.m;
     const highlightIntervalEnd = highlightInterval.end?.m || highlightIntervalStart;
@@ -339,8 +332,8 @@ function createAlignmentFeatures(
     const highlightPoints = getPointsByOrder(points, highlightIntervalStart, highlightIntervalEnd);
 
     return [
-        // First leftover line
-        ...createPointLineFeatures(
+        // Line before selected interval
+        ...createAlignmentFeature(
             beforeHighlightPoints,
             clusterPoints,
             alignmentStyle,
@@ -353,8 +346,8 @@ function createAlignmentFeatures(
                 ),
             isGeometryAlignment,
         ),
-        // Second leftover line
-        ...createPointLineFeatures(
+        // Line after selected interval
+        ...createAlignmentFeature(
             afterHighlightPoints,
             clusterPoints,
             alignmentStyle,
@@ -368,7 +361,7 @@ function createAlignmentFeatures(
             isGeometryAlignment,
         ),
         // Selected interval line
-        ...createPointLineFeatures(
+        ...createAlignmentFeature(
             highlightPoints,
             clusterPoints,
             alignmentHighlightStyle,
@@ -412,24 +405,25 @@ function overlappingPoint(
 }
 
 function createConnectingLineFeature(start: LinkPoint, end: LinkPoint): Feature<LineString> {
-    const linePoints = [start, end].map(pointToCoords);
-    const lineString = new LineString(linePoints);
-    const feature = new Feature({ geometry: lineString });
-    feature.setStyle(connectingLineStyle);
-    return feature;
+    const lineFeature = new Feature({
+        geometry: new LineString([pointToCoords(start), pointToCoords(end)]),
+    });
+
+    lineFeature.setStyle(connectingLineStyle);
+    return lineFeature;
 }
 
 function createLinkingAlignmentFeatures(
-    selection: Selection,
     points: LinkPoint[],
-    alignmentInterval: LinkInterval,
+    layoutInterval: LinkInterval,
+    highlightPoint: LinkPoint | undefined,
     showDots: boolean,
 ): Feature<LineString | Point>[] {
     return createAlignmentFeatures(
         points,
-        selection.highlightedItems.layoutLinkPoints[0],
+        highlightPoint,
         [],
-        alignmentInterval,
+        layoutInterval,
         showDots,
         false,
         layoutPointStyle,
@@ -518,19 +512,11 @@ function createLinkingGeometryWithAlignmentFeatures(
         ),
     );
 
-    const layoutInterval =
-        highlightedLayoutPoint &&
-        highlightedLayoutPoint.m !== selectedLayoutInterval.start?.m &&
-        highlightedLayoutPoint.m !== selectedLayoutInterval.end?.m
-            ? createUpdatedInterval(selectedLayoutInterval, highlightedLayoutPoint, true)
-            : selectedLayoutInterval;
-
-    const geometryInterval =
-        highlightedGeometryPoint &&
-        highlightedGeometryPoint.m !== selectedGeometryInterval.start?.m &&
-        highlightedGeometryPoint.m !== selectedGeometryInterval.end?.m
-            ? createUpdatedInterval(selectedGeometryInterval, highlightedGeometryPoint, true)
-            : selectedGeometryInterval;
+    const layoutInterval = getHighlightInterval(selectedLayoutInterval, highlightedLayoutPoint);
+    const geometryInterval = getHighlightInterval(
+        selectedGeometryInterval,
+        highlightedGeometryPoint,
+    );
 
     if (
         layoutInterval.start &&
@@ -599,9 +585,9 @@ export function createAlignmentLinkingLayer(
                 .then((points) => {
                     if (layerId !== newestLayerId) return;
                     const features = createLinkingAlignmentFeatures(
-                        selection,
                         points,
                         linkingState.layoutAlignmentInterval,
+                        selection.highlightedItems.layoutLinkPoints[0],
                         drawLinkingDots,
                     );
 
@@ -692,7 +678,7 @@ export function createAlignmentLinkingLayer(
     return {
         name: 'alignment-linking-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+        searchItems: (hitArea: Polygon, _options: SearchItemsOptions): LayerItemSearchResult => {
             //If dots are not drawn, do not select anything
             if (!drawLinkingDots) {
                 return {
@@ -702,29 +688,45 @@ export function createAlignmentLinkingLayer(
                 };
             }
 
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: options.limit,
-            };
+            const features = getIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
 
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const clusterPoints = getMatchingEntities<ClusterPoint>(
-                hitArea,
+            const clusterPoints = getFeatureData<ClusterPoint>(
                 features,
-                FEATURE_PROPERTY_CLUSTER_POINT,
-                matchOptions,
-            );
+                FeatureType.ClusterPoint,
+            ).slice(0, 1);
+
+            const layoutLinkPoints = getFeatureData<LinkPoint>(
+                features,
+                FeatureType.LayoutPoint,
+            ).slice(0, 1);
+
+            const geometryLinkPoints = getFeatureData<LinkPoint>(
+                features,
+                FeatureType.GeometryPoint,
+            ).slice(0, 1);
 
             return {
-                layoutLinkPoints: getMatchingLinkPoints(hitArea, 'layout', features, matchOptions),
-                geometryLinkPoints: getMatchingLinkPoints(
-                    hitArea,
-                    'geometry',
-                    features,
-                    matchOptions,
-                ),
+                layoutLinkPoints: layoutLinkPoints,
+                geometryLinkPoints: geometryLinkPoints,
                 clusterPoints: clusterPoints,
             };
         },
     };
+}
+
+function getFeatureData<T>(features: Feature[], type: FeatureType): T[] {
+    return features
+        .filter((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type)
+        .map((f) => f.get(LINKING_FEATURE_DATA_PROPERTY) as T);
+}
+
+function getHighlightInterval(
+    selectedInterval: LinkInterval,
+    highlightPoint: LinkPoint | undefined,
+) {
+    return highlightPoint &&
+        highlightPoint.m !== selectedInterval.start?.m &&
+        highlightPoint.m !== selectedInterval.end?.m
+        ? createUpdatedInterval(selectedInterval, highlightPoint, true)
+        : selectedInterval;
 }

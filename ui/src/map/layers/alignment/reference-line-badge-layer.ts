@@ -11,7 +11,7 @@ import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentBadgeFeatures,
     getBadgeDrawDistance,
-} from 'map/layers/alignment/badge-layer-utils';
+} from 'map/layers/utils/badge-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 
 let newestLayerId = 0;

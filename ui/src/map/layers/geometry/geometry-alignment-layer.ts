@@ -10,14 +10,7 @@ import {
     GeometryPlanLayout,
     LayoutPoint,
 } from 'track-layout/track-layout-model';
-import {
-    clearFeatures,
-    getMatchingAlignmentData,
-    getTickStyles,
-    MatchOptions,
-    pointToCoords,
-    setAlignmentData,
-} from 'map/layers/utils/layer-utils';
+import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
@@ -28,6 +21,11 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
+import {
+    getMatchingAlignments,
+    getTickStyles,
+    setAlignmentFeatureProperty,
+} from 'map/layers/utils/alignment-layer-utils';
 
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({
@@ -61,7 +59,7 @@ const selectedLinkedAlignmentStyle = new Style({
     zIndex: 2,
 });
 
-function createFeature(
+function createAlignmentFeature(
     planLayout: GeometryPlanLayout,
     alignment: AlignmentWithLinking,
     selection: Selection,
@@ -73,8 +71,7 @@ function createFeature(
 
     const styles: Style[] = [];
 
-    const lineString = new LineString(alignment.points.map(pointToCoords));
-    const feature = new Feature({ geometry: lineString });
+    const feature = new Feature({ geometry: new LineString(alignment.points.map(pointToCoords)) });
 
     let alignmentStyle = isAlignmentSelected
         ? selectedUnlinkedAlignmentStyle
@@ -94,7 +91,7 @@ function createFeature(
 
     feature.setStyle(styles);
 
-    setAlignmentData(feature, {
+    setAlignmentFeatureProperty(feature, {
         trackNumber: null,
         header: alignment.header,
         points: alignment.points,
@@ -114,12 +111,12 @@ type AlignmentWithLinking = {
 async function getPlanLayoutAlignmentsWithLinking(
     planLayout: GeometryPlanLayout,
     publishType: PublishType,
-    layoutAlignmentChangeTime: TimeStamp,
+    changeTime: TimeStamp,
     resolution: number,
 ): Promise<AlignmentWithLinking[]> {
     const planLayoutWithGeometry =
         planLayout.planDataType == 'STORED'
-            ? await getTrackLayoutPlan(planLayout.planId, layoutAlignmentChangeTime)
+            ? await getTrackLayoutPlan(planLayout.planId, changeTime)
             : planLayout;
 
     if (!planLayoutWithGeometry) {
@@ -169,18 +166,18 @@ export function createGeometryAlignmentLayer(
     );
 
     Promise.all(
-        selection.planLayouts.map((planLayout) => {
-            return getPlanLayoutAlignmentsWithLinking(
+        selection.planLayouts.map((planLayout) =>
+            getPlanLayoutAlignmentsWithLinking(
                 planLayout,
                 publishType,
                 changeTime,
                 resolution,
             ).then((alignments) =>
                 alignments.map((alignment) =>
-                    createFeature(planLayout, alignment, selection, resolution),
+                    createAlignmentFeature(planLayout, alignment, selection, resolution),
                 ),
-            );
-        }),
+            ),
+        ),
     )
         .then((f) => {
             if (layerId === newestLayerId) {
@@ -194,23 +191,14 @@ export function createGeometryAlignmentLayer(
         name: 'geometry-alignment-layer',
         layer: olLayer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: options.limit,
-            };
+            const features = getMatchingAlignments(hitArea, vectorSource, options);
 
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const holders = getMatchingAlignmentData(hitArea, features, matchOptions);
-
-            const geometryAlignments = holders
-                .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
-                .slice(0, options.limit)
-                .map((data) => {
-                    return {
-                        planId: data.planId as GeometryPlanId,
-                        geometryItem: { ...data.header },
-                    };
-                });
+            const geometryAlignments = features
+                .filter(filterUniqueById(({ header }) => header.id)) // pick unique alignments
+                .map((data) => ({
+                    planId: data.planId as GeometryPlanId,
+                    geometryItem: data.header,
+                }));
 
             return { geometryAlignments };
         },

@@ -6,9 +6,9 @@ import { Selection } from 'selection/selection-model';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { AddressPoint, PublishType } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
-import { DEBUG_1M_POINTS } from './utils/layer-visibility-limits';
+import { DEBUG_1M_POINTS } from '../utils/layer-visibility-limits';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 
 type DebugLayerPoint = {
     x: number;
@@ -43,37 +43,35 @@ function createAddressPointFeatures(data: AlignmentAddresses): Feature<OlPoint>[
     return createDebugFeatures(debugData);
 }
 
-function createDebugFeature(item: DebugLayerPoint): Feature<OlPoint> {
-    const feature = new Feature({
-        geometry: new OlPoint([item.x, item.y]),
-    });
-
-    const color = item.color || 'blue';
-    const size = item.size || 3;
-
-    feature.setStyle(
-        new Style({
-            image: new Circle({
-                radius: size,
-                stroke: new Stroke({ color }),
-                fill: new Fill({ color }),
-            }),
-            text: item.text
-                ? new Text({
-                      text: item.text,
-                      scale: 1.5,
-                      fill: new Fill({ color }),
-                      offsetY: -(size + 15),
-                  })
-                : undefined,
-        }),
-    );
-
-    return feature;
-}
-
 function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
-    return points.flatMap((point) => createDebugFeature(point));
+    return points.flatMap((point) => {
+        const feature = new Feature({
+            geometry: new OlPoint(pointToCoords(point)),
+        });
+
+        const color = point.color || 'blue';
+        const size = point.size || 3;
+
+        feature.setStyle(
+            new Style({
+                image: new Circle({
+                    radius: size,
+                    stroke: new Stroke({ color }),
+                    fill: new Fill({ color }),
+                }),
+                text: point.text
+                    ? new Text({
+                          text: point.text,
+                          scale: 1.5,
+                          fill: new Fill({ color }),
+                          offsetY: -(size + 15),
+                      })
+                    : undefined,
+            }),
+        );
+
+        return feature;
+    });
 }
 
 export function createDebug1mPointsLayer(
@@ -85,22 +83,16 @@ export function createDebug1mPointsLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function updateFeatures(features: Feature<OlPoint>[]) {
-        clearFeatures(vectorSource);
-        vectorSource.addFeatures(features);
-    }
-
     const selected = selection.selectedItems.locationTracks[0];
     if (selected && resolution <= DEBUG_1M_POINTS) {
         getAddressPoints(selected, publishType)
-            .then((addresses) =>
-                addresses
-                    ? updateFeatures(createAddressPointFeatures(addresses))
-                    : updateFeatures([]),
-            )
+            .then((addresses) => {
+                clearFeatures(vectorSource);
+                addresses && vectorSource.addFeatures(createAddressPointFeatures(addresses));
+            })
             .catch(() => clearFeatures(vectorSource));
     } else {
-        updateFeatures([]);
+        clearFeatures(vectorSource);
     }
 
     return {

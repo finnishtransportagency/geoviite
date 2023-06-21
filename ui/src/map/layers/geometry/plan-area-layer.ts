@@ -15,12 +15,12 @@ function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];
 }
 
-function createFeature(planArea: PlanArea): Feature<Polygon> {
+function createPlanFeature(planArea: PlanArea): Feature<Polygon> {
     const coordinates = planArea.polygon.map(pointToCoords);
     const feature = new Feature({ geometry: new Polygon([coordinates]) });
 
-    feature.setStyle(() => {
-        return new Style({
+    feature.setStyle(
+        new Style({
             text: new Text({
                 text: planArea.fileName.replace(/\s/g, '_').split('/').join(' '),
                 font: mapStyles.fontFamily,
@@ -34,8 +34,8 @@ function createFeature(planArea: PlanArea): Feature<Polygon> {
                 color: mapStyles.planAreaBorder,
                 width: 3,
             }),
-        });
-    });
+        }),
+    );
 
     return feature;
 }
@@ -52,12 +52,6 @@ export function createPlanAreaLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function updateFeatures(features: Feature<Polygon>[]) {
-        clearFeatures(vectorSource);
-        vectorSource.addFeatures(features);
-    }
-
-    // Fetch every nth
     const planAreaPromises = mapTiles.map((tile) =>
         getPlanAreasByTile(tile, changeTimes.geometryPlan),
     );
@@ -66,8 +60,10 @@ export function createPlanAreaLayer(
         .then((planAreas) => deduplicatePlanAreas(planAreas.flat()))
         .then((planAreas) => {
             if (layerId === newestLayerId) {
-                const features = planAreas.flatMap((planArea) => createFeature(planArea));
-                updateFeatures(features);
+                const features = planAreas.flatMap((planArea) => createPlanFeature(planArea));
+
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
             }
         })
         .catch(() => clearFeatures(vectorSource));

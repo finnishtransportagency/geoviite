@@ -13,7 +13,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
-import { blueHighlightStyle } from 'map/layers/highlight/highlight-layer-utils';
+import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { getPartialPolyLine } from 'utils/math-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
@@ -67,12 +67,12 @@ export function createPlanSectionHighlightLayer(
     if (resolution <= HIGHLIGHTS_SHOW) {
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL')
             .then((alignments) => {
-                if (layerId !== newestLayerId) return;
+                if (layerId === newestLayerId) {
+                    const features = createFeatures(alignments, hoveredOverItem);
 
-                const features = createFeatures(alignments, hoveredOverItem);
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
+                    clearFeatures(vectorSource);
+                    vectorSource.addFeatures(features);
+                }
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

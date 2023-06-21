@@ -5,18 +5,16 @@ import OlView from 'ol/View';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import {
-    clearFeatures,
-    getMatchingAlignmentData,
-    MatchOptions,
-} from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { createAlignmentFeatures } from 'map/layers/alignment/alignment-layer-utils';
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import {
+    createAlignmentFeatures,
+    getMatchingAlignments,
+} from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 
 let shownLocationTracksCompare = '';
@@ -80,19 +78,11 @@ export function createLocationTrackAlignmentLayer(
         name: 'location-track-alignment-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: undefined,
+            return {
+                locationTracks: getMatchingAlignments(hitArea, vectorSource, options).map(
+                    ({ header }) => header.id,
+                ),
             };
-
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const locationTracks = getMatchingAlignmentData(hitArea, features, matchOptions)
-                .map(({ header }) => header.id)
-                .filter(filterUnique)
-                .filter(filterNotEmpty)
-                .slice(0, options.limit);
-
-            return { locationTracks };
         },
         onRemove: () => updateShownLocationTracks([]),
     };

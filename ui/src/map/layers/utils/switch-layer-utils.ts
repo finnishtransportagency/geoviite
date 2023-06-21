@@ -9,10 +9,12 @@ import { SuggestedSwitchJoint } from 'linking/linking-model';
 import { SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { Feature } from 'ol';
-import { Point } from 'ol/geom';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { Point, Polygon } from 'ol/geom';
+import { getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Circle, Fill, RegularShape, Stroke } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
+import { SearchItemsOptions } from 'map/layers/utils/layer-model';
+import VectorSource from 'ol/source/Vector';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -215,7 +217,7 @@ export function getLinkingJointRenderer(
     );
 }
 
-export function createFeatures(
+export function createSwitchFeatures(
     layoutSwitches: LayoutSwitch[],
     isSelected: (switchItem: LayoutSwitch) => boolean,
     isHighlighted: (switchItem: LayoutSwitch) => boolean,
@@ -236,7 +238,7 @@ export function createFeatures(
             );
             const presentationJointNumber = structure?.presentationJointNumber;
 
-            return createSwitchFeatures(
+            return createSwitchFeature(
                 layoutSwitch,
                 selected,
                 highlighted,
@@ -249,7 +251,7 @@ export function createFeatures(
         });
 }
 
-function createSwitchFeatures(
+function createSwitchFeature(
     layoutSwitch: LayoutSwitch,
     selected: boolean,
     highlighted: boolean,
@@ -266,22 +268,17 @@ function createSwitchFeatures(
     // Use presentation joint as main joint if possible, otherwise use first joint
     const switchFeature = new Feature({
         geometry: new Point(
-            pointToCoords(
-                presentationJoint ? presentationJoint.location : layoutSwitch.joints[0].location,
-            ),
+            pointToCoords(presentationJoint?.location ?? layoutSwitch.joints[0].location),
         ),
     });
 
     switchFeature.setStyle(
         selected || highlighted
-            ? selectedStyle(layoutSwitch, largeSymbol, linked)
-            : unselectedStyle(layoutSwitch, largeSymbol, showLabel, linked),
+            ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked)
+            : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked),
     );
 
-    switchFeature.set('switch-data', {
-        switch: layoutSwitch,
-        planId: planId,
-    });
+    setSwitchFeatureProperty(switchFeature, { switch: layoutSwitch, planId: planId });
 
     const jointFeatures =
         selected || highlighted
@@ -291,18 +288,12 @@ function createSwitchFeatures(
                   });
 
                   feature.setStyle(
-                      jointStyle(
+                      getSwitchJointStyle(
                           joint,
                           // Again, use presentation joint as main joint if found, otherwise use first one
                           presentationJoint ? joint.number === presentationJointNumber : index == 0,
                       ),
                   );
-
-                  feature.set('switch-data', {
-                      switch: layoutSwitch,
-                      joint: joint,
-                      planId: planId,
-                  });
 
                   return feature;
               })
@@ -311,7 +302,7 @@ function createSwitchFeatures(
     return [switchFeature, ...jointFeatures];
 }
 
-function unselectedStyle(
+function getUnselectedSwitchStyle(
     layoutSwitch: LayoutSwitch,
     large: boolean,
     textLabel: boolean,
@@ -323,18 +314,46 @@ function unselectedStyle(
     });
 }
 
-function selectedStyle(layoutSwitch: LayoutSwitch, large: boolean, linked: boolean): Style {
+function getSelectedSwitchStyle(
+    layoutSwitch: LayoutSwitch,
+    large: boolean,
+    linked: boolean,
+): Style {
     return new Style({
         zIndex: 1,
         renderer: getSelectedSwitchLabelRenderer(layoutSwitch, large, linked),
     });
 }
 
-function jointStyle(joint: LayoutSwitchJoint, mainJoint: boolean): Style {
+function getSwitchJointStyle(joint: LayoutSwitchJoint, mainJoint: boolean): Style {
     return new Style({
         zIndex: mainJoint ? 3 : 2,
         renderer: getJointRenderer(joint, mainJoint),
     });
+}
+
+type SwitchFeatureProperty = {
+    switch: LayoutSwitch;
+    planId: GeometryPlanId | undefined;
+};
+
+const SWITCH_FEATURE_DATA_PROPERTY = 'switch-data';
+
+export function getMatchingSwitches(
+    hitArea: Polygon,
+    source: VectorSource,
+    options: SearchItemsOptions,
+) {
+    return getMatchingEntities<SwitchFeatureProperty>(
+        hitArea,
+        source,
+        SWITCH_FEATURE_DATA_PROPERTY,
+        options,
+    );
+}
+
+function setSwitchFeatureProperty(feature: Feature<Point>, data: SwitchFeatureProperty) {
+    feature.set(SWITCH_FEATURE_DATA_PROPERTY, data);
 }
 
 export const endPointStyle = [

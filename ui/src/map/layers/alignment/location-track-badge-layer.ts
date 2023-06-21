@@ -12,7 +12,7 @@ import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentBadgeFeatures,
     getBadgeDrawDistance,
-} from 'map/layers/alignment/badge-layer-utils';
+} from 'map/layers/utils/badge-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 
 let newestLayerId = 0;
@@ -35,11 +35,11 @@ export function createLocationTrackBadgeLayer(
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
-            .then((alignments) => {
+            .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
 
                 const features = createAlignmentBadgeFeatures(
-                    alignments,
+                    locationTracks,
                     selection,
                     linkingState,
                     badgeDrawDistance,

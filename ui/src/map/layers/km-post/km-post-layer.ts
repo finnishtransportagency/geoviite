@@ -8,13 +8,14 @@ import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { clearFeatures, getMatchingKmPosts } from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createKmPostFeatures,
     getKmPostStepByResolution,
-} from 'map/layers/km-post/km-post-layer-utils';
+    getMatchingKmPosts,
+} from 'map/layers/utils/km-post-layer-utils';
 
 let shownKmPostsCompare: string;
 let newestLayerId = 0;
@@ -86,16 +87,11 @@ export function createKmPostLayer(
         name: 'km-post-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const kmPosts = getMatchingKmPosts(
-                hitArea,
-                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-                {
-                    strategy: 'nearest',
-                    limit: options.limit,
-                },
-            ).map(({ kmPost }) => kmPost.id);
-
-            return { kmPosts };
+            return {
+                kmPosts: getMatchingKmPosts(hitArea, vectorSource, options).map(
+                    ({ kmPost }) => kmPost.id,
+                ),
+            };
         },
         onRemove: () => updateShownKmPosts([]),
     };

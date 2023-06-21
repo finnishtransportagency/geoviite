@@ -81,7 +81,7 @@ function getRotation(start: Coordinate, end: Coordinate) {
     };
 }
 
-function createFeature(
+function createAddressFeature(
     point: LayoutPoint,
     controlPoint: LayoutPoint,
     address: TrackMeter,
@@ -99,7 +99,7 @@ function createFeature(
 
     const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
         const fontSize = 12;
-        const lineWidth = 120;
+        const lineWidth = 120 * pixelRatio;
         const textPadding = 3 * pixelRatio;
         const lineDash = [12, 6];
         const textBackgroundHeight = (fontSize + 4) * pixelRatio;
@@ -115,7 +115,7 @@ function createFeature(
 
         const text = formatTrackMeter(address);
         const textWidth = ctx.measureText(text).width;
-        const xEndPosition = x + lineWidth * pixelRatio * (positiveXOffset ? 1 : -1);
+        const xEndPosition = x + lineWidth * (positiveXOffset ? 1 : -1);
         const yEndPosition = y + (positiveYOffset === pointAtEnd ? -1 : fontSize + 3) * pixelRatio;
 
         ctx.translate(x, y);
@@ -152,7 +152,7 @@ function createFeature(
     return feature;
 }
 
-function createFeatures(
+function createAddressFeatures(
     referenceLines: AlignmentDataHolderWithAddresses[],
     layerSettings: TrackNumberDiagramLayerSetting,
 ): Feature<Point>[] {
@@ -160,19 +160,24 @@ function createFeatures(
         const trackNumberId = referenceLine.header.trackNumberId as LayoutTrackNumberId;
         const color = getColorForTrackNumber(trackNumberId, layerSettings);
 
-        const features = [];
+        const features: Feature<Point>[] = [];
         const points = referenceLine.points;
 
         if (startAddress && color) {
-            features.push(createFeature(points[0], points[1], startAddress, false, color));
+            features.push(createAddressFeature(points[0], points[1], startAddress, false, color));
         }
 
         if (endAddress && color) {
             const lastIndex = points.length - 1;
-
-            features.push(
-                createFeature(points[lastIndex - 1], points[lastIndex], endAddress, true, color),
+            const f = createAddressFeature(
+                points[lastIndex - 1],
+                points[lastIndex],
+                endAddress,
+                true,
+                color,
             );
+
+            features.push(f);
         }
 
         return features;
@@ -213,13 +218,13 @@ export function createTrackNumberEndPointAddressesLayer(
             .then((referenceLines) =>
                 getEndPointAddresses(referenceLines, publishType, changeTimes.layoutTrackNumber),
             )
-            .then((alignments) => {
-                if (layerId !== newestLayerId) return;
+            .then((referenceLines) => {
+                if (layerId === newestLayerId) {
+                    const features = createAddressFeatures(referenceLines, layerSettings);
 
-                const features = createFeatures(alignments, layerSettings);
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
+                    clearFeatures(vectorSource);
+                    vectorSource.addFeatures(features);
+                }
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

@@ -1,7 +1,7 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { MapContext, MapLayerMenuChange } from 'map/map-store';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import { MapContext } from 'map/map-store';
+import { Map, MapLayerMenuChange, MapViewport, OptionalShownItems } from 'map/map-model';
 import MapView from 'map/map-view';
 import {
     OnClickLocationFunction,

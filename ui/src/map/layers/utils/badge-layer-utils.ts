@@ -11,7 +11,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
-import { getAlignmentHeaderStates } from 'map/layers/alignment/alignment-layer-utils';
+import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
 
 type MapAlignmentBadgePoint = {
@@ -104,11 +104,10 @@ function createBadgeFeatures(
         };
 
         badgeFeature.setStyle(
-            () =>
-                new Style({
-                    zIndex: contrast ? 1 : 0,
-                    renderer: renderer,
-                }),
+            new Style({
+                zIndex: contrast ? 1 : 0,
+                renderer: renderer,
+            }),
         );
 
         return badgeFeature;

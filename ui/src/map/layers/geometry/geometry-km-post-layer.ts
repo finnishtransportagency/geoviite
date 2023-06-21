@@ -5,11 +5,15 @@ import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { clearFeatures, getMatchingKmPosts } from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
-import { createKmPostFeatures, getKmPostStepByResolution } from '../km-post/km-post-layer-utils';
+import {
+    createKmPostFeatures,
+    getKmPostStepByResolution,
+    getMatchingKmPosts,
+} from '../utils/km-post-layer-utils';
 
 let newestLayerId = 0;
 
@@ -80,19 +84,12 @@ export function createGeometryKmPostLayer(
         name: 'geometry-km-post-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const geometryKmPosts = getMatchingKmPosts(
-                hitArea,
-                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-                {
-                    strategy: 'nearest',
-                    limit: options.limit,
-                },
-            ).map((d) => ({
-                geometryItem: d.kmPost,
-                planId: d.planId as GeometryPlanId,
-            }));
-
-            return { geometryKmPosts };
+            return {
+                geometryKmPosts: getMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
+                    geometryItem: kp.kmPost,
+                    planId: kp.planId as GeometryPlanId,
+                })),
+            };
         },
     };
 }

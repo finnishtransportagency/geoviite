@@ -12,7 +12,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { createHighlightFeatures } from 'map/layers/highlight/highlight-layer-utils';
+import { createHighlightFeatures } from 'map/layers/utils/highlight-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 
 const highlightBackgroundStyle = new Style({

@@ -7,10 +7,10 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { getSwitchesByTile } from 'track-layout/layout-switch-api';
-import { clearFeatures, getMatchingSwitches } from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { createFeatures } from 'map/layers/switch/switch-layer-utils';
+import { createSwitchFeatures, getMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
 import { PublishType } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
@@ -63,7 +63,7 @@ export function createSwitchLayer(
                     return selection.highlightedItems.switches.some((s) => s === switchItem.id);
                 };
 
-                const features = createFeatures(
+                const features = createSwitchFeatures(
                     switches,
                     isSelected,
                     isHighlighted,
@@ -92,14 +92,9 @@ export function createSwitchLayer(
         name: 'switch-layer',
         layer: layer,
         searchItems: (hitArea: OlPolygon, options: SearchItemsOptions) => {
-            const switches = getMatchingSwitches(
-                hitArea,
-                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-                {
-                    strategy: options.limit == 1 ? 'nearest' : 'limit',
-                    limit: options.limit,
-                },
-            ).map((d) => d.switch.id);
+            const switches = getMatchingSwitches(hitArea, vectorSource, options).map(
+                (d) => d.switch.id,
+            );
 
             return { switches };
         },

@@ -7,22 +7,18 @@ import { MapTile } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
-import {
-    clearFeatures,
-    getMatchingSuggestedSwitches,
-    MatchOptions,
-    pointToCoords,
-} from 'map/layers/utils/layer-utils';
+import { clearFeatures, getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
-import { endPointStyle, getLinkingJointRenderer } from 'map/layers/switch/switch-layer-utils';
+import { endPointStyle, getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { filterNotEmpty, flatten } from 'utils/array-utils';
-
-export const FEATURE_PROPERTY_SUGGESTED_SWITCH = 'suggested-switch';
+import { filterNotEmpty } from 'utils/array-utils';
 
 let newestLayerId = 0;
 
-function createFeatures(suggestedSwitch: SuggestedSwitch, isSelected: boolean): Feature<Point>[] {
+function createSwitchFeatures(
+    suggestedSwitch: SuggestedSwitch,
+    isSelected: boolean,
+): Feature<Point>[] {
     const features: Feature<Point>[] = [];
 
     if (isSelected) {
@@ -37,7 +33,7 @@ function createFeatures(suggestedSwitch: SuggestedSwitch, isSelected: boolean): 
                 }),
             );
 
-            f.set(FEATURE_PROPERTY_SUGGESTED_SWITCH, suggestedSwitch);
+            setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
             features.push(f);
         });
     } else {
@@ -51,7 +47,7 @@ function createFeatures(suggestedSwitch: SuggestedSwitch, isSelected: boolean): 
             });
 
             f.setStyle(endPointStyle);
-            f.set(FEATURE_PROPERTY_SUGGESTED_SWITCH, suggestedSwitch);
+            setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
 
             features.push(f);
         }
@@ -72,11 +68,6 @@ export function createSwitchLinkingLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function updateFeatures(features: Feature<Point>[]) {
-        clearFeatures(vectorSource);
-        vectorSource.addFeatures(features);
-    }
-
     if (resolution <= SUGGESTED_SWITCH_SHOW) {
         const selectedSwitches = selection.selectedItems.suggestedSwitches;
 
@@ -85,10 +76,9 @@ export function createSwitchLinkingLayer(
             : mapTiles.map((tile) => getSuggestedSwitchesByTile(tile));
 
         Promise.all(getSuggestedSwitchesPromises)
-            .then(flatten)
             .then((suggestedSwitches) =>
                 [
-                    ...suggestedSwitches,
+                    ...suggestedSwitches.flat(),
                     selectedSwitches[0], // add selected suggested switch into collection
                 ].filter(filterNotEmpty),
             )
@@ -97,14 +87,16 @@ export function createSwitchLinkingLayer(
                 if (layerId !== newestLayerId) return;
 
                 const features = suggestedSwitches.flatMap((suggestedSwitch) =>
-                    createFeatures(
+                    createSwitchFeatures(
                         suggestedSwitch,
                         selectedSwitches.some(
                             (switchToCheck) => switchToCheck.id == suggestedSwitch.id,
                         ),
                     ),
                 );
-                updateFeatures(features);
+
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
             })
             .catch(() => clearFeatures(vectorSource));
     } else {
@@ -115,15 +107,28 @@ export function createSwitchLinkingLayer(
         name: 'switch-linking-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: options.limit,
-            };
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-
             return {
-                suggestedSwitches: getMatchingSuggestedSwitches(hitArea, features, matchOptions),
+                suggestedSwitches: getMatchingSwitches(hitArea, vectorSource, options),
             };
         },
     };
+}
+
+const SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY = 'suggested-switch-data';
+
+function getMatchingSwitches(
+    hitArea: Polygon,
+    source: VectorSource,
+    options: SearchItemsOptions,
+): SuggestedSwitch[] {
+    return getMatchingEntities<SuggestedSwitch>(
+        hitArea,
+        source,
+        SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY,
+        options,
+    );
+}
+
+function setSuggestedSwitchFeatureProperty(feature: Feature<Point>, data: SuggestedSwitch) {
+    feature.set(SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY, data);
 }

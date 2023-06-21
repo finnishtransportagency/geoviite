@@ -17,8 +17,10 @@ export function createAlignmentBackgroundFeatures(
     alignments: AlignmentDataHolder[],
 ): Feature<LineString>[] {
     return alignments.map(({ points }) => {
-        const lineString = new LineString(points.map(pointToCoords));
-        const alignmentFeature = new Feature({ geometry: lineString });
+        const alignmentFeature = new Feature({
+            geometry: new LineString(points.map(pointToCoords)),
+        });
+
         alignmentFeature.setStyle(alignmentBackgroundStyle);
 
         return alignmentFeature;
