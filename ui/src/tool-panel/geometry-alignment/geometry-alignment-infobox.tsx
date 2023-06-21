@@ -21,6 +21,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { GeometryAlignmentVerticalGeometryInfobox } from 'tool-panel/geometry-alignment/geometry-alignment-vertical-geometry-infobox';
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
@@ -39,6 +40,8 @@ type GeometryAlignmentInfoboxProps = {
     showArea: (area: BoundingBox) => void;
     visibilities: GeometryAlignmentInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometryAlignmentInfoboxVisibilities) => void;
+    onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
@@ -58,6 +61,8 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     showArea,
     visibilities,
     onVisibilityChange,
+    onVerticalGeometryDiagramVisibilityChange,
+    verticalGeometryDiagramVisible,
 }: GeometryAlignmentInfoboxProps) => {
     const { t } = useTranslation();
     const planHeader = usePlanHeader(planId);
@@ -132,6 +137,14 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     }}
                 />
             )}
+            <GeometryAlignmentVerticalGeometryInfobox
+                contentVisible={visibilities.verticalGeometry}
+                onContentVisibilityChange={() => visibilityChange('verticalGeometry')}
+                onVerticalGeometryDiagramVisibilityChange={
+                    onVerticalGeometryDiagramVisibilityChange
+                }
+                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+            />
         </React.Fragment>
     );
 };

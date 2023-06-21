@@ -93,6 +93,7 @@ export type GeometryAlignmentInfoboxVisibilities = {
     basic: boolean;
     linking: boolean;
     geometry: boolean;
+    verticalGeometry: boolean;
 } & GeometryPlanInfoboxVisibilities;
 
 export type GeometryKmPostInfoboxVisibilities = {
@@ -152,6 +153,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         plan: true,
         planQuality: true,
         geometry: true,
+        verticalGeometry: true,
     },
     geometryPlan: {
         plan: true,

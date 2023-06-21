@@ -39,6 +39,7 @@ export const AppBar: React.FC = () => {
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
+    const exclamationPointVisibility = !!pvDocumentCounts && pvDocumentCounts?.suggested > 0;
 
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
@@ -48,6 +49,17 @@ export const AppBar: React.FC = () => {
                 return '/infra-model/waiting-for-approval';
             case InfraModelTabType.REJECTED:
                 return '/infra-model/rejected';
+        }
+    }
+
+    function getInfraModelLinkClassName(isActive: boolean): string {
+        if (exclamationPointVisibility) {
+            return `${styles['app-bar__link']} ${
+                styles['app-bar__link--infra-model-with-exclamation-point']
+            } ${isActive ? styles['app-bar__link--active'] : ''}`;
+        } else {
+            return `${styles['app-bar__link']} 
+             ${isActive ? styles['app-bar__link--active'] : ''}`;
         }
     }
 
@@ -78,17 +90,12 @@ export const AppBar: React.FC = () => {
                                         <NavLink
                                             to={getInfraModelLink()}
                                             className={({ isActive }) =>
-                                                `${styles['app-bar__link']} ${
-                                                    styles['app-bar__link--infra-model']
-                                                } ${
-                                                    isActive ? styles['app-bar__link--active'] : ''
-                                                }`
+                                                getInfraModelLinkClassName(isActive)
                                             }
                                             end>
                                             <InfraModelLink
                                                 exclamationPointVisibility={
-                                                    !!pvDocumentCounts &&
-                                                    pvDocumentCounts?.suggested > 0
+                                                    exclamationPointVisibility
                                                 }
                                             />
                                         </NavLink>
