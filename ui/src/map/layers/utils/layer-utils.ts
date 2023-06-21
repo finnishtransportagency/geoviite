@@ -28,7 +28,7 @@ function toWgs84Multi(coordinates: number[][]): number[][] {
     return coordinates.map((coord) => toWgs84(coord));
 }
 
-function center(polygon: Polygon): OlPoint {
+export function center(polygon: Polygon): OlPoint {
     const coords = polygon.getLinearRing(0)?.getCoordinates();
     if (!coords) {
         throw 'Cannot find the center of a polygon!';

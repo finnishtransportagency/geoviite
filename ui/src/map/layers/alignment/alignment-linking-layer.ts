@@ -7,10 +7,12 @@ import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
+    center,
     clearFeatures,
     getIntersectingFeatures,
     getPlanarDistanceUnwrapped,
     pointToCoords,
+    sortFeaturesByDistance,
 } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
@@ -689,35 +691,55 @@ export function createAlignmentLinkingLayer(
             }
 
             const features = getIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
+            const hitPoint = center(hitArea);
 
-            const clusterPoints = getFeatureData<ClusterPoint>(
+            const onLayoutLine = containsType(features, FeatureType.LayoutLine);
+            const onGeometryLine = containsType(features, FeatureType.GeometryLine);
+
+            const clusterPoint = findClosestFeature<ClusterPoint>(
                 features,
                 FeatureType.ClusterPoint,
-            ).slice(0, 1);
+                hitPoint,
+            );
 
-            const layoutLinkPoints = getFeatureData<LinkPoint>(
-                features,
-                FeatureType.LayoutPoint,
-            ).slice(0, 1);
+            const closestLayoutPoint = clusterPoint
+                ? undefined
+                : findClosestFeature<LinkPoint>(
+                      vectorSource.getFeatures(),
+                      FeatureType.LayoutPoint,
+                      center(hitArea),
+                  );
 
-            const geometryLinkPoints = getFeatureData<LinkPoint>(
-                features,
-                FeatureType.GeometryPoint,
-            ).slice(0, 1);
+            const closestGeometryPoint = clusterPoint
+                ? undefined
+                : findClosestFeature<LinkPoint>(
+                      vectorSource.getFeatures(),
+                      FeatureType.GeometryPoint,
+                      center(hitArea),
+                  );
 
             return {
-                layoutLinkPoints: layoutLinkPoints,
-                geometryLinkPoints: geometryLinkPoints,
-                clusterPoints: clusterPoints,
+                layoutLinkPoints: onLayoutLine && closestLayoutPoint ? [closestLayoutPoint] : [],
+                geometryLinkPoints:
+                    onGeometryLine && closestGeometryPoint ? [closestGeometryPoint] : [],
+                clusterPoints: clusterPoint ? [clusterPoint] : [],
             };
         },
     };
 }
 
-function getFeatureData<T>(features: Feature[], type: FeatureType): T[] {
-    return features
-        .filter((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type)
-        .map((f) => f.get(LINKING_FEATURE_DATA_PROPERTY) as T);
+function containsType(features: Feature[], type: FeatureType): boolean {
+    return features.some((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type);
+}
+
+function findClosestFeature<T>(
+    features: Feature[],
+    type: FeatureType,
+    point: Point,
+): T | undefined {
+    const filteredFeatures = features.filter((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type);
+    const closestFeature = sortFeaturesByDistance(filteredFeatures, point)[0];
+    return closestFeature ? (closestFeature.get(LINKING_FEATURE_DATA_PROPERTY) as T) : undefined;
 }
 
 function getHighlightInterval(
