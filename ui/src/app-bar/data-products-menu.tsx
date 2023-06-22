@@ -29,6 +29,10 @@ const DataProductsMenu: React.FC<DataProductsMenuProps> = ({ ...props }) => {
         };
     }, [ref]);
 
+    React.useEffect(() => {
+        setX(ref.current?.getBoundingClientRect().x);
+    }, [ref.current?.getBoundingClientRect().x]);
+
     useResizeObserver({
         ref: document.body,
         onResize: () => {
