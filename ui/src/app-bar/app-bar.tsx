@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
@@ -12,6 +12,7 @@ import { InfraModelLink } from 'app-bar/infra-model-link';
 import { getPVDocumentCount } from 'infra-model/infra-model-api';
 import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
+import DataProductsMenu from 'app-bar/data-products-menu';
 
 type Link = {
     link: string;
@@ -35,7 +36,6 @@ const links: Link[] = [
 
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
-    const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
@@ -105,40 +105,7 @@ export const AppBar: React.FC = () => {
                         );
                     })}
                 <li>
-                    <div
-                        className={
-                            useLocation().pathname.includes('data-products')
-                                ? `${styles['app-bar__link']} ${styles['app-bar__data-menu-button--active']}`
-                                : `${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`
-                        }
-                        onClick={() => setDataMenuOpen(!dataMenuOpen)}>
-                        <span>{t('app-bar.data-products-title')}</span>
-                        {dataMenuOpen && (
-                            <div className={styles['app-bar__data-menu']}>
-                                <div>
-                                    <NavLink
-                                        className={styles['menu__item']}
-                                        to={'data-products/element-list'}>
-                                        {t('app-bar.data-products.element-list')}
-                                    </NavLink>
-                                </div>
-                                <div>
-                                    <NavLink
-                                        className={styles['menu__item']}
-                                        to={'data-products/vertical-geometry'}>
-                                        {t('app-bar.data-products.vertical-geometry')}
-                                    </NavLink>
-                                </div>
-                                <div>
-                                    <NavLink
-                                        className={styles['menu__item']}
-                                        to={'data-products/kilometer-lengths'}>
-                                        {t('app-bar.data-products.km-lengths')}
-                                    </NavLink>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <DataProductsMenu />
                 </li>
             </ul>
             <img
