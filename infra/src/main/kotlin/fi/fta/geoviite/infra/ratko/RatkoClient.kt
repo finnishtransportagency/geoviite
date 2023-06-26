@@ -344,17 +344,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         }
     }
 
-    fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
-        logger.integrationCall("updateAssetState", "assetOid" to assetOid, "state" to state)
-
-        val responseJson = client
-            .get()
-            .uri("/api/assets/v1.2/${assetOid}")
-            .retrieve()
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-
-        val switchJsonObject = ObjectMapper().readTree(responseJson) as ObjectNode
+    fun replaceAssetJsonState(assetJson:String, state: RatkoAssetState):String {
+        val switchJsonObject = ObjectMapper().readTree(assetJson) as ObjectNode
         switchJsonObject.put("state", state.value)
         switchJsonObject.remove("temporalStartTime")
         switchJsonObject.get("properties")?.forEach { property ->
@@ -402,10 +393,26 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         switchJsonObject.remove("childAssets")
 
+        return switchJsonObject.toString()
+    }
+
+    fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
+        logger.integrationCall("updateAssetState", "assetOid" to assetOid, "state" to state)
+
+        val assetJson = client
+            .get()
+            .uri("/api/assets/v1.2/${assetOid}")
+            .retrieve()
+            .bodyToMono<String>()
+            .block(defaultBlockTimeout)
+            ?: throw Exception("Ratko asset response is null")
+
+        val jsonWithNewState = replaceAssetJsonState(assetJson, state)
+
         client
             .put()
             .uri("/api/assets/v1.2/${assetOid}")
-            .bodyValue(switchJsonObject.toString())
+            .bodyValue(jsonWithNewState)
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.STATE, RatkoOperation.UPDATE)
             .toBodilessEntity()
