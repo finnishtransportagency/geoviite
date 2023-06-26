@@ -99,7 +99,7 @@ $appbar-height: 48px;
         .menu__item {
             @extend .menu__item;
             color: $color-white-default;
-            text-decoration: underline $color-blue-darker;
+            text-decoration: none;
 
             &:hover {
                 background: $color-blue-dark;
