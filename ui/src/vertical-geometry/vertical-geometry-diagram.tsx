@@ -1,6 +1,6 @@
-import React, { MouseEvent, useEffect, useMemo, useRef, useState, WheelEvent } from 'react';
+import React, { MouseEvent, useMemo, useRef, useState, WheelEvent } from 'react';
 import { PublishType } from 'common/common-model';
-import { useLoader, useTwoPartEffect } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useTwoPartEffectWithStatus } from 'utils/react-utils';
 import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
@@ -42,6 +42,7 @@ import { useAlignmentHeights } from 'vertical-geometry/km-heights-fetch';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { createClassName } from 'vayla-design-lib/utils';
 
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
@@ -150,7 +151,8 @@ function getStartAndEnd(alignmentId: VerticalGeometryDiagramAlignmentId) {
 const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> = ({
     alignmentId,
     changeTimes,
-    ...rest
+    onSelect,
+    showArea,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     /**
@@ -164,6 +166,8 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
     const [oldWidth, setOldWidth] = useState<number>();
     const [startAndEndLoadedForAlignmentId, setStartAndEndLoadedForAlignmentId] =
         useState<VerticalGeometryDiagramAlignmentId>();
+
+    const delegates = createDelegates(TrackLayoutActions);
 
     useResizeObserver({
         ref,
@@ -186,7 +190,7 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
         },
     });
 
-    useTwoPartEffect(
+    const loadingStatus = useTwoPartEffectWithStatus(
         () =>
             getStartAndEnd(alignmentId).then((startAndEnd) => [startAndEnd, alignmentId] as const),
         ([startAndEnd, loadingAlignmentId]) => {
@@ -201,27 +205,43 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
         [alignmentId, changeTimes.layoutLocationTrack, changeTimes.geometryPlan],
     );
 
+    const showDiagram =
+        !!ref.current &&
+        startM !== undefined &&
+        endM !== undefined &&
+        alignmentStartM !== undefined &&
+        alignmentEndM !== undefined &&
+        startAndEndLoadedForAlignmentId;
+
     return (
-        <div ref={ref}>
-            {ref.current &&
-                startM !== undefined &&
-                endM !== undefined &&
-                alignmentStartM !== undefined &&
-                alignmentEndM !== undefined && (
-                    <VerticalGeometryDiagram
-                        diagramWidthPx={ref.current.clientWidth}
-                        alignmentId={alignmentId}
-                        startM={startM}
-                        setStartM={setStartM}
-                        endM={endM}
-                        setEndM={setEndM}
-                        alignmentStartM={alignmentStartM}
-                        alignmentEndM={alignmentEndM}
-                        changeTimes={changeTimes}
-                        startAndEndLoadedForAlignmentId={startAndEndLoadedForAlignmentId}
-                        {...rest}
-                    />
-                )}
+        <div ref={ref} className={styles['vertical-geometry-diagram']}>
+            <div
+                className={styles['vertical-geometry-diagram__close-icon']}
+                onClick={() => delegates.onVerticalGeometryDiagramVisibilityChange(false)}>
+                <Icons.Close color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
+            </div>
+            {!showDiagram && loadingStatus === LoaderStatus.Ready && (
+                <div className={'vertical-geometry-diagram__empty'}>
+                    Valitun raiteen pystygeometriaa ei voida näyttää.
+                </div>
+            )}
+
+            {showDiagram && (
+                <VerticalGeometryDiagram
+                    diagramWidthPx={ref.current.clientWidth}
+                    alignmentId={alignmentId}
+                    startM={startM}
+                    setStartM={setStartM}
+                    endM={endM}
+                    setEndM={setEndM}
+                    alignmentStartM={alignmentStartM}
+                    alignmentEndM={alignmentEndM}
+                    changeTimes={changeTimes}
+                    startAndEndLoadedForAlignmentId={startAndEndLoadedForAlignmentId}
+                    onSelect={onSelect}
+                    showArea={showArea}
+                />
+            )}
         </div>
     );
 };
@@ -253,12 +273,7 @@ const VerticalGeometryDiagram: React.FC<{
     showArea,
     startAndEndLoadedForAlignmentId,
 }) => {
-    const delegates = createDelegates(TrackLayoutActions);
     const ref = useRef<HTMLDivElement>(null);
-    const alignmentIdChangeTime = useRef(Date.now());
-    useEffect(() => {
-        alignmentIdChangeTime.current = Date.now();
-    }, [alignmentId]);
     /**
      panning is the X pixel value where our last panning movement started, or null if we're not currently panning
      */
@@ -404,44 +419,39 @@ const VerticalGeometryDiagram: React.FC<{
             drawTangentArrows,
         );
 
-    function closeDiagram() {
-        delegates.onVerticalGeometryDiagramVisibilityChange(false);
-    }
+    const diagramClasses = createClassName(
+        styles['vertical-geometry-diagram__diagram'],
+        panning && styles['vertical-geometry-diagram__diagram--panning'],
+    );
 
     return (
-        <div
-            style={{ height: fullDiagramHeightPx, position: 'relative' }}
-            ref={ref}
-            onMouseDown={(e) => {
-                e.preventDefault();
-                setPanning(e.clientX);
-            }}
-            onMouseUp={() => setPanning(null)}
-            onMouseMove={onMouseMove}
-            onMouseLeave={() => {
-                setPanning(null);
-                setMousePositionInElement(null);
-            }}
-            onWheel={onWheel}
-            onDoubleClick={onDoubleClick}>
-            {snap && elementPosition && (
-                <HeightTooltip
-                    point={snap}
-                    parentElementRect={elementPosition}
-                    coordinates={coordinates}
-                />
+        <>
+            {stateIsConsistentByAlignmentId || (
+                <div className={styles['vertical-geometry-diagram__backdrop']} />
             )}
-            <div
-                className={styles['vertical-geometry-diagram__close-icon']}
-                onClick={() => closeDiagram()}>
-                <Icons.Close color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
-            </div>
-            <svg
-                className={`${styles['vertical-geometry-diagram']} ${
-                    panning != null && styles['vertical-geometry-diagram__panning']
-                }`}
-                height={fullDiagramHeightPx}>
-                {stateIsConsistentByAlignmentId ? (
+            <div className={styles['vertical-geometry-diagram__diagram-container']} ref={ref}>
+                {snap && elementPosition && (
+                    <HeightTooltip
+                        point={snap}
+                        parentElementRect={elementPosition}
+                        coordinates={coordinates}
+                    />
+                )}
+                <svg
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        setPanning(e.clientX);
+                    }}
+                    onMouseUp={() => setPanning(null)}
+                    onMouseMove={onMouseMove}
+                    onMouseLeave={() => {
+                        setPanning(null);
+                        setMousePositionInElement(null);
+                    }}
+                    onWheel={onWheel}
+                    onDoubleClick={onDoubleClick}
+                    className={diagramClasses}
+                    height="100%">
                     <>
                         <HeightLines coordinates={coordinates} />
                         <LabeledTicks trackKmHeights={kmHeights} coordinates={coordinates} />
@@ -470,18 +480,9 @@ const VerticalGeometryDiagram: React.FC<{
                         </Translate>
                         {snap && <PointIndicator point={snap} />}
                     </>
-                ) : (
-                    <rect
-                        x={0}
-                        y={0}
-                        width={diagramWidthPx}
-                        height={fullDiagramHeightPx}
-                        fill="grey"
-                        opacity="0.8"
-                    />
-                )}
-            </svg>
-        </div>
+                </svg>
+            </div>
+        </>
     );
 };
 
