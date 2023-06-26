@@ -7,7 +7,7 @@ import useResizeObserver from 'use-resize-observer';
 import styles from './app-bar.scss';
 
 type DataProductsMenuProps = React.HTMLProps<HTMLDivElement>;
-
+//TODO move under a general closeable component
 const DataProductsMenu: React.FC<DataProductsMenuProps> = ({ ...props }) => {
     const [showMenu, setShowMenu] = React.useState(false);
     const ref = useRef<HTMLDivElement>(null);
