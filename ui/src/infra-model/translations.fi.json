@@ -85,7 +85,8 @@
             "measurementMethod": "Laatu",
             "coordinateSystemSrid": "Koordinaattijärjestelmä",
             "verticalCoordinateSystem": "Korkeusjärjestelmä",
-            "error-message": "Tiedostossa on virheitä"
+            "error-message": "Tiedostossa on virheitä",
+            "createdDate": "Suunnitelman luontiaika puuttuu"
         },
         "tabs": {
             "plans": "Suunnitelmat {{number}} kpl",

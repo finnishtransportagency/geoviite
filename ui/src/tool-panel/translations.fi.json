@@ -184,6 +184,10 @@
                 "biquadratic": "Helmert",
                 "height": "Korkeus",
                 "vertical-coordinate-system": "Alkuperäinen korkeusjärjestelmä"
+            },
+            "vertical-geometry": {
+                "heading": "Raiteen pystygeometria",
+                "diagram-visibility": "Kuvaaja"
             }
         },
         "location-track": {

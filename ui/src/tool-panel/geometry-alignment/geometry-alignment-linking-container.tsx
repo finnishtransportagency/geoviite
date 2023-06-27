@@ -26,6 +26,7 @@ type GeometryAlignmentLinkingContainerProps = {
     publishType: PublishType;
     visibilities: GeometryAlignmentInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometryAlignmentInfoboxVisibilities) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContainerProps> = ({
@@ -37,6 +38,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     publishType,
     visibilities,
     onVisibilityChange,
+    verticalGeometryDiagramVisible,
 }: GeometryAlignmentLinkingContainerProps) => {
     const delegates = React.useMemo(() => {
         return createDelegates(TrackLayoutActions);
@@ -82,6 +84,10 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             showArea={delegates.showArea}
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}
+            onVerticalGeometryDiagramVisibilityChange={
+                delegates.onVerticalGeometryDiagramVisibilityChange
+            }
+            verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
         />
     );
 };

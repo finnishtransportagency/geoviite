@@ -382,13 +382,14 @@ fun plan(
     coordinateSystemName: CoordinateSystemName? = null,
     verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
+    planTime: Instant = Instant.EPOCH,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
         project = project(),
         application = application(),
         author = author("TEST Company"),
-        planTime = Instant.EPOCH,
+        planTime = planTime,
         units = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
         trackNumberId = trackNumberId,
         trackNumberDescription = trackNumberDesc,

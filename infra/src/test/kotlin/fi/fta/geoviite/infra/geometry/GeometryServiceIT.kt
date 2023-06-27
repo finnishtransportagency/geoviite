@@ -190,6 +190,29 @@ class GeometryServiceIT @Autowired constructor(
         }
     }
 
+    @Test
+    fun getLocationTrackHeightsHandlesKmShorterThanTickLength() {
+        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 0)),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        )
+        val locationTrackId = locationTrackService.saveDraft(
+            locationTrack(trackNumberId),
+            alignment(
+                segment(yRangeToSegmentPoints(0..10)),
+            )
+        ).id
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 8.0)))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 9.0)))
+        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
+        assertEquals(3, actual.size)
+        assertEquals(2, actual[0].trackMeterHeights.size)
+        assertEquals(1, actual[1].trackMeterHeights.size)
+        assertEquals(2, actual[2].trackMeterHeights.size)
+    }
+
     fun yRangeToSegmentPoints(range: IntRange) =
         toTrackLayoutPoints(to3DMPoints(range.map { i -> Point(0.0, i.toDouble()) }))
 
