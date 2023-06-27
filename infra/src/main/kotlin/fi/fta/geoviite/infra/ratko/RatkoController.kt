@@ -34,7 +34,7 @@ class RatkoController(private val ratkoService: RatkoService) {
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/push-location-tracks")
     fun pushLocationTracksToRatko(@RequestBody locationTrackChanges: List<LocationTrackChange>): ResponseEntity<String> {
-        logger.apiCall("pushLocationTracksToRatko")
+        logger.apiCall("pushLocationTracksToRatko", "locationTrackChanges" to locationTrackChanges)
         ratkoService.pushLocationTracksToRatko(getCurrentUserName(), locationTrackChanges)
         return ResponseEntity(HttpStatus.OK)
     }
@@ -44,7 +44,7 @@ class RatkoController(private val ratkoService: RatkoService) {
     fun getRatkoPushErrors(
         @PathVariable("publishId") publishId: IntId<Publication>,
     ): ResponseEntity<RatkoPushErrorWithAsset> {
-        logger.apiCall("getRatkoPushErrors")
+        logger.apiCall("getRatkoPushErrors", "publishId" to publishId)
         return toResponse(ratkoService.getRatkoPushError(publishId))
     }
 
