@@ -1,4 +1,4 @@
-import { MapLayerName } from "map/map-model";
+import { MapLayerName } from 'map/map-model';
 // Alignments
 export const ALL_ALIGNMENTS = 10.0;
 export const LINKING_DOTS = 0.19;
@@ -15,8 +15,8 @@ export const mapLayerZIndexes = [
     'missing-profile-highlight-layer',
     'missing-linking-highlight-layer',
     'duplicate-tracks-highlight-layer',
-    'location-track-alignment-layer',
     'reference-line-alignment-layer',
+    'location-track-alignment-layer',
     'geometry-alignment-layer',
     'location-track-badge-layer',
     'reference-line-badge-layer',
