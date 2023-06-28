@@ -169,6 +169,16 @@ export function maxOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T |
     }, undefined);
 }
 
+export function sum(values: number[]): number {
+    return values.reduce<number>((memo, value) => {
+        return memo + value;
+    }, 0);
+}
+
+export function avg(values: number[]): number {
+    return values.length > 0 ? sum(values) / values.length : Number.NaN;
+}
+
 export function first<T>(array: T[]): T {
     return array[0];
 }
