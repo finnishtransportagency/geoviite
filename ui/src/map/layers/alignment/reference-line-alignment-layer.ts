@@ -1,7 +1,5 @@
 import { MapTile, OptionalShownItems } from 'map/map-model';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
-import { LineString, Point, Polygon } from 'ol/geom';
+import { LineString, Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
 import { LinkingState } from 'linking/linking-model';
@@ -15,13 +13,16 @@ import {
     findMatchingAlignments,
 } from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let shownReferenceLinesCompare: string;
 let newestLayerId = 0;
 
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
@@ -65,7 +66,7 @@ export function createReferenceLineAlignmentLayer(
     return {
         name: 'reference-line-alignment-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions) => {
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => {
             const referenceLines = findMatchingAlignments(hitArea, vectorSource, options);
 
             const trackNumberIds = deduplicate(

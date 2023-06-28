@@ -4,7 +4,7 @@ import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-ap
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import Feature from 'ol/Feature';
-import { LineString, Point, Polygon } from 'ol/geom';
+import { LineString, Point as OlPoint } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Coordinate } from 'ol/coordinate';
 import { LayoutPoint } from 'track-layout/track-layout-model';
@@ -12,6 +12,7 @@ import { interpolateXY } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { Rectangle } from 'model/geometry';
 
 const locationTrackStyle = new Style({
     stroke: new Stroke({
@@ -97,7 +98,7 @@ export function getTickStyle(
     });
 
     return new Style({
-        geometry: new Point(position == 'start' ? point1 : point2),
+        geometry: new OlPoint(position == 'start' ? point1 : point2),
         image: image,
         zIndex: style.getZIndex(),
     });
@@ -148,7 +149,7 @@ export function createAlignmentFeatures(
     selection: Selection,
     linkingState: LinkingState | undefined,
     showEndTicks: boolean,
-): Feature<LineString | Point>[] {
+): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) => {
         const { selected, isLinking, highlighted } = getAlignmentHeaderStates(
             alignment,
@@ -156,7 +157,7 @@ export function createAlignmentFeatures(
             linkingState,
         );
 
-        const features: Feature<LineString | Point>[] = [];
+        const features: Feature<LineString | OlPoint>[] = [];
         const alignmentFeature = new Feature({
             geometry: new LineString(alignment.points.map(pointToCoords)),
         });
@@ -217,8 +218,11 @@ export function getAlignmentHeaderStates(
     };
 }
 
-function createEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean): Feature<Point>[] {
-    const ticks: Feature<Point>[] = [];
+function createEndPointTicks(
+    alignment: AlignmentDataHolder,
+    contrast: boolean,
+): Feature<OlPoint>[] {
+    const ticks: Feature<OlPoint>[] = [];
     const points = alignment.points;
 
     if (points.length >= 2) {
@@ -228,7 +232,7 @@ function createEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean):
             const fP = pointToCoords(points[0]);
             const sP = pointToCoords(points[1]);
 
-            const startF = new Feature({ geometry: new Point(fP) });
+            const startF = new Feature({ geometry: new OlPoint(fP) });
 
             startF.setStyle(getTickStyle(fP, sP, 6, 'start', tickStyle));
 
@@ -240,7 +244,7 @@ function createEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean):
             const lP = pointToCoords(points[lastIdx]);
             const sLP = pointToCoords(points[lastIdx - 1]);
 
-            const endF = new Feature({ geometry: new Point(lP) });
+            const endF = new Feature({ geometry: new OlPoint(lP) });
 
             endF.setStyle(getTickStyle(sLP, lP, 6, 'end', tickStyle));
 
@@ -254,7 +258,7 @@ function createEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean):
 export const ALIGNMENT_FEATURE_DATA_PROPERTY = 'alignment-data';
 
 export function findMatchingAlignments(
-    hitArea: Polygon,
+    hitArea: Rectangle,
     source: VectorSource,
     options: SearchItemsOptions,
 ): AlignmentDataHolder[] {

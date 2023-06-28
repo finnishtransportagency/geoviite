@@ -8,13 +8,14 @@ import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { SuggestedSwitchJoint } from 'linking/linking-model';
 import { SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { Feature } from 'ol';
-import { Point, Polygon } from 'ol/geom';
+import Feature from 'ol/Feature';
+import { Point as OlPoint } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Circle, Fill, RegularShape, Stroke } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
+import { Rectangle } from 'model/geometry';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -226,7 +227,7 @@ export function createSwitchFeatures(
     showLabels: boolean,
     planId?: GeometryPlanId,
     switchStructures?: SwitchStructure[],
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     return layoutSwitches
         .filter((s) => s.joints.length > 0)
         .flatMap((layoutSwitch) => {
@@ -260,14 +261,14 @@ function createSwitchFeature(
     showLabel: boolean,
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     const presentationJoint = layoutSwitch.joints.find(
         (joint) => joint.number == presentationJointNumber,
     );
 
     // Use presentation joint as main joint if possible, otherwise use first joint
     const switchFeature = new Feature({
-        geometry: new Point(
+        geometry: new OlPoint(
             pointToCoords(presentationJoint?.location ?? layoutSwitch.joints[0].location),
         ),
     });
@@ -284,7 +285,7 @@ function createSwitchFeature(
         selected || highlighted
             ? layoutSwitch.joints.map((joint, index) => {
                   const feature = new Feature({
-                      geometry: new Point(pointToCoords(joint.location)),
+                      geometry: new OlPoint(pointToCoords(joint.location)),
                   });
 
                   feature.setStyle(
@@ -340,7 +341,7 @@ type SwitchFeatureProperty = {
 const SWITCH_FEATURE_DATA_PROPERTY = 'switch-data';
 
 export function findMatchingSwitches(
-    hitArea: Polygon,
+    hitArea: Rectangle,
     source: VectorSource,
     options: SearchItemsOptions,
 ) {
@@ -352,7 +353,7 @@ export function findMatchingSwitches(
     );
 }
 
-function setSwitchFeatureProperty(feature: Feature<Point>, data: SwitchFeatureProperty) {
+function setSwitchFeatureProperty(feature: Feature<OlPoint>, data: SwitchFeatureProperty) {
     feature.set(SWITCH_FEATURE_DATA_PROPERTY, data);
 }
 

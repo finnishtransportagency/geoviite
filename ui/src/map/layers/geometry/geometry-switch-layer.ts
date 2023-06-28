@@ -1,7 +1,4 @@
-import OlPoint from 'ol/geom/Point';
-import OlPolygon from 'ol/geom/Polygon';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
@@ -12,6 +9,9 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
 import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
@@ -89,7 +89,7 @@ export function createGeometrySwitchLayer(
     return {
         name: 'geometry-switch-layer',
         layer: layer,
-        searchItems: (hitArea: OlPolygon, options: SearchItemsOptions): LayerItemSearchResult => {
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
                 geometrySwitches: findMatchingSwitches(hitArea, vectorSource, options).map((s) => ({
                     geometryItem: s.switch,

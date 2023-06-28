@@ -1,6 +1,4 @@
-import { LineString, Point, Polygon } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { LineString, Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
@@ -16,13 +14,16 @@ import {
     findMatchingAlignments,
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let shownLocationTracksCompare = '';
 let newestLayerId = 0;
 
 export function createLocationTrackAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
@@ -77,7 +78,7 @@ export function createLocationTrackAlignmentLayer(
     return {
         name: 'location-track-alignment-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
                 locationTracks: findMatchingAlignments(hitArea, vectorSource, options).map(
                     ({ header }) => header.id,

@@ -1,6 +1,4 @@
 import { LineString } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
@@ -8,7 +6,7 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { groupBy } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { Feature } from 'ol';
+import Feature from 'ol/Feature';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -17,6 +15,8 @@ import {
     getDefaultColorKey,
     TrackNumberColor,
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
 
 let newestLayerId = 0;
 

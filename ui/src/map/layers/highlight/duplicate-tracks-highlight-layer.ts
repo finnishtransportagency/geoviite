@@ -1,7 +1,5 @@
 import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -10,6 +8,8 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
     return locationTracks

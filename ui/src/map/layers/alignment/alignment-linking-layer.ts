@@ -1,8 +1,6 @@
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
-import { LineString, Point, Polygon } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { LineString, Point as OlPoint } from 'ol/geom';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
@@ -29,6 +27,9 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 import { getTickStyle } from '../utils/alignment-layer-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -173,9 +174,12 @@ enum FeatureType {
     ClusterPoint = 'clusterPoint',
 }
 
-function createClusterPointFeature(clusterPoint: ClusterPoint, pointStyle: Style): Feature<Point> {
+function createClusterPointFeature(
+    clusterPoint: ClusterPoint,
+    pointStyle: Style,
+): Feature<OlPoint> {
     const pointFeature = new Feature({
-        geometry: new Point(pointToCoords(clusterPoint)),
+        geometry: new OlPoint(pointToCoords(clusterPoint)),
     });
 
     pointFeature.setStyle(pointStyle);
@@ -189,9 +193,9 @@ function createPointFeature(
     point: LinkPoint,
     pointStyle: Style[],
     type: FeatureType,
-): Feature<Point> {
+): Feature<OlPoint> {
     const pointFeature = new Feature({
-        geometry: new Point(pointToCoords(point)),
+        geometry: new OlPoint(pointToCoords(point)),
     });
 
     pointFeature.setStyle(pointStyle);
@@ -240,7 +244,7 @@ function createClusterPointFeatures(
     unselectedStyle: Style,
     layoutInterval: LinkInterval,
     geometryInterval: LinkInterval,
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     return clusterPoints.map((point) => {
         const clusterPointStyle = getClusterPointStyle(point, layoutInterval, geometryInterval);
 
@@ -258,8 +262,8 @@ function createAlignmentFeature(
         isEndPoint: boolean,
     ) => Style[],
     isGeometryAlignment: boolean,
-): Feature<Point | LineString>[] {
-    const features: Feature<Point | LineString>[] = [];
+): Feature<OlPoint | LineString>[] {
+    const features: Feature<OlPoint | LineString>[] = [];
     if (points.length >= 2) {
         features.push(
             createLineFeature(
@@ -323,7 +327,7 @@ function createAlignmentFeatures(
     pointHighlightStyle: Style,
     pointHighlightLargeStyle: Style,
     alignmentHighlightStyle: Style,
-): Feature<Point | LineString>[] {
+): Feature<OlPoint | LineString>[] {
     const highlightInterval = getHighlightInterval(selectedLinkInterval, highlightLinkPoint);
 
     const highlightIntervalStart = highlightInterval.start?.m;
@@ -420,7 +424,7 @@ function createLinkingAlignmentFeatures(
     layoutInterval: LinkInterval,
     highlightPoint: LinkPoint | undefined,
     showDots: boolean,
-): Feature<LineString | Point>[] {
+): Feature<LineString | OlPoint>[] {
     return createAlignmentFeatures(
         points,
         highlightPoint,
@@ -465,8 +469,8 @@ function createLinkingGeometryWithAlignmentFeatures(
     showDots: boolean,
     layoutPoints: LinkPoint[],
     geometryPoints: LinkPoint[],
-): Feature<Point | LineString>[] {
-    const features: Feature<Point | LineString>[] = [];
+): Feature<OlPoint | LineString>[] {
+    const features: Feature<OlPoint | LineString>[] = [];
     const [clusterPoints, overlappingPoints] = getClusterPoints(layoutPoints, geometryPoints);
     const highlightedLayoutPoint = selection.highlightedItems.layoutLinkPoints[0];
     const highlightedGeometryPoint = selection.highlightedItems.geometryLinkPoints[0];
@@ -559,7 +563,7 @@ let newestLayerId = 0;
 
 export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<Point | LineString>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint | LineString>> | undefined,
     selection: Selection,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
@@ -680,7 +684,7 @@ export function createAlignmentLinkingLayer(
     return {
         name: 'alignment-linking-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, _options: SearchItemsOptions): LayerItemSearchResult => {
+        searchItems: (hitArea: Rectangle, _options: SearchItemsOptions): LayerItemSearchResult => {
             //If dots are not drawn, do not select anything
             if (!drawLinkingDots) {
                 return {
@@ -690,8 +694,7 @@ export function createAlignmentLinkingLayer(
                 };
             }
 
-            const features = findIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
-            const hitPoint = centroid(hitArea);
+            const features = findIntersectingFeatures<OlPoint | LineString>(hitArea, vectorSource);
 
             const clusterPoint: ClusterPoint | undefined = findFirstOfType<ClusterPoint>(
                 features,
@@ -704,7 +707,7 @@ export function createAlignmentLinkingLayer(
             if (!clusterPoint) {
                 const linkPointFeatures = getSortedLinkPointFeatures(
                     vectorSource.getFeatures(),
-                    hitPoint,
+                    centroid(hitArea),
                 );
 
                 const onLayoutLine = containsType(features, FeatureType.LayoutLine);
@@ -755,11 +758,11 @@ function getFeatureData<T>(feature: Feature): T {
     return feature.get(LINKING_FEATURE_DATA_PROPERTY) as T;
 }
 
-function getSortedLinkPointFeatures(features: Feature[], hitArea: Point): Feature<Point>[] {
+function getSortedLinkPointFeatures(features: Feature[], hitArea: OlPoint): Feature<OlPoint>[] {
     const pointFeatures = features.filter((f) => {
         const type = getFeatureType(f);
         return type === FeatureType.LayoutPoint || type === FeatureType.GeometryPoint;
-    }) as Feature<Point>[];
+    }) as Feature<OlPoint>[];
 
     return sortFeaturesByDistance(pointFeatures, hitArea);
 }
