@@ -11,8 +11,8 @@ import { PublishType } from 'common/common-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import {
     createKmPostFeatures,
+    findMatchingKmPosts,
     getKmPostStepByResolution,
-    getMatchingKmPosts,
 } from '../utils/km-post-layer-utils';
 
 let newestLayerId = 0;
@@ -85,7 +85,7 @@ export function createGeometryKmPostLayer(
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometryKmPosts: getMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
+                geometryKmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
                     geometryItem: kp.kmPost,
                     planId: kp.planId as GeometryPlanId,
                 })),

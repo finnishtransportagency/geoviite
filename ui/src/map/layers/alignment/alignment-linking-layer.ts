@@ -9,7 +9,7 @@ import { Selection } from 'selection/selection-model';
 import {
     center,
     clearFeatures,
-    getIntersectingFeatures,
+    findIntersectingFeatures,
     getPlanarDistanceUnwrapped,
     pointToCoords,
     sortFeaturesByDistance,
@@ -690,7 +690,7 @@ export function createAlignmentLinkingLayer(
                 };
             }
 
-            const features = getIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
+            const features = findIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
             const hitPoint = center(hitArea);
 
             const closestPointFeature = getSortedPointFeatures(features, hitPoint)[0];

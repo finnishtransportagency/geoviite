@@ -5,7 +5,7 @@ import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import Feature from 'ol/Feature';
 import { LineString, Point, Polygon } from 'ol/geom';
-import { getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Coordinate } from 'ol/coordinate';
 import { LayoutPoint } from 'track-layout/track-layout-model';
 import { interpolateXY } from 'utils/math-utils';
@@ -175,7 +175,7 @@ export function createAlignmentFeatures(
         } else alignmentFeature.setStyle(isReferenceLine ? referenceLineStyle : locationTrackStyle);
 
         if (showEndTicks) {
-            features.push(...getEndPointTicks(alignment, selected || isLinking || highlighted));
+            features.push(...createEndPointTicks(alignment, selected || isLinking || highlighted));
         }
 
         setAlignmentFeatureProperty(alignmentFeature, alignment);
@@ -217,7 +217,7 @@ export function getAlignmentHeaderStates(
     };
 }
 
-function getEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean) {
+function createEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean): Feature<Point>[] {
     const ticks: Feature<Point>[] = [];
     const points = alignment.points;
 
@@ -253,12 +253,12 @@ function getEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean) {
 
 export const ALIGNMENT_FEATURE_DATA_PROPERTY = 'alignment-data';
 
-export function getMatchingAlignments(
+export function findMatchingAlignments(
     hitArea: Polygon,
     source: VectorSource,
     options: SearchItemsOptions,
 ): AlignmentDataHolder[] {
-    return getMatchingEntities<AlignmentDataHolder>(
+    return findMatchingEntities<AlignmentDataHolder>(
         hitArea,
         source,
         ALIGNMENT_FEATURE_DATA_PROPERTY,

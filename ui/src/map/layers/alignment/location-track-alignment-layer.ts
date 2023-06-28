@@ -13,7 +13,7 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentFeatures,
-    getMatchingAlignments,
+    findMatchingAlignments,
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 
@@ -79,7 +79,7 @@ export function createLocationTrackAlignmentLayer(
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                locationTracks: getMatchingAlignments(hitArea, vectorSource, options).map(
+                locationTracks: findMatchingAlignments(hitArea, vectorSource, options).map(
                     ({ header }) => header.id,
                 ),
             };

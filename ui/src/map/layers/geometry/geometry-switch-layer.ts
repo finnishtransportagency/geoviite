@@ -11,7 +11,7 @@ import { PublishType } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
-import { createSwitchFeatures, getMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
+import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
@@ -91,7 +91,7 @@ export function createGeometrySwitchLayer(
         layer: layer,
         searchItems: (hitArea: OlPolygon, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometrySwitches: getMatchingSwitches(hitArea, vectorSource, options).map((s) => ({
+                geometrySwitches: findMatchingSwitches(hitArea, vectorSource, options).map((s) => ({
                     geometryItem: s.switch,
                     planId: s.planId as GeometryPlanId,
                 })),

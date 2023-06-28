@@ -7,7 +7,7 @@ import { MapTile } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
-import { clearFeatures, getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { clearFeatures, findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
 import { endPointStyle, getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -108,7 +108,7 @@ export function createSwitchLinkingLayer(
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                suggestedSwitches: getMatchingSwitches(hitArea, vectorSource, options),
+                suggestedSwitches: findMatchingSwitches(hitArea, vectorSource, options),
             };
         },
     };
@@ -116,12 +116,12 @@ export function createSwitchLinkingLayer(
 
 const SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY = 'suggested-switch-data';
 
-function getMatchingSwitches(
+function findMatchingSwitches(
     hitArea: Polygon,
     source: VectorSource,
     options: SearchItemsOptions,
 ): SuggestedSwitch[] {
-    return getMatchingEntities<SuggestedSwitch>(
+    return findMatchingEntities<SuggestedSwitch>(
         hitArea,
         source,
         SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY,

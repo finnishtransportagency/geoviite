@@ -15,7 +15,7 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { Point } from 'model/geometry';
 import { Feature } from 'ol';
 import { Point as OlPoint, Polygon } from 'ol/geom';
-import { getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 
@@ -275,12 +275,12 @@ function getKmPostRenderer(
     return getRenderer(kmPost, 10, dFunctions);
 }
 
-export function getMatchingKmPosts(
+export function findMatchingKmPosts(
     hitArea: Polygon,
     source: VectorSource,
     options: SearchItemsOptions,
 ): KmPostFeatureProperty[] {
-    return getMatchingEntities<KmPostFeatureProperty>(
+    return findMatchingEntities<KmPostFeatureProperty>(
         hitArea,
         source,
         KM_POST_FEATURE_DATA_PROPERTY,

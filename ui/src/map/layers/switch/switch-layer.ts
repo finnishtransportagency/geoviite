@@ -10,7 +10,7 @@ import { getSwitchesByTile } from 'track-layout/layout-switch-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { createSwitchFeatures, getMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
+import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
 import { PublishType } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
@@ -92,7 +92,7 @@ export function createSwitchLayer(
         name: 'switch-layer',
         layer: layer,
         searchItems: (hitArea: OlPolygon, options: SearchItemsOptions) => {
-            const switches = getMatchingSwitches(hitArea, vectorSource, options).map(
+            const switches = findMatchingSwitches(hitArea, vectorSource, options).map(
                 (d) => d.switch.id,
             );
 

@@ -24,7 +24,7 @@ function formatMeasurement(distance: number): string {
     }
 }
 
-function getClosestPoints(
+function findClosestPoints(
     points: LayoutPoint[],
     targetCoordinate: number[],
     maxPoints: number,
@@ -53,7 +53,7 @@ function getClosestPoints(
                 ? points.slice(0, middleIndex)
                 : points.slice(middleIndex);
 
-        return getClosestPoints(newPoints, targetCoordinate, maxPoints);
+        return findClosestPoints(newPoints, targetCoordinate, maxPoints);
     }
 }
 
@@ -98,7 +98,7 @@ export const measurementTool: MapTool = {
                     .map((f) => f.get(ALIGNMENT_FEATURE_DATA_PROPERTY))
                     .filter(filterNotEmpty)
                     .flatMap(({ points }: AlignmentDataHolder) =>
-                        getClosestPoints(points, cursorCoordinate, 8),
+                        findClosestPoints(points, cursorCoordinate, 8),
                     );
 
                 let closestPoint: { distance: number; point: LayoutPoint } | undefined;

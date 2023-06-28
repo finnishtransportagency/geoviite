@@ -22,7 +22,7 @@ import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-m
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import {
-    getMatchingAlignments,
+    findMatchingAlignments,
     getTickStyles,
     setAlignmentFeatureProperty,
 } from 'map/layers/utils/alignment-layer-utils';
@@ -191,7 +191,7 @@ export function createGeometryAlignmentLayer(
         name: 'geometry-alignment-layer',
         layer: olLayer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const features = getMatchingAlignments(hitArea, vectorSource, options);
+            const features = findMatchingAlignments(hitArea, vectorSource, options);
 
             const geometryAlignments = features
                 .filter(filterUniqueById(({ header }) => header.id)) // pick unique alignments

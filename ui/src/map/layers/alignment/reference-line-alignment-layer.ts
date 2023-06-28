@@ -12,7 +12,7 @@ import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import {
     createAlignmentFeatures,
-    getMatchingAlignments,
+    findMatchingAlignments,
 } from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 
@@ -66,7 +66,7 @@ export function createReferenceLineAlignmentLayer(
         name: 'reference-line-alignment-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions) => {
-            const referenceLines = getMatchingAlignments(hitArea, vectorSource, options);
+            const referenceLines = findMatchingAlignments(hitArea, vectorSource, options);
 
             const trackNumberIds = deduplicate(
                 referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),

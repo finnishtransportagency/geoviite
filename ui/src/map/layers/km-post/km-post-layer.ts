@@ -13,8 +13,8 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createKmPostFeatures,
+    findMatchingKmPosts,
     getKmPostStepByResolution,
-    getMatchingKmPosts,
 } from 'map/layers/utils/km-post-layer-utils';
 
 let shownKmPostsCompare: string;
@@ -88,7 +88,7 @@ export function createKmPostLayer(
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                kmPosts: getMatchingKmPosts(hitArea, vectorSource, options).map(
+                kmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map(
                     ({ kmPost }) => kmPost.id,
                 ),
             };

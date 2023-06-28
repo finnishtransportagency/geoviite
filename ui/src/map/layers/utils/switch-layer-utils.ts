@@ -10,7 +10,7 @@ import { SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { Feature } from 'ol';
 import { Point, Polygon } from 'ol/geom';
-import { getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Circle, Fill, RegularShape, Stroke } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -339,12 +339,12 @@ type SwitchFeatureProperty = {
 
 const SWITCH_FEATURE_DATA_PROPERTY = 'switch-data';
 
-export function getMatchingSwitches(
+export function findMatchingSwitches(
     hitArea: Polygon,
     source: VectorSource,
     options: SearchItemsOptions,
 ) {
-    return getMatchingEntities<SwitchFeatureProperty>(
+    return findMatchingEntities<SwitchFeatureProperty>(
         hitArea,
         source,
         SWITCH_FEATURE_DATA_PROPERTY,

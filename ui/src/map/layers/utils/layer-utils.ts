@@ -96,13 +96,13 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
     throw `Unsupported geometry type in "getDistance"`;
 }
 
-export function getMatchingEntities<T>(
+export function findMatchingEntities<T>(
     hitArea: Polygon,
     source: VectorSource,
     propertyName: string,
     options?: SearchItemsOptions,
 ): T[] {
-    const entities = getIntersectingFeatures(hitArea, source)
+    const entities = findIntersectingFeatures(hitArea, source)
         .map((f) => f.get(propertyName) as T | undefined)
         .filter(filterNotEmpty);
 
@@ -110,7 +110,7 @@ export function getMatchingEntities<T>(
     else return entities;
 }
 
-export function getIntersectingFeatures<T extends Geometry>(
+export function findIntersectingFeatures<T extends Geometry>(
     hitArea: Polygon,
     source: VectorSource,
 ): Feature<T>[] {
