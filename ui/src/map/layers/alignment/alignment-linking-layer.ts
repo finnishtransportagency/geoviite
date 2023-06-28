@@ -59,61 +59,61 @@ const connectingLineStyle = new Style({
         width: 2,
         lineDash: [5, 5],
     }),
-    zIndex: 0,
+    zIndex: 5,
 });
 
-const geometryAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 2);
+const geometryAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 1);
 
 const geometryAlignmentSelectedStyle = strokeStyle(
     mapStyles.selectedGeometryAlignmentInterval,
     3,
-    4,
+    3,
 );
 
 const geometryPointStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.unselectedAlignmentInterval,
     linkPointRadius,
-    8,
+    11,
 );
 
 const geometryPointSelectedStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedGeometryAlignmentInterval,
     linkPointRadius,
-    10,
+    13,
 );
 
 const geometryPointSelectedLargeStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedGeometryAlignmentInterval,
     linkPointSelectedRadius,
-    12,
+    15,
 );
 
-const layoutAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 1);
+const layoutAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 0);
 
-const layoutAlignmentSelectedStyle = strokeStyle(mapStyles.selectedLayoutAlignmentInterval, 3, 3);
+const layoutAlignmentSelectedStyle = strokeStyle(mapStyles.selectedLayoutAlignmentInterval, 3, 2);
 
 const layoutPointStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.unselectedAlignmentInterval,
     linkPointRadius,
-    7,
+    10,
 );
 
 const layoutPointSelectedStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedLayoutAlignmentInterval,
     linkPointRadius,
-    9,
+    12,
 );
 
 const layoutPointSelectedLargeStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedLayoutAlignmentInterval,
     linkPointSelectedRadius,
-    11,
+    14,
 );
 
 const clusterPointStyle = new Style({
@@ -127,7 +127,7 @@ const clusterPointStyle = new Style({
         stroke: new Stroke({ color: mapStyles.clusterPointBorder }),
         fill: new Fill({ color: mapStyles.clusterPoint }),
     }),
-    zIndex: 13,
+    zIndex: 20,
 });
 
 const clusterPointBothSelectedStyle = new Style({
@@ -141,7 +141,7 @@ const clusterPointBothSelectedStyle = new Style({
         stroke: new Stroke({ color: mapStyles.linkingPoint }),
         fill: new Fill({ color: mapStyles.selectedGeometryAlignmentInterval }),
     }),
-    zIndex: 13,
+    zIndex: 20,
 });
 
 const clusterPointGeometrySelectedStyle = new Style({
@@ -150,7 +150,7 @@ const clusterPointGeometrySelectedStyle = new Style({
         stroke: new Stroke({ color: mapStyles.linkingPoint }),
         fill: new Fill({ color: mapStyles.selectedGeometryAlignmentInterval }),
     }),
-    zIndex: 13,
+    zIndex: 20,
 });
 
 const clusterPointLayoutSelectedStyle = new Style({
@@ -159,7 +159,7 @@ const clusterPointLayoutSelectedStyle = new Style({
         stroke: new Stroke({ color: mapStyles.linkingPoint }),
         fill: new Fill({ color: mapStyles.selectedLayoutAlignmentInterval }),
     }),
-    zIndex: 13,
+    zIndex: 20,
 });
 
 const LINKING_FEATURE_TYPE_PROPERTY = 'type';
@@ -693,35 +693,27 @@ export function createAlignmentLinkingLayer(
             const features = getIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
             const hitPoint = center(hitArea);
 
-            const onLayoutLine = containsType(features, FeatureType.LayoutLine);
-            const onGeometryLine = containsType(features, FeatureType.GeometryLine);
+            const closestPointFeature = getSortedPointFeatures(features, hitPoint)[0];
 
-            const clusterPoint = findClosestFeature<ClusterPoint>(
-                features,
+            const clusterPoint = getIfType<ClusterPoint>(
+                closestPointFeature,
                 FeatureType.ClusterPoint,
-                hitPoint,
+            );
+            const layoutPoint = getIfType<LinkPoint>(closestPointFeature, FeatureType.LayoutPoint);
+            const geometryPoint = getIfType<LinkPoint>(
+                closestPointFeature,
+                FeatureType.GeometryPoint,
             );
 
-            const closestLayoutPoint = clusterPoint
-                ? undefined
-                : findClosestFeature<LinkPoint>(
-                      vectorSource.getFeatures(),
-                      FeatureType.LayoutPoint,
-                      center(hitArea),
-                  );
-
-            const closestGeometryPoint = clusterPoint
-                ? undefined
-                : findClosestFeature<LinkPoint>(
-                      vectorSource.getFeatures(),
-                      FeatureType.GeometryPoint,
-                      center(hitArea),
-                  );
-
             return {
-                layoutLinkPoints: onLayoutLine && closestLayoutPoint ? [closestLayoutPoint] : [],
+                layoutLinkPoints:
+                    layoutPoint && containsType(features, FeatureType.LayoutLine)
+                        ? [layoutPoint]
+                        : [],
                 geometryLinkPoints:
-                    onGeometryLine && closestGeometryPoint ? [closestGeometryPoint] : [],
+                    geometryPoint && containsType(features, FeatureType.GeometryLine)
+                        ? [geometryPoint]
+                        : [],
                 clusterPoints: clusterPoint ? [clusterPoint] : [],
             };
         },
@@ -732,14 +724,23 @@ function containsType(features: Feature[], type: FeatureType): boolean {
     return features.some((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type);
 }
 
-function findClosestFeature<T>(
-    features: Feature[],
-    type: FeatureType,
-    point: Point,
-): T | undefined {
-    const filteredFeatures = features.filter((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type);
-    const closestFeature = sortFeaturesByDistance(filteredFeatures, point)[0];
-    return closestFeature ? (closestFeature.get(LINKING_FEATURE_DATA_PROPERTY) as T) : undefined;
+function getIfType<T>(feature: Feature, type: FeatureType): T | undefined {
+    return feature.get(LINKING_FEATURE_TYPE_PROPERTY) === type
+        ? (feature.get(LINKING_FEATURE_DATA_PROPERTY) as T)
+        : undefined;
+}
+
+function getSortedPointFeatures(features: Feature[], hitArea: Point): Feature<Point>[] {
+    const pointFeatures = features.filter((f) => {
+        const type = f.get(LINKING_FEATURE_TYPE_PROPERTY);
+        return (
+            type === FeatureType.LayoutPoint ||
+            type === FeatureType.GeometryPoint ||
+            type === FeatureType.ClusterPoint
+        );
+    }) as Feature<Point>[];
+
+    return sortFeaturesByDistance(pointFeatures, hitArea);
 }
 
 function getHighlightInterval(
