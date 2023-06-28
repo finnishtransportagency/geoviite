@@ -30,6 +30,7 @@ export const TrackLayoutContainer: React.FC = () => {
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
+            selectedToolPanelTab={trackLayoutState.selectedToolPanelTab}
         />
     );
 };

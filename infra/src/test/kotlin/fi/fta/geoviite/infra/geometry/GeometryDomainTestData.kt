@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
@@ -383,13 +382,14 @@ fun plan(
     coordinateSystemName: CoordinateSystemName? = null,
     verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
+    planTime: Instant = Instant.EPOCH,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
         project = project(),
         application = application(),
         author = author("TEST Company"),
-        planTime = Instant.EPOCH,
+        planTime = planTime,
         units = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
         trackNumberId = trackNumberId,
         trackNumberDescription = trackNumberDesc,
@@ -397,7 +397,7 @@ fun plan(
         switches = switches,
         kmPosts = kmPosts(trackNumberId),
         fileName = fileName,
-        oid = someOid(),
+        pvDocumentId = null,
         planPhase = PlanPhase.RAILWAY_PLAN,
         decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
         measurementMethod = measurementMethod,
@@ -465,7 +465,7 @@ fun minimalPlan(
     switches = listOf(),
     alignments = listOf(),
     kmPosts = listOf(),
-    oid = null,
+    pvDocumentId = null,
     measurementMethod = null,
     trackNumberId = null,
     uploadTime = null,

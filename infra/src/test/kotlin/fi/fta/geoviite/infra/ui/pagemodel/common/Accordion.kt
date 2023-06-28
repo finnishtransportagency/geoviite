@@ -8,12 +8,12 @@ open class Accordion(by: By) : PageModel(by) {
 
     fun header(): String {
         logger.info("Get header")
-        return getChildElementStaleSafe(By.cssSelector("span.accordion__header-title")).text
+        return childText(By.cssSelector("span.accordion__header-title"))
     }
 
     fun toggleVisibility() {
         logger.info("Toggle visibility")
-        rootElement.findElement(By.cssSelector("span.accordion__visibility")).click()
+        webElement.findElement(By.cssSelector("span.accordion__visibility")).click()
     }
 
     fun toggleAccordion(toggle: Toggle = Toggle.OPEN) {
@@ -26,10 +26,12 @@ open class Accordion(by: By) : PageModel(by) {
 
     fun clickHeader() {
         logger.info("Click header")
-        getChildElementStaleSafe(By.cssSelector("span.accordion__header-title")).click()
+        clickChild(By.cssSelector("span.accordion__header-title"))
     }
 
-    fun listItems() = getChildElementsStaleSafe(By.cssSelector("li")).map { element -> AccordionListItem(element) }
+    // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    @Deprecated("Element risks staleness")
+    fun listItems() = childElements(By.cssSelector("li")).map { element -> AccordionListItem(element) }
 
     fun selectListItem(itemName: String) = this {
         logger.info("Select '$itemName'")
@@ -49,24 +51,22 @@ open class Accordion(by: By) : PageModel(by) {
 
     private fun openAccordion() {
         logger.info("Open accordion")
-        if (childElementExists(By.cssSelector("ul li"))) {
+        if (childExists(By.cssSelector("ul li"))) {
             logger.warn("Accordion already open")
-            return
+        } else {
+            clickChild(By.cssSelector("span.accordion-toggle svg"))
+            waitChildVisible(By.cssSelector("div.accordion__body"))
         }
-        getChildElementStaleSafe(By.cssSelector("span.accordion-toggle svg")).click()
-        getChildElementStaleSafe(By.cssSelector("div.accordion__body"))
-
     }
 
     private fun closeAccordion() {
         logger.info("Close accordion")
-        if(childElementExists(By.cssSelector("ul li"))) {
-            getChildElementStaleSafe(By.cssSelector("span.accordion-toggle svg")).click()
-            return
+        if (childExists(By.cssSelector("ul li"))) {
+            clickChild(By.cssSelector("span.accordion-toggle svg"))
+        } else {
+            logger.warn("Accordion already closed")
         }
-        logger.warn("Accordion already closed")
     }
-
 }
 
 class AccordionListItem(val element: WebElement) {

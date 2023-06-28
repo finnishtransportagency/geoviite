@@ -177,7 +177,12 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
             ) {
                 return;
             }
-            setEndM(startM + (endM - startM) * (width / oldWidth));
+            const oldWidthRelativeEndM = startM + (endM - startM) * (width / oldWidth);
+            setEndM(
+                alignmentEndM
+                    ? Math.min(oldWidthRelativeEndM, alignmentEndM)
+                    : oldWidthRelativeEndM,
+            );
         },
     });
 

@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.authorization
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.configuration.HTTP_HEADER_JWT_DATA
 import fi.fta.geoviite.infra.util.Code
@@ -54,7 +54,7 @@ class AuthorizationIT @Autowired constructor(
     val authorizationDao: AuthorizationDao,
     mapper: ObjectMapper,
     mockMvc: MockMvc,
-) : ITTestBase() {
+) : DBTestBase() {
 
     val testApi = TestApi(mapper, mockMvc)
     val user by lazy {

@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -178,7 +179,7 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
-        return toFileDownloadResponse("${filename}.csv", content.toByteArray(Charsets.UTF_8))
+        return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -206,9 +207,8 @@ class GeometryController @Autowired constructor(
         log.apiCall("getPlanElementListCsv",
             "id" to id, "elementTypes" to elementTypes, "startAddress" to startAddress,
             "endAddress" to endAddress)
-        val (filename, content) = geometryService
-            .getElementListingCsv(id, elementTypes, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content.toByteArray(Charsets.UTF_8))
+        val (filename, content) = geometryService.getElementListingCsv(id, elementTypes, startAddress, endAddress)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -218,7 +218,7 @@ class GeometryController @Autowired constructor(
         val elementListingFile = geometryService.getElementListingCsv()
         return elementListingFile?.let {
             toFileDownloadResponse(
-                "${elementListingFile.name}.csv",
+                elementListingFile.name.withSuffix(CSV),
                 elementListingFile.content.toByteArray(Charsets.UTF_8)
             )
         }
@@ -241,7 +241,7 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -267,9 +267,8 @@ class GeometryController @Autowired constructor(
         log.apiCall("getTrackVerticalGeometryListingCsv",
             "id" to id, "startAddress" to startAddress,
             "endAddress" to endAddress)
-        val (filename, content) = geometryService
-            .getVerticalGeometryListingCsv(id, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content)
+        val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, startAddress, endAddress)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -277,9 +276,10 @@ class GeometryController @Autowired constructor(
     fun getPlanAlignmentStartAndEnd(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
-    ): AlignmentStartAndEnd? {
+    ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getPlanAlignmentStartAndEnd", "planId" to planId, "planAlignmentId" to planAlignmentId)
-        return geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId)
+        return toResponse(geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId))
+
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -290,7 +290,7 @@ class GeometryController @Autowired constructor(
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): List<KmHeights>? {
+    ): List<KmHeights> {
         logger.apiCall(
             "getPlanAlignmentHeights",
             "planId" to planId,
@@ -300,6 +300,7 @@ class GeometryController @Autowired constructor(
             "tickLength" to tickLength
         )
         return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
+            ?: emptyList()
     }
 
     @PreAuthorize(AUTH_ALL_READ)

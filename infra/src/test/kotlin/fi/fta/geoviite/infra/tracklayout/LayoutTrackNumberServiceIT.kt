@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -33,7 +33,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val kmPostDao: LayoutKmPostDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun updatingExternalIdWorks() {

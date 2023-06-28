@@ -35,7 +35,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
     const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     return (
-        <div>
+        <div qa-id="publication-list">
             {publications.map((publication) => {
                 const isWaitingAfterFailure = anyFailed && publication.ratkoPushStatus === null;
                 const trackNumberIds = getPublicationTrackNumbers(publication);

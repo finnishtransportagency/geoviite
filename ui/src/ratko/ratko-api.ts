@@ -6,7 +6,7 @@ import { KmNumber } from 'common/common-model';
 
 const RATKO_URI = `${API_URI}/ratko`;
 
-export const pushToRatko = () => getAdt(`${RATKO_URI}/push`);
+export const pushToRatko = () => getIgnoreError(`${RATKO_URI}/push`);
 
 export const getRatkoPushError = (publishId: PublicationId) =>
     getIgnoreError<RatkoPushError>(`${RATKO_URI}/errors/${publishId}`);

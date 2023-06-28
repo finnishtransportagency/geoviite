@@ -1,16 +1,18 @@
 package fi.fta.geoviite.infra.inframodel
 
+import PVDocument
+import PVDocumentHeader
+import PVDocumentStatus
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
-import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.XmlCharset
-import fi.fta.geoviite.infra.util.toFileDownloadResponse
+import fi.fta.geoviite.infra.projektivelho.PVApiRedirect
+import fi.fta.geoviite.infra.projektivelho.PVDocumentCounts
+import fi.fta.geoviite.infra.projektivelho.PVDocumentService
+import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,44 +21,14 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import java.time.Instant
 
-data class ValidationResponse(
-    val validationErrors: List<ValidationError>,
-    val geometryPlan: GeometryPlan?,
-    val planLayout: GeometryPlanLayout?,
-    val source: PlanSource,
-)
-
-data class InsertResponse(
-    val message: String,
-    val planId: IntId<GeometryPlan>,
-)
-
-data class ExtraInfoParameters(
-    val oid: Oid<GeometryPlan>?,
-    val planPhase: PlanPhase?,
-    val decisionPhase: PlanDecisionPhase?,
-    val measurementMethod: MeasurementMethod?,
-    val message: FreeText?,
-)
-
-data class OverrideParameters(
-    val coordinateSystemSrid: Srid?,
-    val verticalCoordinateSystem: VerticalCoordinateSystem?,
-    val projectId: IntId<Project>?,
-    val authorId: IntId<Author>?,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
-    val createdDate: Instant?,
-    val encoding: XmlCharset?,
-    val source: PlanSource?,
-)
 
 @RestController
 @RequestMapping("/inframodel")
 class InfraModelController @Autowired constructor(
     private val infraModelService: InfraModelService,
     private val geometryService: GeometryService,
+    private val pvDocumentService: PVDocumentService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -65,77 +37,130 @@ class InfraModelController @Autowired constructor(
     @PostMapping
     fun saveInfraModel(
         @RequestPart(value = "file") file: MultipartFile,
-        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
-        @RequestPart(value = "extrainfo-parameters") extraInfoParameters: ExtraInfoParameters?,
+        @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
+        @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
     ): InsertResponse {
         logger.apiCall(
             "saveInfraModel",
             "file.originalFilename" to file.originalFilename,
-            "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters,
+            "overrides" to overrides,
+            "extraInfo" to extraInfo,
         )
-        return InsertResponse("New plan inserted successfully",
-            infraModelService.saveInfraModel(file, overrideParameters, extraInfoParameters).id)
+        val id = infraModelService.saveInfraModel(file, overrides, extraInfo).id
+        return InsertResponse("New plan inserted successfully", id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/validate")
     fun validateFile(
         @RequestPart(value = "file") file: MultipartFile,
-        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
+        @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
     ): ValidationResponse {
-        logger.apiCall(
-            "validateFile",
+        logger.apiCall("validateFile",
             "file.originalFilename" to file.originalFilename,
-            "overrideParameters" to overrideParameters,
+            "overrides" to overrides,
         )
-        return infraModelService.validateInfraModelFile(file, overrideParameters)
+        return infraModelService.validateInfraModelFile(file, overrides)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/{planId}/validate")
     fun validateGeometryPlan(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
-        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
-    ): ValidationResponse? {
-        logger.apiCall(
-            "validateGeometryPlan",
-            "planId" to planId,
-            "overrideParameters" to overrideParameters,
-        )
-
-        return infraModelService.validateGeometryPlan(planId, overrideParameters)
+        @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
+    ): ValidationResponse {
+        logger.apiCall("validateGeometryPlan", "planId" to planId, "overrides" to overrides)
+        return infraModelService.validateGeometryPlan(planId, overrides)
     }
-
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PutMapping("/{planId}")
     fun updateInfraModel(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
-        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
-        @RequestPart(value = "extrainfo-parameters") extraInfoParameters: ExtraInfoParameters?,
+        @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
+        @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
     ): GeometryPlan {
-        logger.apiCall(
-            "updateInfraModel",
-            "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters,
-        )
-
-        return infraModelService.updateInfraModel(planId, overrideParameters, extraInfoParameters)
+        logger.apiCall("updateInfraModel", "overrides" to overrides, "extraInfo" to extraInfo)
+        return infraModelService.updateInfraModel(planId, overrides, extraInfo)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadFile", "id" to id)
-        val infraModelFileAndSource = geometryService.getPlanFile(id)
-        return toFileDownloadResponse(
-            fileNameWithSuffix(infraModelFileAndSource.name),
-            infraModelFileAndSource.content.toByteArray(),
+        return geometryService.getPlanFile(id).let(::toFileDownloadResponse)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho/documents")
+    fun getPVDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
+        logger.apiCall("getPVDocumentHeaders", "status" to status)
+        return pvDocumentService.getDocumentHeaders(status)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho/documents/{id}")
+    fun getPVDocumentHeaders(@PathVariable id: IntId<PVDocument>): PVDocumentHeader {
+        logger.apiCall("getPVDocumentHeader", "id" to id)
+        return pvDocumentService.getDocumentHeader(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho/documents/count")
+    fun getPVDocumentCounts(): PVDocumentCounts {
+        logger.apiCall("getPVDocumentCounts")
+        return pvDocumentService.getDocumentCounts()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho/redirect/{oid}")
+    fun getPVRedirect(@PathVariable("oid") oid: Oid<PVApiRedirect>): HttpsUrl {
+        logger.apiCall("getPVRedirect")
+        return pvDocumentService.getLink(oid)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PutMapping("/projektivelho/documents/{id}/status")
+    fun updatePVDocumentStatus(
+        @PathVariable("id") id: IntId<PVDocument>,
+        @RequestBody status: PVDocumentStatus,
+    ): IntId<PVDocument> {
+        logger.apiCall("updatePVDocumentStatus", "id" to id, "status" to status)
+        return pvDocumentService.updateDocumentStatus(id, status)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/projektivelho/documents/{documentId}/validate")
+    fun validatePVDocument(
+        @PathVariable("documentId") documentId: IntId<PVDocument>,
+        @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
+    ): ValidationResponse {
+        logger.apiCall("validatePVDocument", "documentId" to documentId, "overrides" to overrides)
+        return pvDocumentService.validatePVDocument(documentId, overrides)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/projektivelho/documents/{documentId}")
+    fun importPVDocument(
+        @PathVariable("documentId") documentId: IntId<PVDocument>,
+        @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
+        @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
+    ): IntId<GeometryPlan> {
+        logger.apiCall(
+            "importPVDocument",
+            "documentId" to documentId,
+            "overrides" to overrides,
+            "extraInfo" to extraInfo,
         )
+        return pvDocumentService.importPVDocument(documentId, overrides, extraInfo)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    fun downloadPVDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
+        logger.apiCall("downloadPVDocument",  "documentId" to documentId)
+        return pvDocumentService.getFile(documentId)
+            ?.let(::toFileDownloadResponse)
+            ?: throw NoSuchEntityException(PVDocument::class, documentId)
     }
 }
-
-private fun fileNameWithSuffix(fileName: FileName): String =
-    if (fileName.endsWith(".xml", true)) fileName.toString()
-    else "$fileName.xml"

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.math.Point
@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 @SpringBootTest
 class CoordinateTransformServiceIT @Autowired constructor(
     private val coordinateTransformationService: CoordinateTransformationService
-) : ITTestBase() {
+) : DBTestBase() {
     @Test
     fun `Creates KKJ to TM35FIn transformation`() {
         assertDoesNotThrow { coordinateTransformationService.getTransformation(Srid(2392) /* KKJ2 */, LAYOUT_SRID) }

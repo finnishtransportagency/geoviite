@@ -5,15 +5,20 @@
         "warning-content": "{{planFileName}}-suunnitelman lähde on Paikannuspalvelu ja se saattaa sisältää mm. ilmakuvista digitoitua epätarkkaa geometriaa. Tätä suunnitelmaa ei saa välittää vastauksena  tietopyyntöihin tai käyttää muutoinkaan mihinkään tarkkuuttaa vaativaan tehtävään."
     },
     "im-form": {
+        "pv-document-information": {
+            "title": "ProjektiVelhon dokumentti",
+            "document": "Dokumentti",
+            "assignment": "Toimeksianto",
+            "project": "Projekti",
+            "project-group": "Projektiryhmä"
+        },
         "uploading-file-msg": "Tiedostoa ladataan tietokantaan ...",
-        "project-information": "Projektin tiedot",
+        "file-metadata": "Metatiedot",
         "validation-warnings": "Muut huomiot",
         "validation-errors": "Korjaa seuraavat tiedot",
         "name-field": "Projektin nimi",
         "file-name": "Nimi",
         "name-help": "Jos suunnitteluprojekti ei löydy listalta, luo uusi.",
-        "oid-field": "Projektin OID",
-        "oid-help": "Velho OID",
         "observations-field": "Huomiot",
         "observations-help": "Huomiot näkyvät info-symbolina listanäkymässä.",
         "location-formgroup-title": "Sijaintitiedot",
@@ -61,12 +66,13 @@
         "missing-source": "Suunnitelman lähde puuttuu",
         "toolbar": {
             "files": "IM-tiedostot",
-            "upload": "Lataa uusi"
+            "upload": "Tuo suunnitelma"
         },
         "file-handling-failed": {
             "title": "Tiedoston käsittely epäonnistui",
             "try-again": "Lataa uudelleen",
             "change-encoding": "Lataa toisella merkistöllä",
+            "try-change-encoding": "Jos merkistö on tiedostossa väärin, voit pakottaa sen toiseksi tässä:",
             "encoding": "Merkistö"
         },
         "critical-warnings-dialog": {
@@ -79,11 +85,26 @@
             "measurementMethod": "Laatu",
             "coordinateSystemSrid": "Koordinaattijärjestelmä",
             "verticalCoordinateSystem": "Korkeusjärjestelmä",
-            "error-message": "Tiedostossa on virheitä"
+            "error-message": "Tiedostossa on virheitä",
+            "createdDate": "Suunnitelman luontiaika puuttuu"
+        },
+        "tabs": {
+            "plans": "Suunnitelmat {{number}} kpl",
+            "projektivelho-files-waiting": "Velhon aineistot, odottaa käsittelyä {{number}} kpl",
+            "projektivelho-files-rejected": "Velhon aineistot, hylätty {{number}} kpl"
         },
         "download-file": "Lataa tiedosto"
     },
     "infra-model": {
+        "upload": {
+            "success": "Uusi InfraModel-tiedosto tallennettu Geoviitteeseen"
+        },
+        "import": {
+            "success": "Projektivelhon InfraModel-tiedosto tuotu Geoviitteeseen"
+        },
+        "edit": {
+            "success": "InfraModel-tiedosto tallennettu"
+        },
         "validation": {
             "metadata": {
                 "coordinate-system-missing": "Koordinaattijärjestelmä puuttuu",

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
 import fi.fta.geoviite.infra.linking.SwitchLinkingParameters
@@ -44,7 +44,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
     val alignmentDao: LayoutAlignmentDao,
     val kmPostService: LayoutKmPostService,
     val trackNumberservice: LayoutTrackNumberService,
-) : ITTestBase() {
+) : DBTestBase() {
 
     @BeforeEach
     fun setup() {

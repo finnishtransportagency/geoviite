@@ -84,6 +84,14 @@ export function updatePublicationChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updatePVDocumentsChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/projektivelho-documents`,
+        delegates.setPVDocumentChangeTime,
+        getChangeTimes().pvDocument,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,

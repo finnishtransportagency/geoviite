@@ -1,35 +1,52 @@
 package fi.fta.geoviite.infra.ui
 
 import browser
-import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.configuration.USER_HEADER
+import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.ui.pagemodel.common.MainNavigationBar
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
 import fi.fta.geoviite.infra.ui.util.TruncateDbDao
-import openChrome
+import openBrowser
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import java.time.Duration
+import org.springframework.beans.factory.annotation.Value
 import java.util.*
 
 
+const val UI_TEST_USER = "UI_TEST_USER"
+
 @ExtendWith(E2ETestWatcher::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-open class SeleniumTest (
-    private val jdbcTemplate: NamedParameterJdbcTemplate
-) {
-    val DEV_DEBUG = false
+open class SeleniumTest: DBTestBase(UI_TEST_USER) {
+
+    @Value("\${geoviite.e2e.url}") val startUrlProp: String? = null
+    val startUrl: String by lazy { requireNotNull(startUrlProp) }
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    val uiTestUser = UserName("UI_TEST")
 
     init {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Helsinki"))
-        MDC.put(USER_HEADER, uiTestUser.toString())
     }
+
+
+    val geoviite: FrontPage get() {
+        browser().navigate().to(startUrl)
+        return FrontPage()
+    }
+
+    val navigationBar: MainNavigationBar get() = MainNavigationBar()
+
+    fun startGeoviite() {
+        logger.info("Navigate to Geoviite $startUrl")
+        openBrowser()
+        browser().navigate().to(startUrl);
+    }
+    fun goToFrontPage() = navigationBar.goToFrontPage()
+
+    fun goToMap() = navigationBar.goToMap()
+
+    fun goToInfraModelPage() = navigationBar.goToInfraModel()
 
     protected fun clearAllTestData() {
         val truncateDbDao = TruncateDbDao(jdbcTemplate)
@@ -85,32 +102,5 @@ open class SeleniumTest (
                 "vertical_intersection"
             )
         )
-    }
-
-    protected fun openBrowser() {
-        val headless = !DEV_DEBUG
-        logger.info("Initializing webdriver")
-       //when (System.getProperty("browser.name")) {
-       //    "chrome" -> PageModel.setBrowser(openChromeBrowser(headless))
-       //    "firefox" -> PageModel.setBrowser(openFireFox(headless))
-       //    else -> {
-       //        //PageModel.setBrowser(openChromeBrowser(headless))
-       //        PageModel.setBrowser(openFireFox(headless))
-       //    }
-       //}
-
-//        openFirefox(headless)
-        openChrome(headless)
-        logger.info("Webdriver initialized")
-
-        browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(1))
-        logger.info("Browser window size : ${browser().manage().window().size}")
-        logger.info("Timezone: ${TimeZone.getDefault().id}")
-    }
-
-    fun openGeoviite(startUrl: String): FrontPage {
-        logger.info("Navigate to Geoviite $startUrl")
-        browser().navigate().to(startUrl);
-        return FrontPage()
     }
 }

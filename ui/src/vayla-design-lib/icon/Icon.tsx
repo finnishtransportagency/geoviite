@@ -1,4 +1,5 @@
 import React from 'react';
+import copySvg from './glyphs/action/copy.svg';
 import downloadSvg from './glyphs/action/download.svg';
 import appendSvg from './glyphs/action/append.svg';
 import deleteSvg from './glyphs/action/delete.svg';
@@ -30,6 +31,7 @@ import measureSvg from './glyphs/action/measure.svg';
 import selectSvg from './glyphs/action/select.svg';
 import fullScreen from './glyphs/navigation/fullscreen.svg';
 import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
+import externalLink from './glyphs/navigation/external-link.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -72,6 +74,7 @@ const iconNameToSvgMap = {
     VectorRight: vectorRight,
     FullScreen: fullScreen,
     ExitFullScreen: exitFullScreen,
+    ExternalLink: externalLink,
 
     // Status
     Info: infoSvg,
@@ -82,6 +85,7 @@ const iconNameToSvgMap = {
     Denied: deniedSvg,
 
     // Actions
+    Copy: copySvg,
     Download: downloadSvg,
     Append: appendSvg,
     Filter: filterSvg,

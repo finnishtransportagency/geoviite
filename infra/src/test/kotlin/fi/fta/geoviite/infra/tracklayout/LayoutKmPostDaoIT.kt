@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -22,7 +22,7 @@ import kotlin.test.assertContains
 @SpringBootTest
 class LayoutKmPostDaoIT @Autowired constructor(
     private val kmPostDao: LayoutKmPostDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun kmPostsAreStoredAndLoadedOk() {

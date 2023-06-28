@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
 import java.time.LocalDateTime
@@ -22,9 +21,9 @@ import kotlin.test.assertNotNull
 @EnableConfigurationProperties(E2EProperties::class)
 @SpringBootTest
 class InfraModelTestUI @Autowired constructor(
-    jdbcTemplate: NamedParameterJdbcTemplate,
     @Value("\${geoviite.data.im-path:}") private val infraModelPath: String,
-    val properties: E2EProperties) : SeleniumTest(jdbcTemplate) {
+    val properties: E2EProperties
+) : SeleniumTest() {
 
     lateinit var infraModelPage: InfraModelPage
 
@@ -39,8 +38,8 @@ class InfraModelTestUI @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        openBrowser()
-        infraModelPage = openGeoviite(properties.url).navigationBar().inframodel()
+        startGeoviite()
+        infraModelPage = goToInfraModelPage()
     }
 
     @Test
@@ -69,7 +68,6 @@ class InfraModelTestUI @Autowired constructor(
         val projektinTiedot = uploadForm.projektinTiedot()
 
         assertEquals("TEST_Clothoid_and_parabola", projektinTiedot.nimi())
-        assertEquals("Ei tiedossa", projektinTiedot.oid())
         assertEquals("Geoviite", projektinTiedot.suunnitteluYritys())
 
         val sijaintitiedot = uploadForm.sijaintitiedot()
@@ -117,10 +115,6 @@ class InfraModelTestUI @Autowired constructor(
         projektinTiedot.addNimi(projektinNimi)
         assertEquals(projektinNimi, projektinTiedot.nimi())
 
-        val oid = "100.200.30"
-        projektinTiedot.addOid(oid)
-        assertEquals(oid, projektinTiedot.oid())
-
         val suunnitteluyritys = "Rane ja rautatiet"
         projektinTiedot.addNewSuunnitteluyritys(suunnitteluyritys)
         assertEquals(suunnitteluyritys, projektinTiedot.suunnitteluYritys())
@@ -148,7 +142,7 @@ class InfraModelTestUI @Autowired constructor(
         lokiJaLinkitystiedotFormGroup.editLaadittu("elokuu", "1999")
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.laadittu())
 
-        uploadForm.tallenna()
+        uploadForm.tallenna(false)
         val infraModelPageAfterUpload = InfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList().infraModelRows()
         assertEquals(infraModelRowsBefore.size + 1, infraModelRowsAfterUpload.size)

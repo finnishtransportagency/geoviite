@@ -14,6 +14,7 @@ import { createFeatures } from 'map/layers/switch/switch-layer-utils';
 import { PublishType } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
+import { filterUniqueById } from 'utils/array-utils';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
@@ -31,7 +32,7 @@ export function createSwitchLayer(
     const getSwitchesFromApi = () => {
         return Promise.all(
             mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
-        ).then((switchGroups) => [...new Set(switchGroups.flatMap((switches) => switches))]);
+        ).then((switchGroups) => switchGroups.flat().filter(filterUniqueById((s) => s.id)));
     };
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();

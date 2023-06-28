@@ -36,12 +36,11 @@ class SanitizedStringTest {
 
     @Test
     fun freeTextCantContainIllegalChars() {
-        assertDoesNotThrow { FreeText("Legal Free text: * -> 'asdf' (Äö/å) _-– +123465790?!") } // both - and –
+        assertDoesNotThrow { FreeText("Legal Free text: * -> 'asdf' (Äö/å) _-–\\ +123465790?!") } // both - and –
         assertDoesNotThrow { FreeText("") }
         assertThrows<InputValidationException> { FreeText("Illegal`") }
         assertThrows<InputValidationException> { FreeText("Illegal´") }
         assertThrows<InputValidationException> { FreeText("Illegal=") }
-        assertThrows<InputValidationException> { FreeText("Illegal\\") }
         assertThrows<InputValidationException> { FreeText("Illegal\"") }
         assertThrows<InputValidationException> { FreeText("Illegal\n") }
         assertThrows<InputValidationException> { FreeText("Illegal\tName") }

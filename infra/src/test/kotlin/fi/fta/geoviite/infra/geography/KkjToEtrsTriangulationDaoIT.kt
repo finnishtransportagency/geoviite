@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.geography
 
 import com.github.davidmoten.rtree2.geometry.Geometries
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -16,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 class KkjToEtrsTriangulationDaoIT @Autowired constructor(
     val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun fetchesTriangleInsideTriangulationNetwork() {

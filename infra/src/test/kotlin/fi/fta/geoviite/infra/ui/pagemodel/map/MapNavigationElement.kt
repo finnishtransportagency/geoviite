@@ -1,14 +1,13 @@
-package fi.fta.geoviite.infra.ui.pagemodel
+package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.findByXpath
-import fi.fta.geoviite.infra.findMandatoryByXpath
 import fi.fta.geoviite.infra.ui.pagemodel.common.Accordion
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.NoSuchElementException
 
+// TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+@Deprecated("Element risks staleness")
 abstract class TrackLayoutElement(val element: WebElement) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -30,24 +29,25 @@ abstract class TrackLayoutElement(val element: WebElement) {
 
 }
 
-class TrackLayoutSwitch(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findMandatoryByXpath("./span/span", "name").text
+// TODO: GVT-1935 These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
+class TrackLayoutSwitch(liElement: WebElement): TrackLayoutElement(liElement) {
+    override fun name(): String = element.findElement(By.xpath("./span/span")).text
     override fun toString(): String = name()
 }
 
-class TrackLayoutKmPost(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findMandatoryByXpath("./div/span", "name").text
+class TrackLayoutKmPost(liElement: WebElement): TrackLayoutElement(liElement) {
+    override fun name(): String = element.findElement(By.xpath("./div/span")).text
     override fun toString(): String = name()
 }
 
-class TrackLayoutTrackNumber(element: WebElement): TrackLayoutElement(element) {
+class TrackLayoutTrackNumber(liElement: WebElement): TrackLayoutElement(liElement) {
     override fun name(): String = element.text
     override fun toString(): String = name()
 }
 
-class TrackLayoutAlignment(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findMandatoryByXpath("./div/span", "name").text
-    fun type(): String = element.findMandatoryByXpath("./span", "type").text
+class TrackLayoutAlignment(liElement: WebElement): TrackLayoutElement(liElement) {
+    override fun name(): String = element.findElement(By.xpath("./div/span")).text
+    fun type(): String = element.findElement(By.xpath("./span")).text
     override fun toString(): String = name()
 }
 

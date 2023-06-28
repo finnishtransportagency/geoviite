@@ -16,28 +16,42 @@ import java.time.Instant
 
 const val TEST_USER = "TEST_USER"
 
-abstract class ITTestBase {
+abstract class DBTestBase(val testUser: String = TEST_USER) {
     @Autowired
     var jdbcTemplate: NamedParameterJdbcTemplate? = null
     @Autowired
     var transactionTemplate: TransactionTemplate? = null
 
     private var trackNumberDaoParam: LayoutTrackNumberDao? = null
+    private var trackDaoParam: LocationTrackDao? = null
+    private var alignmentDaoParam: LayoutAlignmentDao? = null
 
     @Autowired
     fun setTrackNumberDao(tnDao: LayoutTrackNumberDao) {
         trackNumberDaoParam = tnDao
     }
 
+    @Autowired
+    fun setLocationTrackDao(trackDao: LocationTrackDao) {
+        trackDaoParam = trackDao
+    }
+
+    @Autowired
+    fun setTrackNumberDao(alignmentDao: LayoutAlignmentDao) {
+        alignmentDaoParam = alignmentDao
+    }
+
     val jdbc by lazy { jdbcTemplate ?: throw IllegalStateException("JDBC not initialized") }
     val transaction by lazy { transactionTemplate ?: throw IllegalStateException("JDBC not initialized") }
     private val trackNumberDao by lazy { trackNumberDaoParam ?: throw IllegalStateException("JDBC not initialized") }
+    private val trackDao by lazy { trackDaoParam ?: throw IllegalStateException("JDBC not initialized") }
+    private val alignmentDao by lazy { alignmentDaoParam ?: throw IllegalStateException("JDBC not initialized") }
 
     val trackNumberDescription by lazy { "Test track number ${this::class.simpleName}" }
 
     @BeforeEach
     fun initUserMdc() {
-        MDC.put(USER_HEADER, TEST_USER)
+        MDC.put(USER_HEADER, testUser)
     }
 
     fun <T> transactional(op: () -> T): T = transaction.execute {
@@ -89,4 +103,11 @@ abstract class ITTestBase {
             ))
         }
 
+    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) =
+        insertLocationTrack(trackAndAlignment.first, trackAndAlignment.second)
+
+    fun insertLocationTrack(track: LocationTrack, alignment: LayoutAlignment): DaoResponse<LocationTrack> =
+        alignmentDao.insert(alignment).let { alignmentVersion ->
+            trackDao.insert(track.copy(alignmentVersion = alignmentVersion))
+        }
 }

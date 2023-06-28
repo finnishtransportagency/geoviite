@@ -1,0 +1,29 @@
+{
+    "projektivelho": {
+        "file-list": {
+            "header": {
+                "project-name": "Projektin tiedot",
+                "document-name": "Dokumentin nimi",
+                "document-description": "Kuvaus",
+                "document-modified": "Muokattu"
+            },
+            "field": {
+                "project-name": "Projektin tiedot",
+                "project-group": "Projektijoukko",
+                "assignment": "Toimeksianto",
+                "material-group": "Aineistoryhmä ja laji",
+                "document-type": "Dokumenttityyppi",
+                "document-state": "Dokumentin tila"
+            },
+            "reject": "Hylkää",
+            "reject-tooltip": "Siirrä hylättyjen aineistojen kokoelmaan",
+            "reject-success": "Aineisto siirretty hylättyjen aineistojen kokoelmaan",
+            "restore": "Palauta",
+            "restore-tooltip": "Palauta takaisin käsiteltävien aineistojen kokoelmaan",
+            "restore-success": "Aineisto siirretty käsiteltävien aineistojen kokoelmaan",
+            "upload": "Tuo suunnitelma...",
+            "upload-tooltip": "Tuo aineisto Geoviitteen suunnitelmaksi",
+            "oid-copied-to-clipboard": "OID kopioitu leikepöydälle"
+        }
+    }
+}

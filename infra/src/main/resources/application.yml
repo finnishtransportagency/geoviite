@@ -28,7 +28,7 @@ spring:
     url: "${spring.datasource.url}"
     user: "${spring.datasource.username}"
     password: "${spring.datasource.password}"
-    schemas: flyway,postgis,common,geometry,layout,publication,integrations
+    schemas: flyway,postgis,common,geometry,layout,publication,integrations,projektivelho
     lock-retry-count: 900
 
 geoviite:
@@ -53,5 +53,17 @@ geoviite:
     url: "${RATKO_URL:}"
     username: "${RATKO_USERNAME:}"
     password: "${RATKO_PASSWORD:}"
+  projektivelho:
+    enabled: "${PROJEKTIVELHO_ENABLED:false}"
+    url: "${PROJEKTIVELHO_URL:}"
+    login_url: "${PROJEKTIVELHO_LOGIN_URL:}"
+    client_id: "${PROJEKTIVELHO_CLIENT_ID:}"
+    client_secret: "${PROJEKTIVELHO_CLIENT_SECRET:}"
+    search-poll:
+      initial: "PT1H"
+      rate: "PT4H"
+    result-poll:
+      initial: "PT5M"
+      rate: "PT15M"
   rail-network-export:
     schedule: "0 0 3 * * *"

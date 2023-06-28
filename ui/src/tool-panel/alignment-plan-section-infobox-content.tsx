@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 
 type HighlightedItemBase = {
@@ -53,72 +52,79 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
     return (
         <React.Fragment>
             {sections.map((section) => (
-                <InfoboxField
+                <span
                     key={section.id}
-                    label={
-                        <span
-                            className={styles['alignment-plan-section-infobox__plan-name']}
-                            onMouseOver={() => {
-                                section.start &&
-                                    section.end &&
-                                    onHighlightItem({
-                                        id,
-                                        type,
-                                        startM: section.start?.m,
-                                        endM: section.end?.m,
-                                    });
-                            }}
-                            onMouseOut={() => {
-                                onHighlightItem(undefined);
-                            }}>
-                            {section.planName ? (
-                                section.planId ? (
-                                    <React.Fragment>
-                                        {!section.isLinked && errorFragment()}{' '}
-                                        <Link
-                                            onClick={() => {
-                                                if (section.planId) {
-                                                    delegates.onSelect({
-                                                        geometryPlans: [section.planId],
-                                                    });
-                                                    delegates.setToolPanelTab(
-                                                        toolPanelPlanTabId(section.planId),
-                                                    );
-                                                }
-                                            }}
+                    onMouseOver={() => {
+                        section.start &&
+                            section.end &&
+                            onHighlightItem({
+                                id,
+                                type,
+                                startM: section.start?.m,
+                                endM: section.end?.m,
+                            });
+                    }}
+                    onMouseOut={() => {
+                        onHighlightItem(undefined);
+                    }}>
+                    <InfoboxField
+                        label={
+                            <span className={styles['alignment-plan-section-infobox__plan-name']}>
+                                {section.planName ? (
+                                    section.planId ? (
+                                        <React.Fragment>
+                                            {!section.isLinked && errorFragment()}{' '}
+                                            <Link
+                                                onClick={() => {
+                                                    if (section.planId) {
+                                                        delegates.onSelect({
+                                                            geometryPlans: [section.planId],
+                                                        });
+                                                        delegates.setToolPanelTab({
+                                                            id: section.planId,
+                                                            type: 'GEOMETRY_PLAN',
+                                                        });
+                                                    }
+                                                }}
+                                                title={`${section.planName} (${section.alignmentName})`}>
+                                                {section.planName}
+                                            </Link>
+                                        </React.Fragment>
+                                    ) : (
+                                        <span
                                             title={`${section.planName} (${section.alignmentName})`}>
-                                            {section.planName}
-                                        </Link>
-                                    </React.Fragment>
+                                            {errorFragment()} {section.planName}
+                                        </span>
+                                    )
                                 ) : (
-                                    <span title={`${section.planName} (${section.alignmentName})`}>
-                                        {errorFragment()} {section.planName}
-                                    </span>
-                                )
-                            ) : (
-                                t('tool-panel.alignment-plan-sections.no-plan')
-                            )}
-                        </span>
-                    }
-                    value={
-                        <div className={styles['alignment-plan-section-infobox__meters']}>
-                            <span>
-                                {section.start?.address
-                                    ? formatTrackMeterWithoutMeters(section.start.address)
-                                    : errorFragment(
-                                          t('tool-panel.alignment-plan-sections.geocoding-failed'),
-                                      )}
-                            </span>{' '}
-                            <span>
-                                {section.end?.address
-                                    ? formatTrackMeterWithoutMeters(section.end.address)
-                                    : errorFragment(
-                                          t('tool-panel.alignment-plan-sections.geocoding-failed'),
-                                      )}
+                                    t('tool-panel.alignment-plan-sections.no-plan')
+                                )}
                             </span>
-                        </div>
-                    }
-                />
+                        }
+                        value={
+                            <div className={styles['alignment-plan-section-infobox__meters']}>
+                                <span>
+                                    {section.start?.address
+                                        ? formatTrackMeterWithoutMeters(section.start.address)
+                                        : errorFragment(
+                                              t(
+                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
+                                              ),
+                                          )}
+                                </span>{' '}
+                                <span>
+                                    {section.end?.address
+                                        ? formatTrackMeterWithoutMeters(section.end.address)
+                                        : errorFragment(
+                                              t(
+                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
+                                              ),
+                                          )}
+                                </span>
+                            </div>
+                        }
+                    />
+                </span>
             ))}
         </React.Fragment>
     );

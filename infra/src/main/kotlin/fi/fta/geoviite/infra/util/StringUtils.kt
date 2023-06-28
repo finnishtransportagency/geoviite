@@ -53,9 +53,7 @@ inline fun <reified T> assertSanitized(
     length: ClosedRange<Int>? = null,
     allowBlank: Boolean = true,
 ) {
-    assertInput<T>(length == null || stringValue.length in length) {
-        "Invalid length for ${T::class.simpleName} ${stringValue.length} not in [${length?.start}..${length?.endInclusive}]"
-    }
+    length?.let { l -> assertLength<T>(stringValue, l) }
     assertInput<T>(allowBlank || stringValue.isNotBlank()) {
         "Invalid (blank) value for ${T::class.simpleName}: ${formatForException(stringValue)}"
     }
@@ -63,6 +61,11 @@ inline fun <reified T> assertSanitized(
         "Invalid characters in ${T::class.simpleName}: ${formatForException(stringValue)}"
     }
 }
+
+inline fun <reified T> assertLength(value: String, length: ClosedRange<Int>) =
+    assertInput<T>(value.length in length) {
+        "Invalid length for ${T::class.simpleName} ${value.length} not in [${length.start}..${length.endInclusive}]"
+    }
 
 inline fun <reified T> assertInput(condition: Boolean, lazyMessage: () -> String) {
     if (!condition) throw InputValidationException(message = lazyMessage(), type = T::class)

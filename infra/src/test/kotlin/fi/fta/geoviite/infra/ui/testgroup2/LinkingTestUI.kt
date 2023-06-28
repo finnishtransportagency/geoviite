@@ -11,8 +11,10 @@ import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.frontpage.PublicationDetailRow
+import fi.fta.geoviite.infra.ui.pagemodel.frontpage.PublicationDetailRowContent
 import fi.fta.geoviite.infra.ui.pagemodel.map.*
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLayoutSwitchDialog.Tilakategoria
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog.RaideTyyppi
@@ -34,12 +36,12 @@ import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.metersToDouble
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.pointToCoordinateString
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.openqa.selenium.TimeoutException
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -58,9 +60,7 @@ class LinkingTestUI @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
-    jdbcTemplate: NamedParameterJdbcTemplate,
-    @Value("\${geoviite.e2e.url}") private val url: String,
-) : SeleniumTest(jdbcTemplate) {
+) : SeleniumTest() {
     lateinit var mapPage: MapPage
     val navigationPanel: MapNavigationPanel = MapNavigationPanel()
     val toolPanel: MapToolPanel = MapToolPanel()
@@ -100,10 +100,11 @@ class LinkingTestUI @Autowired constructor(
         trackNumberDao.deleteDrafts()
     }
 
-    @BeforeAll
+    @BeforeEach
     fun createTestData() {
         clearAllTestData()
 
+        // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
         EspooTestData.switchStructures = switchStructureDao.fetchSwitchStructures()
 
         val trackNumber1 = createTrackLayoutTrackNumber(ESPOO_TRACK_NUMBER_1)
@@ -140,8 +141,8 @@ class LinkingTestUI @Autowired constructor(
         insertLocationTrack(LOCATION_TRACK_B)
         insertLocationTrack(LOCATION_TRACK_D_1)
         insertLocationTrack(LOCATION_TRACK_D_2)
-        LOCATION_TRACK_E_ID = insertLocationTrack(LOCATION_TRACK_E)
-        LOCATION_TRACK_F_ID = insertLocationTrack(LOCATION_TRACK_F)
+        LOCATION_TRACK_E_ID = insertLocationTrack(LOCATION_TRACK_E).id
+        LOCATION_TRACK_F_ID = insertLocationTrack(LOCATION_TRACK_F).id
         insertLocationTrack(LOCATION_TRACK_G)
         insertLocationTrack(LOCATION_TRACK_H)
         insertLocationTrack(LOCATION_TRACK_J)
@@ -155,14 +156,10 @@ class LinkingTestUI @Autowired constructor(
 
         GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), boundinBox)))
 
-    }
-
-    @BeforeEach
-    fun goToMapPage() {
         clearDrafts()
-        openBrowser()
+        startGeoviite()
 
-        mapPage = openGeoviite(url).navigationBar().kartta()
+        mapPage = goToMap()
         mapPage.luonnostila()
         val previewChangesPage = mapPage.esikatselu()
 
@@ -179,11 +176,6 @@ class LinkingTestUI @Autowired constructor(
         navigationPanel.selectReferenceLine(ESPOO_TRACK_NUMBER_1)
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
-
-
-    @Test
-    @Disabled
-    fun launchBrowserForDebug() { }
 
     @Test
     fun `Create a new location track and link geometry`() {
@@ -244,7 +236,7 @@ class LinkingTestUI @Autowired constructor(
         mapPage.clickAtCoordinates(locationTrackEndPoint)
         mapPage.clickAtCoordinates(locationTrackStartPoint)
 
-        linkingBox.linkita()
+        linkingBox.linkita().assertAndClose("Raide linkitetty ja vanhentuneen geometrian linkitys purettu")
         toolPanel.selectToolPanelTab(GEO_ALIGNMENT_B_NAME)
 
         assertEquals("Kyllä", toolPanel.geometryAlignmentLinking().linkitetty())
@@ -278,7 +270,7 @@ class LinkingTestUI @Autowired constructor(
         mapPage.clickAtCoordinates(endPoint)
         mapPage.clickAtCoordinates(newEndPoint)
 
-        locationInfoBox.valmis()
+        locationInfoBox.valmis().assertAndClose("Raiteen päätepisteet päivitetty")
 
         assertEquals(pointToCoordinateString(startPoint), locationInfoBox.alkukoordinaatti())
         locationInfoBox.waitForLoppukoordinaatti(pointToCoordinateString(newEndPoint))
@@ -290,7 +282,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Edit location track start coordinate`() {
-        navigationPanel.selectLocationTrack(LOCATION_TRACK_H.first.name.toString())
+        navigationPanel.locationTracksList.selectByName(LOCATION_TRACK_H.first.name.toString())
         val locationInfoBox = toolPanel.locationTrackLocation()
         locationInfoBox.muokkaaAlkuLoppupistetta()
 
@@ -298,10 +290,13 @@ class LinkingTestUI @Autowired constructor(
         val newStartPoint = LOCATION_TRACK_H.second.segments.first().points.last()
         val endPoint = LOCATION_TRACK_H.second.segments.last().points.last()
 
+        // TODO: GVT-1940 implement a way to know when the layer is clickable
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(startPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(newStartPoint)
 
-        locationInfoBox.valmis()
+        locationInfoBox.valmis().assertAndClose("Raiteen päätepisteet päivitetty")
 
         locationInfoBox.waitForAlkukoordinaatti(pointToCoordinateString(newStartPoint))
         assertEquals(pointToCoordinateString(endPoint), locationInfoBox.loppukoordinaatti())
@@ -328,7 +323,7 @@ class LinkingTestUI @Autowired constructor(
         assertEquals(firstGeometryKmPost.name().substring(0, 3), firstTrackLayoutKmPost.substring(0, 3))
 
         kmPostLinkingInfoBox.linkTo(firstTrackLayoutKmPost)
-        kmPostLinkingInfoBox.linkita()
+        kmPostLinkingInfoBox.linkita().assertAndClose("Tasakilometripiste linkitetty")
 
         assertEquals("KYLLÄ", toolPanel.geometryKmPostLinking().linkitetty())
         toolPanel.selectToolPanelTab(LAYOUT_KM_POST_0000.kmNumber.toString())
@@ -355,8 +350,9 @@ class LinkingTestUI @Autowired constructor(
             .editTasakmpistetunnus(newKmPostNumber)
             .editTila(KmPostEditDialog.TilaTyyppi.KAYTOSSA)
             .tallenna(waitUntilRootIsStale = false)
+            .assertAndClose("Uusi tasakilometripiste lisätty")
 
-        kmPostLinkingInfoBox.linkita()
+        kmPostLinkingInfoBox.linkita().assertAndClose("Tasakilometripiste linkitetty onnistuneesti")
         mapPage.zoomOutToScale("50 m")
         lastGeometryKmPost.select()
 
@@ -561,9 +557,10 @@ class LinkingTestUI @Autowired constructor(
             .editVaihdetunnus(layoutSwitchName)
             .editTilakategoria(Tilakategoria.OLEMASSA_OLEVA_KOHDE)
             .tallenna()
+            .assertAndClose("Uusi vaihde lisätty")
 
         switchLinkingInfoBox.linkTo(layoutSwitchName)
-        switchLinkingInfoBox.linkita()
+        switchLinkingInfoBox.linkita().assertAndClose("Vaihde linkitetty")
         toolPanel.selectToolPanelTab(layoutSwitchName)
 
         val layoutSwitchInfoBox = toolPanel.layoutSwitchStructureGeneralInfo()
@@ -609,7 +606,7 @@ class LinkingTestUI @Autowired constructor(
         mapPage.clickAtCoordinates(geometryAlignment.elements.last().end)
         mapPage.clickAtCoordinates(geometryAlignment.elements.first().start)
 
-        alignmentLinkinInfobox.linkita()
+        alignmentLinkinInfobox.linkita().assertAndClose("Raide linkitetty ja vanhentuneen geometrian linkitys purettu")
         toolPanel.selectToolPanelTab(LOCATION_TRACK_E.first.name.toString())
         val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.todellinenPituus())
 
@@ -652,11 +649,16 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkinInfobox.lukitseValinta()
 
 
+        // TODO: GVT-1940 implement a way to know when the layer is clickable
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryAlignmentStart)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryAlignmentEnd)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.first())
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.last())
-        alignmentLinkinInfobox.linkita()
+        alignmentLinkinInfobox.linkita().assertAndClose("Raide linkitetty ja vanhentuneen geometrian linkitys purettu")
 
         val locationTrackAfterLinking = getLocationTrackAndAlignment(PublishType.DRAFT, LOCATION_TRACK_F_ID)
 
@@ -681,10 +683,10 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `link track to a reference line`() {
         navigationPanel.geometryPlanByName(GEOMETRY_PLAN_NAME).selecAlignment(GEO_ALIGNMENT_I_NAME)
-        val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking()
-        alignmentLinkinInfobox.aloitaLinkitys()
-        alignmentLinkinInfobox.linkTo(REFERENCELINE_1_NAME)
-        alignmentLinkinInfobox.lukitseValinta()
+        val alignmentLinkingInfobox = toolPanel.geometryAlignmentLinking()
+        alignmentLinkingInfobox.aloitaLinkitys()
+        alignmentLinkingInfobox.linkTo(REFERENCELINE_1_NAME)
+        alignmentLinkingInfobox.lukitseValinta()
 
         val geometryAlignment = getGeometryAlignmentFromPlan(GEO_ALIGNMENT_I_NAME)
         val geometryTrackStartPoint = geometryAlignment.elements.first().start
@@ -693,14 +695,19 @@ class LinkingTestUI @Autowired constructor(
         val referenceLineStartPoint = REFERENCE_LINE_ESP1.second.segments.first().points.first()
         val referenceLineEndPoint = REFERENCE_LINE_ESP1.second.segments.first().points.last()
 
+        // TODO: GVT-1940 implement a way to know when the layer is clickable
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryTrackStartPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(geometryTrackEndPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(referenceLineStartPoint)
+        Thread.sleep(500) // Wait until linking layer is clickable. If we don't do this, the click might come too early
         mapPage.clickAtCoordinates(referenceLineEndPoint)
 
-        alignmentLinkinInfobox.linkita()
+        alignmentLinkingInfobox.linkita().assertAndClose("Raide linkitetty")
 
-        assertEquals(REFERENCELINE_1_NAME, alignmentLinkinInfobox.pituusmittauslinja())
+        assertEquals(REFERENCELINE_1_NAME, alignmentLinkingInfobox.pituusmittauslinja())
 
         //Deselect reference line to open location info box
         navigationPanel.selectLocationTrack(LOCATION_TRACK_E.first.name.toString())
@@ -724,6 +731,8 @@ class LinkingTestUI @Autowired constructor(
             .muokkaaTietoja()
             .editTila(TilaTyyppi.POISTETTU)
             .tallenna()
+            .assertAndClose("Sijaintiraide poistettu")
+
         mapPage.navigationPanel.waitForLocationTrackNamesTo { names ->
             names.none { it == LOCATION_TRACK_J.first.name.toString() }
         }
@@ -754,9 +763,9 @@ class LinkingTestUI @Autowired constructor(
             .muokkaaTietoja()
             .editTilakategoria(Tilakategoria.POISTUNUT_KOHDE)
             .tallenna()
+            .assertAndClose("Vaihteen tiedot päivitetty")
 
-        val switchNames = mapPage.navigationPanel.switches().map { it.name() }
-        assertThat(switchNames).noneMatch { it == switchName }
+        mapPage.navigationPanel.waitUntilSwitchNotVisible(switchName)
 
         //Click near deleted element point to clear tool panels
         //and then try to select deleted element to confirm it disappeared
@@ -782,9 +791,10 @@ class LinkingTestUI @Autowired constructor(
             .muokkaaTietoja()
             .editTila(CreateEditTrackNumberDialog.TilaTyyppi.POISTETTU)
             .tallenna(false)
+            .assertAndClose("Ratanumero tallennettu")
 
-        assertThat(mapPage.navigationPanel.referenceLines()).noneMatch { it.name() == ESPOO_TRACK_NUMBER_2 }
-        assertThat(mapPage.navigationPanel.trackNumbers()).noneMatch { it.name() == ESPOO_TRACK_NUMBER_2 }
+        mapPage.navigationPanel.waitForTrackNumberNamesTo { names -> names.none(ESPOO_TRACK_NUMBER_2::equals) }
+        mapPage.navigationPanel.waitForReferenceLineNamesTo { names -> names.none(ESPOO_TRACK_NUMBER_2::equals) }
 
         //Click near deleted element point to clear tool panels
         //and then try to select deleted element to confirm it disappeared
@@ -807,8 +817,7 @@ class LinkingTestUI @Autowired constructor(
         val previewChangesPage = mapPage.esikatselu()
         previewChangesPage.logChanges()
         previewChangesPage.lisaaMuutoksetJulkaisuun()
-        val notificationAfterSave = previewChangesPage.julkaise()
-        assertThat(notificationAfterSave.message).contains(expectedPublishMessage)
+        previewChangesPage.julkaise().assertAndClose(expectedPublishMessage)
     }
 
     fun discardChanges() {
@@ -832,23 +841,19 @@ class LinkingTestUI @Autowired constructor(
             .editKuvaus("manually created location track $locationTrackName")
             .editTopologinenKytkeytyminen(CreateEditLocationTrackDialog.TopologinenKytkeytyminen.EI_KYTKETTY)
             .tallenna(false)
+            .assertAndClose("Uusi sijaintiraide lisätty rekisteriin")
 
         alignmentLinkingInfoBox.linkTo(locationTrackName)
         alignmentLinkingInfoBox.lukitseValinta()
 
         mapPage.clickAtCoordinates(geometryAlignment.elements.first().start)
         mapPage.clickAtCoordinates(geometryAlignment.elements.last().end)
-        alignmentLinkingInfoBox.linkita()
+        alignmentLinkingInfoBox.linkita().assertAndClose("Raide linkitetty")
     }
 
     fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>): IntId<ReferenceLine> {
         val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
         return referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
-    }
-
-    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>): IntId<LocationTrack> {
-        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-        return locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
     }
 
     fun getLocationTrackAndAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
@@ -866,14 +871,14 @@ class LinkingTestUI @Autowired constructor(
         }
     }
 
-    private fun latestPublicationDetails(): List<PublicationDetailRow> =
+    private fun latestPublicationDetails(): List<PublicationDetailRowContent> =
         mapPage.mainNavigation
-            .etusivu()
+            .goToFrontPage()
             .openLatestPublication()
-            .publicationDetails()
+            .detailRowContents()
 
     private fun assertThatLatestPublicationDetailsIncludeMuutoskohde(vararg muutoskohde: String) =
-        assertThat(latestPublicationDetails()).anyMatch{ muutoskohde.toList().contains(it.muutoskohde())}
+        assertThat(latestPublicationDetails()).anyMatch{ muutoskohde.toList().contains(it.muutoskohde)}
 
     private fun getGeometryAlignmentFromPlan(alignmentName: String) =
         GEOMETRY_PLAN.alignments.find { alignment -> alignment.name.toString() == alignmentName }!!

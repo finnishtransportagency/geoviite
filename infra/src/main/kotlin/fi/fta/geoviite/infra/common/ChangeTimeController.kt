@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -23,6 +24,7 @@ data class CollectedChangeTimes(
     val geometryPlan: Instant,
     val publication: Instant,
     val ratkoPush: Instant,
+    val pvDocument: Instant,
 )
 
 @RestController
@@ -36,6 +38,7 @@ class ChangeTimeController(
     private val referenceLineService: ReferenceLineService,
     private val publicationService: PublicationService,
     private val ratkoPushDao: RatkoPushDao,
+    private val pvDocumentService: PVDocumentService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -53,6 +56,7 @@ class ChangeTimeController(
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             publication = publicationService.getChangeTime(),
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
+            pvDocument = pvDocumentService.getDocumentChangeTime(),
         )
     }
 
@@ -103,5 +107,12 @@ class ChangeTimeController(
     fun getPublicationChangeTime(): Instant {
         logger.apiCall("getPublicationChangeTime")
         return publicationService.getChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho-documents")
+    fun getPVDocumentChangeTime(): Instant {
+        logger.apiCall("getPVDocumentChangeTime")
+        return pvDocumentService.getDocumentChangeTime()
     }
 }

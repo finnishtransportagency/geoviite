@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import getElementIfExists
+import getChildElementIfExists
 import org.openqa.selenium.By
 
 abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
@@ -10,12 +10,12 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
     }
 
     protected fun title() =
-        rootElement.findElement(By.cssSelector("div.formgroup__title")).text
+        webElement.findElement(By.cssSelector("div.formgroup__title")).text
 
     protected fun fieldValue(fieldLabel: String): String {
         logger.info("Get field [$fieldLabel]")
         val fieldValueElement = fieldValueElement(fieldLabel)
-        val fieldLayoutValueElement = getElementIfExists(fieldValueElement, By.className("field-layout__value"))
+        val fieldLayoutValueElement = fieldValueElement.getChildElementIfExists(By.className("field-layout__value"))
         return if (fieldLayoutValueElement != null) {
             logger.info("field [$fieldLabel]=[${fieldLayoutValueElement.text}]")
             fieldLayoutValueElement.text
@@ -29,32 +29,35 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
         logger.info("Change dropdown field [$fieldLabel] to [$inputs]")
         clickEditIcon(fieldLabel)
         inputs.forEachIndexed { index, input ->
-            val dropDown = DropDown(fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index])
+            val dropDown = DropDown{ fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index] }
             dropDown.openDropdown()
             dropDown.selectItem(input)
         }
         clickEditIcon(fieldLabel)
     }
 
-    protected fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>) {
+    protected fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>): Toaster {
         logger.info("Add and change dropdown value field [$fieldLabel] to [$inputs]")
         clickEditIcon(fieldLabel)
-        val dropDown = DropDown(fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")))
+        val dropDown = DropDown{ fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")) }
         dropDown.openDropdown()
         dropDown.clickAddNew()
         val dialogPopUp = DialogPopUpWithTextField()
         dialogPopUp.inputTextField(inputs)
         dialogPopUp.clickPrimaryButton()
-        clickEditIcon(fieldLabel)
+        return Toaster().also { t ->
+            t.waitUntilVisible()
+            clickEditIcon(fieldLabel)
+        }
     }
 
     protected fun fieldValueElement(fieldLabel: String) =
-        getChildElementStaleSafe(By.xpath(".//div[@class='formgroup__field' and div[contains(text(), '$fieldLabel')]]/div[@class='formgroup__field-value']"))
+        childElement(By.xpath(".//div[@class='formgroup__field' and div[contains(text(), '$fieldLabel')]]/div[@class='formgroup__field-value']"))
 
 
     protected fun clickEditIcon(fieldLabel: String) {
         logger.info("Click edit icon in field $fieldLabel")
-        rootElement.findElement(
+        webElement.findElement(
             By.xpath(".//div[@class='formgroup__field' and div[contains(text(), '$fieldLabel')]]/div[@class='formgroup__edit-icon']/div")
         )
             .click()

@@ -51,6 +51,7 @@ type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
         | PreliminaryLinkingGeometry;
     onSelect: (options: OnSelectOptions) => void;
     onShowAddTrackNumberDialog: () => void;
+    disableAddButton: boolean;
 };
 
 type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
@@ -64,6 +65,7 @@ type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
         | PreliminaryLinkingGeometry;
     onSelect: (options: OnSelectOptions) => void;
     onShowAddLocationTrackDialog: () => void;
+    disableAddButton: boolean;
 };
 
 type AlignmentRef = {
@@ -90,6 +92,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     linkingState,
     onSelect,
     onShowAddTrackNumberDialog,
+    disableAddButton,
 }) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(publishType, trackNumberChangeTime);
@@ -152,6 +155,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     variant={ButtonVariant.GHOST}
                     size={ButtonSize.SMALL}
                     icon={Icons.Append}
+                    disabled={disableAddButton}
                     onClick={() => onShowAddTrackNumberDialog()}
                     qa-id="create-tracknumer-button"
                 />
@@ -210,6 +214,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     linkingState,
     onSelect,
     onShowAddLocationTrackDialog,
+    disableAddButton,
 }) => {
     const { t } = useTranslation();
     const [locationTrackRefs, setLocationTrackRefs] = React.useState<AlignmentRef[]>([]);
@@ -270,6 +275,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                     variant={ButtonVariant.GHOST}
                     size={ButtonSize.SMALL}
                     icon={Icons.Append}
+                    disabled={disableAddButton}
                     onClick={() => onShowAddLocationTrackDialog()}
                     qa-id="create-location-track-button"
                 />
