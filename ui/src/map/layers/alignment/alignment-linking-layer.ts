@@ -7,7 +7,7 @@ import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
-    center,
+    centroid,
     clearFeatures,
     getIntersectingFeatures,
     getPlanarDistanceUnwrapped,
@@ -691,7 +691,7 @@ export function createAlignmentLinkingLayer(
             }
 
             const features = getIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
-            const hitPoint = center(hitArea);
+            const hitPoint = centroid(hitArea);
 
             const closestPointFeature = getSortedPointFeatures(features, hitPoint)[0];
 
@@ -725,7 +725,7 @@ function containsType(features: Feature[], type: FeatureType): boolean {
 }
 
 function getIfType<T>(feature: Feature, type: FeatureType): T | undefined {
-    return feature.get(LINKING_FEATURE_TYPE_PROPERTY) === type
+    return feature && feature.get(LINKING_FEATURE_TYPE_PROPERTY) === type
         ? (feature.get(LINKING_FEATURE_DATA_PROPERTY) as T)
         : undefined;
 }

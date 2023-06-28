@@ -2,43 +2,38 @@ import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
-import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import proj4 from 'proj4';
-import { Point } from 'model/geometry';
+import { coordsToPoint, Point } from 'model/geometry';
 import { register } from 'ol/proj/proj4';
 import VectorSource from 'ol/source/Vector';
-import { filterNotEmpty } from 'utils/array-utils';
+import { avg, filterNotEmpty } from 'utils/array-utils';
+import { distToSegmentSquared } from 'utils/math-utils';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
 
-const layoutToWgs84 = proj4(LAYOUT_SRID, 'WGS84');
+/**
+ * Returns the centroid of the polygon. The centroid is not the
+ * same as the visual center of a polygon, but the centroid is faster
+ * to calculate and suitable for most needs.
+ *
+ * @param polygon
+ */
+export function centroid(polygon: Polygon): OlPoint {
+    const points = polygon
+        .getLinearRing(0)
+        ?.getCoordinates()
+        .map((coordinate) => coordsToPoint(coordinate));
 
-function toWgs84(coordinate: number[]): number[] {
-    return layoutToWgs84.forward(coordinate);
-}
-
-function toMapProjection(coordinate: number[]): number[] {
-    return layoutToWgs84.inverse(coordinate);
-}
-
-function toWgs84Multi(coordinates: number[][]): number[][] {
-    return coordinates.map((coord) => toWgs84(coord));
-}
-
-export function center(polygon: Polygon): OlPoint {
-    const coords = polygon.getLinearRing(0)?.getCoordinates();
-    if (!coords) {
+    if (!points) {
         throw 'Cannot find the center of a polygon!';
     }
 
-    const center = turf.center(turf.points(toWgs84Multi(coords))).geometry.coordinates;
-    if (!center) {
-        throw 'Cannot find the center of a polygon!';
-    }
-    return new OlPoint(toMapProjection(center));
+    const x = avg(points.map((point) => point.x));
+    const y = avg(points.map((point) => point.y));
+    return new OlPoint([x, y]);
 }
 
 /**
@@ -64,18 +59,24 @@ export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y
  * @param point
  * @param line
  */
-export function getDistancePointAndLine(point: OlPoint, line: LineString): number {
-    return (
-        turf.pointToLineDistance(
-            turf.point(toWgs84(point.getCoordinates())),
-            turf.lineString(toWgs84Multi(line.getCoordinates())),
-            { units: 'kilometers' },
-        ) * 1000
+export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): number {
+    const point = coordsToPoint(olPoint.getCoordinates());
+    const segments = line
+        .getCoordinates()
+        .map((coordinate) => coordsToPoint(coordinate))
+        .map((_, index, points) =>
+            index < points.length - 1 ? [points[index], points[index + 1]] : undefined,
+        )
+        .filter(filterNotEmpty);
+    const squaredDistances = segments.map((segment) =>
+        distToSegmentSquared(point, segment[0], segment[1]),
     );
+    const minSquaredDistance = Math.min(...squaredDistances);
+    return Math.sqrt(minSquaredDistance);
 }
 
 export function getDistancePointAndPolygon(point: OlPoint, polygon: Polygon): number {
-    const polyCenter = center(polygon);
+    const polyCenter = centroid(polygon);
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
 
@@ -120,7 +121,7 @@ export function getIntersectingFeatures<T extends Geometry>(
         features.push(f);
     });
 
-    return sortFeaturesByDistance(features, center(hitArea));
+    return sortFeaturesByDistance(features, centroid(hitArea));
 }
 
 export function sortFeaturesByDistance<T extends Geometry>(features: Feature<T>[], point: OlPoint) {
