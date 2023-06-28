@@ -693,27 +693,45 @@ export function createAlignmentLinkingLayer(
             const features = findIntersectingFeatures<Point | LineString>(hitArea, vectorSource);
             const hitPoint = center(hitArea);
 
-            const closestPointFeature = getSortedPointFeatures(features, hitPoint)[0];
-
-            const clusterPoint = getIfType<ClusterPoint>(
-                closestPointFeature,
+            const clusterPoint: ClusterPoint | undefined = findFirstOfType<ClusterPoint>(
+                features,
                 FeatureType.ClusterPoint,
             );
-            const layoutPoint = getIfType<LinkPoint>(closestPointFeature, FeatureType.LayoutPoint);
-            const geometryPoint = getIfType<LinkPoint>(
-                closestPointFeature,
-                FeatureType.GeometryPoint,
-            );
+
+            let layoutLinkPoint: LinkPoint | undefined;
+            let geometryLinkPoint: LinkPoint | undefined;
+
+            if (!clusterPoint) {
+                const linkPointFeatures = getSortedLinkPointFeatures(
+                    vectorSource.getFeatures(),
+                    hitPoint,
+                );
+
+                const onLayoutLine = containsType(features, FeatureType.LayoutLine);
+                const onGeometryLine = containsType(features, FeatureType.GeometryLine);
+
+                if (onLayoutLine && onGeometryLine) {
+                    const closestPoint = linkPointFeatures[0];
+                    const closestPointType = getFeatureType(closestPoint);
+
+                    if (closestPointType === FeatureType.GeometryPoint) {
+                        geometryLinkPoint = getFeatureData(closestPoint);
+                    } else if (closestPointType === FeatureType.LayoutPoint) {
+                        layoutLinkPoint = getFeatureData(closestPoint);
+                    }
+                } else if (onGeometryLine) {
+                    geometryLinkPoint = findFirstOfType(
+                        linkPointFeatures,
+                        FeatureType.GeometryPoint,
+                    );
+                } else if (onLayoutLine) {
+                    layoutLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.LayoutPoint);
+                }
+            }
 
             return {
-                layoutLinkPoints:
-                    layoutPoint && containsType(features, FeatureType.LayoutLine)
-                        ? [layoutPoint]
-                        : [],
-                geometryLinkPoints:
-                    geometryPoint && containsType(features, FeatureType.GeometryLine)
-                        ? [geometryPoint]
-                        : [],
+                layoutLinkPoints: layoutLinkPoint ? [layoutLinkPoint] : [],
+                geometryLinkPoints: geometryLinkPoint ? [geometryLinkPoint] : [],
                 clusterPoints: clusterPoint ? [clusterPoint] : [],
             };
         },
@@ -721,23 +739,26 @@ export function createAlignmentLinkingLayer(
 }
 
 function containsType(features: Feature[], type: FeatureType): boolean {
-    return features.some((f) => f.get(LINKING_FEATURE_TYPE_PROPERTY) === type);
+    return features.some((f) => getFeatureType(f) === type);
 }
 
-function getIfType<T>(feature: Feature, type: FeatureType): T | undefined {
-    return feature.get(LINKING_FEATURE_TYPE_PROPERTY) === type
-        ? (feature.get(LINKING_FEATURE_DATA_PROPERTY) as T)
-        : undefined;
+function findFirstOfType<T>(features: Feature[], type: FeatureType): T | undefined {
+    const f = features.find((f) => getFeatureType(f) === type);
+    return f ? (getFeatureData(f) as T) : undefined;
 }
 
-function getSortedPointFeatures(features: Feature[], hitArea: Point): Feature<Point>[] {
+function getFeatureType(feature: Feature | undefined): FeatureType | undefined {
+    return feature?.get(LINKING_FEATURE_TYPE_PROPERTY);
+}
+
+function getFeatureData<T>(feature: Feature): T {
+    return feature.get(LINKING_FEATURE_DATA_PROPERTY) as T;
+}
+
+function getSortedLinkPointFeatures(features: Feature[], hitArea: Point): Feature<Point>[] {
     const pointFeatures = features.filter((f) => {
-        const type = f.get(LINKING_FEATURE_TYPE_PROPERTY);
-        return (
-            type === FeatureType.LayoutPoint ||
-            type === FeatureType.GeometryPoint ||
-            type === FeatureType.ClusterPoint
-        );
+        const type = getFeatureType(f);
+        return type === FeatureType.LayoutPoint || type === FeatureType.GeometryPoint;
     }) as Feature<Point>[];
 
     return sortFeaturesByDistance(pointFeatures, hitArea);
