@@ -249,5 +249,5 @@ function updateMenuItem(
     }));
 }
 
-type MapContextState = 'trackLayout' | 'infra-model' | 'preview';
-export const MapContext = createContext<MapContextState>('trackLayout');
+export type MapContextState = 'track-layout' | 'infra-model';
+export const MapContext = createContext<MapContextState>('track-layout');

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
+import { ValueOf } from './type-utils';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -218,4 +219,26 @@ export function useSetState<T>(
             return copy;
         });
     return [set, addToSet, deleteFromSet, setSet];
+}
+
+type PropsType = Record<string, unknown>;
+
+export function useTraceProps(componentName: string, props: PropsType) {
+    const prev = useRef(props);
+
+    useEffect(() => {
+        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
+            if (prev.current[k] !== v) {
+                acc[k] = { old: prev.current[k], new: v };
+            }
+
+            return acc;
+        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
+
+        if (Object.keys(changedProps).length > 0) {
+            console.log(`[${componentName}] Changed props:`, changedProps);
+        }
+
+        prev.current = props;
+    });
 }

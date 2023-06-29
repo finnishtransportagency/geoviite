@@ -14,18 +14,10 @@ export const TrackLayoutContainer: React.FC = () => {
             publishType={trackLayoutState.publishType}
             map={trackLayoutState.map}
             selection={trackLayoutState.selection}
-            onViewportChange={delegates.onViewportChange}
             onSelect={delegates.onSelect}
-            onHighlightItems={delegates.onHighlightItems}
-            onClickLocation={delegates.onClickLocation}
             onPublishTypeChange={delegates.onPublishTypeChange}
             onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
-            onShownItemsChange={delegates.onShownItemsChange}
             showArea={delegates.showArea}
-            onSetLayoutClusterLinkPoint={delegates.setLayoutClusterLinkPoint}
-            onSetGeometryClusterLinkPoint={delegates.setGeometryClusterLinkPoint}
-            onRemoveGeometryLinkPoint={delegates.removeGeometryLinkPoint}
-            onRemoveLayoutLinkPoint={delegates.removeLayoutLinkPoint}
             onLayerMenuItemChange={delegates.onLayerMenuItemChange}
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
