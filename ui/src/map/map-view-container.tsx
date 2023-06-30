@@ -17,7 +17,7 @@ const emptyFn = () => void 0;
 const getTrackLayoutProps = (): MapViewProps => {
     const store = useTrackLayoutAppSelector((s) => s);
     const changeTimes = useCommonDataAppSelector((s) => s.changeTimes);
-    const delegates = createDelegates(trackLayoutActionCreators);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     return {
         changeTimes: changeTimes,
@@ -42,7 +42,7 @@ const getTrackLayoutProps = (): MapViewProps => {
 const getInfraModelProps = (): MapViewProps => {
     const store = useInfraModelAppSelector((s) => s);
     const changeTimes = useCommonDataAppSelector((s) => s.changeTimes);
-    const delegates = createDelegates(infraModelActionCreators);
+    const delegates = React.useMemo(() => createDelegates(infraModelActionCreators), []);
 
     return {
         changeTimes: changeTimes,

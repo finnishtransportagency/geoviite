@@ -107,12 +107,14 @@ export type MapLayerSettingChange = {
     settings: ValueOf<MapLayerSettings>;
 };
 
+export type MapLayerMenuGroups = {
+    layout: MapLayerMenuItem[];
+    geometry: MapLayerMenuItem[];
+    debug: MapLayerMenuItem[];
+};
+
 export type Map = {
-    layerMenu: {
-        layout: MapLayerMenuItem[];
-        geometry: MapLayerMenuItem[];
-        debug: MapLayerMenuItem[];
-    };
+    layerMenu: MapLayerMenuGroups;
     layerSettings: MapLayerSettings;
     visibleLayers: MapLayerName[];
     viewport: MapViewport;

@@ -12,7 +12,7 @@ import {
 
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
-import { OnSelectFunction, Selection } from 'selection/selection-model';
+import { OnSelectFunction } from 'selection/selection-model';
 import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { AssetId, PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
@@ -65,7 +65,6 @@ export type ChangesBeingReverted = {
 };
 
 export type PreviewProps = {
-    selection: Selection;
     changeTimes: ChangeTimes;
     selectedPublishCandidateIds: PublishRequestIds;
     onSelect: OnSelectFunction;

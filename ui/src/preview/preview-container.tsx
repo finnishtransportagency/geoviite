@@ -7,10 +7,9 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 export const PreviewContainer: React.FC = () => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
-    const delegates = createDelegates(trackLayoutActionCreators);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     const props: PreviewProps = {
-        selection: trackLayoutState.selection,
         changeTimes: changeTimes,
         selectedPublishCandidateIds: trackLayoutState.stagedPublicationRequestIds,
         onSelect: delegates.onSelect,

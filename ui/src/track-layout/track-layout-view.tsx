@@ -1,25 +1,24 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import {MapContext, MapLayerMenuChange} from 'map/map-store';
-import {Map} from 'map/map-model';
-import {OnSelectFunction, Selection} from 'selection/selection-model';
-import {ToolBar} from 'tool-bar/tool-bar';
-import {SelectionPanelContainer} from 'selection-panel/selection-panel-container';
-import {SwitchSuggestionCreatorContainer} from 'linking/switch-suggestion-creator-container';
+import { Map, MapLayerMenuGroups } from 'map/map-model';
+import { MapContext, MapLayerMenuChange } from 'map/map-store';
+import { OnSelectFunction, Selection } from 'selection/selection-model';
+import { ToolBar } from 'tool-bar/tool-bar';
+import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
+import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
-import {BoundingBox} from 'model/geometry';
-import {PublishType} from 'common/common-model';
-import {LinkingState, LinkingType} from 'linking/linking-model';
-import {ChangeTimes} from 'common/common-slice';
-import {MapLayerMenu} from 'map/layer-menu/map-layer-menu';
+import { BoundingBox } from 'model/geometry';
+import { LayoutMode, PublishType } from 'common/common-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
+import { ChangeTimes } from 'common/common-slice';
+import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
+import { createClassName } from 'vayla-design-lib/utils';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { MapViewContainer } from 'map/map-view-container';
 import VerticalGeometryDiagram, {
     VerticalGeometryDiagramAlignmentId,
 } from 'vertical-geometry/vertical-geometry-diagram';
-import {createClassName} from 'vayla-design-lib/utils';
-import {HighlightedAlignment} from 'tool-panel/alignment-plan-section-infobox-content';
-import {ToolPanelAsset} from 'tool-panel/tool-panel';
-import {MapViewContainer} from 'map/map-view-container';
-import {useTraceProps} from 'utils/react-utils';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
@@ -29,17 +28,16 @@ export type TrackLayoutViewProps = {
     linkingState: LinkingState | undefined;
     onSelect: OnSelectFunction;
     onPublishTypeChange: (publishType: PublishType) => void;
-    onOpenPreview: () => void;
+    onLayoutModeChange: (mode: LayoutMode) => void;
     showArea: (area: BoundingBox) => void;
     onLayerMenuItemChange: (change: MapLayerMenuChange) => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
     selectedToolPanelTab: ToolPanelAsset | undefined;
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
-    useTraceProps('track-layout-view', props);
-
     const firstSelectedGeometryAlignment = props.selection.selectedItems.geometryAlignments[0];
     const firstSelectedLocationTrack = props.selection.selectedItems.locationTracks[0];
     const verticalDiagramPlanAlignmentId = React.useMemo(
@@ -135,7 +133,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                 onPublishTypeChange={(publishType: PublishType) => {
                     props.onPublishTypeChange(publishType);
                 }}
-                onOpenPreview={props.onOpenPreview}
+                onOpenPreview={() => props.onLayoutModeChange('PREVIEW')}
                 changeTimes={props.changeTimes}
                 onStopLinking={props.onStopLinking}
             />
@@ -162,7 +160,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                             <MapLayerMenu
                                 onMenuChange={props.onLayerMenuItemChange}
                                 onClose={() => setLayerMenuVisible(false)}
-                                map={props.map}
+                                mapLayerMenuGroups={props.mapLayerMenuGroups}
                             />
                         </div>
                     )}

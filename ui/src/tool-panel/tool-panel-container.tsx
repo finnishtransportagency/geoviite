@@ -15,9 +15,7 @@ type ToolPanelContainerProps = {
 const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverItem }) => {
     const store = useTrackLayoutAppSelector((state) => state);
 
-    const delegates = React.useMemo(() => {
-        return createDelegates(TrackLayoutActions);
-    }, []);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const typeChange = React.useCallback(() => delegates.onPublishTypeChange('DRAFT'), [delegates]);
     const kmPostIds = store.selection.selectedItems.kmPosts;
     const switchIds = store.selection.selectedItems.switches;

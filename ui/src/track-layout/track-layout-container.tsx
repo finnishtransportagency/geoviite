@@ -7,16 +7,17 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 export const TrackLayoutContainer: React.FC = () => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
-    const delegates = createDelegates(trackLayoutActionCreators);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     return (
         <TrackLayoutView
-            publishType={trackLayoutState.publishType}
-            map={trackLayoutState.map}
             selection={trackLayoutState.selection}
+            map={trackLayoutState.map}
+            publishType={trackLayoutState.publishType}
+            mapLayerMenuGroups={trackLayoutState.map.layerMenu}
             onSelect={delegates.onSelect}
             onPublishTypeChange={delegates.onPublishTypeChange}
-            onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
+            onLayoutModeChange={delegates.onLayoutModeChange}
             showArea={delegates.showArea}
             onLayerMenuItemChange={delegates.onLayerMenuItemChange}
             changeTimes={changeTimes}
