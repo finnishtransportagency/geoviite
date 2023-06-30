@@ -1,8 +1,8 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { Map, MapLayerMenuGroups } from 'map/map-model';
+import { MapLayerMenuGroups } from 'map/map-model';
 import { MapContext, MapLayerMenuChange } from 'map/map-store';
-import { OnSelectFunction, Selection } from 'selection/selection-model';
+import { OnSelectFunction } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
 import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
@@ -15,16 +15,11 @@ import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { MapViewContainer } from 'map/map-view-container';
-import VerticalGeometryDiagram, {
-    VerticalGeometryDiagramAlignmentId,
-} from 'vertical-geometry/vertical-geometry-diagram';
-import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geometry-diagram-container';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
     publishType: PublishType;
-    selection: Selection;
-    map: Map;
     linkingState: LinkingState | undefined;
     onSelect: OnSelectFunction;
     onPublishTypeChange: (publishType: PublishType) => void;
@@ -34,65 +29,13 @@ export type TrackLayoutViewProps = {
     mapLayerMenuGroups: MapLayerMenuGroups;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
-    selectedToolPanelTab: ToolPanelAsset | undefined;
+    showVerticalGeometryDiagram: boolean;
 };
 
-export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
-    const firstSelectedGeometryAlignment = props.selection.selectedItems.geometryAlignments[0];
-    const firstSelectedLocationTrack = props.selection.selectedItems.locationTracks[0];
-    const verticalDiagramPlanAlignmentId = React.useMemo(
-        () =>
-            firstSelectedGeometryAlignment
-                ? {
-                      planId: firstSelectedGeometryAlignment.planId,
-                      alignmentId: firstSelectedGeometryAlignment.geometryItem.id,
-                  }
-                : undefined,
-        [firstSelectedGeometryAlignment],
-    );
-    const verticalDiagramLayoutAlignmentId = React.useMemo(
-        () =>
-            firstSelectedLocationTrack
-                ? {
-                      locationTrackId: firstSelectedLocationTrack,
-                      publishType: props.publishType,
-                  }
-                : undefined,
-        [firstSelectedLocationTrack, props.publishType],
-    );
-
-    const hasGeometryAlignmentTab = (id: VerticalGeometryDiagramAlignmentId) =>
-        'planId' in id &&
-        props.selection.selectedItems.geometryAlignments.some(
-            (ga) => ga.geometryItem.id === id.alignmentId,
-        );
-
-    const hasLocationTrackTab = (id: VerticalGeometryDiagramAlignmentId) =>
-        'locationTrackId' in id &&
-        props.selection.selectedItems.locationTracks.some((lt) => lt === id.locationTrackId);
-
-    const [verticalDiagramAlignmentId, setVerticalDiagramAlignmentId] =
-        React.useState<VerticalGeometryDiagramAlignmentId>();
-    React.useEffect(() => {
-        if (props.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT') {
-            setVerticalDiagramAlignmentId(verticalDiagramPlanAlignmentId);
-        } else if (props.selectedToolPanelTab?.type === 'LOCATION_TRACK') {
-            setVerticalDiagramAlignmentId(verticalDiagramLayoutAlignmentId);
-        } else if (
-            !verticalDiagramAlignmentId ||
-            (!hasGeometryAlignmentTab(verticalDiagramAlignmentId) &&
-                !hasLocationTrackTab(verticalDiagramAlignmentId))
-        ) {
-            setVerticalDiagramAlignmentId(undefined);
-        }
-    }, [props.selectedToolPanelTab]);
-
-    const showVerticalGeometryDiagram =
-        props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
-
+export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props) => {
     const className = createClassName(
         styles['track-layout'],
-        showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
+        props.showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
 
     const [layerMenuVisible, setLayerMenuVisible] = React.useState(false);
@@ -143,14 +86,9 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                     <SelectionPanelContainer />
                 </div>
 
-                {showVerticalGeometryDiagram && verticalDiagramAlignmentId && (
+                {props.showVerticalGeometryDiagram && (
                     <div className={styles['track-layout__diagram']}>
-                        <VerticalGeometryDiagram
-                            alignmentId={verticalDiagramAlignmentId}
-                            onSelect={props.onSelect}
-                            changeTimes={props.changeTimes}
-                            showArea={props.showArea}
-                        />
+                        <VerticalGeometryDiagramContainer />
                     </div>
                 )}
 

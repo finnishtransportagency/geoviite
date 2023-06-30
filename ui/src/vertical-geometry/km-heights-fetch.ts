@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/vertical-geometry-diagram';
 import {
     getLocationTrackHeights,
     getPlanAlignmentHeights,
@@ -8,6 +7,7 @@ import {
 import throttle from '@jcoreio/async-throttle';
 import { ChangeTimes } from 'common/common-slice';
 import { toDate } from 'utils/date-utils';
+import { VerticalGeometryDiagramAlignmentId } from './vertical-geometry-diagram';
 
 type HeightCacheKey = string;
 type HeightCacheItem = {
@@ -111,7 +111,7 @@ async function loadAlignmentHeights(
     startM: number,
     endM: number,
     tickLength: number,
-): Promise<[TrackKmHeights[], [VerticalGeometryDiagramAlignmentId, number]]> {
+): Promise<[TrackKmHeights[], number]> {
     return (
         'planId' in alignmentId
             ? getPlanAlignmentHeights(
@@ -128,7 +128,7 @@ async function loadAlignmentHeights(
                   endM,
                   tickLength,
               )
-    ).then((r) => [r, [alignmentId, tickLength]]);
+    ).then((r) => [r, tickLength]);
 }
 
 export function getMissingCoveringRange(
@@ -174,27 +174,23 @@ function getQueryableRange(
 export function useAlignmentHeights(
     alignmentId: VerticalGeometryDiagramAlignmentId,
     changeTimes: ChangeTimes,
-    startM: number,
-    endM: number,
+    startM: number | undefined,
+    endM: number | undefined,
     tickLength: number,
-): { heights: TrackKmHeights[]; alignmentId: VerticalGeometryDiagramAlignmentId } | undefined {
-    const [loadedHeights, setLoadedHeights] = useState<{
-        heights: TrackKmHeights[];
-        alignmentId: VerticalGeometryDiagramAlignmentId;
-    }>();
+): TrackKmHeights[] | undefined {
+    const [loadedHeights, setLoadedHeights] = useState<TrackKmHeights[]>();
 
     const renderedRange = useRef({ alignmentId, startM, endM, tickLength });
     renderedRange.current = { alignmentId, startM, endM, tickLength };
 
-    const updateLoadedHeights = () => {
+    const updateLoadedHeights = (sM: number, eM: number) => {
         const cacheItem = getCacheItem(changeTimes, alignmentId, tickLength);
-        if (cacheItem !== undefined) {
-            setLoadedHeights({
-                heights: cacheItem.resolved.filter(
-                    (item) => item.trackMeterHeights[0].m <= endM && item.endM >= startM,
+        if (cacheItem) {
+            setLoadedHeights(
+                cacheItem.resolved.filter(
+                    (item) => item.trackMeterHeights[0].m <= eM && item.endM >= sM,
                 ),
-                alignmentId,
-            });
+            );
         }
     };
 
@@ -204,35 +200,42 @@ export function useAlignmentHeights(
     );
 
     useEffect(() => {
+        if (startM === undefined || endM === undefined) {
+            setLoadedHeights(undefined);
+            return;
+        }
+
         const cacheItem = getOrCreateCacheItem(changeTimes, alignmentId, tickLength);
         const queryRange = getQueryableRange(cacheItem.resolved, startM, endM);
         if (queryRange === null) {
-            updateLoadedHeights();
+            updateLoadedHeights(startM, endM);
         } else {
             throttledLoadAlignmentHeights(
                 alignmentId,
                 queryRange[0],
                 queryRange[1],
                 tickLength,
-            ).then(([loadedKms, [loadedAlignmentId, loadedTickLength]]) => {
+            ).then(([loadedKms, loadedTickLength]) => {
                 // the throttled fetcher can return results for earlier queries
                 const loadedCacheItem = getOrCreateCacheItem(
                     changeTimes,
-                    loadedAlignmentId,
+                    alignmentId,
                     loadedTickLength,
                 );
+
                 loadedCacheItem.resolved = weaveKms(
                     (kms) => kms.trackMeterHeights[0].m,
                     loadedCacheItem.resolved,
                     loadedKms,
                 );
+
                 if (
                     renderedRange.current.alignmentId === alignmentId &&
                     renderedRange.current.startM === startM &&
                     renderedRange.current.endM === endM &&
                     renderedRange.current.tickLength === tickLength
                 ) {
-                    updateLoadedHeights();
+                    updateLoadedHeights(startM, endM);
                 }
             });
         }

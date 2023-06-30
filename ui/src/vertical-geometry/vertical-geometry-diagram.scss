@@ -2,7 +2,7 @@
 @import '../vayla-design-lib/shadows';
 @import '../vayla-design-lib/typography';
 
-.vertical-geometry-diagram__diagram {
+.vertical-geometry-diagram {
     width: 100%;
     cursor: grab;
 
@@ -11,7 +11,7 @@
     }
 }
 
-.vertical-geometry-diagram__backdrop {
+.vertical-geometry-diagram-holder__backdrop {
     position: absolute;
     z-index: 1;
     top: 0;
@@ -19,6 +19,36 @@
     width: 100%;
     height: 100%;
     background-color: rgba($color-white-default, 0.67);
+}
+
+.vertical-geometry-diagram-holder__close-icon {
+    cursor: pointer;
+    position: absolute;
+    z-index: 2;
+    right: 8px;
+    top: 8px;
+    height: 16px;
+    padding: 2px;
+    background: rgba($color-white-default, 0.85);
+}
+
+.vertical-geometry-diagram-holder {
+    display: flex;
+    height: 100%;
+    flex: 1;
+    position: relative;
+
+    .vertical-geometry-diagram {
+        padding: 8px;
+    }
+}
+
+.vertical-geometry-diagram-holder__no-diagram,
+.vertical-geometry-diagram-holder__not-alignment {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .vertical-geometry-diagram__plan-link {
@@ -30,34 +60,4 @@
     color: $color-black-default;
     border-radius: 2px;
     padding: 4px 8px;
-}
-
-.vertical-geometry-diagram__close-icon {
-    cursor: pointer;
-    position: absolute;
-    z-index: 2;
-    right: 8px;
-    top: 8px;
-    height: 16px;
-    padding: 2px;
-    background: rgba($color-white-default, 0.85);
-}
-
-.vertical-geometry-diagram {
-    display: flex;
-    height: 100%;
-    position: relative;
-}
-
-.vertical-geometry-diagram__empty {
-    @include typography-body-strong;
-    flex: 1;
-    justify-content: center;
-    text-align: center;
-    align-self: center;
-}
-
-.vertical-geometry-diagram__diagram-container {
-    flex: 1;
-    padding: 8px;
 }

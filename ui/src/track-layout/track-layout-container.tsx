@@ -11,8 +11,6 @@ export const TrackLayoutContainer: React.FC = () => {
 
     return (
         <TrackLayoutView
-            selection={trackLayoutState.selection}
-            map={trackLayoutState.map}
             publishType={trackLayoutState.publishType}
             mapLayerMenuGroups={trackLayoutState.map.layerMenu}
             onSelect={delegates.onSelect}
@@ -23,7 +21,7 @@ export const TrackLayoutContainer: React.FC = () => {
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
-            selectedToolPanelTab={trackLayoutState.selectedToolPanelTab}
+            showVerticalGeometryDiagram={trackLayoutState.map.verticalGeometryDiagramVisible}
         />
     );
 };
