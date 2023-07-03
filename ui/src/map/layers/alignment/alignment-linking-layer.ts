@@ -4,6 +4,8 @@ import { LineString, Point, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
+import { Coordinate } from 'ol/coordinate';
+import { State } from 'ol/render';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
@@ -29,6 +31,15 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 import { getTickStyle } from '../utils/alignment-layer-utils';
+import {
+    LocationTrackId,
+    MapAlignmentType,
+    ReferenceLineId,
+} from 'track-layout/track-layout-model';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getReferenceLine } from 'track-layout/layout-reference-line-api';
+import { getAddress } from 'common/geocoding-api';
+import { formatTrackMeter } from 'utils/geography-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -311,6 +322,87 @@ function getPointsByOrder(
     else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
+function createPointTagFeature(point: LinkPoint, pointType: 'layout' | 'geometry'): Feature<Point> {
+    const color =
+        pointType == 'geometry'
+            ? mapStyles.selectedGeometryAlignmentInterval
+            : mapStyles.selectedLayoutAlignmentInterval;
+
+    const feature = new Feature({
+        geometry: new Point(pointToCoords(point)),
+    });
+
+    const showAtLeftSide = pointType == 'geometry';
+    const rotationByPointDirection = point.direction ? -point.direction + Math.PI / 2 : 0;
+    const rotation = rotationByPointDirection + (showAtLeftSide ? Math.PI : 0);
+
+    const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
+        const fontSize = 12;
+        const textPadding = 3 * pixelRatio;
+        const textBackgroundHeight = (fontSize + 4) * pixelRatio;
+        const arrowSpacing = 8 * pixelRatio;
+        const arrowTailPadding = 8 * pixelRatio;
+
+        const ctx = context;
+
+        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${pixelRatio * fontSize}px ${
+            mapStyles['alignmentBadge-font-family']
+        }`;
+
+        ctx.save();
+
+        const text = point.address ? formatTrackMeter(point.address) : '';
+        const textWidth = ctx.measureText(text).width;
+        const arrowHeight = textBackgroundHeight + textPadding * 2;
+        const arrowTipLength = arrowHeight / 2;
+        const arrowLength = arrowTipLength + textWidth + textPadding + arrowTailPadding;
+
+        const textX = arrowSpacing + arrowTipLength + textPadding;
+
+        const arrowFormPolygon = [
+            [0, 0],
+            [arrowTipLength, arrowHeight / 2],
+            [arrowLength, arrowHeight / 2],
+            [arrowLength, -arrowHeight / 2],
+            [arrowTipLength, -arrowHeight / 2],
+        ];
+
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.translate(-x, -y);
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x + arrowSpacing + arrowFormPolygon[0][0], y + arrowFormPolygon[0][1]);
+        arrowFormPolygon
+            .slice(1)
+            .forEach((coordinate) =>
+                ctx.lineTo(x + arrowSpacing + coordinate[0], y + coordinate[1]),
+            );
+        ctx.closePath();
+        ctx.fill();
+
+        if (rotation > Math.PI / 2 || rotation < -Math.PI / 2) {
+            // flip text
+            const textCenterX = x + textX + textWidth / 2;
+            ctx.translate(textCenterX, y);
+            ctx.scale(-1, -1);
+            ctx.translate(-textCenterX, -y);
+        }
+
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + textX, y);
+
+        ctx.restore();
+    };
+
+    feature.setStyle(() => new Style({ renderer }));
+
+    return feature;
+}
+
 function createAlignmentFeatures(
     points: LinkPoint[],
     highlightLinkPoint: LinkPoint | undefined,
@@ -382,6 +474,30 @@ function createAlignmentFeatures(
             },
             isGeometryAlignment,
         ),
+        ...(selectedLinkInterval.start
+            ? [
+                  createPointTagFeature(
+                      selectedLinkInterval.start,
+                      isGeometryAlignment ? 'geometry' : 'layout',
+                  ),
+              ]
+            : []),
+        ...(selectedLinkInterval.end
+            ? [
+                  createPointTagFeature(
+                      selectedLinkInterval.end,
+                      isGeometryAlignment ? 'geometry' : 'layout',
+                  ),
+              ]
+            : []),
+        ...(highlightLinkPoint
+            ? [
+                  createPointTagFeature(
+                      highlightLinkPoint,
+                      isGeometryAlignment ? 'geometry' : 'layout',
+                  ),
+              ]
+            : []),
     ];
 }
 
@@ -555,6 +671,55 @@ function createLinkingGeometryWithAlignmentFeatures(
     return features;
 }
 
+type LinkPointContainer = { [k: string]: LinkPoint | undefined };
+
+async function getLinkPointsWithAddresses<
+    T extends LinkPointContainer,
+    TPropertyName extends keyof T,
+>(
+    layoutAlignmentType: MapAlignmentType,
+    layoutAlignmentId: LocationTrackId | ReferenceLineId,
+    points: T,
+): Promise<T> {
+    const trackNumberId = await (layoutAlignmentType == 'LOCATION_TRACK'
+        ? getLocationTrack(layoutAlignmentId, 'DRAFT').then(
+              (locationTrack) => locationTrack?.trackNumberId,
+          )
+        : getReferenceLine(layoutAlignmentId, 'DRAFT').then(
+              (referenceLine) => referenceLine?.trackNumberId,
+          ));
+
+    if (!trackNumberId) {
+        return points;
+    }
+
+    const propertyNames = Object.keys(points) as TPropertyName[];
+    const promises = propertyNames
+        .map((propertyName: TPropertyName) => {
+            const originalPoint = points[propertyName];
+            return originalPoint != undefined
+                ? getAddress(trackNumberId, originalPoint, 'DRAFT').then((address) => ({
+                      propertyName: propertyName,
+                      address: address || undefined,
+                  }))
+                : undefined;
+        })
+        .filter(filterNotEmpty);
+
+    return Promise.all(promises).then((loadedLinkPointsWithAddresses) => {
+        const pointsWithAddresses = { ...points };
+        loadedLinkPointsWithAddresses.forEach(({ propertyName, address }) => {
+            if (pointsWithAddresses[propertyName]) {
+                pointsWithAddresses[propertyName] = {
+                    ...pointsWithAddresses[propertyName],
+                    address: address,
+                };
+            }
+        });
+        return pointsWithAddresses;
+    });
+}
+
 let newestLayerId = 0;
 
 export function createAlignmentLinkingLayer(
@@ -578,18 +743,33 @@ export function createAlignmentLinkingLayer(
                 changeTimes.layoutLocationTrack,
             );
 
-            getLinkPointsByTiles(
-                changeTime,
-                mapTiles,
-                linkingState.layoutAlignmentId,
-                linkingState.layoutAlignmentType,
-            )
-                .then((points) => {
+            Promise.all([
+                getLinkPointsByTiles(
+                    changeTime,
+                    mapTiles,
+                    linkingState.layoutAlignmentId,
+                    linkingState.layoutAlignmentType,
+                ),
+                getLinkPointsWithAddresses(
+                    linkingState.layoutAlignmentType,
+                    linkingState.layoutAlignmentId,
+                    {
+                        layoutStart: linkingState.layoutAlignmentInterval.start,
+                        layoutEnd: linkingState.layoutAlignmentInterval.end,
+                        layoutHighlight: selection.highlightedItems.layoutLinkPoints[0],
+                    },
+                ),
+            ])
+                .then(([points, linkPointAddresses]) => {
                     if (layerId !== newestLayerId) return;
                     const features = createLinkingAlignmentFeatures(
                         points,
-                        linkingState.layoutAlignmentInterval,
-                        selection.highlightedItems.layoutLinkPoints[0],
+                        {
+                            ...linkingState.layoutAlignmentInterval,
+                            start: linkPointAddresses.layoutStart,
+                            end: linkPointAddresses.layoutEnd,
+                        },
+                        linkPointAddresses.layoutHighlight,
                         drawLinkingDots,
                     );
 
@@ -598,23 +778,38 @@ export function createAlignmentLinkingLayer(
                 })
                 .catch(() => clearFeatures(vectorSource));
         } else if (linkingState.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
-            getGeometryLinkPointsByTiles(
-                linkingState.geometryPlanId,
-                linkingState.geometryAlignmentId,
-                mapTiles,
-                [
-                    linkingState.geometryAlignmentInterval.start,
-                    linkingState.geometryAlignmentInterval.end,
-                ].filter(filterNotEmpty),
-            )
-                .then((points) => {
+            Promise.all([
+                getGeometryLinkPointsByTiles(
+                    linkingState.geometryPlanId,
+                    linkingState.geometryAlignmentId,
+                    mapTiles,
+                    [
+                        linkingState.geometryAlignmentInterval.start,
+                        linkingState.geometryAlignmentInterval.end,
+                    ].filter(filterNotEmpty),
+                ),
+                getLinkPointsWithAddresses(
+                    linkingState.layoutAlignmentType,
+                    linkingState.layoutAlignmentId,
+                    {
+                        geometryStart: linkingState.geometryAlignmentInterval.start,
+                        geometryEnd: linkingState.geometryAlignmentInterval.end,
+                        geometryHighlight: selection.highlightedItems.geometryLinkPoints[0],
+                    },
+                ),
+            ])
+                .then(([points, linkPointAddresses]) => {
                     if (layerId !== newestLayerId) return;
 
                     const features = createAlignmentFeatures(
                         points,
-                        selection.highlightedItems.geometryLinkPoints[0],
+                        linkPointAddresses.geometryHighlight,
                         [],
-                        linkingState.geometryAlignmentInterval,
+                        {
+                            ...linkingState.geometryAlignmentInterval,
+                            start: linkPointAddresses.geometryStart,
+                            end: linkPointAddresses.geometryEnd,
+                        },
                         drawLinkingDots,
                         true,
                         geometryPointStyle,
@@ -629,6 +824,7 @@ export function createAlignmentLinkingLayer(
                 })
                 .catch(() => clearFeatures(vectorSource));
         } else if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
+            console.log('x');
             const geometryPointsPromise = getGeometryLinkPointsByTiles(
                 linkingState.geometryPlanId,
                 linkingState.geometryAlignmentId,
@@ -653,14 +849,42 @@ export function createAlignmentLinkingLayer(
                 linkingState.layoutAlignmentType,
             );
 
-            Promise.all([layoutPointsPromise, geometryPointsPromise])
-                .then(([layoutPoints, geometryPoints]) => {
+            const linkPointAddressesPromise = getLinkPointsWithAddresses(
+                linkingState.layoutAlignmentType,
+                linkingState.layoutAlignmentId,
+                {
+                    layoutStart: linkingState.layoutAlignmentInterval.start,
+                    layoutEnd: linkingState.layoutAlignmentInterval.end,
+                    layoutHighlight: selection.highlightedItems.layoutLinkPoints[0],
+                    geometryStart: linkingState.geometryAlignmentInterval.start,
+                    geometryEnd: linkingState.geometryAlignmentInterval.end,
+                    geometryHighlight: selection.highlightedItems.geometryLinkPoints[0],
+                },
+            );
+
+            Promise.all([layoutPointsPromise, geometryPointsPromise, linkPointAddressesPromise])
+                .then(([layoutPoints, geometryPoints, linkPointAddresses]) => {
                     if (layerId !== newestLayerId) return;
 
                     const features = createLinkingGeometryWithAlignmentFeatures(
-                        selection,
-                        linkingState.layoutAlignmentInterval,
-                        linkingState.geometryAlignmentInterval,
+                        {
+                            ...selection,
+                            highlightedItems: {
+                                ...selection.highlightedItems,
+                                layoutLinkPoints: [linkPointAddresses.layoutHighlight],
+                                geometryLinkPoints: [linkPointAddresses.geometryHighlight],
+                            },
+                        },
+                        {
+                            ...linkingState.layoutAlignmentInterval,
+                            start: linkPointAddresses.layoutStart,
+                            end: linkPointAddresses.layoutEnd,
+                        },
+                        {
+                            ...linkingState.geometryAlignmentInterval,
+                            start: linkPointAddresses.geometryStart,
+                            end: linkPointAddresses.geometryEnd,
+                        },
                         drawLinkingDots,
                         layoutPoints,
                         geometryPoints,

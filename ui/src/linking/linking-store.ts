@@ -528,5 +528,6 @@ function createLinkPoint(
         isSegmentEndPoint: isSegmentEndPoint,
         isEndPoint: isEndPoint,
         direction: direction,
+        address: undefined,
     };
 }

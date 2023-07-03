@@ -87,11 +87,22 @@ export function deduplicate<T>(items: T[]): T[] {
     return [...new Set(items).values()];
 }
 
-export function deduplicateById<T, TId>(items: T[], getItemId: (item: T) => TId): T[] {
+export function _deduplicateById2<T, TId>(items: T[], getItemId: (item: T) => TId): T[] {
     return items.filter((item, index) => {
         const id = getItemId(item);
         return items.findIndex((item2) => getItemId(item2) == id) == index;
     });
+}
+
+export function deduplicateById<T, TId>(items: T[], getItemId: (item: T) => TId): T[] {
+    const x = new Map<TId, T>();
+    items.forEach((item) => {
+        const id = getItemId(item);
+        if (!x.has(id)) {
+            x.set(id, item);
+        }
+    });
+    return [...x.values()];
 }
 
 export function arraysEqual<T>(arr1: T[], arr2: T[]) {
