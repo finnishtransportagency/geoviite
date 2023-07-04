@@ -1,11 +1,11 @@
 import Feature from 'ol/Feature';
-import OlPoint from 'ol/geom/Point';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 type DebugLayerPoint = {
     type: 'point';

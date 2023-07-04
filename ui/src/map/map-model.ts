@@ -61,6 +61,7 @@ export type OptionalShownItems = {
     kmPosts?: LayoutKmPostId[];
     switches?: LayoutSwitchId[];
 };
+
 export type ShownItems = {
     referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
@@ -131,4 +132,9 @@ export type AlignmentHighlight = {
     id: string;
     type: MapAlignmentType;
     ranges: { min: number; max: number }[];
+};
+
+export type MapLayerMenuChange = {
+    name: MapLayerMenuItemName;
+    visible: boolean;
 };

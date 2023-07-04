@@ -1,4 +1,4 @@
-import { Tile as OlTileLayer } from 'ol/layer';
+import { Tile } from 'ol/layer';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import { MapLayer } from 'map/layers/utils/layer-model';
@@ -27,12 +27,12 @@ const MMLTileSourcePromise = fetch(
 });
 
 function createLayer() {
-    const layer = new OlTileLayer({ opacity: 0.5 });
+    const layer = new Tile({ opacity: 0.5 });
     MMLTileSourcePromise.then((source) => source && layer.setSource(source));
     return layer;
 }
 
-export function createBackgroundMapLayer(existingOlLayer: OlTileLayer<TileSource>): MapLayer {
+export function createBackgroundMapLayer(existingOlLayer: Tile<TileSource>): MapLayer {
     const layer = existingOlLayer || createLayer();
     return {
         name: 'background-map-layer',

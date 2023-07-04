@@ -1,28 +1,28 @@
 import { MapTile, OptionalShownItems } from 'map/map-model';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
-import { LineString, Point, Polygon } from 'ol/geom';
+import { LineString, Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
 import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import {
-    clearFeatures,
-    getMatchingAlignmentData,
-    MatchOptions,
-} from 'map/layers/utils/layer-utils';
-import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { createAlignmentFeatures } from 'map/layers/alignment/alignment-layer-utils';
+import {
+    createAlignmentFeatures,
+    findMatchingAlignments,
+} from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let shownReferenceLinesCompare: string;
 let newestLayerId = 0;
 
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
@@ -66,24 +66,15 @@ export function createReferenceLineAlignmentLayer(
     return {
         name: 'reference-line-alignment-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions) => {
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: undefined,
-            };
-
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const referenceLines = getMatchingAlignmentData(hitArea, features, matchOptions)
-                .map(({ header }) => header)
-                .filter(filterUniqueById((a) => a.id))
-                .slice(0, options.limit);
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => {
+            const referenceLines = findMatchingAlignments(hitArea, vectorSource, options);
 
             const trackNumberIds = deduplicate(
-                referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
+                referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),
             );
 
             return {
-                referenceLines: referenceLines.map((r) => r.id),
+                referenceLines: referenceLines.map((r) => r.header.id),
                 trackNumbers: trackNumberIds,
             };
         },

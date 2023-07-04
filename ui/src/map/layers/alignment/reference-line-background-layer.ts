@@ -1,13 +1,13 @@
 import { LineString } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { createAlignmentBackgroundFeatures } from 'map/layers/alignment/background-layer-utils';
+import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let newestLayerId = 0;
 
@@ -24,12 +24,12 @@ export function createReferenceLineBackgroundLayer(
 
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
-            if (layerId !== newestLayerId) return;
+            if (layerId === newestLayerId) {
+                const features = createAlignmentBackgroundFeatures(referenceLines);
 
-            const features = createAlignmentBackgroundFeatures(referenceLines);
-
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(features);
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
+            }
         })
         .catch(() => clearFeatures(vectorSource));
 

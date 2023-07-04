@@ -1,3 +1,5 @@
+import { Polygon } from 'ol/geom';
+
 export enum CoordinateSystem {
     TM35FIN = 'TM35FIN',
 }
@@ -21,6 +23,8 @@ export type BoundingBox = {
     x: Range;
     y: Range;
 };
+
+export type Rectangle = Polygon;
 
 export function coordsToPoint(coords: number[]): Point {
     return {

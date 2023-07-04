@@ -1,7 +1,7 @@
-import { Polygon } from 'ol/geom';
 import BaseLayer from 'ol/layer/Base';
 import { MapLayerName } from 'map/map-model';
 import { OptionalItemCollections } from 'selection/selection-model';
+import { Rectangle } from 'model/geometry';
 
 export type LayerItemSearchResult = OptionalItemCollections;
 
@@ -12,6 +12,6 @@ export type SearchItemsOptions = {
 export type MapLayer = {
     name: MapLayerName;
     layer: BaseLayer;
-    searchItems?: (hitArea: Polygon, options: SearchItemsOptions) => LayerItemSearchResult;
+    searchItems?: (hitArea: Rectangle, options: SearchItemsOptions) => LayerItemSearchResult;
     onRemove?: () => void;
 };

@@ -1,27 +1,28 @@
-import OlPoint from 'ol/geom/Point';
+import { Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
-import { Polygon } from 'ol/geom';
-import { Layer as OlLayer, Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { clearFeatures, getMatchingKmPosts } from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createKmPostFeatures,
+    findMatchingKmPosts,
     getKmPostStepByResolution,
-} from 'map/layers/km-post/km-post-layer-utils';
+} from 'map/layers/utils/km-post-layer-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let shownKmPostsCompare: string;
 let newestLayerId = 0;
 
 export function createKmPostLayer(
     mapTiles: MapTile[],
-    existingOlLayer: OlLayer<VectorSource<OlPoint | Polygon>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
     publishType: PublishType,
     changeTimes: ChangeTimes,
@@ -85,17 +86,12 @@ export function createKmPostLayer(
     return {
         name: 'km-post-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const kmPosts = getMatchingKmPosts(
-                hitArea,
-                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-                {
-                    strategy: 'nearest',
-                    limit: options.limit,
-                },
-            ).map(({ kmPost }) => kmPost.id);
-
-            return { kmPosts };
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
+            return {
+                kmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map(
+                    ({ kmPost }) => kmPost.id,
+                ),
+            };
         },
         onRemove: () => updateShownKmPosts([]),
     };

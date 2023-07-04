@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { Map, MapLayerMenuItem } from 'map/map-model';
+import { Map, MapLayerMenuChange, MapLayerMenuItem } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
-import { MapLayerMenuChange } from 'map/map-store';
 
 type MapLayerMenuProps = {
     map: Map;

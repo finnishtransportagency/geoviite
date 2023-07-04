@@ -1,17 +1,17 @@
-import OlPoint from 'ol/geom/Point';
-import OlPolygon from 'ol/geom/Polygon';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
-import { clearFeatures, getMatchingSwitches } from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
-import { createFeatures } from 'map/layers/switch/switch-layer-utils';
+import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
@@ -64,7 +64,7 @@ export function createGeometrySwitchLayer(
                         (switchItem.sourceId && switchLinkedStatus?.get(switchItem.sourceId)) ||
                         false;
 
-                    return createFeatures(
+                    return createSwitchFeatures(
                         plan.switches,
                         isSelected,
                         isHighlighted,
@@ -89,20 +89,13 @@ export function createGeometrySwitchLayer(
     return {
         name: 'geometry-switch-layer',
         layer: layer,
-        searchItems: (hitArea: OlPolygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const geometrySwitches = getMatchingSwitches(
-                hitArea,
-                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-                {
-                    strategy: options.limit == 1 ? 'nearest' : 'limit',
-                    limit: options.limit,
-                },
-            ).map((d) => ({
-                geometryItem: d.switch,
-                planId: d.planId as GeometryPlanId,
-            }));
-
-            return { geometrySwitches };
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
+            return {
+                geometrySwitches: findMatchingSwitches(hitArea, vectorSource, options).map((s) => ({
+                    geometryItem: s.switch,
+                    planId: s.planId as GeometryPlanId,
+                })),
+            };
         },
     };
 }
