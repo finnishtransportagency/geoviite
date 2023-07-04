@@ -12,7 +12,7 @@ import { PointIndicator } from 'vertical-geometry/point-indicator';
 import { createClassName } from 'vayla-design-lib/utils';
 import { getSnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates, xToM } from 'vertical-geometry/coordinates';
-import { getBottomAndTopTicks, sumPaddings } from 'vertical-geometry/util';
+import { getBottomAndTopTicks, sumPaddings, zeroDivision } from 'vertical-geometry/util';
 import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
@@ -96,11 +96,11 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         topHeightTick,
         bottomHeightTick,
         chartHeightPx: diagramHeight - chartBottomPadding,
-        meterHeightPx:
-            (diagramHeight - topHeightPaddingPx + bottomHeightPaddingPx) /
-            (topHeightTick - bottomHeightTick),
-        mMeterLengthPxOverM:
-            visibleEndM === visibleStartM ? 0 : diagramWidth / (visibleEndM - visibleStartM),
+        meterHeightPx: zeroDivision(
+            diagramHeight - topHeightPaddingPx + bottomHeightPaddingPx,
+            topHeightTick - bottomHeightTick,
+        ),
+        mMeterLengthPxOverM: zeroDivision(diagramWidth, visibleEndM - visibleStartM),
         diagramWidthPx: diagramWidth,
         endM: visibleEndM,
         fullDiagramHeightPx: diagramHeight,

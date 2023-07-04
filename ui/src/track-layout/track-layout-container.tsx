@@ -9,6 +9,11 @@ export const TrackLayoutContainer: React.FC = () => {
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
+    const showVerticalGeometryDiagram =
+        trackLayoutState.map.verticalGeometryDiagramVisible &&
+        (trackLayoutState.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT' ||
+            trackLayoutState.selectedToolPanelTab?.type === 'LOCATION_TRACK');
+
     return (
         <TrackLayoutView
             publishType={trackLayoutState.publishType}
@@ -21,7 +26,7 @@ export const TrackLayoutContainer: React.FC = () => {
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
-            showVerticalGeometryDiagram={trackLayoutState.map.verticalGeometryDiagramVisible}
+            showVerticalGeometryDiagram={showVerticalGeometryDiagram}
         />
     );
 };

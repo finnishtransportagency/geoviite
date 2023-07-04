@@ -98,10 +98,10 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         !!processedGeometry &&
         startM !== undefined &&
         endM !== undefined &&
+        startM !== endM &&
         visibleStartM !== undefined &&
         visibleEndM !== undefined &&
         visibleStartM !== visibleEndM &&
-        startM !== endM &&
         !!diagramWidth &&
         !!diagramHeight;
 

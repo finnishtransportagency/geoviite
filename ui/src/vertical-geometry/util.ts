@@ -61,6 +61,10 @@ export function getBottomAndTopTicks(
     );
 }
 
+export function zeroDivision(a: number, b: number): number {
+    return b === 0 ? 0 : a / b;
+}
+
 export function sumPaddings(p1: string, p2: string) {
     return parseFloat(p1) + parseFloat(p2);
 }

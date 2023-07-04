@@ -32,10 +32,22 @@ export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
 };
 
-export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props) => {
+export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
+    publishType,
+    linkingState,
+    onSelect,
+    onPublishTypeChange,
+    onLayoutModeChange,
+    showArea,
+    onLayerMenuItemChange,
+    mapLayerMenuGroups,
+    changeTimes,
+    onStopLinking,
+    showVerticalGeometryDiagram,
+}) => {
     const className = createClassName(
         styles['track-layout'],
-        props.showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
+        showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
 
     const [layerMenuVisible, setLayerMenuVisible] = React.useState(false);
@@ -46,39 +58,39 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props) => {
         <div className={className} qa-id="track-layout-content">
             <ToolBar
                 disableNewMenu={
-                    props.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-                    props.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+                    linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+                    linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
                 }
                 layerMenuVisible={layerMenuVisible}
-                publishType={props.publishType}
+                publishType={publishType}
                 onMapLayerVisibilityChange={setLayerMenuVisible}
-                showArea={props.showArea}
+                showArea={showArea}
                 onSelectTrackNumber={(trackNumberId) =>
-                    props.onSelect({
+                    onSelect({
                         trackNumbers: [trackNumberId],
                     })
                 }
                 onSelectLocationTrack={(locationTrackId) =>
-                    props.onSelect({
+                    onSelect({
                         locationTracks: [locationTrackId],
                     })
                 }
                 onSelectSwitch={(switchId) =>
-                    props.onSelect({
+                    onSelect({
                         switches: [switchId],
                     })
                 }
                 onSelectKmPost={(kmPostId) =>
-                    props.onSelect({
+                    onSelect({
                         kmPosts: [kmPostId],
                     })
                 }
                 onPublishTypeChange={(publishType: PublishType) => {
-                    props.onPublishTypeChange(publishType);
+                    onPublishTypeChange(publishType);
                 }}
-                onOpenPreview={() => props.onLayoutModeChange('PREVIEW')}
-                changeTimes={props.changeTimes}
-                onStopLinking={props.onStopLinking}
+                onOpenPreview={() => onLayoutModeChange('PREVIEW')}
+                changeTimes={changeTimes}
+                onStopLinking={onStopLinking}
             />
 
             <div className={styles['track-layout__main-view']}>
@@ -86,7 +98,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props) => {
                     <SelectionPanelContainer />
                 </div>
 
-                {props.showVerticalGeometryDiagram && (
+                {showVerticalGeometryDiagram && (
                     <div className={styles['track-layout__diagram']}>
                         <VerticalGeometryDiagramContainer />
                     </div>
@@ -96,9 +108,9 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props) => {
                     {layerMenuVisible && (
                         <div className={styles['track-layout__map-settings']}>
                             <MapLayerMenu
-                                onMenuChange={props.onLayerMenuItemChange}
+                                onMenuChange={onLayerMenuItemChange}
                                 onClose={() => setLayerMenuVisible(false)}
-                                mapLayerMenuGroups={props.mapLayerMenuGroups}
+                                mapLayerMenuGroups={mapLayerMenuGroups}
                             />
                         </div>
                     )}
