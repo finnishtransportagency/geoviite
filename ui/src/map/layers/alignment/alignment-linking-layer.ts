@@ -326,14 +326,17 @@ function getPointsByOrder(
     else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
-function createPointTagFeature(point: LinkPoint, pointType: 'layout' | 'geometry'): Feature<Point> {
+function createPointTagFeature(
+    point: LinkPoint,
+    pointType: 'layout' | 'geometry',
+): Feature<OlPoint> {
     const color =
         pointType == 'geometry'
             ? mapStyles.selectedGeometryAlignmentInterval
             : mapStyles.selectedLayoutAlignmentInterval;
 
     const feature = new Feature({
-        geometry: new Point(pointToCoords(point)),
+        geometry: new OlPoint(pointToCoords(point)),
     });
 
     const showAtLeftSide = pointType == 'geometry';
@@ -828,7 +831,6 @@ export function createAlignmentLinkingLayer(
                 })
                 .catch(() => clearFeatures(vectorSource));
         } else if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
-            console.log('x');
             const geometryPointsPromise = getGeometryLinkPointsByTiles(
                 linkingState.geometryPlanId,
                 linkingState.geometryAlignmentId,

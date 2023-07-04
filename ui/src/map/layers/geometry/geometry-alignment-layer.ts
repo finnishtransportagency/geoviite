@@ -27,6 +27,9 @@ import {
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { cache } from 'cache/cache';
+
+const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
 
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({
@@ -66,40 +69,48 @@ function createAlignmentFeature(
     selection: Selection,
     resolution: number,
 ): Feature<LineString> {
-    const isAlignmentSelected = selection.selectedItems.geometryAlignments.find(
-        ({ geometryItem }) => geometryItem.id == alignment.header.id,
-    );
+    const isAlignmentSelected =
+        selection.selectedItems.geometryAlignments.find(
+            ({ geometryItem }) => geometryItem.id == alignment.header.id,
+        ) != undefined;
 
-    const styles: Style[] = [];
+    const cacheKey = `${alignment.header.id}-${resolution}-${isAlignmentSelected}`;
+    return alignmentFeatureCache.getOrCreate(cacheKey, () => {
+        const styles: Style[] = [];
 
-    const feature = new Feature({ geometry: new LineString(alignment.points.map(pointToCoords)) });
+        const feature = new Feature({
+            geometry: new LineString(alignment.points.map(pointToCoords)),
+        });
 
-    let alignmentStyle = isAlignmentSelected
-        ? selectedUnlinkedAlignmentStyle
-        : unlinkedAlignmentStyle;
+        let alignmentStyle = isAlignmentSelected
+            ? selectedUnlinkedAlignmentStyle
+            : unlinkedAlignmentStyle;
 
-    if (alignment.linked) {
-        alignmentStyle = isAlignmentSelected ? selectedLinkedAlignmentStyle : linkedAlignmentStyle;
-    }
+        if (alignment.linked) {
+            alignmentStyle = isAlignmentSelected
+                ? selectedLinkedAlignmentStyle
+                : linkedAlignmentStyle;
+        }
 
-    styles.push(alignmentStyle);
+        styles.push(alignmentStyle);
 
-    if (resolution <= Limits.GEOMETRY_TICKS) {
-        styles.push(
-            ...getTickStyles(alignment.points, alignment.segmentMValues, 10, alignmentStyle),
-        );
-    }
+        if (resolution <= Limits.GEOMETRY_TICKS) {
+            styles.push(
+                ...getTickStyles(alignment.points, alignment.segmentMValues, 10, alignmentStyle),
+            );
+        }
 
-    feature.setStyle(styles);
+        feature.setStyle(styles);
 
-    setAlignmentFeatureProperty(feature, {
-        trackNumber: null,
-        header: alignment.header,
-        points: alignment.points,
-        planId: planLayout.planId,
+        setAlignmentFeatureProperty(feature, {
+            trackNumber: null,
+            header: alignment.header,
+            points: alignment.points,
+            planId: planLayout.planId,
+        });
+
+        return feature;
     });
-
-    return feature;
 }
 
 type AlignmentWithLinking = {

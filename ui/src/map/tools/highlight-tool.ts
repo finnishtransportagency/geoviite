@@ -19,7 +19,7 @@ export const highlightTool: MapTool = {
             },
             10,
             {
-                maxWait: 50,
+                maxWait: 25,
             },
         );
         const pointerMoveEvent = map.on('pointermove', debouncedMoveHandlerHighlight);
