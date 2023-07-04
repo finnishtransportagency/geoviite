@@ -321,26 +321,30 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
             .block(defaultBlockTimeout)
             ?.let { response ->
-                ratkoJsonMapper.readTree(response).let { jsonNode ->
-                    jsonNode.get("assetGeoms")?.map { asset ->
+                ratkoJsonMapper.readTree(response).let { switchJsonNode ->
+                    switchJsonNode.get("assetGeoms")?.map { asset ->
                         (asset as ObjectNode).replace("geometry", asset.get("geometryOriginal"))
                     }
 
-                    jsonNode.get("locations")?.forEach { location ->
+                    switchJsonNode.get("locations")?.forEach { location ->
                         replaceKmM(location.get("nodecollection"))
                     }
 
-                    ratkoJsonMapper.treeToValue(jsonNode, RatkoSwitchAsset::class.java)
+                    ratkoJsonMapper.treeToValue(switchJsonNode, RatkoSwitchAsset::class.java)
                 }
             }
     }
 
-    private fun replaceKmM(nodeCollection: JsonNode) {
-        nodeCollection.get("nodes")?.forEach { node ->
-            val point = node.get("point") as ObjectNode
-            val km = point.get("km").textValue()
-            val m = point.get("m").textValue()
-            point.put("kmM", RatkoTrackMeter(TrackMeter(km, m)).toString())
+    private fun replaceKmM(nodeCollection: JsonNode?) {
+        nodeCollection?.get("nodes")?.forEach { node ->
+            (node.get("point") as ObjectNode?)?.let { point ->
+                val km = point.get("km")?.textValue()
+                val m = point.get("m")?.textValue()
+
+                if (km != null && m != null) {
+                    point.put("kmM", RatkoTrackMeter(TrackMeter(km, m)).toString())
+                }
+            }
         }
     }
 
@@ -363,7 +367,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         switchJsonObject.get("assetGeoms")?.forEach { geom ->
             (geom as ObjectNode).let {
-                it.replace("geometry", geom.get("geometryOriginal"))
+                it.replace("geometry", it.get("geometryOriginal"))
                 it.remove("validityStart")
             }
         }
@@ -376,19 +380,20 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         switchJsonObject.get("locations")?.forEach { location ->
             (location as ObjectNode).remove("validityStartTime")
-            val nodeCollection = location.get("nodecollection") as ObjectNode
-            replaceKmM(nodeCollection)
+            (location.get("nodecollection") as ObjectNode?)?.let { nodeCollection ->
+                replaceKmM(nodeCollection)
 
-            val validJoints = nodeCollection.get("nodes").filter { node ->
-                val point = node.get("point") as ObjectNode
-                (point.get("state") as ObjectNode).get("name").textValue() == RatkoPointStates.VALID.state
-            }
+                val validJoints = nodeCollection.get("nodes")?.filter { node ->
+                    val point = node.get("point") as ObjectNode?
+                    (point?.get("state") as ObjectNode?)?.get("name")?.textValue() == RatkoPointStates.VALID.state
+                } ?: emptyList()
 
-            if (validJoints.isNotEmpty()) {
-                val nodes = nodeCollection.putArray("nodes")
-                validJoints.forEach { node -> nodes.add(node) }
+                if (validJoints.isNotEmpty()) {
+                    val nodes = nodeCollection.putArray("nodes")
+                    validJoints.forEach { node -> nodes.add(node) }
 
-                updatedLocations.add(location)
+                    updatedLocations.add(location)
+                }
             }
         }
 
@@ -398,7 +403,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             locations.add(location)
         }
 
-        (switchJsonObject.get("rowMetadata") as ObjectNode).put("sourceName", GEOVIITE_NAME)
+        (switchJsonObject.get("rowMetadata") as ObjectNode?)?.put("sourceName", GEOVIITE_NAME)
 
         switchJsonObject.remove("childAssets")
 
@@ -481,10 +486,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
             .block(defaultBlockTimeout)
             ?.let { response ->
-                ratkoJsonMapper.readTree(response).let { jsonNode ->
-                    replaceKmM(jsonNode.get("nodecollection"))
+                ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
+                    replaceKmM(routeNumberJsonNode.get("nodecollection"))
 
-                    ratkoJsonMapper.treeToValue(jsonNode, RatkoRouteNumber::class.java)
+                    ratkoJsonMapper.treeToValue(routeNumberJsonNode, RatkoRouteNumber::class.java)
                 }
             }
     }

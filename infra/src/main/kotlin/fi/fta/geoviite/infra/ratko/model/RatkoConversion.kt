@@ -324,44 +324,44 @@ fun convertToRatkoAssetLocations(
     jointChanges: List<SwitchJointChange>,
     switchType: SwitchBaseType,
 ): List<RatkoAssetLocation> {
-    var priority = 0
-
     return jointChanges
         .groupBy { it.locationTrackId }
-        .map { (_, value) ->
-            val locationTrackJoints = value.mapNotNull { jointChange ->
+        .map { (_, jointChange) ->
+            jointChange.mapNotNull { change ->
                 val nodeType = mapGeometryTypeToNodeType(
-                    mapJointNumberToGeometryType(jointChange.number, switchType)
+                    mapJointNumberToGeometryType(change.number, switchType)
                 )
 
-                checkNotNull(jointChange.locationTrackExternalId) {
-                    "Cannot push switch changes with missing location track oid $jointChange"
-                }
-
-                checkNotNull(jointChange.trackNumberExternalId) {
-                    "Cannot push switch changes with missing route number oid $jointChange"
-                }
-
                 nodeType?.let {
+                    checkNotNull(change.locationTrackExternalId) {
+                        "Cannot push switch changes with missing location track oid $change"
+                    }
+
+                    checkNotNull(change.trackNumberExternalId) {
+                        "Cannot push switch changes with missing route number oid $change"
+                    }
+
                     RatkoNode(
                         nodeType = nodeType,
                         point = RatkoPoint(
                             state = RatkoPointState(RatkoPointStates.VALID),
-                            locationtrack = RatkoOid(jointChange.locationTrackExternalId),
-                            routenumber = RatkoOid(jointChange.trackNumberExternalId),
-                            kmM = RatkoTrackMeter(jointChange.address),
-                            geometry = RatkoGeometry(jointChange.point),
+                            locationtrack = RatkoOid(change.locationTrackExternalId),
+                            routenumber = RatkoOid(change.trackNumberExternalId),
+                            kmM = RatkoTrackMeter(change.address),
+                            geometry = RatkoGeometry(change.point),
                         )
                     )
                 }
             }
-
+        }
+        .filter { it.isNotEmpty() }
+        .mapIndexed { index, locationNodes ->
             RatkoAssetLocation(
                 nodecollection = RatkoNodes(
                     type = RatkoNodesType.JOINTS,
-                    nodes = locationTrackJoints
+                    nodes = locationNodes
                 ),
-                priority = ++priority,
+                priority = index + 1,
                 accuracyType = RatkoAccuracyType.GEOMETRY_CALCULATED
             )
         }
