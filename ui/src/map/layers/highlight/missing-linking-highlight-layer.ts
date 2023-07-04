@@ -1,7 +1,5 @@
 import mapStyles from 'map/map.module.scss';
 import { LineString } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import {
@@ -15,6 +13,8 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { createHighlightFeatures } from 'map/layers/utils/highlight-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 const highlightBackgroundStyle = new Style({
     stroke: new Stroke({

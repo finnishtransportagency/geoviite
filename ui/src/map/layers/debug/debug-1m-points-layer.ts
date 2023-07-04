@@ -1,7 +1,5 @@
 import Feature from 'ol/Feature';
-import OlPoint from 'ol/geom/Point';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { AddressPoint, PublishType } from 'common/common-model';
@@ -9,6 +7,8 @@ import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
 import { DEBUG_1M_POINTS } from '../utils/layer-visibility-limits';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 type DebugLayerPoint = {
     x: number;

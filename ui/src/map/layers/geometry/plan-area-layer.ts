@@ -1,8 +1,6 @@
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
 import { Polygon } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style, Text } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import { PlanArea } from 'track-layout/track-layout-model';
@@ -10,6 +8,8 @@ import { getPlanAreasByTile } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];

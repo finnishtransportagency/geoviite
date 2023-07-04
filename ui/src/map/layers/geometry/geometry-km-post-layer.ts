@@ -1,7 +1,4 @@
-import OlPoint from 'ol/geom/Point';
-import { Polygon } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -11,15 +8,18 @@ import { PublishType } from 'common/common-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import {
     createKmPostFeatures,
+    findMatchingKmPosts,
     getKmPostStepByResolution,
-    getMatchingKmPosts,
 } from '../utils/km-post-layer-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let newestLayerId = 0;
 
 export function createGeometryKmPostLayer(
     resolution: number,
-    existingOlLayer: VectorLayer<VectorSource<OlPoint | Polygon>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
     publishType: PublishType,
 ): MapLayer {
@@ -83,9 +83,9 @@ export function createGeometryKmPostLayer(
     return {
         name: 'geometry-km-post-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometryKmPosts: getMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
+                geometryKmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
                     geometryItem: kp.kmPost,
                     planId: kp.planId as GeometryPlanId,
                 })),

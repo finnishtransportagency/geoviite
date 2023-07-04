@@ -5,7 +5,7 @@ import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { OptionalItemCollections } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import proj4 from 'proj4';
-import { coordsToPoint, Point } from 'model/geometry';
+import { coordsToPoint, Point, Rectangle } from 'model/geometry';
 import { register } from 'ol/proj/proj4';
 import VectorSource from 'ol/source/Vector';
 import { avg, filterNotEmpty } from 'utils/array-utils';
@@ -25,7 +25,7 @@ export function centroid(polygon: Polygon): OlPoint {
     const points = polygon
         .getLinearRing(0)
         ?.getCoordinates()
-        .map((coordinate) => coordsToPoint(coordinate));
+        ?.map((coordinate) => coordsToPoint(coordinate));
 
     if (!points) {
         throw 'Cannot find the center of a polygon!';
@@ -46,7 +46,12 @@ function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): numbe
     const pointACoords = pointA.getCoordinates();
     const pointBCoords = pointB.getCoordinates();
 
-    return Math.hypot(pointACoords[0] - pointBCoords[0], pointACoords[1] - pointBCoords[1]);
+    return getPlanarDistanceUnwrapped(
+        pointACoords[0],
+        pointACoords[1],
+        pointBCoords[0],
+        pointBCoords[1],
+    );
 }
 
 export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y2: number): number {
@@ -97,13 +102,13 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
     throw `Unsupported geometry type in "getDistance"`;
 }
 
-export function getMatchingEntities<T>(
-    hitArea: Polygon,
+export function findMatchingEntities<T>(
+    hitArea: Rectangle,
     source: VectorSource,
     propertyName: string,
     options?: SearchItemsOptions,
 ): T[] {
-    const entities = getIntersectingFeatures(hitArea, source)
+    const entities = findIntersectingFeatures(hitArea, source)
         .map((f) => f.get(propertyName) as T | undefined)
         .filter(filterNotEmpty);
 
@@ -111,8 +116,8 @@ export function getMatchingEntities<T>(
     else return entities;
 }
 
-export function getIntersectingFeatures<T extends Geometry>(
-    hitArea: Polygon,
+export function findIntersectingFeatures<T extends Geometry>(
+    hitArea: Rectangle,
     source: VectorSource,
 ): Feature<T>[] {
     const features: Feature<T>[] = [];

@@ -1,13 +1,14 @@
-import { Polygon } from 'ol/geom';
+import {Polygon} from 'ol/geom';
 import OlMap from 'ol/Map';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { mergePartialItemSearchResults } from 'map/layers/utils/layer-utils';
+import {LayerItemSearchResult, MapLayer, SearchItemsOptions} from 'map/layers/utils/layer-model';
+import {mergePartialItemSearchResults} from 'map/layers/utils/layer-utils';
+import {Rectangle} from 'model/geometry';
 
 /**
  * Returns a simple shape that has consistent size in pixels and can be used to search items from layers.
  *
  */
-export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 10): Polygon {
+export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 10): Rectangle {
     const [x, y] = map.getPixelFromCoordinate(coordinate);
     return new Polygon([
         [
@@ -21,7 +22,7 @@ export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 
 }
 
 export function searchItemsFromLayers(
-    hitArea: Polygon,
+    hitArea: Rectangle,
     layers: MapLayer[],
     searchItemsOptions: SearchItemsOptions,
 ): LayerItemSearchResult {

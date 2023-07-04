@@ -1,6 +1,4 @@
-import { Point } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
     AlignmentDataHolder,
@@ -11,7 +9,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { Feature } from 'ol';
+import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
 import { LayoutPoint, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -24,6 +22,8 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Coordinate } from 'ol/coordinate';
 import mapStyles from 'map/map.module.scss';
 import { State } from 'ol/render';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
 
 let newestLayerId = 0;
 
@@ -87,9 +87,9 @@ function createAddressFeature(
     address: TrackMeter,
     pointAtEnd: boolean,
     color: TrackNumberColor,
-): Feature<Point> {
+): Feature<OlPoint> {
     const feature = new Feature({
-        geometry: new Point(pointToCoords(pointAtEnd ? controlPoint : point)),
+        geometry: new OlPoint(pointToCoords(pointAtEnd ? controlPoint : point)),
     });
 
     const { rotation, positiveXOffset, positiveYOffset } = getRotation(
@@ -155,12 +155,12 @@ function createAddressFeature(
 function createAddressFeatures(
     referenceLines: AlignmentDataHolderWithAddresses[],
     layerSettings: TrackNumberDiagramLayerSetting,
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     return referenceLines.flatMap(({ data: referenceLine, startAddress, endAddress }) => {
         const trackNumberId = referenceLine.header.trackNumberId as LayoutTrackNumberId;
         const color = getColorForTrackNumber(trackNumberId, layerSettings);
 
-        const features: Feature<Point>[] = [];
+        const features: Feature<OlPoint>[] = [];
         const points = referenceLine.points;
 
         if (startAddress && color) {
@@ -186,7 +186,7 @@ function createAddressFeatures(
 
 export function createTrackNumberEndPointAddressesLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     changeTimes: ChangeTimes,
     publishType: PublishType,
     resolution: number,

@@ -1,6 +1,4 @@
-import { Point } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
@@ -14,12 +12,14 @@ import {
     getBadgeDrawDistance,
 } from 'map/layers/utils/badge-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
 
 let newestLayerId = 0;
 
 export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,

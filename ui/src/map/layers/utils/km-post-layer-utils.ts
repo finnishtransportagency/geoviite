@@ -12,10 +12,10 @@ import {
     PointRenderFunction,
 } from 'map/layers/utils/rendering';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { Point } from 'model/geometry';
-import { Feature } from 'ol';
+import { Point, Rectangle } from 'model/geometry';
+import Feature from 'ol/Feature';
 import { Point as OlPoint, Polygon } from 'ol/geom';
-import { getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 
@@ -39,7 +39,7 @@ export function createKmPostFeatures(
     resolution: number,
     planId?: GeometryPlanId,
     isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined = undefined,
-): Feature<OlPoint | Polygon>[] {
+): Feature<OlPoint | Rectangle>[] {
     return kmPosts
         .filter((kmPost) => kmPost.location != null)
         .flatMap((kmPost) => {
@@ -275,12 +275,12 @@ function getKmPostRenderer(
     return getRenderer(kmPost, 10, dFunctions);
 }
 
-export function getMatchingKmPosts(
-    hitArea: Polygon,
+export function findMatchingKmPosts(
+    hitArea: Rectangle,
     source: VectorSource,
     options: SearchItemsOptions,
 ): KmPostFeatureProperty[] {
-    return getMatchingEntities<KmPostFeatureProperty>(
+    return findMatchingEntities<KmPostFeatureProperty>(
         hitArea,
         source,
         KM_POST_FEATURE_DATA_PROPERTY,
@@ -295,6 +295,6 @@ type KmPostFeatureProperty = {
 
 const KM_POST_FEATURE_DATA_PROPERTY = 'km-post-data';
 
-function setKmPostFeatureProperty(feature: Feature<Polygon>, data: KmPostFeatureProperty) {
+function setKmPostFeatureProperty(feature: Feature<Rectangle>, data: KmPostFeatureProperty) {
     feature.set(KM_POST_FEATURE_DATA_PROPERTY, data);
 }

@@ -14,7 +14,7 @@ import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 
-export function createEmptyShownItems(): ShownItems {
+export function getEmptyShownItems(): ShownItems {
     return {
         referenceLines: [],
         locationTracks: [],
@@ -98,7 +98,7 @@ export const initialMapState: Map = {
     layerSettings: {
         'track-number-diagram-layer': {},
     },
-    shownItems: createEmptyShownItems(),
+    shownItems: getEmptyShownItems(),
     viewport: {
         center: {
             x: 385782.89,

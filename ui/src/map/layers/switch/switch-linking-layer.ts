@@ -1,30 +1,31 @@
 import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
-import { Point, Polygon } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { MapTile } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
-import { clearFeatures, getMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { clearFeatures, findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
 import { endPointStyle, getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { filterNotEmpty } from 'utils/array-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let newestLayerId = 0;
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
     isSelected: boolean,
-): Feature<Point>[] {
-    const features: Feature<Point>[] = [];
+): Feature<OlPoint>[] {
+    const features: Feature<OlPoint>[] = [];
 
     if (isSelected) {
         suggestedSwitch.joints.forEach((joint) => {
             const f = new Feature({
-                geometry: new Point(pointToCoords(joint.location)),
+                geometry: new OlPoint(pointToCoords(joint.location)),
             });
 
             f.setStyle(
@@ -43,7 +44,7 @@ function createSwitchFeatures(
 
         if (presentationJoint) {
             const f = new Feature({
-                geometry: new Point(pointToCoords(presentationJoint.location)),
+                geometry: new OlPoint(pointToCoords(presentationJoint.location)),
             });
 
             f.setStyle(endPointStyle);
@@ -59,7 +60,7 @@ function createSwitchFeatures(
 export function createSwitchLinkingLayer(
     mapTiles: MapTile[],
     resolution: number,
-    existingOlLayer: VectorLayer<VectorSource<Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
 ): MapLayer {
@@ -106,9 +107,9 @@ export function createSwitchLinkingLayer(
     return {
         name: 'switch-linking-layer',
         layer: layer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                suggestedSwitches: getMatchingSwitches(hitArea, vectorSource, options),
+                suggestedSwitches: findMatchingSwitches(hitArea, vectorSource, options),
             };
         },
     };
@@ -116,12 +117,12 @@ export function createSwitchLinkingLayer(
 
 const SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY = 'suggested-switch-data';
 
-function getMatchingSwitches(
-    hitArea: Polygon,
+function findMatchingSwitches(
+    hitArea: Rectangle,
     source: VectorSource,
     options: SearchItemsOptions,
 ): SuggestedSwitch[] {
-    return getMatchingEntities<SuggestedSwitch>(
+    return findMatchingEntities<SuggestedSwitch>(
         hitArea,
         source,
         SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY,
@@ -129,6 +130,6 @@ function getMatchingSwitches(
     );
 }
 
-function setSuggestedSwitchFeatureProperty(feature: Feature<Point>, data: SuggestedSwitch) {
+function setSuggestedSwitchFeatureProperty(feature: Feature<OlPoint>, data: SuggestedSwitch) {
     feature.set(SUGGESTED_SWITCH_FEATURE_DATA_PROPERTY, data);
 }

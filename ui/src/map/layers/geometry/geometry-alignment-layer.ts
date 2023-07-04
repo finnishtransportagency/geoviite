@@ -1,8 +1,6 @@
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
-import { LineString, Polygon } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { LineString } from 'ol/geom';
 import { Stroke, Style } from 'ol/style';
 import { Selection } from 'selection/selection-model';
 import {
@@ -22,10 +20,13 @@ import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-m
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import {
-    getMatchingAlignments,
+    findMatchingAlignments,
     getTickStyles,
     setAlignmentFeatureProperty,
 } from 'map/layers/utils/alignment-layer-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({
@@ -190,8 +191,8 @@ export function createGeometryAlignmentLayer(
     return {
         name: 'geometry-alignment-layer',
         layer: olLayer,
-        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-            const features = getMatchingAlignments(hitArea, vectorSource, options);
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
+            const features = findMatchingAlignments(hitArea, vectorSource, options);
 
             const geometryAlignments = features
                 .filter(filterUniqueById(({ header }) => header.id)) // pick unique alignments
