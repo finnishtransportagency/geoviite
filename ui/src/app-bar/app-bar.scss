@@ -81,6 +81,7 @@ $appbar-height: 48px;
 
     &__data-menu-button {
         position: relative;
+        user-select: none;
 
         &--active {
             color: $color-blue-light;

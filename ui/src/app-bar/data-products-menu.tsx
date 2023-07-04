@@ -19,13 +19,13 @@ const DataProductsMenu: React.FC = () => {
                         ? `${styles['app-bar__link']} ${styles['app-bar__data-menu-button--active']}`
                         : `${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`
                 }
-                onClick={() => setShowMenu(!showMenu)}>
+                onClick={() => setShowMenu(true)}>
                 <span>{t('app-bar.data-products-title')}</span>
             </div>
             {showMenu && (
                 <CloseableModal
-                    buttonRef={ref}
-                    onClickOutside={setShowMenu}
+                    positionRef={ref}
+                    onClickOutside={() => setShowMenu(false)}
                     offsetX={0}
                     offsetY={48}>
                     <div className={styles['app-bar__data-menu']}>
@@ -33,7 +33,7 @@ const DataProductsMenu: React.FC = () => {
                             <NavLink
                                 className={styles['menu__item']}
                                 to={'data-products/element-list'}
-                                onClick={() => setShowMenu(!showMenu)}>
+                                onClick={() => setShowMenu(false)}>
                                 {t('app-bar.data-products.element-list')}
                             </NavLink>
                         </div>
@@ -41,7 +41,7 @@ const DataProductsMenu: React.FC = () => {
                             <NavLink
                                 className={styles['menu__item']}
                                 to={'data-products/vertical-geometry'}
-                                onClick={() => setShowMenu(!showMenu)}>
+                                onClick={() => setShowMenu(false)}>
                                 {t('app-bar.data-products.vertical-geometry')}
                             </NavLink>
                         </div>
@@ -49,7 +49,7 @@ const DataProductsMenu: React.FC = () => {
                             <NavLink
                                 className={styles['menu__item']}
                                 to={'data-products/kilometer-lengths'}
-                                onClick={() => setShowMenu(!showMenu)}>
+                                onClick={() => setShowMenu(false)}>
                                 {t('app-bar.data-products.km-lengths')}
                             </NavLink>
                         </div>

@@ -22,6 +22,7 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
     const [showSelector, setShowSelector] = React.useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
+
     const selectedColor = color && getColor(color);
     const isTransparent = selectedColor === TrackNumberColor.TRANSPARENT;
     const selectedColorClasses = createClassName(
@@ -36,19 +37,22 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
                 style={isTransparent ? {} : { backgroundColor: selectedColor + colorOpacity }}
                 title={isTransparent ? t('selection-panel.color-selector.transparent') : ''}
                 className={selectedColorClasses}
-                onClick={() => setShowSelector(!showSelector)}
+                onClick={() => setShowSelector(true)}
             />
             {showSelector && (
                 <CloseableModal
-                    buttonRef={ref}
-                    onClickOutside={setShowSelector}
+                    positionRef={ref}
+                    onClickOutside={() => setShowSelector(false)}
                     offsetX={32}
                     offsetY={0}>
                     <div className={styles['color-selector-menu']}>
                         <ol>
                             <li
                                 className={`${styles['color-square']} ${styles['color-square--transparent']}`}
-                                onClick={() => onSelectColor(TrackNumberColor.TRANSPARENT)}
+                                onClick={() => {
+                                    setShowSelector(false);
+                                    onSelectColor(TrackNumberColor.TRANSPARENT);
+                                }}
                                 title={t('selection-panel.color-selector.transparent')}
                             />
                             {getColors().map(([key, value]) => {
@@ -56,7 +60,10 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
                                     <li
                                         className={styles['color-square']}
                                         key={key}
-                                        onClick={() => onSelectColor(key)}
+                                        onClick={() => {
+                                            setShowSelector(false);
+                                            onSelectColor(key);
+                                        }}
                                         style={{ backgroundColor: value + colorOpacity }}
                                     />
                                 );

@@ -3,15 +3,15 @@ import { createPortal } from 'react-dom';
 import useResizeObserver from 'use-resize-observer';
 
 type CloseableModalProps = {
-    buttonRef: React.MutableRefObject<HTMLDivElement | null>;
-    onClickOutside: (value: boolean) => void;
+    positionRef: React.MutableRefObject<HTMLElement | null>;
+    onClickOutside: () => void;
     offsetX: number;
     offsetY: number;
     children: React.ReactNode;
 };
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({
-    buttonRef,
+    positionRef,
     onClickOutside,
     offsetX,
     offsetY,
@@ -20,39 +20,37 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     const [x, setX] = React.useState<number>();
     const [y, setY] = React.useState<number>();
 
+    const boundingRect = positionRef.current?.getBoundingClientRect();
+
+    React.useEffect(() => {
+        setX(boundingRect?.x);
+        setY(boundingRect?.y);
+    }, [boundingRect?.x, boundingRect?.y]);
+
     React.useEffect(() => {
         function clickHandler(event: MouseEvent) {
-            if (buttonRef.current && !buttonRef.current.contains(event.target as HTMLElement)) {
-                onClickOutside(false);
+            if (positionRef.current && !positionRef.current.contains(event.target as HTMLElement)) {
+                onClickOutside();
             }
-            console.log('klikkaus');
         }
-        console.log('hei vaan');
 
         document.addEventListener('click', clickHandler);
 
         return () => {
             document.removeEventListener('click', clickHandler);
         };
-    }, [buttonRef]);
-
-    React.useEffect(() => {
-        setX(buttonRef.current?.getBoundingClientRect().x);
-    }, [buttonRef.current?.getBoundingClientRect().x]);
-
-    React.useEffect(() => {
-        setY(buttonRef.current?.getBoundingClientRect().y);
-    }, [buttonRef.current?.getBoundingClientRect().y]);
+    }, [positionRef]);
 
     useResizeObserver({
         ref: document.body,
         onResize: () => {
-            const { x: newX, y: newY } = buttonRef.current?.getBoundingClientRect() ?? {};
-            setX(newX);
-            setY(newY);
+            setX(boundingRect?.x);
+            setY(boundingRect?.y);
         },
     });
+
     if (x === undefined || y === undefined) return <></>;
+
     return createPortal(
         <div
             style={{
