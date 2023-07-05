@@ -10,7 +10,7 @@ import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
 import { dataProductsActions } from 'data-products/data-products-slice';
 
 export const KilometerLengthsView = () => {
-    const dataProductsDelegates = createDelegates(dataProductsActions);
+    const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
     const state = useDataProductsAppSelector((state) => state.kmLenghts);
     const { t } = useTranslation();
     const [loading, setLoading] = React.useState(false);

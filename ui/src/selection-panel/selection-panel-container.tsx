@@ -11,9 +11,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 
 export const SelectionPanelContainer: React.FC = () => {
-    const delegates = React.useMemo(() => {
-        return createDelegates(trackLayoutActionCreators);
-    }, []);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
     const state = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 

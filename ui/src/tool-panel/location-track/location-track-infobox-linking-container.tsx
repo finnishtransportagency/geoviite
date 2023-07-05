@@ -39,7 +39,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
 }: LocationTrackInfoboxLinkingContainerProps) => {
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
 
     if (!locationTrack) return <></>;

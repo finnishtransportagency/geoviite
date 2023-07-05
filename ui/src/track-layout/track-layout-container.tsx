@@ -7,30 +7,26 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 export const TrackLayoutContainer: React.FC = () => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
-    const delegates = createDelegates(trackLayoutActionCreators);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
+
+    const showVerticalGeometryDiagram =
+        trackLayoutState.map.verticalGeometryDiagramVisible &&
+        (trackLayoutState.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT' ||
+            trackLayoutState.selectedToolPanelTab?.type === 'LOCATION_TRACK');
 
     return (
         <TrackLayoutView
             publishType={trackLayoutState.publishType}
-            map={trackLayoutState.map}
-            selection={trackLayoutState.selection}
-            onViewportChange={delegates.onViewportChange}
+            mapLayerMenuGroups={trackLayoutState.map.layerMenu}
             onSelect={delegates.onSelect}
-            onHighlightItems={delegates.onHighlightItems}
-            onClickLocation={delegates.onClickLocation}
             onPublishTypeChange={delegates.onPublishTypeChange}
-            onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
-            onShownItemsChange={delegates.onShownItemsChange}
+            onLayoutModeChange={delegates.onLayoutModeChange}
             showArea={delegates.showArea}
-            onSetLayoutClusterLinkPoint={delegates.setLayoutClusterLinkPoint}
-            onSetGeometryClusterLinkPoint={delegates.setGeometryClusterLinkPoint}
-            onRemoveGeometryLinkPoint={delegates.removeGeometryLinkPoint}
-            onRemoveLayoutLinkPoint={delegates.removeLayoutLinkPoint}
             onLayerMenuItemChange={delegates.onLayerMenuItemChange}
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
-            selectedToolPanelTab={trackLayoutState.selectedToolPanelTab}
+            showVerticalGeometryDiagram={showVerticalGeometryDiagram}
         />
     );
 };

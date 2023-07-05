@@ -9,13 +9,13 @@ import {
 } from 'data-products/data-products-utils';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
-import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
 import { GeometryAlignment, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { OnSelectOptions } from 'selection/selection-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { BoundingBox } from 'model/geometry';
+import { VerticalGeometryDiagramHolder } from 'vertical-geometry/vertical-geometry-diagram-holder';
 
 const VerticalGeometryDiagramDemoPage: React.FC = () => {
     const { t } = useTranslation();
@@ -82,6 +82,9 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
         showArea: (view: BoundingBox) => {
             console.log(view);
         },
+        onCloseDiagram: () => {
+            console.log('closed');
+        },
     };
 
     return (
@@ -99,7 +102,7 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
                 wide
             />
             {locationTrackAlignmentId && (
-                <VerticalGeometryDiagram
+                <VerticalGeometryDiagramHolder
                     alignmentId={locationTrackAlignmentId}
                     {...noopActions}
                     changeTimes={changeTimes}
@@ -136,7 +139,7 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
                 onChange={setSelectedAlignment}
             />
             {planAlignmentId && (
-                <VerticalGeometryDiagram
+                <VerticalGeometryDiagramHolder
                     alignmentId={planAlignmentId}
                     {...noopActions}
                     changeTimes={changeTimes}

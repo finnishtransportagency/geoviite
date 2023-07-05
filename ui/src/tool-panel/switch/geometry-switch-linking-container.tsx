@@ -34,7 +34,7 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
     visibilities,
     onVisibilityChange,
 }) => {
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const store = useTrackLayoutAppSelector((state) => state);
 
     return (

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import ToolPanel from 'tool-panel/tool-panel';
-import { MapContext } from 'map/map-store';
-import { useAppSelector, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
@@ -14,12 +13,9 @@ type ToolPanelContainerProps = {
 };
 
 const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverItem }) => {
-    const context = React.useContext(MapContext);
-    const store = useAppSelector((state) => state[context]);
+    const store = useTrackLayoutAppSelector((state) => state);
 
-    const delegates = React.useMemo(() => {
-        return createDelegates(TrackLayoutActions);
-    }, []);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const typeChange = React.useCallback(() => delegates.onPublishTypeChange('DRAFT'), [delegates]);
     const kmPostIds = store.selection.selectedItems.kmPosts;
     const switchIds = store.selection.selectedItems.switches;

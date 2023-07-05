@@ -6,6 +6,7 @@ export const lineGridStrokeColor = '#999';
 const maxVerticalTickCount = 5;
 const verticalTickLengthsMeter = [1.0, 2.0, 5.0, 10.0, 25.0];
 
+const heightLabelOffset = 2;
 const heightLabelsBackgroundWidthPx = 18;
 // essentially, the amount of room we give the plan linking label
 const heightLabelsBackgroundStartYPx = 20;
@@ -60,14 +61,14 @@ export const HeightLabels: React.FC<HeightLinesProps> = ({ coordinates }) => (
         <rect
             x={0}
             y={heightLabelsBackgroundStartYPx}
-            width={heightLabelsBackgroundWidthPx}
+            width={heightLabelsBackgroundWidthPx + heightLabelOffset * 2}
             height={
                 heightToY(coordinates, coordinates.bottomHeightTick) -
                 heightLabelsBackgroundStartYPx
             }
             stroke="none"
             fill="white"
-            opacity={0.9}
+            opacity={0.85}
         />
         {heightTicks(coordinates).map((heightMeters, i) => {
             const heightPx = heightToY(coordinates, heightMeters);
@@ -76,14 +77,14 @@ export const HeightLabels: React.FC<HeightLinesProps> = ({ coordinates }) => (
                     <line
                         key={i}
                         x1={0}
-                        x2={heightLabelsBackgroundWidthPx}
+                        x2={heightLabelsBackgroundWidthPx + heightLabelOffset * 2}
                         y1={heightPx}
                         y2={heightPx}
                         stroke={lineGridStrokeColor}
                         fill="none"
                         shapeRendering="crispEdges"
                     />
-                    <text x={0} y={heightPx - 2}>
+                    <text x={heightLabelOffset} y={heightPx - 2}>
                         {heightMeters}
                     </text>
                 </React.Fragment>

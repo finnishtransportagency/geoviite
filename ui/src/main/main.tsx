@@ -97,7 +97,7 @@ export const MainContainer: React.FC = () => {
     const [versionStatus, setVersionStatus] = React.useState<'loading' | 'reload' | 'ok'>(
         'loading',
     );
-    const delegates = createDelegates(commonActionCreators);
+    const delegates = React.useMemo(() => createDelegates(commonActionCreators), []);
 
     React.useEffect(() => {
         getOwnUser().then((user) => {

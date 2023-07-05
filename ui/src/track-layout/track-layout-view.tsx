@@ -1,107 +1,50 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
+import { MapLayerMenuGroups, MapLayerMenuChange } from 'map/map-model';
 import { MapContext } from 'map/map-store';
-import { Map, MapLayerMenuChange, MapViewport, OptionalShownItems } from 'map/map-model';
-import MapView from 'map/map-view';
-import {
-    OnClickLocationFunction,
-    OnHighlightItemsFunction,
-    OnSelectFunction,
-    Selection,
-} from 'selection/selection-model';
+import { OnSelectFunction } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
 import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { BoundingBox } from 'model/geometry';
-import { PublishType } from 'common/common-model';
-import { LinkingState, LinkingType, LinkPoint } from 'linking/linking-model';
+import { LayoutMode, PublishType } from 'common/common-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
-import VerticalGeometryDiagram, {
-    VerticalGeometryDiagramAlignmentId,
-} from 'vertical-geometry/vertical-geometry-diagram';
 import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
-import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { MapViewContainer } from 'map/map-view-container';
+import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geometry-diagram-container';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
     publishType: PublishType;
-    selection: Selection;
-    map: Map;
     linkingState: LinkingState | undefined;
-    onViewportChange: (viewport: MapViewport) => void;
     onSelect: OnSelectFunction;
-    onHighlightItems: OnHighlightItemsFunction;
-    onClickLocation: OnClickLocationFunction;
     onPublishTypeChange: (publishType: PublishType) => void;
-    onOpenPreview: () => void;
-    onShownItemsChange: (shownItems: OptionalShownItems) => void;
+    onLayoutModeChange: (mode: LayoutMode) => void;
     showArea: (area: BoundingBox) => void;
-    onSetLayoutClusterLinkPoint: (linkPoint: LinkPoint) => void;
-    onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
-    onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
-    onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     onLayerMenuItemChange: (change: MapLayerMenuChange) => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
-    selectedToolPanelTab: ToolPanelAsset | undefined;
+    showVerticalGeometryDiagram: boolean;
 };
 
-export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
-    const firstSelectedGeometryAlignment = props.selection.selectedItems.geometryAlignments[0];
-    const firstSelectedLocationTrack = props.selection.selectedItems.locationTracks[0];
-    const verticalDiagramPlanAlignmentId = React.useMemo(
-        () =>
-            firstSelectedGeometryAlignment
-                ? {
-                      planId: firstSelectedGeometryAlignment.planId,
-                      alignmentId: firstSelectedGeometryAlignment.geometryItem.id,
-                  }
-                : undefined,
-        [firstSelectedGeometryAlignment],
-    );
-    const verticalDiagramLayoutAlignmentId = React.useMemo(
-        () =>
-            firstSelectedLocationTrack
-                ? {
-                      locationTrackId: firstSelectedLocationTrack,
-                      publishType: props.publishType,
-                  }
-                : undefined,
-        [firstSelectedLocationTrack, props.publishType],
-    );
-
-    const hasGeometryAlignmentTab = (id: VerticalGeometryDiagramAlignmentId) =>
-        'planId' in id &&
-        props.selection.selectedItems.geometryAlignments.some(
-            (ga) => ga.geometryItem.id === id.alignmentId,
-        );
-
-    const hasLocationTrackTab = (id: VerticalGeometryDiagramAlignmentId) =>
-        'locationTrackId' in id &&
-        props.selection.selectedItems.locationTracks.some((lt) => lt === id.locationTrackId);
-
-    const [verticalDiagramAlignmentId, setVerticalDiagramAlignmentId] =
-        React.useState<VerticalGeometryDiagramAlignmentId>();
-    React.useEffect(() => {
-        if (props.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT') {
-            setVerticalDiagramAlignmentId(verticalDiagramPlanAlignmentId);
-        } else if (props.selectedToolPanelTab?.type === 'LOCATION_TRACK') {
-            setVerticalDiagramAlignmentId(verticalDiagramLayoutAlignmentId);
-        } else if (
-            !verticalDiagramAlignmentId ||
-            (!hasGeometryAlignmentTab(verticalDiagramAlignmentId) &&
-                !hasLocationTrackTab(verticalDiagramAlignmentId))
-        ) {
-            setVerticalDiagramAlignmentId(undefined);
-        }
-    }, [props.selectedToolPanelTab]);
-
-    const showVerticalGeometryDiagram =
-        props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
-
+export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
+    publishType,
+    linkingState,
+    onSelect,
+    onPublishTypeChange,
+    onLayoutModeChange,
+    showArea,
+    onLayerMenuItemChange,
+    mapLayerMenuGroups,
+    changeTimes,
+    onStopLinking,
+    showVerticalGeometryDiagram,
+}) => {
     const className = createClassName(
         styles['track-layout'],
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
@@ -115,56 +58,49 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
         <div className={className} qa-id="track-layout-content">
             <ToolBar
                 disableNewMenu={
-                    props.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-                    props.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+                    linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+                    linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
                 }
                 layerMenuVisible={layerMenuVisible}
-                publishType={props.publishType}
+                publishType={publishType}
                 onMapLayerVisibilityChange={setLayerMenuVisible}
-                showArea={props.showArea}
+                showArea={showArea}
                 onSelectTrackNumber={(trackNumberId) =>
-                    props.onSelect({
+                    onSelect({
                         trackNumbers: [trackNumberId],
                     })
                 }
                 onSelectLocationTrack={(locationTrackId) =>
-                    props.onSelect({
+                    onSelect({
                         locationTracks: [locationTrackId],
                     })
                 }
                 onSelectSwitch={(switchId) =>
-                    props.onSelect({
+                    onSelect({
                         switches: [switchId],
                     })
                 }
                 onSelectKmPost={(kmPostId) =>
-                    props.onSelect({
+                    onSelect({
                         kmPosts: [kmPostId],
                     })
                 }
                 onPublishTypeChange={(publishType: PublishType) => {
-                    props.onPublishTypeChange(publishType);
+                    onPublishTypeChange(publishType);
                 }}
-                onOpenPreview={props.onOpenPreview}
-                changeTimes={props.changeTimes}
-                onStopLinking={props.onStopLinking}
+                onOpenPreview={() => onLayoutModeChange('PREVIEW')}
+                changeTimes={changeTimes}
+                onStopLinking={onStopLinking}
             />
 
             <div className={styles['track-layout__main-view']}>
                 <div className={styles['track-layout__navi']}>
-                    <MapContext.Provider value="trackLayout">
-                        <SelectionPanelContainer />
-                    </MapContext.Provider>
+                    <SelectionPanelContainer />
                 </div>
 
-                {showVerticalGeometryDiagram && verticalDiagramAlignmentId && (
+                {showVerticalGeometryDiagram && (
                     <div className={styles['track-layout__diagram']}>
-                        <VerticalGeometryDiagram
-                            alignmentId={verticalDiagramAlignmentId}
-                            onSelect={props.onSelect}
-                            changeTimes={props.changeTimes}
-                            showArea={props.showArea}
-                        />
+                        <VerticalGeometryDiagramContainer />
                     </div>
                 )}
 
@@ -172,35 +108,19 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                     {layerMenuVisible && (
                         <div className={styles['track-layout__map-settings']}>
                             <MapLayerMenu
-                                onMenuChange={props.onLayerMenuItemChange}
+                                onMenuChange={onLayerMenuItemChange}
                                 onClose={() => setLayerMenuVisible(false)}
-                                map={props.map}
+                                mapLayerMenuGroups={mapLayerMenuGroups}
                             />
                         </div>
                     )}
 
-                    <MapView
-                        map={props.map}
-                        onViewportUpdate={props.onViewportChange}
-                        selection={props.selection}
-                        publishType={props.publishType}
-                        linkingState={props.linkingState}
-                        changeTimes={props.changeTimes}
-                        onSelect={props.onSelect}
-                        onHighlightItems={props.onHighlightItems}
-                        onClickLocation={props.onClickLocation}
-                        onShownLayerItemsChange={props.onShownItemsChange}
-                        onSetLayoutClusterLinkPoint={props.onSetLayoutClusterLinkPoint}
-                        onSetGeometryClusterLinkPoint={props.onSetGeometryClusterLinkPoint}
-                        onRemoveGeometryLinkPoint={props.onRemoveGeometryLinkPoint}
-                        onRemoveLayoutLinkPoint={props.onRemoveLayoutLinkPoint}
-                        hoveredOverPlanSection={hoveredOverPlanSection}
-                    />
+                    <MapContext.Provider value="track-layout">
+                        <MapViewContainer hoveredOverPlanSection={hoveredOverPlanSection} />
+                    </MapContext.Provider>
                 </div>
                 <div className={styles['track-layout__tool-panel']}>
-                    <MapContext.Provider value="trackLayout">
-                        <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
-                    </MapContext.Provider>
+                    <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
                 </div>
             </div>
 

@@ -104,15 +104,16 @@ function getSnapOverChart(
 }
 
 export function getSnappedPoint(
-    mousePositionInElement: [number, number] | null,
+    mousePositionInElement: [number, number] | undefined,
     trackKmHeights: TrackKmHeights[],
     geometry: VerticalGeometryItem[],
     coordinates: Coordinates,
     drawTangentArrows: boolean,
 ): SnappedPoint | null {
-    if (mousePositionInElement == null) {
+    if (mousePositionInElement === undefined) {
         return null;
     }
+
     const [mouseX, mouseY] = mousePositionInElement;
     const mouseCursorOverArea = mouseY > coordinates.chartHeightPx ? 'ruler' : 'chart';
     const xCoordinateM = xToM(coordinates, mouseX);

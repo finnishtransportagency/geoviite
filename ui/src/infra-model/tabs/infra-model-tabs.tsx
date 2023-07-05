@@ -20,7 +20,10 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
     const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.pvDocument);
-    const infraModelListDelegates = createDelegates(infraModelActionCreators);
+    const infraModelListDelegates = React.useMemo(
+        () => createDelegates(infraModelActionCreators),
+        [],
+    );
     const state = useInfraModelAppSelector((state) => state.infraModelList);
     const numberOfInfraModelFiles = useInfraModelAppSelector(
         (state) => state.infraModelList.totalCount,
