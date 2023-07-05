@@ -365,6 +365,7 @@ function createPointTagFeature(
         const arrowLength = arrowTipLength + textWidth + textPadding + arrowTailPadding;
         const textStartX = arrowSpacing + arrowTipLength + textPadding;
 
+        // Arrow (or sign) shape, pointing from right to left
         const arrowShapePolygon = [
             [0, 0],
             [arrowTipLength, arrowHeight / 2],
@@ -389,7 +390,7 @@ function createPointTagFeature(
         ctx.fill();
 
         if (rotation > Math.PI / 2 || rotation < -Math.PI / 2) {
-            // flip text
+            // When arrow is pointing from left to right, flip text horizontally/vertically
             const textCenterX = x + textStartX + textWidth / 2;
             ctx.translate(textCenterX, y);
             ctx.scale(-1, -1);
