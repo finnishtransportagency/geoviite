@@ -88,8 +88,8 @@ export function getTickStyle(
     position: 'start' | 'end',
     style: Style,
 ): Style {
-    const angleVersionCount = 128;
-    const angleStep = (Math.PI * 2) / angleVersionCount;
+    const numberOfDifferentAngles = 128;
+    const angleStep = (Math.PI * 2) / numberOfDifferentAngles;
     const actualAngle = Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2;
     const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
 
