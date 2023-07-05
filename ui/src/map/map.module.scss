@@ -191,7 +191,7 @@ $color-highlight-blue: #389bf6;
     border-bottom-color: $color-black-lighter;
 
     &:hover {
-        background: $color-blue-dark;
+        background: $color-blue-dark !important;
     }
 }
 
