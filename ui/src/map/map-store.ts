@@ -23,6 +23,8 @@ export function getEmptyShownItems(): ShownItems {
     };
 }
 
+const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
+
 const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'switch-linking-layer': ['switch-layer'],
@@ -44,7 +46,6 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
-    'plan-section': ['plan-section-highlight-layer'],
     'km-post': ['km-post-layer'],
     'switch': ['switch-layer'],
     'geometry-alignment': ['geometry-alignment-layer'],
@@ -78,7 +79,6 @@ export const initialMapState: Map = {
                     { name: 'missing-vertical-geometry', visible: false },
                     { name: 'missing-linking', visible: false },
                     { name: 'duplicate-tracks', visible: false },
-                    { name: 'plan-section', visible: true },
                 ],
             },
             { name: 'switch', visible: true },
@@ -134,6 +134,7 @@ export const mapReducers = {
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         state.visibleLayers = deduplicate([
+            ...alwaysOnLayers,
             ...state.visibleLayers,
             ...layers,
             ...collectRelatedLayers(layers),
@@ -152,6 +153,7 @@ export const mapReducers = {
             .concat(layersByMenu);
 
         state.visibleLayers = deduplicate([
+            ...alwaysOnLayers,
             ...visibleLayers,
             ...collectRelatedLayers(visibleLayers),
         ]);
