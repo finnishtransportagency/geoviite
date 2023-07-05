@@ -4,12 +4,12 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import { fieldComparator } from 'utils/array-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { useTranslation } from 'react-i18next';
-import ColorSelector from 'selection-panel/track-number-panel/color-selector/color-selector';
 import { TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
     getDefaultColorKey,
     TrackNumberColorKey,
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
+import ColorSelector from 'selection-panel/track-number-panel/color-selector/color-selector';
 
 type TrackNumberPanelProps = {
     trackNumbers: LayoutTrackNumber[];
@@ -75,7 +75,6 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                     })}
                 </ol>
             )}
-
             {sortedTrackNumbers.length > max && (
                 <span className={styles['track-number-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',

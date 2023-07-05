@@ -78,9 +78,7 @@ function createAlignmentFeature(
     return alignmentFeatureCache.getOrCreate(cacheKey, () => {
         const styles: Style[] = [];
 
-        const feature = new Feature({
-            geometry: new LineString(alignment.points.map(pointToCoords)),
-        });
+    const feature = new Feature({ geometry: new LineString(alignment.points.map(pointToCoords)) });
 
         let alignmentStyle = isAlignmentSelected
             ? selectedUnlinkedAlignmentStyle
@@ -102,12 +100,12 @@ function createAlignmentFeature(
 
         feature.setStyle(styles);
 
-        setAlignmentFeatureProperty(feature, {
-            trackNumber: null,
-            header: alignment.header,
-            points: alignment.points,
-            planId: planLayout.planId,
-        });
+    setAlignmentFeatureProperty(feature, {
+        trackNumber: null,
+        header: alignment.header,
+        points: alignment.points,
+        planId: planLayout.planId,
+    });
 
         return feature;
     });

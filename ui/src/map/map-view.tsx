@@ -564,7 +564,12 @@ const MapView: React.FC<MapViewProps> = ({
                 )}
             </div>
 
-            <LocationHolderView hoveredCoordinate={hoveredLocation} />
+            <LocationHolderView
+                hoveredCoordinate={hoveredLocation}
+                trackNumbers={selection.selectedItems.trackNumbers}
+                locationTracks={selection.selectedItems.locationTracks}
+                publishType={publishType}
+            />
         </div>
     );
 };

@@ -775,7 +775,7 @@ class PublicationService @Autowired constructor(
             order = order
         )
 
-        return asCsvFile(orderedPublishedItems)
+        return asCsvFile(orderedPublishedItems, timeZone ?: ZoneId.of("UTC"))
     }
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
