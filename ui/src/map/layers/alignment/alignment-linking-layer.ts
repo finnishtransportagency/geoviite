@@ -363,10 +363,9 @@ function createPointTagFeature(
         const arrowHeight = textBackgroundHeight + textPadding * 2;
         const arrowTipLength = arrowHeight / 2;
         const arrowLength = arrowTipLength + textWidth + textPadding + arrowTailPadding;
+        const textStartX = arrowSpacing + arrowTipLength + textPadding;
 
-        const textX = arrowSpacing + arrowTipLength + textPadding;
-
-        const arrowFormPolygon = [
+        const arrowShapePolygon = [
             [0, 0],
             [arrowTipLength, arrowHeight / 2],
             [arrowLength, arrowHeight / 2],
@@ -380,8 +379,8 @@ function createPointTagFeature(
 
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(x + arrowSpacing + arrowFormPolygon[0][0], y + arrowFormPolygon[0][1]);
-        arrowFormPolygon
+        ctx.moveTo(x + arrowSpacing + arrowShapePolygon[0][0], y + arrowShapePolygon[0][1]);
+        arrowShapePolygon
             .slice(1)
             .forEach((coordinate) =>
                 ctx.lineTo(x + arrowSpacing + coordinate[0], y + coordinate[1]),
@@ -391,7 +390,7 @@ function createPointTagFeature(
 
         if (rotation > Math.PI / 2 || rotation < -Math.PI / 2) {
             // flip text
-            const textCenterX = x + textX + textWidth / 2;
+            const textCenterX = x + textStartX + textWidth / 2;
             ctx.translate(textCenterX, y);
             ctx.scale(-1, -1);
             ctx.translate(-textCenterX, -y);
@@ -400,13 +399,12 @@ function createPointTagFeature(
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(text, x + textX, y);
+        ctx.fillText(text, x + textStartX, y);
 
         ctx.restore();
     };
 
     feature.setStyle(() => new Style({ renderer }));
-
     return feature;
 }
 

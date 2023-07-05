@@ -23,8 +23,6 @@ export type AsyncCache<TKey, TVal> = {
     remove: (key: TKey) => void;
 };
 
-// Providing own API for better control but (for now)
-// using "memory-cache" as an implementation
 export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
     const items = new Map<TKey, TVal>();
     const touched = new Map<TKey, number>();
