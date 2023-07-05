@@ -47,6 +47,23 @@ const linkPointSelectedRadius = 6;
 const clusterLinkPointRadius = 7;
 const clusterLinkPointSelectedRadius = 9;
 
+enum zIndexes {
+    layoutAlignment,
+    geometryAlignment,
+    layoutAlignmentSelected,
+    geometryAlignmentSelected,
+    connectingLines,
+    layoutPoint,
+    geometryPoint,
+    layoutPointSelected,
+    geometryPointSelected,
+    geometryPointSelectedLarge,
+    layoutPointSelectedLarge,
+    clusterPointSelected,
+    clusterPoint,
+    tags,
+}
+
 function strokeStyle(color: string, width: number, zIndex: number) {
     return new Style({
         stroke: new Stroke({ color, width }),
@@ -71,61 +88,73 @@ const connectingLineStyle = new Style({
         width: 2,
         lineDash: [5, 5],
     }),
-    zIndex: 5,
+    zIndex: zIndexes.connectingLines,
 });
 
-const geometryAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 1);
+const geometryAlignmentStyle = strokeStyle(
+    mapStyles.unselectedAlignmentInterval,
+    3,
+    zIndexes.geometryAlignment,
+);
 
 const geometryAlignmentSelectedStyle = strokeStyle(
     mapStyles.selectedGeometryAlignmentInterval,
     3,
-    3,
+    zIndexes.geometryAlignmentSelected,
 );
 
 const geometryPointStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.unselectedAlignmentInterval,
     linkPointRadius,
-    11,
+    zIndexes.geometryPoint,
 );
 
 const geometryPointSelectedStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedGeometryAlignmentInterval,
     linkPointRadius,
-    13,
+    zIndexes.geometryPointSelected,
 );
 
 const geometryPointSelectedLargeStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedGeometryAlignmentInterval,
     linkPointSelectedRadius,
-    15,
+    zIndexes.geometryPointSelectedLarge,
 );
 
-const layoutAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 0);
+const layoutAlignmentStyle = strokeStyle(
+    mapStyles.unselectedAlignmentInterval,
+    3,
+    zIndexes.layoutAlignment,
+);
 
-const layoutAlignmentSelectedStyle = strokeStyle(mapStyles.selectedLayoutAlignmentInterval, 3, 2);
+const layoutAlignmentSelectedStyle = strokeStyle(
+    mapStyles.selectedLayoutAlignmentInterval,
+    3,
+    zIndexes.layoutAlignmentSelected,
+);
 
 const layoutPointStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.unselectedAlignmentInterval,
     linkPointRadius,
-    10,
+    zIndexes.layoutPoint,
 );
 
 const layoutPointSelectedStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedLayoutAlignmentInterval,
     linkPointRadius,
-    12,
+    zIndexes.layoutPointSelected,
 );
 
 const layoutPointSelectedLargeStyle = pointStyle(
     mapStyles.linkingPoint,
     mapStyles.selectedLayoutAlignmentInterval,
     linkPointSelectedRadius,
-    14,
+    zIndexes.layoutPointSelectedLarge,
 );
 
 const clusterPointStyle = new Style({
@@ -139,7 +168,7 @@ const clusterPointStyle = new Style({
         stroke: new Stroke({ color: mapStyles.clusterPointBorder }),
         fill: new Fill({ color: mapStyles.clusterPoint }),
     }),
-    zIndex: 20,
+    zIndex: zIndexes.clusterPoint,
 });
 
 const clusterPointBothSelectedStyle = new Style({
@@ -153,7 +182,7 @@ const clusterPointBothSelectedStyle = new Style({
         stroke: new Stroke({ color: mapStyles.linkingPoint }),
         fill: new Fill({ color: mapStyles.selectedGeometryAlignmentInterval }),
     }),
-    zIndex: 20,
+    zIndex: zIndexes.clusterPointSelected,
 });
 
 const clusterPointGeometrySelectedStyle = new Style({
@@ -162,7 +191,7 @@ const clusterPointGeometrySelectedStyle = new Style({
         stroke: new Stroke({ color: mapStyles.linkingPoint }),
         fill: new Fill({ color: mapStyles.selectedGeometryAlignmentInterval }),
     }),
-    zIndex: 20,
+    zIndex: zIndexes.clusterPointSelected,
 });
 
 const clusterPointLayoutSelectedStyle = new Style({
@@ -171,7 +200,7 @@ const clusterPointLayoutSelectedStyle = new Style({
         stroke: new Stroke({ color: mapStyles.linkingPoint }),
         fill: new Fill({ color: mapStyles.selectedLayoutAlignmentInterval }),
     }),
-    zIndex: 20,
+    zIndex: zIndexes.clusterPointSelected,
 });
 
 const LINKING_FEATURE_TYPE_PROPERTY = 'type';
@@ -405,7 +434,7 @@ function createPointTagFeature(
         ctx.restore();
     };
 
-    feature.setStyle(() => new Style({ renderer }));
+    feature.setStyle(() => new Style({ renderer, zIndex: zIndexes.tags }));
     return feature;
 }
 
