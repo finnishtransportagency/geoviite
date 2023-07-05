@@ -1,6 +1,4 @@
-import { Point } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
     AlignmentDataHolder,
@@ -11,7 +9,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { Feature } from 'ol';
+import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
 import { LayoutPoint, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -24,6 +22,8 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Coordinate } from 'ol/coordinate';
 import mapStyles from 'map/map.module.scss';
 import { State } from 'ol/render';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
 
 let newestLayerId = 0;
 
@@ -81,15 +81,15 @@ function getRotation(start: Coordinate, end: Coordinate) {
     };
 }
 
-function createFeature(
+function createAddressFeature(
     point: LayoutPoint,
     controlPoint: LayoutPoint,
     address: TrackMeter,
     pointAtEnd: boolean,
     color: TrackNumberColor,
-): Feature<Point> {
+): Feature<OlPoint> {
     const feature = new Feature({
-        geometry: new Point(pointToCoords(pointAtEnd ? controlPoint : point)),
+        geometry: new OlPoint(pointToCoords(pointAtEnd ? controlPoint : point)),
     });
 
     const { rotation, positiveXOffset, positiveYOffset } = getRotation(
@@ -99,7 +99,7 @@ function createFeature(
 
     const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
         const fontSize = 12;
-        const lineWidth = 120;
+        const lineWidth = 120 * pixelRatio;
         const textPadding = 3 * pixelRatio;
         const lineDash = [12, 6];
         const textBackgroundHeight = (fontSize + 4) * pixelRatio;
@@ -115,7 +115,7 @@ function createFeature(
 
         const text = formatTrackMeter(address);
         const textWidth = ctx.measureText(text).width;
-        const xEndPosition = x + lineWidth * pixelRatio * (positiveXOffset ? 1 : -1);
+        const xEndPosition = x + lineWidth * (positiveXOffset ? 1 : -1);
         const yEndPosition = y + (positiveYOffset === pointAtEnd ? -1 : fontSize + 3) * pixelRatio;
 
         ctx.translate(x, y);
@@ -152,27 +152,32 @@ function createFeature(
     return feature;
 }
 
-function createFeatures(
+function createAddressFeatures(
     referenceLines: AlignmentDataHolderWithAddresses[],
     layerSettings: TrackNumberDiagramLayerSetting,
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     return referenceLines.flatMap(({ data: referenceLine, startAddress, endAddress }) => {
         const trackNumberId = referenceLine.header.trackNumberId as LayoutTrackNumberId;
         const color = getColorForTrackNumber(trackNumberId, layerSettings);
 
-        const features = [];
+        const features: Feature<OlPoint>[] = [];
         const points = referenceLine.points;
 
         if (startAddress && color) {
-            features.push(createFeature(points[0], points[1], startAddress, false, color));
+            features.push(createAddressFeature(points[0], points[1], startAddress, false, color));
         }
 
         if (endAddress && color) {
             const lastIndex = points.length - 1;
-
-            features.push(
-                createFeature(points[lastIndex - 1], points[lastIndex], endAddress, true, color),
+            const f = createAddressFeature(
+                points[lastIndex - 1],
+                points[lastIndex],
+                endAddress,
+                true,
+                color,
             );
+
+            features.push(f);
         }
 
         return features;
@@ -181,7 +186,7 @@ function createFeatures(
 
 export function createTrackNumberEndPointAddressesLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     changeTimes: ChangeTimes,
     publishType: PublishType,
     resolution: number,
@@ -213,13 +218,13 @@ export function createTrackNumberEndPointAddressesLayer(
             .then((referenceLines) =>
                 getEndPointAddresses(referenceLines, publishType, changeTimes.layoutTrackNumber),
             )
-            .then((alignments) => {
-                if (layerId !== newestLayerId) return;
+            .then((referenceLines) => {
+                if (layerId === newestLayerId) {
+                    const features = createAddressFeatures(referenceLines, layerSettings);
 
-                const features = createFeatures(alignments, layerSettings);
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
+                    clearFeatures(vectorSource);
+                    vectorSource.addFeatures(features);
+                }
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

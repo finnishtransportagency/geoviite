@@ -1,7 +1,7 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { MapLayerMenuGroups } from 'map/map-model';
-import { MapContext, MapLayerMenuChange } from 'map/map-store';
+import { MapLayerMenuGroups, MapLayerMenuChange } from 'map/map-model';
+import { MapContext } from 'map/map-store';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';

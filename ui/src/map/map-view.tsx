@@ -6,7 +6,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { defaults } from 'ol/interaction';
+import { defaults as defaultInteractions } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
@@ -18,7 +18,7 @@ import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
-import Polygon from 'ol/geom/Polygon';
+import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
@@ -26,21 +26,20 @@ import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
-import { createDebugLayer } from 'map/layers/debug-layer';
-import { createDebug1mPointsLayer } from './layers/debug-1m-points-layer';
+import { createDebugLayer } from 'map/layers/debug/debug-layer';
+import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
-import { LineString, Point as OlPoint } from 'ol/geom';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import useResizeObserver from 'use-resize-observer';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
-import { createAlignmentLinkingLayer } from 'map/layers/alignment-linking-layer';
+import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
@@ -60,8 +59,8 @@ import { createLocationTrackBadgeLayer } from 'map/layers/alignment/location-tra
 import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplicate-tracks-highlight-layer';
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
-import { createTrackNumberEndPointAddressesLayer } from 'map/layers/alignment/track-number-end-point-addresses-layer';
-import { Point } from 'model/geometry';
+import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
+import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
@@ -187,7 +186,7 @@ const MapView: React.FC<MapViewProps> = ({
     React.useEffect(() => {
         const controls = defaultControls();
         controls.extend([defaultScaleLine]);
-        const interactions = defaults();
+        const interactions = defaultInteractions();
         //Mouse middle click pan
         interactions.push(new DragPan({ condition: (event) => event.originalEvent.which == 2 }));
 
@@ -374,7 +373,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'km-post-layer':
                         return createKmPostLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
                             publishType,
                             changeTimes,
@@ -402,7 +401,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
                             resolution,
-                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
                             publishType,
                         );

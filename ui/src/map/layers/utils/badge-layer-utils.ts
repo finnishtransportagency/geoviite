@@ -1,5 +1,5 @@
 import Feature from 'ol/Feature';
-import { Point } from 'ol/geom';
+import { Point as OlPoint } from 'ol/geom';
 import { Style } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
@@ -11,7 +11,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
-import { getAlignmentHeaderStates } from 'map/layers/alignment/alignment-layer-utils';
+import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
 
 type MapAlignmentBadgePoint = {
@@ -29,12 +29,12 @@ function createBadgeFeatures(
     points: MapAlignmentBadgePoint[],
     color: AlignmentBadgeColor,
     contrast: boolean,
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     const badgeStyle = getBadgeStyle(color, contrast);
 
     return points.map(({ point, nextPoint }) => {
         const badgeRotation = getBadgeRotation(point, nextPoint);
-        const badgeFeature = new Feature({ geometry: new Point(point) });
+        const badgeFeature = new Feature({ geometry: new OlPoint(point) });
         const badgePadding = 16;
         const badgeHeight = 14;
         const fontSize = 12;
@@ -104,11 +104,10 @@ function createBadgeFeatures(
         };
 
         badgeFeature.setStyle(
-            () =>
-                new Style({
-                    zIndex: contrast ? 1 : 0,
-                    renderer: renderer,
-                }),
+            new Style({
+                zIndex: contrast ? 1 : 0,
+                renderer: renderer,
+            }),
         );
 
         return badgeFeature;
@@ -192,7 +191,7 @@ export function createAlignmentBadgeFeatures(
     selection: Selection,
     linkingState: LinkingState | undefined,
     badgeDrawDistance: number,
-): Feature<Point>[] {
+): Feature<OlPoint>[] {
     return alignments.flatMap((alignment) => {
         const { selected, isLinking, highlighted } = getAlignmentHeaderStates(
             alignment,

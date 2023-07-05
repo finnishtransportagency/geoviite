@@ -1,20 +1,20 @@
-import OlPoint from 'ol/geom/Point';
-import OlPolygon from 'ol/geom/Polygon';
-import { Vector as VectorLayer } from 'ol/layer';
+import { Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
-import { Vector as VectorSource } from 'ol/source';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { getSwitchesByTile } from 'track-layout/layout-switch-api';
-import { clearFeatures, getMatchingSwitches } from 'map/layers/utils/layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { createFeatures } from 'map/layers/switch/switch-layer-utils';
+import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
 import { PublishType } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
 import { filterUniqueById } from 'utils/array-utils';
+import { Rectangle } from 'model/geometry';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
@@ -63,7 +63,7 @@ export function createSwitchLayer(
                     return selection.highlightedItems.switches.some((s) => s === switchItem.id);
                 };
 
-                const features = createFeatures(
+                const features = createSwitchFeatures(
                     switches,
                     isSelected,
                     isHighlighted,
@@ -91,15 +91,10 @@ export function createSwitchLayer(
     return {
         name: 'switch-layer',
         layer: layer,
-        searchItems: (hitArea: OlPolygon, options: SearchItemsOptions) => {
-            const switches = getMatchingSwitches(
-                hitArea,
-                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-                {
-                    strategy: options.limit == 1 ? 'nearest' : 'limit',
-                    limit: options.limit,
-                },
-            ).map((d) => d.switch.id);
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => {
+            const switches = findMatchingSwitches(hitArea, vectorSource, options).map(
+                (d) => d.switch.id,
+            );
 
             return { switches };
         },

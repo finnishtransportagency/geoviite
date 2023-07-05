@@ -61,7 +61,6 @@ export const SWITCH_LARGE_SYMBOLS = 0.4;
 export const SWITCH_LABELS = 0.8;
 
 export const SUGGESTED_SWITCH_SHOW = 100.0;
-export const MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION = 100.0;
 
 // Map resolution is ~ meters/pixel -> line points will have this many pixels between them
 export const MAP_RESOLUTION_MULTIPLIER = 10;

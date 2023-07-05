@@ -12,10 +12,12 @@ import {
     PointRenderFunction,
 } from 'map/layers/utils/rendering';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { Point } from 'model/geometry';
-import { Feature } from 'ol';
+import { Point, Rectangle } from 'model/geometry';
+import Feature from 'ol/Feature';
 import { Point as OlPoint, Polygon } from 'ol/geom';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import VectorSource from 'ol/source/Vector';
+import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;
@@ -37,18 +39,17 @@ export function createKmPostFeatures(
     resolution: number,
     planId?: GeometryPlanId,
     isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined = undefined,
-): Feature<OlPoint | Polygon>[] {
+): Feature<OlPoint | Rectangle>[] {
     return kmPosts
         .filter((kmPost) => kmPost.location != null)
         .flatMap((kmPost) => {
             const location = kmPost.location as Point;
-            const point = new OlPoint(pointToCoords(location));
-            const feature = new Feature({ geometry: point });
+            const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
 
             const selected = isSelected(kmPost);
 
-            feature.setStyle(() => {
-                return new Style({
+            feature.setStyle(
+                new Style({
                     zIndex: selected ? 1 : 0,
                     renderer: selected
                         ? getSelectedKmPostRenderer(
@@ -57,10 +58,8 @@ export function createKmPostFeatures(
                               isLinked && isLinked(kmPost),
                           )
                         : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
-                });
-            });
-
-            feature.set('kmPost-data', { kmPost, planId });
+                }),
+            );
 
             // Create a feature to act as a clickable area
             const width = 35 * resolution;
@@ -76,7 +75,7 @@ export function createKmPostFeatures(
                 ],
             ]);
             const hitAreaFeature = new Feature({ geometry: polygon });
-            hitAreaFeature.set('kmPost-data', { kmPost, planId });
+            setKmPostFeatureProperty(hitAreaFeature, { kmPost, planId });
 
             return [feature, hitAreaFeature];
         });
@@ -274,4 +273,28 @@ function getKmPostRenderer(
     );
 
     return getRenderer(kmPost, 10, dFunctions);
+}
+
+export function findMatchingKmPosts(
+    hitArea: Rectangle,
+    source: VectorSource,
+    options: SearchItemsOptions,
+): KmPostFeatureProperty[] {
+    return findMatchingEntities<KmPostFeatureProperty>(
+        hitArea,
+        source,
+        KM_POST_FEATURE_DATA_PROPERTY,
+        options,
+    );
+}
+
+type KmPostFeatureProperty = {
+    kmPost: LayoutKmPost;
+    planId?: GeometryPlanId;
+};
+
+const KM_POST_FEATURE_DATA_PROPERTY = 'km-post-data';
+
+function setKmPostFeatureProperty(feature: Feature<Rectangle>, data: KmPostFeatureProperty) {
+    feature.set(KM_POST_FEATURE_DATA_PROPERTY, data);
 }

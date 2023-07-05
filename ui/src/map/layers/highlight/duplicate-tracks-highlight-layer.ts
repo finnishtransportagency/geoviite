@@ -1,7 +1,5 @@
 import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -9,14 +7,15 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { blueHighlightStyle } from 'map/layers/highlight/highlight-layer-utils';
+import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
-function createFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
+function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
     return locationTracks
         .filter((lt) => lt.header.duplicateOf)
         .flatMap(({ points }) => {
-            const lineString = new LineString(points.map(pointToCoords));
-            const feature = new Feature({ geometry: lineString });
+            const feature = new Feature({ geometry: new LineString(points.map(pointToCoords)) });
 
             feature.setStyle(blueHighlightStyle);
 
@@ -41,12 +40,12 @@ export function createDuplicateTracksHighlightLayer(
     if (resolution <= HIGHLIGHTS_SHOW) {
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
-                if (layerId !== newestLayerId) return;
+                if (layerId === newestLayerId) {
+                    const features = createHighlightFeatures(locationTracks);
 
-                const features = createFeatures(locationTracks);
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
+                    clearFeatures(vectorSource);
+                    vectorSource.addFeatures(features);
+                }
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

@@ -1,6 +1,4 @@
-import { Point } from 'ol/geom';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Point as OlPoint } from 'ol/geom';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
@@ -12,14 +10,16 @@ import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentBadgeFeatures,
     getBadgeDrawDistance,
-} from 'map/layers/alignment/badge-layer-utils';
+} from 'map/layers/utils/badge-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
 
 let newestLayerId = 0;
 
 export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
@@ -35,11 +35,11 @@ export function createLocationTrackBadgeLayer(
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
-            .then((alignments) => {
+            .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
 
                 const features = createAlignmentBadgeFeatures(
-                    alignments,
+                    locationTracks,
                     selection,
                     linkingState,
                     badgeDrawDistance,

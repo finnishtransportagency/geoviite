@@ -1,6 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     Map,
+    MapLayerMenuChange,
     MapLayerMenuItem,
     MapLayerMenuItemName,
     MapLayerName,
@@ -13,7 +14,7 @@ import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 
-export function createEmptyShownItems(): ShownItems {
+export function getEmptyShownItems(): ShownItems {
     return {
         referenceLines: [],
         locationTracks: [],
@@ -21,11 +22,6 @@ export function createEmptyShownItems(): ShownItems {
         switches: [],
     };
 }
-
-export type MapLayerMenuChange = {
-    name: MapLayerMenuItemName;
-    visible: boolean;
-};
 
 const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
@@ -102,7 +98,7 @@ export const initialMapState: Map = {
     layerSettings: {
         'track-number-diagram-layer': {},
     },
-    shownItems: createEmptyShownItems(),
+    shownItems: getEmptyShownItems(),
     viewport: {
         center: {
             x: 385782.89,
@@ -196,16 +192,16 @@ export const mapReducers = {
 };
 
 function collectChangedLayers(
-    settings: MapLayerMenuItem[],
+    items: MapLayerMenuItem[],
     change: MapLayerMenuChange,
     isChild = false,
 ): MapLayerName[] {
-    return settings.flatMap(({ name, subMenu }) => {
+    return items.flatMap(({ name, subMenu }) => {
         if (name === change.name) {
             if (change.visible) {
                 return [
                     ...layerMenuItemMapLayers[name],
-                    ...collectChangedLayers(subMenu?.filter((s) => s.visible) ?? [], change, true),
+                    ...collectChangedLayers(subMenu?.filter((i) => i.visible) ?? [], change, true),
                 ];
             } else {
                 return [
@@ -222,10 +218,10 @@ function collectChangedLayers(
     });
 }
 
-function collectVisibleLayers(settings: MapLayerMenuItem[]): MapLayerName[] {
-    return settings.flatMap((s) =>
-        s.visible
-            ? [...layerMenuItemMapLayers[s.name], ...collectVisibleLayers(s.subMenu ?? [])]
+function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
+    return items.flatMap((i) =>
+        i.visible
+            ? [...layerMenuItemMapLayers[i.name], ...collectVisibleLayers(i.subMenu ?? [])]
             : [],
     );
 }
@@ -238,14 +234,11 @@ function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
         : [];
 }
 
-function updateMenuItem(
-    settings: MapLayerMenuItem[],
-    change: MapLayerMenuChange,
-): MapLayerMenuItem[] {
-    return settings.map((s) => ({
-        name: s.name,
-        visible: s.name === change.name ? change.visible : s.visible,
-        subMenu: s.subMenu ? updateMenuItem(s.subMenu, change) : undefined,
+function updateMenuItem(items: MapLayerMenuItem[], change: MapLayerMenuChange): MapLayerMenuItem[] {
+    return items.map((i) => ({
+        name: i.name,
+        visible: i.name === change.name ? change.visible : i.visible,
+        subMenu: i.subMenu ? updateMenuItem(i.subMenu, change) : undefined,
     }));
 }
 
