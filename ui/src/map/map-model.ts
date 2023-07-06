@@ -82,6 +82,7 @@ export type MapLayerMenuItemName =
     | 'missing-vertical-geometry'
     | 'missing-linking'
     | 'duplicate-tracks'
+    | 'track-number-diagram'
     | 'km-post'
     | 'switch'
     | 'geometry-alignment'

@@ -46,6 +46,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
+    'track-number-diagram': ['track-number-diagram-layer'],
     'km-post': ['km-post-layer'],
     'switch': ['switch-layer'],
     'geometry-alignment': ['geometry-alignment-layer'],
@@ -83,6 +84,7 @@ export const initialMapState: Map = {
             },
             { name: 'switch', visible: true },
             { name: 'km-post', visible: true },
+            { name: 'track-number-diagram', visible: false },
         ],
         geometry: [
             { name: 'geometry-alignment', visible: true },
