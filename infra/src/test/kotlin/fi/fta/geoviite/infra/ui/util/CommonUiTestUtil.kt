@@ -18,17 +18,13 @@ class CommonUiTestUtil {
         fun localDateFromString(date: String): LocalDateTime = LocalDate.parse(date, dateFormat).atStartOfDay()
         fun localDateTimeFromString(dateTime: String): LocalDateTime = LocalDateTime.parse(dateTime, dateTimeFormat)
 
-        fun pointToCoordinateString(point: LayoutPoint) =
-            pointToCoordinateString(point.x, point.y)
+        fun pointToCoordinateString(point: LayoutPoint) = pointToCoordinateString(point.x, point.y)
 
-        fun pointToCoordinateString(point: Point) =
-            pointToCoordinateString(point.x, point.y)
+        fun pointToCoordinateString(point: Point) = pointToCoordinateString(point.x, point.y)
 
-        fun pointToCoordinateString(x: Double, y: Double) =
-            "${asThreeDecimalPlaces(x)} E, ${asThreeDecimalPlaces(y)} N"
+        fun pointToCoordinateString(x: Double, y: Double) = "${asThreeDecimalPlaces(x)} E, ${asThreeDecimalPlaces(y)} N"
 
-        fun metersToDouble(meters: String) =
-            meters.substringBefore(' ').toDouble()
+        fun metersToDouble(meters: String) = meters.substringBefore(' ').toDouble()
 
         //UI uses '.' instead of ','
         private fun asThreeDecimalPlaces(v: Double) = String.format("%.3f", v).replace(",", ".")

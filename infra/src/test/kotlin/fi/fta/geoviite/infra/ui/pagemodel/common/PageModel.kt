@@ -20,9 +20,9 @@ import java.time.Duration
 
 
 abstract class PageModel(protected val elementFetch: () -> WebElement) {
-    constructor(by: By): this(fetch(by))
-    constructor(parentFetch: () -> WebElement, by: By): this(fetch(parentFetch, by))
-    constructor(parent: PageModel, by: By): this(parent.elementFetch, by)
+    constructor(by: By) : this(fetch(by))
+    constructor(parentFetch: () -> WebElement, by: By) : this(fetch(parentFetch, by))
+    constructor(parent: PageModel, by: By) : this(parent.elementFetch, by)
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -40,11 +40,9 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
     protected fun clickButton(by: By, timeout: Duration = defaultWait) = childButton(by, timeout).click()
 
     @Deprecated("Relevant buttons should be marked with qa-id and used via that, rather than content")
-    protected fun clickButtonByText(text: String, timeout: Duration = defaultWait) =
-        clickButton(byText(text), timeout)
+    protected fun clickButtonByText(text: String, timeout: Duration = defaultWait) = clickButton(byText(text), timeout)
 
-    protected fun clickButtonByQaId(id: String, timeout: Duration = defaultWait) =
-        clickButton(byQaId(id), timeout)
+    protected fun clickButtonByQaId(id: String, timeout: Duration = defaultWait) = clickButton(byQaId(id), timeout)
 
     protected fun childElement(by: By, timeout: Duration = defaultWait): WebElement =
         getChildWhenVisible(elementFetch, by, timeout)
@@ -52,11 +50,9 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
     protected fun childElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
         getChildrenWhenVisible(elementFetch, by, timeout)
 
-    protected fun clickChild(by: By, timeout: Duration = defaultWait) =
-        clickChildElement(elementFetch, by, timeout)
+    protected fun clickChild(by: By, timeout: Duration = defaultWait) = clickChildElement(elementFetch, by, timeout)
 
-    protected fun childText(by: By, timeout: Duration = defaultWait): String =
-        childElement(by, timeout).text
+    protected fun childText(by: By, timeout: Duration = defaultWait): String = childElement(by, timeout).text
 
     protected fun childTexts(by: By, timeout: Duration = defaultWait): List<String> =
         childElements(by, timeout).map(WebElement::getText)

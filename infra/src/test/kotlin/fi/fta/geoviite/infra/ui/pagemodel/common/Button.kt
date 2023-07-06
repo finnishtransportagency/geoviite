@@ -5,7 +5,7 @@ import waitAndClick
 import waitUntilClickable
 import waitUntilDoesNotExist
 
-class Button(fetch: () -> WebElement): PageModel(fetch) {
+class Button(fetch: () -> WebElement) : PageModel(fetch) {
     fun click() {
         logger.info("Click button '${webElement.text}'")
         webElement.waitUntilClickable()

@@ -16,6 +16,7 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
     private fun fieldValueBy(fieldName: String) = By.xpath(
         ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']"
     )
+
     protected fun fieldValueElement(fieldName: String) = childElement(fieldValueBy(fieldName))
 
     protected fun textField(fieldName: String) = childTextField(fieldValueBy(fieldName))
@@ -30,25 +31,29 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
         clickChild(By.className("infobox__edit-icon"))
     }
 
-    protected fun fieldElement(fieldName: String): WebElement = childElement(By.xpath(
-        ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]"
-    ))
+    protected fun fieldElement(fieldName: String): WebElement = childElement(
+        By.xpath(
+            ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]"
+        )
+    )
 
-    protected fun fieldValueWhenNotEmpty(fieldName: String): String = childText(By.xpath(
-        ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
-    ))
+    protected fun fieldValueWhenNotEmpty(fieldName: String): String = childText(
+        By.xpath(
+            ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
+        )
+    )
 
     protected fun title() = childText(By.className("infobox__title"))
 
     protected fun waitUntilFieldValueChanges(fieldName: String) {
         val originalValue = fieldValue(fieldName)
-        logger.info("Wait until field value is not ${originalValue}")
+        logger.info("Wait until field value is not $originalValue")
         waitUntilValueIsNot(fieldValueElement(fieldName), originalValue, Duration.ofSeconds(10))
         logger.info("Field $fieldName changed and is now ${fieldValue(fieldName)}")
     }
 
     protected fun waitUntilFieldValueChanges(fieldName: String, targetValue: String) {
-        logger.info("Wait until field value is  ${targetValue}")
+        logger.info("Wait until field value is  $targetValue")
         waitUntilValueIs(fieldValueElement(fieldName), targetValue, Duration.ofSeconds(10))
         logger.info("Field $fieldName changed to $targetValue")
     }

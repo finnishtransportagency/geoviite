@@ -18,9 +18,10 @@ const val UI_TEST_USER = "UI_TEST_USER"
 
 @ExtendWith(E2ETestWatcher::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-open class SeleniumTest: DBTestBase(UI_TEST_USER) {
+open class SeleniumTest : DBTestBase(UI_TEST_USER) {
 
-    @Value("\${geoviite.e2e.url}") val startUrlProp: String? = null
+    @Value("\${geoviite.e2e.url}")
+    val startUrlProp: String? = null
     val startUrl: String by lazy { requireNotNull(startUrlProp) }
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -30,18 +31,20 @@ open class SeleniumTest: DBTestBase(UI_TEST_USER) {
     }
 
 
-    val geoviite: FrontPage get() {
-        browser().navigate().to(startUrl)
-        return FrontPage()
-    }
+    val geoviite: FrontPage
+        get() {
+            browser().navigate().to(startUrl)
+            return FrontPage()
+        }
 
     val navigationBar: MainNavigationBar get() = MainNavigationBar()
 
     fun startGeoviite() {
         logger.info("Navigate to Geoviite $startUrl")
         openBrowser()
-        browser().navigate().to(startUrl);
+        browser().navigate().to(startUrl)
     }
+
     fun goToFrontPage() = navigationBar.goToFrontPage()
 
     fun goToMap() = navigationBar.goToMap()
@@ -51,8 +54,7 @@ open class SeleniumTest: DBTestBase(UI_TEST_USER) {
     protected fun clearAllTestData() {
         val truncateDbDao = TruncateDbDao(jdbcTemplate)
         truncateDbDao.truncateTables(
-            schema = "publication",
-            tables = arrayOf(
+            schema = "publication", tables = arrayOf(
                 "km_post",
                 "location_track",
                 "reference_line",
@@ -63,8 +65,7 @@ open class SeleniumTest: DBTestBase(UI_TEST_USER) {
         )
 
         truncateDbDao.truncateTables(
-            schema = "layout",
-            tables = arrayOf(
+            schema = "layout", tables = arrayOf(
                 "alignment",
                 "alignment_version",
                 "km_post",
@@ -83,8 +84,7 @@ open class SeleniumTest: DBTestBase(UI_TEST_USER) {
         )
 
         truncateDbDao.truncateTables(
-            schema = "geometry",
-            tables = arrayOf(
+            schema = "geometry", tables = arrayOf(
                 "alignment",
                 "cant_point",
                 "element",

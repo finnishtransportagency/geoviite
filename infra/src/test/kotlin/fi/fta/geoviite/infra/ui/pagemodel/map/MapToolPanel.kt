@@ -53,6 +53,6 @@ class MapToolPanel {
 
     fun geometryPlanQuality() = infoBox("geometry-plan-quality-infobox", ::GeometryPlanQualityInfobox)
 
-    private fun <T: InfoBox> infoBox(qaId: String, creator: (by: By) -> T) =
+    private fun <T : InfoBox> infoBox(qaId: String, creator: (by: By) -> T) =
         creator(By.xpath("//div[@qa-id='$qaId']")).also { b -> b.waitUntilLoaded() }
 }
