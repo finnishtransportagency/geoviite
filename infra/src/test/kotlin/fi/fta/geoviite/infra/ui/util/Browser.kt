@@ -76,7 +76,7 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
-const val DEV_DEBUG = true
+const val DEV_DEBUG = false
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
@@ -89,8 +89,8 @@ fun openBrowser() {
     //    }
     //}
 
-    openFirefox(headless)
-//    openChrome(headless)
+//    openFirefox(headless)
+    openChrome(headless)
     logger.info("Webdriver initialized")
 
     browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(1))
