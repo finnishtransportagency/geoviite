@@ -61,7 +61,7 @@ export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y
 /**
  * Return the shortest distance between the point and the line in meters
  *
- * @param point
+ * @param olPoint
  * @param line
  */
 export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): number {
@@ -134,13 +134,11 @@ export function sortFeaturesByDistance<T extends Geometry>(features: Feature<T>[
         const geometryA = featureA.getGeometry();
         const geometryB = featureB.getGeometry();
 
-        if (geometryA && geometryB) {
+        if (geometryA && geometryB)
             return getDistance(point, geometryA) - getDistance(point, geometryB);
-        } else if (geometryA) {
-            return -1;
-        } else {
-            return 1;
-        }
+        else if (geometryA) return -1;
+        else if (geometryB) return 1;
+        else return 0;
     });
 }
 

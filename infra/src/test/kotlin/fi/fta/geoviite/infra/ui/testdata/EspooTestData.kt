@@ -127,14 +127,14 @@ class EspooTestData {
             alignmentName = GEO_ALIGNMENT_A_NAME,
             trackNumberId = trackNumberId,
             basePoint = BASE_POINT + Point(x = 0.0, y = 20.0),
-            incrementPoints = listOf(Point(x = 50.0, y = 5.0), Point(x = 50.0, y = 5.0))
+            incrementPoints = listOf(Point(x = 50.0, y = 0.0), Point(x = 50.0, y = 0.0))
         )
 
         fun geometryAlignmentB(trackNumberId: IntId<TrackLayoutTrackNumber>) = createGeometryAlignment(
             alignmentName = GEO_ALIGNMENT_B_NAME,
             trackNumberId = trackNumberId,
             basePoint = BASE_POINT + Point(x = 0.0, y = 65.0),
-            incrementPoints = listOf(Point(x = 50.0, y = 5.0), Point(x = 50.0, y = 5.0))
+            incrementPoints = listOf(Point(x = 50.0, y = 0.0), Point(x = 50.0, y = 0.0))
         )
 
 
@@ -226,7 +226,7 @@ class EspooTestData {
             alignmentName = GEO_ALIGNMENT_I_NAME,
             trackNumberId = trackNumberId,
             basePoint = BASE_POINT + Point(x = -20.0, y = 3.0),
-            incrementPoints = listOf(Point(x = 140.0, y = 10.0), Point(x = 140.0, y = 10.0))
+            incrementPoints = listOf(Point(x = 140.0, y = 0.0), Point(x = 140.0, y = 0.0))
         )
 
         fun locationTrackH(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> =
