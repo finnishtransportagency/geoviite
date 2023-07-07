@@ -21,7 +21,13 @@ import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { MapLayerName, MapLayerSettingChange, MapLayerSettings, MapViewport } from 'map/map-model';
+import {
+    MapLayerMenuChange,
+    MapLayerMenuItem,
+    MapLayerSettingChange,
+    MapLayerSettings,
+    MapViewport,
+} from 'map/map-model';
 import {
     createEmptyItemCollections,
     ToggleAccordionOpenPayload,
@@ -62,9 +68,8 @@ type SelectionPanelProps = {
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
     onMapLayerSettingChange: (change: MapLayerSettingChange) => void;
     mapLayerSettings: MapLayerSettings;
-    showMapLayer: (mapLayers: MapLayerName) => void;
-    hideMapLayer: (mapLayers: MapLayerName) => void;
-    visibleMapLayers: MapLayerName[];
+    onMapLayerMenuItemChange: (change: MapLayerMenuChange) => void;
+    mapLayoutMenu: MapLayerMenuItem[];
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
@@ -90,16 +95,16 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     togglePlanSwitchesOpen,
     onMapLayerSettingChange,
     mapLayerSettings,
-    showMapLayer,
-    hideMapLayer,
-    visibleMapLayers,
+    onMapLayerMenuItemChange,
+    mapLayoutMenu,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
 
-    const diagramLayer = mapLayerSettings['track-number-diagram-layer'];
+    const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
+    const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
 
-    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayer)
+    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayerSettings)
         .filter(([_, setting]) => setting.selected)
         .map(([id]) => id);
 
@@ -107,10 +112,10 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
             settings: {
-                ...diagramLayer,
+                ...diagramLayerSettings,
                 [trackNumber.id]: {
-                    ...diagramLayer[trackNumber.id],
-                    selected: !diagramLayer[trackNumber.id]?.selected,
+                    ...diagramLayerSettings[trackNumber.id],
+                    selected: !diagramLayerSettings[trackNumber.id]?.selected,
                 },
             },
         });
@@ -120,14 +125,14 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         trackNumberId: LayoutTrackNumberId,
         color: TrackNumberColorKey,
     ) => {
-        showMapLayer('track-number-diagram-layer');
+        onMapLayerMenuItemChange({ name: 'track-number-diagram', visible: true });
 
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
             settings: {
-                ...diagramLayer,
+                ...diagramLayerSettings,
                 [trackNumberId]: {
-                    ...diagramLayer[trackNumberId],
+                    ...diagramLayerSettings[trackNumberId],
                     color,
                 },
             },
@@ -191,9 +196,6 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     );
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
-    const trackNumberDiagramVisible = visibleMapLayers.some(
-        (layer) => layer === 'track-number-diagram-layer',
-    );
 
     return (
         <div className={styles['selection-panel']}>
@@ -201,17 +203,20 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <h3 className={styles['selection-panel__title']}>
                     {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
                     <Eye
-                        onVisibilityToggle={() =>
-                            (trackNumberDiagramVisible ? hideMapLayer : showMapLayer)(
-                                'track-number-diagram-layer',
-                            )
-                        }
-                        visibility={trackNumberDiagramVisible}
+                        onVisibilityToggle={() => {
+                            if (diagramLayerMenuItem) {
+                                onMapLayerMenuItemChange({
+                                    name: 'track-number-diagram',
+                                    visible: !diagramLayerMenuItem.visible,
+                                });
+                            }
+                        }}
+                        visibility={diagramLayerMenuItem?.visible ?? false}
                     />
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
-                        settings={diagramLayer}
+                        settings={diagramLayerSettings}
                         trackNumbers={visibleTrackNumbers}
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
