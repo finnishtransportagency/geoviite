@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import browser
 import fi.fta.geoviite.infra.ui.pagemodel.common.ListContentItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.ListModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.byLiTag
@@ -11,11 +10,9 @@ import getElementsWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
-import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import tryWait
-import java.time.Duration
 
 // TODO: GVT-1935 The contents of these lists should be implemented as own components using ListModel (see ListModel.kt)
 //   As an example, there is already a list for locationTracks, though some tests don't use it yet
@@ -27,15 +24,15 @@ class MapNavigationPanel {
     fun selectTrackNumber(name: String) {
         logger.info("Select trackNumber $name")
         val trackNumbers = trackNumbers()
-        val trackNumber =
-            trackNumbers.find { trackLayoutTrackNumber -> trackLayoutTrackNumber.name() == name }
-                ?: throw RuntimeException("Track number $name not found! Available track numbers $trackNumbers")
+        val trackNumber = trackNumbers.find { trackLayoutTrackNumber -> trackLayoutTrackNumber.name() == name }
+            ?: throw RuntimeException("Track number $name not found! Available track numbers $trackNumbers")
         trackNumber.select()
     }
 
     fun trackNumbers(): List<TrackLayoutTrackNumber> =
-        getElementsWhenVisible(By.xpath("//li[@class='track-number-panel__track-number']"))
-            .map { element -> TrackLayoutTrackNumber(element) }.also { logger.info("Track numbers $it") }
+        getElementsWhenVisible(By.xpath("//li[@class='track-number-panel__track-number']")).map { element ->
+            TrackLayoutTrackNumber(element)
+        }.also { logger.info("Track numbers $it") }
 
     fun selectTrackLayoutKmPost(name: String) {
         logger.info("Select km-post $name")
@@ -46,9 +43,9 @@ class MapNavigationPanel {
     }
 
     fun kmPosts(): List<TrackLayoutKmPost> {
-        return try{
-            getListElements(By.xpath("//ol[@class='km-posts-panel__km-posts']"))
-                .map { TrackLayoutKmPost(it) }.also { logger.info("KM posts $it") }
+        return try {
+            getListElements(By.xpath("//ol[@class='km-posts-panel__km-posts']")).map { TrackLayoutKmPost(it) }
+                .also { logger.info("KM posts $it") }
         } catch (ex: TimeoutException) {
             emptyList()
         }
@@ -57,18 +54,19 @@ class MapNavigationPanel {
     fun selectReferenceLine(name: String) {
         logger.info("Select reference line $name")
         val referenceLines = referenceLines()
-        val referenceLine =
-            referenceLines.find { trackLayoutAlignment -> trackLayoutAlignment.name() == name }
-                ?: throw RuntimeException("Reference line '$name' not found! Available reference lines are: $referenceLines")
+        val referenceLine = referenceLines.find { trackLayoutAlignment -> trackLayoutAlignment.name() == name }
+            ?: throw RuntimeException("Reference line '$name' not found! Available reference lines are: $referenceLines")
         referenceLine.select()
     }
 
     fun referenceLines(): List<TrackLayoutAlignment> {
         //Wait until alignment panel exists then check if it contains alignments
         return try {
-            getListElements(By.xpath("//ol[@qa-id='reference-lines-list']"))
-                .map { element -> TrackLayoutAlignment(element) }
-                .also { logger.info("Reference lines $it") }
+            getListElements(By.xpath("//ol[@qa-id='reference-lines-list']")).map { element ->
+                TrackLayoutAlignment(
+                    element
+                )
+            }.also { logger.info("Reference lines $it") }
         } catch (ex: TimeoutException) {
             emptyList()
         }
@@ -87,41 +85,32 @@ class MapNavigationPanel {
     fun locationTracks(): List<TrackLayoutAlignment> {
         logger.info("Get all location tracks")
         return try {
-            getListElements(By.xpath("//ol[@qa-id='location-tracks-list']"))
-                .map { element -> TrackLayoutAlignment(element) }
-                .also { logger.info("Location tracks $it") }
+            getListElements(By.xpath("//ol[@qa-id='location-tracks-list']")).map { element ->
+                TrackLayoutAlignment(
+                    element
+                )
+            }.also { logger.info("Location tracks $it") }
         } catch (ex: TimeoutException) {
             logger.warn("No location tracks found")
             emptyList()
         }
     }
 
-    @Deprecated("Use mapNavigationPanel.locationTracksList instead")
-    fun waitForLocationTrackNamesTo(namePredicate: (names: List<String>) -> Boolean) {
-        logger.info("Wait for location track names")
-        WebDriverWait(browser(), Duration.ofSeconds(5))
-            .until { _ -> namePredicate(
-                getListElements(By.xpath("//ol[@qa-id='location-tracks-list']"))
-                    .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Location tracks $it") }
-                    .map { alignment -> alignment.name() }
-            ) }
-    }
-
     fun waitForReferenceLineNamesTo(namePredicate: (names: List<String>) -> Boolean) {
         logger.info("Wait for reference line names to match expectation")
-        WebDriverWait(browser(), Duration.ofSeconds(5))
-            .until { _ -> namePredicate(referenceLines().map { l -> l.name() }) }
+        tryWait({ namePredicate(referenceLines().map { it.name() }) },
+            { "Failed to match expectation for reference line names, names=${referenceLines().map { it.name() }}" })
     }
 
     fun waitForTrackNumberNamesTo(namePredicate: (names: List<String>) -> Boolean) {
         logger.info("Wait for track numbers to match expectation")
-        WebDriverWait(browser(), Duration.ofSeconds(5))
-            .until { _ -> namePredicate(trackNumbers().map { l -> l.name() }) }
+        tryWait({ namePredicate(trackNumbers().map { it.name() }) },
+            { "Failed to match expectation for track number names, names=${trackNumbers().map { it.name() }}" })
     }
 
     fun selectTrackLayoutSwitch(switchName: String) {
         logger.info("Select switch $switchName")
-        val switches = switches();
+        val switches = switches()
         val switch = switches.find { switch -> switch.name() == switchName }
             ?: throw RuntimeException("Switch $switchName not found! Available switches $switches")
 
@@ -131,8 +120,11 @@ class MapNavigationPanel {
     fun switches(): List<TrackLayoutSwitch> {
         //Wait until switches panel exists then check if it contains alignments
         return try {
-            getListElements(By.xpath("//ol[@class='switch-panel__switches']"))
-                .map { element -> TrackLayoutSwitch(element) }.also { logger.info("Switches $it") }
+            getListElements(By.xpath("//ol[@class='switch-panel__switches']")).map { element ->
+                TrackLayoutSwitch(
+                    element
+                )
+            }.also { logger.info("Switches $it") }
         } catch (ex: TimeoutException) {
             emptyList()
         }
@@ -150,8 +142,7 @@ class MapNavigationPanel {
         logger.info("Get all geometry plans")
         getElementWhenVisible(By.cssSelector("div.geometry-plan-panel div.accordion"))
         return try {
-            val planNames = getElementsWhenVisible(By.cssSelector("span.accordion__header-title"))
-                .map { it.text }
+            val planNames = getElementsWhenVisible(By.cssSelector("span.accordion__header-title")).map { it.text }
             logger.info("Geometry plans: $planNames")
             planNames.map { GeometryPlanAccordion(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
         } catch (ex: TimeoutException) {
@@ -171,11 +162,10 @@ class MapNavigationPanel {
 }
 
 
-class LocationTracksNavigationList: ListModel<LocationTrackListItem>(
-    listBy = By.xpath("//ol[@qa-id='location-tracks-list']"),
-    itemsBy = byLiTag,
-    getContent = { i: Int, e: WebElement -> LocationTrackListItem(i, e) }
-) {
+class LocationTracksNavigationList :
+    ListModel<LocationTrackListItem>(listBy = By.xpath("//ol[@qa-id='location-tracks-list']"),
+        itemsBy = byLiTag,
+        getContent = { i: Int, e: WebElement -> LocationTrackListItem(i, e) }) {
     fun selectByName(name: String) = selectItemWhenMatches { lt -> lt.name == name }
 
     fun waitUntilNameVisible(name: String) = waitUntilItemMatches { lt -> lt.name == name }
@@ -189,8 +179,8 @@ data class LocationTrackListItem(
     val name: String,
     val type: String,
     override val index: Int,
-): ListContentItem {
-    constructor(index: Int, element: WebElement): this(
+) : ListContentItem {
+    constructor(index: Int, element: WebElement) : this(
         name = element.findElement(By.xpath("./div/span")).text,
         type = element.findElement(By.xpath("./span")).text,
         index = index,

@@ -22,14 +22,15 @@ import kotlin.test.assertNotNull
 @SpringBootTest
 class InfraModelTestUI @Autowired constructor(
     @Value("\${geoviite.data.im-path:}") private val infraModelPath: String,
-    val properties: E2EProperties
+    val properties: E2EProperties,
 ) : SeleniumTest() {
 
     lateinit var infraModelPage: InfraModelPage
 
     val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
-    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
+    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
+        "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
 
     @BeforeAll
     fun clearDb() {
@@ -54,7 +55,8 @@ class InfraModelTestUI @Autowired constructor(
 
         infraModelEditPage.tallennaMuutokset()
 
-        val uploadedPlanRow = infraModelPage.infraModelList().infraModelRows().find { row -> row.projektinNimi().equals(newProjectName) }
+        val uploadedPlanRow =
+            infraModelPage.infraModelList().infraModelRows().find { row -> row.projektinNimi() == newProjectName }
         assertNotNull(uploadedPlanRow)
     }
 
@@ -91,7 +93,7 @@ class InfraModelTestUI @Autowired constructor(
         assertEquals(infraModelRows.size + 1, infraModelRowsAfterUpload.size)
 
         val uploadedPlanRow =
-            infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals("TEST_Clothoid_and_parabola") }
+            infraModelRowsAfterUpload.find { row -> row.projektinNimi() == "TEST_Clothoid_and_parabola" }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.tiedostonimi())
 
@@ -147,7 +149,7 @@ class InfraModelTestUI @Autowired constructor(
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList().infraModelRows()
         assertEquals(infraModelRowsBefore.size + 1, infraModelRowsAfterUpload.size)
 
-        val uploadedPlanRow = infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals(projektinNimi) }
+        val uploadedPlanRow = infraModelRowsAfterUpload.find { row -> row.projektinNimi() == projektinNimi }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.tiedostonimi())
 
@@ -158,9 +160,7 @@ class InfraModelTestUI @Autowired constructor(
     fun `Search and sort Infra Model files`() {
         clearAllTestData()
 
-        val infraModelFiles = File(infraModelPath).walk()
-            .filter { it.name.endsWith(".xml") }
-            .sortedBy { it.name }
+        val infraModelFiles = File(infraModelPath).walk().filter { it.name.endsWith(".xml") }.sortedBy { it.name }
         logger.info("Found ${infraModelFiles.count()} infra model files:")
         infraModelFiles.forEach { logger.info(it.name) }
 

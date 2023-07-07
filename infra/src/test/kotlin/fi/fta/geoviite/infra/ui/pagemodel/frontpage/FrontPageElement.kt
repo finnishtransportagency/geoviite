@@ -6,14 +6,14 @@ import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-class PublicationList(by: By = byQaId("publication-list")): PageModel(by) {
+class PublicationList(by: By = byQaId("publication-list")) : PageModel(by) {
     private val listElements: List<WebElement> get() = childElements(By.cssSelector("div.publication-list-item"))
 
     val publications: List<PublicationListItem> get() = listElements.mapIndexed { i, e -> PublicationListItem(e, i) }
 
     fun openPublicationDetails(item: PublicationListItem) = openPublicationDetails(item.index)
 
-    fun openPublicationDetails(index: Int): PublicationDetails  {
+    fun openPublicationDetails(index: Int): PublicationDetails {
         logger.info("Open publication details")
         listElements[index].findElement(By.cssSelector("div.publication-list-item__text a")).click()
         return PublicationDetails()
@@ -21,14 +21,14 @@ class PublicationList(by: By = byQaId("publication-list")): PageModel(by) {
 }
 
 data class PublicationListItem(val trackNumbers: String, val timestamp: String, val index: Int) {
-    constructor(rowElement: WebElement, index: Int): this(
+    constructor(rowElement: WebElement, index: Int) : this(
         trackNumbers = rowElement.findElement(By.cssSelector("div.publication-list-item__track-numbers")).text,
         timestamp = rowElement.findElement(By.cssSelector("div.publication-list-item__text a")).text,
         index = index,
     )
 }
 
-class PublicationDetails: PageModel(By.cssSelector("div.publication-details")) {
+class PublicationDetails : PageModel(By.cssSelector("div.publication-details")) {
     fun returnToFrontPage() = clickChild(By.cssSelector("div.publication-details__title a"))
 
     fun detailRowContents(): List<PublicationDetailRowContent> {

@@ -76,7 +76,7 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
-const val DEV_DEBUG = false
+const val DEV_DEBUG = true
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
@@ -89,8 +89,8 @@ fun openBrowser() {
     //    }
     //}
 
-//        openFirefox(headless)
-    openChrome(headless)
+    openFirefox(headless)
+//    openChrome(headless)
     logger.info("Webdriver initialized")
 
     browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(1))
@@ -126,9 +126,7 @@ fun takeScreenShot(targetFilePrefix: String) = try {
 }
 
 enum class LogSource {
-    CONSOLE,
-    NETWORK,
-    NETWORK_RESPONSES,
+    CONSOLE, NETWORK, NETWORK_RESPONSES,
 }
 
 fun printBrowserLogs() = try {
@@ -177,7 +175,7 @@ private fun printLogEntries(source: LogSource, logEntries: List<LogEntry>) {
 }
 
 private fun filter(logEntries: LogEntries, start: Long, end: Long): List<LogEntry> {
-    return logEntries.filter { logEntry -> logEntry.timestamp > start && logEntry.timestamp < end }
+    return logEntries.filter { logEntry -> logEntry.timestamp in (start + 1) until end }
 }
 
 private fun filter(logEntries: LogEntries, start: Long): List<LogEntry> {
@@ -190,10 +188,10 @@ private fun filter(logEntries: List<LogEntry>, regex: Regex): List<LogEntry> {
 
 private fun hasEntryLevel(logEntries: List<LogEntry>, level: Level): Boolean {
     val filtered = logEntries.filter { logEntry -> logEntry.level.equals(level) }
-    return filtered.size > 0;
+    return filtered.isNotEmpty()
 }
 
 private fun messageMatches(logEntries: List<LogEntry>, regex: Regex): Boolean {
     val filtered = logEntries.filter { logEntry -> logEntry.message.matches(regex) }
-    return filtered.size > 0
+    return filtered.isNotEmpty()
 }

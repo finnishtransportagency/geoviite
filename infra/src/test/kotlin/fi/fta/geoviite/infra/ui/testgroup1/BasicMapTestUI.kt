@@ -9,8 +9,8 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapNavigationPanel
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.EAST_LT_NAME
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACKNUMBER_1
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACKNUMBER_2
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_2
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.WEST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastLocationTrack
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastReferenceLine
@@ -55,8 +55,8 @@ class BasicMapTestUI @Autowired constructor(
         clearAllTestData()
 
         // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
-        TRACK_NUMBER_WEST = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_1)
-        val trackNumberEast = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_2)
+        TRACK_NUMBER_WEST = createTrackLayoutTrackNumber(HKI_TRACK_NUMBER_1)
+        val trackNumberEast = createTrackLayoutTrackNumber(HKI_TRACK_NUMBER_2)
         val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
         val trackNumberEastId = trackNumberDao.insert(trackNumberEast)
 
@@ -80,7 +80,8 @@ class BasicMapTestUI @Autowired constructor(
         switchDao.insert(EAST_LAYOUT_SWITCH)
 
         GEOMETRY_PLAN = geometryDao.fetchPlan(
-            (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null)))
+            (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null))
+        )
 
         startGeoviite()
         goToMap()
@@ -126,14 +127,13 @@ class BasicMapTestUI @Autowired constructor(
         val changePreviewTable = previewChangesPage.changesTable()
         assertTrue(changePreviewTable.changeRows().isNotEmpty())
 
-        val changedAligment =
-            changePreviewTable.changeRows().first { row -> row.muutoskohde().contains(editedTunnus) }
+        val changedAlignment = changePreviewTable.changeRows().first { row -> row.muutoskohde().contains(editedTunnus) }
 
         val nameColumnValue = "Sijaintiraide $editedTunnus"
-        assertEquals(nameColumnValue, changedAligment.muutoskohde())
-        assertEquals(HKI_TRACKNUMBER_2, changedAligment.ratanumero())
+        assertEquals(nameColumnValue, changedAlignment.muutoskohde())
+        assertEquals(HKI_TRACK_NUMBER_2, changedAlignment.ratanumero())
 
-        changedAligment.menu().click()
+        changedAlignment.menu().click()
         previewChangesPage.hylkaaMuutos(nameColumnValue)
         previewChangesPage.palaaLuonnostilaan()
         navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
@@ -183,12 +183,11 @@ class BasicMapTestUI @Autowired constructor(
         val changePreviewTable = previewChangesPage.changesTable()
         assertTrue(changePreviewTable.changeRows().isNotEmpty())
 
-        val changedAligment =
-            changePreviewTable.changeRows().first { row -> row.muutoskohde().contains(editedTunnus) }
+        val changedAlignment = changePreviewTable.changeRows().first { row -> row.muutoskohde().contains(editedTunnus) }
 
-        assertEquals("Sijaintiraide $editedTunnus", changedAligment.muutoskohde())
-        assertEquals(HKI_TRACKNUMBER_1, changedAligment.ratanumero())
-        changedAligment.nuolinappi().click()
+        assertEquals("Sijaintiraide $editedTunnus", changedAlignment.muutoskohde())
+        assertEquals(HKI_TRACK_NUMBER_1, changedAlignment.ratanumero())
+        changedAlignment.nuolinappi().click()
 
         val notificationAfterSave = previewChangesPage.julkaise().readAndClose()
         assertContains(notificationAfterSave, "Muutokset julkaistu")
