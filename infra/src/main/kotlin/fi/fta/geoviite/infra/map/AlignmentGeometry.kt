@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
+import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
     GEOMETRY,
@@ -102,7 +103,7 @@ fun simplify(
     return segments
         .flatMap { s -> s.points.filter { p ->
             val result =
-                (resolution == null || p.m - previousM >= resolution || (p.m == alignment.length && previousM < p.m))
+                (resolution == null || (p.m - previousM).roundToInt() >= resolution || (p.m == alignment.length && previousM < p.m))
                         && (bbox == null || previousInBbox || bbox.contains(p))
             if (result) {
                 previousM = p.m
