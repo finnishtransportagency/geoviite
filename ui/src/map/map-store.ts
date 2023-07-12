@@ -110,6 +110,7 @@ export const initialMapState: Map = {
     },
     clickLocation: null,
     verticalGeometryDiagramVisible: false,
+    loadingIndicatorVisible: false,
 };
 
 export const mapReducers = {
@@ -133,6 +134,7 @@ export const mapReducers = {
                   1.2
                 : state.viewport.resolution,
         };
+        state.loadingIndicatorVisible = true;
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         state.visibleLayers = deduplicate([
@@ -141,6 +143,7 @@ export const mapReducers = {
             ...layers,
             ...collectRelatedLayers(layers),
         ]);
+        state.loadingIndicatorVisible = true;
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         const relatedLayers = collectRelatedLayers(layers);
@@ -192,6 +195,9 @@ export const mapReducers = {
         { payload: visibilitySetting }: PayloadAction<boolean>,
     ): void => {
         state.verticalGeometryDiagramVisible = visibilitySetting;
+    },
+    onDoneLoading: (state: Map): void => {
+        state.loadingIndicatorVisible = false;
     },
 };
 
