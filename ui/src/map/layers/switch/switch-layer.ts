@@ -47,8 +47,10 @@ export function createSwitchLayer(
         }
     }
 
+    let inFlight = false;
     const resolution = olView.getResolution() || 0;
     if (resolution <= Limits.SWITCH_SHOW) {
+        inFlight = true;
         Promise.all([getSwitchesFromApi(), getSwitchStructures()])
             .then(([switches, switchStructures]) => {
                 if (layerId !== newestLayerId) return;
@@ -82,6 +84,9 @@ export function createSwitchLayer(
             .catch(() => {
                 clearFeatures(vectorSource);
                 updateShownSwitches([]);
+            })
+            .finally(() => {
+                inFlight = false;
             });
     } else {
         clearFeatures(vectorSource);
@@ -99,5 +104,6 @@ export function createSwitchLayer(
             return { switches };
         },
         onRemove: () => updateShownSwitches([]),
+        requestInFlight: () => inFlight,
     };
 }

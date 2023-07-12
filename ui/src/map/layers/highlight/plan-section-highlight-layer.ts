@@ -64,7 +64,9 @@ export function createPlanSectionHighlightLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
+        inFlight = true;
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL')
             .then((alignments) => {
                 if (layerId === newestLayerId) {
@@ -74,7 +76,10 @@ export function createPlanSectionHighlightLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -82,5 +87,6 @@ export function createPlanSectionHighlightLayer(
     return {
         name: 'plan-section-highlight-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

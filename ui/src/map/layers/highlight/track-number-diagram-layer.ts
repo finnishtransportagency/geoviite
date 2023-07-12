@@ -73,6 +73,7 @@ export function createTrackNumberDiagramLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     const fetchType = resolution > Limits.ALL_ALIGNMENTS ? 'REFERENCE_LINES' : 'ALL';
 
+    let inFlight = true;
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
         .then((alignments) => {
             if (layerId !== newestLayerId) return;
@@ -97,10 +98,14 @@ export function createTrackNumberDiagramLayer(
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);
         })
-        .catch(() => clearFeatures(vectorSource));
+        .catch(() => clearFeatures(vectorSource))
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'track-number-diagram-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

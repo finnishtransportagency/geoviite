@@ -30,7 +30,9 @@ export function createGeometryKmPostLayer(
 
     const step = getKmPostStepByResolution(resolution);
 
+    let inFlight = false;
     if (step) {
+        inFlight = true;
         const isSelected = (kmPost: LayoutKmPost) => {
             return selection.selectedItems.geometryKmPosts.some(
                 ({ geometryItem }) => geometryItem.id === kmPost.id,
@@ -75,7 +77,10 @@ export function createGeometryKmPostLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -91,5 +96,6 @@ export function createGeometryKmPostLayer(
                 })),
             };
         },
+        requestInFlight: () => inFlight,
     };
 }

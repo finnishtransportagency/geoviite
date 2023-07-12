@@ -166,6 +166,7 @@ export function createGeometryAlignmentLayer(
         changeTimes.layoutLocationTrack,
     );
 
+    let inFlight = true;
     Promise.all(
         selection.planLayouts.map((planLayout) =>
             getPlanLayoutAlignmentsWithLinking(
@@ -186,7 +187,10 @@ export function createGeometryAlignmentLayer(
                 vectorSource.addFeatures(f.flat());
             }
         })
-        .catch(() => clearFeatures(vectorSource));
+        .catch(() => clearFeatures(vectorSource))
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'geometry-alignment-layer',
@@ -203,5 +207,6 @@ export function createGeometryAlignmentLayer(
 
             return { geometryAlignments };
         },
+        requestInFlight: () => inFlight,
     };
 }

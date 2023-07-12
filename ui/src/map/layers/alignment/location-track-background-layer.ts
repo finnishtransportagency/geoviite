@@ -24,7 +24,9 @@ export function createLocationTrackBackgroundLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= Limits.ALL_ALIGNMENTS) {
+        inFlight = true;
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
                 if (layerId === newestLayerId) {
@@ -34,7 +36,10 @@ export function createLocationTrackBackgroundLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -42,5 +47,6 @@ export function createLocationTrackBackgroundLayer(
     return {
         name: 'location-track-background-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }
