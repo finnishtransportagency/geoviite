@@ -164,6 +164,16 @@ fun printNetworkLogsResponses() = try {
     logger.error("Failed to print network responses ${e.message}")
 }
 
+fun <T> withNoImplicitWait(act: () -> T): T {
+    val originalWait = browser().manage().timeouts().implicitWaitTimeout
+    browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(0))
+    try {
+        return act()
+    } finally {
+        browser().manage().timeouts().implicitlyWait(originalWait)
+    }
+}
+
 private fun printLogEntries(source: LogSource, logEntries: LogEntries) {
     printLogEntries(source, logEntries.toList())
 }

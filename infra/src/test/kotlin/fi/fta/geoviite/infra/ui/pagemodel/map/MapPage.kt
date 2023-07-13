@@ -13,7 +13,9 @@ import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import waitUntilDoesNotExist
 import waitUntilValueIsNot
+import withNoImplicitWait
 import kotlin.math.roundToInt
 
 class MapPage {
@@ -100,6 +102,10 @@ class MapPage {
         while (!currentMapScale().contentEquals(targetScale)) {
             zoomIn()
         }
+    }
+
+    fun finishLoading() {
+        withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
     }
 
     fun zoomOutToScale(targetScale: String) {
