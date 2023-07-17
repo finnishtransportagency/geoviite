@@ -84,13 +84,18 @@ export function createDebug1mPointsLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     const selected = selection.selectedItems.locationTracks[0];
+    let inFlight = false;
     if (selected && resolution <= DEBUG_1M_POINTS) {
+        inFlight = true;
         getAddressPoints(selected, publishType)
             .then((addresses) => {
                 clearFeatures(vectorSource);
                 addresses && vectorSource.addFeatures(createAddressPointFeatures(addresses));
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -98,5 +103,6 @@ export function createDebug1mPointsLayer(
     return {
         name: 'debug-1m-points-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

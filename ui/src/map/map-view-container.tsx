@@ -36,6 +36,7 @@ const getTrackLayoutProps = (): MapViewProps => {
         onViewportUpdate: delegates.onViewportChange,
         publishType: store.publishType,
         selection: store.selection,
+        onDoneLoading: delegates.onDoneLoading,
     };
 };
 
@@ -61,6 +62,7 @@ const getInfraModelProps = (): MapViewProps => {
         onViewportUpdate: delegates.onViewportChange,
         publishType: 'OFFICIAL',
         selection: store.selection,
+        onDoneLoading: emptyFn,
     };
 };
 

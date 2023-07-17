@@ -63,6 +63,7 @@ import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/tr
 import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 declare global {
     interface Window {
@@ -88,6 +89,7 @@ export type MapViewProps = {
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
+    onDoneLoading: () => void;
 };
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
@@ -140,13 +142,14 @@ const MapView: React.FC<MapViewProps> = ({
     onShownLayerItemsChange,
     onHighlightItems,
     onClickLocation,
+    onDoneLoading,
 }: MapViewProps) => {
     const { t } = useTranslation();
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
-    const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
+    const visibleLayers = React.useRef<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
@@ -196,6 +199,12 @@ const MapView: React.FC<MapViewProps> = ({
             interactions: interactions,
             target: olMapContainer.current as HTMLElement,
             view: getOlViewByDomainViewport(map.viewport),
+        });
+
+        window.map.on('rendercomplete', () => {
+            if (!visibleLayers.current.some((l) => l.requestInFlight())) {
+                onDoneLoading();
+            }
         });
 
         setOlMap(window.map);
@@ -258,7 +267,9 @@ const MapView: React.FC<MapViewProps> = ({
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = visibleLayers.find((l) => l.name === layerName)?.layer;
+                const existingOlLayer = visibleLayers.current.find(
+                    (l) => l.name === layerName,
+                )?.layer;
 
                 switch (layerName) {
                     case 'background-map-layer':
@@ -452,11 +463,11 @@ const MapView: React.FC<MapViewProps> = ({
 
         updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
 
-        visibleLayers
+        visibleLayers.current
             .filter((vl) => !updatedLayers.some((ul) => ul.name === vl.name))
             .forEach((l) => l.onRemove && l.onRemove());
 
-        setVisibleLayers(updatedLayers);
+        visibleLayers.current = updatedLayers;
 
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
@@ -485,16 +496,16 @@ const MapView: React.FC<MapViewProps> = ({
         };
 
         const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
+            pointLocationTool.activate(olMap, visibleLayers.current, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
             deactivateCallbacks.push(
-                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
+                selectTool.activate(olMap, visibleLayers.current, toolActivateOptions),
             );
 
             deactivateCallbacks.push(
-                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
+                highlightTool.activate(olMap, visibleLayers.current, toolActivateOptions),
             );
         }
 
@@ -502,7 +513,7 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, visibleLayers, measurementToolActive]);
+    }, [olMap, visibleLayers.current, measurementToolActive]);
 
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
@@ -566,6 +577,12 @@ const MapView: React.FC<MapViewProps> = ({
                 locationTracks={selection.selectedItems.locationTracks}
                 publishType={publishType}
             />
+
+            {map.loadingIndicatorVisible && (
+                <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
+                    <Spinner />
+                </div>
+            )}
         </div>
     );
 };

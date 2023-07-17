@@ -25,7 +25,9 @@ export function createGeometrySwitchLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= Limits.SWITCH_SHOW) {
+        inFlight = true;
         const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
         const showLabels = resolution <= Limits.SWITCH_LABELS;
         const isSelected = (switchItem: LayoutSwitch) => {
@@ -81,6 +83,9 @@ export function createGeometrySwitchLayer(
             })
             .catch(() => {
                 clearFeatures(vectorSource);
+            })
+            .finally(() => {
+                inFlight = false;
             });
     } else {
         vectorSource.clear();
@@ -97,5 +102,6 @@ export function createGeometrySwitchLayer(
                 })),
             };
         },
+        requestInFlight: () => inFlight,
     };
 }

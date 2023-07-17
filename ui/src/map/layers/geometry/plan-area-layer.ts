@@ -56,6 +56,7 @@ export function createPlanAreaLayer(
         getPlanAreasByTile(tile, changeTimes.geometryPlan),
     );
 
+    let inFlight = true;
     Promise.all(planAreaPromises)
         .then((planAreas) => deduplicatePlanAreas(planAreas.flat()))
         .then((planAreas) => {
@@ -66,10 +67,12 @@ export function createPlanAreaLayer(
                 vectorSource.addFeatures(features);
             }
         })
-        .catch(() => clearFeatures(vectorSource));
+        .catch(() => clearFeatures(vectorSource))
+        .finally(() => (inFlight = false));
 
     return {
         name: 'plan-area-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

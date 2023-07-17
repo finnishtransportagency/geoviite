@@ -411,8 +411,7 @@ class GeometryAlignmentLinkingInfoBox(by: By) : LinkingInfoBox(by) {
     fun lukitseValinta() = this {
         logger.info("Lock selection")
         clickButtonByText("Lukitse valinta")
-        //TODO: this might break things
-        //getButtonElement("Poista valinta")
+        waitChildVisible(byText("Poista valinta"))
     }
 }
 

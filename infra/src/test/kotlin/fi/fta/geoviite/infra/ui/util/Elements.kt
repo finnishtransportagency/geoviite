@@ -1,10 +1,7 @@
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
 import fi.fta.geoviite.infra.ui.pagemodel.common.defaultToasterBy
-import org.openqa.selenium.By
-import org.openqa.selenium.Keys
-import org.openqa.selenium.NoSuchElementException
-import org.openqa.selenium.WebElement
+import org.openqa.selenium.*
 import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
 import org.openqa.selenium.support.ui.ExpectedConditions.*

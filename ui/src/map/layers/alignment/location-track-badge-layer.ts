@@ -31,9 +31,11 @@ export function createLocationTrackBadgeLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= Limits.SHOW_LOCATION_TRACK_BADGES) {
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
+        inFlight = true;
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
@@ -48,7 +50,10 @@ export function createLocationTrackBadgeLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -56,5 +61,6 @@ export function createLocationTrackBadgeLayer(
     return {
         name: 'location-track-badge-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

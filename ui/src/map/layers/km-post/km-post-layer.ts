@@ -50,11 +50,13 @@ export function createKmPostLayer(
         }
     }
 
+    let inFlight = false;
     const step = getKmPostStepByResolution(resolution);
     if (step == 0) {
         clearFeatures(vectorSource);
         updateShownKmPosts([]);
     } else {
+        inFlight = true;
         // Fetch every nth
         getKmPostsFromApi(step)
             .then((kmPosts) => {
@@ -80,6 +82,9 @@ export function createKmPostLayer(
             .catch(() => {
                 clearFeatures(vectorSource);
                 updateShownKmPosts([]);
+            })
+            .finally(() => {
+                inFlight = false;
             });
     }
 
@@ -94,5 +99,6 @@ export function createKmPostLayer(
             };
         },
         onRemove: () => updateShownKmPosts([]),
+        requestInFlight: () => inFlight,
     };
 }
