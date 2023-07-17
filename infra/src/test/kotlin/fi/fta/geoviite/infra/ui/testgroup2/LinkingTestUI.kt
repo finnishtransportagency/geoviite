@@ -170,16 +170,6 @@ class LinkingTestUI @Autowired constructor(
 
         mapPage = goToMap()
         mapPage.luonnostila()
-        val previewChangesPage = mapPage.esikatselu()
-
-        logger.info("Discarding unpublished changes before a test")
-        if (previewChangesPage.changesTable().changeRows().isNotEmpty()) {
-            previewChangesPage.hylkaaMuutokset()
-        } else {
-            logger.info("No unpublished changes")
-            previewChangesPage.palaaLuonnostilaan()
-        }
-
         mapPage.zoomOutToScale("5 km")
 
         navigationPanel.selectReferenceLine(ESPOO_TRACK_NUMBER_1)
@@ -807,13 +797,6 @@ class LinkingTestUI @Autowired constructor(
         previewChangesPage.lisaaMuutoksetJulkaisuun()
         previewChangesPage.julkaise().assertAndClose(expectedPublishMessage)
     }
-
-    fun discardChanges() {
-        val previewChangesPage = mapPage.esikatselu()
-        previewChangesPage.logChanges()
-        previewChangesPage.hylkaaMuutokset()
-    }
-
 
     fun createAndLinkLocationTrack(geometryAlignment: GeometryAlignment, locationTrackName: String) {
 
