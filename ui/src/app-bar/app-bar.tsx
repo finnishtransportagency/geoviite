@@ -27,11 +27,6 @@ const links: Link[] = [
     { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod' },
     { link: '/design-lib-demo', name: 'app-bar.components', type: 'dev' },
     { link: '/localization-demo', name: 'app-bar.localization', type: 'dev' },
-    {
-        link: '/vertical-geometry-diagram-demo',
-        name: 'app-bar.vertical-geometry-diagram-demo',
-        type: 'dev',
-    },
 ];
 
 export const AppBar: React.FC = () => {
