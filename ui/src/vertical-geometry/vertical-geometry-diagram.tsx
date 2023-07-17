@@ -133,7 +133,8 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         }
     };
 
-    const onWheel: React.EventHandler<React.WheelEvent<unknown>> = (e) => {
+    const onWheel: (e: WheelEvent) => void = (e) => {
+        e.preventDefault();
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
         if (elementLeft == null) {
             return;
@@ -150,6 +151,14 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
 
         onMove(newStartM, newEndM);
     };
+
+    React.useEffect(() => {
+        ref?.current?.addEventListener('wheel', onWheel, { passive: false });
+
+        return () => {
+            ref?.current?.removeEventListener('wheel', onWheel);
+        };
+    });
 
     const onDoubleClick: React.EventHandler<React.MouseEvent<unknown>> = (e) => {
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
@@ -194,7 +203,6 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                 setPanning(undefined);
                 setMousePositionInElement(undefined);
             }}
-            onWheel={onWheel}
             onDoubleClick={onDoubleClick}
             ref={ref}>
             {snap && elementPosition && (
