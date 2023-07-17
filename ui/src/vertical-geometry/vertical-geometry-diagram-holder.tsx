@@ -79,7 +79,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     const ref = React.useRef<HTMLDivElement>(null);
 
     const horizontalTickLengthMeters = minimumIntervalOrLongest(
-        diagramWidth && visibleEndM && visibleStartM
+        diagramWidth !== undefined && visibleEndM !== undefined && visibleStartM !== undefined
             ? diagramWidth / (visibleEndM - visibleStartM)
             : 0,
         minimumApproximateHorizontalTickWidthPx,
