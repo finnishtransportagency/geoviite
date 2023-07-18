@@ -44,8 +44,8 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     useResizeObserver({
         ref: document.body,
         onResize: () => {
-            setX(boundingRect?.x);
-            setY(boundingRect?.y);
+            setX(positionRef.current?.getBoundingClientRect().x);
+            setY(positionRef.current?.getBoundingClientRect().y);
         },
     });
 
