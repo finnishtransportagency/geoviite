@@ -72,7 +72,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
 }) => {
     const [startM, setStartM] = React.useState<number>();
     const [endM, setEndM] = React.useState<number>();
-    const [isLoading, setIsLoading] = React.useState(false);
+    const [isLoadingGeometry, setIsLoadingGeometry] = React.useState(true);
     const [diagramHeight, setDiagramHeight] = React.useState<number>();
     const [diagramWidth, setDiagramWidth] = React.useState<number>();
     const [linkingSummary, setLinkingSummary] = React.useState<PlanLinkingSummaryItem[]>();
@@ -97,20 +97,20 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     );
 
     const showDiagram =
-        !!kmHeights &&
-        !!processedGeometry &&
+        kmHeights !== undefined &&
+        kmHeights.length > 0 &&
+        processedGeometry !== undefined &&
         startM !== undefined &&
         endM !== undefined &&
         startM !== endM &&
-        visibleStartM !== undefined &&
-        visibleEndM !== undefined &&
-        visibleStartM !== visibleEndM &&
         !!diagramWidth &&
         !!diagramHeight;
 
     React.useEffect(() => {
         let shouldUpdate = true;
-        setIsLoading(true);
+        if (!isLoadingGeometry) {
+            setIsLoadingGeometry(true);
+        }
 
         const linkingSummaryPromise =
             'planId' in alignmentId
@@ -145,7 +145,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                         setVisibleExtentM(start, end);
                     }
 
-                    setIsLoading(false);
+                    setIsLoadingGeometry(false);
                 } else if (shouldUpdate) {
                     setStartM(undefined);
                     setEndM(undefined);
@@ -153,7 +153,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                     setProcessedGeometry(undefined);
                     setLinkingSummary(undefined);
 
-                    setIsLoading(false);
+                    setIsLoadingGeometry(false);
                 }
             },
         );
@@ -195,23 +195,21 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                 onClick={onCloseDiagram}>
                 <Icons.Close color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
             </div>
-            {isLoading && (
+            {isLoadingGeometry || kmHeights === undefined ? (
                 <div className={styles['vertical-geometry-diagram-holder__backdrop']}></div>
-            )}
-            {!isLoading && !showDiagram && (
+            ) : !showDiagram ? (
                 <div className={styles['vertical-geometry-diagram-holder__no-diagram']}>
                     <span>{t('vertical-geometry-diagram.no-geometry')}</span>
                 </div>
-            )}
-            {showDiagram && (
+            ) : (
                 <VerticalGeometryDiagram
                     kmHeights={kmHeights}
                     geometry={processedGeometry}
                     linkingSummary={linkingSummary}
                     startM={startM}
                     endM={endM}
-                    visibleStartM={visibleStartM}
-                    visibleEndM={visibleEndM}
+                    visibleStartM={visibleStartM ?? startM}
+                    visibleEndM={visibleEndM ?? endM}
                     onMove={onMove}
                     showArea={showArea}
                     onSelect={onSelect}
