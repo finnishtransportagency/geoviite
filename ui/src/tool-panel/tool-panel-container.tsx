@@ -84,7 +84,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
                 delegates.hideLayers(['switch-linking-layer']);
                 delegates.stopLinking();
             }}
-            verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramVisible}
+            verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramState.visible}
             onHoverOverPlanSection={setHoveredOverItem}
         />
     );

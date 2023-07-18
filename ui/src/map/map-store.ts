@@ -9,10 +9,12 @@ import {
     MapViewport,
     OptionalShownItems,
     ShownItems,
+    VerticalAlignmentVisibleExtentChange,
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
+import { initialVerticalGeometryDiagramState, planAlignmentKey } from 'vertical-geometry/store';
 
 export function getEmptyShownItems(): ShownItems {
     return {
@@ -109,7 +111,7 @@ export const initialMapState: Map = {
         resolution: 20,
     },
     clickLocation: null,
-    verticalGeometryDiagramVisible: false,
+    verticalGeometryDiagramState: initialVerticalGeometryDiagramState,
     loadingIndicatorVisible: false,
 };
 
@@ -194,7 +196,21 @@ export const mapReducers = {
         state: Map,
         { payload: visibilitySetting }: PayloadAction<boolean>,
     ): void => {
-        state.verticalGeometryDiagramVisible = visibilitySetting;
+        state.verticalGeometryDiagramState.visible = visibilitySetting;
+    },
+    onVerticalGeometryDiagramAlignmentVisibleExtentChange: (
+        state: Map,
+        { payload: action }: PayloadAction<VerticalAlignmentVisibleExtentChange>,
+    ): void => {
+        if ('planId' in action.alignmentId) {
+            state.verticalGeometryDiagramState.planAlignmentVisibleExtent[
+                planAlignmentKey(action.alignmentId.planId, action.alignmentId.alignmentId)
+            ] = action.extent;
+        } else {
+            state.verticalGeometryDiagramState.layoutAlignmentVisibleExtent[
+                action.alignmentId.locationTrackId
+            ] = action.extent;
+        }
     },
     onDoneLoading: (state: Map): void => {
         state.loadingIndicatorVisible = false;

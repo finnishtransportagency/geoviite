@@ -14,7 +14,7 @@ import { getSnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates, xToM } from 'vertical-geometry/coordinates';
 import { getBottomAndTopTicks, sumPaddings, zeroDivision } from 'vertical-geometry/util';
 import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
-import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     findTrackMeterIndexContainingM,
     getTrackMeterPairAroundIndex,
@@ -22,12 +22,6 @@ import {
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { BoundingBox } from 'model/geometry';
 import { OnSelectOptions } from 'selection/selection-model';
-import { LocationTrackId } from 'track-layout/track-layout-model';
-import { PublishType } from 'common/common-model';
-
-export type VerticalGeometryDiagramAlignmentId =
-    | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
-    | { locationTrackId: LocationTrackId; publishType: PublishType };
 
 const chartBottomPadding = 60;
 const topHeightPaddingPx = 180;
