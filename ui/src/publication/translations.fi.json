@@ -17,6 +17,41 @@
         "calculated-change": "Laskettu muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta"
     },
+    "publication-details-table": {
+        "property": "Muuttunut kohde",
+        "old-value": "Edellinen arvo",
+        "new-value": "Uusi arvo",
+        "remarks": "Huomioita",
+        "remark": {
+            "changed-x-meters": "Muutos {{0}}m",
+            "moved-x-meters": "Siirtynyt {{0}}m",
+            "changed-kilometers": "Muuttunut kilometreiltä {{0}}"
+        },
+        "prop": {
+            "location-track": "Sijaintiraidetunnus",
+            "track-number": "Ratanumero",
+            "state": "Tila",
+            "km-post": "Tasakilometripiste",
+            "description": "Kuvaus",
+            "topological-connection": "Topologinen yhteys",
+            "location-track-type": "Sijaintiraidetyyppi",
+            "duplicate-of": "Duplikaatti raiteelle",
+            "owner": "Omistaja",
+            "length": "Pituus",
+            "start-location": "Alkusijainti",
+            "end-location": "Loppusijainti",
+            "geometry": "Geometria",
+            "start-address": "Alkuosoite",
+            "end-address": "Loppuosoite",
+            "switch-id": "Vaihdetunnus",
+            "state-category": "Tilakategoria",
+            "switch-type": "Vaihdetyyppi",
+            "trap-point": "Turvavaihde",
+            "location-math-point": "Sijainti (matemaattinen piste)",
+            "location-forward-joint": "Sijainti (etujatkos)",
+            "address": "Rataosoite"
+        }
+    },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",

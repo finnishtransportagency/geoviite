@@ -7,6 +7,8 @@ import styles from './publication-table.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
+import { PublicationTableDetails } from 'publication/table/publication-table-details';
 
 const formatKmNumber = (kmNumbers: KmNumber[]) => {
     return kmNumbers
@@ -42,9 +44,10 @@ const formatKmNumber = (kmNumbers: KmNumber[]) => {
         ));
 };
 
-type PublicationTableRowProps = Omit<PublicationTableItem, 'id'>;
+type PublicationTableRowProps = PublicationTableItem;
 
 export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
+    id,
     name,
     trackNumbers,
     changedKmNumbers,
@@ -57,6 +60,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     const { t } = useTranslation();
     const messageRows = message.split('\n');
     const [messageExpanded, setMessageExpanded] = React.useState(false);
+    const [detailsVisible, setDetailsVisible] = React.useState<boolean>(false);
     const contentClassNames = createClassName(
         styles['publication-table__message-content'],
         messageExpanded
@@ -68,27 +72,81 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
         messageExpanded ? styles['publication-table__message-icon--open'] : undefined,
     );
 
+    const rowClassNames = createClassName(
+        'publication-table__row',
+        detailsVisible && styles['publication-table__row-details--borderless'],
+    );
+
+    // TODO: Remove test data when real data is available
+    const testData = [
+        {
+            propKey: 'location-track',
+            oldValue: 'old name',
+            newValue: 'new name',
+            remarks: {
+                key: 'changed-x-meters',
+                value: '100',
+            },
+        },
+        {
+            propKey: 'track-number',
+            oldValue: 'old name',
+            newValue: 'new name',
+            remarks: {
+                key: 'moved-x-meters',
+                value: '100',
+            },
+        },
+        {
+            propKey: 'state',
+            oldValue: 'old name',
+            newValue: 'new name',
+            remarks: {
+                key: 'changed-kilometers',
+                value: '0001, 0003-0005, 0007-0010',
+            },
+        },
+    ];
+
     return (
-        <tr className={'publication-table__row'}>
-            <td>{name}</td>
-            <td>{trackNumbers.sort().join(', ')}</td>
-            <td>{changedKmNumbers ? formatKmNumber(changedKmNumbers) : ''}</td>
-            <td>{t(`enum.publish-operation.${operation}`)}</td>
-            <td>{formatDateFull(publicationTime)}</td>
-            <td>{publicationUser}</td>
-            <td className={styles['publication-table__message-column']} title={message}>
-                <Button
-                    className={chevronClassNames}
-                    icon={Icons.Down}
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SMALL}
-                    onClick={() => setMessageExpanded(!messageExpanded)}
-                />
-                <div className={contentClassNames}>
-                    {messageExpanded ? message : messageRows[0]}
-                </div>
-            </td>
-            <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
-        </tr>
+        <React.Fragment>
+            <tr className={rowClassNames}>
+                <td>
+                    <AccordionToggle
+                        open={detailsVisible}
+                        onToggle={() => setDetailsVisible(!detailsVisible)}
+                    />
+                </td>
+                <td>{name}</td>
+                <td>{trackNumbers.sort().join(', ')}</td>
+                <td>{changedKmNumbers ? formatKmNumber(changedKmNumbers) : ''}</td>
+                <td>{t(`enum.publish-operation.${operation}`)}</td>
+                <td>{formatDateFull(publicationTime)}</td>
+                <td>{publicationUser}</td>
+                <td className={styles['publication-table__message-column']} title={message}>
+                    <Button
+                        className={chevronClassNames}
+                        icon={Icons.Down}
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SMALL}
+                        onClick={() => setMessageExpanded(!messageExpanded)}
+                    />
+                    <div className={contentClassNames}>
+                        {messageExpanded ? message : messageRows[0]}
+                    </div>
+                </td>
+                <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
+            </tr>
+            {detailsVisible && (
+                <tr>
+                    <td className={styles['publication-table__row-details-left-bar-container']}>
+                        <span className={styles['publication-table__row-details-left-bar']}></span>
+                    </td>
+                    <td colSpan={8}>
+                        <PublicationTableDetails id={id} items={testData} />
+                    </td>
+                </tr>
+            )}
+        </React.Fragment>
     );
 };
