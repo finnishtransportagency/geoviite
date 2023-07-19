@@ -1,8 +1,5 @@
 import * as React from 'react';
-import {
-    VerticalGeometryDiagram,
-    VerticalGeometryDiagramAlignmentId,
-} from 'vertical-geometry/vertical-geometry-diagram';
+import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
 import { useAlignmentHeights } from 'vertical-geometry/km-heights-fetch';
 import { ChangeTimes } from 'common/common-slice';
 import { VerticalGeometryItem } from 'geometry/geometry-model';
@@ -25,6 +22,7 @@ import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { processLayoutGeometries } from 'vertical-geometry/util';
 import { useTranslation } from 'react-i18next';
+import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 
 type VerticalGeometryDiagramHolderProps = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
@@ -32,6 +30,10 @@ type VerticalGeometryDiagramHolderProps = {
     onCloseDiagram: () => void;
     onSelect: (options: OnSelectOptions) => void;
     showArea: (area: BoundingBox) => void;
+
+    setVisibleExtentM: (visibleStartM: number | undefined, visibleEndM: number | undefined) => void;
+    visibleStartM: number | undefined;
+    visibleEndM: number | undefined;
 };
 
 // we don't really need the station values in the plan geometry for anything in this entire diagram
@@ -64,11 +66,12 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     onCloseDiagram,
     onSelect,
     showArea,
+    setVisibleExtentM,
+    visibleStartM,
+    visibleEndM,
 }) => {
     const [startM, setStartM] = React.useState<number>();
     const [endM, setEndM] = React.useState<number>();
-    const [visibleStartM, setVisibleStartM] = React.useState<number>();
-    const [visibleEndM, setVisibleEndM] = React.useState<number>();
     const [isLoading, setIsLoading] = React.useState(false);
     const [diagramHeight, setDiagramHeight] = React.useState<number>();
     const [diagramWidth, setDiagramWidth] = React.useState<number>();
@@ -137,16 +140,16 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                     );
 
                     setStartM(start);
-                    setVisibleStartM(start);
                     setEndM(end);
-                    setVisibleEndM(end);
+                    if (visibleStartM === undefined || visibleEndM === undefined) {
+                        setVisibleExtentM(start, end);
+                    }
 
                     setIsLoading(false);
                 } else if (shouldUpdate) {
                     setStartM(undefined);
-                    setVisibleStartM(undefined);
                     setEndM(undefined);
-                    setVisibleEndM(undefined);
+                    setVisibleExtentM(undefined, undefined);
                     setProcessedGeometry(undefined);
                     setLinkingSummary(undefined);
 
@@ -182,8 +185,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     });
 
     function onMove(startM: number, endM: number) {
-        setVisibleStartM(startM);
-        setVisibleEndM(endM);
+        setVisibleExtentM(startM, endM);
     }
 
     return (

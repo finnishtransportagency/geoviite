@@ -27,7 +27,6 @@ import ElementListView from 'data-products/element-list/element-list-view';
 import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
-import VerticalGeometryDiagramDemoPage from 'vertical-geometry/demo-page';
 import { getOwnUser } from 'user/user-api';
 
 type MainProps = {
@@ -63,10 +62,6 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route
                         path="/data-products/vertical-geometry"
                         element={<VerticalGeometryView />}
-                    />
-                    <Route
-                        path="/vertical-geometry-diagram-demo"
-                        element={<VerticalGeometryDiagramDemoPage />}
                     />
                     <Route
                         path="/data-products/kilometer-lengths"

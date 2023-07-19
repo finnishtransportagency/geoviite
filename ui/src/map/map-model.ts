@@ -9,6 +9,10 @@ import {
 } from 'track-layout/track-layout-model';
 import { ValueOf } from 'utils/type-utils';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
+import {
+    VerticalGeometryDiagramAlignmentId,
+    VerticalGeometryDiagramState,
+} from 'vertical-geometry/store';
 
 export type MapLayerName =
     | 'background-map-layer'
@@ -121,7 +125,7 @@ export type Map = {
     viewport: MapViewport;
     shownItems: ShownItems;
     clickLocation: Point | null;
-    verticalGeometryDiagramVisible: boolean;
+    verticalGeometryDiagramState: VerticalGeometryDiagramState;
     loadingIndicatorVisible: boolean;
 };
 
@@ -140,4 +144,9 @@ export type AlignmentHighlight = {
 export type MapLayerMenuChange = {
     name: MapLayerMenuItemName;
     visible: boolean;
+};
+
+export type VerticalAlignmentVisibleExtentChange = {
+    alignmentId: VerticalGeometryDiagramAlignmentId;
+    extent: [number, number];
 };

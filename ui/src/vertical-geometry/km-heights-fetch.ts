@@ -7,7 +7,7 @@ import {
 import throttle from '@jcoreio/async-throttle';
 import { ChangeTimes } from 'common/common-slice';
 import { toDate } from 'utils/date-utils';
-import { VerticalGeometryDiagramAlignmentId } from './vertical-geometry-diagram';
+import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 
 type HeightCacheKey = string;
 type HeightCacheItem = {
