@@ -449,12 +449,12 @@ class GeometryService @Autowired constructor(
             geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId) ?: return null
 
         val segmentSources = collectSegmentSources(alignment)
-        val planLinkEndSegmentIndices = segmentSources
-            .zipWithNext { a, b -> a.plan == b.plan }
+        val alignmentLinkEndSegmentIndices = segmentSources
+            .zipWithNext { a, b -> a.alignment == b.alignment }
             .mapIndexedNotNull { i, equals -> if (equals) null else i }
 
-        val planBoundaryAddresses =
-            planLinkEndSegmentIndices.flatMap { i ->
+        val alignmentBoundaryAddresses =
+            alignmentLinkEndSegmentIndices.flatMap { i ->
                 listOf(
                     PlanBoundaryPoint(alignment.segments[i].endM, i),
                     PlanBoundaryPoint(alignment.segments[i + 1].startM, i + 1),
@@ -469,7 +469,7 @@ class GeometryService @Autowired constructor(
             geocodingContext,
             alignment,
             tickLength,
-            planBoundaryAddresses = planBoundaryAddresses,
+            alignmentBoundaryAddresses = alignmentBoundaryAddresses,
         ) { point, givenSegmentIndex ->
             val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
             val segment = alignment.segments[segmentIndex]
@@ -539,7 +539,7 @@ class GeometryService @Autowired constructor(
         geocodingContext: GeocodingContext,
         alignment: IAlignment,
         tickLength: Int,
-        planBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
+        alignmentBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
         getHeightAt: (point: LayoutPoint, segmentIndex: Int?) -> Double?,
     ): List<KmHeights>? {
         val addressOfStartDistance =
@@ -551,8 +551,8 @@ class GeometryService @Autowired constructor(
             geocodingContext.referencePoints.indexOfFirst { referencePoint -> referencePoint.kmNumber == addressOfStartDistance.kmNumber }..
                     geocodingContext.referencePoints.indexOfFirst { referencePoint -> referencePoint.kmNumber == addressOfEndDistance.kmNumber }
 
-        val planBoundaryAddressesByKm =
-            planBoundaryAddresses.mapNotNull { boundary ->
+        val alignmentBoundaryAddressesByKm =
+            alignmentBoundaryAddresses.mapNotNull { boundary ->
                 alignment.getPointAtM(boundary.distanceOnAlignment)?.let { point ->
                     geocodingContext.getAddress(point)?.let { address -> address.first to boundary.segmentIndex }
                 }
@@ -578,7 +578,7 @@ class GeometryService @Autowired constructor(
             // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
             // point, but potentially have different heights (or more often null/not-null heights).
-            val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf()) +
+            val allTicks = ((alignmentBoundaryAddressesByKm[kmNumber] ?: listOf()) +
                     ((0..lastPoint step tickLength).map { distance -> distance.toBigDecimal() to null }))
                 .sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
