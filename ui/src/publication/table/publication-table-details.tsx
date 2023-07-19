@@ -8,8 +8,11 @@ type PublicationTableDetailsProps = {
     items: PublicationChange[];
 };
 
+const enumTranslationKey = (enumKey: string, value: string) => `enum.${enumKey}.${value}`;
+
 export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = ({ id, items }) => {
     const { t } = useTranslation();
+
     return (
         <Table wide>
             <thead>
@@ -24,8 +27,16 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                 {items.map((item) => (
                     <tr key={`${id}_${item.propKey}`}>
                         <td>{t(`publication-details-table.prop.${item.propKey}`)}</td>
-                        <td>{item.oldValue}</td>
-                        <td>{item.newValue}</td>
+                        <td>
+                            {item.enumKey
+                                ? t(enumTranslationKey(item.enumKey, item.oldValue))
+                                : item.oldValue}
+                        </td>
+                        <td>
+                            {item.enumKey
+                                ? t(enumTranslationKey(item.enumKey, item.newValue))
+                                : item.newValue}
+                        </td>
                         <td>
                             {item.remark
                                 ? t(`publication-details-table.remark.${item.remark.key}`, [

@@ -25,7 +25,7 @@
         "remark": {
             "changed-x-meters": "Muutos {{0}}m",
             "moved-x-meters": "Siirtynyt {{0}}m",
-            "changed-kilometers": "Muuttunut kilometreiltä {{0}}"
+            "changed-km-numbers": "Muuttunut kilometreiltä {{0}}"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -33,7 +33,7 @@
             "state": "Tila",
             "km-post": "Tasakilometripiste",
             "description": "Kuvaus",
-            "topological-connection": "Topologinen yhteys",
+            "topological-connectivity": "Topologinen yhteys",
             "location-track-type": "Sijaintiraidetyyppi",
             "duplicate-of": "Duplikaatti raiteelle",
             "owner": "Omistaja",

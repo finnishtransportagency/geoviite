@@ -45,6 +45,7 @@ data class PublicationChange(
     val oldValue: String?,
     val newValue: String?,
     val remark: PublicationChangeRemark?,
+    val enumKey: String? = null,
 )
 
 data class PublicationChangeRemark(

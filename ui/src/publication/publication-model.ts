@@ -172,6 +172,7 @@ export type PublicationChange = {
     oldValue: string;
     newValue: string;
     remark: PublicationChangeRemark | null;
+    enumKey: string | null;
 };
 
 export type PublicationChangeRemark = {
