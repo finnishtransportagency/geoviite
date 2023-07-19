@@ -40,19 +40,6 @@ data class PublicationTableItem(
     val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
 }
 
-data class PublicationChangeDetails(
-    val trackNumbers: List<AssetPublicationChanges<TrackLayoutTrackNumber>>,
-    val referenceLines: List<AssetPublicationChanges<ReferenceLine>>,
-    val locationTracks: List<AssetPublicationChanges<LocationTrack>>,
-    val switches: List<AssetPublicationChanges<TrackLayoutSwitch>>,
-    val kmPosts: List<AssetPublicationChanges<TrackLayoutKmPost>>,
-)
-
-data class AssetPublicationChanges<T>(
-    val id: IntId<T>,
-    val changes: List<PublicationChange>
-)
-
 data class PublicationChange(
     val propKey: String,
     val oldValue: String?,
