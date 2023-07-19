@@ -35,9 +35,35 @@ data class PublicationTableItem(
     val publicationUser: UserName,
     val message: String,
     val ratkoPushTime: Instant?,
+    val propChanges: List<PublicationChange>,
 ) {
     val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
 }
+
+data class PublicationChangeDetails(
+    val trackNumbers: List<AssetPublicationChanges<TrackLayoutTrackNumber>>,
+    val referenceLines: List<AssetPublicationChanges<ReferenceLine>>,
+    val locationTracks: List<AssetPublicationChanges<LocationTrack>>,
+    val switches: List<AssetPublicationChanges<TrackLayoutSwitch>>,
+    val kmPosts: List<AssetPublicationChanges<TrackLayoutKmPost>>,
+)
+
+data class AssetPublicationChanges<T>(
+    val id: IntId<T>,
+    val changes: List<PublicationChange>
+)
+
+data class PublicationChange(
+    val propKey: String,
+    val oldValue: String?,
+    val newValue: String?,
+    val remark: PublicationChangeRemark?,
+)
+
+data class PublicationChangeRemark(
+    val key: String,
+    val value: String,
+)
 
 open class Publication(
     open val id: IntId<Publication>,

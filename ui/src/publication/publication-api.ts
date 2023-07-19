@@ -79,6 +79,9 @@ export const getPublicationsAsTableItems = (
     return getIgnoreError<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
 };
 
+export const getPublicationChangeDetails = (id: PublicationId) =>
+    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}/change-details`);
+
 export const getPublicationsCsvUri = (
     fromDate?: Date,
     toDate?: Date,

@@ -1,21 +1,11 @@
 import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
+import { PublicationChange } from 'publication/publication-model';
 
 type PublicationTableDetailsProps = {
     id: string;
-    // TODO Move somewhere else
-    items: {
-        propKey: string;
-        oldValue: string;
-        newValue: string;
-        remarks:
-            | {
-                  key: string;
-                  value: string;
-              }
-            | undefined;
-    }[];
+    items: PublicationChange[];
 };
 
 export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = ({ id, items }) => {
@@ -37,9 +27,9 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                         <td>{item.oldValue}</td>
                         <td>{item.newValue}</td>
                         <td>
-                            {item.remarks
-                                ? t(`publication-details-table.remark.${item.remarks.key}`, [
-                                      item.remarks.value,
+                            {item.remark
+                                ? t(`publication-details-table.remark.${item.remark.key}`, [
+                                      item.remark.value,
                                   ])
                                 : undefined}
                         </td>

@@ -778,6 +778,137 @@ class PublicationService @Autowired constructor(
         return asCsvFile(orderedPublishedItems, timeZone ?: ZoneId.of("UTC"))
     }
 
+    private fun diffTrackNumber(newTrackNumber: TrackLayoutTrackNumber, oldTrackNumber: TrackLayoutTrackNumber?) =
+        listOf(
+            if (oldTrackNumber == null || newTrackNumber.number != oldTrackNumber.number) {
+                PublicationChange("track-number", oldTrackNumber?.number?.value, newTrackNumber.number.value, null)
+            } else null,
+            if (oldTrackNumber == null || newTrackNumber.state != oldTrackNumber.state) {
+                PublicationChange("state", oldTrackNumber?.state?.name, newTrackNumber.state.name, null)
+            } else null,
+            if (oldTrackNumber == null || newTrackNumber.description != oldTrackNumber.description) {
+                PublicationChange(
+                    "description",
+                    oldTrackNumber?.description?.toString(),
+                    newTrackNumber.description.toString(),
+                    null
+                )
+            } else null
+            // TODO Add start and end address diffing when figuring out which reference line version to use
+        ).filterNotNull()
+
+    private fun diffLocationTrack(newLocationTrack: LocationTrack, oldLocationTrack: LocationTrack?) =
+        listOf(
+            if (oldLocationTrack == null || newLocationTrack.trackNumberId != oldLocationTrack.trackNumberId) {
+                PublicationChange(
+                    "track-number",
+                    oldLocationTrack?.let { trackNumberService.getOrThrow(OFFICIAL, oldLocationTrack.trackNumberId) }?.number?.value,
+                    trackNumberService.getOrThrow(OFFICIAL, newLocationTrack.trackNumberId).number.value,
+                    null
+                )
+            } else null,
+            if (oldLocationTrack == null || newLocationTrack.name != oldLocationTrack.name) {
+                PublicationChange("location-track", oldLocationTrack?.name?.toString(), newLocationTrack.name.toString(), null)
+            } else null,
+            if (oldLocationTrack == null || newLocationTrack.state != oldLocationTrack.state) {
+                PublicationChange(
+                    "state",
+                    oldLocationTrack?.state?.name,
+                    newLocationTrack.state.name,
+                    null
+                )
+            } else null,
+            if (oldLocationTrack == null || newLocationTrack.type != oldLocationTrack.type) {
+                PublicationChange(
+                    "location-track-type",
+                    oldLocationTrack?.type?.name,
+                    newLocationTrack.type.name,
+                    null
+                )
+            } else null,
+            if (oldLocationTrack == null || newLocationTrack.description != oldLocationTrack.description) {
+                PublicationChange(
+                    "description",
+                    oldLocationTrack?.description?.toString(),
+                    newLocationTrack.description.toString(),
+                    null
+                )
+            } else null,
+            if (oldLocationTrack == null || newLocationTrack.duplicateOf != oldLocationTrack.duplicateOf) {
+                PublicationChange(
+                    "duplicate-of",
+                    oldLocationTrack?.duplicateOf?.toString(),
+                    newLocationTrack.duplicateOf?.toString(),
+                    null
+                )
+            } else null,
+            if (oldLocationTrack == null || newLocationTrack.topologicalConnectivity != oldLocationTrack.topologicalConnectivity) {
+                PublicationChange(
+                    "topological-connectivity",
+                    oldLocationTrack?.topologicalConnectivity?.name,
+                    newLocationTrack.topologicalConnectivity.name,
+                    null
+                )
+            } else null
+            // TODO owner, startAddress, endAddress, geometry
+        ).filterNotNull()
+
+    private fun diffReferenceLine(newReferenceLine: ReferenceLine, oldReferenceLine: ReferenceLine?) =
+        listOf(
+            if (oldReferenceLine == null || newReferenceLine.length != oldReferenceLine.length) {
+                PublicationChange("length", oldReferenceLine?.length?.toString(), newReferenceLine.length.toString(), null)
+            } else null,
+            // TODO start and end address, geometry
+        ).filterNotNull()
+
+    private fun diffKmPost(newKmPost: TrackLayoutKmPost, oldKmPost: TrackLayoutKmPost?) =
+        listOf(
+            if (oldKmPost == null || newKmPost.trackNumberId != oldKmPost.trackNumberId) {
+                PublicationChange(
+                    "track-number",
+                    oldKmPost?.trackNumberId?.let { trackNumberService.getOrThrow(OFFICIAL, oldKmPost.trackNumberId).number.value },
+                    newKmPost.trackNumberId?.let { trackNumberService.getOrThrow(OFFICIAL, newKmPost.trackNumberId).number.value },
+                    null
+                )
+            } else null,
+            if (oldKmPost == null || newKmPost.kmNumber != oldKmPost.kmNumber) {
+                PublicationChange("km-number", oldKmPost?.kmNumber?.toString(), newKmPost.kmNumber.toString(), null)
+            } else null,
+            if (oldKmPost == null || newKmPost.state != oldKmPost.state) {
+                PublicationChange("state", oldKmPost?.state?.name, newKmPost.state.name, null)
+            } else null,
+            if (oldKmPost == null || newKmPost.location != oldKmPost.location) {
+                PublicationChange("location", oldKmPost?.location?.toString(), newKmPost.location.toString(), null)
+            } else null,
+        ).filterNotNull()
+
+    private fun diffSwitch(newSwitch: TrackLayoutSwitch, oldSwitch: TrackLayoutSwitch?) =
+        listOf(
+            if (oldSwitch == null || newSwitch.stateCategory != oldSwitch.stateCategory) {
+                PublicationChange("state-category", oldSwitch?.stateCategory?.name, newSwitch.stateCategory.name, null)
+            } else null,
+            if (oldSwitch == null || newSwitch.name != oldSwitch.name) {
+                PublicationChange("switch", oldSwitch?.name?.toString(), newSwitch.name.toString(), null)
+            } else null,
+            if (oldSwitch == null || newSwitch.switchStructureId != oldSwitch.switchStructureId) {
+                val structureOfNew = newSwitch.switchStructureId.let(switchLibraryService::getSwitchStructure)
+                val structureOfOld = oldSwitch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
+                PublicationChange("switch-type", structureOfOld?.type?.typeName, structureOfNew.type.typeName, null)
+            } else null,
+            if (oldSwitch == null || newSwitch.trapPoint != oldSwitch.trapPoint) {
+                PublicationChange("trap-point", oldSwitch?.trapPoint?.toString(), newSwitch.trapPoint?.toString(), null)
+            } else null,
+            if (oldSwitch == null || newSwitch.ownerId != oldSwitch.ownerId) {
+                PublicationChange(
+                    "owner",
+                    oldSwitch?.ownerId?.let { ownerId -> switchLibraryService.getSwitchOwner(ownerId)?.name?.toString() },
+                    newSwitch.ownerId?.let { ownerId -> switchLibraryService.getSwitchOwner(ownerId)?.name?.toString() },
+                    null
+                )
+            } else null,
+            // TODO Everything to do with geometry, track addresses, plans and such
+        ).filterNotNull()
+
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
         cacheKey?.let(geocodingCacheService::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
             ?: listOf(noGeocodingContext(localizationKey))
@@ -836,6 +967,7 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = tn.changedKmNumbers,
                 operation = tn.operation,
                 publication = publication,
+                propChanges = diffTrackNumber(trackNumberService.get(tn.version), trackNumberDao.fetchPreviousOfficialVersion(tn.version)?.let(trackNumberService::get)),
             )
         }
 
@@ -848,6 +980,7 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = rl.changedKmNumbers,
                 operation = rl.operation,
                 publication = publication,
+                propChanges = diffReferenceLine(referenceLineService.get(rl.version), referenceLineDao.fetchPreviousOfficialVersion(rl.version)?.let(referenceLineService::get)),
             )
         }
 
@@ -858,6 +991,7 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
+                propChanges = diffLocationTrack(locationTrackService.get(lt.version), locationTrackDao.fetchPreviousOfficialVersion(lt.version)?.let(locationTrackService::get)),
             )
         }
 
@@ -867,6 +1001,7 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
                 publication = publication,
+                propChanges = diffSwitch(switchService.get(s.version), switchDao.fetchPreviousOfficialVersion(s.version)?.let(switchService::get)),
             )
         }
 
@@ -876,6 +1011,7 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = setOf(kp.trackNumberId),
                 operation = kp.operation,
                 publication = publication,
+                propChanges = diffKmPost(kmPostService.get(kp.version), kmPostDao.fetchPreviousOfficialVersion(kp.version)?.let(kmPostService::get)),
             )
         }
 
@@ -886,7 +1022,8 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
-                isCalculatedChange = true
+                isCalculatedChange = true,
+                propChanges = diffLocationTrack(locationTrackService.get(lt.version), locationTrackDao.fetchPreviousOfficialVersion(lt.version)?.let(locationTrackService::get)),
             )
         }
 
@@ -896,7 +1033,8 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
                 publication = publication,
-                isCalculatedChange = true
+                isCalculatedChange = true,
+                propChanges = diffSwitch(switchService.get(s.version), switchDao.fetchPreviousOfficialVersion(s.version)?.let(switchService::get)),
             )
         }
 
@@ -916,6 +1054,7 @@ class PublicationService @Autowired constructor(
         publication: PublicationDetails,
         changedKmNumbers: Set<KmNumber>? = null,
         isCalculatedChange: Boolean = false,
+        propChanges: List<PublicationChange>,
     ) = PublicationTableItem(
         name = name,
         trackNumbers = trackNumberIds.map { id ->
@@ -927,6 +1066,7 @@ class PublicationService @Autowired constructor(
         publicationUser = publication.publicationUser,
         message = formatMessage(publication.message, isCalculatedChange),
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
+        propChanges = propChanges,
     )
 
     private fun getTrackNumberAtMomentOrThrow(

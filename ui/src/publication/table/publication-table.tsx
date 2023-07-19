@@ -113,6 +113,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 operation={entry.operation}
                                 changedKmNumbers={entry.changedKmNumbers}
                                 message={entry.message}
+                                propChanges={entry.propChanges}
                             />
                         ))}
                     </tbody>

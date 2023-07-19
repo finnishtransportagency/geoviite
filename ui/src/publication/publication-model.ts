@@ -167,6 +167,18 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
+export type PublicationChange = {
+    propKey: string;
+    oldValue: string;
+    newValue: string;
+    remark: PublicationChangeRemark | null;
+};
+
+export type PublicationChangeRemark = {
+    key: string;
+    value: string;
+};
+
 export type ValidatedAsset = {
     id: AssetId;
     errors: PublishValidationError[];
@@ -250,4 +262,5 @@ export type PublicationTableItem = {
     publicationUser: string;
     message: string;
     ratkoPushTime: TimeStamp;
+    propChanges: PublicationChange[];
 };

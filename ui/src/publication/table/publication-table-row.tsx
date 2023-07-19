@@ -2,7 +2,7 @@ import * as React from 'react';
 import { KmNumber } from 'common/common-model';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublicationTableItem } from 'publication/publication-model';
+import { PublicationChange, PublicationTableItem } from 'publication/publication-model';
 import styles from './publication-table.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -44,7 +44,9 @@ const formatKmNumber = (kmNumbers: KmNumber[]) => {
         ));
 };
 
-type PublicationTableRowProps = PublicationTableItem;
+type PublicationTableRowProps = {
+    propChanges: PublicationChange[];
+} & PublicationTableItem;
 
 export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     id,
@@ -56,6 +58,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     publicationUser,
     message,
     ratkoPushTime,
+    propChanges,
 }) => {
     const { t } = useTranslation();
     const messageRows = message.split('\n');
@@ -76,37 +79,6 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
         'publication-table__row',
         detailsVisible && styles['publication-table__row-details--borderless'],
     );
-
-    // TODO: Remove test data when real data is available
-    const testData = [
-        {
-            propKey: 'location-track',
-            oldValue: 'old name',
-            newValue: 'new name',
-            remarks: {
-                key: 'changed-x-meters',
-                value: '100',
-            },
-        },
-        {
-            propKey: 'track-number',
-            oldValue: 'old name',
-            newValue: 'new name',
-            remarks: {
-                key: 'moved-x-meters',
-                value: '100',
-            },
-        },
-        {
-            propKey: 'state',
-            oldValue: 'old name',
-            newValue: 'new name',
-            remarks: {
-                key: 'changed-kilometers',
-                value: '0001, 0003-0005, 0007-0010',
-            },
-        },
-    ];
 
     return (
         <React.Fragment>
@@ -143,7 +115,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                         <span className={styles['publication-table__row-details-left-bar']}></span>
                     </td>
                     <td colSpan={8}>
-                        <PublicationTableDetails id={id} items={testData} />
+                        <PublicationTableDetails id={id} items={propChanges} />
                     </td>
                 </tr>
             )}

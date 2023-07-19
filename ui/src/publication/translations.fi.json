@@ -43,7 +43,7 @@
             "geometry": "Geometria",
             "start-address": "Alkuosoite",
             "end-address": "Loppuosoite",
-            "switch-id": "Vaihdetunnus",
+            "switch": "Vaihdetunnus",
             "state-category": "Tilakategoria",
             "switch-type": "Vaihdetyyppi",
             "trap-point": "Turvavaihde",
