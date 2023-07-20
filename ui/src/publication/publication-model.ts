@@ -169,8 +169,8 @@ export type PublishRequestIds = {
 
 export type PublicationChange = {
     propKey: string;
-    oldValue: string;
-    newValue: string;
+    oldValue: string | boolean | null;
+    newValue: string | boolean | null;
     remark: PublicationChangeRemark | null;
     enumKey: string | null;
 };
@@ -257,7 +257,7 @@ export type PublicationTableItem = {
     id: string; //Auto generated
     name: string;
     trackNumbers: TrackNumber[];
-    changedKmNumbers: KmNumber[];
+    changedKmNumbers: string | null;
     operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;

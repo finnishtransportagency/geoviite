@@ -30,6 +30,7 @@
         "prop": {
             "location-track": "Sijaintiraidetunnus",
             "track-number": "Ratanumero",
+            "track-numbers": "Ratanumerot",
             "state": "Tila",
             "km-post": "Tasakilometripiste",
             "description": "Kuvaus",
@@ -47,6 +48,8 @@
             "state-category": "Tilakategoria",
             "switch-type": "Vaihdetyyppi",
             "trap-point": "Turvavaihde",
+            "measurement-method": "Sijainnin mittausmenetelmä",
+            "location-track-connectivity": "Liitos raiteisiin",
             "location-math-point": "Sijainti (matemaattinen piste)",
             "location-forward-joint": "Sijainti (etujatkos)",
             "address": "Rataosoite"

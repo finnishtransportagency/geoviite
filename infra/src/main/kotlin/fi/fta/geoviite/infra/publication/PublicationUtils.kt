@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.SortOrder
@@ -49,7 +52,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId): String {
             it.trackNumbers.sorted().joinToString(", ")
         },
         PublicationTableColumn.CHANGED_KM_NUMBERS to {
-            it.changedKmNumbers?.sorted()?.let(::formatChangedKmNumbers)
+            it.changedKmNumbers
         },
         PublicationTableColumn.OPERATION to { formatOperation(it.operation) },
         PublicationTableColumn.PUBLICATION_TIME to { formatInstant(it.publicationTime, timeZone) },
@@ -92,9 +95,8 @@ fun formatMessage(message: String?, isCalculatedChange: Boolean): String {
     } else if (isCalculatedChange) "$message ($calculatedChangeTranslation)"
     else message
 }
-
-private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
-    kmNumbers.fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
+fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
+    kmNumbers.sorted().fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
         if (acc.isEmpty()) acc.add(listOf(kmNumber))
         else {
             val previousKmNumbers = acc.last()
@@ -137,6 +139,21 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         }
     }
 }
+
+private val MATH_POINT = "math-point"
+private val FORWARD_JOINT = "forward-joint"
+fun switchBaseTypeToProp(switchBaseType: SwitchBaseType) =
+    when (switchBaseType) {
+        SwitchBaseType.KRV -> FORWARD_JOINT
+        SwitchBaseType.YRV -> FORWARD_JOINT
+        SwitchBaseType.SRR -> FORWARD_JOINT
+        SwitchBaseType.RR -> FORWARD_JOINT
+        SwitchBaseType.KV -> MATH_POINT
+        SwitchBaseType.SKV -> MATH_POINT
+        SwitchBaseType.TYV -> MATH_POINT
+        SwitchBaseType.UKV -> MATH_POINT
+        SwitchBaseType.YV -> MATH_POINT
+    }
 
 fun getTranslation(key: String) = publicationTranslations[key] ?: ""
 

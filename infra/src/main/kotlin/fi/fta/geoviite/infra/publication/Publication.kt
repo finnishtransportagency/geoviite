@@ -29,7 +29,7 @@ enum class PublicationTableColumn {
 data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
-    val changedKmNumbers: List<KmNumber>? = null,
+    val changedKmNumbers: String?,
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
@@ -42,8 +42,8 @@ data class PublicationTableItem(
 
 data class PublicationChange(
     val propKey: String,
-    val oldValue: String?,
-    val newValue: String?,
+    val oldValue: Any?, // These are either Boolean, String or null
+    val newValue: Any?,
     val remark: PublicationChangeRemark?,
     val enumKey: String? = null,
 )
