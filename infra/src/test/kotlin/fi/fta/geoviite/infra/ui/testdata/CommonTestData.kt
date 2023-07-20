@@ -55,7 +55,7 @@ fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNum
 fun createGeometryAlignment(
     alignmentName: String,
     trackNumberId: DomainId<TrackLayoutTrackNumber>,
-    basePoint: Point,
+    basePoint: Point = EspooTestData.BASE_POINT,
     incrementPoints: List<Point>,
     switchData: List<SwitchData?> = emptyList(),
 ): GeometryAlignment {
