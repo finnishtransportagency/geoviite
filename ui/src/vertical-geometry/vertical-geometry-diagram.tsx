@@ -61,22 +61,26 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
 }) => {
     const [panning, setPanning] = React.useState<number>();
     const [mousePositionInElement, setMousePositionInElement] = React.useState<[number, number]>();
+    const [diagramHeight, setDiagramHeight] = React.useState<number>(height);
+    const [diagramWidth, setDiagramWidth] = React.useState<number>(width);
 
     const ref = React.useRef<HTMLDivElement>(null);
     const elementPosition = ref.current?.getBoundingClientRect();
 
-    const elementStyle = ref.current && getComputedStyle(ref.current);
+    React.useEffect(() => {
+        const elementStyle = ref.current && getComputedStyle(ref.current);
 
-    const horizontalPadding = elementStyle
-        ? sumPaddings(elementStyle.paddingLeft, elementStyle.paddingRight)
-        : 0;
+        const horizontalPadding = elementStyle
+            ? sumPaddings(elementStyle.paddingLeft, elementStyle.paddingRight)
+            : 0;
 
-    const verticalPadding = elementStyle
-        ? sumPaddings(elementStyle.paddingTop, elementStyle.paddingBottom)
-        : 0;
+        const verticalPadding = elementStyle
+            ? sumPaddings(elementStyle.paddingTop, elementStyle.paddingBottom)
+            : 0;
 
-    const diagramHeight = Math.max(height - verticalPadding, 0);
-    const diagramWidth = Math.max(width - horizontalPadding, 0);
+        setDiagramHeight(Math.max(height - verticalPadding, 0));
+        setDiagramWidth(Math.max(width - horizontalPadding, 0));
+    }, [width, height]);
 
     const diagramClasses = createClassName(
         styles['vertical-geometry-diagram'],
