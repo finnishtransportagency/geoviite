@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.ui.testgroup1
+package fi.fta.geoviite.infra.ui.testgroup2
 
 import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest

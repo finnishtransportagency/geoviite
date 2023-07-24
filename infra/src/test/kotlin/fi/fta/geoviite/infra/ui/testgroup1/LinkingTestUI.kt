@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.ui.testgroup2
+package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
