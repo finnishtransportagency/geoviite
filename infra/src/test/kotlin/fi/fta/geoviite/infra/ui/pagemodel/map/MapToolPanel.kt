@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory
 class MapToolPanel {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun selectToolPanelTab(tabName: String) {
-        val selectBy = By.xpath("//div[@qa-id='tool-panel-tabs']/button[span[text() = '$tabName']]")
+    fun selectToolPanelTab(tabName: String, nthOneIndexed: Int = 1) {
+        val selectBy = By.xpath("(//div[@qa-id='tool-panel-tabs']/button[span[text() = '$tabName']])[$nthOneIndexed]")
         getElementWhenClickable(selectBy).click()
     }
 

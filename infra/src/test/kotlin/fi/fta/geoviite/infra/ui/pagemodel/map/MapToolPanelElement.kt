@@ -58,6 +58,7 @@ class GeometryPlanQualityInfobox(by: By) : InfoBox(by) {
 class LayoutKmPostGeneralInfoBox(by: By) : InfoBox(by) {
     fun tasakmpistetunnus(): String = fieldValueWhenNotEmpty("Tasakmpistetunnus")
     fun ratanumero(): String = fieldValueWhenNotEmpty("Ratanumero")
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { MapPage.finishLoading() }
 }
 
 class LayoutKmPostLocationInfoBox(by: By) : InfoBox(by) {

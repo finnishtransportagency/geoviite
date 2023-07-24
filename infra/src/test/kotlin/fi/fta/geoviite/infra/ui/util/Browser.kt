@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
+
+    System.setProperty("webdriver.chrome.driver", "/snap/bin/chromium.chromedriver")
     WebDriverManager.chromedriver().setup()
     val options = ChromeOptions()
 
@@ -36,6 +38,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     options.addArguments("--incognito")
     options.setExperimentalOption("excludeSwitches", listOf("enable-automation"))
     options.addArguments("--remote-allow-origins=*")
+    options.addArguments("--remote-debugging-port=9225");
 
     //if (!headless) chromeOptions.addArguments("--auto-open-devtools-for-tabs")
     if (DEV_DEBUG) options.setExperimentalOption("detach", true)
@@ -76,7 +79,7 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
-const val DEV_DEBUG = false
+const val DEV_DEBUG = true
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")

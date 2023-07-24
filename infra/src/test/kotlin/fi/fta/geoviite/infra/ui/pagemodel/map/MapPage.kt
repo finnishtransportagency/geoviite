@@ -22,6 +22,14 @@ class MapPage {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    // DOTO I mean TODO: finishLoading() is in MapPage because of organizational thoughts, but in a companion object
+    // because of the constructor querying currentMapScale() which I'd like to avoid, consider what to do about that
+    companion object {
+        fun finishLoading() {
+            withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
+        }
+    }
+
     init {
         currentMapScale()
     }
@@ -102,10 +110,7 @@ class MapPage {
         while (!currentMapScale().contentEquals(targetScale)) {
             zoomIn()
         }
-    }
-
-    fun finishLoading() {
-        withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
+        finishLoading()
     }
 
     fun zoomOutToScale(targetScale: String) {

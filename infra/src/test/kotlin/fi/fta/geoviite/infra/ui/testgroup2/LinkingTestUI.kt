@@ -293,7 +293,7 @@ class LinkingTestUI @Autowired constructor(
         val newStartPoint = LOCATION_TRACK_H.second.segments.first().points.last()
         val endPoint = LOCATION_TRACK_H.second.segments.last().points.last()
 
-        mapPage.finishLoading()
+        MapPage.finishLoading()
         mapPage.clickAtCoordinates(startPoint)
         mapPage.clickAtCoordinates(newStartPoint)
 
@@ -633,7 +633,7 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkinInfobox.aloitaLinkitys()
         alignmentLinkinInfobox.linkTo(LOCATION_TRACK_F.first.name.toString())
         alignmentLinkinInfobox.lukitseValinta()
-        mapPage.finishLoading()
+        MapPage.finishLoading()
         mapPage.clickAtCoordinates(geometryAlignmentStart)
         mapPage.clickAtCoordinates(geometryAlignmentEnd)
         mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.first())
@@ -676,7 +676,7 @@ class LinkingTestUI @Autowired constructor(
         val referenceLineStartPoint = REFERENCE_LINE_ESP1.second.segments.first().points.first()
         val referenceLineEndPoint = REFERENCE_LINE_ESP1.second.segments.first().points.last()
 
-        mapPage.finishLoading()
+        MapPage.finishLoading()
         mapPage.clickAtCoordinates(geometryTrackStartPoint)
         mapPage.clickAtCoordinates(geometryTrackEndPoint)
         mapPage.clickAtCoordinates(referenceLineStartPoint)
