@@ -7,11 +7,9 @@ import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapNavigationPanel
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
+import fi.fta.geoviite.infra.ui.pagemodel.map.*
 import fi.fta.geoviite.infra.ui.testdata.*
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil
 import fi.fta.geoviite.infra.util.FileName
@@ -288,6 +286,41 @@ class CleanLinkingTestUI @Autowired constructor(
         assertEquals("KYLLÄ", MapToolPanel().geometryKmPostLinking().linkitetty())
         MapToolPanel().selectToolPanelTab("0123", 2)
         assertNotEquals(layoutKmPostCoordinatesBeforeLinking, MapToolPanel().layoutKmPostLocation().koordinaatit())
+    }
+
+    @Test
+    fun `Link geometry KM-post to new KM-post`() {
+        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val lastKmPostLocation = Point(34.0, 30.0)
+        buildPlan(trackNumberId)
+            .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+            .kmPost("0123", Point(4.0, 4.0))
+            .kmPost("0124",  Point(14.0, 14.0))
+            .kmPost("0125",  Point(24.0, 21.0))
+            .kmPost("0126",  lastKmPostLocation)
+            .save()
+
+        startGeoviiteAndGoToWork()
+        val geometryPlan = MapNavigationPanel().geometryPlanByName(EspooTestData.GEOMETRY_PLAN_NAME).open().openKmPosts()
+        val lastGeometryKmPost = geometryPlan.kmPosts().listItemByName("0126")
+        lastGeometryKmPost.select()
+
+        val kmPostLinkingInfoBox = MapToolPanel().geometryKmPostLinking()
+        kmPostLinkingInfoBox.aloitaLinkitys()
+
+        val newKmPostNumber = "0003NW"
+        kmPostLinkingInfoBox.createNewTrackLayoutKmPost().editTasakmpistetunnus(newKmPostNumber)
+            .editTila(KmPostEditDialog.TilaTyyppi.KAYTOSSA).tallenna(waitUntilRootIsStale = false)
+            .assertAndClose("Uusi tasakilometripiste lisätty")
+
+        kmPostLinkingInfoBox.linkita().assertAndClose("Tasakilometripiste linkitetty onnistuneesti")
+        lastGeometryKmPost.select()
+
+        MapNavigationPanel().selectTrackLayoutKmPost(newKmPostNumber)
+        val layoutKmPost0003TLCoordinates = MapToolPanel().layoutKmPostLocation().koordinaatit()
+        assertEquals(
+            CommonUiTestUtil.pointToCoordinateString(lastKmPostLocation + DEFAULT_BASE_POINT),
+            layoutKmPost0003TLCoordinates)
     }
 
     fun createAndLinkLocationTrack(
