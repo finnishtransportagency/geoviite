@@ -5,11 +5,8 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.integration.CalculatedChanges
-import fi.fta.geoviite.infra.integration.CalculatedChangesService
-import fi.fta.geoviite.infra.integration.LocationTrackChange
-import fi.fta.geoviite.infra.integration.TrackNumberChange
-import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -690,6 +687,371 @@ class PublicationServiceIT @Autowired constructor(
 
         assertEqualsCalculatedChanges(draftCalculatedChanges, publicationDetails)
         return publishResult
+    }
+
+    @Test
+    fun `Track number diff finds all changed fields`() {
+        val address = TrackMeter(0, 0)
+        val trackNumber = trackNumberService.getDraft(trackNumberService.insert(
+            TrackNumberSaveRequest(
+                getUnusedTrackNumber(),
+                FreeText("TEST"),
+                LayoutState.IN_USE,
+                address,
+            )
+        ))
+        val id = trackNumberService.update(trackNumber.id as IntId, TrackNumberSaveRequest(
+            number = TrackNumber(trackNumber.number.value + " T"),
+            description = trackNumber.description + "_TEST",
+            startAddress = TrackMeter(0,0),
+            state = LayoutState.NOT_IN_USE,
+        ))
+        val updatedTrackNumber = trackNumberService.getDraft(id)
+
+        val diff = publicationService.diffTrackNumber(updatedTrackNumber, trackNumber)
+        assertEquals(3, diff.size)
+        assertEquals("track-number", diff[0].propKey)
+        assertEquals("state", diff[1].propKey)
+        assertEquals("description", diff[2].propKey)
+    }
+
+    @Test
+    fun `Diffing track number with itself returns empty list`() {
+        val address = TrackMeter(0, 0)
+        val trackNumber = trackNumberService.getDraft(trackNumberService.insert(
+            TrackNumberSaveRequest(
+                getUnusedTrackNumber(),
+                FreeText("TEST"),
+                LayoutState.IN_USE,
+                address,
+            )
+        ))
+        val diff = publicationService.diffTrackNumber(trackNumber, trackNumber)
+        assertTrue(diff.isEmpty())
+    }
+
+    @Test
+    fun `Changing specific Track Number field returns only that field`() {
+        val address = TrackMeter(0, 0)
+        val trackNumber = trackNumberService.getDraft(trackNumberService.insert(
+            TrackNumberSaveRequest(
+                getUnusedTrackNumber(),
+                FreeText("TEST"),
+                LayoutState.IN_USE,
+                address,
+            )
+        ))
+        val id = trackNumberService.update(trackNumber.id as IntId, TrackNumberSaveRequest(
+            number = trackNumber.number,
+            description = FreeText("TEST2"),
+            startAddress = address,
+            state = trackNumber.state,
+        ))
+        val updatedTrackNumber = trackNumberService.getDraft(id)
+
+        val diff = publicationService.diffTrackNumber(updatedTrackNumber, trackNumber)
+        assertEquals(1, diff.size)
+        assertEquals("description", diff[0].propKey)
+        assertEquals(trackNumber.description.toString(), diff[0].oldValue)
+        assertEquals(updatedTrackNumber.description.toString(), diff[0].newValue)
+    }
+
+    @Test
+    fun `Location track diff finds all changed fields`() {
+        val duplicate = locationTrackService.get(
+            locationTrackService.insert(
+                LocationTrackSaveRequest(
+                    AlignmentName("TEST duplicate"),
+                    FreeText("Test"),
+                    LocationTrackType.MAIN,
+                    LayoutState.IN_USE,
+                    getUnusedTrackNumberId(),
+                    null,
+                    TopologicalConnectivityType.NONE
+                )
+            ).rowVersion
+        )
+
+        val duplicate2 = locationTrackService.get(
+            locationTrackService.insert(
+                LocationTrackSaveRequest(
+                    AlignmentName("TEST duplicate 2"),
+                    FreeText("Test"),
+                    LocationTrackType.MAIN,
+                    LayoutState.IN_USE,
+                    getUnusedTrackNumberId(),
+                    null,
+                    TopologicalConnectivityType.NONE
+                )
+            ).rowVersion
+        )
+
+        val locationTrack = locationTrackService.get(
+            locationTrackService.insert(
+                LocationTrackSaveRequest(
+                    AlignmentName("TEST"),
+                    FreeText("Test"),
+                    LocationTrackType.MAIN,
+                    LayoutState.IN_USE,
+                    getUnusedTrackNumberId(),
+                    duplicate.id as IntId<LocationTrack>,
+                    TopologicalConnectivityType.NONE
+                )
+            ).rowVersion
+        )
+
+        val updatedLocationTrack = locationTrackService.get(
+            locationTrackService.update(
+                locationTrack.id as IntId, LocationTrackSaveRequest(
+                    name = AlignmentName("TEST2"),
+                    description = FreeText("Test2"),
+                    type = LocationTrackType.SIDE,
+                    state = LayoutState.NOT_IN_USE,
+                    trackNumberId = locationTrack.trackNumberId,
+                    duplicate2.id as IntId<LocationTrack>,
+                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END
+                )
+            ).rowVersion
+        )
+        publish(publicationService, locationTracks = listOf(locationTrack.id as IntId<LocationTrack>, updatedLocationTrack.id as IntId<LocationTrack>, duplicate.id as IntId<LocationTrack>, duplicate2.id as IntId<LocationTrack>))
+
+        val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
+        assertEquals(6, diff.size)
+        assertEquals("location-track", diff[0].propKey)
+        assertEquals("state", diff[1].propKey)
+        assertEquals("location-track-type", diff[2].propKey)
+        assertEquals("description", diff[3].propKey)
+        assertEquals("duplicate-of", diff[4].propKey)
+        assertEquals("geometry", diff[5].propKey)
+    }
+
+    @Test
+    fun `Diffing location track with itself returns empty list`() {
+        val locationTrack = locationTrackService.get(
+            locationTrackService.insert(
+                LocationTrackSaveRequest(
+                    AlignmentName("TEST"),
+                    FreeText("Test"),
+                    LocationTrackType.MAIN,
+                    LayoutState.IN_USE,
+                    getUnusedTrackNumberId(),
+                    null,
+                    TopologicalConnectivityType.NONE
+                )
+            ).rowVersion
+        )
+
+        val diff = publicationService.diffLocationTrack(locationTrack, locationTrack, emptySet())
+        assertTrue(diff.isEmpty())
+    }
+
+    @Test
+    fun `Changing specific Location Track field returns only that field`() {
+        val saveReq = LocationTrackSaveRequest(
+            AlignmentName("TEST"),
+            FreeText("Test"),
+            LocationTrackType.MAIN,
+            LayoutState.IN_USE,
+            getUnusedTrackNumberId(),
+            null,
+            TopologicalConnectivityType.NONE
+        )
+
+        val locationTrack = locationTrackService.get(
+            locationTrackService.insert(saveReq).rowVersion
+        )
+
+        val updatedLocationTrack = locationTrackService.get(
+            locationTrackService.update(locationTrack.id as IntId,
+                saveReq.copy(description = FreeText("TEST2"))
+            ).rowVersion
+        )
+
+        val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
+        assertEquals(1, diff.size)
+        assertEquals("description", diff[0].propKey)
+        assertEquals(locationTrack.description.toString(), diff[0].oldValue)
+        assertEquals(updatedLocationTrack.description.toString(), diff[0].newValue)
+    }
+
+    @Test
+    fun `KM Post diff finds all changed fields`() {
+        val trackNumberSaveReq = TrackNumberSaveRequest(
+            getUnusedTrackNumber(),
+            FreeText("TEST"),
+            LayoutState.IN_USE,
+            TrackMeter(0, 0),
+        )
+        val trackNumber = trackNumberService.getDraft(
+            trackNumberService.insert(
+                trackNumberSaveReq
+            )
+        )
+        val trackNumber2 = trackNumberService.getDraft(
+            trackNumberService.insert(
+                trackNumberSaveReq.copy(getUnusedTrackNumber(), FreeText("TEST 2"))
+            )
+        )
+
+        val kmPost = kmPostService.getDraft(
+            kmPostService.insertKmPost(
+                TrackLayoutKmPostSaveRequest(
+                    KmNumber(0),
+                    LayoutState.IN_USE,
+                    trackNumber.id as IntId,
+                )
+            )
+        )
+        val updatedKmPost = kmPostService.getDraft(
+            kmPostService.updateKmPost(
+                kmPost.id as IntId,
+                TrackLayoutKmPostSaveRequest(
+                    KmNumber(1),
+                    LayoutState.NOT_IN_USE,
+                    trackNumber2.id as IntId,
+                )
+            )
+        )
+
+        val diff = publicationService.diffKmPost(updatedKmPost, kmPost)
+        assertEquals(2, diff.size)
+        // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
+        assertEquals("km-post", diff[0].propKey)
+        assertEquals("state", diff[1].propKey)
+    }
+
+    @Test
+    fun `Diffing km post with itself returns empty list`() {
+        val kmPost = kmPostService.getDraft(
+            kmPostService.insertKmPost(
+                TrackLayoutKmPostSaveRequest(
+                    KmNumber(0),
+                    LayoutState.IN_USE,
+                    insertOfficialTrackNumber(),
+                )
+            )
+        )
+
+        val diff = publicationService.diffKmPost(kmPost, kmPost)
+        assertTrue(diff.isEmpty())
+    }
+
+    @Test
+    fun `Changing specific KM Post field returns only that field`() {
+        val saveReq = TrackLayoutKmPostSaveRequest(
+            KmNumber(0),
+            LayoutState.IN_USE,
+            insertOfficialTrackNumber(),
+        )
+
+        val kmPost = kmPostService.getDraft(
+            kmPostService.insertKmPost(saveReq)
+        )
+        val updatedKmPost = kmPostService.getDraft(
+            kmPostService.updateKmPost(
+                kmPost.id as IntId,
+                    saveReq.copy(kmNumber = KmNumber(1))
+                )
+        )
+
+        val diff = publicationService.diffKmPost(updatedKmPost, kmPost)
+        assertEquals(1, diff.size)
+        assertEquals("km-post", diff[0].propKey)
+    }
+
+    @Test
+    fun `Switch diff finds all changed fields`() {
+        val trackNumberSaveReq = TrackNumberSaveRequest(
+            getUnusedTrackNumber(),
+            FreeText("TEST"),
+            LayoutState.IN_USE,
+            TrackMeter(0, 0),
+        )
+        val trackNumber = trackNumberService.getDraft(
+            trackNumberService.insert(
+                trackNumberSaveReq
+            )
+        )
+        val trackNumber2 = trackNumberService.getDraft(
+            trackNumberService.insert(
+                trackNumberSaveReq.copy(getUnusedTrackNumber(), FreeText("TEST 2"))
+            )
+        )
+
+        val switch = switchService.getDraft(
+            switchService.insertSwitch(
+                TrackLayoutSwitchSaveRequest(
+                    SwitchName("TEST"),
+                    IntId(1),
+                    LayoutStateCategory.EXISTING,
+                    IntId(1),
+                    false,
+                )
+            )
+        )
+        val updatedSwitch = switchService.getDraft(
+            switchService.updateSwitch(
+                switch.id as IntId,
+                TrackLayoutSwitchSaveRequest(
+                    SwitchName("TEST 2"),
+                    IntId(2),
+                    LayoutStateCategory.FUTURE_EXISTING,
+                    IntId(2),
+                    true,
+                )
+            )
+        )
+
+        val diff = publicationService.diffSwitch(updatedSwitch, switch)
+        assertEquals(5, diff.size)
+        assertEquals("switch", diff[0].propKey)
+        assertEquals("state-category", diff[1].propKey)
+        assertEquals("switch-type", diff[2].propKey)
+        assertEquals("trap-point", diff[3].propKey)
+        assertEquals("owner", diff[4].propKey)
+    }
+
+    @Test
+    fun `Diffing switch with itself returns empty list`() {
+        val switch = switchService.getDraft(
+            switchService.insertSwitch(
+                TrackLayoutSwitchSaveRequest(
+                    SwitchName("TEST"),
+                    IntId(1),
+                    LayoutStateCategory.EXISTING,
+                    IntId(1),
+                    false,
+                )
+            )
+        )
+
+        val diff = publicationService.diffSwitch(switch, switch)
+        assertTrue(diff.isEmpty())
+    }
+
+    @Test
+    fun `Changing specific switch field returns only that field`() {
+        val saveReq = TrackLayoutSwitchSaveRequest(
+            SwitchName("TEST"),
+            IntId(1),
+            LayoutStateCategory.EXISTING,
+            IntId(1),
+            false,
+        )
+
+        val switch = switchService.getDraft(
+            switchService.insertSwitch(saveReq)
+        )
+        val updatedSwitch = switchService.getDraft(
+            switchService.updateSwitch(
+                switch.id as IntId,
+                saveReq.copy(name = SwitchName("TEST 2"))
+            )
+        )
+
+        val diff = publicationService.diffSwitch(updatedSwitch, switch)
+        assertEquals(1, diff.size)
+        assertEquals("switch", diff[0].propKey)
     }
 }
 

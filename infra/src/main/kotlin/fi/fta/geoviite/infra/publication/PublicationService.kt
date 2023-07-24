@@ -785,7 +785,7 @@ class PublicationService @Autowired constructor(
         return asCsvFile(orderedPublishedItems, timeZone ?: ZoneId.of("UTC"))
     }
 
-    private fun diffTrackNumber(newTrackNumber: TrackLayoutTrackNumber, oldTrackNumber: TrackLayoutTrackNumber?) =
+    fun diffTrackNumber(newTrackNumber: TrackLayoutTrackNumber, oldTrackNumber: TrackLayoutTrackNumber?) =
         listOf(
             if (newTrackNumber.number != oldTrackNumber?.number) {
                 PublicationChange("track-number", oldTrackNumber?.number?.value, newTrackNumber.number.value, null)
@@ -804,7 +804,7 @@ class PublicationService @Autowired constructor(
             // TODO Add start and end address diffing when figuring out which reference line version to use
         ).filterNotNull()
 
-    private fun diffLocationTrack(newLocationTrack: LocationTrack, oldLocationTrack: LocationTrack?, changedKmNumbers: Set<KmNumber>?): List<PublicationChange> {
+    fun diffLocationTrack(newLocationTrack: LocationTrack, oldLocationTrack: LocationTrack?, changedKmNumbers: Set<KmNumber>?): List<PublicationChange> {
         val oldStartAndEnd = oldLocationTrack?.let { oldLt ->
             geocodingService
                 .getGeocodingContext(OFFICIAL, oldLt.trackNumberId)
@@ -826,8 +826,8 @@ class PublicationService @Autowired constructor(
             if (newLocationTrack.trackNumberId != oldLocationTrack?.trackNumberId) {
                 PublicationChange(
                     "track-number",
-                    oldLocationTrack?.let { trackNumberService.getOrThrow(OFFICIAL, oldLocationTrack.trackNumberId) }?.number?.value,
-                    trackNumberService.getOrThrow(OFFICIAL, newLocationTrack.trackNumberId).number.value,
+                    oldLocationTrack?.let { trackNumberService.get(OFFICIAL, oldLocationTrack.trackNumberId) }?.number?.value,
+                    trackNumberService.get(OFFICIAL, newLocationTrack.trackNumberId)?.number?.value,
                     null
                 )
             } else null,
@@ -863,8 +863,8 @@ class PublicationService @Autowired constructor(
             if (newLocationTrack.duplicateOf != oldLocationTrack?.duplicateOf) {
                 PublicationChange(
                     "duplicate-of",
-                    oldLocationTrack?.duplicateOf?.let { locationTrackService.getOrThrow(OFFICIAL, it) }?.name?.toString(),
-                    newLocationTrack.duplicateOf?.let { locationTrackService.getOrThrow(OFFICIAL, it) }?.name?.toString(),
+                    oldLocationTrack?.duplicateOf?.let { locationTrackService.get(OFFICIAL, it) }?.name?.toString(),
+                    newLocationTrack.duplicateOf?.let { locationTrackService.get(OFFICIAL, it) }?.name?.toString(),
                     null
                 )
             } else null,
@@ -908,7 +908,7 @@ class PublicationService @Autowired constructor(
                     } else null
                 )
             } else null,
-            if (changedKmNumbers != null) {
+            if (changedKmNumbers != null && changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
                     "geometry",
                     null,
@@ -923,7 +923,8 @@ class PublicationService @Autowired constructor(
         ).filterNotNull()
     }
 
-    private fun diffReferenceLine(newReferenceLine: ReferenceLine, oldReferenceLine: ReferenceLine?, changedKmNumbers: Set<KmNumber>?): List<PublicationChange> {
+    // TODO Add tests
+    fun diffReferenceLine(newReferenceLine: ReferenceLine, oldReferenceLine: ReferenceLine?, changedKmNumbers: Set<KmNumber>?): List<PublicationChange> {
         val oldStartAndEnd = oldReferenceLine?.let { oldRl ->
             geocodingService
                 .getGeocodingContext(OFFICIAL, oldRl.trackNumberId)
@@ -995,7 +996,7 @@ class PublicationService @Autowired constructor(
         ).filterNotNull()
     }
 
-    private fun diffKmPost(newKmPost: TrackLayoutKmPost, oldKmPost: TrackLayoutKmPost?) =
+    fun diffKmPost(newKmPost: TrackLayoutKmPost, oldKmPost: TrackLayoutKmPost?) =
         listOf(
             if (newKmPost.trackNumberId != oldKmPost?.trackNumberId) {
                 PublicationChange(
@@ -1016,7 +1017,7 @@ class PublicationService @Autowired constructor(
             } else null,
         ).filterNotNull()
 
-    private fun diffSwitch(newSwitch: TrackLayoutSwitch, oldSwitch: TrackLayoutSwitch?): List<PublicationChange> {
+    fun diffSwitch(newSwitch: TrackLayoutSwitch, oldSwitch: TrackLayoutSwitch?): List<PublicationChange> {
         val oldPresentationJointLocation = oldSwitch
             ?.let(switchService::getPresentationJoint)
             ?.location
@@ -1040,6 +1041,9 @@ class PublicationService @Autowired constructor(
             }
 
         return listOf(
+            if (newSwitch.name != oldSwitch?.name) {
+                PublicationChange("switch", oldSwitch?.name?.toString(), newSwitch.name.toString(), null)
+            } else null,
             if (newSwitch.stateCategory != oldSwitch?.stateCategory) {
                 PublicationChange(
                     "state-category",
@@ -1048,9 +1052,6 @@ class PublicationService @Autowired constructor(
                     null,
                     "layout-state-category"
                 )
-            } else null,
-            if (newSwitch.name != oldSwitch?.name) {
-                PublicationChange("switch", oldSwitch?.name?.toString(), newSwitch.name.toString(), null)
             } else null,
             if (newSwitch.switchStructureId != oldSwitch?.switchStructureId) {
                 val structureOfNew = newSwitch.switchStructureId.let(switchLibraryService::getSwitchStructure)
