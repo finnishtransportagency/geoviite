@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.SortOrder
@@ -140,19 +138,12 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
     }
 }
 
-private val MATH_POINT = "math-point"
-private val FORWARD_JOINT = "forward-joint"
+private val MATH_POINT_TRANSLATION = "matemaattinen piste"
+private val FORWARD_JOINT_TRANSLATION = "etujatkos"
 fun switchBaseTypeToProp(switchBaseType: SwitchBaseType) =
     when (switchBaseType) {
-        SwitchBaseType.KRV -> FORWARD_JOINT
-        SwitchBaseType.YRV -> FORWARD_JOINT
-        SwitchBaseType.SRR -> FORWARD_JOINT
-        SwitchBaseType.RR -> FORWARD_JOINT
-        SwitchBaseType.KV -> MATH_POINT
-        SwitchBaseType.SKV -> MATH_POINT
-        SwitchBaseType.TYV -> MATH_POINT
-        SwitchBaseType.UKV -> MATH_POINT
-        SwitchBaseType.YV -> MATH_POINT
+        SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> FORWARD_JOINT_TRANSLATION
+        SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> MATH_POINT_TRANSLATION
     }
 
 fun getTranslation(key: String) = publicationTranslations[key] ?: ""

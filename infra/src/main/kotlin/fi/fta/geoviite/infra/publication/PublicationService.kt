@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.ratko.RatkoClient
@@ -785,24 +786,70 @@ class PublicationService @Autowired constructor(
         return asCsvFile(orderedPublishedItems, timeZone ?: ZoneId.of("UTC"))
     }
 
-    fun diffTrackNumber(newTrackNumber: TrackLayoutTrackNumber, oldTrackNumber: TrackLayoutTrackNumber?) =
-        listOf(
+    fun diffTrackNumber(newTrackNumber: TrackLayoutTrackNumber, oldTrackNumber: TrackLayoutTrackNumber?): List<PublicationChange> {
+        val newReferenceLine = newTrackNumber.version?.let {
+            referenceLineService.getByTrackNumberAtMoment(
+                OFFICIAL,
+                newTrackNumber.id as IntId<TrackLayoutTrackNumber>,
+                trackNumberDao.fetchVersionChangeTimeOrThrow(newTrackNumber.version)
+            )
+        }
+        val newStartAndEnd = newReferenceLine?.let { oldRl ->
+            geocodingService
+                .getGeocodingContext(OFFICIAL, oldRl.trackNumberId)
+                ?.let { context ->
+                    oldRl.alignmentVersion
+                        ?.let(alignmentDao::fetch)
+                        ?.let(context::getStartAndEnd)
+                }
+        }
+        val oldReferenceLine = newReferenceLine
+            ?.version
+            ?.let { referenceLineDao.fetchPreviousOfficialVersion(newReferenceLine.version) }
+            ?.let(referenceLineDao::fetch)
+        val oldStartAndEnd = oldReferenceLine?.let { oldRl ->
+            geocodingService
+                .getGeocodingContext(OFFICIAL, oldRl.trackNumberId)
+                ?.let { context ->
+                    oldRl.alignmentVersion
+                        ?.let(alignmentDao::fetch)
+                        ?.let(context::getStartAndEnd)
+                }
+        }
+
+        return listOf(
             if (newTrackNumber.number != oldTrackNumber?.number) {
-                PublicationChange("track-number", oldTrackNumber?.number?.value, newTrackNumber.number.value, null)
+                PublicationChange(PropKey("track-number"), oldTrackNumber?.number?.value, newTrackNumber.number.value, null)
             } else null,
             if (newTrackNumber.state != oldTrackNumber?.state) {
-                PublicationChange("state", oldTrackNumber?.state?.name, newTrackNumber.state.name, null, "layout-state")
+                PublicationChange(PropKey("state"), oldTrackNumber?.state?.name, newTrackNumber.state.name, null, "layout-state")
             } else null,
             if (newTrackNumber.description != oldTrackNumber?.description) {
                 PublicationChange(
-                    "description",
+                    PropKey("description"),
                     oldTrackNumber?.description?.toString(),
                     newTrackNumber.description.toString(),
                     null
                 )
-            } else null
-            // TODO Add start and end address diffing when figuring out which reference line version to use
+            } else null,
+            if (newReferenceLine?.startAddress != oldReferenceLine?.startAddress) {
+                PublicationChange(
+                    PropKey("start-address"),
+                    oldReferenceLine?.startAddress?.toString(),
+                    newReferenceLine?.startAddress?.toString(),
+                    null
+                )
+            } else null,
+            if (newStartAndEnd?.end != oldStartAndEnd?.end) {
+                PublicationChange(
+                    PropKey("end-address"),
+                    oldStartAndEnd?.end?.address?.toString(),
+                    newStartAndEnd?.end?.address?.toString(),
+                    null
+                )
+            } else null,
         ).filterNotNull()
+    }
 
     fun diffLocationTrack(newLocationTrack: LocationTrack, oldLocationTrack: LocationTrack?, changedKmNumbers: Set<KmNumber>?): List<PublicationChange> {
         val oldStartAndEnd = oldLocationTrack?.let { oldLt ->
@@ -825,18 +872,18 @@ class PublicationService @Autowired constructor(
         return listOf(
             if (newLocationTrack.trackNumberId != oldLocationTrack?.trackNumberId) {
                 PublicationChange(
-                    "track-number",
+                    PropKey("track-number"),
                     oldLocationTrack?.let { trackNumberService.get(OFFICIAL, oldLocationTrack.trackNumberId) }?.number?.value,
                     trackNumberService.get(OFFICIAL, newLocationTrack.trackNumberId)?.number?.value,
                     null
                 )
             } else null,
             if (newLocationTrack.name != oldLocationTrack?.name) {
-                PublicationChange("location-track", oldLocationTrack?.name?.toString(), newLocationTrack.name.toString(), null)
+                PublicationChange(PropKey("location-track"), oldLocationTrack?.name?.toString(), newLocationTrack.name.toString(), null)
             } else null,
             if (newLocationTrack.state != oldLocationTrack?.state) {
                 PublicationChange(
-                    "state",
+                    PropKey("state"),
                     oldLocationTrack?.state?.name,
                     newLocationTrack.state.name,
                     null,
@@ -845,7 +892,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (newLocationTrack.type != oldLocationTrack?.type) {
                 PublicationChange(
-                    "location-track-type",
+                    PropKey("location-track-type"),
                     oldLocationTrack?.type?.name,
                     newLocationTrack.type.name,
                     null,
@@ -854,7 +901,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (newLocationTrack.description != oldLocationTrack?.description) {
                 PublicationChange(
-                    "description",
+                    PropKey("description"),
                     oldLocationTrack?.description?.toString(),
                     newLocationTrack.description.toString(),
                     null
@@ -862,7 +909,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (newLocationTrack.duplicateOf != oldLocationTrack?.duplicateOf) {
                 PublicationChange(
-                    "duplicate-of",
+                    PropKey("duplicate-of"),
                     oldLocationTrack?.duplicateOf?.let { locationTrackService.get(OFFICIAL, it) }?.name?.toString(),
                     newLocationTrack.duplicateOf?.let { locationTrackService.get(OFFICIAL, it) }?.name?.toString(),
                     null
@@ -870,7 +917,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (oldLocationTrack != null && abs(newLocationTrack.length - oldLocationTrack.length) >= 0.1) {
                 PublicationChange(
-                    "length",
+                    PropKey("length"),
                     oldLocationTrack.length.let(::roundTo1Decimal),
                     newLocationTrack.length.let(::roundTo1Decimal),
                     oldLocationTrack.let {
@@ -880,7 +927,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (oldStartAndEnd?.start?.address != newStartAndEnd?.start?.address) {
                 PublicationChange(
-                    "start-address",
+                    PropKey("start-address"),
                     oldStartAndEnd?.start?.address?.toString(),
                     newStartAndEnd?.start?.address?.toString(),
                     if (newStartAndEnd?.start?.point != null && oldStartAndEnd?.start?.point != null) {
@@ -895,7 +942,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (oldStartAndEnd?.end?.address != newStartAndEnd?.end?.address) {
                 PublicationChange(
-                    "end-address",
+                    PropKey("end-address"),
                     oldStartAndEnd?.end?.address?.toString(),
                     newStartAndEnd?.end?.address?.toString(),
                     if (newStartAndEnd?.end?.point != null && oldStartAndEnd?.end?.point != null) {
@@ -910,7 +957,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (changedKmNumbers != null && changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
-                    "geometry",
+                    PropKey("geometry"),
                     null,
                     null,
                     PublicationChangeRemark(
@@ -945,16 +992,16 @@ class PublicationService @Autowired constructor(
         return listOf(
             if (newReferenceLine.length != oldReferenceLine?.length) {
                 PublicationChange(
-                    "length",
-                    oldReferenceLine?.length?.toString(),
-                    newReferenceLine.length.toString(),
+                    PropKey("length"),
+                    oldReferenceLine?.length?.let(::roundTo1Decimal),
+                    newReferenceLine.length.let(::roundTo1Decimal),
                     oldReferenceLine
                         ?.let { lengthChangedRemark(oldReferenceLine.length, newReferenceLine.length) }
                 )
             } else null,
             if (oldStartAndEnd?.start?.address != newStartAndEnd?.start?.address) {
                 PublicationChange(
-                    "start-address",
+                    PropKey("start-address"),
                     oldStartAndEnd?.start?.address?.toString(),
                     newStartAndEnd?.start?.address?.toString(),
                     if (newStartAndEnd?.start?.point != null && oldStartAndEnd?.start?.point != null) {
@@ -969,7 +1016,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (oldStartAndEnd?.end?.address != newStartAndEnd?.end?.address) {
                 PublicationChange(
-                    "end-address",
+                    PropKey("end-address"),
                     oldStartAndEnd?.end?.address?.toString(),
                     newStartAndEnd?.end?.address?.toString(),
                     if (newStartAndEnd?.end?.point != null && oldStartAndEnd?.end?.point != null) {
@@ -984,7 +1031,7 @@ class PublicationService @Autowired constructor(
             } else null,
             if (changedKmNumbers != null) {
                 PublicationChange(
-                    "geometry",
+                    PropKey("geometry"),
                     null,
                     null,
                     PublicationChangeRemark(
@@ -1000,20 +1047,20 @@ class PublicationService @Autowired constructor(
         listOf(
             if (newKmPost.trackNumberId != oldKmPost?.trackNumberId) {
                 PublicationChange(
-                    "track-number",
+                    PropKey("track-number"),
                     oldKmPost?.trackNumberId?.let { trackNumberService.getOrThrow(OFFICIAL, oldKmPost.trackNumberId).number.value },
                     newKmPost.trackNumberId?.let { trackNumberService.getOrThrow(OFFICIAL, newKmPost.trackNumberId).number.value },
                     null
                 )
             } else null,
             if (newKmPost.kmNumber != oldKmPost?.kmNumber) {
-                PublicationChange("km-post", oldKmPost?.kmNumber?.toString(), newKmPost.kmNumber.toString(), null)
+                PublicationChange(PropKey("km-post"), oldKmPost?.kmNumber?.toString(), newKmPost.kmNumber.toString(), null)
             } else null,
             if (newKmPost.state != oldKmPost?.state) {
-                PublicationChange("state", oldKmPost?.state?.name, newKmPost.state.name, null, "layout-state")
+                PublicationChange(PropKey("state"), oldKmPost?.state?.name, newKmPost.state.name, null, "layout-state")
             } else null,
             if (newKmPost.location != oldKmPost?.location) {
-                PublicationChange("address", oldKmPost?.location?.toString(), newKmPost.location.toString(), null)
+                PublicationChange(PropKey("address"), oldKmPost?.location?.toString(), newKmPost.location.toString(), null)
             } else null,
         ).filterNotNull()
 
@@ -1039,14 +1086,86 @@ class PublicationService @Autowired constructor(
             ?.let { geometrySwitchId ->
                 geometryDao.getMeasurementMethodForSwitch(geometrySwitchId as IntId<GeometrySwitch>)
             }
+        val newSwitchLocationTracks = newSwitch.joints.associate { joint ->
+            joint to (newSwitch.version?.let { switchVer ->
+                switchDao.findLocationTracksLinkedToSwitchAtMoment(
+                    newSwitch.id as IntId,
+                    joint.number,
+                    switchDao.fetchVersionChangeTimeOrThrow(switchVer)
+                ).map { (rowVersion, _) ->
+                    locationTrackService.get(rowVersion)
+                }
+            } ?: emptyList())
+        }
+        val oldSwitchLocationTracks = oldSwitch?.let { oldSw ->
+            oldSw.joints.associate { joint ->
+                joint to (oldSw.version?.let { switchVer ->
+                    switchDao.findLocationTracksLinkedToSwitchAtMoment(
+                        oldSw.id as IntId,
+                        joint.number,
+                        switchDao.fetchVersionChangeTimeOrThrow(switchVer)
+                    ).map { (rowVersion, _) ->
+                        locationTrackService.get(rowVersion)
+                    }
+                } ?: emptyList())
+            }
+        } ?: emptyMap()
+
+        val oldLocationTracks = oldSwitchLocationTracks.values.flatten().distinctBy { it.id }.sortedBy { it.id.toString() }
+        val newLocationTracks =
+            newSwitchLocationTracks.values.flatten().distinctBy { it.id }.sortedBy { it.id.toString() }
+        val changedJointLocations = oldSwitchLocationTracks.mapNotNull { (oldJoint, oldLts) ->
+            newSwitchLocationTracks.entries.find { (newJoint, _) -> newJoint.number == oldJoint.number }
+                ?.let { (newJoint, newLts) ->
+                    val dist = calculateDistance(listOf(newJoint.location, oldJoint.location), LAYOUT_SRID)
+                    val oldTrackAddress =
+                        oldSwitch?.version?.let { version ->
+                            oldLts.firstOrNull()?.let {
+                                geocodingService.getGeocodingContextAtMoment(
+                                    it.trackNumberId,
+                                    switchDao.fetchVersionChangeTimeOrThrow(version)
+                                )?.getAddress(oldJoint.location)
+                            }
+                        }
+                    val newTrackAddress =
+                        newSwitch.version?.let { version ->
+                            newLts.firstOrNull()?.let {
+                                geocodingService.getGeocodingContextAtMoment(
+                                    it.trackNumberId,
+                                    switchDao.fetchVersionChangeTimeOrThrow(version)
+                                )?.getAddress(newJoint.location)
+                            }
+                        }
+
+                    PublicationChange(
+                        PropKey(
+                            "switch-track-address",
+                            listOf(
+                                if (newLts.any() && newSwitch.version != null) {
+                                    trackNumberService.getOfficialAtMoment(
+                                        newLts.first().trackNumberId,
+                                        switchDao.fetchVersionChangeTimeOrThrow(newSwitch.version)
+                                    )?.number
+                                } else "", oldJoint.number.intValue
+                            )
+                        ),
+                        oldTrackAddress?.first?.toString(),
+                        newTrackAddress?.first?.toString(),
+                        if (dist > 0.001) PublicationChangeRemark(
+                            "moved-x-meters",
+                            if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
+                        ) else null,
+                    )
+                }
+        }
 
         return listOf(
             if (newSwitch.name != oldSwitch?.name) {
-                PublicationChange("switch", oldSwitch?.name?.toString(), newSwitch.name.toString(), null)
+                PublicationChange(PropKey("switch"), oldSwitch?.name?.toString(), newSwitch.name.toString(), null)
             } else null,
             if (newSwitch.stateCategory != oldSwitch?.stateCategory) {
                 PublicationChange(
-                    "state-category",
+                    PropKey("state-category"),
                     oldSwitch?.stateCategory?.name,
                     newSwitch.stateCategory.name,
                     null,
@@ -1056,54 +1175,61 @@ class PublicationService @Autowired constructor(
             if (newSwitch.switchStructureId != oldSwitch?.switchStructureId) {
                 val structureOfNew = newSwitch.switchStructureId.let(switchLibraryService::getSwitchStructure)
                 val structureOfOld = oldSwitch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-                PublicationChange("switch-type", structureOfOld?.type?.typeName, structureOfNew.type.typeName, null)
+                PublicationChange(PropKey("switch-type"), structureOfOld?.type?.typeName, structureOfNew.type.typeName, null)
             } else null,
             if (newSwitch.trapPoint != oldSwitch?.trapPoint) {
-                PublicationChange("trap-point", oldSwitch?.trapPoint, newSwitch.trapPoint, null)
+                PublicationChange(PropKey("trap-point"), oldSwitch?.trapPoint, newSwitch.trapPoint, null)
             } else null,
             if (newSwitch.ownerId != oldSwitch?.ownerId) {
                 PublicationChange(
-                    "owner",
+                    PropKey("owner"),
                     oldSwitch?.ownerId?.let { ownerId -> switchLibraryService.getSwitchOwner(ownerId)?.name?.toString() },
                     newSwitch.ownerId?.let { ownerId -> switchLibraryService.getSwitchOwner(ownerId)?.name?.toString() },
                     null
                 )
             } else null,
-            if ((oldPresentationJointLocation != null || newPresentationJointLocation != null) && (oldPresentationJointLocation == null || newPresentationJointLocation == null || (distance
-                    ?: 0.0) > 0.001)
+            if ((oldPresentationJointLocation != null || newPresentationJointLocation != null)
+                && (oldPresentationJointLocation == null || newPresentationJointLocation == null || (distance ?: 0.0) > 0.001)
             ) {
                 PublicationChange(
-                    "location-" + switchBaseTypeToProp(switchLibraryService.getSwitchStructure(newSwitch.switchStructureId).baseType),
+                    PropKey("switch-joint-location", listOf(switchBaseTypeToProp(switchLibraryService.getSwitchStructure(newSwitch.switchStructureId).baseType))),
                     oldPresentationJointLocation?.let {
-                        "${roundTo3Decimals(oldPresentationJointLocation.x)} E, ${
-                            roundTo3Decimals(
-                                oldPresentationJointLocation.y
-                            )
-                        } N"
+                        formatLocation(oldPresentationJointLocation)
                     },
                     newPresentationJointLocation?.let {
-                        "${roundTo3Decimals(newPresentationJointLocation.x)} E, ${
-                            roundTo3Decimals(
-                                newPresentationJointLocation.y
-                            )
-                        } N"
+                        formatLocation(newPresentationJointLocation)
                     },
                     if (distance != null && distance > 0.001) {
-                        PublicationChangeRemark("moved-x-meters", if (distance >= 0.1) "${roundTo1Decimal(distance)}" else "<${roundTo1Decimal(0.1)}}")
+                        PublicationChangeRemark("moved-x-meters", if (distance >= 0.1) "${roundTo1Decimal(distance)}" else "<${roundTo1Decimal(0.1)}")
                     } else null
                 )
             } else null,
+            if (oldLocationTracks.map { it.id } != newLocationTracks.map { it.id }) {
+              PublicationChange(
+                  PropKey("location-track-connectivity"),
+                  oldLocationTracks.joinToString(", ") { it.name },
+                  newLocationTracks.joinToString(", ") { it.name },
+                  null
+              )
+            } else null,
             if (oldMeasurementMethod != newMeasurementMethod) {
                 PublicationChange(
-                    "measurement-method",
+                    PropKey("measurement-method"),
                     oldMeasurementMethod?.name,
                     newMeasurementMethod?.name,
                     null,
                     "measurement-method")
             } else null
             // TODO Everything to do with track numbers, location tracks, track addresses and such
-        ).filterNotNull()
+        ).filterNotNull() + changedJointLocations
     }
+
+    private fun formatLocation(newPresentationJointLocation: Point) =
+        "${roundTo3Decimals(newPresentationJointLocation.x)} E, ${
+            roundTo3Decimals(
+                newPresentationJointLocation.y
+            )
+        } N"
 
     private fun lengthChangedRemark(
         oldLength: Double,
@@ -1199,7 +1325,10 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = tn.changedKmNumbers,
                 operation = tn.operation,
                 publication = publication,
-                propChanges = diffTrackNumber(trackNumberService.get(tn.version), trackNumberDao.fetchPreviousOfficialVersion(tn.version)?.let(trackNumberService::get)),
+                propChanges = diffTrackNumber(
+                    trackNumberService.get(tn.version),
+                    trackNumberDao.fetchPreviousOfficialVersion(tn.version)?.let(trackNumberService::get),
+                ),
             )
         }
 

@@ -167,8 +167,13 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
+export type PropKey = {
+    key: string;
+    params: string[];
+};
+
 export type PublicationChange = {
-    propKey: string;
+    propKey: PropKey;
     oldValue: string | boolean | null;
     newValue: string | boolean | null;
     remark: PublicationChangeRemark | null;

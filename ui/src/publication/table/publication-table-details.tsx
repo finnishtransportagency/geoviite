@@ -35,8 +35,13 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
             </thead>
             <tbody>
                 {items.map((item) => (
-                    <tr key={`${id}_${item.propKey}`}>
-                        <td>{t(`publication-details-table.prop.${item.propKey}`)}</td>
+                    <tr key={`${id}_${item.propKey.key}_${item.propKey.params}`}>
+                        <td>
+                            {t(
+                                `publication-details-table.prop.${item.propKey.key}`,
+                                item.propKey.params,
+                            )}
+                        </td>
                         <td>{formatValue(item.oldValue, item.enumKey)}</td>
                         <td>{formatValue(item.newValue, item.enumKey)}</td>
                         <td>

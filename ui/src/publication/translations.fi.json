@@ -45,13 +45,13 @@
             "start-address": "Alkuosoite",
             "end-address": "Loppuosoite",
             "switch": "Vaihdetunnus",
+            "switch-track-address": "Rataosoite ratanumerolla {{0}} (vaihdepiste {{1}})",
             "state-category": "Tilakategoria",
             "switch-type": "Vaihdetyyppi",
             "trap-point": "Turvavaihde",
             "measurement-method": "Sijainnin mittausmenetelmä",
             "location-track-connectivity": "Liitos raiteisiin",
-            "location-math-point": "Sijainti (matemaattinen piste)",
-            "location-forward-joint": "Sijainti (etujatkos)",
+            "switch-joint-location": "Sijainti ({{0}})",
             "address": "Rataosoite"
         }
     },

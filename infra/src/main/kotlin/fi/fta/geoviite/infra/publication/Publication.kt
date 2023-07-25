@@ -41,11 +41,16 @@ data class PublicationTableItem(
 }
 
 data class PublicationChange(
-    val propKey: String,
+    val propKey: PropKey,
     val oldValue: Any?, // These are either Boolean, String or null
     val newValue: Any?,
     val remark: PublicationChangeRemark?,
     val enumKey: String? = null,
+)
+
+data class PropKey(
+    val key: String,
+    val params: Any? = null,
 )
 
 data class PublicationChangeRemark(

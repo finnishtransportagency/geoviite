@@ -70,6 +70,8 @@ interface IDraftableObjectReader<T : Draftable<T>> {
             OFFICIAL -> fetchOfficialVersionOrThrow(id)
             DRAFT -> fetchDraftVersionOrThrow(id)
         }
+
+    fun fetchVersionChangeTimeOrThrow(rowVersion: RowVersion<T>): Instant
 }
 
 interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
@@ -246,6 +248,20 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         jdbcTemplate.setUser()
         return jdbcTemplate.queryOptional(sql, mapOf("id" to rowVersion.id.intValue, "version" to rowVersion.version)) { rs, _ ->
             rs.getRowVersion("id", "version")
+        }
+    }
+
+    override fun fetchVersionChangeTimeOrThrow(rowVersion: RowVersion<T>): Instant {
+        val sql = """
+            select change_time from ${table.versionTable} where id = :id and version = :version
+        """.trimIndent()
+        val params = mapOf(
+            "id" to rowVersion.id.intValue,
+            "version" to rowVersion.version,
+        )
+        logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, rowVersion)
+        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
+            rs.getInstant("change_time")
         }
     }
 
