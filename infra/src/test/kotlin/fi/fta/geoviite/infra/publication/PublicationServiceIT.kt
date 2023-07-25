@@ -710,9 +710,9 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffTrackNumber(updatedTrackNumber, trackNumber)
         assertEquals(3, diff.size)
-        assertEquals("track-number", diff[0].propKey)
-        assertEquals("state", diff[1].propKey)
-        assertEquals("description", diff[2].propKey)
+        assertEquals("track-number", diff[0].propKey.key)
+        assertEquals("state", diff[1].propKey.key)
+        assertEquals("description", diff[2].propKey.key)
     }
 
     @Test
@@ -751,7 +751,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffTrackNumber(updatedTrackNumber, trackNumber)
         assertEquals(1, diff.size)
-        assertEquals("description", diff[0].propKey)
+        assertEquals("description", diff[0].propKey.key)
         assertEquals(trackNumber.description.toString(), diff[0].oldValue)
         assertEquals(updatedTrackNumber.description.toString(), diff[0].newValue)
     }
@@ -817,12 +817,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
         assertEquals(6, diff.size)
-        assertEquals("location-track", diff[0].propKey)
-        assertEquals("state", diff[1].propKey)
-        assertEquals("location-track-type", diff[2].propKey)
-        assertEquals("description", diff[3].propKey)
-        assertEquals("duplicate-of", diff[4].propKey)
-        assertEquals("geometry", diff[5].propKey)
+        assertEquals("location-track", diff[0].propKey.key)
+        assertEquals("state", diff[1].propKey.key)
+        assertEquals("location-track-type", diff[2].propKey.key)
+        assertEquals("description", diff[3].propKey.key)
+        assertEquals("duplicate-of", diff[4].propKey.key)
+        assertEquals("geometry", diff[5].propKey.key)
     }
 
     @Test
@@ -869,7 +869,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
         assertEquals(1, diff.size)
-        assertEquals("description", diff[0].propKey)
+        assertEquals("description", diff[0].propKey.key)
         assertEquals(locationTrack.description.toString(), diff[0].oldValue)
         assertEquals(updatedLocationTrack.description.toString(), diff[0].newValue)
     }
@@ -916,8 +916,8 @@ class PublicationServiceIT @Autowired constructor(
         val diff = publicationService.diffKmPost(updatedKmPost, kmPost)
         assertEquals(2, diff.size)
         // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
-        assertEquals("km-post", diff[0].propKey)
-        assertEquals("state", diff[1].propKey)
+        assertEquals("km-post", diff[0].propKey.key)
+        assertEquals("state", diff[1].propKey.key)
     }
 
     @Test
@@ -956,7 +956,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffKmPost(updatedKmPost, kmPost)
         assertEquals(1, diff.size)
-        assertEquals("km-post", diff[0].propKey)
+        assertEquals("km-post", diff[0].propKey.key)
     }
 
     @Test
@@ -1004,11 +1004,11 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffSwitch(updatedSwitch, switch)
         assertEquals(5, diff.size)
-        assertEquals("switch", diff[0].propKey)
-        assertEquals("state-category", diff[1].propKey)
-        assertEquals("switch-type", diff[2].propKey)
-        assertEquals("trap-point", diff[3].propKey)
-        assertEquals("owner", diff[4].propKey)
+        assertEquals("switch", diff[0].propKey.key)
+        assertEquals("state-category", diff[1].propKey.key)
+        assertEquals("switch-type", diff[2].propKey.key)
+        assertEquals("trap-point", diff[3].propKey.key)
+        assertEquals("owner", diff[4].propKey.key)
     }
 
     @Test
@@ -1051,7 +1051,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffSwitch(updatedSwitch, switch)
         assertEquals(1, diff.size)
-        assertEquals("switch", diff[0].propKey)
+        assertEquals("switch", diff[0].propKey.key)
     }
 }
 
