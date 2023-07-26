@@ -816,13 +816,12 @@ class PublicationServiceIT @Autowired constructor(
         publish(publicationService, locationTracks = listOf(locationTrack.id as IntId<LocationTrack>, updatedLocationTrack.id as IntId<LocationTrack>, duplicate.id as IntId<LocationTrack>, duplicate2.id as IntId<LocationTrack>))
 
         val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
-        assertEquals(6, diff.size)
+        assertEquals(5, diff.size)
         assertEquals("location-track", diff[0].propKey.key)
         assertEquals("state", diff[1].propKey.key)
         assertEquals("location-track-type", diff[2].propKey.key)
         assertEquals("description", diff[3].propKey.key)
         assertEquals("duplicate-of", diff[4].propKey.key)
-        assertEquals("geometry", diff[5].propKey.key)
     }
 
     @Test
