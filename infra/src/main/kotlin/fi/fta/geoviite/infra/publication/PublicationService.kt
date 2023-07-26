@@ -20,9 +20,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.ratko.RatkoClient
-import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
@@ -1153,7 +1151,7 @@ class PublicationService @Autowired constructor(
                         newTrackAddress?.first?.toString(),
                         if (dist > 0.001) PublicationChangeRemark(
                             "moved-x-meters",
-                            if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
+                            formatDistance(dist)
                         ) else null,
                     )
                 }
@@ -1200,7 +1198,7 @@ class PublicationService @Autowired constructor(
                         formatLocation(newPresentationJointLocation)
                     },
                     if (distance != null && distance > 0.001) {
-                        PublicationChangeRemark("moved-x-meters", if (distance >= 0.1) "${roundTo1Decimal(distance)}" else "<${roundTo1Decimal(0.1)}")
+                        PublicationChangeRemark("moved-x-meters", formatDistance(distance))
                     } else null
                 )
             } else null,
@@ -1239,7 +1237,7 @@ class PublicationService @Autowired constructor(
         return if (lengthDelta >= 0.001) {
             PublicationChangeRemark(
                 "changed-x-meters",
-                if (lengthDelta >= 0.1) "${roundTo1Decimal(lengthDelta)}" else "<${roundTo1Decimal(0.1)}"
+                formatDistance(lengthDelta)
             )
         } else null
     }
@@ -1262,7 +1260,7 @@ class PublicationService @Autowired constructor(
         return if (mDelta != null && mDelta > 0.0005) {
             PublicationChangeRemark(
                 "moved-x-meters",
-                if (mDelta >= 0.1) "${roundTo1Decimal(mDelta)}" else "<${roundTo1Decimal(0.1)}"
+                formatDistance(mDelta)
             )
         } else null
     }

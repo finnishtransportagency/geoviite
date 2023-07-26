@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
@@ -106,6 +107,8 @@ fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
         }
         acc
     }.joinToString(", ") { it.joinToString("-") }
+
+fun formatDistance(dist: Double) = if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
 
 fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null): Comparator<PublicationTableItem> =
     if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
