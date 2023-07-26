@@ -966,15 +966,9 @@ class PublicationServiceIT @Autowired constructor(
             LayoutState.IN_USE,
             TrackMeter(0, 0),
         )
-        val trackNumber = trackNumberService.getDraft(
-            trackNumberService.insert(
-                trackNumberSaveReq
-            )
-        )
-        val trackNumber2 = trackNumberService.getDraft(
-            trackNumberService.insert(
-                trackNumberSaveReq.copy(getUnusedTrackNumber(), FreeText("TEST 2"))
-            )
+        trackNumberService.insert(trackNumberSaveReq)
+        trackNumberService.insert(
+            trackNumberSaveReq.copy(getUnusedTrackNumber(), FreeText("TEST 2"))
         )
 
         val switch = switchService.getDraft(
