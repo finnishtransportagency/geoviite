@@ -13,7 +13,7 @@ export const selectTool: MapTool = {
                 ...items,
                 geometryKmPostIds: items.geometryKmPostIds ?? [],
                 kmPosts: items.kmPosts ?? [],
-                geometrySwitches: items.geometrySwitches ?? [],
+                geometrySwitchIds: items.geometrySwitchIds ?? [],
                 switches: items.switches ?? [],
                 geometryAlignments: items.geometryAlignments ?? [],
                 locationTracks: items.locationTracks ?? [],

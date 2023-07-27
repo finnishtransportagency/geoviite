@@ -50,7 +50,7 @@ type ToolPanelProps = {
     kmPostIds: LayoutKmPostId[];
     geometryKmPostIds: SelectedGeometryItemId<LayoutKmPostId>[];
     switchIds: LayoutSwitchId[];
-    geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
+    geometrySwitchIds: SelectedGeometryItemId<LayoutSwitchId>[];
     locationTrackIds: LocationTrackId[];
     geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
     suggestedSwitches: SuggestedSwitch[];
@@ -100,7 +100,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     kmPostIds,
     geometryKmPostIds,
     switchIds,
-    geometrySwitches,
+    geometrySwitchIds,
     locationTrackIds,
     geometryAlignments,
     suggestedSwitches,
@@ -142,8 +142,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const switchesPromise = getSwitches(switchIds, publishType);
         const kmPostsPromise = getKmPosts(kmPostIds, publishType);
         const plansPromise = getGeometryPlanHeaders(planIds);
+        const elementPlanIds = [
+            ...geometryKmPostIds.map((kmp) => kmp.planId),
+            ...geometrySwitchIds.map((s) => s.planId),
+        ].filter(filterUnique);
         const elementPlansPromise = getTrackLayoutPlansByIds(
-            geometryKmPostIds.map((kmp) => kmp.planId).filter(filterUnique),
+            elementPlanIds,
             changeTimes.geometryPlan,
             false,
         );
@@ -170,6 +174,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         changeTimes.layoutKmPost,
         changeTimes.layoutTrackNumber,
         planIds,
+        geometryKmPostIds,
+        geometrySwitchIds,
     ]);
 
     const locationTracks = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[0]) || [];
@@ -330,14 +336,22 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 planId: s.geometryPlanId,
                 suggestedSwitch: s,
             })),
-            ...geometrySwitches.map((s) => ({
-                id: s.geometryItem.sourceId as GeometrySwitchId,
-                name: s.geometryItem.name,
-                switchId: s.geometryItem.sourceId as GeometrySwitchId,
-                planId: s.planId,
-                suggestedSwitch: undefined,
-            })),
-        ].filter(filterUniqueById((i) => i.switchId));
+            // TODO: GVT-826 We could avoid this awkwardness if the selection item for geometry stuff would contain the geometry ID rather than (temp) layout ID
+            ...geometrySwitchIds
+                .map((sId) => {
+                    const geomSwitch = getPlan(sId.planId)?.switches?.find((s) => s.id === sId.id);
+                    return geomSwitch
+                        ? {
+                              id: geomSwitch.sourceId as GeometrySwitchId,
+                              name: geomSwitch.name,
+                              switchId: geomSwitch.sourceId as GeometrySwitchId,
+                              planId: sId.planId,
+                              suggestedSwitch: undefined,
+                          }
+                        : undefined;
+                })
+                .filter(filterNotEmpty),
+        ].filter(filterUniqueById((s) => s.switchId));
 
         const geometrySwitchTabs = uniqueGeometrySwitches.map((s) => {
             return {
@@ -426,7 +440,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         kmPosts,
         geometryKmPostIds,
         switches,
-        geometrySwitches,
+        geometrySwitchIds,
         suggestedSwitches,
         locationTracks,
         geometryAlignments,

@@ -402,8 +402,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                             : SwitchBadgeStatus.UNLINKED;
 
                                         const isSwitchSelected =
-                                            selectedItems?.geometrySwitches?.some(
-                                                (s) => s.geometryItem.id === planSwitch.id,
+                                            selectedItems?.geometrySwitchIds?.some(
+                                                (s) => s.id === planSwitch.id,
                                             );
                                         const isSwitchVisible = selectedPlanLayouts?.some((p) =>
                                             p.switches.some((a) => a.id === planSwitch.id),

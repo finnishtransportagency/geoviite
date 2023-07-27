@@ -31,14 +31,12 @@ export function createGeometrySwitchLayer(
         const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
         const showLabels = resolution <= Limits.SWITCH_LABELS;
         const isSelected = (switchItem: LayoutSwitch) => {
-            return selection.selectedItems.geometrySwitches.some(
-                ({ geometryItem }) => geometryItem.id === switchItem.id,
-            );
+            return selection.selectedItems.geometrySwitchIds.some(({ id }) => id === switchItem.id);
         };
 
         const isHighlighted = (switchItem: LayoutSwitch) => {
-            return selection.highlightedItems.geometrySwitches.some(
-                ({ geometryItem }) => geometryItem.id === switchItem.id,
+            return selection.highlightedItems.geometrySwitchIds.some(
+                ({ id }) => id === switchItem.id,
             );
         };
 
@@ -96,10 +94,12 @@ export function createGeometrySwitchLayer(
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometrySwitches: findMatchingSwitches(hitArea, vectorSource, options).map((s) => ({
-                    geometryItem: s.switch,
-                    planId: s.planId as GeometryPlanId,
-                })),
+                geometrySwitchIds: findMatchingSwitches(hitArea, vectorSource, options).map((s) => {
+                    return {
+                        id: s.switch.id,
+                        planId: s.planId as GeometryPlanId,
+                    };
+                }),
             };
         },
         requestInFlight: () => inFlight,

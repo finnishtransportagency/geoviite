@@ -196,9 +196,9 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onToggleSwitchSelection={(switchItem) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometrySwitches: [
+                                        geometrySwitchIds: [
                                             {
-                                                geometryItem: switchItem,
+                                                id: switchItem.id,
                                                 planId: h.id,
                                             },
                                         ],

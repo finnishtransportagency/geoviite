@@ -27,7 +27,7 @@ export function createEmptyItemCollections(): ItemCollections {
         kmPosts: [],
         geometryKmPostIds: [],
         switches: [],
-        geometrySwitches: [],
+        geometrySwitchIds: [],
         trackNumbers: [],
         geometryAlignments: [],
         layoutLinkPoints: [],
@@ -189,9 +189,9 @@ function updateItemCollectionsByOptions(
         options['switches'],
         flags,
     );
-    itemCollections['geometrySwitches'] = getNewGeometryItemCollection(
-        itemCollections['geometrySwitches'],
-        options['geometrySwitches'],
+    itemCollections['geometrySwitchIds'] = getNewGeometryItemIdCollection(
+        itemCollections['geometrySwitchIds'],
+        options['geometrySwitchIds'],
         flags,
     );
     itemCollections['trackNumbers'] = getNewIdCollection(
@@ -256,8 +256,8 @@ function updateItemCollectionsByUnselecting(
         itemCollections['switches'],
         unselectItemCollections['switches'],
     );
-    itemCollections['geometrySwitches'] = filterGeometryItemCollection(
-        itemCollections['geometrySwitches'],
+    itemCollections['geometrySwitchIds'] = filterGeometryItemIdCollection(
+        itemCollections['geometrySwitchIds'],
         unselectItemCollections['geometrySwitches'],
     );
     itemCollections['trackNumbers'] = filterIdCollection(
@@ -365,9 +365,9 @@ export const selectionReducers = {
                     (gKmPost) => !planLayout?.kmPosts.some((kmPost) => kmPost.id === gKmPost.id),
                 ),
             ];
-            selectedItems.geometrySwitches = [
-                ...selectedItems.geometrySwitches.filter(
-                    (gs) => !planLayout?.switches.some((s) => s.id === gs.geometryItem.id),
+            selectedItems.geometrySwitchIds = [
+                ...selectedItems.geometrySwitchIds.filter(
+                    (gs) => !planLayout?.switches.some((s) => s.id === gs.id),
                 ),
             ];
             selectedItems.geometryAlignments = [

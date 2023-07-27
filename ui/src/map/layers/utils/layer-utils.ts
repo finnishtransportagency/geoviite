@@ -162,9 +162,9 @@ export function mergePartialItemSearchResults(
                 searchResult.geometryKmPostIds,
             ),
             switches: mergeOptionalArrays(merged.switches, searchResult.switches),
-            geometrySwitches: mergeOptionalArrays(
-                merged.geometrySwitches,
-                searchResult.geometrySwitches,
+            geometrySwitchIds: mergeOptionalArrays(
+                merged.geometrySwitchIds,
+                searchResult.geometrySwitchIds,
             ),
             trackNumbers: mergeOptionalArrays(merged.trackNumbers, searchResult.trackNumbers),
             geometryAlignments: mergeOptionalArrays(

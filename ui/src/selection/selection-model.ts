@@ -2,7 +2,6 @@ import {
     GeometryPlanLayout,
     LayoutKmPostId,
     LayoutSegmentId,
-    LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -29,7 +28,7 @@ export type ItemCollections = {
     kmPosts: LayoutKmPostId[];
     geometryKmPostIds: SelectedGeometryItemId<LayoutKmPostId>[];
     switches: LayoutSwitchId[];
-    geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
+    geometrySwitchIds: SelectedGeometryItemId<LayoutSwitchId>[];
     trackNumbers: LayoutTrackNumberId[];
     geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
     layoutLinkPoints: LinkPoint[];
@@ -65,7 +64,7 @@ export type SelectedGeometryItem<T> = {
     geometryItem: T;
 };
 
-export type GeometryItemId = LayoutKmPostId;
+export type GeometryItemId = LayoutKmPostId | LayoutSwitchId;
 export type SelectedGeometryItemId<T extends GeometryItemId> = {
     planId: GeometryPlanId;
     id: T;
@@ -78,7 +77,7 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'kmPosts',
     'geometryKmPostIds',
     'switches',
-    'geometrySwitches',
+    'geometrySwitchIds',
     'trackNumbers',
     'geometryAlignments',
     'layoutLinkPoints',
