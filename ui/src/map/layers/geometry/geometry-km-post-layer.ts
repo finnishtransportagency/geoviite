@@ -3,7 +3,6 @@ import { Selection } from 'selection/selection-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
-import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import {
@@ -14,6 +13,7 @@ import {
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { filterNotEmpty } from 'utils/array-utils';
 
 let newestLayerId = 0;
 
@@ -34,7 +34,9 @@ export function createGeometryKmPostLayer(
     if (step) {
         inFlight = true;
         const isSelected = (kmPost: LayoutKmPost) => {
-            return selection.selectedItems.geometryKmPostIds.some(({ id }) => id === kmPost.id);
+            return selection.selectedItems.geometryKmPostIds.some(
+                ({ geometryId }) => geometryId === kmPost.sourceId,
+            );
         };
 
         const planStatusPromises = selection.planLayouts.map((plan) =>
@@ -88,12 +90,16 @@ export function createGeometryKmPostLayer(
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometryKmPostIds: findMatchingKmPosts(hitArea, vectorSource, options).map(
-                    (kp) => ({
-                        id: kp.kmPost.id,
-                        planId: kp.planId as GeometryPlanId,
-                    }),
-                ),
+                geometryKmPostIds: findMatchingKmPosts(hitArea, vectorSource, options)
+                    .map((kp) =>
+                        kp.kmPost.sourceId && kp.planId
+                            ? {
+                                  geometryId: kp.kmPost.sourceId,
+                                  planId: kp.planId,
+                              }
+                            : undefined,
+                    )
+                    .filter(filterNotEmpty),
             };
         },
         requestInFlight: () => inFlight,

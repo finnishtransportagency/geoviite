@@ -196,12 +196,14 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onToggleSwitchSelection={(switchItem) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometrySwitchIds: [
-                                            {
-                                                id: switchItem.id,
-                                                planId: h.id,
-                                            },
-                                        ],
+                                        geometrySwitchIds: switchItem.sourceId
+                                            ? [
+                                                  {
+                                                      geometryId: switchItem.sourceId,
+                                                      planId: h.id,
+                                                  },
+                                              ]
+                                            : [],
                                         isToggle: true,
                                     })
                                 }
@@ -209,12 +211,14 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onToggleKmPostSelection={(kmPost) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometryKmPostIds: [
-                                            {
-                                                id: kmPost.id,
-                                                planId: h.id,
-                                            },
-                                        ],
+                                        geometryKmPostIds: kmPost.sourceId
+                                            ? [
+                                                  {
+                                                      geometryId: kmPost.sourceId,
+                                                      planId: h.id,
+                                                  },
+                                              ]
+                                            : [],
                                         isToggle: true,
                                     })
                                 }

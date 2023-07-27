@@ -5,13 +5,13 @@ import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
-import { GeometryPlanId } from 'geometry/geometry-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
 import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { filterNotEmpty } from 'utils/array-utils';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
@@ -31,12 +31,14 @@ export function createGeometrySwitchLayer(
         const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
         const showLabels = resolution <= Limits.SWITCH_LABELS;
         const isSelected = (switchItem: LayoutSwitch) => {
-            return selection.selectedItems.geometrySwitchIds.some(({ id }) => id === switchItem.id);
+            return selection.selectedItems.geometrySwitchIds.some(
+                ({ geometryId }) => geometryId === switchItem.sourceId,
+            );
         };
 
         const isHighlighted = (switchItem: LayoutSwitch) => {
             return selection.highlightedItems.geometrySwitchIds.some(
-                ({ id }) => id === switchItem.id,
+                ({ geometryId }) => geometryId === switchItem.sourceId,
             );
         };
 
@@ -94,12 +96,16 @@ export function createGeometrySwitchLayer(
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometrySwitchIds: findMatchingSwitches(hitArea, vectorSource, options).map((s) => {
-                    return {
-                        id: s.switch.id,
-                        planId: s.planId as GeometryPlanId,
-                    };
-                }),
+                geometrySwitchIds: findMatchingSwitches(hitArea, vectorSource, options)
+                    .map((s) =>
+                        s.planId && s.switch.sourceId
+                            ? {
+                                  geometryId: s.switch.sourceId,
+                                  planId: s.planId,
+                              }
+                            : undefined,
+                    )
+                    .filter(filterNotEmpty),
             };
         },
         requestInFlight: () => inFlight,

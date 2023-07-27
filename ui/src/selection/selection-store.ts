@@ -129,7 +129,8 @@ function getNewGeometryItemIdCollection<T extends GeometryItemId>(
         items,
         newItems,
         flags,
-        (item) => item.planId + item.id,
+        // TODO: GVT-826 Why this custom ID? geometryId is just as unique as planId+geometryId
+        (item) => item.planId + item.geometryId,
     );
 }
 
@@ -141,7 +142,7 @@ function filterGeometryItemIdCollection<T extends GeometryItemId>(
         return items;
     }
 
-    return items.filter((i) => !unselectItemIds.some((u) => u === i.id));
+    return items.filter((i) => !unselectItemIds.some((u) => u === i.geometryId));
 }
 
 function getNewItemCollectionUsingCustomId<TEntity, TId>(
@@ -362,12 +363,14 @@ export const selectionReducers = {
 
             selectedItems.geometryKmPostIds = [
                 ...selectedItems.geometryKmPostIds.filter(
-                    (gKmPost) => !planLayout?.kmPosts.some((kmPost) => kmPost.id === gKmPost.id),
+                    ({ geometryId }) =>
+                        !planLayout?.kmPosts.some((kmPost) => kmPost.sourceId === geometryId),
                 ),
             ];
             selectedItems.geometrySwitchIds = [
                 ...selectedItems.geometrySwitchIds.filter(
-                    (gs) => !planLayout?.switches.some((s) => s.id === gs.id),
+                    ({ geometryId }) =>
+                        !planLayout?.switches.some((s) => s.sourceId === geometryId),
                 ),
             ];
             selectedItems.geometryAlignments = [

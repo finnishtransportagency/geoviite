@@ -1,6 +1,11 @@
 import * as React from 'react';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
-import { GeometryPlanHeader, GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
+import {
+    GeometryKmPostId,
+    GeometryPlanHeader,
+    GeometryPlanId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     DraftType,
@@ -23,7 +28,7 @@ import {
 import { BoundingBox, Point } from 'model/geometry';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
-import { filterNotEmpty, filterUnique, filterUniqueById } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -48,9 +53,9 @@ type ToolPanelProps = {
     planIds: GeometryPlanId[];
     trackNumberIds: LayoutTrackNumberId[];
     kmPostIds: LayoutKmPostId[];
-    geometryKmPostIds: SelectedGeometryItemId<LayoutKmPostId>[];
+    geometryKmPostIds: SelectedGeometryItemId<GeometryKmPostId>[];
     switchIds: LayoutSwitchId[];
-    geometrySwitchIds: SelectedGeometryItemId<LayoutSwitchId>[];
+    geometrySwitchIds: SelectedGeometryItemId<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
     geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
     suggestedSwitches: SuggestedSwitch[];
@@ -276,9 +281,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
         const geometryKmPostTabs = geometryKmPostIds.map(
             (k: SelectedGeometryItemId<LayoutKmPostId>) => {
-                const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.id === k.id);
+                const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.sourceId === k.geometryId);
                 return {
-                    asset: { type: 'GEOMETRY_KM_POST', id: k.id },
+                    asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },
                     title: kmPost?.kmNumber ?? '...',
                     element: kmPost ? (
                         <GeometryKmPostInfobox
@@ -328,53 +333,55 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             } as ToolPanelTab;
         });
 
-        const uniqueGeometrySwitches = [
-            ...suggestedSwitches.map((s) => ({
-                id: s.id,
-                name: s.name,
-                switchId: s.geometrySwitchId,
-                planId: s.geometryPlanId,
-                suggestedSwitch: s,
-            })),
-            // TODO: GVT-826 We could avoid this awkwardness if the selection item for geometry stuff would contain the geometry ID rather than (temp) layout ID
-            ...geometrySwitchIds
-                .map((sId) => {
-                    const geomSwitch = getPlan(sId.planId)?.switches?.find((s) => s.id === sId.id);
-                    return geomSwitch
-                        ? {
-                              id: geomSwitch.sourceId as GeometrySwitchId,
-                              name: geomSwitch.name,
-                              switchId: geomSwitch.sourceId as GeometrySwitchId,
-                              planId: sId.planId,
-                              suggestedSwitch: undefined,
-                          }
-                        : undefined;
-                })
-                .filter(filterNotEmpty),
-        ].filter(filterUniqueById((s) => s.switchId));
-
-        const geometrySwitchTabs = uniqueGeometrySwitches.map((s) => {
+        const suggestedSwitchTabs: ToolPanelTab[] = suggestedSwitches.map((ss) => {
             return {
-                asset: { type: 'GEOMETRY_SWITCH', id: s.id },
-                title: s.name || '-',
+                asset: { type: 'GEOMETRY_SWITCH', id: ss.id },
+                title: ss.name || '-',
                 element: (
                     <GeometrySwitchInfobox
                         visibilities={infoboxVisibilities.geometrySwitch}
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('geometrySwitch', visibilities)
                         }
-                        switchId={s.switchId ?? undefined}
+                        switchId={ss.geometrySwitchId ?? undefined}
                         layoutSwitch={switches ? switches[0] : undefined}
-                        suggestedSwitch={s.suggestedSwitch}
+                        suggestedSwitch={ss}
                         linkingState={linkingState}
-                        planId={s.planId ?? undefined}
+                        planId={ss.geometryPlanId ?? undefined}
                         switchChangeTime={changeTimes.layoutSwitch}
                         locationTrackChangeTime={changeTimes.layoutLocationTrack}
                         onShowOnMap={onShowMapLocation}
                     />
                 ),
-            } as ToolPanelTab;
+            };
         });
+        const geometrySwitchTabs: ToolPanelTab[] = geometrySwitchIds
+            .filter((s) => !suggestedSwitches.some((ss) => ss.geometrySwitchId === s.geometryId))
+            .map((s) => {
+                const geomSwitch = getPlan(s.planId)?.switches?.find(
+                    (gs) => gs.sourceId === s.geometryId,
+                );
+                return {
+                    asset: { type: 'GEOMETRY_SWITCH', id: s.geometryId },
+                    title: geomSwitch ? geomSwitch.name || '-' : '...',
+                    element: (
+                        <GeometrySwitchInfobox
+                            visibilities={infoboxVisibilities.geometrySwitch}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('geometrySwitch', visibilities)
+                            }
+                            switchId={s.geometryId}
+                            layoutSwitch={switches ? switches[0] : undefined}
+                            suggestedSwitch={undefined}
+                            linkingState={linkingState}
+                            planId={s.planId ?? undefined}
+                            switchChangeTime={changeTimes.layoutSwitch}
+                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                            onShowOnMap={onShowMapLocation}
+                        />
+                    ),
+                };
+            });
 
         const locationTrackTabs = locationTracks.map((track) => {
             return {
@@ -425,6 +432,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const allTabs = [
             ...geometryKmPostTabs,
             ...layoutKmPostTabs,
+            ...suggestedSwitchTabs,
             ...geometrySwitchTabs,
             ...switchTabs,
             ...geometryAlignmentTabs,

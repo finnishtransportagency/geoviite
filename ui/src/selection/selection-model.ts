@@ -7,7 +7,12 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryPlanId, GeometryPlanLayoutId } from 'geometry/geometry-model';
+import {
+    GeometryKmPostId,
+    GeometryPlanId,
+    GeometryPlanLayoutId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import {
     ClusterPoint,
     LinkPoint,
@@ -26,9 +31,9 @@ export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trac
 export type ItemCollections = {
     locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPostId[];
-    geometryKmPostIds: SelectedGeometryItemId<LayoutKmPostId>[];
+    geometryKmPostIds: SelectedGeometryItemId<GeometryKmPostId>[];
     switches: LayoutSwitchId[];
-    geometrySwitchIds: SelectedGeometryItemId<LayoutSwitchId>[];
+    geometrySwitchIds: SelectedGeometryItemId<GeometrySwitchId>[];
     trackNumbers: LayoutTrackNumberId[];
     geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
     layoutLinkPoints: LinkPoint[];
@@ -64,10 +69,10 @@ export type SelectedGeometryItem<T> = {
     geometryItem: T;
 };
 
-export type GeometryItemId = LayoutKmPostId | LayoutSwitchId;
+export type GeometryItemId = GeometryKmPostId | GeometrySwitchId;
 export type SelectedGeometryItemId<T extends GeometryItemId> = {
     planId: GeometryPlanId;
-    id: T;
+    geometryId: T;
 };
 
 export type SelectableItemType = keyof ItemCollections;

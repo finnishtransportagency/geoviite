@@ -196,6 +196,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         planHeader.source == 'PAIKANNUSPALVELU'
             ? t(`enum.plan-source.${planHeader.source}`)
             : undefined;
+    // TODO: GVT-826 This function is way too long and deep-indented. split it up.
     return (
         <div className={styles['geometry-plan-panel']}>
             <Accordion
@@ -224,7 +225,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                     planLayout.kmPosts.map((planKmPost) => {
                                         const isKmPostSelected =
                                             selectedItems?.geometryKmPostIds?.some(
-                                                ({ id }) => id === planKmPost.id,
+                                                ({ geometryId }) =>
+                                                    geometryId === planKmPost.sourceId,
                                             );
                                         const isKmPostVisible = selectedPlanLayouts?.some((p) =>
                                             p.kmPosts.some((k) => k.id === planKmPost.id),
@@ -403,7 +405,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
 
                                         const isSwitchSelected =
                                             selectedItems?.geometrySwitchIds?.some(
-                                                (s) => s.id === planSwitch.id,
+                                                (s) => s.geometryId === planSwitch.sourceId,
                                             );
                                         const isSwitchVisible = selectedPlanLayouts?.some((p) =>
                                             p.switches.some((a) => a.id === planSwitch.id),
