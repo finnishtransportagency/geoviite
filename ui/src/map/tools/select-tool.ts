@@ -11,7 +11,7 @@ export const selectTool: MapTool = {
 
             options.onSelect({
                 ...items,
-                geometryKmPosts: items.geometryKmPosts ?? [],
+                geometryKmPostIds: items.geometryKmPostIds ?? [],
                 kmPosts: items.kmPosts ?? [],
                 geometrySwitches: items.geometrySwitches ?? [],
                 switches: items.switches ?? [],

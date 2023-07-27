@@ -4,7 +4,6 @@ import {
     LayoutKmPost,
     LayoutKmPostId,
     LayoutTrackNumberId,
-    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import {
@@ -42,7 +41,7 @@ export async function getKmPost(
 }
 
 export async function getKmPosts(
-    ids: LocationTrackId[],
+    ids: LayoutKmPostId[],
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost[]> {

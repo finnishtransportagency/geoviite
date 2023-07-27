@@ -243,6 +243,16 @@ export async function getGeometrySwitchLayout(
     return await getIgnoreError<LayoutSwitch | null>(`${GEOMETRY_URI}/switches/${switchId}/layout`);
 }
 
+export async function getTrackLayoutPlansByIds(
+    planIds: GeometryPlanId[],
+    changeTime: TimeStamp,
+    includeGeometryData = true,
+): Promise<GeometryPlanLayout[]> {
+    return Promise.all(
+        planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
+    ).then((plans) => plans.filter(filterNotEmpty));
+}
+
 export async function getTrackLayoutPlan(
     planId: GeometryPlanId,
     changeTime: TimeStamp,

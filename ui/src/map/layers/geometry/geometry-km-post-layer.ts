@@ -34,9 +34,7 @@ export function createGeometryKmPostLayer(
     if (step) {
         inFlight = true;
         const isSelected = (kmPost: LayoutKmPost) => {
-            return selection.selectedItems.geometryKmPosts.some(
-                ({ geometryItem }) => geometryItem.id === kmPost.id,
-            );
+            return selection.selectedItems.geometryKmPostIds.some(({ id }) => id === kmPost.id);
         };
 
         const planStatusPromises = selection.planLayouts.map((plan) =>
@@ -90,10 +88,12 @@ export function createGeometryKmPostLayer(
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometryKmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
-                    geometryItem: kp.kmPost,
-                    planId: kp.planId as GeometryPlanId,
-                })),
+                geometryKmPostIds: findMatchingKmPosts(hitArea, vectorSource, options).map(
+                    (kp) => ({
+                        id: kp.kmPost.id,
+                        planId: kp.planId as GeometryPlanId,
+                    }),
+                ),
             };
         },
         requestInFlight: () => inFlight,

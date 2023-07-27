@@ -4,7 +4,6 @@ import { GeometryPlanHeader, GeometryPlanId, GeometrySwitchId } from 'geometry/g
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     DraftType,
-    LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
     LayoutSwitch,
@@ -19,11 +18,12 @@ import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-mode
 import {
     OptionalUnselectableItemCollections,
     SelectedGeometryItem,
+    SelectedGeometryItemId,
 } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
-import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, filterUniqueById } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -33,7 +33,7 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
-import { getGeometryPlanHeaders } from 'geometry/geometry-api';
+import { getGeometryPlanHeaders, getTrackLayoutPlansByIds } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import {
     GeometryKmPostInfoboxVisibilities,
@@ -42,12 +42,13 @@ import {
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
     trackNumberIds: LayoutTrackNumberId[];
     kmPostIds: LayoutKmPostId[];
-    geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
+    geometryKmPostIds: SelectedGeometryItemId<LayoutKmPostId>[];
     switchIds: LayoutSwitchId[];
     geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
     locationTrackIds: LocationTrackId[];
@@ -97,7 +98,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     planIds,
     trackNumberIds,
     kmPostIds,
-    geometryKmPosts,
+    geometryKmPostIds,
     switchIds,
     geometrySwitches,
     locationTrackIds,
@@ -141,13 +142,23 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const switchesPromise = getSwitches(switchIds, publishType);
         const kmPostsPromise = getKmPosts(kmPostIds, publishType);
         const plansPromise = getGeometryPlanHeaders(planIds);
+        const elementPlansPromise = getTrackLayoutPlansByIds(
+            geometryKmPostIds.map((kmp) => kmp.planId).filter(filterUnique),
+            changeTimes.geometryPlan,
+            false,
+        );
 
         return Promise.all([
+            // TODO: GVT-826 Check the nullability in these api-calls/caches.
+            // It is possible for an item in the id-list to not exist, but these functions do not typically return null in that case.
+            // The whole thing needs a check-up. What's the correct handling?
+            // Don't double-check nulls and make sure that types match what is returned.
             locationTracksPromise.then((l) => l.filter(filterNotEmpty)),
             switchesPromise.then((l) => l.filter(filterNotEmpty)),
             kmPostsPromise.then((l) => l.filter(filterNotEmpty)),
             trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),
             plansPromise.then((l) => l.filter(filterNotEmpty)),
+            elementPlansPromise,
         ]);
     }, [
         locationTrackIds,
@@ -166,6 +177,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const kmPosts = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[2]) || [];
     const trackNumbers = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[3]) || [];
     const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
+
+    const getPlan = (id: GeometryPlanId) =>
+        tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[5].find((p) => p.planId === id);
 
     const infoboxVisibilityChange = (
         key: keyof InfoboxVisibilities,
@@ -254,28 +268,31 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             } as ToolPanelTab;
         });
 
-        const geometryKmPostTabs = geometryKmPosts.map((k) => {
-            return {
-                asset: { type: 'GEOMETRY_KM_POST', id: k.geometryItem.id },
-                title: k.geometryItem.kmNumber,
-                element: (
-                    <GeometryKmPostInfobox
-                        geometryKmPost={k.geometryItem}
-                        planId={k.planId}
-                        onShowOnMap={() =>
-                            k.geometryItem.location &&
-                            showArea(
-                                calculateBoundingBoxToShowAroundLocation(k.geometryItem.location),
-                            )
-                        }
-                        visibilities={infoboxVisibilities.geometryKmPost}
-                        onVisibilityChange={(visibilities: GeometryKmPostInfoboxVisibilities) =>
-                            infoboxVisibilityChange('geometryKmPost', visibilities)
-                        }
-                    />
-                ),
-            } as ToolPanelTab;
-        });
+        const geometryKmPostTabs = geometryKmPostIds.map(
+            (k: SelectedGeometryItemId<LayoutKmPostId>) => {
+                const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.id === k.id);
+                return {
+                    asset: { type: 'GEOMETRY_KM_POST', id: k.id },
+                    title: kmPost?.kmNumber ?? '...',
+                    element: kmPost ? (
+                        <GeometryKmPostInfobox
+                            geometryKmPost={kmPost}
+                            planId={k.planId}
+                            onShowOnMap={() =>
+                                kmPost.location &&
+                                showArea(calculateBoundingBoxToShowAroundLocation(kmPost.location))
+                            }
+                            visibilities={infoboxVisibilities.geometryKmPost}
+                            onVisibilityChange={(visibilities: GeometryKmPostInfoboxVisibilities) =>
+                                infoboxVisibilityChange('geometryKmPost', visibilities)
+                            }
+                        />
+                    ) : (
+                        <Spinner />
+                    ),
+                } as ToolPanelTab;
+            },
+        );
 
         const switchTabs = switches.filter(visibleByTypeAndPublishType).map((s) => {
             return {
@@ -407,7 +424,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         trackNumbers,
         trackNumberIds,
         kmPosts,
-        geometryKmPosts,
+        geometryKmPostIds,
         switches,
         geometrySwitches,
         suggestedSwitches,

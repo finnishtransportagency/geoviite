@@ -223,8 +223,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                 {planLayout.kmPosts?.length > 0 &&
                                     planLayout.kmPosts.map((planKmPost) => {
                                         const isKmPostSelected =
-                                            selectedItems?.geometryKmPosts?.some(
-                                                (k) => k.geometryItem.id === planKmPost.id,
+                                            selectedItems?.geometryKmPostIds?.some(
+                                                ({ id }) => id === planKmPost.id,
                                             );
                                         const isKmPostVisible = selectedPlanLayouts?.some((p) =>
                                             p.kmPosts.some((k) => k.id === planKmPost.id),

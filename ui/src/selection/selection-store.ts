@@ -1,11 +1,13 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
+    GeometryItemId,
     ItemCollections,
     OnHighlightItemsOptions,
     OnSelectFlags,
     OnSelectOptions,
     OptionalUnselectableItemCollections,
     SelectedGeometryItem,
+    SelectedGeometryItemId,
     Selection,
     UnselectableItemCollections,
 } from 'selection/selection-model';
@@ -23,7 +25,7 @@ export function createEmptyItemCollections(): ItemCollections {
     return {
         locationTracks: [],
         kmPosts: [],
-        geometryKmPosts: [],
+        geometryKmPostIds: [],
         switches: [],
         geometrySwitches: [],
         trackNumbers: [],
@@ -118,6 +120,30 @@ function filterGeometryItemCollection<T extends { id: unknown }>(
     return items.filter((i) => !unselectItemIds.some((u) => u === i.geometryItem.id));
 }
 
+function getNewGeometryItemIdCollection<T extends GeometryItemId>(
+    items: SelectedGeometryItemId<T>[],
+    newItems: SelectedGeometryItemId<T>[] | undefined,
+    flags: OnSelectFlags,
+): SelectedGeometryItemId<T>[] {
+    return getNewItemCollectionUsingCustomId(
+        items,
+        newItems,
+        flags,
+        (item) => item.planId + item.id,
+    );
+}
+
+function filterGeometryItemIdCollection<T extends GeometryItemId>(
+    items: SelectedGeometryItemId<T>[],
+    unselectItemIds: ValueOf<UnselectableItemCollections> | undefined,
+) {
+    if (unselectItemIds === undefined) {
+        return items;
+    }
+
+    return items.filter((i) => !unselectItemIds.some((u) => u === i.id));
+}
+
 function getNewItemCollectionUsingCustomId<TEntity, TId>(
     items: TEntity[],
     newItems: TEntity[] | undefined,
@@ -153,9 +179,9 @@ function updateItemCollectionsByOptions(
         options['kmPosts'],
         flags,
     );
-    itemCollections['geometryKmPosts'] = getNewGeometryItemCollection(
-        itemCollections['geometryKmPosts'],
-        options['geometryKmPosts'],
+    itemCollections['geometryKmPostIds'] = getNewGeometryItemIdCollection(
+        itemCollections['geometryKmPostIds'],
+        options['geometryKmPostIds'],
         flags,
     );
     itemCollections['switches'] = getNewIdCollection(
@@ -222,8 +248,8 @@ function updateItemCollectionsByUnselecting(
         itemCollections['kmPosts'],
         unselectItemCollections['kmPosts'],
     );
-    itemCollections['geometryKmPosts'] = filterGeometryItemCollection(
-        itemCollections['geometryKmPosts'],
+    itemCollections['geometryKmPostIds'] = filterGeometryItemIdCollection(
+        itemCollections['geometryKmPostIds'],
         unselectItemCollections['geometryKmPosts'],
     );
     itemCollections['switches'] = filterIdCollection(
@@ -334,12 +360,9 @@ export const selectionReducers = {
                 ...state.planLayouts.filter((p) => p.planId !== planLayout?.planId),
             ];
 
-            selectedItems.geometryKmPosts = [
-                ...selectedItems.geometryKmPosts.filter(
-                    (gKmPost) =>
-                        !planLayout?.kmPosts.some(
-                            (kmPost) => kmPost.id === gKmPost.geometryItem.id,
-                        ),
+            selectedItems.geometryKmPostIds = [
+                ...selectedItems.geometryKmPostIds.filter(
+                    (gKmPost) => !planLayout?.kmPosts.some((kmPost) => kmPost.id === gKmPost.id),
                 ),
             ];
             selectedItems.geometrySwitches = [

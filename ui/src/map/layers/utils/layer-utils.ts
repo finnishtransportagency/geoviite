@@ -157,9 +157,9 @@ export function mergePartialItemSearchResults(
         return {
             locationTracks: mergeOptionalArrays(merged.locationTracks, searchResult.locationTracks),
             kmPosts: mergeOptionalArrays(merged.kmPosts, searchResult.kmPosts),
-            geometryKmPosts: mergeOptionalArrays(
-                merged.geometryKmPosts,
-                searchResult.geometryKmPosts,
+            geometryKmPostIds: mergeOptionalArrays(
+                merged.geometryKmPostIds,
+                searchResult.geometryKmPostIds,
             ),
             switches: mergeOptionalArrays(merged.switches, searchResult.switches),
             geometrySwitches: mergeOptionalArrays(

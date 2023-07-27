@@ -209,9 +209,9 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onToggleKmPostSelection={(kmPost) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometryKmPosts: [
+                                        geometryKmPostIds: [
                                             {
-                                                geometryItem: kmPost,
+                                                id: kmPost.id,
                                                 planId: h.id,
                                             },
                                         ],
