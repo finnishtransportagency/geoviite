@@ -53,7 +53,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
 
     protected fun clearAllTestData() {
         val truncateDbDao = TruncateDbDao(jdbcTemplate)
-        truncateDbDao.truncateTables(
+        truncateDbDao.deleteFromTables(
             schema = "publication", tables = arrayOf(
                 "km_post",
                 "location_track",
@@ -64,7 +64,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
             )
         )
 
-        truncateDbDao.truncateTables(
+        truncateDbDao.deleteFromTables(
             schema = "layout", tables = arrayOf(
                 "alignment",
                 "alignment_version",
@@ -80,10 +80,12 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
                 "switch_joint_version",
                 "track_number",
                 "track_number_version",
+                "segment_version",
+                "segment_geometry",
             )
         )
 
-        truncateDbDao.truncateTables(
+        truncateDbDao.deleteFromTables(
             schema = "geometry", tables = arrayOf(
                 "alignment",
                 "cant_point",

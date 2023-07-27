@@ -32,6 +32,20 @@ open class TruncateDbDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         ) { rs, _ -> 1 }
     }
 
+    open fun deleteFromTables(schema: String, vararg tables: String) {
+        // Temporarily disable all triggers
+        jdbcTemplate.execute("set session_replication_role = replica") { it.execute() }
+        try {
+            tables.forEach { table ->
+                jdbcTemplate.update(
+                    "DELETE FROM ${schema}.${table};", mapOf("table_name" to table, "schema_name" to schema)
+                )
+            }
+        } finally {
+            jdbcTemplate.execute("set session_replication_role = DEFAULT") { it.execute() }
+        }
+    }
+
     @Transactional
     open fun truncateTables(schema: String, vararg tables: String) {
         tables.forEach { table ->
