@@ -34,11 +34,16 @@ open class TruncateDbDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
     @Transactional
     open fun truncateTables(schema: String, vararg tables: String) {
-        tables.forEach { table ->
-            jdbcTemplate.update(
-                "TRUNCATE TABLE ${schema}.${table} CASCADE;", mapOf("table_name" to table, "schema_name" to schema)
-            )
+        // Temporarily disable all triggers
+        jdbcTemplate.execute("SET session_replication_role = replica") { it.execute() }
+        try {
+            tables.forEach { table ->
+                jdbcTemplate.update(
+                    "DELETE FROM ${schema}.${table};", mapOf("table_name" to table, "schema_name" to schema)
+                )
+            }
+        } finally {
+            jdbcTemplate.execute("set session_replication_role = DEFAULT") { it.execute() }
         }
-
     }
 }
