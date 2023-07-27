@@ -815,19 +815,9 @@ class LinkingTestUI @Autowired constructor(
         publishType: PublishType,
         id: IntId<LocationTrack>,
     ): Pair<LocationTrack, LayoutAlignment> {
-        return when (publishType) {
-            PublishType.DRAFT -> {
-                val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchDraftVersionOrThrow(id))
-                val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
-                locationTrack to alignment
-            }
-
-            PublishType.OFFICIAL -> {
-                val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchOfficialVersion(id)!!)
-                val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
-                locationTrack to alignment
-            }
-        }
+        val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchVersion(id, publishType)!!)
+        val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
+        return locationTrack to alignment
     }
 
     private fun latestPublicationDetails(): List<PublicationDetailRowContent> =

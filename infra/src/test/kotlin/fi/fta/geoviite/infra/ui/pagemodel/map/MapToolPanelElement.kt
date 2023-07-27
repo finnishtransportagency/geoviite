@@ -116,7 +116,7 @@ class LocationTrackGeneralInfoBox(by: By) : InfoBox(by) {
     }
 
     // TODO: GVT-1947 Sleep needed?
-    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { MapPage.finishLoading() }
 }
 
 class CreateEditLayoutSwitchDialog : DialogPopUp() {
@@ -298,7 +298,7 @@ class ReferenceLineLocationInfoBox(by: By) : InfoBox(by) {
     fun todellinenPituus(): String = fieldValue("Todellinen pituus (m)")
     fun alkukoordinaatti(): String = fieldValue("Alkukoordinaatit TM35FIN")
     fun loppukoordinaatti(): String = fieldValue("Loppukoordinaatit TM35FIN")
-    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { MapPage.finishLoading() }
 }
 
 class TrackNumberLogInfoBox(by: By) : InfoBox(by) {
@@ -315,6 +315,7 @@ class LayoutSwitchGeneralInfoBox(by: By) : InfoBox(by) {
         return CreateEditLayoutSwitchDialog()
     }
 
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { MapPage.finishLoading() }
 }
 
 class LayoutSwitchAdditionalInfoInfoBox(by: By) : InfoBox(by) {
@@ -343,7 +344,7 @@ class GeometryAlignmentGeneralInfoBox(by: By) : InfoBox(by) {
     fun nimi() = fieldValue("Nimi")
     fun pituusmittauslinja() = fieldValue("Pituusmittauslinja")
 
-    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { MapPage.finishLoading() }
 }
 
 open class LinkingInfoBox(by: By) : InfoBox(by) {
@@ -419,7 +420,7 @@ class GeometryAlignmentLinkingInfoBox(by: By) : LinkingInfoBox(by) {
 class GeometrySwitchGeneralInfoBox(by: By) : InfoBox(by) {
     fun nimi() = fieldValue("Nimi")
     fun katisyys() = fieldValue("Kätisyys")
-    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
+    fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { MapPage.finishLoading() }
 
 }
 

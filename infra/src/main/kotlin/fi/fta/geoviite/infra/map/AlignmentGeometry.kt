@@ -100,7 +100,7 @@ fun simplify(
         else alignment.segments.filter { s -> s.boundingBox?.intersects(bbox) ?: false }
     var previousM = Double.NEGATIVE_INFINITY
     var previousInBbox = false
-    return segments
+    val rv = segments
         .flatMap { s -> s.points.filter { p ->
             val result =
                 (resolution == null || (p.m - previousM).roundToInt() >= resolution || (p.m == alignment.length && previousM < p.m))
@@ -112,4 +112,6 @@ fun simplify(
             result
         } }
         .let { points -> if (points.size >= 2) points else listOf() }
+
+    return rv
 }
