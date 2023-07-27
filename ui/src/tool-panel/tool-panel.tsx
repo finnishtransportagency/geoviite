@@ -1,6 +1,7 @@
 import * as React from 'react';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
 import {
+    GeometryAlignmentId,
     GeometryKmPostId,
     GeometryPlanHeader,
     GeometryPlanId,
@@ -22,7 +23,6 @@ import GeometrySwitchInfobox from 'tool-panel/switch/geometry-switch-infobox';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import {
     OptionalUnselectableItemCollections,
-    SelectedGeometryItem,
     SelectedGeometryItemId,
 } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
@@ -45,7 +45,6 @@ import {
     InfoboxVisibilities,
 } from 'track-layout/track-layout-slice';
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
@@ -57,7 +56,7 @@ type ToolPanelProps = {
     switchIds: LayoutSwitchId[];
     geometrySwitchIds: SelectedGeometryItemId<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
-    geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
+    geometryAlignmentIds: SelectedGeometryItemId<GeometryAlignmentId>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     showArea: (bbox: BoundingBox) => void;
@@ -107,7 +106,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     switchIds,
     geometrySwitchIds,
     locationTrackIds,
-    geometryAlignments,
+    geometryAlignmentIds,
     suggestedSwitches,
     linkingState,
     showArea,
@@ -150,6 +149,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const elementPlanIds = [
             ...geometryKmPostIds.map((kmp) => kmp.planId),
             ...geometrySwitchIds.map((s) => s.planId),
+            ...geometryAlignmentIds.map((s) => s.planId),
         ].filter(filterUnique);
         const elementPlansPromise = getTrackLayoutPlansByIds(
             elementPlanIds,
@@ -181,6 +181,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         planIds,
         geometryKmPostIds,
         geometrySwitchIds,
+        geometryAlignmentIds,
     ]);
 
     const locationTracks = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[0]) || [];
@@ -407,24 +408,29 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             } as ToolPanelTab;
         });
 
-        const geometryAlignmentTabs = geometryAlignments.map((a) => {
+        const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
+            const header = getPlan(aId.planId)?.alignments?.find(
+                (a) => a.header.id === aId.geometryId,
+            )?.header;
             return {
-                asset: { type: 'GEOMETRY_ALIGNMENT', id: a.geometryItem.id },
-                title: a.geometryItem.name,
-                element: (
+                asset: { type: 'GEOMETRY_ALIGNMENT', id: aId.geometryId },
+                title: header?.name ?? '...',
+                element: header ? (
                     <GeometryAlignmentLinkingContainer
                         visibilities={infoboxVisibilities.geometryAlignment}
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('geometryAlignment', visibilities)
                         }
-                        geometryAlignment={a.geometryItem}
+                        geometryAlignment={header}
                         selectedLocationTrackId={locationTrackIds[0]}
                         selectedTrackNumberId={trackNumberIds[0]}
-                        planId={a.planId}
+                        planId={aId.planId}
                         linkingState={linkingState}
                         publishType={publishType}
                         verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                     />
+                ) : (
+                    <Spinner />
                 ),
             } as ToolPanelTab;
         });
@@ -451,7 +457,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         geometrySwitchIds,
         suggestedSwitches,
         locationTracks,
-        geometryAlignments,
+        geometryAlignmentIds,
         linkingState,
         publishType,
         viewport,

@@ -14,8 +14,7 @@ import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { filterUniqueById } from 'utils/array-utils';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -66,8 +65,8 @@ function createAlignmentFeature(
     selection: Selection,
     resolution: number,
 ): Feature<LineString> {
-    const isAlignmentSelected = selection.selectedItems.geometryAlignments.find(
-        ({ geometryItem }) => geometryItem.id == alignment.header.id,
+    const isAlignmentSelected = selection.selectedItems.geometryAlignmentIds.find(
+        ({ geometryId }) => geometryId == alignment.header.id,
     );
 
     const styles: Style[] = [];
@@ -198,14 +197,19 @@ export function createGeometryAlignmentLayer(
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             const features = findMatchingAlignments(hitArea, vectorSource, options);
 
-            const geometryAlignments = features
+            const geometryAlignmentIds = features
                 .filter(filterUniqueById(({ header }) => header.id)) // pick unique alignments
-                .map((data) => ({
-                    planId: data.planId as GeometryPlanId,
-                    geometryItem: data.header,
-                }));
+                .map((data) =>
+                    data.planId
+                        ? {
+                              planId: data.planId,
+                              geometryId: data.header.id,
+                          }
+                        : undefined,
+                )
+                .filter(filterNotEmpty);
 
-            return { geometryAlignments };
+            return { geometryAlignmentIds };
         },
         requestInFlight: () => inFlight,
     };

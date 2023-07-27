@@ -167,9 +167,9 @@ export function mergePartialItemSearchResults(
                 searchResult.geometrySwitchIds,
             ),
             trackNumbers: mergeOptionalArrays(merged.trackNumbers, searchResult.trackNumbers),
-            geometryAlignments: mergeOptionalArrays(
-                merged.geometryAlignments,
-                searchResult.geometryAlignments,
+            geometryAlignmentIds: mergeOptionalArrays(
+                merged.geometryAlignmentIds,
+                searchResult.geometryAlignmentIds,
             ),
             layoutLinkPoints: mergeOptionalArrays(
                 merged.layoutLinkPoints,

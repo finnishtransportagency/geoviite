@@ -8,6 +8,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
+    GeometryAlignmentId,
     GeometryKmPostId,
     GeometryPlanId,
     GeometryPlanLayoutId,
@@ -24,7 +25,6 @@ import {
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
 import { PublicationId } from 'publication/publication-model';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trackNumber';
 
@@ -35,7 +35,7 @@ export type ItemCollections = {
     switches: LayoutSwitchId[];
     geometrySwitchIds: SelectedGeometryItemId<GeometrySwitchId>[];
     trackNumbers: LayoutTrackNumberId[];
-    geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
+    geometryAlignmentIds: SelectedGeometryItemId<GeometryAlignmentId>[];
     layoutLinkPoints: LinkPoint[];
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
@@ -84,7 +84,7 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'switches',
     'geometrySwitchIds',
     'trackNumbers',
-    'geometryAlignments',
+    'geometryAlignmentIds',
     'layoutLinkPoints',
     'geometryLinkPoints',
     'clusterPoints',

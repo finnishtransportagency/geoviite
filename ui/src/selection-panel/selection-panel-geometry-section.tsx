@@ -183,9 +183,9 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onToggleAlignmentSelection={(alignment) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometryAlignments: [
+                                        geometryAlignmentIds: [
                                             {
-                                                geometryItem: alignment,
+                                                geometryId: alignment.id,
                                                 planId: h.id,
                                             },
                                         ],

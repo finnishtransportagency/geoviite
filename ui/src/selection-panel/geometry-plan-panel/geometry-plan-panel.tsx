@@ -316,8 +316,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                             : LocationTrackBadgeStatus.UNLINKED;
 
                                         const isAlignmentSelected =
-                                            selectedItems?.geometryAlignments?.some(
-                                                (a) => a.geometryItem.id === alignment.header.id,
+                                            selectedItems?.geometryAlignmentIds?.some(
+                                                (a) => a.geometryId === alignment.header.id,
                                             );
                                         const isAlignmentVisible = selectedPlanLayouts?.some((p) =>
                                             p.alignments.some(

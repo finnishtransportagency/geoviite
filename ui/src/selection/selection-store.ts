@@ -6,7 +6,6 @@ import {
     OnSelectFlags,
     OnSelectOptions,
     OptionalUnselectableItemCollections,
-    SelectedGeometryItem,
     SelectedGeometryItemId,
     Selection,
     UnselectableItemCollections,
@@ -29,7 +28,7 @@ export function createEmptyItemCollections(): ItemCollections {
         switches: [],
         geometrySwitchIds: [],
         trackNumbers: [],
-        geometryAlignments: [],
+        geometryAlignmentIds: [],
         layoutLinkPoints: [],
         geometryLinkPoints: [],
         clusterPoints: [],
@@ -94,30 +93,6 @@ function filterItemCollection<T extends { id: unknown }>(
     }
 
     return items.filter((i) => !unselectItemIds.some((u) => u === i.id));
-}
-
-function getNewGeometryItemCollection<T extends { id: unknown }>(
-    items: SelectedGeometryItem<T>[],
-    newItems: SelectedGeometryItem<T>[] | undefined,
-    flags: OnSelectFlags,
-): SelectedGeometryItem<T>[] {
-    return getNewItemCollectionUsingCustomId(
-        items,
-        newItems,
-        flags,
-        (item) => item.planId + item.geometryItem.id,
-    );
-}
-
-function filterGeometryItemCollection<T extends { id: unknown }>(
-    items: SelectedGeometryItem<T>[],
-    unselectItemIds: ValueOf<UnselectableItemCollections> | undefined,
-) {
-    if (unselectItemIds === undefined) {
-        return items;
-    }
-
-    return items.filter((i) => !unselectItemIds.some((u) => u === i.geometryItem.id));
 }
 
 function getNewGeometryItemIdCollection<T extends GeometryItemId>(
@@ -200,9 +175,9 @@ function updateItemCollectionsByOptions(
         options['trackNumbers'],
         flags,
     );
-    itemCollections['geometryAlignments'] = getNewGeometryItemCollection(
-        itemCollections['geometryAlignments'],
-        options['geometryAlignments'],
+    itemCollections['geometryAlignmentIds'] = getNewGeometryItemIdCollection(
+        itemCollections['geometryAlignmentIds'],
+        options['geometryAlignmentIds'],
         flags,
     );
     itemCollections['layoutLinkPoints'] = getNewItemCollection(
@@ -265,8 +240,8 @@ function updateItemCollectionsByUnselecting(
         itemCollections['trackNumbers'],
         unselectItemCollections['trackNumbers'],
     );
-    itemCollections['geometryAlignments'] = filterGeometryItemCollection(
-        itemCollections['geometryAlignments'],
+    itemCollections['geometryAlignmentIds'] = filterGeometryItemIdCollection(
+        itemCollections['geometryAlignmentIds'],
         unselectItemCollections['geometryAlignments'],
     );
     itemCollections['layoutLinkPoints'] = filterItemCollection(
@@ -373,9 +348,9 @@ export const selectionReducers = {
                         !planLayout?.switches.some((s) => s.sourceId === geometryId),
                 ),
             ];
-            selectedItems.geometryAlignments = [
-                ...selectedItems.geometryAlignments.filter(
-                    (ga) => !planLayout?.alignments.some((a) => a.header.id === ga.geometryItem.id),
+            selectedItems.geometryAlignmentIds = [
+                ...selectedItems.geometryAlignmentIds.filter(
+                    (ga) => !planLayout?.alignments.some((a) => a.header.id === ga.geometryId),
                 ),
             ];
         } else {

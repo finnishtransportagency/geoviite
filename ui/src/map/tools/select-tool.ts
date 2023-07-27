@@ -15,7 +15,7 @@ export const selectTool: MapTool = {
                 kmPosts: items.kmPosts ?? [],
                 geometrySwitchIds: items.geometrySwitchIds ?? [],
                 switches: items.switches ?? [],
-                geometryAlignments: items.geometryAlignments ?? [],
+                geometryAlignmentIds: items.geometryAlignmentIds ?? [],
                 locationTracks: items.locationTracks ?? [],
                 trackNumbers: items.trackNumbers ?? [],
                 geometryPlans: items.geometryPlans ?? [],

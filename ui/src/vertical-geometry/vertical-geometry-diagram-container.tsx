@@ -20,13 +20,13 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
     const [alignmentId, setAlignmentId] = React.useState<VerticalGeometryDiagramAlignmentId>();
 
     React.useEffect(() => {
-        const selectedGeometryAlignment = state.selection.selectedItems.geometryAlignments[0];
+        const selectedGeometryAlignment = state.selection.selectedItems.geometryAlignmentIds[0];
         const selectedLocationTrack = state.selection.selectedItems.locationTracks[0];
 
         if (selectedGeometryAlignment) {
             setAlignmentId({
                 planId: selectedGeometryAlignment.planId,
-                alignmentId: selectedGeometryAlignment.geometryItem.id,
+                alignmentId: selectedGeometryAlignment.geometryId,
             });
         } else if (selectedLocationTrack) {
             setAlignmentId({
