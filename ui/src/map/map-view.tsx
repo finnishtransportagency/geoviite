@@ -22,7 +22,7 @@ import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { LAYOUT_SRID } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
@@ -89,6 +89,7 @@ export type MapViewProps = {
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
+    manuallySetPlan?: GeometryPlanLayout;
     onDoneLoading: () => void;
 };
 
@@ -135,6 +136,7 @@ const MapView: React.FC<MapViewProps> = ({
     onSelect,
     onViewportUpdate,
     hoveredOverPlanSection,
+    manuallySetPlan,
     onSetLayoutClusterLinkPoint,
     onSetGeometryClusterLinkPoint,
     onRemoveLayoutLinkPoint,
@@ -408,6 +410,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             resolution,
+                            manuallySetPlan,
                         );
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
@@ -415,13 +418,17 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
                             publishType,
+                            changeTimes,
+                            manuallySetPlan,
                         );
                     case 'geometry-switch-layer':
                         return createGeometrySwitchLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             publishType,
+                            changeTimes,
                             resolution,
+                            manuallySetPlan,
                         );
                     case 'alignment-linking-layer':
                         return createAlignmentLinkingLayer(
@@ -482,6 +489,7 @@ const MapView: React.FC<MapViewProps> = ({
         linkingState,
         map.layerSettings,
         hoveredOverPlanSection,
+        manuallySetPlan,
     ]);
 
     React.useEffect(() => {

@@ -1,6 +1,6 @@
 import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
-import { LayoutSwitch } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LayoutSwitch, PlanAndStatus } from 'track-layout/track-layout-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
@@ -12,13 +12,17 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
+import { ChangeTimes } from 'common/common-slice';
+import { getTrackLayoutPlan } from 'geometry/geometry-api';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
+    changeTimes: ChangeTimes,
     resolution: number,
+    manuallySetPlan?: GeometryPlanLayout,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
@@ -42,17 +46,30 @@ export function createGeometrySwitchLayer(
             );
         };
 
-        const planStatusPromises = selection.planLayouts.map((plan) =>
-            plan.planDataType == 'STORED'
-                ? getPlanLinkStatus(plan.planId, publishType).then((status) => ({ plan, status }))
-                : { plan, status: undefined },
+        // TODO: GVT-826 This section is identical in all layers: move to common util
+        const planLayoutsPromises = manuallySetPlan
+            ? [Promise.resolve(manuallySetPlan)]
+            : selection.visiblePlans.map((p) =>
+                  getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
+              );
+        const planStatusPromises: Promise<PlanAndStatus | undefined>[] = planLayoutsPromises.map(
+            (planPromise) =>
+                planPromise.then((plan) => {
+                    if (!plan) return undefined;
+                    else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
+                    else
+                        getPlanLinkStatus(plan.planId, publishType).then((status) => ({
+                            plan,
+                            status,
+                        }));
+                }),
         );
 
         Promise.all([getSwitchStructures(), ...planStatusPromises])
             .then(([switchStructures, ...planStatuses]) => {
                 if (layerId !== newestLayerId) return;
 
-                const features = planStatuses.flatMap(({ status, plan }) => {
+                const features = planStatuses.filter(filterNotEmpty).flatMap(({ status, plan }) => {
                     const switchLinkedStatus = status
                         ? new Map(
                               status.switches.map((switchItem) => [

@@ -154,6 +154,7 @@ export function createGeometryAlignmentLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
+    manuallySetPlan?: GeometryPlanLayout,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
@@ -166,17 +167,28 @@ export function createGeometryAlignmentLayer(
     );
 
     let inFlight = true;
+
+    const planLayoutsPromises = manuallySetPlan
+        ? [Promise.resolve(manuallySetPlan ?? null)]
+        : selection.visiblePlans.map((p) =>
+              getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
+          );
+
     Promise.all(
-        selection.planLayouts.map((planLayout) =>
-            getPlanLayoutAlignmentsWithLinking(
-                planLayout,
-                publishType,
-                changeTime,
-                resolution,
-            ).then((alignments) =>
-                alignments.map((alignment) =>
-                    createAlignmentFeature(planLayout, alignment, selection, resolution),
-                ),
+        planLayoutsPromises.map((promise) =>
+            promise.then((planLayout) =>
+                planLayout
+                    ? getPlanLayoutAlignmentsWithLinking(
+                          planLayout,
+                          publishType,
+                          changeTime,
+                          resolution,
+                      ).then((alignments) =>
+                          alignments.map((alignment) =>
+                              createAlignmentFeature(planLayout, alignment, selection, resolution),
+                          ),
+                      )
+                    : [],
             ),
         ),
     )

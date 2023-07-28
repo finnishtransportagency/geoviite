@@ -1,6 +1,6 @@
 import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
-import { LayoutKmPost } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LayoutKmPost, PlanAndStatus } from 'track-layout/track-layout-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
@@ -14,6 +14,8 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
+import { getTrackLayoutPlan } from 'geometry/geometry-api';
+import { ChangeTimes } from 'common/common-slice';
 
 let newestLayerId = 0;
 
@@ -22,6 +24,8 @@ export function createGeometryKmPostLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
     publishType: PublishType,
+    changeTimes: ChangeTimes,
+    manuallySetPlan?: GeometryPlanLayout,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
@@ -39,17 +43,30 @@ export function createGeometryKmPostLayer(
             );
         };
 
-        const planStatusPromises = selection.planLayouts.map((plan) =>
-            plan.planDataType == 'STORED'
-                ? getPlanLinkStatus(plan.planId, publishType).then((status) => ({ plan, status }))
-                : { plan, status: undefined },
+        // TODO: GVT-826 This section is identical in all layers: move to common util
+        const planLayoutsPromises = manuallySetPlan
+            ? [Promise.resolve(manuallySetPlan)]
+            : selection.visiblePlans.map((p) =>
+                  getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
+              );
+        const planStatusPromises: Promise<PlanAndStatus | undefined>[] = planLayoutsPromises.map(
+            (planPromise) =>
+                planPromise.then((plan) => {
+                    if (!plan) return undefined;
+                    else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
+                    else
+                        getPlanLinkStatus(plan.planId, publishType).then((status) => ({
+                            plan,
+                            status,
+                        }));
+                }),
         );
 
         Promise.all(planStatusPromises)
             .then((planStatuses) => {
                 if (layerId !== newestLayerId) return;
 
-                const features = planStatuses.flatMap(({ plan, status }) => {
+                const features = planStatuses.filter(filterNotEmpty).flatMap(({ plan, status }) => {
                     const kmPosts = plan.kmPosts.filter(
                         ({ kmNumber }) => Number.parseInt(kmNumber) % step === 0,
                     );

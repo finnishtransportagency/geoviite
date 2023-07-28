@@ -1,5 +1,4 @@
 import {
-    GeometryPlanLayout,
     LayoutKmPostId,
     LayoutSegmentId,
     LayoutSwitchId,
@@ -11,7 +10,6 @@ import {
     GeometryAlignmentId,
     GeometryKmPostId,
     GeometryPlanId,
-    GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
 import {
@@ -99,17 +97,20 @@ export type Selection = {
     selectionModes: SelectionMode[];
     selectedItems: ItemCollections;
     highlightedItems: ItemCollections;
-    /**
-     * GeometryPlanLayout can be used to provide a plan object manually,
-     * e.g. when plan is not yet in DB and therefore there is no ID.
-     */
-    planLayouts: GeometryPlanLayout[];
+    // TODO: GVT-826 rename as just openPlans
     openedPlanLayouts: OpenedPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     publication: PublicationId | undefined;
 };
 
+export type VisiblePlanLayout = {
+    id: GeometryPlanId;
+    switches: GeometrySwitchId[];
+    kmPosts: GeometryKmPostId[];
+    alignments: GeometryAlignmentId[];
+};
 export type OpenedPlanLayout = {
-    id: GeometryPlanLayoutId;
+    id: GeometryPlanId;
     isSwitchesOpen: boolean;
     isKmPostsOpen: boolean;
     isAlignmentsOpen: boolean;
