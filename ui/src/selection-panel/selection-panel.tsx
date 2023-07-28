@@ -48,8 +48,8 @@ import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-se
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
-    selectedItems?: OptionalItemCollections;
-    selectedPlanLayouts?: GeometryPlanLayout[];
+    selectedItems: OptionalItemCollections;
+    selectedPlanLayouts: GeometryPlanLayout[];
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
@@ -250,7 +250,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <KmPostsPanel
                         kmPosts={filteredKmPosts}
-                        selectedKmPosts={selectedItems?.kmPosts}
+                        selectedKmPosts={selectedItems.kmPosts}
                         onToggleKmPostSelection={(kmPost) =>
                             onSelect({
                                 ...createEmptyItemCollections(),
@@ -271,7 +271,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         publishType={publishType}
                         referenceLines={filteredReferenceLines}
                         trackNumberChangeTime={changeTimes.layoutTrackNumber}
-                        selectedTrackNumbers={selectedItems?.trackNumbers}
+                        selectedTrackNumbers={selectedItems.trackNumbers}
                         canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
                     />
@@ -285,7 +285,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <LocationTracksPanel
                         locationTracks={filteredLocationTracks}
-                        selectedLocationTracks={selectedItems?.locationTracks}
+                        selectedLocationTracks={selectedItems.locationTracks}
                         canSelectLocationTrack={selectableItemTypes.includes('locationTracks')}
                         onToggleLocationTrackSelection={onToggleLocationTrackSelection}
                     />
@@ -298,7 +298,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <SwitchPanel
                         switches={switches}
-                        selectedSwitches={selectedItems?.switches}
+                        selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
                     />
                 </div>

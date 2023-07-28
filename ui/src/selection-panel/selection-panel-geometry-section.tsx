@@ -35,9 +35,9 @@ import { ChangeTimes } from 'common/common-slice';
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
-    selectedItems?: OptionalItemCollections;
+    selectedItems: OptionalItemCollections;
     viewport: MapViewport;
-    selectedPlanLayouts?: GeometryPlanLayout[];
+    selectedPlanLayouts: GeometryPlanLayout[];
     selectedTrackNumbers: LayoutTrackNumberId[];
     onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
@@ -129,7 +129,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     const planHeaderIdsInView = planHeadersInView
         .map((plan) => plan.id)
         .reduce((set, id) => set.add(id), new Set());
-    const selectedPlansInView = (selectedPlanLayouts ?? []).filter((plan) =>
+    const selectedPlansInView = selectedPlanLayouts.filter((plan) =>
         planHeaderIdsInView.has(plan.planId),
     );
 
