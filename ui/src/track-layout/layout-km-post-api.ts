@@ -24,6 +24,7 @@ import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
+// TODO: GVT-2014 this should be a cache with nullable values as a km-post might not exist in valid situations
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostCache = asyncCache<string, LayoutKmPost | null>();

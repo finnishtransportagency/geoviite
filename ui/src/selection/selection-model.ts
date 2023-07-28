@@ -69,7 +69,7 @@ export type SelectedGeometryItem<T> = {
     geometryItem: T;
 };
 
-export type GeometryItemId = GeometryKmPostId | GeometrySwitchId;
+export type GeometryItemId = GeometryKmPostId | GeometrySwitchId | GeometryAlignmentId;
 export type SelectedGeometryItemId<T extends GeometryItemId> = {
     planId: GeometryPlanId;
     geometryId: T;

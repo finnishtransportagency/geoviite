@@ -158,11 +158,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         );
 
         return Promise.all([
-            // TODO: GVT-826 Check the nullability in these api-calls/caches.
+            // TODO: GVT-2014 Check the nullability in these api-calls/caches
             // It is possible for an item in the id-list to not exist, but these functions do not typically return null in that case.
             // The whole thing needs a check-up. What's the correct handling?
             // Don't double-check nulls and make sure that types match what is returned.
-            locationTracksPromise.then((l) => l.filter(filterNotEmpty)),
+            locationTracksPromise,
             switchesPromise.then((l) => l.filter(filterNotEmpty)),
             kmPostsPromise.then((l) => l.filter(filterNotEmpty)),
             trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),

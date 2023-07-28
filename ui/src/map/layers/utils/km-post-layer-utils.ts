@@ -290,7 +290,6 @@ export function findMatchingKmPosts(
 
 type KmPostFeatureProperty = {
     kmPost: LayoutKmPost;
-    // TODO: GVT-826 does this really need to be nullable? It's handled with unsafe casts...
     planId?: GeometryPlanId;
 };
 

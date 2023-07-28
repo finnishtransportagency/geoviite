@@ -100,13 +100,7 @@ function getNewGeometryItemIdCollection<T extends GeometryItemId>(
     newItems: SelectedGeometryItemId<T>[] | undefined,
     flags: OnSelectFlags,
 ): SelectedGeometryItemId<T>[] {
-    return getNewItemCollectionUsingCustomId(
-        items,
-        newItems,
-        flags,
-        // TODO: GVT-826 Why this custom ID? geometryId is just as unique as planId+geometryId
-        (item) => item.planId + item.geometryId,
-    );
+    return getNewItemCollectionUsingCustomId(items, newItems, flags, (item) => item.geometryId);
 }
 
 function filterGeometryItemIdCollection<T extends GeometryItemId>(

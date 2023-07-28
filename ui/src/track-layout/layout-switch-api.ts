@@ -23,6 +23,7 @@ import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/link
 import { indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 
+// TODO: GVT-2014 this should be a cache with nullable values as a switch might not exist in valid situations
 const switchCache = asyncCache<string, LayoutSwitch>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 

@@ -43,6 +43,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
     };
     const getCached = (changeTime: TimeStamp | null, key: TKey, getter: () => Promise<TVal>) => {
         setChangeTime(changeTime);
+        // TODO: GVT-2014 some caches have null as a valid value -> should not cause re-fetch
         return cache.get(key) ?? put(key, getter());
     };
     function getMany<TId>(
@@ -52,6 +53,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
     ): Promise<TVal[]> {
         setChangeTime(changeTime);
+        // TODO: GVT-2014 some caches have null as a valid value -> should not cause re-fetch
         const fetchIds = ids.filter((id) => cache.get(cacheKey(id)) === null);
 
         chunk(fetchIds, 50).forEach((chunkIds) => {
