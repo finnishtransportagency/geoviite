@@ -138,12 +138,6 @@ class ReferenceLineService(
         return dao.fetchVersion(publishType, trackNumberId)?.let(dao::fetch)
     }
 
-    fun getByTrackNumberAtMoment(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>, moment: Instant): ReferenceLine? {
-        logger.serviceCall("getByTrackNumberAtMoment",
-            "publishType" to publishType, "trackNumberId" to trackNumberId, "moment" to moment)
-        return dao.fetchVersionAtMoment(publishType, trackNumberId, moment)?.let(dao::fetch)
-    }
-
     fun getByTrackNumberWithAlignment(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,

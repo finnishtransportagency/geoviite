@@ -25,6 +25,7 @@
         "remark": {
             "changed-x-meters": "Muutos {{0}}m",
             "moved-x-meters": "Siirtynyt {{0}}m",
+            "changed-km-number": "Muuttunut kilometriltä {{0}}",
             "changed-km-numbers": "Muuttunut kilometreiltä {{0}}"
         },
         "prop": {
@@ -45,7 +46,7 @@
             "start-address": "Alkuosoite",
             "end-address": "Loppuosoite",
             "switch": "Vaihdetunnus",
-            "switch-track-address": "Rataosoite ratanumerolla {{0}} (vaihdepiste {{1}})",
+            "switch-track-address": "Rataosoite ratanumerolla {{0}} ({{1}})",
             "state-category": "Tilakategoria",
             "switch-type": "Vaihdetyyppi",
             "trap-point": "Turvavaihde",
