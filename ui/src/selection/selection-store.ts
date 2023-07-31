@@ -354,29 +354,6 @@ export const selectionReducers = {
     ): void => {
         const { planId, alignmentId, keepAlignmentVisible: keepVisible } = payload;
         toggleVisibility(state, 'alignments', keepVisible ?? false, planId, alignmentId);
-
-        // const visiblePlan = state.visiblePlans.find((p) => p.id === planId);
-        // const alignmentVisible = visiblePlan?.alignments?.includes(alignmentId) ?? false;
-        // if (visiblePlan && alignmentVisible) {
-        //     if (!keepVisible) {
-        //         visiblePlan.alignments = visiblePlan.alignments.filter((id) => id !== alignmentId);
-        //         if (!arePlanPartsVisible(visiblePlan)) {
-        //             state.visiblePlans = state.visiblePlans.filter((p) => p.id !== planId);
-        //         }
-        //     }
-        // } else if (visiblePlan) {
-        //     visiblePlan.alignments = [...visiblePlan.alignments, alignmentId];
-        // } else {
-        //     state.visiblePlans = [
-        //         ...state.visiblePlans,
-        //         {
-        //             id: planId,
-        //             switches: [],
-        //             kmPosts: [],
-        //             alignments: [alignmentId],
-        //         },
-        //     ];
-        // }
     },
     toggleSwitchVisibility: (
         state: Selection,
