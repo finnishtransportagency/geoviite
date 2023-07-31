@@ -9,6 +9,8 @@ const DataProductsMenu: React.FC = () => {
     const { t } = useTranslation();
     const [showMenu, setShowMenu] = React.useState(false);
     const ref = useRef<HTMLDivElement>(null);
+    const dataProductsModalOffsetX = 0;
+    const dataProductsModalOffsetY = 48;
 
     return (
         <React.Fragment>
@@ -26,8 +28,8 @@ const DataProductsMenu: React.FC = () => {
                 <CloseableModal
                     positionRef={ref}
                     onClickOutside={() => setShowMenu(false)}
-                    offsetX={0}
-                    offsetY={48}>
+                    offsetX={dataProductsModalOffsetX}
+                    offsetY={dataProductsModalOffsetY}>
                     <div className={styles['app-bar__data-menu']}>
                         <div>
                             <NavLink
