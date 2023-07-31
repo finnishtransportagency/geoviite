@@ -2,7 +2,12 @@ import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { AlignmentId, LocationTrackId } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 
-type PlanAlignmentKey = `${GeometryPlanId}_${GeometryAlignmentId}`;
+export type PlanAlignmentKey = `${GeometryPlanId}_${GeometryAlignmentId}`;
+
+export type VisibleExtentLookup = {
+    plan: { [k in PlanAlignmentKey]?: [number, number] };
+    layout: { [k in AlignmentId]?: [number, number] };
+};
 
 export const planAlignmentKey = (
     geometryPlanId: GeometryPlanId,
@@ -10,14 +15,12 @@ export const planAlignmentKey = (
 ): PlanAlignmentKey => `${geometryPlanId}_${geometryAlignmentId}`;
 
 export type VerticalGeometryDiagramState = {
-    planAlignmentVisibleExtent: { [k in PlanAlignmentKey]: [number, number] };
-    layoutAlignmentVisibleExtent: { [k in AlignmentId]: [number, number] };
+    visibleExtentLookup: VisibleExtentLookup;
     visible: boolean;
 };
 
 export const initialVerticalGeometryDiagramState: VerticalGeometryDiagramState = {
-    planAlignmentVisibleExtent: {},
-    layoutAlignmentVisibleExtent: {},
+    visibleExtentLookup: { plan: {}, layout: {} },
     visible: false,
 };
 

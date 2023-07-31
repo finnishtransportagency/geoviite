@@ -203,11 +203,11 @@ export const mapReducers = {
         { payload: action }: PayloadAction<VerticalAlignmentVisibleExtentChange>,
     ): void => {
         if ('planId' in action.alignmentId) {
-            state.verticalGeometryDiagramState.planAlignmentVisibleExtent[
+            state.verticalGeometryDiagramState.visibleExtentLookup.plan[
                 planAlignmentKey(action.alignmentId.planId, action.alignmentId.alignmentId)
             ] = action.extent;
         } else {
-            state.verticalGeometryDiagramState.layoutAlignmentVisibleExtent[
+            state.verticalGeometryDiagramState.visibleExtentLookup.layout[
                 action.alignmentId.locationTrackId
             ] = action.extent;
         }

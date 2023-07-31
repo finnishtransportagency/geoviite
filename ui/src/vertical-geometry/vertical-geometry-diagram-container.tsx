@@ -5,7 +5,7 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { VerticalGeometryDiagramHolder } from './vertical-geometry-diagram-holder';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
-import { planAlignmentKey, VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
+import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 
 export const VerticalGeometryDiagramContainer: React.FC = () => {
     const state = useTrackLayoutAppSelector((s) => s);
@@ -52,16 +52,6 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         }
     };
 
-    const diagramState = state.map.verticalGeometryDiagramState;
-    const visibleExtent =
-        alignmentId === undefined
-            ? [undefined, undefined]
-            : 'planId' in alignmentId
-            ? diagramState.planAlignmentVisibleExtent[
-                  planAlignmentKey(alignmentId.planId, alignmentId.alignmentId)
-              ]
-            : diagramState.layoutAlignmentVisibleExtent[alignmentId.locationTrackId];
-
     return (
         <>
             {alignmentId && (
@@ -71,9 +61,10 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
                     onCloseDiagram={closeDiagram}
                     onSelect={trackLayoutDelegates.onSelect}
                     showArea={trackLayoutDelegates.showArea}
-                    setVisibleExtentM={setVisibleExtentM}
-                    visibleStartM={visibleExtent?.[0]}
-                    visibleEndM={visibleExtent?.[1]}
+                    setSavedVisibleExtentM={setVisibleExtentM}
+                    savedVisibleExtentLookup={
+                        state.map.verticalGeometryDiagramState.visibleExtentLookup
+                    }
                 />
             )}
             {!alignmentId && (
