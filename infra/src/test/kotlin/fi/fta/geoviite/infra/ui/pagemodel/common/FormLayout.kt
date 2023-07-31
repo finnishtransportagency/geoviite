@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import clearInput
+import javaScriptExecutor
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -8,12 +9,14 @@ open class FormLayout(getElement: () -> WebElement) : PageModel(getElement) {
 
     fun fieldValue(fieldLabel: String): String {
         logger.info("Get field $fieldLabel")
-        val fieldValueElement = fieldValueElement(fieldLabel)
-        val value = if (fieldValueElement.findElements(By.xpath(".//div[@class='field-layout__value']")).isNotEmpty()) {
-            fieldValueElement.findElement(By.cssSelector("div.field-layout__value")).text
-        } else {
-            fieldValueElement.text
-        }
+        val value = (javaScriptExecutor().executeScript("""
+            const fieldValueElement = document.evaluate(
+                ".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']",
+                document).iterateNext();
+
+            const valueChild = document.evaluate(".//div[@class='field-layout__value']", fieldValueElement).iterateNext()
+            return valueChild !== null ? valueChild.textContent : fieldValueElement.textContent;
+        """.trimIndent()) as String).trim()
         logger.info("Field value [$fieldLabel]=[$value]")
         return value
     }
