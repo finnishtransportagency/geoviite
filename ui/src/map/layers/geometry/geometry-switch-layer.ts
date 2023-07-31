@@ -29,6 +29,10 @@ export function createGeometrySwitchLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    const visibleSwitches = manuallySetPlan
+        ? manuallySetPlan.switches.map((s) => s.sourceId)
+        : selection.visiblePlans.flatMap((p) => p.switches);
+
     let inFlight = false;
     if (resolution <= Limits.SWITCH_SHOW) {
         inFlight = true;
@@ -58,7 +62,7 @@ export function createGeometrySwitchLayer(
                     if (!plan) return undefined;
                     else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
                     else
-                        getPlanLinkStatus(plan.planId, publishType).then((status) => ({
+                        return getPlanLinkStatus(plan.planId, publishType).then((status) => ({
                             plan,
                             status,
                         }));
@@ -72,10 +76,9 @@ export function createGeometrySwitchLayer(
                 const features = planStatuses.filter(filterNotEmpty).flatMap(({ status, plan }) => {
                     const switchLinkedStatus = status
                         ? new Map(
-                              status.switches.map((switchItem) => [
-                                  switchItem.id,
-                                  switchItem.isLinked,
-                              ]),
+                              status.switches
+                                  .filter((s) => visibleSwitches.includes(s.id))
+                                  .map((switchItem) => [switchItem.id, switchItem.isLinked]),
                           )
                         : undefined;
 
@@ -84,7 +87,9 @@ export function createGeometrySwitchLayer(
                         false;
 
                     return createSwitchFeatures(
-                        plan.switches,
+                        plan.switches.filter(
+                            (s) => s.sourceId && visibleSwitches.includes(s.sourceId),
+                        ),
                         isSelected,
                         isHighlighted,
                         isSwitchLinked,

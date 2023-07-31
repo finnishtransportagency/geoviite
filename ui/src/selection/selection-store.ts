@@ -319,42 +319,32 @@ export const selectionReducers = {
     },
     togglePlanVisibility: (
         state: Selection,
-        { payload: plan }: PayloadAction<GeometryPlanLayout | null>,
+        { payload: plan }: PayloadAction<VisiblePlanLayout>,
     ): void => {
-        const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.planId);
+        const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.id);
 
         if (isPlanVisible) {
             const selectedItems = state.selectedItems;
 
-            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.planId)];
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
 
             selectedItems.geometryKmPostIds = [
                 ...selectedItems.geometryKmPostIds.filter(
-                    ({ geometryId }) =>
-                        !plan?.kmPosts.some((kmPost) => kmPost.sourceId === geometryId),
+                    ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
                 ),
             ];
             selectedItems.geometrySwitchIds = [
                 ...selectedItems.geometrySwitchIds.filter(
-                    ({ geometryId }) => !plan?.switches.some((s) => s.sourceId === geometryId),
+                    ({ geometryId }) => !plan?.switches.includes(geometryId),
                 ),
             ];
             selectedItems.geometryAlignmentIds = [
                 ...selectedItems.geometryAlignmentIds.filter(
-                    (ga) => !plan?.alignments.some((a) => a.header.id === ga.geometryId),
+                    (ga) => !plan?.alignments.includes(ga.geometryId),
                 ),
             ];
         } else {
-            const newVisiblePlan = plan
-                ? [
-                      {
-                          id: plan.planId,
-                          switches: plan.switches.map((s) => s.sourceId).filter(filterNotEmpty),
-                          kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
-                          alignments: plan.alignments.map((a) => a.header.id),
-                      },
-                  ]
-                : [];
+            const newVisiblePlan = plan ? [plan] : [];
             state.visiblePlans = [...state.visiblePlans, ...newVisiblePlan];
         }
     },
@@ -480,4 +470,12 @@ function toggleVisibility(
 
 function arePlanPartsVisible(plan: VisiblePlanLayout): boolean {
     return plan.kmPosts.length > 0 || plan.switches.length > 0 || plan.alignments.length > 0;
+}
+export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout {
+    return {
+        id: plan.planId,
+        switches: plan.switches.map((s) => s.sourceId).filter(filterNotEmpty),
+        kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
+        alignments: plan.alignments.map((a) => a.header.id),
+    };
 }

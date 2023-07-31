@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './selection-panel.scss';
 import {
-    GeometryPlanLayout,
     LayoutKmPost,
     LayoutLocationTrack,
     LayoutReferenceLine,
@@ -16,6 +15,7 @@ import {
     OpenedPlanLayout,
     OptionalItemCollections,
     SelectableItemType,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
@@ -49,7 +49,7 @@ type SelectionPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     selectedItems: OptionalItemCollections;
-    selectedPlanLayouts: GeometryPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
@@ -57,7 +57,7 @@ type SelectionPanelProps = {
     viewport: MapViewport;
     onSelect: (options: OnSelectOptions) => void;
     selectableItemTypes: SelectableItemType[];
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
@@ -76,7 +76,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
     changeTimes,
     selectedItems,
-    selectedPlanLayouts,
+    visiblePlans,
     kmPosts,
     referenceLines,
     locationTracks,
@@ -228,7 +228,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 publishType={publishType}
                 changeTimes={changeTimes}
                 selectedItems={selectedItems}
-                selectedPlanLayouts={selectedPlanLayouts}
+                visiblePlans={visiblePlans}
                 viewport={viewport}
                 onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                 onToggleKmPostVisibility={onToggleKmPostVisibility}

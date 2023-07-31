@@ -49,7 +49,7 @@ export const SelectionPanelContainer: React.FC = () => {
             changeTimes={changeTimes}
             publishType={state.publishType}
             selectedItems={state.selection.selectedItems}
-            selectedPlanLayouts={state.selection.planLayouts}
+            visiblePlans={state.selection.visiblePlans}
             kmPosts={kmPosts}
             referenceLines={referenceLines}
             locationTracks={locationTracks}

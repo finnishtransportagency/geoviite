@@ -7,16 +7,16 @@ import {
     filterLayoutPoints,
     GeometryPlanLayout,
     LayoutPoint,
+    PlanLayoutAlignment,
 } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-map-api';
-import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import {
     findMatchingAlignments,
@@ -26,6 +26,7 @@ import {
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({
@@ -60,7 +61,7 @@ const selectedLinkedAlignmentStyle = new Style({
 });
 
 function createAlignmentFeature(
-    planLayout: GeometryPlanLayout,
+    planId: GeometryPlanId,
     alignment: AlignmentWithLinking,
     selection: Selection,
     resolution: number,
@@ -95,7 +96,7 @@ function createAlignmentFeature(
         trackNumber: null,
         header: alignment.header,
         points: alignment.points,
-        planId: planLayout.planId,
+        planId: planId,
     });
 
     return feature;
@@ -108,46 +109,28 @@ type AlignmentWithLinking = {
     linked: boolean;
 };
 
-async function getPlanLayoutAlignmentsWithLinking(
-    planLayout: GeometryPlanLayout,
-    publishType: PublishType,
-    changeTime: TimeStamp,
+function getAlignmentsWithLinking(
+    alignments: PlanLayoutAlignment[],
+    linkedAlignmentIds: GeometryAlignmentId[],
     resolution: number,
-): Promise<AlignmentWithLinking[]> {
-    const planLayoutWithGeometry =
-        planLayout.planDataType == 'STORED'
-            ? await getTrackLayoutPlan(planLayout.planId, changeTime)
-            : planLayout;
-
-    if (!planLayoutWithGeometry) {
-        return [];
-    }
-
-    const linkedAlignmentIds =
-        planLayout.planDataType === 'STORED'
-            ? await getLinkedAlignmentIdsInPlan(planLayout.planId, publishType)
-            : [];
-
-    return (
-        planLayoutWithGeometry.alignments
-            // Include alignments from original layout only
-            .filter((a1) => planLayout.alignments.some((a2) => a1.header.id === a2.header.id))
-            .map((alignment) => {
-                const points = alignment.polyLine?.points || [];
-                return {
-                    header: alignment.header,
-                    points: filterLayoutPoints(toMapAlignmentResolution(resolution), points),
-                    segmentMValues: alignment.segmentMValues,
-                    linked: alignment.header.id
-                        ? linkedAlignmentIds.includes(alignment.header.id)
-                        : false,
-                };
-            })
-    );
+): AlignmentWithLinking[] {
+    return alignments.map((alignment) => {
+        const points = alignment.polyLine?.points || [];
+        return {
+            header: alignment.header,
+            points: filterLayoutPoints(toMapAlignmentResolution(resolution), points),
+            segmentMValues: alignment.segmentMValues,
+            linked: alignment.header.id ? linkedAlignmentIds.includes(alignment.header.id) : false,
+        };
+    });
 }
 
 let newestLayerId = 0;
 
+type PlanAlignments = {
+    planId: GeometryPlanId;
+    alignments: AlignmentWithLinking[];
+};
 export function createGeometryAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     selection: Selection,
@@ -158,40 +141,48 @@ export function createGeometryAlignmentLayer(
 ): MapLayer {
     const layerId = ++newestLayerId;
 
+    const visibleAlignmentIds = manuallySetPlan
+        ? manuallySetPlan.alignments.map((a) => a.header.id)
+        : selection.visiblePlans.flatMap((p) => p.alignments);
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const olLayer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const changeTime = getMaxTimestamp(
-        changeTimes.layoutReferenceLine,
-        changeTimes.layoutLocationTrack,
-    );
-
     let inFlight = true;
 
-    const planLayoutsPromises = manuallySetPlan
-        ? [Promise.resolve(manuallySetPlan ?? null)]
-        : selection.visiblePlans.map((p) =>
-              getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
-          );
-
-    Promise.all(
-        planLayoutsPromises.map((promise) =>
-            promise.then((planLayout) =>
-                planLayout
-                    ? getPlanLayoutAlignmentsWithLinking(
-                          planLayout,
-                          publishType,
-                          changeTime,
-                          resolution,
-                      ).then((alignments) =>
-                          alignments.map((alignment) =>
-                              createAlignmentFeature(planLayout, alignment, selection, resolution),
-                          ),
-                      )
-                    : [],
-            ),
+    const plansPromise: Promise<GeometryPlanLayout[]> = manuallySetPlan
+        ? Promise.resolve([manuallySetPlan])
+        : Promise.all(
+              selection.visiblePlans.map((p) =>
+                  getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
+              ),
+          ).then((plans) => plans.filter(filterNotEmpty));
+    const planAlignmentsPromise: Promise<PlanAlignments[]> = plansPromise.then((plans) =>
+        Promise.all(
+            plans.map((plan: GeometryPlanLayout) => {
+                const linksPromise: Promise<GeometryAlignmentId[]> =
+                    plan.planDataType == 'TEMP'
+                        ? Promise.resolve([])
+                        : getLinkedAlignmentIdsInPlan(plan.planId, publishType);
+                return linksPromise.then((links) => ({
+                    planId: plan.planId,
+                    alignments: getAlignmentsWithLinking(
+                        plan.alignments.filter((a) => visibleAlignmentIds.includes(a.header.id)),
+                        links,
+                        resolution,
+                    ),
+                }));
+            }),
         ),
-    )
+    );
+
+    planAlignmentsPromise
+        .then((plans) =>
+            plans.map((plan) =>
+                plan.alignments.map((alignment) =>
+                    createAlignmentFeature(plan.planId, alignment, selection, resolution),
+                ),
+            ),
+        )
         .then((f) => {
             if (layerId === newestLayerId) {
                 clearFeatures(vectorSource);

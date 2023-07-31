@@ -9,6 +9,7 @@ import {
     ToggleKmPostPayload,
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
+    wholePlanVisibility,
 } from 'selection/selection-store';
 import * as React from 'react';
 import {
@@ -28,6 +29,7 @@ import {
     OnSelectOptions,
     OpenedPlanLayout,
     OptionalItemCollections,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -37,9 +39,9 @@ type GeometryPlansPanelProps = {
     publishType: PublishType;
     selectedItems: OptionalItemCollections;
     viewport: MapViewport;
-    selectedPlanLayouts: GeometryPlanLayout[];
     selectedTrackNumbers: LayoutTrackNumberId[];
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    visiblePlans: VisiblePlanLayout[];
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
@@ -62,8 +64,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     publishType,
     selectedItems,
     viewport,
-    selectedPlanLayouts,
     selectedTrackNumbers,
+    visiblePlans,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
@@ -118,6 +120,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             getPlanLinkStatus(id, publishType),
         ]).then(([planLayout, linkStatus]) => {
             if (planLayout) {
+                // TODO: GVT-826 why are we re-caching these when there is already a cache for them?
+                // Moreover, this appears to ignore publicationstatus
                 setLoadedPlan(id, { planLayout, linkStatus });
             }
             return planLayout;
@@ -126,20 +130,20 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         return rv;
     };
 
-    const planHeaderIdsInView = planHeadersInView
-        .map((plan) => plan.id)
-        .reduce((set, id) => set.add(id), new Set());
-    const selectedPlansInView = selectedPlanLayouts.filter((plan) =>
-        planHeaderIdsInView.has(plan.planId),
+    const selectedPlanHeadersInView = planHeadersInView.filter((headerInView) =>
+        visiblePlans.some((p) => p.id === headerInView.id),
+    );
+    const visiblePlansInView = visiblePlans.filter((p) =>
+        selectedPlanHeadersInView.some((ph) => ph.id === p.id),
     );
 
     const toggleAllPlanVisibilities = () => {
-        if (selectedPlansInView.length > 0) {
-            selectedPlansInView.forEach(onTogglePlanVisibility);
+        if (visiblePlansInView.length > 0) {
+            visiblePlansInView.forEach(onTogglePlanVisibility);
         } else {
             planHeadersInView.forEach((ph) => {
-                loadPlanLayout(ph.id).then((loadedPlan) => {
-                    onTogglePlanVisibility(loadedPlan);
+                loadPlanLayout(ph.id).then((p) => {
+                    if (p) onTogglePlanVisibility(wholePlanVisibility(p));
                 });
             });
         }
@@ -154,7 +158,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 {planHeadersInView.length > 1 && planHeadersInView.length === planHeaderCount && (
                     <Eye
                         onVisibilityToggle={toggleAllPlanVisibilities}
-                        visibility={selectedPlansInView.length > 0}
+                        visibility={visiblePlans.length > 0}
                     />
                 )}
             </h3>
@@ -223,7 +227,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                     })
                                 }
                                 selectedItems={selectedItems}
-                                selectedPlanLayouts={selectedPlanLayouts}
+                                visiblePlans={visiblePlans}
                                 togglePlanOpen={togglePlanOpen}
                                 openedPlanLayouts={openedPlanLayouts}
                                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}

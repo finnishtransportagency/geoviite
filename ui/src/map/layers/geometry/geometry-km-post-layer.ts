@@ -43,6 +43,9 @@ export function createGeometryKmPostLayer(
             );
         };
 
+        const visibleKmPosts = manuallySetPlan
+            ? manuallySetPlan.kmPosts.map((p) => p.sourceId)
+            : selection.visiblePlans.flatMap((p) => p.kmPosts);
         // TODO: GVT-826 This section is identical in all layers: move to common util
         const planLayoutsPromises = manuallySetPlan
             ? [Promise.resolve(manuallySetPlan)]
@@ -55,7 +58,7 @@ export function createGeometryKmPostLayer(
                     if (!plan) return undefined;
                     else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
                     else
-                        getPlanLinkStatus(plan.planId, publishType).then((status) => ({
+                        return getPlanLinkStatus(plan.planId, publishType).then((status) => ({
                             plan,
                             status,
                         }));
@@ -67,8 +70,11 @@ export function createGeometryKmPostLayer(
                 if (layerId !== newestLayerId) return;
 
                 const features = planStatuses.filter(filterNotEmpty).flatMap(({ plan, status }) => {
-                    const kmPosts = plan.kmPosts.filter(
-                        ({ kmNumber }) => Number.parseInt(kmNumber) % step === 0,
+                    const kmPosts: LayoutKmPost[] = plan.kmPosts.filter(
+                        ({ sourceId, kmNumber }) =>
+                            sourceId &&
+                            visibleKmPosts.includes(sourceId) &&
+                            Number.parseInt(kmNumber) % step === 0,
                     );
 
                     const kmPostLinkedStatus = status

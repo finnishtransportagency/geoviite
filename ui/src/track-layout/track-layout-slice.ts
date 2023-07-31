@@ -6,6 +6,7 @@ import {
     OnSelectOptions,
     SelectableItemType,
     Selection,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
 import {
@@ -389,11 +390,11 @@ const trackLayoutSlice = createSlice({
         },
         togglePlanVisibility: (
             state: TrackLayoutState,
-            action: PayloadAction<GeometryPlanLayout | null>,
+            action: PayloadAction<VisiblePlanLayout>,
         ): void => {
             if (!state.linkingState) {
                 const isPlanVisible = state.selection.visiblePlans.some(
-                    (p) => p.id === action.payload?.planId,
+                    (p) => p.id === action.payload?.id,
                 );
 
                 updateMapLayerVisibilities(state.map, isPlanVisible, [
