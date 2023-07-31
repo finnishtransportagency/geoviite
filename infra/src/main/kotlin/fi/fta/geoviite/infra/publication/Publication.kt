@@ -35,22 +35,22 @@ data class PublicationTableItem(
     val publicationUser: UserName,
     val message: String,
     val ratkoPushTime: Instant?,
-    val propChanges: List<PublicationChange>,
+    val propChanges: List<PublicationChange<*>>,
 ) {
     val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
 }
 
-data class PublicationChange(
+data class PublicationChange<T>(
     val propKey: PropKey,
-    val oldValue: Any?, // These are either Boolean, String or null
-    val newValue: Any?,
+    val oldValue: T?, // These are either Boolean, String or null
+    val newValue: T?,
     val remark: PublicationChangeRemark?,
-    val enumKey: String? = null,
+    val enumKey: LocalizationKey? = null,
 )
 
 data class PropKey(
-    val key: String,
-    val params: Any? = null,
+    val key: LocalizationKey,
+    val params: List<String>? = null,
 )
 
 data class PublicationChangeRemark(

@@ -456,6 +456,7 @@ class PublicationDao(
     data class KmPostChanges(
         val id: IntId<TrackLayoutKmPost>,
         val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+        val trackNumber: TrackNumber?,
         val kmNumber: Change<KmNumber>,
         val state: Change<LayoutState>,
         val location: Change<Point>
@@ -482,6 +483,7 @@ class PublicationDao(
               from publication.track_number
                 left join layout.track_number_version tn on tn.id = track_number.track_number_id and tn.version = track_number_version
                 left join publication.publication p on p.id = publication_id
+                left join publication.publication old_p on p.id - 1 = old_p.id
                 left join layout.reference_line_at(p.publication_time) rl on rl.id = tn.id
                 left join layout.alignment_version av on av.id = rl.alignment_id and av.version = rl.alignment_version
                 left join layout.segment_version sv_first on av.id = sv_first.alignment_id and av.version = sv_first.alignment_version and sv_first.segment_index = 0
@@ -489,7 +491,7 @@ class PublicationDao(
                 left join layout.segment_version sv_last on av.id = sv_last.alignment_id and av.version = sv_last.alignment_version and sv_last.segment_index = av.segment_count - 1
                 left join layout.segment_geometry sg_last on sv_last.geometry_id = sg_last.id
                 left join layout.track_number_version old_tn on old_tn.id = track_number.track_number_id and old_tn.version = track_number_version - 1
-                left join layout.reference_line_at(old_tn.change_time) old_rl on old_rl.id = tn.id
+                left join layout.reference_line_at(old_p.publication_time) old_rl on old_rl.id = tn.id
                 left join layout.alignment_version old_av on old_av.id = old_rl.alignment_id and old_av.version = old_rl.alignment_version
                 left join layout.segment_version old_sv_first on old_av.id = old_sv_first.alignment_id and old_av.version = old_sv_first.alignment_version and old_sv_first.segment_index = 0
                 left join layout.segment_geometry old_sg_first on old_sv_first.geometry_id = old_sg_first.id
@@ -559,6 +561,10 @@ class PublicationDao(
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) end_x,
               postgis.st_y(postgis.st_endpoint(sg_last.geometry)) end_y
               from publication.location_track
+                left join publication.publication
+                          on location_track.publication_id = publication.id
+                left join publication.publication old_publication
+                          on location_track.publication_id - 1 = publication.id
                 left join layout.location_track_version ltv
                           on location_track.location_track_id = ltv.id and location_track.location_track_version = ltv.version
                 left join layout.alignment_version av
@@ -571,7 +577,7 @@ class PublicationDao(
                           on sv_first.geometry_id = sg_first.id
                 left join layout.segment_geometry sg_last
                           on sv_last.geometry_id = sg_last.id
-                left join layout.track_number_at(ltv.change_time) tn
+                left join layout.track_number_at(publication.publication_time) tn
                           on ltv.track_number_id = tn.id
                 left join layout.location_track_version old_ltv
                           on old_ltv.id = ltv.id and old_ltv.version = ltv.version - 1 and old_ltv.draft = false
@@ -585,7 +591,7 @@ class PublicationDao(
                           on old_sv_first.geometry_id = old_sg_first.id
                 left join layout.segment_geometry old_sg_last
                           on old_sv_last.geometry_id = old_sg_last.id
-                left join layout.track_number_at(old_ltv.change_time) old_tn
+                left join layout.track_number_at(old_publication.publication_time) old_tn
                           on old_ltv.track_number_id = old_tn.id
             where publication_id = :publication_id
         """.trimIndent()
@@ -618,6 +624,7 @@ class PublicationDao(
               old_km_post_version.km_number old_km_number,
               km_post_version.track_number_id,
               old_km_post_version.track_number_id old_track_number_id,
+              tn.number track_number,
               km_post_version.state,
               old_km_post_version.state old_state,
               postgis.st_x(km_post_version.location) as point_x, 
@@ -627,6 +634,10 @@ class PublicationDao(
             from publication.km_post
               left join layout.km_post_version km_post_version
                       on km_post.km_post_id = km_post_version.id and km_post.km_post_version = km_post_version.version
+              left join publication.publication
+                      on km_post.publication_id = publication.id
+              left join layout.track_number_at(publication.publication_time) tn
+                      on km_post_version.track_number_id = tn.id
               left join layout.km_post_version old_km_post_version
                       on old_km_post_version.id = km_post_version.id and old_km_post_version.version = km_post_version.version - 1 and old_km_post_version.draft = false
             where publication_id = :publication_id
@@ -637,6 +648,7 @@ class PublicationDao(
                 id = rs.getIntId("km_post_id"),
                 kmNumber = Change(new = rs.getKmNumberOrNull("km_number"), old = rs.getKmNumberOrNull("old_km_number")),
                 trackNumberId = Change(new = rs.getIntIdOrNull("track_number_id"), old = rs.getIntIdOrNull("old_track_number_id")),
+                trackNumber = rs.getTrackNumberOrNull("track_number"),
                 state = Change(rs.getEnumOrNull<LayoutState>("state"), rs.getEnumOrNull<LayoutState>("old_state")),
                 location = Change(rs.getPointOrNull("point_x", "point_y"), rs.getPointOrNull("old_point_x", "old_point_y")),
             )
