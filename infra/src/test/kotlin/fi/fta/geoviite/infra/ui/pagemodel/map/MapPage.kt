@@ -30,6 +30,12 @@ class MapPage {
     val navigationPanel = MapNavigationPanel()
     val mainNavigation = MainNavigationBar()
 
+    companion object {
+        fun finishLoading() {
+            withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
+        }
+    }
+
     fun addEndPointDialog(): AddEndPointDialog {
         logger.info("Get add end point popup dialog")
         return AddEndPointDialog()
@@ -102,10 +108,7 @@ class MapPage {
         while (!currentMapScale().contentEquals(targetScale)) {
             zoomIn()
         }
-    }
-
-    fun finishLoading() {
-        withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
+        finishLoading()
     }
 
     fun zoomOutToScale(targetScale: String) {
