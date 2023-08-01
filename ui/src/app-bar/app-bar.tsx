@@ -48,14 +48,12 @@ export const AppBar: React.FC = () => {
     }
 
     function getInfraModelLinkClassName(isActive: boolean): string {
-        if (exclamationPointVisibility) {
-            return `${styles['app-bar__link']} ${
-                styles['app-bar__link--infra-model-with-exclamation-point']
-            } ${isActive ? styles['app-bar__link--active'] : ''}`;
-        } else {
-            return `${styles['app-bar__link']} 
+        return exclamationPointVisibility
+            ? `${styles['app-bar__link']} ${
+                  styles['app-bar__link--infra-model-with-exclamation-point']
+              } ${isActive ? styles['app-bar__link--active'] : ''}`
+            : `${styles['app-bar__link']} 
              ${isActive ? styles['app-bar__link--active'] : ''}`;
-        }
     }
 
     return (
