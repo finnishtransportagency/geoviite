@@ -8,6 +8,9 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.measureAndCollect
+import fi.fta.geoviite.infra.util.resetCollected
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,6 +49,32 @@ class PublicationDaoIT @Autowired constructor(
         assertTrue(publicationDao.fetchLocationTrackPublishCandidates().isEmpty())
         assertTrue(publicationDao.fetchSwitchPublishCandidates().isEmpty())
         assertTrue(publicationDao.fetchKmPostPublishCandidates().isEmpty())
+    }
+
+    @Test
+    fun `Try resultset operations`() {
+        var values: Map<String, TrackNumber> = mapOf()
+        for (i in 1..1000) {
+            values = jdbc.query(
+                """
+            select id, number
+             from layout.track_number_version
+            order by number
+        """.trimIndent(), mapOf<String, Any>()
+            ) { rs, _ ->
+                measureAndCollect("getString") { rs.getString("number") } to
+                        measureAndCollect("getTrackNumber") { rs.getTrackNumber("number") }
+            }.associate { it }
+        }
+        println("All: $values")
+
+        val n = 1000
+        measureAndCollect("Reiterate TrackNumber creation: n=$n keys=${values.size}") {
+            for (i in 0..1000) {
+                values.keys.forEach { k -> TrackNumber(k) }
+            }
+        }
+        println("Times: ${resetCollected()}")
     }
 
     @Test

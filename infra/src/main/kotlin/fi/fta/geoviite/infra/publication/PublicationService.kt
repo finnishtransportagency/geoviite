@@ -754,13 +754,16 @@ class PublicationService @Autowired constructor(
             .sortedBy { it.publicationTime }
             .let { publications ->
                 val geocodingContextCache = mutableMapOf<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>()
-                publications.flatMapIndexed { index: Int, publicationDetails: PublicationDetails ->
+                val trackNumbersCache = mutableMapOf<Instant, Map<IntId<TrackLayoutTrackNumber>, String>>()
+                val res = publications.flatMapIndexed { index: Int, publicationDetails: PublicationDetails ->
                     this.mapToPublicationTableItems(
                         publicationDetails,
                         publications.getOrNull(index - 1)?.publicationTime,
+                        trackNumbersCache,
                         geocodingContextCache
                     )
                 }
+                res
             }
             .let { publications ->
                 if (sortBy == null) publications
@@ -811,22 +814,22 @@ class PublicationService @Autowired constructor(
         }
         return listOf(
             if (trackNumberChanges.trackNumber.new != trackNumberChanges.trackNumber.old) {
-                PublicationChange(PropKey(LocalizationKey("track-number")), trackNumberChanges.trackNumber.new, trackNumberChanges.trackNumber.old, null)
+                PublicationChange(PropKey(LocalizationKey("track-number")), trackNumberChanges.trackNumber.old, trackNumberChanges.trackNumber.new, null)
             } else null,
             if (trackNumberChanges.state.new != trackNumberChanges.state.old) {
-                PublicationChange(PropKey(LocalizationKey("state")), trackNumberChanges.state.new, trackNumberChanges.state.old, null, LocalizationKey("layout-state"))
+                PublicationChange(PropKey(LocalizationKey("state")), trackNumberChanges.state.old, trackNumberChanges.state.new, null, LocalizationKey("layout-state"))
             } else null,
             if (trackNumberChanges.description.new != trackNumberChanges.description.old) {
-                PublicationChange(PropKey(LocalizationKey("description")), trackNumberChanges.description.new, trackNumberChanges.description.old, null)
+                PublicationChange(PropKey(LocalizationKey("description")), trackNumberChanges.description.old, trackNumberChanges.description.new, null)
             } else null,
             if (trackNumberChanges.startAddress.new != trackNumberChanges.startAddress.old) {
-                PublicationChange(PropKey(LocalizationKey("start-address")), trackNumberChanges.startAddress.new?.toString(), trackNumberChanges.startAddress.old?.toString(), null)
+                PublicationChange(PropKey(LocalizationKey("start-address")), trackNumberChanges.startAddress.old?.toString(), trackNumberChanges.startAddress.new?.toString(),null)
             } else null,
             if (trackNumberChanges.endPointChanged) {
                 PublicationChange(
                     PropKey(LocalizationKey("end-address")),
-                    newEndPoint,
                     oldEndPoint,
+                    newEndPoint,
                     null
                 )
             } else null,
@@ -848,30 +851,32 @@ class PublicationService @Autowired constructor(
         geocodingContextCaches: Map<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>,
         publicationTime: Instant,
         previousPublicationTime: Instant,
+        newTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, String>,
+        oldTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, String>,
         changedKmNumbers: Set<KmNumber>?
     ): List<PublicationChange<*>> {
         return listOf(
             if (locationTrackChanges.trackNumberId.new != locationTrackChanges.trackNumberId.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("track-number")),
-                    locationTrackChanges.trackNumber.new,
-                    locationTrackChanges.trackNumber.old,
+                    oldTrackNumbers[locationTrackChanges.trackNumberId.old],
+                    newTrackNumbers[locationTrackChanges.trackNumberId.new],
                     null
                 )
             } else null,
             if (locationTrackChanges.name.new != locationTrackChanges.name.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("location-track")),
-                    locationTrackChanges.name.new,
                     locationTrackChanges.name.old,
+                    locationTrackChanges.name.new,
                     null
                 )
             } else null,
             if (locationTrackChanges.state.new != locationTrackChanges.state.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("state")),
-                    locationTrackChanges.state.new,
                     locationTrackChanges.state.old,
+                    locationTrackChanges.state.new,
                     null,
                     LocalizationKey("layout-state"),
                 )
@@ -879,8 +884,8 @@ class PublicationService @Autowired constructor(
             if (locationTrackChanges.type.new != locationTrackChanges.type.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("location-track-type")),
-                    locationTrackChanges.type.new,
                     locationTrackChanges.type.old,
+                    locationTrackChanges.type.new,
                     null,
                     LocalizationKey("location-track-type"),
                 )
@@ -888,24 +893,24 @@ class PublicationService @Autowired constructor(
             if (locationTrackChanges.description.new != locationTrackChanges.description.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("description")),
-                    locationTrackChanges.description.new,
                     locationTrackChanges.description.old,
+                    locationTrackChanges.description.new,
                     null
                 )
             } else null,
             if (locationTrackChanges.duplicateOf.new != locationTrackChanges.duplicateOf.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("duplicate-of")),
-                    locationTrackChanges.duplicateOf.new?.let { locationTrackService.getOfficialAtMoment(it, publicationTime)?.name },
                     locationTrackChanges.duplicateOf.old?.let { locationTrackService.getOfficialAtMoment(it, previousPublicationTime)?.name },
+                    locationTrackChanges.duplicateOf.new?.let { locationTrackService.getOfficialAtMoment(it, publicationTime)?.name },
                     null
                 )
             } else null,
             if (locationTrackChanges.length.new != locationTrackChanges.length.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("length")),
-                    locationTrackChanges.length.new?.let(::roundTo1Decimal),
                     locationTrackChanges.length.old?.let(::roundTo1Decimal),
+                    locationTrackChanges.length.new?.let(::roundTo1Decimal),
                     if (locationTrackChanges.length.old != null && locationTrackChanges.length.new != null) lengthChangedRemark(
                         locationTrackChanges.length.old,
                         locationTrackChanges.length.new
@@ -915,8 +920,8 @@ class PublicationService @Autowired constructor(
             if (locationTrackChanges.startPointChanged) {
                 PublicationChange(
                     PropKey(LocalizationKey("start-location")),
-                    locationTrackChanges.startPoint.new?.let(::formatLocation),
                     locationTrackChanges.startPoint.old?.let(::formatLocation),
+                    locationTrackChanges.startPoint.new?.let(::formatLocation),
                     if (locationTrackChanges.startPoint.new != null && locationTrackChanges.startPoint.old != null) PublicationChangeRemark(
                         "moved-x-meters", formatDistance(
                             calculateDistance(
@@ -932,8 +937,8 @@ class PublicationService @Autowired constructor(
             if (locationTrackChanges.endPointChanged) {
                 PublicationChange(
                     PropKey(LocalizationKey("end-location")),
-                    locationTrackChanges.endPoint.new?.let(::formatLocation),
                     locationTrackChanges.endPoint.old?.let(::formatLocation),
+                    locationTrackChanges.endPoint.new?.let(::formatLocation),
                     if (locationTrackChanges.endPoint.new != null && locationTrackChanges.endPoint.old != null) PublicationChangeRemark(
                         "moved-x-meters", formatDistance(
                             calculateDistance(
@@ -987,8 +992,8 @@ class PublicationService @Autowired constructor(
 
                 PublicationChange(
                     PropKey(LocalizationKey("start-address")),
-                    changes.startPoint.new?.toPoint()?.let { point -> newGeocodingContext?.let { context -> context.getAddress(point)?.first?.toString() } },
                     changes.startPoint.old?.toPoint()?.let { point -> oldGeocodingContext?.let { context -> context.getAddress(point)?.first?.toString() } },
+                    changes.startPoint.new?.toPoint()?.let { point -> newGeocodingContext?.let { context -> context.getAddress(point)?.first?.toString() } },
                     pointMovedRemark(changes.startPoint)
                 )
             } else null,
@@ -998,8 +1003,8 @@ class PublicationService @Autowired constructor(
 
                 PublicationChange(
                     PropKey(LocalizationKey("end-address")),
-                    changes.endPoint.new?.toPoint()?.let { point -> newGeocodingContext?.let { context -> context.getAddress(point)?.first?.toString() } },
                     changes.endPoint.old?.toPoint()?.let { point -> oldGeocodingContext?.let { context -> context.getAddress(point)?.first?.toString() } },
+                    changes.endPoint.new?.toPoint()?.let { point -> newGeocodingContext?.let { context -> context.getAddress(point)?.first?.toString() } },
                     pointMovedRemark(changes.endPoint)
                 )
             } else null,
@@ -1017,29 +1022,35 @@ class PublicationService @Autowired constructor(
         ).filterNotNull()
     }
 
-    fun diffKmPost(changes: PublicationDao.KmPostChanges, publicationTime: Instant, previousPublicationTime: Instant) =
+    fun diffKmPost(
+        changes: PublicationDao.KmPostChanges,
+        publicationTime: Instant,
+        previousPublicationTime: Instant,
+        newTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, String>,
+        oldTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, String>,
+    ) =
         listOf(
             if (changes.trackNumberId.new != changes.trackNumberId.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("track-number")),
-                    changes.trackNumberId.new?.let { tn -> trackNumberService.getOfficialAtMoment(tn, publicationTime)?.number },
-                    changes.trackNumberId.old?.let { tn -> trackNumberService.getOfficialAtMoment(tn, previousPublicationTime)?.number },
+                    oldTrackNumbers[changes.trackNumberId.old],
+                    newTrackNumbers[changes.trackNumberId.new],
                     null
                 )
             } else null,
             if (changes.kmNumber.new != changes.kmNumber.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("km-post")),
-                    changes.kmNumber.new?.toString(),
                     changes.kmNumber.old?.toString(),
+                    changes.kmNumber.new?.toString(),
                     null
                 )
             } else null,
             if (changes.state.new != changes.state.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("state")),
-                    changes.state.new?.toString(),
                     changes.state.old?.toString(),
+                    changes.state.new?.toString(),
                     null,
                     LocalizationKey("layout-state")
                 )
@@ -1047,20 +1058,26 @@ class PublicationService @Autowired constructor(
             if (changes.location.new != changes.location.old) {
                 PublicationChange(
                     PropKey(LocalizationKey("location")),
-                    changes.location.new?.let(::formatLocation),
                     changes.location.old?.let(::formatLocation),
+                    changes.location.new?.let(::formatLocation),
                     null
                 )
             } else null,
         ).filterNotNull()
 
-    fun diffSwitch(changes: PublicationDao.SwitchChanges, newTimestamp: Instant, oldTimestamp: Instant, geocodingContextCaches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>): List<PublicationChange<*>> {
+    fun diffSwitch(
+        changes: PublicationDao.SwitchChanges,
+        newTimestamp: Instant,
+        oldTimestamp: Instant,
+        newTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, String>,
+        geocodingContextCaches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>
+    ): List<PublicationChange<*>> {
         val jointChanges = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }.map { joint ->
             PublicationChange(
                 PropKey(
                     LocalizationKey("switch-track-address"),
                     listOfNotNull(
-                        trackNumberService.getOrThrow(OFFICIAL, joint.trackNumberId).number.value,
+                        newTrackNumbers[joint.trackNumberId]?.toString(),
                         changes.type.new?.parts?.baseType?.let(::switchBaseTypeToProp)
                     )
                 ),
@@ -1192,9 +1209,21 @@ class PublicationService @Autowired constructor(
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 
-    private fun mapToPublicationTableItems(publication: PublicationDetails, timeOfPreviousPublication: Instant? = null, geocodingContextCache: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>? = null): List<PublicationTableItem> {
+    private fun mapToPublicationTableItems(
+        publication: PublicationDetails,
+        timeOfPreviousPublication: Instant? = null,
+        trackNumbersCache: MutableMap<Instant, Map<IntId<TrackLayoutTrackNumber>, String>> = mutableMapOf(),
+        geocodingContextCache: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>? = null
+    ): List<PublicationTableItem> {
         val previousPublicationTime = timeOfPreviousPublication ?: publication.publicationTime.minusMillis(1)
         val geocodingContexts = geocodingContextCache ?: mutableMapOf()
+
+        val trackNumberNamesDuringPublication = trackNumbersCache.getOrPut(publication.publicationTime) {
+            publicationDao.fetchTrackNumberNamesAtMoment(publication.publicationTime)
+        }
+        val trackNumbersDuringPreviousPublication = trackNumbersCache.getOrPut(previousPublicationTime) {
+            publicationDao.fetchTrackNumberNamesAtMoment(previousPublicationTime)
+        }
         val publicationLocationTracks = publicationDao.fetchPublicationLocationTracks(publication.id)
         val publicationTrackNumbers = publicationDao.fetchPublicationTrackNumbers(publication.id)
         val publicationKmPosts = publicationDao.fetchPublicationKmPosts(publication.id)
@@ -1219,10 +1248,11 @@ class PublicationService @Autowired constructor(
 
         val referenceLines = publication.referenceLines.map { rl ->
             val referenceLine = publicationReferenceLines.find { it.id == rl.version.id }!!
+            val tn = trackNumberNamesDuringPublication[rl.trackNumberId]
 
             mapToPublicationTableItem(
-                name = "${getTranslation("reference-line")} ${referenceLine.trackNumber.new}",
-                trackNumbers = referenceLine.trackNumber.new?.let { setOf(it) } ?: setOf(),
+                name = "${getTranslation("reference-line")} ${tn}",
+                trackNumbers = setOfNotNull(tn?.let { TrackNumber(it) }),
                 changedKmNumbers = rl.changedKmNumbers,
                 operation = rl.operation,
                 publication = publication,
@@ -1238,9 +1268,10 @@ class PublicationService @Autowired constructor(
 
         val locationTracks = publication.locationTracks.map { lt ->
             val changes = publicationLocationTracks.find { it.id == lt.version.id }!!
+            val tn = trackNumberNamesDuringPublication[lt.trackNumberId]
             mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
-                trackNumbers = setOfNotNull(changes.trackNumber.new),
+                trackNumbers = setOfNotNull(tn?.let { TrackNumber(it) }),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
@@ -1249,21 +1280,26 @@ class PublicationService @Autowired constructor(
                     geocodingContexts,
                     publication.publicationTime,
                     previousPublicationTime,
+                    trackNumberNamesDuringPublication,
+                    trackNumbersDuringPreviousPublication,
                     lt.changedKmNumbers
                 ),
             )
         }
 
         val switches = publication.switches.map { s ->
+            val changes = publicationSwitches.find { it.id == s.version.id }!!
+            val tns = trackNumberNamesDuringPublication.filter{ tn -> s.trackNumberIds.contains(tn.key) }.map { TrackNumber(it.value) }.toSet()
             mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
-                trackNumbers = s.trackNumberIds.map { trackNumberService.getOfficialAtMoment(it, publication.publicationTime)?.number }.filterNotNull().toSet(),
+                trackNumbers = tns,
                 operation = s.operation,
                 publication = publication,
                 propChanges = diffSwitch(
                     publicationSwitches.find { it.id == s.version.id }!!,
                     publication.publicationTime,
                     previousPublicationTime,
+                    trackNumberNamesDuringPublication,
                     geocodingContexts,
                 ),
             )
@@ -1271,24 +1307,28 @@ class PublicationService @Autowired constructor(
 
         val kmPosts = publication.kmPosts.map { kp ->
             val changes = publicationKmPosts.find { it.id == kp.version.id }!!
+            val tn = trackNumberNamesDuringPublication[kp.trackNumberId]
             mapToPublicationTableItem(
                 name = "${getTranslation("km-post")} ${kp.kmNumber}",
-                trackNumbers = setOfNotNull(changes.trackNumber),
+                trackNumbers = setOfNotNull(tn?.let { TrackNumber(it) }),
                 operation = kp.operation,
                 publication = publication,
                 propChanges = diffKmPost(
                     changes,
                     publication.publicationTime,
                     previousPublicationTime,
+                    trackNumberNamesDuringPublication,
+                    trackNumbersDuringPreviousPublication,
                 ),
             )
         }
 
         val calculatedLocationTracks = publication.indirectChanges.locationTracks.map { lt ->
             val changes = publicationLocationTracks.find { it.id == lt.version.id }!!
+            val tn = trackNumberNamesDuringPublication[lt.trackNumberId]
             mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
-                trackNumbers = setOfNotNull(changes.trackNumber.new),
+                trackNumbers = setOfNotNull(tn?.let { TrackNumber(it) }),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
@@ -1298,22 +1338,27 @@ class PublicationService @Autowired constructor(
                     geocodingContexts,
                     publication.publicationTime,
                     previousPublicationTime,
+                    trackNumberNamesDuringPublication,
+                    trackNumbersDuringPreviousPublication,
                     lt.changedKmNumbers
                 ),
             )
         }
 
         val calculatedSwitches = publication.indirectChanges.switches.map { s ->
+            val changes = publicationSwitches.find { it.id == s.version.id }!!
+            val tns = trackNumberNamesDuringPublication.filter{ tn -> s.trackNumberIds.contains(tn.key) }.map { TrackNumber(it.value) }.toSet()
             mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
-                trackNumbers = s.trackNumberIds.map { trackNumberService.getOfficialAtMoment(it, publication.publicationTime)?.number }.filterNotNull().toSet(),
+                trackNumbers = tns,
                 operation = s.operation,
                 publication = publication,
                 isCalculatedChange = true,
                 propChanges = diffSwitch(
-                    publicationSwitches.find { it.id == s.version.id }!!,
+                    changes,
                     publication.publicationTime,
                     previousPublicationTime,
+                    trackNumberNamesDuringPublication,
                     geocodingContexts,
                 ),
             )

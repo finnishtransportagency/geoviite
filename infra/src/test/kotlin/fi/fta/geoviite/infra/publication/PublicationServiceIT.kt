@@ -25,6 +25,7 @@ import kotlin.test.*
 @SpringBootTest
 class PublicationServiceIT @Autowired constructor(
     val publicationService: PublicationService,
+    val publicationDao: PublicationDao,
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
@@ -700,6 +701,7 @@ class PublicationServiceIT @Autowired constructor(
                 address,
             )
         ))
+        publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val id = trackNumberService.update(trackNumber.id as IntId, TrackNumberSaveRequest(
             number = TrackNumber(trackNumber.number.value + " T"),
             description = trackNumber.description + "_TEST",
@@ -707,27 +709,19 @@ class PublicationServiceIT @Autowired constructor(
             state = LayoutState.NOT_IN_USE,
         ))
         val updatedTrackNumber = trackNumberService.getDraft(id)
+        publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
+        val changes = publicationDao.fetchPublicationTrackNumbers(publicationService.fetchLatestPublicationDetails(1).first().id)
 
-        val diff = publicationService.diffTrackNumber(updatedTrackNumber, trackNumber)
+        val diff = publicationService.diffTrackNumber(
+            changes.first(),
+            trackNumberDao.fetchVersionChangeTimeOrThrow(trackNumber.version!!),
+            trackNumberDao.fetchVersionChangeTimeOrThrow(updatedTrackNumber.version!!),
+            mutableMapOf()
+        )
         assertEquals(3, diff.size)
-        assertEquals("track-number", diff[0].propKey.key)
-        assertEquals("state", diff[1].propKey.key)
-        assertEquals("description", diff[2].propKey.key)
-    }
-
-    @Test
-    fun `Diffing track number with itself returns empty list`() {
-        val address = TrackMeter(0, 0)
-        val trackNumber = trackNumberService.getDraft(trackNumberService.insert(
-            TrackNumberSaveRequest(
-                getUnusedTrackNumber(),
-                FreeText("TEST"),
-                LayoutState.IN_USE,
-                address,
-            )
-        ))
-        val diff = publicationService.diffTrackNumber(trackNumber, trackNumber)
-        assertTrue(diff.isEmpty())
+        assertEquals("track-number", diff[0].propKey.key.toString())
+        assertEquals("state", diff[1].propKey.key.toString())
+        assertEquals("description", diff[2].propKey.key.toString())
     }
 
     @Test
@@ -741,6 +735,7 @@ class PublicationServiceIT @Autowired constructor(
                 address,
             )
         ))
+        publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val id = trackNumberService.update(trackNumber.id as IntId, TrackNumberSaveRequest(
             number = trackNumber.number,
             description = FreeText("TEST2"),
@@ -748,12 +743,18 @@ class PublicationServiceIT @Autowired constructor(
             state = trackNumber.state,
         ))
         val updatedTrackNumber = trackNumberService.getDraft(id)
+        publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
+        val changes = publicationDao.fetchPublicationTrackNumbers(publicationService.fetchLatestPublicationDetails(1).first().id)
 
-        val diff = publicationService.diffTrackNumber(updatedTrackNumber, trackNumber)
+        val diff = publicationService.diffTrackNumber(
+            changes.first(),
+            trackNumberDao.fetchVersionChangeTimeOrThrow(trackNumber.version!!),
+            trackNumberDao.fetchVersionChangeTimeOrThrow(updatedTrackNumber.version!!),
+            mutableMapOf())
         assertEquals(1, diff.size)
-        assertEquals("description", diff[0].propKey.key)
-        assertEquals(trackNumber.description.toString(), diff[0].oldValue)
-        assertEquals(updatedTrackNumber.description.toString(), diff[0].newValue)
+        assertEquals("description", diff[0].propKey.key.toString())
+        assertEquals(trackNumber.description, diff[0].oldValue)
+        assertEquals(updatedTrackNumber.description, diff[0].newValue)
     }
 
     @Test
@@ -799,6 +800,7 @@ class PublicationServiceIT @Autowired constructor(
                 )
             ).rowVersion
         )
+        publishAndVerify(publishRequest(locationTracks = listOf(locationTrack.id as IntId<LocationTrack>, duplicate.id as IntId<LocationTrack>, duplicate2.id as IntId<LocationTrack>)))
 
         val updatedLocationTrack = locationTrackService.get(
             locationTrackService.update(
@@ -813,35 +815,19 @@ class PublicationServiceIT @Autowired constructor(
                 )
             ).rowVersion
         )
-        publish(publicationService, locationTracks = listOf(locationTrack.id as IntId<LocationTrack>, updatedLocationTrack.id as IntId<LocationTrack>, duplicate.id as IntId<LocationTrack>, duplicate2.id as IntId<LocationTrack>))
+        publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationLocationTracks(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
+        val diff = publicationService.diffLocationTrack(changes.first(), mapOf(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap(), emptySet())
         assertEquals(5, diff.size)
-        assertEquals("location-track", diff[0].propKey.key)
-        assertEquals("state", diff[1].propKey.key)
-        assertEquals("location-track-type", diff[2].propKey.key)
-        assertEquals("description", diff[3].propKey.key)
-        assertEquals("duplicate-of", diff[4].propKey.key)
-    }
-
-    @Test
-    fun `Diffing location track with itself returns empty list`() {
-        val locationTrack = locationTrackService.get(
-            locationTrackService.insert(
-                LocationTrackSaveRequest(
-                    AlignmentName("TEST"),
-                    FreeText("Test"),
-                    LocationTrackType.MAIN,
-                    LayoutState.IN_USE,
-                    getUnusedTrackNumberId(),
-                    null,
-                    TopologicalConnectivityType.NONE
-                )
-            ).rowVersion
-        )
-
-        val diff = publicationService.diffLocationTrack(locationTrack, locationTrack, emptySet())
-        assertTrue(diff.isEmpty())
+        assertEquals("location-track", diff[0].propKey.key.toString())
+        assertEquals("state", diff[1].propKey.key.toString())
+        assertEquals("location-track-type", diff[2].propKey.key.toString())
+        assertEquals("description", diff[3].propKey.key.toString())
+        assertEquals("duplicate-of", diff[4].propKey.key.toString())
     }
 
     @Test
@@ -859,18 +845,24 @@ class PublicationServiceIT @Autowired constructor(
         val locationTrack = locationTrackService.get(
             locationTrackService.insert(saveReq).rowVersion
         )
+        publish(publicationService, locationTracks = listOf(locationTrack.id as IntId<LocationTrack>))
 
         val updatedLocationTrack = locationTrackService.get(
             locationTrackService.update(locationTrack.id as IntId,
                 saveReq.copy(description = FreeText("TEST2"))
             ).rowVersion
         )
+        publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationLocationTracks(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(updatedLocationTrack, locationTrack, emptySet())
+        val diff = publicationService.diffLocationTrack(changes.first(), mapOf(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap(), emptySet())
         assertEquals(1, diff.size)
-        assertEquals("description", diff[0].propKey.key)
-        assertEquals(locationTrack.description.toString(), diff[0].oldValue)
-        assertEquals(updatedLocationTrack.description.toString(), diff[0].newValue)
+        assertEquals("description", diff[0].propKey.key.toString())
+        assertEquals(locationTrack.description, diff[0].oldValue)
+        assertEquals(updatedLocationTrack.description, diff[0].newValue)
     }
 
     @Test
@@ -901,6 +893,7 @@ class PublicationServiceIT @Autowired constructor(
                 )
             )
         )
+        publish(publicationService, kmPosts = listOf(kmPost.id as IntId), trackNumbers = listOf(trackNumber.id as IntId, trackNumber2.id as IntId))
         val updatedKmPost = kmPostService.getDraft(
             kmPostService.updateKmPost(
                 kmPost.id as IntId,
@@ -911,28 +904,18 @@ class PublicationServiceIT @Autowired constructor(
                 )
             )
         )
+        publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
 
-        val diff = publicationService.diffKmPost(updatedKmPost, kmPost)
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationKmPosts(latestPub.id)
+
+        val diff = publicationService.diffKmPost(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap())
         assertEquals(2, diff.size)
         // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
-        assertEquals("km-post", diff[0].propKey.key)
-        assertEquals("state", diff[1].propKey.key)
-    }
-
-    @Test
-    fun `Diffing km post with itself returns empty list`() {
-        val kmPost = kmPostService.getDraft(
-            kmPostService.insertKmPost(
-                TrackLayoutKmPostSaveRequest(
-                    KmNumber(0),
-                    LayoutState.IN_USE,
-                    insertOfficialTrackNumber(),
-                )
-            )
-        )
-
-        val diff = publicationService.diffKmPost(kmPost, kmPost)
-        assertTrue(diff.isEmpty())
+        assertEquals("km-post", diff[0].propKey.key.toString())
+        assertEquals("state", diff[1].propKey.key.toString())
     }
 
     @Test
@@ -946,16 +929,22 @@ class PublicationServiceIT @Autowired constructor(
         val kmPost = kmPostService.getDraft(
             kmPostService.insertKmPost(saveReq)
         )
+        publish(publicationService, kmPosts = listOf(kmPost.id as IntId))
         val updatedKmPost = kmPostService.getDraft(
             kmPostService.updateKmPost(
                 kmPost.id as IntId,
                     saveReq.copy(kmNumber = KmNumber(1))
                 )
         )
+        publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationKmPosts(latestPub.id)
 
-        val diff = publicationService.diffKmPost(updatedKmPost, kmPost)
+        val diff = publicationService.diffKmPost(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap())
         assertEquals(1, diff.size)
-        assertEquals("km-post", diff[0].propKey.key)
+        assertEquals("km-post", diff[0].propKey.key.toString())
     }
 
     @Test
@@ -966,8 +955,8 @@ class PublicationServiceIT @Autowired constructor(
             LayoutState.IN_USE,
             TrackMeter(0, 0),
         )
-        trackNumberService.insert(trackNumberSaveReq)
-        trackNumberService.insert(
+        val tn1 = trackNumberService.insert(trackNumberSaveReq)
+        val tn2 = trackNumberService.insert(
             trackNumberSaveReq.copy(getUnusedTrackNumber(), FreeText("TEST 2"))
         )
 
@@ -982,6 +971,7 @@ class PublicationServiceIT @Autowired constructor(
                 )
             )
         )
+        publish(publicationService, switches = listOf(switch.id as IntId), trackNumbers = listOf(tn1, tn2))
         val updatedSwitch = switchService.getDraft(
             switchService.updateSwitch(
                 switch.id as IntId,
@@ -994,32 +984,20 @@ class PublicationServiceIT @Autowired constructor(
                 )
             )
         )
+        publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
-        val diff = publicationService.diffSwitch(updatedSwitch, switch)
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationSwitches(latestPub.id)
+
+        val diff = publicationService.diffSwitch(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), mutableMapOf())
         assertEquals(5, diff.size)
-        assertEquals("switch", diff[0].propKey.key)
-        assertEquals("state-category", diff[1].propKey.key)
-        assertEquals("switch-type", diff[2].propKey.key)
-        assertEquals("trap-point", diff[3].propKey.key)
-        assertEquals("owner", diff[4].propKey.key)
-    }
-
-    @Test
-    fun `Diffing switch with itself returns empty list`() {
-        val switch = switchService.getDraft(
-            switchService.insertSwitch(
-                TrackLayoutSwitchSaveRequest(
-                    SwitchName("TEST"),
-                    IntId(1),
-                    LayoutStateCategory.EXISTING,
-                    IntId(1),
-                    false,
-                )
-            )
-        )
-
-        val diff = publicationService.diffSwitch(switch, switch)
-        assertTrue(diff.isEmpty())
+        assertEquals("switch", diff[0].propKey.key.toString())
+        assertEquals("state-category", diff[1].propKey.key.toString())
+        assertEquals("switch-type", diff[2].propKey.key.toString())
+        assertEquals("trap-point", diff[3].propKey.key.toString())
+        assertEquals("owner", diff[4].propKey.key.toString())
     }
 
     @Test
@@ -1035,16 +1013,23 @@ class PublicationServiceIT @Autowired constructor(
         val switch = switchService.getDraft(
             switchService.insertSwitch(saveReq)
         )
+        publish(publicationService, switches = listOf(switch.id as IntId))
         val updatedSwitch = switchService.getDraft(
             switchService.updateSwitch(
                 switch.id as IntId,
                 saveReq.copy(name = SwitchName("TEST 2"))
             )
         )
+        publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
-        val diff = publicationService.diffSwitch(updatedSwitch, switch)
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationSwitches(latestPub.id)
+
+        val diff = publicationService.diffSwitch(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), mutableMapOf())
         assertEquals(1, diff.size)
-        assertEquals("switch", diff[0].propKey.key)
+        assertEquals("switch", diff[0].propKey.key.toString())
     }
 }
 
