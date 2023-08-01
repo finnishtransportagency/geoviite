@@ -16,6 +16,7 @@ import {
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { filterUniqueById } from 'utils/array-utils';
 
 let shownKmPostsCompare: string;
 let newestLayerId = 0;
@@ -36,7 +37,9 @@ export function createKmPostLayer(
             mapTiles.map(({ area }) =>
                 getKmPostsByTile(publishType, changeTimes.layoutKmPost, area, step),
             ),
-        ).then((kmPostGroups) => [...new Set(kmPostGroups.flat())]);
+        ).then((kmPostGroups) =>
+            kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
+        );
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
