@@ -52,32 +52,6 @@ class PublicationDaoIT @Autowired constructor(
     }
 
     @Test
-    fun `Try resultset operations`() {
-        var values: Map<String, TrackNumber> = mapOf()
-        for (i in 1..1000) {
-            values = jdbc.query(
-                """
-            select id, number
-             from layout.track_number_version
-            order by number
-        """.trimIndent(), mapOf<String, Any>()
-            ) { rs, _ ->
-                measureAndCollect("getString") { rs.getString("number") } to
-                        measureAndCollect("getTrackNumber") { rs.getTrackNumber("number") }
-            }.associate { it }
-        }
-        println("All: $values")
-
-        val n = 1000
-        measureAndCollect("Reiterate TrackNumber creation: n=$n keys=${values.size}") {
-            for (i in 0..1000) {
-                values.keys.forEach { k -> TrackNumber(k) }
-            }
-        }
-        println("Times: ${resetCollected()}")
-    }
-
-    @Test
     fun referenceLinePublishCandidatesAreFound() {
         val trackNumberId = insertAndCheck(trackNumber(getUnusedTrackNumber())).first.id
         val (_, line) = insertAndCheck(referenceLine(trackNumberId))

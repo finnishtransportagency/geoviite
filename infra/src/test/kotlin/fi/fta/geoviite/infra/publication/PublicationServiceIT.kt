@@ -821,7 +821,14 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTracks(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(changes.first(), mapOf(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap(), emptySet())
+        val diff = publicationService.diffLocationTrack(
+            changes.first(),
+            mapOf(),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            publicationDao.fetchTrackNumberNames(),
+            emptySet()
+        )
         assertEquals(5, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -858,7 +865,14 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTracks(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(changes.first(), mapOf(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap(), emptySet())
+        val diff = publicationService.diffLocationTrack(
+            changes.first(),
+            mapOf(),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            publicationDao.fetchTrackNumberNames(),
+            emptySet()
+        )
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
         assertEquals(locationTrack.description, diff[0].oldValue)
@@ -893,7 +907,11 @@ class PublicationServiceIT @Autowired constructor(
                 )
             )
         )
-        publish(publicationService, kmPosts = listOf(kmPost.id as IntId), trackNumbers = listOf(trackNumber.id as IntId, trackNumber2.id as IntId))
+        publish(
+            publicationService,
+            kmPosts = listOf(kmPost.id as IntId),
+            trackNumbers = listOf(trackNumber.id as IntId, trackNumber2.id as IntId)
+        )
         val updatedKmPost = kmPostService.getDraft(
             kmPostService.updateKmPost(
                 kmPost.id as IntId,
@@ -911,7 +929,12 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationKmPosts(latestPub.id)
 
-        val diff = publicationService.diffKmPost(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap())
+        val diff = publicationService.diffKmPost(
+            changes.first(),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            publicationDao.fetchTrackNumberNames(),
+        )
         assertEquals(2, diff.size)
         // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
         assertEquals("km-post", diff[0].propKey.key.toString())
@@ -942,7 +965,12 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationKmPosts(latestPub.id)
 
-        val diff = publicationService.diffKmPost(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), emptyMap())
+        val diff = publicationService.diffKmPost(
+            changes.first(),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            publicationDao.fetchTrackNumberNames(),
+        )
         assertEquals(1, diff.size)
         assertEquals("km-post", diff[0].propKey.key.toString())
     }
@@ -991,7 +1019,13 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitches(latestPub.id)
 
-        val diff = publicationService.diffSwitch(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), mutableMapOf())
+        val diff = publicationService.diffSwitch(
+            changes.first(),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            publicationDao.fetchTrackNumberNames(),
+            mutableMapOf()
+        )
         assertEquals(5, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals("state-category", diff[1].propKey.key.toString())
@@ -1027,7 +1061,13 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitches(latestPub.id)
 
-        val diff = publicationService.diffSwitch(changes.first(), latestPub.publicationTime, previousPub.publicationTime, emptyMap(), mutableMapOf())
+        val diff = publicationService.diffSwitch(
+            changes.first(),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            publicationDao.fetchTrackNumberNames(),
+            mutableMapOf()
+        )
         assertEquals(1, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
     }

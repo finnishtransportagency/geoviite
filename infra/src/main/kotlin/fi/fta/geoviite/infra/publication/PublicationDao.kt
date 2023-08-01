@@ -526,16 +526,27 @@ class PublicationDao(
         }.also { logger.daoAccess(FETCH, "track_number_version", publicationId) }
     }
 
-    fun fetchTrackNumberNamesAtMoment(timestamp: Instant): Map<IntId<TrackLayoutTrackNumber>, String> {
+    data class CachedTrackNumber(
+        val id: IntId<TrackLayoutTrackNumber>,
+        val number: TrackNumber,
+        val changeTime: Instant,
+    )
+
+    fun fetchTrackNumberNames(): List<CachedTrackNumber> {
         val sql = """
-            select tn.id, tn.number
-            from layout.track_number_at(:timestamp) tn
+            select tn.id, tn.number, tn.change_time
+            from layout.track_number_version tn
             where tn.draft = false
+            order by tn.change_time
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("timestamp" to Timestamp.from(timestamp))) { rs, _ ->
-            rs.getIntId<TrackLayoutTrackNumber>("id") to rs.getString("number")
-        }.toMap().also { logger.daoAccess(FETCH, "track_number_at", timestamp) }
+        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            CachedTrackNumber(
+                rs.getIntId<TrackLayoutTrackNumber>("id"),
+                rs.getTrackNumber("number"),
+                rs.getInstant("change_time"),
+            )
+        }.also { logger.daoAccess(FETCH, "track_number_version") }
     }
 
     fun fetchPublicationLocationTracks(publicationId: IntId<Publication>): List<LocationTrackChanges> {
