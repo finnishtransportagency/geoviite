@@ -57,7 +57,7 @@ export const SelectionPanelContainer: React.FC = () => {
             viewport={state.map.viewport}
             selectableItemTypes={selectableItemTypes}
             togglePlanOpen={delegates.togglePlanOpen}
-            openedPlanLayouts={state.selection.openedPlanLayouts}
+            openPlans={state.selection.openPlans}
             togglePlanKmPostsOpen={delegates.togglePlanKmPostsOpen}
             togglePlanAlignmentsOpen={delegates.togglePlanAlignmentsOpen}
             togglePlanSwitchesOpen={delegates.togglePlanSwitchesOpen}

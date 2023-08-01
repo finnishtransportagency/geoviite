@@ -12,7 +12,7 @@ import {
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { Accordion } from 'geoviite-design-lib/accordion/accordion';
 import {
-    OpenedPlanLayout,
+    OpenPlanLayout,
     OptionalItemCollections,
     VisiblePlanLayout,
 } from 'selection/selection-model';
@@ -48,9 +48,9 @@ type GeometryPlanProps = {
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     selectedItems: OptionalItemCollections;
+    openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -78,9 +78,9 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     onToggleKmPostVisibility,
     onToggleKmPostSelection,
     selectedItems,
+    openPlans,
     visiblePlans,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
@@ -90,11 +90,11 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     planBeingLoaded,
 }: GeometryPlanProps) => {
     const { t } = useTranslation();
-    const openedPlanLayout = openedPlanLayouts.find((p) => p.id === planHeader.id);
-    const isPlanOpen = !!openedPlanLayout;
-    const isKmPostsOpen = openedPlanLayout ? openedPlanLayout.isKmPostsOpen : false;
-    const isAlignmentsOpen = openedPlanLayout ? openedPlanLayout.isAlignmentsOpen : false;
-    const isSwitchesOpen = openedPlanLayout ? openedPlanLayout.isSwitchesOpen : false;
+    const openPlanLayout = openPlans.find((p) => p.id === planHeader.id);
+    const isPlanOpen = !!openPlanLayout;
+    const isKmPostsOpen = openPlanLayout ? openPlanLayout.isKmPostsOpen : false;
+    const isAlignmentsOpen = openPlanLayout ? openPlanLayout.isAlignmentsOpen : false;
+    const isSwitchesOpen = openPlanLayout ? openPlanLayout.isSwitchesOpen : false;
     const [openingAccordion, setOpeningAccordion] = React.useState(false);
     const [visibilities, setVisibilities] = React.useState<Visibilities>({
         planHeader: false,

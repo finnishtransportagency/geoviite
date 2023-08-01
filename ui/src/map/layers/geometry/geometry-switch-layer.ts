@@ -1,11 +1,14 @@
 import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { GeometryPlanLayout, LayoutSwitch, PlanAndStatus } from 'track-layout/track-layout-model';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import {
+    clearFeatures,
+    getManualPlanWithStatus,
+    getVisiblePlansWithStatus,
+} from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
-import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
 import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
 import { Rectangle } from 'model/geometry';
@@ -13,7 +16,6 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { getTrackLayoutPlan } from 'geometry/geometry-api';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
@@ -50,30 +52,15 @@ export function createGeometrySwitchLayer(
             );
         };
 
-        // TODO: GVT-826 This section is identical in all layers: move to common util
-        const planLayoutsPromises = manuallySetPlan
-            ? [Promise.resolve(manuallySetPlan)]
-            : selection.visiblePlans.map((p) =>
-                  getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
-              );
-        const planStatusPromises: Promise<PlanAndStatus | undefined>[] = planLayoutsPromises.map(
-            (planPromise) =>
-                planPromise.then((plan) => {
-                    if (!plan) return undefined;
-                    else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
-                    else
-                        return getPlanLinkStatus(plan.planId, publishType).then((status) => ({
-                            plan,
-                            status,
-                        }));
-                }),
-        );
+        const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
+            ? getManualPlanWithStatus(manuallySetPlan, publishType)
+            : getVisiblePlansWithStatus(selection.visiblePlans, publishType, changeTimes);
 
-        Promise.all([getSwitchStructures(), ...planStatusPromises])
-            .then(([switchStructures, ...planStatuses]) => {
+        Promise.all([getSwitchStructures(), plansPromise])
+            .then(([switchStructures, planStatuses]) => {
                 if (layerId !== newestLayerId) return;
 
-                const features = planStatuses.filter(filterNotEmpty).flatMap(({ status, plan }) => {
+                const features = planStatuses.flatMap(({ status, plan }) => {
                     const switchLinkedStatus = status
                         ? new Map(
                               status.switches

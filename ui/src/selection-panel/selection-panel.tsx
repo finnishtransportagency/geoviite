@@ -12,7 +12,7 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     OnSelectOptions,
-    OpenedPlanLayout,
+    OpenPlanLayout,
     OptionalItemCollections,
     SelectableItemType,
     VisiblePlanLayout,
@@ -49,6 +49,7 @@ type SelectionPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     selectedItems: OptionalItemCollections;
+    openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
@@ -62,7 +63,6 @@ type SelectionPanelProps = {
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -76,6 +76,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
     changeTimes,
     selectedItems,
+    openPlans,
     visiblePlans,
     kmPosts,
     referenceLines,
@@ -89,7 +90,6 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     onSelect,
     selectableItemTypes,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
@@ -234,7 +234,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 onToggleKmPostVisibility={onToggleKmPostVisibility}
                 onTogglePlanVisibility={onTogglePlanVisibility}
                 onToggleSwitchVisibility={onToggleSwitchVisibility}
-                openedPlanLayouts={openedPlanLayouts}
+                openPlans={openPlans}
                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}

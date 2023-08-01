@@ -27,7 +27,7 @@ import { getPlanLinkStatus } from 'linking/linking-api';
 import { MapViewport } from 'map/map-model';
 import {
     OnSelectOptions,
-    OpenedPlanLayout,
+    OpenPlanLayout,
     OptionalItemCollections,
     VisiblePlanLayout,
 } from 'selection/selection-model';
@@ -40,13 +40,13 @@ type GeometryPlansPanelProps = {
     selectedItems: OptionalItemCollections;
     viewport: MapViewport;
     selectedTrackNumbers: LayoutTrackNumberId[];
+    openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -65,13 +65,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     selectedItems,
     viewport,
     selectedTrackNumbers,
+    openPlans,
     visiblePlans,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
     onToggleKmPostVisibility,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
@@ -120,8 +120,6 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             getPlanLinkStatus(id, publishType),
         ]).then(([planLayout, linkStatus]) => {
             if (planLayout) {
-                // TODO: GVT-826 why are we re-caching these when there is already a cache for them?
-                // Moreover, this appears to ignore publicationstatus
                 setLoadedPlan(id, { planLayout, linkStatus });
             }
             return planLayout;
@@ -229,7 +227,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 selectedItems={selectedItems}
                                 visiblePlans={visiblePlans}
                                 togglePlanOpen={togglePlanOpen}
-                                openedPlanLayouts={openedPlanLayouts}
+                                openPlans={openPlans}
                                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}

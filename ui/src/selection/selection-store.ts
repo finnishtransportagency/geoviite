@@ -6,7 +6,7 @@ import {
     OnSelectFlags,
     OnSelectOptions,
     OptionalUnselectableItemCollections,
-    SelectedGeometryItemId,
+    SelectedGeometryItem,
     Selection,
     UnselectableItemCollections,
     VisiblePlanLayout,
@@ -45,7 +45,7 @@ export const initialSelectionState: Selection = {
     selectionModes: ['alignment', 'switch', 'segment', 'trackNumber'],
     selectedItems: createEmptyItemCollections(),
     highlightedItems: createEmptyItemCollections(),
-    openedPlanLayouts: [],
+    openPlans: [],
     visiblePlans: [],
     publication: undefined,
 };
@@ -99,15 +99,15 @@ function filterItemCollection<T extends { id: unknown }>(
 }
 
 function getNewGeometryItemIdCollection<T extends GeometryItemId>(
-    items: SelectedGeometryItemId<T>[],
-    newItems: SelectedGeometryItemId<T>[] | undefined,
+    items: SelectedGeometryItem<T>[],
+    newItems: SelectedGeometryItem<T>[] | undefined,
     flags: OnSelectFlags,
-): SelectedGeometryItemId<T>[] {
+): SelectedGeometryItem<T>[] {
     return getNewItemCollectionUsingCustomId(items, newItems, flags, (item) => item.geometryId);
 }
 
 function filterGeometryItemIdCollection<T extends GeometryItemId>(
-    items: SelectedGeometryItemId<T>[],
+    items: SelectedGeometryItem<T>[],
     unselectItemIds: ValueOf<UnselectableItemCollections> | undefined,
 ) {
     if (unselectItemIds === undefined) {
@@ -374,9 +374,9 @@ export const selectionReducers = {
         { payload }: PayloadAction<TogglePlanWithSubItemsOpenPayload>,
     ): void => {
         if (payload.isOpen) {
-            state.openedPlanLayouts = [...state.openedPlanLayouts, payload];
+            state.openPlans = [...state.openPlans, payload];
         } else {
-            state.openedPlanLayouts = state.openedPlanLayouts.filter((p) => p.id !== payload.id);
+            state.openPlans = state.openPlans.filter((p) => p.id !== payload.id);
         }
     },
     togglePlanKmPostsOpen: (
@@ -384,7 +384,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isKmPostsOpen: isOpen };
             else return p;
         });
@@ -394,7 +394,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isAlignmentsOpen: isOpen };
             else return p;
         });
@@ -404,7 +404,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isSwitchesOpen: isOpen };
             else return p;
         });

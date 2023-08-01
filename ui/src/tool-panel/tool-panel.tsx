@@ -23,7 +23,7 @@ import GeometrySwitchInfobox from 'tool-panel/switch/geometry-switch-infobox';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import {
     OptionalUnselectableItemCollections,
-    SelectedGeometryItemId,
+    SelectedGeometryItem,
 } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
@@ -52,11 +52,11 @@ type ToolPanelProps = {
     planIds: GeometryPlanId[];
     trackNumberIds: LayoutTrackNumberId[];
     kmPostIds: LayoutKmPostId[];
-    geometryKmPostIds: SelectedGeometryItemId<GeometryKmPostId>[];
+    geometryKmPostIds: SelectedGeometryItem<GeometryKmPostId>[];
     switchIds: LayoutSwitchId[];
-    geometrySwitchIds: SelectedGeometryItemId<GeometrySwitchId>[];
+    geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
-    geometryAlignmentIds: SelectedGeometryItemId<GeometryAlignmentId>[];
+    geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     showArea: (bbox: BoundingBox) => void;
@@ -281,7 +281,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         });
 
         const geometryKmPostTabs = geometryKmPostIds.map(
-            (k: SelectedGeometryItemId<LayoutKmPostId>) => {
+            (k: SelectedGeometryItem<LayoutKmPostId>) => {
                 const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.sourceId === k.geometryId);
                 return {
                     asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },

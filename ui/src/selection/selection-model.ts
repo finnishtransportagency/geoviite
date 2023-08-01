@@ -29,11 +29,11 @@ export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trac
 export type ItemCollections = {
     locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPostId[];
-    geometryKmPostIds: SelectedGeometryItemId<GeometryKmPostId>[];
+    geometryKmPostIds: SelectedGeometryItem<GeometryKmPostId>[];
     switches: LayoutSwitchId[];
-    geometrySwitchIds: SelectedGeometryItemId<GeometrySwitchId>[];
+    geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     trackNumbers: LayoutTrackNumberId[];
-    geometryAlignmentIds: SelectedGeometryItemId<GeometryAlignmentId>[];
+    geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     layoutLinkPoints: LinkPoint[];
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
@@ -62,13 +62,8 @@ export type UnselectableItemCollections = {
 
 export type OptionalUnselectableItemCollections = Partial<UnselectableItemCollections>;
 
-export type SelectedGeometryItem<T> = {
-    planId: GeometryPlanId;
-    geometryItem: T;
-};
-
 export type GeometryItemId = GeometryKmPostId | GeometrySwitchId | GeometryAlignmentId;
-export type SelectedGeometryItemId<T extends GeometryItemId> = {
+export type SelectedGeometryItem<T extends GeometryItemId> = {
     planId: GeometryPlanId;
     geometryId: T;
 };
@@ -97,8 +92,7 @@ export type Selection = {
     selectionModes: SelectionMode[];
     selectedItems: ItemCollections;
     highlightedItems: ItemCollections;
-    // TODO: GVT-826 rename as just openPlans
-    openedPlanLayouts: OpenedPlanLayout[];
+    openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     publication: PublicationId | undefined;
 };
@@ -109,7 +103,7 @@ export type VisiblePlanLayout = {
     kmPosts: GeometryKmPostId[];
     alignments: GeometryAlignmentId[];
 };
-export type OpenedPlanLayout = {
+export type OpenPlanLayout = {
     id: GeometryPlanId;
     isSwitchesOpen: boolean;
     isKmPostsOpen: boolean;
