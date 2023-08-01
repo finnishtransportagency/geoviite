@@ -4,7 +4,6 @@ import browser
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ui.pagemodel.common.MainNavigationBar
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
-import fi.fta.geoviite.infra.ui.util.TruncateDbDao
 import openBrowser
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
@@ -52,8 +51,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     fun goToInfraModelPage() = navigationBar.goToInfraModel()
 
     protected fun clearAllTestData() {
-        val truncateDbDao = TruncateDbDao(jdbcTemplate)
-        truncateDbDao.deleteFromTables(
+       deleteFromTables(
             schema = "publication", tables = arrayOf(
                 "km_post",
                 "location_track",
@@ -64,7 +62,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
             )
         )
 
-        truncateDbDao.deleteFromTables(
+        deleteFromTables(
             schema = "layout", tables = arrayOf(
                 "alignment",
                 "alignment_version",
@@ -85,7 +83,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
             )
         )
 
-        truncateDbDao.deleteFromTables(
+        deleteFromTables(
             schema = "geometry", tables = arrayOf(
                 "alignment",
                 "cant_point",
