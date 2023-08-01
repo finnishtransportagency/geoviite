@@ -8,9 +8,6 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.getTrackNumber
-import fi.fta.geoviite.infra.util.measureAndCollect
-import fi.fta.geoviite.infra.util.resetCollected
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

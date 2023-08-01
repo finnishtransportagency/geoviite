@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @Service
 class ReferenceLineService(
