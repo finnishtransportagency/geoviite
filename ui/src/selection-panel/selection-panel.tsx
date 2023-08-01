@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './selection-panel.scss';
 import {
-    GeometryPlanLayout,
     LayoutKmPost,
     LayoutLocationTrack,
     LayoutReferenceLine,
@@ -13,9 +12,10 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     OnSelectOptions,
-    OpenedPlanLayout,
+    OpenPlanLayout,
     OptionalItemCollections,
     SelectableItemType,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
@@ -49,7 +49,8 @@ type SelectionPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     selectedItems: OptionalItemCollections;
-    selectedPlanLayouts: GeometryPlanLayout[];
+    openPlans: OpenPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
@@ -57,12 +58,11 @@ type SelectionPanelProps = {
     viewport: MapViewport;
     onSelect: (options: OnSelectOptions) => void;
     selectableItemTypes: SelectableItemType[];
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -76,7 +76,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
     changeTimes,
     selectedItems,
-    selectedPlanLayouts,
+    openPlans,
+    visiblePlans,
     kmPosts,
     referenceLines,
     locationTracks,
@@ -89,7 +90,6 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     onSelect,
     selectableItemTypes,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
@@ -228,13 +228,13 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 publishType={publishType}
                 changeTimes={changeTimes}
                 selectedItems={selectedItems}
-                selectedPlanLayouts={selectedPlanLayouts}
+                visiblePlans={visiblePlans}
                 viewport={viewport}
                 onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                 onToggleKmPostVisibility={onToggleKmPostVisibility}
                 onTogglePlanVisibility={onTogglePlanVisibility}
                 onToggleSwitchVisibility={onToggleSwitchVisibility}
-                openedPlanLayouts={openedPlanLayouts}
+                openPlans={openPlans}
                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}

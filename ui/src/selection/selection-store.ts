@@ -6,19 +6,22 @@ import {
     OnSelectFlags,
     OnSelectOptions,
     OptionalUnselectableItemCollections,
-    SelectedGeometryItemId,
+    SelectedGeometryItem,
     Selection,
     UnselectableItemCollections,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
-import { GeometryPlanLayout, LayoutKmPost, LayoutSwitch } from 'track-layout/track-layout-model';
-import { LocationTrackBadgeStatus } from 'geoviite-design-lib/alignment/location-track-badge';
-import { deduplicate, filterUniqueById } from 'utils/array-utils';
-import { SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
-import { KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
+import { GeometryPlanLayout } from 'track-layout/track-layout-model';
+import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { ValueOf } from 'utils/type-utils';
-import { GeometryPlanLayoutId } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryKmPostId,
+    GeometryPlanId,
+    GeometryPlanLayoutId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import { PublicationId } from 'publication/publication-model';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -42,8 +45,8 @@ export const initialSelectionState: Selection = {
     selectionModes: ['alignment', 'switch', 'segment', 'trackNumber'],
     selectedItems: createEmptyItemCollections(),
     highlightedItems: createEmptyItemCollections(),
-    planLayouts: [],
-    openedPlanLayouts: [],
+    openPlans: [],
+    visiblePlans: [],
     publication: undefined,
 };
 
@@ -96,15 +99,15 @@ function filterItemCollection<T extends { id: unknown }>(
 }
 
 function getNewGeometryItemIdCollection<T extends GeometryItemId>(
-    items: SelectedGeometryItemId<T>[],
-    newItems: SelectedGeometryItemId<T>[] | undefined,
+    items: SelectedGeometryItem<T>[],
+    newItems: SelectedGeometryItem<T>[] | undefined,
     flags: OnSelectFlags,
-): SelectedGeometryItemId<T>[] {
+): SelectedGeometryItem<T>[] {
     return getNewItemCollectionUsingCustomId(items, newItems, flags, (item) => item.geometryId);
 }
 
 function filterGeometryItemIdCollection<T extends GeometryItemId>(
-    items: SelectedGeometryItemId<T>[],
+    items: SelectedGeometryItem<T>[],
     unselectItemIds: ValueOf<UnselectableItemCollections> | undefined,
 ) {
     if (unselectItemIds === undefined) {
@@ -261,23 +264,20 @@ function updateItemCollectionsByUnselecting(
 }
 
 export type ToggleAlignmentPayload = {
-    alignment: AlignmentHeader;
-    status: LocationTrackBadgeStatus;
-    planLayout: GeometryPlanLayout;
+    planId: GeometryPlanId;
+    alignmentId: GeometryAlignmentId;
     keepAlignmentVisible?: boolean;
 };
 
 export type ToggleSwitchPayload = {
-    switch: LayoutSwitch;
-    status: SwitchBadgeStatus;
-    planLayout: GeometryPlanLayout;
+    planId: GeometryPlanId;
+    switchId: GeometrySwitchId;
     keepSwitchesVisible?: boolean;
 };
 
 export type ToggleKmPostPayload = {
-    kmPost: LayoutKmPost;
-    status: KmPostBadgeStatus;
-    planLayout: GeometryPlanLayout;
+    planId: GeometryPlanId;
+    kmPostId: GeometryKmPostId;
     keepKmPostsVisible?: boolean;
 };
 
@@ -319,188 +319,64 @@ export const selectionReducers = {
     },
     togglePlanVisibility: (
         state: Selection,
-        { payload: planLayout }: PayloadAction<GeometryPlanLayout | null>,
+        { payload: plan }: PayloadAction<VisiblePlanLayout>,
     ): void => {
-        const isPlanLayoutSelected = state.planLayouts.some((p) => p.planId === planLayout?.planId);
+        const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.id);
 
-        if (isPlanLayoutSelected) {
+        if (isPlanVisible) {
             const selectedItems = state.selectedItems;
 
-            state.planLayouts = [
-                ...state.planLayouts.filter((p) => p.planId !== planLayout?.planId),
-            ];
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
 
             selectedItems.geometryKmPostIds = [
                 ...selectedItems.geometryKmPostIds.filter(
-                    ({ geometryId }) =>
-                        !planLayout?.kmPosts.some((kmPost) => kmPost.sourceId === geometryId),
+                    ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
                 ),
             ];
             selectedItems.geometrySwitchIds = [
                 ...selectedItems.geometrySwitchIds.filter(
-                    ({ geometryId }) =>
-                        !planLayout?.switches.some((s) => s.sourceId === geometryId),
+                    ({ geometryId }) => !plan?.switches.includes(geometryId),
                 ),
             ];
             selectedItems.geometryAlignmentIds = [
                 ...selectedItems.geometryAlignmentIds.filter(
-                    (ga) => !planLayout?.alignments.some((a) => a.header.id === ga.geometryId),
+                    (ga) => !plan?.alignments.includes(ga.geometryId),
                 ),
             ];
         } else {
-            state.planLayouts = [...state.planLayouts, ...(planLayout ? [planLayout] : [])];
+            const newVisiblePlan = plan ? [plan] : [];
+            state.visiblePlans = [...state.visiblePlans, ...newVisiblePlan];
         }
     },
     toggleAlignmentVisibility: (
         state: Selection,
         { payload }: PayloadAction<ToggleAlignmentPayload>,
     ): void => {
-        const { planLayout, alignment, keepAlignmentVisible: keepVisible } = payload;
-
-        const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
-        if (storePlanLayout) {
-            const alignmentVisible = storePlanLayout.alignments.some(
-                (a) => a.header.id === alignment.id,
-            );
-
-            if (alignmentVisible) {
-                if (!keepVisible) {
-                    state.planLayouts = [
-                        ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                        {
-                            ...storePlanLayout,
-                            alignments: storePlanLayout.alignments.filter(
-                                (a) => a.header.id !== alignment.id,
-                            ),
-                        },
-                    ];
-                }
-            } else {
-                state.planLayouts = [
-                    ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                    {
-                        ...storePlanLayout,
-                        alignments: [
-                            ...storePlanLayout.alignments,
-                            {
-                                header: alignment,
-                                polyLine: null,
-                                segmentMValues: [],
-                            },
-                        ],
-                    },
-                ];
-            }
-        } else {
-            state.planLayouts = [
-                ...state.planLayouts,
-                {
-                    ...planLayout,
-                    alignments: [
-                        {
-                            header: alignment,
-                            polyLine: null,
-                            segmentMValues: [],
-                        },
-                    ],
-                    switches: [],
-                    kmPosts: [],
-                },
-            ];
-        }
+        const { planId, alignmentId, keepAlignmentVisible: keepVisible } = payload;
+        toggleVisibility(state, 'alignments', keepVisible ?? false, planId, alignmentId);
     },
     toggleSwitchVisibility: (
         state: Selection,
         { payload }: PayloadAction<ToggleSwitchPayload>,
     ): void => {
-        const { planLayout, switch: switchItem, keepSwitchesVisible: keepVisible } = payload;
-
-        const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
-        if (storePlanLayout) {
-            const switchVisible = storePlanLayout.switches.some((s) => s.id === switchItem.id);
-
-            if (switchVisible) {
-                if (!keepVisible) {
-                    state.planLayouts = [
-                        ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                        {
-                            ...storePlanLayout,
-                            switches: storePlanLayout.switches.filter(
-                                (s) => s.id !== switchItem.id,
-                            ),
-                        },
-                    ];
-                }
-            } else {
-                state.planLayouts = [
-                    ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                    {
-                        ...storePlanLayout,
-                        switches: [...storePlanLayout.switches, switchItem],
-                    },
-                ];
-            }
-        } else {
-            state.planLayouts = [
-                ...state.planLayouts,
-                {
-                    ...planLayout,
-                    alignments: [],
-                    switches: [switchItem],
-                    kmPosts: [],
-                },
-            ];
-        }
+        const { planId, switchId, keepSwitchesVisible: keepVisible } = payload;
+        toggleVisibility(state, 'switches', keepVisible ?? false, planId, switchId);
     },
     toggleKmPostsVisibility: (
         state: Selection,
         { payload }: PayloadAction<ToggleKmPostPayload>,
     ): void => {
-        const { planLayout, kmPost, keepKmPostsVisible: keepVisible } = payload;
-
-        const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
-        if (storePlanLayout) {
-            const kmPostVisible = storePlanLayout.kmPosts.some((k) => k.id === kmPost.id);
-
-            if (kmPostVisible) {
-                if (!keepVisible) {
-                    state.planLayouts = [
-                        ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                        {
-                            ...storePlanLayout,
-                            kmPosts: storePlanLayout.kmPosts.filter((k) => k.id !== kmPost.id),
-                        },
-                    ];
-                }
-            } else {
-                state.planLayouts = [
-                    ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                    {
-                        ...storePlanLayout,
-                        kmPosts: [...storePlanLayout.kmPosts, kmPost],
-                    },
-                ];
-            }
-        } else {
-            state.planLayouts = [
-                ...state.planLayouts,
-                {
-                    ...planLayout,
-                    alignments: [],
-                    switches: [],
-                    kmPosts: [kmPost],
-                },
-            ];
-        }
+        const { planId, kmPostId, keepKmPostsVisible: keepVisible } = payload;
+        toggleVisibility(state, 'kmPosts', keepVisible ?? false, planId, kmPostId);
     },
     togglePlanOpen: (
         state: Selection,
         { payload }: PayloadAction<TogglePlanWithSubItemsOpenPayload>,
     ): void => {
         if (payload.isOpen) {
-            state.openedPlanLayouts = [...state.openedPlanLayouts, payload];
+            state.openPlans = [...state.openPlans, payload];
         } else {
-            state.openedPlanLayouts = state.openedPlanLayouts.filter((p) => p.id !== payload.id);
+            state.openPlans = state.openPlans.filter((p) => p.id !== payload.id);
         }
     },
     togglePlanKmPostsOpen: (
@@ -508,7 +384,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isKmPostsOpen: isOpen };
             else return p;
         });
@@ -518,7 +394,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isAlignmentsOpen: isOpen };
             else return p;
         });
@@ -528,9 +404,55 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isSwitchesOpen: isOpen };
             else return p;
         });
     },
 };
+
+function toggleVisibility(
+    state: Selection,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    keepVisible: boolean,
+    planId: GeometryPlanId,
+    itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
+) {
+    const visiblePlan = state.visiblePlans.find((p) => p.id === planId);
+    const itemVisible = visiblePlan?.[type]?.includes(itemId) ?? false;
+    if (visiblePlan && itemVisible) {
+        if (!keepVisible) {
+            visiblePlan[type] = visiblePlan[type].filter((id) => id !== itemId);
+            if (!arePlanPartsVisible(visiblePlan)) {
+                state.visiblePlans = state.visiblePlans.filter((p) => p.id !== planId);
+            }
+        }
+    } else if (visiblePlan) {
+        visiblePlan[type] = [...visiblePlan[type], itemId];
+    } else {
+        state.visiblePlans = [
+            ...state.visiblePlans,
+            {
+                ...{
+                    id: planId,
+                    switches: [],
+                    kmPosts: [],
+                    alignments: [],
+                },
+                [type]: [itemId],
+            },
+        ];
+    }
+}
+
+function arePlanPartsVisible(plan: VisiblePlanLayout): boolean {
+    return plan.kmPosts.length > 0 || plan.switches.length > 0 || plan.alignments.length > 0;
+}
+export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout {
+    return {
+        id: plan.planId,
+        switches: plan.switches.map((s) => s.sourceId).filter(filterNotEmpty),
+        kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
+        alignments: plan.alignments.map((a) => a.header.id),
+    };
+}

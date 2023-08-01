@@ -59,13 +59,11 @@ fun ResultSet.getSrid(name: String): Srid = verifyNotNull(name, ::getSridOrNull)
 
 fun ResultSet.getSridOrNull(name: String): Srid? = getIntOrNull(name)?.let(::Srid)
 
-fun ResultSet.getTrackNumber(name: String): TrackNumber {
-    return getTrackNumberOrNull(name) ?: throw IllegalStateException("Track number was null")
+fun ResultSet.getTrackNumber(name: String): TrackNumber = requireNotNull(getTrackNumberOrNull(name)) {
+    "Track number was null"
 }
 
-fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? {
-    return getString(name)?.let { n -> TrackNumber(n) }
-}
+fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? = getString(name)?.let(::TrackNumber)
 
 fun ResultSet.getKmNumber(name: String): KmNumber = verifyNotNull(name, ::getKmNumberOrNull)
 

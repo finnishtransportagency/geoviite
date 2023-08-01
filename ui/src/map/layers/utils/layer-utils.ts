@@ -1,8 +1,8 @@
 import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
-import { LAYOUT_SRID } from 'track-layout/track-layout-model';
-import { OptionalItemCollections } from 'selection/selection-model';
+import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
+import { OptionalItemCollections, VisiblePlanLayout } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import proj4 from 'proj4';
 import { coordsToPoint, Point, Rectangle } from 'model/geometry';
@@ -10,6 +10,10 @@ import { register } from 'ol/proj/proj4';
 import VectorSource from 'ol/source/Vector';
 import { avg, filterNotEmpty } from 'utils/array-utils';
 import { distToSegmentSquared } from 'utils/math-utils';
+import { getPlanLinkStatus } from 'linking/linking-api';
+import { PublishType } from 'common/common-model';
+import { getTrackLayoutPlan } from 'geometry/geometry-api';
+import { ChangeTimes } from 'common/common-slice';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -195,4 +199,35 @@ export function mergePartialItemSearchResults(
 
 export function pointToCoords(point: Point): Coordinate {
     return [point.x, point.y];
+}
+
+export async function getManualPlanWithStatus(
+    plan: GeometryPlanLayout,
+    publishType: PublishType,
+): Promise<PlanAndStatus[]> {
+    return getPlanAndStatus(plan, publishType).then((status) => (status ? [status] : []));
+}
+
+export async function getVisiblePlansWithStatus(
+    visiblePlans: VisiblePlanLayout[],
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+): Promise<PlanAndStatus[]> {
+    const planPromises = visiblePlans.map((p) =>
+        getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
+    );
+    return Promise.all(
+        planPromises.map((planPromise) =>
+            planPromise.then((plan) => getPlanAndStatus(plan, publishType)),
+        ),
+    ).then((plans) => plans.filter(filterNotEmpty));
+}
+
+export async function getPlanAndStatus(
+    plan: GeometryPlanLayout | null,
+    publishType: PublishType,
+): Promise<PlanAndStatus | undefined> {
+    if (!plan) return undefined;
+    else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
+    else return getPlanLinkStatus(plan.planId, publishType).then((status) => ({ plan, status }));
 }

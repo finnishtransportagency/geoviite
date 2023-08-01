@@ -11,7 +11,11 @@ import {
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { Accordion } from 'geoviite-design-lib/accordion/accordion';
-import { OpenedPlanLayout, OptionalItemCollections } from 'selection/selection-model';
+import {
+    OpenPlanLayout,
+    OptionalItemCollections,
+    VisiblePlanLayout,
+} from 'selection/selection-model';
 import styles from './geometry-plan-panel.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
@@ -21,6 +25,7 @@ import {
     ToggleKmPostPayload,
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
+    wholePlanVisibility,
 } from 'selection/selection-store';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
@@ -35,7 +40,7 @@ type GeometryPlanProps = {
     onPlanHeaderSelection: (planHeader: GeometryPlanHeader) => void;
     publishType: PublishType;
     changeTimes: ChangeTimes;
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleAlignmentSelection: (alignment: AlignmentHeader) => void;
     onToggleSwitchSelection: (switchItem: LayoutSwitch) => void;
@@ -43,9 +48,9 @@ type GeometryPlanProps = {
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     selectedItems: OptionalItemCollections;
-    selectedPlanLayouts: GeometryPlanLayout[];
+    openPlans: OpenPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -73,9 +78,9 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     onToggleKmPostVisibility,
     onToggleKmPostSelection,
     selectedItems,
-    selectedPlanLayouts,
+    openPlans,
+    visiblePlans,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
@@ -85,11 +90,11 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     planBeingLoaded,
 }: GeometryPlanProps) => {
     const { t } = useTranslation();
-    const openedPlanLayout = openedPlanLayouts.find((p) => p.id === planHeader.id);
-    const isPlanOpen = !!openedPlanLayout;
-    const isKmPostsOpen = openedPlanLayout ? openedPlanLayout.isKmPostsOpen : false;
-    const isAlignmentsOpen = openedPlanLayout ? openedPlanLayout.isAlignmentsOpen : false;
-    const isSwitchesOpen = openedPlanLayout ? openedPlanLayout.isSwitchesOpen : false;
+    const openPlanLayout = openPlans.find((p) => p.id === planHeader.id);
+    const isPlanOpen = !!openPlanLayout;
+    const isKmPostsOpen = openPlanLayout ? openPlanLayout.isKmPostsOpen : false;
+    const isAlignmentsOpen = openPlanLayout ? openPlanLayout.isAlignmentsOpen : false;
+    const isSwitchesOpen = openPlanLayout ? openPlanLayout.isSwitchesOpen : false;
     const [openingAccordion, setOpeningAccordion] = React.useState(false);
     const [visibilities, setVisibilities] = React.useState<Visibilities>({
         planHeader: false,
@@ -99,29 +104,27 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     });
 
     React.useEffect(() => {
-        const planHeaderSelected = selectedPlanLayouts.some((p) => p.planId == planHeader.id);
+        const planVisible = visiblePlans.some((v) => v.id === planHeader.id);
 
-        const allAlignmentsSelected = !!planLayout?.alignments.every((a) =>
-            selectedPlanLayouts.some((p) =>
-                p.alignments.some((pa) => pa.header.id === a.header.id),
-            ),
+        const allAlignmentsVisible = !!planLayout?.alignments.every((a) =>
+            visiblePlans.some((p) => p.alignments.includes(a.header.id)),
         );
 
-        const allSwitchesSelected = !!planLayout?.switches.every((s) =>
-            selectedPlanLayouts.some((p) => p.switches.some((pa) => pa.id === s.id)),
+        const allSwitchesVisible = !!planLayout?.switches.every((s) =>
+            visiblePlans.some((p) => p.switches.some((id) => id === s.sourceId)),
         );
 
-        const allKmPostsSelected = !!planLayout?.kmPosts.every((k) =>
-            selectedPlanLayouts.some((p) => p.kmPosts.some((pa) => pa.id === k.id)),
+        const allKmPostsVisible = !!planLayout?.kmPosts.every((k) =>
+            visiblePlans.some((p) => p.kmPosts.some((id) => id === k.sourceId)),
         );
 
         setVisibilities({
-            planHeader: planHeaderSelected,
-            alignments: allAlignmentsSelected,
-            switches: allSwitchesSelected,
-            kmPosts: allKmPostsSelected,
+            planHeader: planVisible,
+            alignments: allAlignmentsVisible,
+            switches: allSwitchesVisible,
+            kmPosts: allKmPostsVisible,
         });
-    }, [planLayout, selectedPlanLayouts]);
+    }, [planLayout, visiblePlans]);
 
     const onPlanToggle = () => {
         if (planLayout) {
@@ -152,46 +155,42 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
 
     const onPlanVisibilityToggle = () => {
         if (planLayout) {
-            onTogglePlanVisibility(planLayout);
+            onTogglePlanVisibility(wholePlanVisibility(planLayout));
         } else {
-            loadPlanLayout().then(onTogglePlanVisibility);
+            loadPlanLayout().then((p) => {
+                if (p) onTogglePlanVisibility(wholePlanVisibility(p));
+            });
         }
     };
 
-    const onAlignmentSelect = (
-        alignment: AlignmentHeader,
-        alignmentStatus: LocationTrackBadgeStatus,
-    ) => {
+    const onAlignmentSelect = (alignment: AlignmentHeader) => {
         if (planLayout) {
             onToggleAlignmentSelection(alignment);
             onToggleAlignmentVisibility({
-                alignment: alignment,
-                status: alignmentStatus,
-                planLayout,
+                alignmentId: alignment.id,
+                planId: planLayout.planId,
                 keepAlignmentVisible: true,
             });
         }
     };
 
-    const onSwitchSelect = (switchItem: LayoutSwitch, switchStatus: SwitchBadgeStatus) => {
-        if (planLayout) {
+    const onSwitchSelect = (switchItem: LayoutSwitch) => {
+        if (planLayout && switchItem.sourceId) {
             onToggleSwitchSelection(switchItem);
             onToggleSwitchVisibility({
-                switch: switchItem,
-                status: switchStatus,
-                planLayout,
+                switchId: switchItem.sourceId,
+                planId: planLayout.planId,
                 keepSwitchesVisible: true,
             });
         }
     };
 
-    const onKmPostSelect = (kmPostItem: LayoutKmPost, kmPostStatus: KmPostBadgeStatus) => {
-        if (planLayout) {
+    const onKmPostSelect = (kmPostItem: LayoutKmPost) => {
+        if (planLayout && kmPostItem.sourceId) {
             onToggleKmPostSelection(kmPostItem);
             onToggleKmPostVisibility({
-                kmPost: kmPostItem,
-                status: kmPostStatus,
-                planLayout,
+                kmPostId: kmPostItem.sourceId,
+                planId: planLayout.planId,
                 keepKmPostsVisible: true,
             });
         }
@@ -230,7 +229,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                         planLayout,
                                         planKmPost,
                                         selectedItems,
-                                        selectedPlanLayouts,
+                                        visiblePlans,
                                         linkStatus,
                                         onKmPostSelect,
                                         onToggleKmPostVisibility,
@@ -258,7 +257,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                         planLayout,
                                         alignment,
                                         selectedItems,
-                                        selectedPlanLayouts,
+                                        visiblePlans,
                                         linkStatus,
                                         onAlignmentSelect,
                                         onToggleAlignmentVisibility,
@@ -286,7 +285,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                         planLayout,
                                         planSwitch,
                                         selectedItems,
-                                        selectedPlanLayouts,
+                                        visiblePlans,
                                         linkStatus,
                                         onSwitchSelect,
                                         onToggleSwitchVisibility,
@@ -310,7 +309,7 @@ function createKmPostRow(
     planLayout: GeometryPlanLayout,
     planKmPost: LayoutKmPost,
     selectedItems: OptionalItemCollections,
-    selectedPlanLayouts: GeometryPlanLayout[],
+    visiblePlans: VisiblePlanLayout[],
     linkStatus: GeometryPlanLinkStatus | null,
     onKmPostSelect: (kmPostItem: LayoutKmPost, kmPostStatus: KmPostBadgeStatus) => void,
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void,
@@ -318,8 +317,8 @@ function createKmPostRow(
     const isKmPostSelected = selectedItems.geometryKmPostIds?.some(
         ({ geometryId }) => geometryId === planKmPost.sourceId,
     );
-    const isKmPostVisible = selectedPlanLayouts.some((p) =>
-        p.kmPosts.some((k) => k.id === planKmPost.id),
+    const isKmPostVisible = visiblePlans.some((p) =>
+        p.kmPosts.some((id) => id === planKmPost.sourceId),
     );
 
     const kmPostStatus = linkStatus?.kmPosts?.some(
@@ -349,11 +348,11 @@ function createKmPostRow(
                     color={IconColor.INHERIT}
                     onClick={() =>
                         isKmPostSelected ||
-                        onToggleKmPostVisibility({
-                            kmPost: planKmPost,
-                            status: kmPostStatus,
-                            planLayout: planLayout,
-                        })
+                        (planKmPost.sourceId &&
+                            onToggleKmPostVisibility({
+                                kmPostId: planKmPost.sourceId,
+                                planId: planLayout.planId,
+                            }))
                     }
                 />
             </span>
@@ -365,7 +364,7 @@ function createAlignmentRow(
     planLayout: GeometryPlanLayout,
     alignment: PlanLayoutAlignment,
     selectedItems: OptionalItemCollections,
-    selectedPlanLayouts: GeometryPlanLayout[],
+    visiblePlans: VisiblePlanLayout[],
     linkStatus: GeometryPlanLinkStatus | null,
     onAlignmentSelect: (alignment: AlignmentHeader, status: LocationTrackBadgeStatus) => void,
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void,
@@ -379,9 +378,7 @@ function createAlignmentRow(
     const isAlignmentSelected = selectedItems.geometryAlignmentIds?.some(
         (a) => a.geometryId === alignment.header.id,
     );
-    const isAlignmentVisible = selectedPlanLayouts.some((p) =>
-        p.alignments.some((a) => a.header.id === alignment.header.id),
-    );
+    const isAlignmentVisible = visiblePlans.some((p) => p.alignments.includes(alignment.header.id));
 
     return (
         <li
@@ -407,9 +404,8 @@ function createAlignmentRow(
                     onClick={() =>
                         isAlignmentSelected ||
                         onToggleAlignmentVisibility({
-                            alignment: alignment.header,
-                            status: alignmentStatus,
-                            planLayout: planLayout,
+                            alignmentId: alignment.header.id,
+                            planId: planLayout.planId,
                         })
                     }
                 />
@@ -422,7 +418,7 @@ function createSwitchRow(
     planLayout: GeometryPlanLayout,
     planSwitch: LayoutSwitch,
     selectedItems: OptionalItemCollections,
-    selectedPlanLayouts: GeometryPlanLayout[],
+    visiblePlans: VisiblePlanLayout[],
     linkStatus: GeometryPlanLinkStatus | null,
     onSwitchSelect: (switchItem: LayoutSwitch, switchStatus: SwitchBadgeStatus) => void,
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void,
@@ -436,8 +432,8 @@ function createSwitchRow(
     const isSwitchSelected = selectedItems.geometrySwitchIds?.some(
         (s) => s.geometryId === planSwitch.sourceId,
     );
-    const isSwitchVisible = selectedPlanLayouts.some((p) =>
-        p.switches.some((a) => a.id === planSwitch.id),
+    const isSwitchVisible = visiblePlans.some((p) =>
+        p.switches.some((id) => id === planSwitch.sourceId),
     );
 
     return (
@@ -462,11 +458,11 @@ function createSwitchRow(
                     color={IconColor.INHERIT}
                     onClick={() =>
                         isSwitchSelected ||
-                        onToggleSwitchVisibility({
-                            switch: planSwitch,
-                            status: switchStatus,
-                            planLayout: planLayout,
-                        })
+                        (planSwitch.sourceId &&
+                            onToggleSwitchVisibility({
+                                switchId: planSwitch.sourceId,
+                                planId: planLayout.planId,
+                            }))
                     }
                 />
             </span>
