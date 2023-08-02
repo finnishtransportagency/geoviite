@@ -52,7 +52,7 @@
             "trap-point": "Turvavaihde",
             "measurement-method": "Sijainnin mittausmenetelmä",
             "location-track-connectivity": "Liitos raiteisiin",
-            "switch-joint-location": "Sijainti ({{0}})",
+            "switch-joint-location": "Sijainti ratanumerolla {{0}} ({{1}})",
             "address": "Rataosoite"
         }
     },

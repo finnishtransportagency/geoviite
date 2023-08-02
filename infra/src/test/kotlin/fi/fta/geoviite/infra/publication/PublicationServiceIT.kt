@@ -710,7 +710,8 @@ class PublicationServiceIT @Autowired constructor(
         ))
         val updatedTrackNumber = trackNumberService.getDraft(id)
         publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
-        val changes = publicationDao.fetchPublicationTrackNumbers(publicationService.fetchLatestPublicationDetails(1).first().id)
+        val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(2)
+        val changes = publicationDao.fetchPublicationTrackNumbers(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().id)
 
         val diff = publicationService.diffTrackNumber(
             changes.first(),
@@ -744,7 +745,8 @@ class PublicationServiceIT @Autowired constructor(
         ))
         val updatedTrackNumber = trackNumberService.getDraft(id)
         publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
-        val changes = publicationDao.fetchPublicationTrackNumbers(publicationService.fetchLatestPublicationDetails(1).first().id)
+        val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(2)
+        val changes = publicationDao.fetchPublicationTrackNumbers(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().id)
 
         val diff = publicationService.diffTrackNumber(
             changes.first(),

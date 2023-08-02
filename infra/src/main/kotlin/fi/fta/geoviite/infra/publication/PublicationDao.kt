@@ -459,7 +459,19 @@ class PublicationDao(
         val location: Change<Point>
     )
 
-    fun fetchPublicationTrackNumbers(publicationId: IntId<Publication>): List<TrackNumberChanges> {
+    fun fetchPublicationTimes(): Map<IntId<Publication>, Instant> {
+        val sql = """
+            select id, publication_time
+            from publication.publication
+            order by id desc
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql) { rs, _ ->
+            rs.getIntId<Publication>("id") to rs.getInstant("publication_time")
+        }.toMap().also { logger.daoAccess(FETCH, Publication::class, it.keys) }
+    }
+
+    fun fetchPublicationTrackNumbers(publicationId: IntId<Publication>, previousPublicationId: IntId<Publication>?): List<TrackNumberChanges> {
         val sql = """
             select
               tn.id as track_number_id,
@@ -480,7 +492,7 @@ class PublicationDao(
               from publication.track_number
                 left join layout.track_number_version tn on tn.id = track_number.track_number_id and tn.version = track_number_version
                 left join publication.publication p on p.id = publication_id
-                left join publication.publication old_p on p.id - 1 = old_p.id
+                left join publication.publication old_p on p.id = :previous_publication_id
                 left join layout.reference_line_at(p.publication_time) rl on rl.id = tn.id
                 left join layout.alignment_version av on av.id = rl.alignment_id and av.version = rl.alignment_version
                 left join layout.segment_version sv_first on av.id = sv_first.alignment_id and av.version = sv_first.alignment_version and sv_first.segment_index = 0
@@ -497,7 +509,7 @@ class PublicationDao(
             where publication_id = :publication_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue, "previous_publication_id" to publicationId.intValue)) { rs, _ ->
             TrackNumberChanges(
                 id = rs.getIntId("track_number_id"),
                 trackNumber = Change(
@@ -581,8 +593,6 @@ class PublicationDao(
               from publication.location_track
                 left join publication.publication
                           on location_track.publication_id = publication.id
-                left join publication.publication old_publication
-                          on location_track.publication_id - 1 = publication.id
                 left join layout.location_track_version ltv
                           on location_track.location_track_id = ltv.id and location_track.location_track_version = ltv.version
                 left join layout.alignment_version av
@@ -610,17 +620,46 @@ class PublicationDao(
             where publication_id = :publication_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "publication_id" to publicationId.intValue,
+            )
+        ) { rs, _ ->
             LocationTrackChanges(
                 id = rs.getIntId("location_track_id"),
-                trackNumberId = Change(new = rs.getIntIdOrNull("track_number_id"), old = rs.getIntIdOrNull("old_track_number_id")),
-                name = Change(new = rs.getString("name")?.let(::AlignmentName), old = rs.getString("old_name")?.let(::AlignmentName)),
-                description = Change(new = rs.getString("description")?.let(::FreeText), old = rs.getString("old_description")?.let(::FreeText)),
-                endPoint = Change(new = rs.getPointOrNull("end_x", "end_y"), old = rs.getPointOrNull("old_end_x", "old_end_y")),
-                startPoint = Change(new = rs.getPointOrNull("start_x", "start_y"), old = rs.getPointOrNull("old_start_x", "old_start_y")),
-                state = Change(new = rs.getEnumOrNull<LayoutState>("state"), old = rs.getEnumOrNull<LayoutState>("old_state")),
-                duplicateOf = Change(new = rs.getIntIdOrNull<LocationTrack>("duplicate_of_location_track_id"), old = rs.getIntIdOrNull<LocationTrack>("old_duplicate_of_location_track_id")),
-                type = Change(new = rs.getEnumOrNull<LocationTrackType>("type"), old = rs.getEnumOrNull<LocationTrackType>("old_type")),
+                trackNumberId = Change(
+                    new = rs.getIntIdOrNull("track_number_id"),
+                    old = rs.getIntIdOrNull("old_track_number_id")
+                ),
+                name = Change(
+                    new = rs.getString("name")?.let(::AlignmentName),
+                    old = rs.getString("old_name")?.let(::AlignmentName)
+                ),
+                description = Change(
+                    new = rs.getString("description")?.let(::FreeText),
+                    old = rs.getString("old_description")?.let(::FreeText)
+                ),
+                endPoint = Change(
+                    new = rs.getPointOrNull("end_x", "end_y"),
+                    old = rs.getPointOrNull("old_end_x", "old_end_y")
+                ),
+                startPoint = Change(
+                    new = rs.getPointOrNull("start_x", "start_y"),
+                    old = rs.getPointOrNull("old_start_x", "old_start_y")
+                ),
+                state = Change(
+                    new = rs.getEnumOrNull<LayoutState>("state"),
+                    old = rs.getEnumOrNull<LayoutState>("old_state")
+                ),
+                duplicateOf = Change(
+                    new = rs.getIntIdOrNull<LocationTrack>("duplicate_of_location_track_id"),
+                    old = rs.getIntIdOrNull<LocationTrack>("old_duplicate_of_location_track_id")
+                ),
+                type = Change(
+                    new = rs.getEnumOrNull<LocationTrackType>("type"),
+                    old = rs.getEnumOrNull<LocationTrackType>("old_type")
+                ),
                 length = Change(new = rs.getDoubleOrNull("length"), old = rs.getDoubleOrNull("old_length")),
                 startPointChanged = rs.getBoolean("start_changed"),
                 endPointChanged = rs.getBoolean("end_changed"),
