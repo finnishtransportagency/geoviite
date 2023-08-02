@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVDictionaryCode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.util.FreeText

@@ -1,8 +1,9 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVDocument
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import com.fasterxml.jackson.databind.node.ObjectNode
 import fi.fta.geoviite.infra.common.Oid
 import java.time.Instant
 
@@ -33,21 +34,21 @@ enum class PVApiSearchOperator(val apiValue: String) {
     IN("joukossa")
 }
 
-fun searchRoot(settings: JsonNode, formula: JsonNode, targetCategories: JsonNode) =
+fun searchRoot(settings: JsonNode, formula: JsonNode, targetCategories: JsonNode): ObjectNode =
     JsonNodeFactory.instance.objectNode().also { rootNode ->
         rootNode.set<JsonNode>(SETTINGS, settings)
         rootNode.set<JsonNode>(FORMULA, formula)
         rootNode.set<JsonNode>(TARGET_CATEGORIES, targetCategories)
     }
 
-fun settings(searchType: PVApiSearchType, maxResultCount: Int, ordering: JsonNode) =
+fun settings(searchType: PVApiSearchType, maxResultCount: Int, ordering: JsonNode): ObjectNode =
     JsonNodeFactory.instance.objectNode().also { settingsNode ->
         settingsNode.put(SEARCH_TYPE, searchType.apiValue)
         settingsNode.put(RESULT_LIMIT, maxResultCount)
         settingsNode.set<JsonNode>(ORDER_BY, ordering)
     }
 
-fun multiArgumentOperation(operator: PVApiSearchOperator, vararg children: JsonNode) =
+fun multiArgumentOperation(operator: PVApiSearchOperator, vararg children: JsonNode): ArrayNode =
     JsonNodeFactory.instance.arrayNode().also { arrayNode ->
         arrayNode.add(operator.apiValue)
         children.forEach(arrayNode::add)
@@ -71,32 +72,32 @@ fun includesText(path: List<String>, value: String) =
 fun contains(path: List<String>, values: List<String>) =
     operationWithPath(PVApiSearchOperator.IN, path, values)
 
-fun operationWithPath(operator: PVApiSearchOperator, path: List<String>, value: String) =
+fun operationWithPath(operator: PVApiSearchOperator, path: List<String>, value: String): ArrayNode =
     JsonNodeFactory.instance.arrayNode().also { arrayNode ->
         arrayNode.add(operator.apiValue)
         arrayNode.add(jsonStringArray(path))
         arrayNode.add(value)
     }
 
-fun operationWithPath(operator: PVApiSearchOperator, path: List<String>, values: List<String>) =
+fun operationWithPath(operator: PVApiSearchOperator, path: List<String>, values: List<String>): ArrayNode =
     JsonNodeFactory.instance.arrayNode().also { arrayNode ->
         arrayNode.add(operator.apiValue)
         arrayNode.add(jsonStringArray(path))
         arrayNode.add(jsonStringArray(values))
     }
 
-fun ordering(path: List<String>, direction: PVApiOrderingDirection) =
+fun ordering(path: List<String>, direction: PVApiOrderingDirection): ArrayNode =
     JsonNodeFactory.instance.arrayNode().also { orderNode ->
         orderNode.add(jsonStringArray(path))
         orderNode.add(direction.apiValue)
     }
 
-fun jsonObjectArray(items: List<JsonNode>) =
+fun jsonObjectArray(items: List<JsonNode>): ArrayNode =
     JsonNodeFactory.instance.arrayNode(items.size).also { array ->
         items.forEach(array::add)
     }
 
-fun jsonStringArray(items: List<String>) =
+fun jsonStringArray(items: List<String>): ArrayNode =
     JsonNodeFactory.instance.arrayNode(items.size).also { array ->
         items.forEach(array::add)
     }

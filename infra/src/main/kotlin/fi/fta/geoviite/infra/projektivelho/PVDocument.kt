@@ -1,3 +1,5 @@
+package fi.fta.geoviite.infra.projektivelho
+
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId

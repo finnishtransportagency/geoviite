@@ -235,7 +235,7 @@ class GeometryService @Autowired constructor(
     ): List<ElementListing> {
         logger.serviceCall("getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
-            "startAddress" to startAddress, "endAdress" to endAddress,
+            "startAddress" to startAddress, "endAddress" to endAddress,
         )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
         return toElementListing(
@@ -258,7 +258,7 @@ class GeometryService @Autowired constructor(
     ): ElementListingFile {
         logger.serviceCall("getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
-            "startAddress" to startAddress, "endAdress" to endAddress,
+            "startAddress" to startAddress, "endAddress" to endAddress,
         )
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
@@ -271,24 +271,16 @@ class GeometryService @Autowired constructor(
     )
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().map { tn ->
+        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
             tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
-        }.toMap()
+        }
         val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
             .sortedBy { locationTrack -> locationTrack.name }
-            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache.get(locationTrack.trackNumberId)?.first?.number }
+            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number }
             .flatMap { locationTrack ->
-                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(
-                    OFFICIAL,
-                    locationTrack.id as IntId<LocationTrack>
-                )
-                val geocodingContext = trackNumberAndGeocodingContextCache.get(locationTrack.trackNumberId)?.second
-                getElementListing(
-                    locationTrack,
-                    alignment,
-                    geocodingContext
-
-                )
+                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId)
+                val geocodingContext = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.second
+                getElementListing(locationTrack, alignment, geocodingContext)
             }
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
         elementListingFileDao.upsertElementListingFile(
@@ -343,7 +335,7 @@ class GeometryService @Autowired constructor(
         endAddress: TrackMeter?,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv",
-            "trackId" to locationTrackId, "startAddress" to startAddress, "endAdress" to endAddress,)
+            "trackId" to locationTrackId, "startAddress" to startAddress, "endAddress" to endAddress)
         val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
         val verticalGeometryListing = getVerticalGeometryListing(OFFICIAL, locationTrackId, startAddress, endAddress)
 

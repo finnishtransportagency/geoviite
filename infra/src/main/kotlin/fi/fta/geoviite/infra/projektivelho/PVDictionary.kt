@@ -1,7 +1,9 @@
-import PVDictionaryGroup.MATERIAL
-import PVDictionaryGroup.PROJECT
+package fi.fta.geoviite.infra.projektivelho
+
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
 import fi.fta.geoviite.infra.util.assertSanitized
 
 enum class PVDictionaryGroup {
@@ -43,4 +45,3 @@ data class PVDictionaryName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) con
 data class PVDictionaryEntry(val code: PVDictionaryCode, val name: PVDictionaryName) {
     constructor(code: String, name: String): this(PVDictionaryCode(code), PVDictionaryName(name))
 }
-

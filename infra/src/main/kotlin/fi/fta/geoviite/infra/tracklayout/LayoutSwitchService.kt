@@ -45,7 +45,7 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        val layoutSwitch = getDraft(id);
+        val layoutSwitch = getDraft(id)
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 

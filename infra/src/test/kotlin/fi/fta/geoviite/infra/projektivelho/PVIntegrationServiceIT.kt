@@ -1,18 +1,12 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVAssignment
-import PVDictionaryCode
-import PVDictionaryEntry
-import PVDictionaryGroup.MATERIAL
-import PVDictionaryGroup.PROJECT
-import PVDictionaryType
-import PVDictionaryType.*
-import PVDocument
-import PVDocumentStatus
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.projektivelho.*
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach

@@ -10,11 +10,11 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
-import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.SortOrder
@@ -608,13 +608,6 @@ class PublicationService @Autowired constructor(
             } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
         } else listOf()
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors
-    }
-
-    private fun getLinkedTrackDraftsNotIncludedInPublication(
-        versions: ValidationVersions,
-        linkedTracks: List<LocationTrack>,
-    ): List<LocationTrack> = linkedTracks.filter { track ->
-        track.draft != null && !versions.containsLocationTrack(track.id as IntId)
     }
 
     private fun getTrackNumber(
