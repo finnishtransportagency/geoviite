@@ -1205,6 +1205,13 @@ class PublicationService @Autowired constructor(
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 
+    private fun latestTrackNumberNamesAtMoment(trackNumberNames: List<PublicationDao.CachedTrackNumber>, trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>, publicationTime: Instant) =
+        trackNumberNames
+            .filter{ tn -> trackNumberIds.contains(tn.id) && tn.changeTime <= publicationTime }
+            .groupBy { it.id }
+            .map { it.value.last().number }
+            .toSet()
+
     private fun mapToPublicationTableItems(
         publication: PublicationDetails,
         timeOfPreviousPublication: Instant? = null,
@@ -1277,7 +1284,7 @@ class PublicationService @Autowired constructor(
         }
 
         val switches = publication.switches.map { s ->
-            val tns = trackNumberNames.filter{ tn -> s.trackNumberIds.contains(tn.id) }.map { it.number }.toSet()
+            val tns = latestTrackNumberNamesAtMoment(trackNumberNames, s.trackNumberIds, publication.publicationTime)
             mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumbers = tns,
@@ -1333,7 +1340,7 @@ class PublicationService @Autowired constructor(
 
         val calculatedSwitches = publication.indirectChanges.switches.map { s ->
             val changes = publicationSwitches.find { it.id == s.version.id }!!
-            val tns = trackNumberNames.filter{ tn -> s.trackNumberIds.contains(tn.id) }.map { it.number }.toSet()
+            val tns = latestTrackNumberNamesAtMoment(trackNumberNames, s.trackNumberIds, publication.publicationTime)
             mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumbers = tns,
