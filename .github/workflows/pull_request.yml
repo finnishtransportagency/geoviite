@@ -38,7 +38,7 @@ jobs:
     - name: run integration tests in infra (backend)
       run: |
         docker build -t gvt-postgres ./.github/workflows
-        docker run -p 127.0.0.1:5436:5432 -e POSTGRES_DB=$POSTGRES_DB -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD --name geoviite-db gvt-postgres
+        docker run -d 127.0.0.1:5436:5432 -e POSTGRES_DB=$POSTGRES_DB -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD --name geoviite-db gvt-postgres
         docker ps -a
         cd infra
         DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
