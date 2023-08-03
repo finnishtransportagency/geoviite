@@ -10,8 +10,7 @@ import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.NOT_IM
-import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.SUGGESTED
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.*
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.formatForLog
@@ -25,7 +24,7 @@ import java.time.Duration
 import java.time.Instant
 
 val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
-val SECONDS_IN_A_YEAR: Long = Duration.ofDays(365).toSeconds()
+val PREFETCH_TIME_RANGE = Duration.ofDays(365)
 
 @Service
 @ConditionalOnBean(PVClientConfiguration::class)
@@ -46,38 +45,34 @@ class PVIntegrationService @Autowired constructor(
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
     }
 
-    @Scheduled(
-        initialDelayString="\${geoviite.projektivelho.search-poll.initial}",
-        fixedRateString="\${geoviite.projektivelho.search-poll.rate}",
-    )
+    @Scheduled(initialDelayString="\${geoviite.projektivelho.search-poll.initial}", fixedRateString="\${geoviite.projektivelho.search-poll.rate}")
     fun search(): PVApiSearchStatus? = runIntegration {
         logger.info("Poll to launch new search")
-        val latest = pvDao.fetchLatestDocument()
-        val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
-        pvClient.postXmlFileSearch(startTime, latest?.first).also { status ->
-            val validUntil = status.startTime.plusSeconds(status.validFor)
-            pvDao.insertFetchInfo(status.searchId, validUntil)
+        val currentSearch = pvDao.fetchLatestActiveSearch()
+        if (currentSearch == null) {
+            val latest = pvDao.fetchLatestDocument()
+            val startTime = latest?.second ?: Instant.now().minus(PREFETCH_TIME_RANGE)
+            pvClient.postXmlFileSearch(startTime, latest?.first).also { status ->
+                val validUntil = status.startTime.plusSeconds(status.validFor)
+                pvDao.insertFetchInfo(status.searchId, validUntil)
+            }
+        } else {
+            logger.info("Not launching a new search as a previous one is still active: " +
+                    "search=${currentSearch.token} state=${currentSearch.state} validUntil=${currentSearch.validUntil}")
+            null
         }
     }
 
-    @Scheduled(
-        initialDelayString="\${geoviite.projektivelho.result-poll.initial}",
-        fixedRateString="\${geoviite.projektivelho.result-poll.rate}",
-    )
+    @Scheduled(initialDelayString="\${geoviite.projektivelho.result-poll.initial}", fixedRateString="\${geoviite.projektivelho.result-poll.rate}")
     fun pollAndFetchIfWaiting() = runIntegration {
         logger.info("Poll for search results")
-        val latestSearch = pvDao.fetchLatestSearch()
-        // Mark previous search as stalled if previous search is supposedly still running after
-        // having outlived its validity period
-        if (latestSearch?.state == FETCHING && Instant.now() > latestSearch.validUntil) {
-            pvDao.updateFetchState(latestSearch.id, ERROR)
-        } else {
+        pvDao.fetchLatestActiveSearch()?.let { latestSearch ->
             updateDictionaries()
-            latestSearch
-                ?.let(::getSearchStatusIfReady)
+            getSearchStatusIfReady(latestSearch)
                 ?.let { status -> importFilesFromProjektiVelho(latestSearch, status) }
         }
     }
+
     fun getSearchStatusIfReady(pvSearch: PVSearch): PVApiSearchStatus? = pvSearch
         .takeIf { search -> search.state == WAITING }
         ?.let { search -> pvClient.fetchVelhoSearchStatus(search.token) }
@@ -159,44 +154,45 @@ class PVIntegrationService @Autowired constructor(
     }
 
     private fun insertFileToDatabase(file: PVFileHolder, assignment: PVAssignmentHolder) {
-        val (passedValidation, reasonIfRejected) = file.content?.let {
-            isRailroadXml(
-                file.content,
-                file.latestVersion.name
-            )
-        }
-            ?: (false to "error.infra-model.missing-file")
-        val xmlContent = if (passedValidation) file.content?.let(::censorAuthorIdentifyingInfo) else null
+        val result = file.content?.let { content -> checkInfraModel(content, file.latestVersion.name) }
+            ?: InfraModelCheckResult(NOT_IM, "error.infra-model.missing-file")
+        val xmlContent = if (result.state == NOT_IM) null else file.content?.let(::censorAuthorIdentifyingInfo)
         val pvDocumentRowVersion = pvDao.insertDocumentMetadata(
             file.oid,
             file.metadata,
             file.latestVersion,
-            if (xmlContent != null) SUGGESTED else NOT_IM,
+            result.state,
             assignment.assignment?.oid,
             assignment.project?.oid,
             assignment.projectGroup?.oid,
         )
         if (xmlContent != null) {
             pvDao.insertDocumentContent(xmlContent, pvDocumentRowVersion.id)
-        } else {
-            pvDao.insertRejection(pvDocumentRowVersion, reasonIfRejected ?: "")
+        }
+        if (result.rejectionReason != null) {
+            pvDao.insertRejection(pvDocumentRowVersion, result.rejectionReason)
         }
     }
 
-    fun isRailroadXml(xml: String, filename: FileName) =
+    data class InfraModelCheckResult(
+        val state: PVDocumentStatus,
+        val rejectionReason: String? = null,
+    )
+    fun checkInfraModel(xml: String, filename: FileName): InfraModelCheckResult =
         try {
             val parsed = infraModelService.parseInfraModel(toInfraModelFile(filename, xml))
-            parsed.alignments.let { alignments ->
-                if (alignments.isEmpty()) false to INFRAMODEL_PARSING_KEY_GENERIC
-                else if (parsed.alignments.any { !isRailroadAlignment(it) }) false to "$INFRAMODEL_PARSING_KEY_PARENT.alignments.non-railroad-alignments"
-                else true to null
-            }
+            if (parsed.alignments.isEmpty()) InfraModelCheckResult(REJECTED, INFRAMODEL_PARSING_KEY_GENERIC)
+            else if (parsed.alignments.any { !isRailroadAlignment(it) }) InfraModelCheckResult(
+                REJECTED,
+                "$INFRAMODEL_PARSING_KEY_PARENT.alignments.non-railroad-alignments",
+            )
+            else InfraModelCheckResult(SUGGESTED)
         } catch (e: InframodelParsingException) {
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
-            false to e.localizedMessageKey.toString()
+            InfraModelCheckResult(NOT_IM, e.localizedMessageKey.toString())
         } catch (e: Exception) {
             logger.warn("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
-            false to INFRAMODEL_PARSING_KEY_GENERIC
+            InfraModelCheckResult(NOT_IM, INFRAMODEL_PARSING_KEY_GENERIC)
         }
 
     val railroadAlignmentFeatureTypes = listOf(

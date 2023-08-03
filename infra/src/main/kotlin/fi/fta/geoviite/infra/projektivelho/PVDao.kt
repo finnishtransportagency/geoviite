@@ -259,10 +259,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             .also { v -> logger.daoAccess(FETCH, "${PVDocument::class.simpleName}.changeTime", v ?: "null") }
     }
 
-    fun fetchLatestSearch(): PVSearch? {
+    fun fetchLatestActiveSearch(): PVSearch? {
         val sql = """
             select id, token, status, valid_until 
             from projektivelho.search 
+            where status not in ('ERROR', 'FINISHED')
+              and valid_until >= now()
             order by valid_until desc 
             limit 1
         """.trimIndent()
