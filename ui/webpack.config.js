@@ -32,7 +32,10 @@ const acceptedLicenses = [
 ];
 const licenseOverrides = {};
 
-const glyphLocations = [/geoviite-design-lib\/glyphs/, /vayla-design-lib\/icon/];
+const glyphLocations = [
+    path.resolve(__dirname, 'src/geoviite-design-lib/glyphs'),
+    path.resolve(__dirname, 'src/vayla-design-lib/icon'),
+];
 
 module.exports = (env) => {
     return {
