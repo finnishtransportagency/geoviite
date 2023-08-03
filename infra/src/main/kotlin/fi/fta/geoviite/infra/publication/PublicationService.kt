@@ -719,7 +719,6 @@ class PublicationService @Autowired constructor(
                 publicationDao.fetchPublicationTimes().entries.find { it.value < publication.publicationTime }
             mapToPublicationTableItems(
                 publication,
-                previousPublication?.key,
                 previousPublication?.value ?: publication.publicationTime.minusMillis(1)
             )
         }
@@ -767,7 +766,6 @@ class PublicationService @Autowired constructor(
                     val previousPublication = publications.getOrNull(index - 1)
                     this.mapToPublicationTableItems(
                         publicationDetails,
-                        previousPublication?.id,
                         previousPublication?.publicationTime ?: publicationDetails.publicationTime.minusMillis(1),
                         trackNumbersCache,
                         geocodingContextCache
@@ -833,9 +831,7 @@ class PublicationService @Autowired constructor(
                 trackNumberChanges.description.old,
                 trackNumberChanges.description.new,
                 { it },
-                PropKey(LocalizationKey("description")),
-                null,
-                "layout-description"
+                PropKey(LocalizationKey("description"))
             ),
             compareChangeValues(
                 trackNumberChanges.startAddress.old,
@@ -924,7 +920,7 @@ class PublicationService @Autowired constructor(
             compareChangeValues(
                 locationTrackChanges.length.old,
                 locationTrackChanges.length.new,
-                { it.let(::roundTo1Decimal) },
+                ::roundTo1Decimal,
                 PropKey(LocalizationKey("length")),
                 if (locationTrackChanges.length.old != null && locationTrackChanges.length.new != null) lengthChangedRemark(
                     locationTrackChanges.length.old,
@@ -1034,8 +1030,8 @@ class PublicationService @Autowired constructor(
             ),
             compareChange(
                 { newStartAndGeocodingContext.first != oldStartAndGeocodingContext.first },
-                newStartAndGeocodingContext,
                 oldStartAndGeocodingContext,
+                newStartAndGeocodingContext,
                 { (point, contextGetter) ->
                     point?.let { contextGetter()?.getAddress(point)?.first?.toString() }
                 },
@@ -1046,8 +1042,8 @@ class PublicationService @Autowired constructor(
                 ).let { (movedEnough, dist) -> if (movedEnough) pointMovedRemark(dist) else null }),
             compareChange(
                 { newEndAndGeocodingContext.first != oldEndAndGeocodingContext.first },
-                newEndAndGeocodingContext,
                 oldEndAndGeocodingContext,
+                newEndAndGeocodingContext,
                 { (point, contextGetter) ->
                     point?.let { contextGetter()?.getAddress(point)?.first?.toString() }
                 },
@@ -1076,10 +1072,15 @@ class PublicationService @Autowired constructor(
         trackNumberCache: List<PublicationDao.CachedTrackNumber>,
     ) =
         listOfNotNull(
-            compareChangeValues(changes.trackNumberId.old, changes.trackNumberId.new, { trackNumberCache.findLast { it.id == changes.trackNumberId.new && it.changeTime <= publicationTime }?.number }, PropKey("track-number"),),
-            compareChangeValues(changes.kmNumber.old, changes.kmNumber.new, { it.toString() }, PropKey("km-post")),
-            compareChangeValues(changes.state.old, changes.state.new, { it.toString() }, PropKey("state"), null, "layout-state"),
-            compareChangeValues(changes.location.old, changes.location.new, { it.let(::formatLocation) }, PropKey("location"),),
+            compareChangeValues(
+                changes.trackNumberId.old,
+                changes.trackNumberId.new,
+                { trackNumberCache.findLast { it.id == changes.trackNumberId.new && it.changeTime <= publicationTime }?.number },
+                PropKey("track-number"),
+            ),
+            compareChangeValues(changes.kmNumber.old, changes.kmNumber.new, { it }, PropKey("km-post")),
+            compareChangeValues(changes.state.old, changes.state.new, { it }, PropKey("state"), null, "layout-state"),
+            compareChangeValues(changes.location.old, changes.location.new, ::formatLocation, PropKey("location")),
         )
 
 
@@ -1127,11 +1128,11 @@ class PublicationService @Autowired constructor(
             list
         }.sortedBy { it.propKey.key }
         return listOfNotNull(
-            compareChangeValues(changes.name.old, changes.name.new, { it.toString() }, PropKey("switch")),
-            compareChangeValues(changes.state.old, changes.state.new, { it.toString() }, PropKey("state"), null, "state-category"),
-            compareChangeValues(changes.type.old, changes.type.new, { it.typeName }, PropKey("type")),
+            compareChangeValues(changes.name.old, changes.name.new, { it }, PropKey("switch")),
+            compareChangeValues(changes.state.old, changes.state.new, { it }, PropKey("state-category"), null, "layout-state-category"),
+            compareChangeValues(changes.type.old, changes.type.new, { it.typeName }, PropKey("switch-type")),
             compareChangeValues(changes.trapPoint.old, changes.trapPoint.new, { it }, PropKey("trap-point")),
-            compareChangeValues(changes.owner.old, changes.owner.new, { it.toString() }, PropKey("owner")),
+            compareChangeValues(changes.owner.old, changes.owner.new, { it }, PropKey("owner")),
             compareChange(
                 { changes.locationTracks.any() },
                 null,
@@ -1141,8 +1142,7 @@ class PublicationService @Autowired constructor(
                 null,
                 null,
             ),
-            compareChangeValues(changes.measurementMethod.old, changes.measurementMethod.new, { it.name }, PropKey("measurement-method")),
-            // TODO Everything to do with track numbers, location tracks, track addresses and such
+            compareChangeValues(changes.measurementMethod.old, changes.measurementMethod.new, { it.name }, PropKey("measurement-method"), null, "measurement-method"),
         ) + jointLocationChanges
     }
 
@@ -1235,13 +1235,12 @@ class PublicationService @Autowired constructor(
 
     private fun mapToPublicationTableItems(
         publication: PublicationDetails,
-        previousPublicationId: IntId<Publication>?,
         previousComparisonTime: Instant,
         trackNumberNamesCache: List<PublicationDao.CachedTrackNumber> = publicationDao.fetchTrackNumberNames(),
         geocodingContextsCache: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>> = mutableMapOf()
     ): List<PublicationTableItem> {
         val publicationLocationTracks = publicationDao.fetchPublicationLocationTracks(publication.id)
-        val publicationTrackNumbers = publicationDao.fetchPublicationTrackNumbers(publication.id, previousPublicationId)
+        val publicationTrackNumbers = publicationDao.fetchPublicationTrackNumbers(publication.id, previousComparisonTime)
         val publicationKmPosts = publicationDao.fetchPublicationKmPosts(publication.id)
         val publicationReferenceLines = publicationDao.fetchPublicationReferenceLines(publication.id)
         val publicationSwitches = publicationDao.fetchPublicationSwitches(publication.id)

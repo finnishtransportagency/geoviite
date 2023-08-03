@@ -1,0 +1,55 @@
+package fi.fta.geoviite.infra.publication
+
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+
+class PublicationUtilsTest {
+    @Test
+    fun `Comparing values works`() {
+        val a = 1
+        val b = 2
+        val change = compareChange({ true }, a, b, { it }, PropKey("test"))
+        assertNotNull(change)
+        assertEquals(change!!.value.oldValue, a)
+        assertEquals(change.value.newValue, b)
+        assertEquals(change.propKey.key.toString(), "test")
+    }
+
+    @Test
+    fun `Returns null if predicate is false`() {
+        val change = compareChange({ false }, 1, 2, { it }, PropKey("test"))
+        assertNull(change)
+    }
+
+    @Test
+    fun `Values are transformed`() {
+        val change = compareChange({ true }, 1, 2, { it.toString() }, PropKey("test"))
+        assertNotNull(change)
+        assertEquals(change!!.value.oldValue, "1")
+        assertEquals(change.value.newValue, "2")
+    }
+
+    @Test
+    fun `Lazy values are fetched if predicate is true`() {
+        var a = 1
+        var b = 2
+        val aMutator = { a++ }
+        val bMutator = { b++ }
+        val change = compareChangeLazy({ true }, aMutator, bMutator, { it }, PropKey("test"))
+        assertNotNull(change)
+        assertEquals(a, 2)
+        assertEquals(b, 3)
+    }
+
+    @Test
+    fun `Lazy values are not fetched if predicate is false`() {
+        var a = 1
+        var b = 2
+        val aMutator = { a++ }
+        val bMutator = { b++ }
+        val change = compareChangeLazy({ false }, aMutator, bMutator, { it }, PropKey("test"))
+        assertNull(change)
+        assertEquals(a, 1)
+        assertEquals(b, 2)
+    }
+}

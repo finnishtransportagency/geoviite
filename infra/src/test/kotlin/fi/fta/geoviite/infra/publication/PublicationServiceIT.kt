@@ -711,7 +711,7 @@ class PublicationServiceIT @Autowired constructor(
         val updatedTrackNumber = trackNumberService.getDraft(id)
         publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(2)
-        val changes = publicationDao.fetchPublicationTrackNumbers(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().id)
+        val changes = publicationDao.fetchPublicationTrackNumbers(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().publicationTime)
 
         val diff = publicationService.diffTrackNumber(
             changes.first(),
@@ -736,17 +736,19 @@ class PublicationServiceIT @Autowired constructor(
                 address,
             )
         ))
-        publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
-        val id = trackNumberService.update(trackNumber.id as IntId, TrackNumberSaveRequest(
+        val rl = referenceLineService.getByTrackNumber(DRAFT, trackNumber.id as IntId)!!
+        publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId), referenceLines = listOf(rl.id as IntId)))
+
+        val idOfUpdated = trackNumberService.update(trackNumber.id as IntId, TrackNumberSaveRequest(
             number = trackNumber.number,
             description = FreeText("TEST2"),
             startAddress = address,
             state = trackNumber.state,
         ))
-        val updatedTrackNumber = trackNumberService.getDraft(id)
         publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(2)
-        val changes = publicationDao.fetchPublicationTrackNumbers(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().id)
+        val changes = publicationDao.fetchPublicationTrackNumbers(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().publicationTime)
+        val updatedTrackNumber = trackNumberService.getOrThrow(OFFICIAL, idOfUpdated)
 
         val diff = publicationService.diffTrackNumber(
             changes.first(),
@@ -755,8 +757,8 @@ class PublicationServiceIT @Autowired constructor(
             mutableMapOf())
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
-        assertEquals(trackNumber.description, diff[0].oldValue)
-        assertEquals(updatedTrackNumber.description, diff[0].newValue)
+        assertEquals(trackNumber.description, diff[0].value.oldValue)
+        assertEquals(updatedTrackNumber.description, diff[0].value.newValue)
     }
 
     @Test
@@ -877,8 +879,8 @@ class PublicationServiceIT @Autowired constructor(
         )
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.description, diff[0].oldValue)
-        assertEquals(updatedLocationTrack.description, diff[0].newValue)
+        assertEquals(locationTrack.description, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.description, diff[0].value.newValue)
     }
 
     @Test
@@ -975,6 +977,8 @@ class PublicationServiceIT @Autowired constructor(
         )
         assertEquals(1, diff.size)
         assertEquals("km-post", diff[0].propKey.key.toString())
+        assertEquals(kmPost.kmNumber, diff[0].value.oldValue)
+        assertEquals(updatedKmPost.kmNumber, diff[0].value.newValue)
     }
 
     @Test
@@ -1072,6 +1076,8 @@ class PublicationServiceIT @Autowired constructor(
         )
         assertEquals(1, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
+        assertEquals(switch.name, diff[0].value.oldValue)
+        assertEquals(updatedSwitch.name, diff[0].value.newValue)
     }
 }
 
