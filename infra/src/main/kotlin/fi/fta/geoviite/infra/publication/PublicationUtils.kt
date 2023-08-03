@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
 fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
     val dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
@@ -151,6 +152,30 @@ fun <T, U> compareChangeValues(
         oldValue = oldValue,
         newValue = newValue,
         valueTransform = valueTransform,
+        propKey = propKey,
+        remark = remark,
+        enumLocalizationKey = enumLocalizationKey,
+    )
+
+val DISTANCE_CHANGE_THRESHOLD = 0.0005
+
+fun <U> compareDouble(
+    oldValue: Double?,
+    newValue: Double?,
+    threshold: Double,
+    valueTransform: (Double) -> U?,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null
+) = compareChange(
+    predicate = {
+        if (oldValue != null && newValue != null) abs(abs(newValue) - abs(oldValue)) > threshold
+        else if (oldValue != null || newValue != null) true
+        else false
+    },
+    oldValue = oldValue,
+    newValue = newValue,
+    valueTransform = valueTransform,
         propKey = propKey,
         remark = remark,
         enumLocalizationKey = enumLocalizationKey,

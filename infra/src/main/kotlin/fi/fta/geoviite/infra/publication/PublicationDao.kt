@@ -493,14 +493,14 @@ class PublicationDao(
                 left join layout.track_number_version tn on tn.id = track_number.track_number_id and tn.version = track_number_version
                 left join publication.publication p on p.id = publication_id
                 left join publication.publication old_p on p.id = :previous_publication_id
-                left join layout.reference_line_at(p.publication_time) rl on rl.id = tn.id
+                left join layout.reference_line_at(p.publication_time) rl on rl.track_number_id = tn.id
                 left join layout.alignment_version av on av.id = rl.alignment_id and av.version = rl.alignment_version
                 left join layout.segment_version sv_first on av.id = sv_first.alignment_id and av.version = sv_first.alignment_version and sv_first.segment_index = 0
                 left join layout.segment_geometry sg_first on sv_first.geometry_id = sg_first.id
                 left join layout.segment_version sv_last on av.id = sv_last.alignment_id and av.version = sv_last.alignment_version and sv_last.segment_index = av.segment_count - 1
                 left join layout.segment_geometry sg_last on sv_last.geometry_id = sg_last.id
                 left join layout.track_number_version old_tn on old_tn.id = track_number.track_number_id and old_tn.version = track_number_version - 1
-                left join layout.reference_line_at(old_p.publication_time) old_rl on old_rl.id = tn.id
+                left join layout.reference_line_at(old_p.publication_time) old_rl on old_rl.track_number_id = tn.id
                 left join layout.alignment_version old_av on old_av.id = old_rl.alignment_id and old_av.version = old_rl.alignment_version
                 left join layout.segment_version old_sv_first on old_av.id = old_sv_first.alignment_id and old_av.version = old_sv_first.alignment_version and old_sv_first.segment_index = 0
                 left join layout.segment_geometry old_sg_first on old_sv_first.geometry_id = old_sg_first.id
