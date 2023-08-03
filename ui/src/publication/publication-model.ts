@@ -172,10 +172,15 @@ export type PropKey = {
     params: string[];
 };
 
-export type PublicationChange = {
-    propKey: PropKey;
+export type ChangeValue = {
     oldValue: string | boolean | null;
     newValue: string | boolean | null;
+    localizationKey: string | null;
+};
+
+export type PublicationChange = {
+    propKey: PropKey;
+    value: ChangeValue;
     remark: PublicationChangeRemark | null;
     enumKey: string | null;
 };

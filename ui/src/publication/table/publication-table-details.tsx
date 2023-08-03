@@ -42,8 +42,8 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                                 item.propKey.params,
                             )}
                         </td>
-                        <td>{formatValue(item.oldValue, item.enumKey)}</td>
-                        <td>{formatValue(item.newValue, item.enumKey)}</td>
+                        <td>{formatValue(item.value.oldValue, item.value.localizationKey)}</td>
+                        <td>{formatValue(item.value.newValue, item.value.localizationKey)}</td>
                         <td>
                             {item.remark
                                 ? t(`publication-details-table.remark.${item.remark.key}`, [

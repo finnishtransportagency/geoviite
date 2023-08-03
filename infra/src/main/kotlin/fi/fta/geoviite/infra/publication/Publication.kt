@@ -40,18 +40,22 @@ data class PublicationTableItem(
     val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
 }
 
+data class ChangeValue<T>(
+    val oldValue: T?,
+    val newValue: T?,
+    val localizationKey: LocalizationKey? = null,
+) { constructor(oldValue: T?, newValue: T?, localizationKey: String?) : this(oldValue, newValue, localizationKey?.let(::LocalizationKey)) }
+
 data class PublicationChange<T>(
     val propKey: PropKey,
-    val oldValue: T?, // These are either Boolean, String or null
-    val newValue: T?,
+    val value: ChangeValue<T>,
     val remark: PublicationChangeRemark?,
-    val enumKey: LocalizationKey? = null,
 )
 
 data class PropKey(
     val key: LocalizationKey,
     val params: List<String>? = null,
-)
+) { constructor(key: String, params: List<String>? = null) : this(LocalizationKey(key), params) }
 
 data class PublicationChangeRemark(
     val key: String,

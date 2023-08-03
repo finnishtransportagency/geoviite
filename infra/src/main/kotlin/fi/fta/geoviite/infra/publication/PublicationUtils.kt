@@ -3,10 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.util.CsvEntry
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.SortOrder
-import fi.fta.geoviite.infra.util.printCsv
+import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -140,6 +137,68 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         }
     }
 }
+
+fun <T, U> compareChangeValues(
+    oldValue: T?,
+    newValue: T?,
+    valueTransform: (T) -> U?,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null
+) =
+    compareChange(
+        predicate = { newValue != oldValue },
+        oldValue = oldValue,
+        newValue = newValue,
+        valueTransform = valueTransform,
+        propKey = propKey,
+        remark = remark,
+        enumLocalizationKey = enumLocalizationKey,
+    )
+
+fun <T, U>compareChangeLazy(
+    predicate: () -> Boolean,
+    oldValueGetter: () -> T?,
+    newValueGetter: () -> T?,
+    valueTransform: (T) -> U?,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null,
+): PublicationChange<U>? {
+    val pred = predicate()
+    return if (pred) {
+        compareChange(
+            predicate = predicate,
+            oldValue = oldValueGetter(),
+            newValue = newValueGetter(),
+            valueTransform = valueTransform,
+            propKey = propKey,
+            remark = remark,
+            enumLocalizationKey = enumLocalizationKey,
+        )
+    } else null
+}
+
+fun <T, U> compareChange(
+    predicate: () -> Boolean,
+    oldValue: T?,
+    newValue: T?,
+    valueTransform: (T) -> U?,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null,
+) =
+    if (predicate()) {
+        PublicationChange(
+            propKey,
+            value = ChangeValue(
+                oldValue = oldValue?.let(valueTransform),
+                newValue = newValue?.let(valueTransform),
+                localizationKey = enumLocalizationKey,
+            ),
+            remark,
+        )
+    } else null
 
 private val MATH_POINT_TRANSLATION = "matemaattinen piste"
 private val FORWARD_JOINT_TRANSLATION = "etujatkos"
