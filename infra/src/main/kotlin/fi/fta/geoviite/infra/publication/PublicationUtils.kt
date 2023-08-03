@@ -1,8 +1,12 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -138,6 +142,36 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         }
     }
 }
+
+fun formatLocation(newPresentationJointLocation: Point) =
+    "${roundTo3Decimals(newPresentationJointLocation.x)} E, ${
+        roundTo3Decimals(
+            newPresentationJointLocation.y
+        )
+    } N"
+
+fun lengthChangedRemark(
+    oldLength: Double?,
+    newLength: Double?,
+): PublicationChangeRemark? {
+    val lengthDelta = if (oldLength != null && newLength != null) abs(abs(newLength) - abs(oldLength)) else 0.0
+    return if (lengthDelta >= DISTANCE_CHANGE_THRESHOLD) {
+        PublicationChangeRemark(
+            "changed-x-meters",
+            formatDistance(lengthDelta)
+        )
+    } else null
+}
+
+
+fun pointMovedEnough(point1: Point?, point2: Point?) =
+    if (point1 != null && point2 != null) calculateDistance(listOf(point1, point2), LAYOUT_SRID).let { dist -> (dist > 0.005) to dist } else false to 0.0
+
+fun pointMovedRemark(distance: Double) =
+    PublicationChangeRemark(
+        "moved-x-meters",
+        formatDistance(distance)
+    )
 
 fun <T, U> compareChangeValues(
     oldValue: T?,

@@ -873,7 +873,7 @@ class PublicationService @Autowired constructor(
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
         val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
 
-        return listOf(
+        return listOfNotNull(
             compareChangeValues(
                 locationTrackChanges.trackNumberId.old,
                 locationTrackChanges.trackNumberId.new,
@@ -972,7 +972,7 @@ class PublicationService @Autowired constructor(
                 )
             } else null,
             // TODO owner
-        ).filterNotNull()
+        )
     }
 
     // TODO Add tests
@@ -1145,36 +1145,6 @@ class PublicationService @Autowired constructor(
             compareChangeValues(changes.measurementMethod.old, changes.measurementMethod.new, { it.name }, PropKey("measurement-method"), null, "measurement-method"),
         ) + jointLocationChanges
     }
-
-    private fun formatLocation(newPresentationJointLocation: Point) =
-        "${roundTo3Decimals(newPresentationJointLocation.x)} E, ${
-            roundTo3Decimals(
-                newPresentationJointLocation.y
-            )
-        } N"
-
-    private fun lengthChangedRemark(
-        oldLength: Double?,
-        newLength: Double?,
-    ): PublicationChangeRemark? {
-        val lengthDelta = if (oldLength != null && newLength != null) abs(abs(newLength) - abs(oldLength)) else 0.0
-        return if (lengthDelta >= DISTANCE_CHANGE_THRESHOLD) {
-            PublicationChangeRemark(
-                "changed-x-meters",
-                formatDistance(lengthDelta)
-            )
-        } else null
-    }
-
-
-    private fun pointMovedEnough(point1: Point?, point2: Point?) =
-        if (point1 != null && point2 != null) calculateDistance(listOf(point1, point2), LAYOUT_SRID).let { dist -> (dist > 0.005) to dist } else false to 0.0
-
-    private fun pointMovedRemark(distance: Double) =
-        PublicationChangeRemark(
-            "moved-x-meters",
-            formatDistance(distance)
-        )
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
         cacheKey?.let(geocodingCacheService::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
