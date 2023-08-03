@@ -316,7 +316,7 @@ data class RemovedTrackNumberReferenceIds(
 )
 
 fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
-    officialId = draftableObject.id as IntId<T>,
+    officialId = draftableObject.id as IntId,
     validatedAssetVersion = draftableObject.version as RowVersion<T>
 )
 

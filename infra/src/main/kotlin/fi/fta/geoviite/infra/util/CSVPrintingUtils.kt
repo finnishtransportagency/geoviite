@@ -11,8 +11,8 @@ data class CsvEntry<T>(
     val getValue: (data: T) -> Any?,
 )
 
-val csvDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-fun toCsvDate(date: Instant) = csvDateFormatter
+val csvDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+fun toCsvDate(date: Instant): String = csvDateFormatter
     // Default to Finnish time. Stored dates are at midnight Finnish time (21/22:00 UTC the previous day),
     // so a timezone offset is added to make sure the correct date is shown
     .withZone(ZoneId.of("Europe/Helsinki"))

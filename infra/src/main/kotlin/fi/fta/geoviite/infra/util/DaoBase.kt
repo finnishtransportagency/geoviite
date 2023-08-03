@@ -51,7 +51,7 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     /**
-     * The template from DI is nullable so that we can configure to run without DB when needed (ie. unit tests)
+     * The template from DI is nullable so that we can configure to run without DB when needed (i.e. unit tests)
      * For actual code, use this non-null variable. It will throw on first use if DB-initialization is not done.
      */
     protected val jdbcTemplate: NamedParameterJdbcTemplate by lazy {

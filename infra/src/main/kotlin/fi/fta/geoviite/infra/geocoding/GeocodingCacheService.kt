@@ -3,10 +3,10 @@ package fi.fta.geoviite.infra.geocoding
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -50,7 +50,6 @@ class GeocodingCacheService(
     private val referenceLineDao: ReferenceLineDao,
     private val kmPostDao: LayoutKmPostDao,
     private val alignmentDao: LayoutAlignmentDao,
-    private val geometryDao: GeometryDao,
     private val planLayoutService: PlanLayoutService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)

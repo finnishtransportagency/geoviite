@@ -1,11 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVAssignment
-import PVDictionaryCode
-import PVDocument
-import PVProject
-import PVProjectGroup
-import PVProjectName
 import com.auth0.jwt.JWT
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING

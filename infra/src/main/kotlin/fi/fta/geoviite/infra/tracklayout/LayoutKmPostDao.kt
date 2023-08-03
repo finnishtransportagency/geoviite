@@ -146,7 +146,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
         val trackNumberId =
             if (newItem.trackNumberId is IntId) newItem.trackNumberId
-            else throw IllegalArgumentException("KM post not linked to TrackNumber: tnId=${newItem.trackNumberId}")
+            else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$newItem")
         val sql = """
             insert into layout.km_post(
               track_number_id, 
@@ -195,8 +195,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val trackNumberId =
             if (updatedItem.trackNumberId is IntId) updatedItem.trackNumberId
-            else throw IllegalArgumentException("KM post not linked to TrackNumber: " +
-                    "kmPostId=${updatedItem.id} tnId=${updatedItem.trackNumberId}")
+            else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$updatedItem")
         val sql = """
             update layout.km_post 
             set
@@ -218,7 +217,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         val params = mapOf(
             "km_post_id" to rowId.intValue,
             "track_number_id" to trackNumberId.intValue,
-            "geometry_km_post_id" to (updatedItem.sourceId as IntId<GeometryKmPost>?)?.intValue,
+            "geometry_km_post_id" to if (updatedItem.sourceId is IntId) updatedItem.sourceId.intValue else null,
             "km_number" to updatedItem.kmNumber.toString(),
             "hasLocation" to (updatedItem.location != null),
             "point_x" to updatedItem.location?.x,

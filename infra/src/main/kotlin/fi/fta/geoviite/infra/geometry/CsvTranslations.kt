@@ -7,7 +7,7 @@ const val ELEMENT_LISTING_ENTIRE_RAIL_NETWORK = "$ELEMENT_LISTING (koko rataverk
 const val VERTICAL_GEOMETRY = "Pystygeometria"
 const val VERTICAL_SECTIONS_OVERLAP = "Kaltevuusjakso on limittäin toisen jakson kanssa"
 const val IS_PARTIAL = "Raide sisältää vain osan geometriaelementistä"
-val connectedToSwitch = { switchName: SwitchName -> "Vaihteen ${switchName} elementti" }
+val connectedToSwitch = { switchName: SwitchName -> "Vaihteen $switchName elementti" }
 
 enum class ElementListingHeader {
     TRACK_NUMBER,

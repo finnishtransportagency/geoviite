@@ -1,21 +1,12 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVAssignment
-import PVDictionaryCode
-import PVDictionaryEntry
-import PVDictionaryGroup
-import PVDictionaryGroup.MATERIAL
-import PVDictionaryGroup.PROJECT
-import PVDictionaryName
-import PVDictionaryType
-import PVDictionaryType.*
-import PVDocument
-import PVProject
-import PVProjectGroup
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
 import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

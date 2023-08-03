@@ -1,11 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVAssignment
-import PVDocument
-import PVDocumentStatus.NOT_IM
-import PVDocumentStatus.SUGGESTED
-import PVProject
-import PVProjectGroup
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.common.FeatureTypeCode
@@ -16,6 +10,8 @@ import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.NOT_IM
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.SUGGESTED
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.formatForLog
@@ -34,7 +30,7 @@ val SECONDS_IN_A_YEAR: Long = Duration.ofDays(365).toSeconds()
 @Service
 @ConditionalOnBean(PVClientConfiguration::class)
 class PVIntegrationService @Autowired constructor(
-    private val PVClient: PVClient,
+    private val pvClient: PVClient,
     private val pvDao: PVDao,
     private val lockDao: LockDao,
     private val infraModelService: InfraModelService,
@@ -58,7 +54,7 @@ class PVIntegrationService @Autowired constructor(
         logger.info("Poll to launch new search")
         val latest = pvDao.fetchLatestDocument()
         val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
-        PVClient.postXmlFileSearch(startTime, latest?.first).also { status ->
+        pvClient.postXmlFileSearch(startTime, latest?.first).also { status ->
             val validUntil = status.startTime.plusSeconds(status.validFor)
             pvDao.insertFetchInfo(status.searchId, validUntil)
         }
@@ -84,12 +80,12 @@ class PVIntegrationService @Autowired constructor(
     }
     fun getSearchStatusIfReady(pvSearch: PVSearch): PVApiSearchStatus? = pvSearch
         .takeIf { search -> search.state == WAITING }
-        ?.let { search -> PVClient.fetchVelhoSearchStatus(search.token) }
+        ?.let { search -> pvClient.fetchVelhoSearchStatus(search.token) }
         ?.takeIf { status -> status.state == PVApiSearchState.valmis }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
-        val dict = PVClient.fetchDictionaries()
+        val dict = pvClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
             pvDao.upsertDictionary(type, entries)
         }
@@ -101,7 +97,7 @@ class PVIntegrationService @Autowired constructor(
             val assignments = mutableMapOf<Oid<PVAssignment>, PVApiAssignment?>()
             val projects = mutableMapOf<Oid<PVProject>, PVApiProject?>()
             val projectGroups = mutableMapOf<Oid<PVProjectGroup>, PVApiProjectGroup?>()
-            PVClient.fetchSearchResults(searchResults.searchId).matches
+            pvClient.fetchSearchResults(searchResults.searchId).matches
                 .map { match -> fetchFileAndInsertToDb(match, assignments, projects, projectGroups) }
             pvDao.updateFetchState(latest.id, FINISHED)
         } catch (e: Exception) {
@@ -126,14 +122,12 @@ class PVIntegrationService @Autowired constructor(
         projects: MutableMap<Oid<PVProject>, PVApiProject?>,
         projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>,
     ): PVAssignmentHolder {
-        val assignment = assignmentOid.let { oid ->
-            fetchIfNew(assignments, oid, PVClient::fetchAssignment, pvDao::upsertAssignment)
-        }
+        val assignment = fetchIfNew(assignments, assignmentOid, pvClient::fetchAssignment, pvDao::upsertAssignment)
         val project = assignment?.projectOid?.let { oid ->
-            fetchIfNew(projects, oid, PVClient::fetchProject, pvDao::upsertProject)
+            fetchIfNew(projects, oid, pvClient::fetchProject, pvDao::upsertProject)
         }
         val projectGroup = project?.projectGroupOid?.let { oid ->
-            fetchIfNew(projectGroups, oid, PVClient::fetchProjectGroup, pvDao::upsertProjectGroup)
+            fetchIfNew(projectGroups, oid, pvClient::fetchProjectGroup, pvDao::upsertProjectGroup)
         }
         return PVAssignmentHolder(assignment, project, projectGroup)
     }
@@ -151,10 +145,10 @@ class PVIntegrationService @Autowired constructor(
             ?.also { value -> store(value) }
 
     private fun fetchFileMetadataAndContent(oid: Oid<PVDocument>): PVFileHolder {
-        val metadataResponse = PVClient.fetchFileMetadata(oid)
+        val metadataResponse = pvClient.fetchFileMetadata(oid)
         val content =
             if (metadataResponse.metadata.containsPersonalInfo == true) null
-            else PVClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
+            else pvClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
 
         return PVFileHolder(
             oid = oid,

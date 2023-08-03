@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.geometry
 
-import PVDocument
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
@@ -9,6 +8,7 @@ import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.projektivelho.PVDocument
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText

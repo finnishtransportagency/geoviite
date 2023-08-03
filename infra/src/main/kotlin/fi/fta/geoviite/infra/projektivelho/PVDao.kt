@@ -1,23 +1,12 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVAssignment
-import PVDictionaryCode
-import PVDictionaryEntry
-import PVDictionaryName
-import PVDictionaryType
-import PVDictionaryType.*
-import PVDocument
-import PVDocumentHeader
-import PVDocumentRejection
-import PVDocumentStatus
-import PVProject
-import PVProjectGroup
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -214,7 +203,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "content" to content,
         )
         jdbcTemplate.update(sql, params)
-        logger.daoAccess(INSERT, "PVDocument.content", documentId)
+        logger.daoAccess(INSERT, "fi.fta.geoviite.infra.projektivelho.PVDocument.content", documentId)
     }
 
     @Transactional
@@ -408,7 +397,8 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
                 modified = rs.getInstant("change_time"),
                 status = rs.getEnum("status"),
             ),
-        )}.also { results ->
+        )
+        }.also { results ->
             logger.daoAccess(FETCH, PVDocument::class, results.map { r -> r.document.id })
         }
     }

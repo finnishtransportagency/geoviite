@@ -87,7 +87,7 @@ fun toElementListing(
 ): List<ElementListing> {
     val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
     val lengthOfSegmentsConnectedToSameElement = linkedElementIds.groupBy { it.second }.map {
-        it.key to it.value.map { (segment, _) -> segment.length }.sum()
+        it.key to it.value.sumOf { (segment, _) -> segment.length }
     }
     val distinctLinkedElementIds = linkedElementIds.distinctBy { (segment, elementId) -> elementId ?: segment.id }
     val linkedAlignmentIds = distinctLinkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
@@ -164,7 +164,7 @@ private fun toMissingElementListing(
     start = getLocation(context, segment.points.first(), segment.startDirection),
     end = getLocation(context, segment.points.last(), segment.endDirection),
     locationTrackName = locationTrack.name,
-    connectedSwitchName = segment.switchId?.let { getSwitchName(segment.switchId as IntId) },
+    connectedSwitchName = segment.switchId?.let { id -> if (id is IntId) getSwitchName(id) else null },
     isPartial = false,
 )
 
@@ -287,10 +287,10 @@ fun planCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
 )
 
 private fun remarks(elementListing: ElementListing) =
-    listOf(
+    listOfNotNull(
         if (elementListing.isPartial) IS_PARTIAL else null,
         if (elementListing.connectedSwitchName != null) connectedToSwitch(elementListing.connectedSwitchName) else null
-    ).filterNotNull().joinToString(separator = ", ")
+    ).joinToString(separator = ", ")
 
 private fun elementListing(
     context: GeocodingContext?,
@@ -326,7 +326,7 @@ private fun elementListing(
         lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
         start = start,
         end = end,
-        connectedSwitchName = segment?.switchId?.let { getSwitchName(segment.switchId as IntId) },
+        connectedSwitchName = segment?.switchId?.let { id -> if (id is IntId) getSwitchName(id) else null },
         isPartial = false,
     )
 }

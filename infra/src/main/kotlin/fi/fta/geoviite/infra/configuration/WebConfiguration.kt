@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.configuration
 
-import PVDictionaryCode
-import PVDictionaryName
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -12,6 +10,8 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
 import fi.fta.geoviite.infra.util.*

@@ -1,14 +1,14 @@
 package fi.fta.geoviite.infra.util
 
-import PVDictionaryCode
-import PVDictionaryName
-import PVProjectName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import java.sql.ResultSet
 import java.time.Instant
