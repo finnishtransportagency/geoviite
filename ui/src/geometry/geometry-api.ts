@@ -50,6 +50,8 @@ const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | nul
 const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | null>();
 const geometryPlanAreaCache = asyncCache<GeometryPlanId, PlanArea[]>();
 
+const projectCache = asyncCache<undefined, Project[]>();
+
 type PlanVerticalGeometryKey = GeometryPlanId;
 const planVerticalGeometryCache = asyncCache<
     PlanVerticalGeometryKey,
@@ -273,12 +275,22 @@ export async function getTrackLayoutPlans(
     ).then((plans) => plans.filter(filterNotEmpty));
 }
 
-export async function fetchProjects(): Promise<Project[]> {
-    return await getThrowError<Project[]>(`${GEOMETRY_URI}/projects`);
+export async function getProjects(): Promise<Project[]> {
+    const changeTime = getChangeTimes().project;
+
+    return projectCache.get(changeTime, undefined, () =>
+        getThrowError<Project[]>(`${GEOMETRY_URI}/projects`),
+    );
 }
 
 export async function getProject(id: ProjectId): Promise<Project> {
-    return await getThrowError<Project>(`${GEOMETRY_URI}/projects/${id}`);
+    return getProjects().then((projects) => {
+        const project = projects.find((project) => project.id === id);
+        if (!project) {
+            throw new Error(`Couldn't find project ${id}`);
+        }
+        return project;
+    });
 }
 
 export async function createProject(project: Project): Promise<Project | null> {

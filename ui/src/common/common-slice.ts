@@ -10,6 +10,7 @@ export type ChangeTimes = {
     layoutSwitch: TimeStamp;
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
+    project: TimeStamp;
     publication: TimeStamp;
     ratkoPush: TimeStamp;
     pvDocument: TimeStamp;
@@ -23,6 +24,7 @@ export const initialChangeTimes: ChangeTimes = {
     layoutSwitch: initialChangeTime,
     layoutKmPost: initialChangeTime,
     geometryPlan: initialChangeTime,
+    project: initialChangeTime,
     publication: initialChangeTime,
     ratkoPush: initialChangeTime,
     pvDocument: initialChangeTime,
@@ -94,6 +96,12 @@ const commonSlice = createSlice({
             { payload }: PayloadAction<TimeStamp>,
         ) {
             updateChangeTime(changeTimes, 'geometryPlan', payload);
+        },
+        setProjectChangeTime: function (
+            { changeTimes }: CommonState,
+            { payload }: PayloadAction<TimeStamp>,
+        ) {
+            updateChangeTime(changeTimes, 'project', payload);
         },
         setPublicationChangeTime: function (
             { changeTimes }: CommonState,
