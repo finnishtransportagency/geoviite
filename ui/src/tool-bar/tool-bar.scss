@@ -9,7 +9,7 @@
     grid-column: 1 / -1;
     display: flex;
     background: $color-white-dark;
-    z-index: 5;
+    margin-bottom: 1px;
 
     &--draft {
         background: $color-blue-lighter;
