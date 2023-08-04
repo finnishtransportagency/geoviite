@@ -8,6 +8,7 @@ import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-geometry-table';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
+import { EntireRailNetworkVerticalGeometryListing } from 'data-products/vertical-geometry/entire-rail-network-vertical-geometry-listing';
 
 const VerticalGeometryView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
@@ -36,6 +37,13 @@ const VerticalGeometryView = () => {
                             checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.vertical-geometry.plan-vertical-geometry')}
                         </Radio>
+                        <Radio
+                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                            {t(
+                                'data-products.vertical-geometry.entire-rail-network-vertical-geometry',
+                            )}
+                        </Radio>
                     </span>
                 </div>
                 {state.selectedSearch === 'LOCATION_TRACK' && (
@@ -60,6 +68,9 @@ const VerticalGeometryView = () => {
                         setVerticalGeometry={dataProductsDelegates.onSetPlanVerticalGeometry}
                         setLoading={setLoading}
                     />
+                )}
+                {state.selectedSearch === 'ENTIRE_RAIL_NETWORK' && (
+                    <EntireRailNetworkVerticalGeometryListing />
                 )}
             </div>
             {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
