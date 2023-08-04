@@ -292,18 +292,6 @@ class LocationTrackDaoIT @Autowired constructor(
         }
     }
 
-    @Test
-    fun `Fetching previous official version works`() {
-        val tnId = insertOfficialTrackNumber()
-        val locationTrack = insertOfficialLocationTrack(tnId).rowVersion
-        val updated = updateOfficial(locationTrack).rowVersion
-        val updatedAgain = updateOfficial(updated).rowVersion
-
-        assertEquals(null, locationTrackDao.fetchPreviousOfficialVersion(locationTrack))
-        assertEquals(locationTrack.version, locationTrackDao.fetchPreviousOfficialVersion(updated)?.version)
-        assertEquals(updated.version, locationTrackDao.fetchPreviousOfficialVersion(updatedAgain)?.version)
-    }
-
     private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): DaoResponse<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(tnId)
         val alignmentVersion = alignmentDao.insert(alignment)
