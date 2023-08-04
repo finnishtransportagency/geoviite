@@ -186,10 +186,11 @@ export function useTrackNumbersIncludingDeleted(
 export function useReferenceLineStartAndEnd(
     id: ReferenceLineId | undefined,
     publishType: PublishType | undefined,
+    changeTime: TimeStamp | undefined = undefined,
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id && publishType ? getReferenceLineStartAndEnd(id, publishType) : undefined),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 
