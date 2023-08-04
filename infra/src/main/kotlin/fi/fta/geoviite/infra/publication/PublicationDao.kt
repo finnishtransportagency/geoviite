@@ -682,26 +682,35 @@ class PublicationDao(
 
     fun fetchPublishedReferenceLines(publicationId: IntId<Publication>): List<PublishedReferenceLine> {
         val sql = """
-          select 
-            prl.reference_line_id as id,
-            reference_line_version as version,
-            rl.track_number_id,
-            layout.infer_operation_from_state_transition(
-              old_state,
-              state
-            ) as operation,
-            array_remove(array_agg(ptnk.km_number), null) as changed_km
-          from publication.reference_line prl
-            inner join layout.reference_line_version rl
-              on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
-            left join publication.track_number ptn
-              on ptn.track_number_id = rl.track_number_id and ptn.publication_id = prl.publication_id
-            left join layout.track_number_change_view tn
-              on tn.id = ptn.track_number_id and tn.version = ptn.track_number_version
-            left join publication.track_number_km ptnk
-              on ptnk.track_number_id = ptn.track_number_id and ptnk.publication_id = ptn.publication_id
-          where prl.publication_id = :publication_id
-          group by prl.reference_line_id, reference_line_version, rl.track_number_id, operation;
+            with prev_pub 
+              as (select max(publication_time) as prev_publication_time 
+              from publication.publication where id < :publication_id
+            )
+            select
+              prl.reference_line_id as id,
+              reference_line_version as version,
+              rl.track_number_id,
+              layout.infer_operation_from_state_transition(
+                  tn_old.state,
+                  tn.state
+                ) as operation,
+              array_remove(array_agg(ptnk.km_number), null) as changed_km
+              from publication.reference_line prl
+                left join prev_pub on true
+                left join publication.publication p
+                          on p.id = prl.publication_id
+                inner join layout.reference_line_version rl
+                          on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
+                left join publication.track_number ptn
+                          on ptn.track_number_id = rl.track_number_id and ptn.publication_id = prl.publication_id
+                left join layout.track_number_change_view tn
+                          on tn.id = ptn.track_number_id and tn.version = ptn.track_number_version
+                left join layout.track_number_at(coalesce(prev_pub.prev_publication_time, p.publication_time - interval '00:00:00.001')) tn_old
+                          on tn_old.id = ptn.track_number_id
+                left join publication.track_number_km ptnk
+                          on ptnk.track_number_id = ptn.track_number_id and ptnk.publication_id = ptn.publication_id
+              where prl.publication_id = :publication_id
+              group by prl.reference_line_id, reference_line_version, rl.track_number_id, operation;
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             PublishedReferenceLine(
