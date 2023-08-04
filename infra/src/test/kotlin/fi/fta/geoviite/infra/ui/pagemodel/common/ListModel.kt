@@ -54,6 +54,12 @@ open class ListModel<T : ListContentItem>(
         if (!isSelected(e)) e.waitAndClick()
     }
 
+    fun clickOnItemBy(selectItem: (T) -> Boolean, by: By) {
+        waitUntilItemMatches(selectItem)
+        val index = items.indexOfFirst(selectItem)
+        itemElements[index].findElement(by).click()
+    }
+
     // TODO: GVT-1935 Implement a generic way to communicate selection in lists from UI to tests
     protected open fun isSelected(element: WebElement) = false
 

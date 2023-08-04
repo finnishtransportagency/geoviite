@@ -12,7 +12,7 @@ enum class NavBarLink(val text: String) {
 class MainNavigationBar : PageModel(By.className("app-bar")) {
 
     // TODO: GVT-1947 Change these to qa-id instead of localized link text
-    fun clickLink(to: NavBarLink) = childElement(By.ByLinkText(to.text)).click()
+    fun clickLink(to: NavBarLink) = childElement(By.ByPartialLinkText(to.text)).click()
 
     fun goToMap(): MapPage {
         clickLink(NavBarLink.MAP)

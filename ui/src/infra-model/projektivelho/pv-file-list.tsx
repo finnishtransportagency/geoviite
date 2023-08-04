@@ -164,7 +164,8 @@ const PVFileListRow = ({
                                 <Button
                                     title={t('projektivelho.file-list.reject-tooltip')}
                                     variant={ButtonVariant.SECONDARY}
-                                    onClick={onReject}>
+                                    onClick={onReject}
+                                    qa-id="pv-reject-button">
                                     {t('projektivelho.file-list.reject')}
                                 </Button>
                             )}
@@ -172,7 +173,8 @@ const PVFileListRow = ({
                                 <Button
                                     title={t('projektivelho.file-list.restore-tooltip')}
                                     variant={ButtonVariant.SECONDARY}
-                                    onClick={onRestore}>
+                                    onClick={onRestore}
+                                    qa-id="pv-restore-button">
                                     {t('projektivelho.file-list.restore')}
                                 </Button>
                             )}

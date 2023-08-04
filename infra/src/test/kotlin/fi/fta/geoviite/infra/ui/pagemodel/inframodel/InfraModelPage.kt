@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import clearInput
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import getElementWhenVisible
 import getElementsWhenVisible
@@ -47,6 +48,14 @@ class InfraModelPage : PageModel(By.xpath("//div[@qa-id='main-content-container'
             getElementWhenVisible(By.xpath("//div[@class='infra-model-search-form__auto-complete']//input"))
         clearInput(searchField)
         searchField.sendKeys(query)
+    }
+
+    fun openVelhoWaitingForApprovalList(): VelhoPage {
+        childElement(byQaId("infra-model-nav-tab-waiting")).click()
+        waitChildVisible(By.cssSelector("div.projektivelho-file-list"))
+        val headers =
+            childElements(By.cssSelector("div.projektivelho-file-list thead tr th")).map { it.text }
+        return VelhoPage(headers)
     }
 
 }
