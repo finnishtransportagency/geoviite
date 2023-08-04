@@ -293,11 +293,11 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     qa-id="track-number-log-infobox">
                     <InfoboxContent>
                         <InfoboxField
-                            label={t('tool-panel.reference-line.created')}
+                            label={t('tool-panel.created')}
                             value={formatDateShort(changeTimes.created)}
                         />
                         <InfoboxField
-                            label={t('tool-panel.reference-line.changed')}
+                            label={t('tool-panel.changed')}
                             value={formatDateShort(changeTimes.changed)}
                         />
                         {isDeletable && (

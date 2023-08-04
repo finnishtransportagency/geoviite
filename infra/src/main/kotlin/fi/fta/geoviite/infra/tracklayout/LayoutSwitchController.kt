@@ -123,4 +123,11 @@ class LayoutSwitchController(
         logger.apiCall("deleteDraftSwitch", "switchId" to switchId)
         return switchService.deleteDraftSwitch(switchId)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/change-times")
+    fun getSwitchChangeTimes(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): ChangeTimes {
+        logger.apiCall("getSwitchChangeTimes", "id" to switchId)
+        return switchService.getChangeTimes(switchId)
+    }
 }
