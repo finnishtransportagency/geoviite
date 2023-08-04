@@ -15,7 +15,11 @@ export const LocationTrackLink: React.FC<LocationTrackLinkProps> = (
     const delegates = createDelegates(TrackLayoutActions);
 
     return (
-        <Link onClick={() => delegates.onSelect({ locationTracks: [props.locationTrackId] })}>
+        <Link
+            onClick={() => {
+                delegates.onSelect({ locationTracks: [props.locationTrackId] });
+                delegates.setToolPanelTab({ id: props.locationTrackId, type: 'LOCATION_TRACK' });
+            }}>
             {props.locationTrackName}
         </Link>
     );
