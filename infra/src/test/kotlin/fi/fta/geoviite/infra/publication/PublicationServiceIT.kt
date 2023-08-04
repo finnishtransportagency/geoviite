@@ -716,8 +716,8 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffTrackNumber(
             changes.getValue(trackNumber.id as IntId),
-            trackNumberDao.fetchVersionChangeTimeOrThrow(trackNumber.version!!),
-            trackNumberDao.fetchVersionChangeTimeOrThrow(updatedTrackNumber.version!!),
+            thisAndPreviousPublication.first().publicationTime,
+            thisAndPreviousPublication.last().publicationTime,
             mutableMapOf()
         )
         assertEquals(3, diff.size)
@@ -753,8 +753,8 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffTrackNumber(
             changes.getValue(trackNumber.id as IntId),
-            trackNumberDao.fetchVersionChangeTimeOrThrow(trackNumber.version!!),
-            trackNumberDao.fetchVersionChangeTimeOrThrow(updatedTrackNumber.version!!),
+            thisAndPreviousPublication.first().publicationTime,
+            thisAndPreviousPublication.last().publicationTime,
             mutableMapOf())
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())

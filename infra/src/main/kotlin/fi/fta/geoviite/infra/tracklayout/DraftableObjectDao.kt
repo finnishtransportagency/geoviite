@@ -63,15 +63,11 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
-    fun fetchPreviousOfficialVersion(rowVersion: RowVersion<T>): RowVersion<T>?
-
     fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> =
         when (publishType) {
             OFFICIAL -> fetchOfficialVersionOrThrow(id)
             DRAFT -> fetchDraftVersionOrThrow(id)
         }
-
-    fun fetchVersionChangeTimeOrThrow(rowVersion: RowVersion<T>): Instant
 }
 
 interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
@@ -238,30 +234,6 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         logger.daoAccess(AccessType.VERSION_FETCH, LocationTrack::class, id)
         return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
-        }
-    }
-
-    override fun fetchPreviousOfficialVersion(rowVersion: RowVersion<T>): RowVersion<T>? {
-        val sql = """
-            select id, version from ${table.versionTable} where draft = false and id = :id and version < :version order by version desc limit 1
-        """.trimIndent()
-        jdbcTemplate.setUser()
-        return jdbcTemplate.queryOptional(sql, mapOf("id" to rowVersion.id.intValue, "version" to rowVersion.version)) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }
-    }
-
-    override fun fetchVersionChangeTimeOrThrow(rowVersion: RowVersion<T>): Instant {
-        val sql = """
-            select change_time from ${table.versionTable} where id = :id and version = :version
-        """.trimIndent()
-        val params = mapOf(
-            "id" to rowVersion.id.intValue,
-            "version" to rowVersion.version,
-        )
-        logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, rowVersion)
-        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
-            rs.getInstant("change_time")
         }
     }
 
