@@ -14,8 +14,6 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -158,30 +156,6 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
             "publication_state" to publicationState.name,
-        )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
-        }
-    }
-
-    fun fetchVersionAtMoment(
-        publicationState: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        moment: Instant,
-    ): RowVersion<ReferenceLine>? {
-        //language=SQL
-        val sql = """
-            select rl.row_id, rl.row_version 
-            from layout.reference_line_publication_view rl
-            where rl.track_number_id = :track_number_id 
-              and :publication_state = any(rl.publication_states)
-              and rl.change_time <= :moment
-            order by rl.change_time desc limit 1
-        """.trimIndent()
-        val params = mapOf(
-            "track_number_id" to trackNumberId.intValue,
-            "publication_state" to publicationState.name,
-            "moment" to Timestamp.from(moment),
         )
         return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")

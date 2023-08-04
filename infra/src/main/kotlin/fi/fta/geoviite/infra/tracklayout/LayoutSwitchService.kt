@@ -217,7 +217,7 @@ class LayoutSwitchService @Autowired constructor(
         }
     }
 
-    fun getLocationTracksLinkedToSwitch(
+    private fun getLocationTracksLinkedToSwitch(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
     ): List<Pair<LocationTrack, LayoutAlignment>> {
