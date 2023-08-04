@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

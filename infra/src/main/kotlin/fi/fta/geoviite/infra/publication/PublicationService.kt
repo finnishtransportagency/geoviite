@@ -614,13 +614,6 @@ class PublicationService @Autowired constructor(
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors
     }
 
-    private fun getLinkedTrackDraftsNotIncludedInPublication(
-        versions: ValidationVersions,
-        linkedTracks: List<LocationTrack>,
-    ): List<LocationTrack> = linkedTracks.filter { track ->
-        track.draft != null && !versions.containsLocationTrack(track.id as IntId)
-    }
-
     private fun getTrackNumber(
         id: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
@@ -1364,16 +1357,4 @@ class PublicationService @Autowired constructor(
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
         propChanges = propChanges,
     )
-
-    private fun getTrackNumberAtMomentOrThrow(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        moment: Instant,
-    ): TrackLayoutTrackNumber {
-        return checkNotNull(
-            trackNumberService.getOfficialAtMoment(
-                trackNumberId,
-                moment
-            )
-        ) { "Track number with official id $trackNumberId does not exist at moment $moment" }
-    }
 }
