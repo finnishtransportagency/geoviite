@@ -16,6 +16,8 @@ import { useLoader } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { KmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { useKmPostChangeTimes } from 'track-layout/track-layout-react-utils';
+import { formatDateShort } from 'utils/date-utils';
 
 type KmPostInfoboxProps = {
     publishType: PublishType;
@@ -45,6 +47,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         () => getKmPost(kmPost.id, publishType),
         [kmPost, kmPostChangeTime, publishType],
     );
+    const changeTimes = useKmPostChangeTimes(kmPost.id);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -145,6 +148,18 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}>
                 <InfoboxContent>
+                    {changeTimes && (
+                        <React.Fragment>
+                            <InfoboxField
+                                label={t('tool-panel.created')}
+                                value={formatDateShort(changeTimes.created)}
+                            />
+                            <InfoboxField
+                                label={t('tool-panel.changed')}
+                                value={formatDateShort(changeTimes.changed)}
+                            />
+                        </React.Fragment>
+                    )}
                     {kmPost?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button

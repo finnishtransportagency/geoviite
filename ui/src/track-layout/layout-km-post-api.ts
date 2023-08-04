@@ -5,7 +5,7 @@ import {
     LayoutKmPostId,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
-import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
+import { ChangeTimes, KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import {
     deleteAdt,
     getAdt,
@@ -15,7 +15,7 @@ import {
     putAdt,
     queryParams,
 } from 'api/api-fetch';
-import { layoutUri } from 'track-layout/track-layout-api';
+import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
 import { BoundingBox, Point } from 'model/geometry';
 import { bboxString, pointString } from 'common/common-api';
@@ -199,3 +199,6 @@ export const getKmLengthsAsCsv = (
 
     return `${layoutUri('track-numbers', publishType, trackNumberId)}/km-lengths/as-csv${params}`;
 };
+
+export const getKmPostChangeTimes = (id: LayoutKmPostId) =>
+    getIgnoreError<ChangeTimes>(changeTimeUri('km-posts', id));
