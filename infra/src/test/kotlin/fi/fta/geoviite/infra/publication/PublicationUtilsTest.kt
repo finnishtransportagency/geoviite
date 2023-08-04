@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -51,5 +53,29 @@ class PublicationUtilsTest {
         assertNull(change)
         assertEquals(a, 1)
         assertEquals(b, 2)
+    }
+
+    @Test
+    fun `Double comparison works properly`() {
+        val changeTrue = compareDouble(1.0, 2.0, 0.2, { it }, PropKey("test"))
+        val changeFalse = compareDouble(1.0, 1.1, 0.2, { it }, PropKey("test"))
+        assertNotNull(changeTrue)
+        assertNull(changeFalse)
+    }
+
+    @Test
+    fun `compareChangeValues works`() {
+        val changeTrue = compareChangeValues(1, 2, { it }, PropKey("test"))
+        val changeFalse = compareChangeValues(1, 1, { it }, PropKey("test"))
+        assertNotNull(changeTrue)
+        assertNull(changeFalse)
+    }
+
+    // formatLocation tests
+    @Test
+    fun `formatLocation works`() {
+        val location = Point(1.0, 2.0001)
+        val formatted = formatLocation(location)
+        assertEquals(formatted, "1.000 E, 2.000 N")
     }
 }

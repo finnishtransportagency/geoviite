@@ -398,67 +398,6 @@ class PublicationDao(
         }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    data class SwitchLocationTrack(val name: AlignmentName, val trackNumberId: IntId<TrackLayoutTrackNumber>,)
-
-    data class Change<T>(
-        val old: T?,
-        val new: T?,
-    )
-
-    data class LocationTrackChanges(
-        val id: IntId<LocationTrack>,
-        val startPointChanged: Boolean,
-        val endPointChanged: Boolean,
-        val name: Change<AlignmentName>,
-        val description: Change<FreeText>,
-        val state: Change<LayoutState>,
-        val duplicateOf: Change<IntId<LocationTrack>>,
-        val type: Change<LocationTrackType>,
-        val length: Change<Double>,
-        val startPoint: Change<Point>,
-        val endPoint: Change<Point>,
-        val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
-    )
-
-    data class SwitchChanges(
-        val id: IntId<TrackLayoutSwitch>,
-        val name: Change<SwitchName>,
-        val state: Change<LayoutStateCategory>,
-        val trapPoint: Change<Boolean>,
-        val type: Change<SwitchType>,
-        val owner: Change<MetaDataName>,
-        val measurementMethod: Change<MeasurementMethod>,
-        val joints: List<PublicationSwitchJoint>,
-        val locationTracks: List<SwitchLocationTrack>
-    )
-
-    data class ReferenceLineChanges(
-        val id: IntId<ReferenceLine>,
-        val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
-        val length: Change<Double>,
-        val startPoint: Change<Point>,
-        val endPoint: Change<Point>,
-    )
-
-    data class TrackNumberChanges(
-        val id: IntId<TrackLayoutTrackNumber>,
-        val trackNumber: Change<TrackNumber>,
-        val description: Change<FreeText>,
-        val state: Change<LayoutState>,
-        val startAddress: Change<TrackMeter>,
-        val endPoint: Change<Point>,
-        val startPointChanged: Boolean,
-        val endPointChanged: Boolean,
-    )
-
-    data class KmPostChanges(
-        val id: IntId<TrackLayoutKmPost>,
-        val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
-        val kmNumber: Change<KmNumber>,
-        val state: Change<LayoutState>,
-        val location: Change<Point>
-    )
-
     fun fetchPublicationTimes(): Map<IntId<Publication>, Instant> {
         val sql = """
             select id, publication_time
@@ -471,7 +410,7 @@ class PublicationDao(
         }.toMap().also { logger.daoAccess(FETCH, Publication::class, it.keys) }
     }
 
-    fun fetchPublicationTrackNumbers(publicationId: IntId<Publication>, comparisonTime: Instant): List<TrackNumberChanges> {
+    fun fetchPublicationTrackNumberChanges(publicationId: IntId<Publication>, comparisonTime: Instant): List<TrackNumberChanges> {
         val sql = """
             select
               tn.id as track_number_id,
@@ -560,7 +499,7 @@ class PublicationDao(
         }.also { logger.daoAccess(FETCH, "track_number_version") }
     }
 
-    fun fetchPublicationLocationTracks(publicationId: IntId<Publication>): List<LocationTrackChanges> {
+    fun fetchPublicationLocationTrackChanges(publicationId: IntId<Publication>): List<LocationTrackChanges> {
         val sql = """
             select
               location_track_id,
@@ -666,7 +605,7 @@ class PublicationDao(
         }.also { logger.daoAccess(FETCH, "location_tracks", publicationId) }
     }
 
-    fun fetchPublicationKmPosts(publicationId: IntId<Publication>): List<KmPostChanges> {
+    fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): List<KmPostChanges> {
         val sql = """
             select 
               km_post.km_post_id,
@@ -702,7 +641,7 @@ class PublicationDao(
         }.also { logger.daoAccess(FETCH, "km_posts", publicationId) }
     }
 
-    fun fetchPublicationReferenceLines(publicationId: IntId<Publication>): List<ReferenceLineChanges> {
+    fun fetchPublicationReferenceLineChanges(publicationId: IntId<Publication>): List<ReferenceLineChanges> {
         val sql = """
             select
               reference_line.reference_line_id,
@@ -766,7 +705,7 @@ class PublicationDao(
         val trackNumberId: IntId<TrackLayoutTrackNumber>,
     )
 
-    fun fetchPublicationSwitches(publicationId: IntId<Publication>): List<SwitchChanges> {
+    fun fetchPublicationChanges(publicationId: IntId<Publication>): List<SwitchChanges> {
         val sql = """
             with joints as (
               select

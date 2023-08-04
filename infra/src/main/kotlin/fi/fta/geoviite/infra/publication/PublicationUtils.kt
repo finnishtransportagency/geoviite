@@ -259,8 +259,8 @@ fun <T, U> compareChange(
         )
     } else null
 
-private val MATH_POINT_TRANSLATION = "matemaattinen piste"
-private val FORWARD_JOINT_TRANSLATION = "etujatkos"
+val MATH_POINT_TRANSLATION = "matemaattinen piste"
+val FORWARD_JOINT_TRANSLATION = "etujatkos"
 fun switchBaseTypeToProp(switchBaseType: SwitchBaseType) =
     when (switchBaseType) {
         SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> FORWARD_JOINT_TRANSLATION

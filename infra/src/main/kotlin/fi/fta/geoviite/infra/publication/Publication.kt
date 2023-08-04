@@ -6,11 +6,14 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
@@ -336,6 +339,67 @@ data class RemovedTrackNumberReferenceIds(
     val kmPostIds: List<IntId<GeometryKmPost>>,
     val alignmentIds: List<IntId<GeometryAlignment>>,
     val planIds: List<IntId<GeometryPlan>>,
+)
+
+data class SwitchLocationTrack(val name: AlignmentName, val trackNumberId: IntId<TrackLayoutTrackNumber>,)
+
+data class Change<T>(
+    val old: T?,
+    val new: T?,
+)
+
+data class LocationTrackChanges(
+    val id: IntId<LocationTrack>,
+    val startPointChanged: Boolean,
+    val endPointChanged: Boolean,
+    val name: Change<AlignmentName>,
+    val description: Change<FreeText>,
+    val state: Change<LayoutState>,
+    val duplicateOf: Change<IntId<LocationTrack>>,
+    val type: Change<LocationTrackType>,
+    val length: Change<Double>,
+    val startPoint: Change<Point>,
+    val endPoint: Change<Point>,
+    val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+)
+
+data class SwitchChanges(
+    val id: IntId<TrackLayoutSwitch>,
+    val name: Change<SwitchName>,
+    val state: Change<LayoutStateCategory>,
+    val trapPoint: Change<Boolean>,
+    val type: Change<SwitchType>,
+    val owner: Change<MetaDataName>,
+    val measurementMethod: Change<MeasurementMethod>,
+    val joints: List<PublicationDao.PublicationSwitchJoint>,
+    val locationTracks: List<SwitchLocationTrack>
+)
+
+data class ReferenceLineChanges(
+    val id: IntId<ReferenceLine>,
+    val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+    val length: Change<Double>,
+    val startPoint: Change<Point>,
+    val endPoint: Change<Point>,
+)
+
+data class TrackNumberChanges(
+    val id: IntId<TrackLayoutTrackNumber>,
+    val trackNumber: Change<TrackNumber>,
+    val description: Change<FreeText>,
+    val state: Change<LayoutState>,
+    val startAddress: Change<TrackMeter>,
+    val endPoint: Change<Point>,
+    val startPointChanged: Boolean,
+    val endPointChanged: Boolean,
+)
+
+data class KmPostChanges(
+    val id: IntId<TrackLayoutKmPost>,
+    val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+    val kmNumber: Change<KmNumber>,
+    val state: Change<LayoutState>,
+    val location: Change<Point>
 )
 
 fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
