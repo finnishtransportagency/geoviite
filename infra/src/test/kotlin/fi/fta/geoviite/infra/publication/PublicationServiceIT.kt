@@ -715,7 +715,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationTrackNumberChanges(thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().publicationTime)
 
         val diff = publicationService.diffTrackNumber(
-            changes.first(),
+            changes.getValue(trackNumber.id as IntId),
             trackNumberDao.fetchVersionChangeTimeOrThrow(trackNumber.version!!),
             trackNumberDao.fetchVersionChangeTimeOrThrow(updatedTrackNumber.version!!),
             mutableMapOf()
@@ -752,7 +752,7 @@ class PublicationServiceIT @Autowired constructor(
         val updatedTrackNumber = trackNumberService.getOrThrow(OFFICIAL, idOfUpdated)
 
         val diff = publicationService.diffTrackNumber(
-            changes.first(),
+            changes.getValue(trackNumber.id as IntId),
             trackNumberDao.fetchVersionChangeTimeOrThrow(trackNumber.version!!),
             trackNumberDao.fetchVersionChangeTimeOrThrow(updatedTrackNumber.version!!),
             mutableMapOf())
@@ -827,7 +827,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
-            changes.first(),
+            changes.getValue(locationTrack.id as IntId<LocationTrack>),
             mapOf(),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -871,7 +871,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
-            changes.first(),
+            changes.getValue(locationTrack.id as IntId<LocationTrack>),
             mapOf(),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -935,7 +935,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
-            changes.first(),
+            changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             publicationDao.fetchTrackNumberNames(),
@@ -971,7 +971,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
-            changes.first(),
+            changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             publicationDao.fetchTrackNumberNames(),
@@ -1027,7 +1027,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
-            changes.first(),
+            changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             publicationDao.fetchTrackNumberNames(),
@@ -1069,7 +1069,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
-            changes.first(),
+            changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             publicationDao.fetchTrackNumberNames(),

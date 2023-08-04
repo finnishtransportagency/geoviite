@@ -410,7 +410,31 @@ class PublicationDao(
         }.toMap().also { logger.daoAccess(FETCH, Publication::class, it.keys) }
     }
 
-    fun fetchPublicationTrackNumberChanges(publicationId: IntId<Publication>, comparisonTime: Instant): List<TrackNumberChanges> {
+
+    data class CachedTrackNumber(
+        val id: IntId<TrackLayoutTrackNumber>,
+        val number: TrackNumber,
+        val changeTime: Instant,
+    )
+
+    fun fetchTrackNumberNames(): List<CachedTrackNumber> {
+        val sql = """
+            select tn.id, tn.number, tn.change_time
+            from layout.track_number_version tn
+            where tn.draft = false
+            order by tn.change_time
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            CachedTrackNumber(
+                rs.getIntId<TrackLayoutTrackNumber>("id"),
+                rs.getTrackNumber("number"),
+                rs.getInstant("change_time"),
+            )
+        }.also { logger.daoAccess(FETCH, "track_number_version") }
+    }
+
+    fun fetchPublicationTrackNumberChanges(publicationId: IntId<Publication>, comparisonTime: Instant): Map<IntId<TrackLayoutTrackNumber>, TrackNumberChanges> {
         val sql = """
             select
               tn.id as track_number_id,
@@ -448,8 +472,9 @@ class PublicationDao(
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue, "comparison_time" to Timestamp.from(comparisonTime))) { rs, _ ->
-            TrackNumberChanges(
-                id = rs.getIntId("track_number_id"),
+            val id = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
+            id to TrackNumberChanges(
+                id,
                 trackNumber = Change(
                     old = rs.getTrackNumberOrNull("old_track_number"),
                     new = rs.getTrackNumberOrNull("track_number")
@@ -473,33 +498,10 @@ class PublicationDao(
                 startPointChanged = rs.getBoolean("start_changed"),
                 endPointChanged = rs.getBoolean("end_changed"),
             )
-        }.also { logger.daoAccess(FETCH, "track_number_version", publicationId) }
+        }.toMap().also { logger.daoAccess(FETCH, "track_number_version", publicationId) }
     }
 
-    data class CachedTrackNumber(
-        val id: IntId<TrackLayoutTrackNumber>,
-        val number: TrackNumber,
-        val changeTime: Instant,
-    )
-
-    fun fetchTrackNumberNames(): List<CachedTrackNumber> {
-        val sql = """
-            select tn.id, tn.number, tn.change_time
-            from layout.track_number_version tn
-            where tn.draft = false
-            order by tn.change_time
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            CachedTrackNumber(
-                rs.getIntId<TrackLayoutTrackNumber>("id"),
-                rs.getTrackNumber("number"),
-                rs.getInstant("change_time"),
-            )
-        }.also { logger.daoAccess(FETCH, "track_number_version") }
-    }
-
-    fun fetchPublicationLocationTrackChanges(publicationId: IntId<Publication>): List<LocationTrackChanges> {
+    fun fetchPublicationLocationTrackChanges(publicationId: IntId<Publication>): Map<IntId<LocationTrack>, LocationTrackChanges> {
         val sql = """
             select
               location_track_id,
@@ -564,8 +566,9 @@ class PublicationDao(
                 "publication_id" to publicationId.intValue,
             )
         ) { rs, _ ->
-            LocationTrackChanges(
-                id = rs.getIntId("location_track_id"),
+            val id = rs.getIntId<LocationTrack>("location_track_id")
+            id to LocationTrackChanges(
+                id,
                 trackNumberId = Change(
                     new = rs.getIntIdOrNull("track_number_id"),
                     old = rs.getIntIdOrNull("old_track_number_id")
@@ -602,10 +605,10 @@ class PublicationDao(
                 startPointChanged = rs.getBoolean("start_changed"),
                 endPointChanged = rs.getBoolean("end_changed"),
             )
-        }.also { logger.daoAccess(FETCH, "location_tracks", publicationId) }
+        }.toMap().also { logger.daoAccess(FETCH, "location_tracks", publicationId) }
     }
 
-    fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): List<KmPostChanges> {
+    fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutKmPost>, KmPostChanges> {
         val sql = """
             select 
               km_post.km_post_id,
@@ -631,17 +634,18 @@ class PublicationDao(
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            KmPostChanges(
-                id = rs.getIntId("km_post_id"),
+            val id = rs.getIntId<TrackLayoutKmPost>("km_post_id")
+            id to KmPostChanges(
+                id,
                 kmNumber = Change(new = rs.getKmNumberOrNull("km_number"), old = rs.getKmNumberOrNull("old_km_number")),
                 trackNumberId = Change(new = rs.getIntIdOrNull("track_number_id"), old = rs.getIntIdOrNull("old_track_number_id")),
                 state = Change(rs.getEnumOrNull<LayoutState>("state"), rs.getEnumOrNull<LayoutState>("old_state")),
                 location = Change(rs.getPointOrNull("point_x", "point_y"), rs.getPointOrNull("old_point_x", "old_point_y")),
             )
-        }.also { logger.daoAccess(FETCH, "km_posts", publicationId) }
+        }.toMap().also { logger.daoAccess(FETCH, "km_posts", publicationId) }
     }
 
-    fun fetchPublicationReferenceLineChanges(publicationId: IntId<Publication>): List<ReferenceLineChanges> {
+    fun fetchPublicationReferenceLineChanges(publicationId: IntId<Publication>): Map<IntId<ReferenceLine>, ReferenceLineChanges> {
         val sql = """
             select
               reference_line.reference_line_id,
@@ -686,14 +690,15 @@ class PublicationDao(
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            ReferenceLineChanges(
-                id = rs.getIntId("reference_line_id"),
+            val id = rs.getIntId<ReferenceLine>("reference_line_id")
+            id to ReferenceLineChanges(
+                id,
                 trackNumberId = Change(new = rs.getIntIdOrNull("track_number_id"), old = rs.getIntIdOrNull("old_track_number_id")),
                 length = Change(rs.getDoubleOrNull("length"), rs.getDoubleOrNull("old_length")),
                 startPoint = Change(new = rs.getPointOrNull("start_x", "start_y"), old = rs.getPointOrNull("old_start_x", "old_start_y")),
                 endPoint = Change(new = rs.getPointOrNull("end_x", "end_y"), old = rs.getPointOrNull("old_end_x", "old_end_y"))
             )
-        }.also { logger.daoAccess(FETCH, "reference_lines", publicationId) }
+        }.toMap().also { logger.daoAccess(FETCH, "reference_lines", publicationId) }
     }
 
     data class PublicationSwitchJoint(
@@ -705,7 +710,7 @@ class PublicationDao(
         val trackNumberId: IntId<TrackLayoutTrackNumber>,
     )
 
-    fun fetchPublicationChanges(publicationId: IntId<Publication>): List<SwitchChanges> {
+    fun fetchPublicationChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutSwitch>, SwitchChanges> {
         val sql = """
             with joints as (
               select
@@ -810,9 +815,10 @@ class PublicationDao(
                     name = locationTrackNames[index],
                 )
             }
+            val id = rs.getIntId<TrackLayoutSwitch>("switch_id")
 
-            SwitchChanges(
-                id = rs.getIntId("switch_id"),
+            id to SwitchChanges(
+                id,
                 name = Change(new = rs.getString("name")?.let(::SwitchName), old = rs.getString("old_name")?.let(::SwitchName)),
                 state = Change(new = rs.getEnumOrNull<LayoutStateCategory>("state_category"), old = rs.getEnumOrNull<LayoutStateCategory>("old_state_category")),
                 type = Change(new = rs.getString("type")?.let(::SwitchType), old = rs.getString("old_type")?.let(::SwitchType)),
@@ -822,7 +828,7 @@ class PublicationDao(
                 joints = joints,
                 locationTracks = lts,
             )
-        }.also { logger.daoAccess(FETCH, "switches", publicationId) }
+        }.toMap().also { logger.daoAccess(FETCH, "switches", publicationId) }
     }
 
     fun fetchChangeTime(): Instant {

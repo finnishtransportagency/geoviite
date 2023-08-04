@@ -1219,7 +1219,7 @@ class PublicationService @Autowired constructor(
                 operation = tn.operation,
                 publication = publication,
                 propChanges = diffTrackNumber(
-                    publicationTrackNumberChanges.find { it.id == tn.version.id }!!,
+                    publicationTrackNumberChanges.getOrElse(tn.version.id) { error("Track number changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
                     geocodingContextsCache
@@ -1228,7 +1228,6 @@ class PublicationService @Autowired constructor(
         }
 
         val referenceLines = publication.referenceLines.map { rl ->
-            val referenceLine = publicationReferenceLineChanges.find { it.id == rl.version.id }!!
             val tn = trackNumberNamesCache.findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }?.number
 
             mapToPublicationTableItem(
@@ -1238,7 +1237,7 @@ class PublicationService @Autowired constructor(
                 operation = rl.operation,
                 publication = publication,
                 propChanges = diffReferenceLine(
-                    referenceLine,
+                    publicationReferenceLineChanges.getOrElse(rl.version.id) { error("Reference line changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
                     geocodingContextsCache,
@@ -1248,7 +1247,6 @@ class PublicationService @Autowired constructor(
         }
 
         val locationTracks = publication.locationTracks.map { lt ->
-            val changes = publicationLocationTrackChanges.find { it.id == lt.version.id }!!
             val tn = trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
@@ -1257,7 +1255,7 @@ class PublicationService @Autowired constructor(
                 operation = lt.operation,
                 publication = publication,
                 propChanges = diffLocationTrack(
-                    changes,
+                    publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
                     geocodingContextsCache,
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1275,7 +1273,7 @@ class PublicationService @Autowired constructor(
                     operation = s.operation,
                     publication = publication,
                     propChanges = diffSwitch(
-                        publicationSwitchChanges.find { it.id == s.version.id }!!,
+                        publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
                         publication.publicationTime,
                         previousComparisonTime,
                         trackNumberNamesCache,
@@ -1285,7 +1283,6 @@ class PublicationService @Autowired constructor(
         }
 
         val kmPosts = publication.kmPosts.map { kp ->
-            val changes = publicationKmPostChanges.find { it.id == kp.version.id }!!
             val tn = trackNumberNamesCache.findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }?.number
                 mapToPublicationTableItem(
                     name = "${getTranslation("km-post")} ${kp.kmNumber}",
@@ -1293,7 +1290,7 @@ class PublicationService @Autowired constructor(
                     operation = kp.operation,
                     publication = publication,
                     propChanges = diffKmPost(
-                        changes,
+                        publicationKmPostChanges.getOrElse(kp.version.id) { error("KM Post changes not found") },
                         publication.publicationTime,
                         previousComparisonTime,
                         trackNumberNamesCache,
@@ -1302,7 +1299,6 @@ class PublicationService @Autowired constructor(
             }
 
         val calculatedLocationTracks = publication.indirectChanges.locationTracks.map { lt ->
-            val changes = publicationLocationTrackChanges.find { it.id == lt.version.id }!!
             val tn = trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
                 mapToPublicationTableItem(
                     name = "${getTranslation("location-track")} ${lt.name}",
@@ -1312,7 +1308,7 @@ class PublicationService @Autowired constructor(
                     publication = publication,
                     isCalculatedChange = true,
                     propChanges = diffLocationTrack(
-                        changes,
+                        publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
                         geocodingContextsCache,
                         publication.publicationTime,
                         previousComparisonTime,
@@ -1323,7 +1319,6 @@ class PublicationService @Autowired constructor(
             }
 
         val calculatedSwitches = publication.indirectChanges.switches.map { s ->
-            val changes = publicationSwitchChanges.find { it.id == s.version.id }!!
             val tns = latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
                 mapToPublicationTableItem(
                     name = "${getTranslation("switch")} ${s.name}",
@@ -1332,7 +1327,7 @@ class PublicationService @Autowired constructor(
                     publication = publication,
                     isCalculatedChange = true,
                     propChanges = diffSwitch(
-                        changes,
+                        publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
                         publication.publicationTime,
                         previousComparisonTime,
                         trackNumberNamesCache,
