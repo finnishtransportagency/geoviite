@@ -69,7 +69,11 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onHighlightItem,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
-    const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
+    const startAndEndPoints = useReferenceLineStartAndEnd(
+        referenceLine?.id,
+        publishType,
+        referenceLineChangeTime,
+    );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const changeTimes = useReferenceLineChangeTimes(referenceLine?.id);
     const [showEditDialog, setShowEditDialog] = React.useState(false);
