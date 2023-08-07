@@ -32,7 +32,7 @@ import java.util.stream.Collectors
 
 
 const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
-
+const val VERTICAL_GEOMETRY_LISTING_GENERATION_USER = "VERT_GEOM_LIST_GEN"
 
 
 @Service
@@ -47,6 +47,7 @@ class GeometryService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val heightTriangleDao: HeightTriangleDao,
     private val elementListingFileDao: ElementListingFileDao,
+    private val verticalGeometryListingFileDao: VerticalGeometryListingFileDao,
     private val lockDao: LockDao,
 ) {
 
@@ -57,6 +58,18 @@ class GeometryService @Autowired constructor(
         try {
             lockDao.runWithLock(DatabaseLock.ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
                 val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
+                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+            }
+        } finally {
+            MDC.remove(USER_HEADER)
+        }
+    }
+
+    private fun runVerticalGeometryListGeneration(op: () -> Unit) {
+        MDC.put(USER_HEADER, VERTICAL_GEOMETRY_LISTING_GENERATION_USER)
+        try {
+            lockDao.runWithLock(DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
+                val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
                 if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
             }
         } finally {
@@ -347,6 +360,36 @@ class GeometryService @Autowired constructor(
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
         return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
     }
+
+    @Scheduled(
+        cron = "\${geoviite.rail-network-export.schedule}"
+    )
+    fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
+        logger.serviceCall("makeVerticalGeometryListingCsv")
+        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
+            tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
+        }
+        val verticalGeometryListingWithTrackNumbers = locationTrackService.list(OFFICIAL, includeDeleted = false)
+            .sortedBy { locationTrack -> locationTrack.name }
+            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number }
+            .flatMap { locationTrack ->
+                val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId<LocationTrack>, null, null)
+
+                verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
+                    verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
+                }
+            }
+
+        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
+        verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
+            VerticalGeometryListingFile(
+                name = FileName(VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK),
+                content = csvFileContent
+            )
+        )
+    }
+
+    fun getEntireVerticalGeometryListingCsv() = verticalGeometryListingFileDao.getVerticalGeometryListingFile()
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)

@@ -10,6 +10,7 @@ enum class DatabaseLock {
     PUBLICATION,
     RATKO,
     ELEMENT_LIST_GEN,
+    VERTICAL_GEOMETRY_LIST_GEN,
     PROJEKTIVELHO
 }
 
