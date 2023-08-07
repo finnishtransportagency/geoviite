@@ -186,19 +186,6 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         onResize: ({ width, height }) => {
             setDiagramWidth(width ?? 0);
             setDiagramHeight(height ?? 0);
-
-            if (
-                width === undefined ||
-                visibleStartM === undefined ||
-                visibleEndM === undefined ||
-                diagramWidth === undefined
-            ) {
-                return;
-            }
-
-            const oldWidthRelativeEndM =
-                visibleStartM + (visibleEndM - visibleStartM) * (width / diagramWidth);
-            setEndM(endM ? Math.min(oldWidthRelativeEndM, endM) : oldWidthRelativeEndM);
         },
     });
 
