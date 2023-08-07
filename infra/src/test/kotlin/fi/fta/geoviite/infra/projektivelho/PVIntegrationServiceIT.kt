@@ -85,7 +85,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         fakeProjektiVelho.search()
         val search = pvIntegrationService.search()
         assertNotNull(search)
-        assertEquals(search.searchId, pvDao.fetchLatestSearch()?.token)
+        assertEquals(search.searchId, pvDao.fetchLatestActiveSearch()?.token)
     }
 
     @Test
@@ -180,7 +180,7 @@ class PVIntegrationServiceIT @Autowired constructor(
 
         pvIntegrationService.updateDictionaries()
         pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
-        val search = pvDao.fetchLatestSearch()!!
+        val search = pvDao.fetchLatestActiveSearch()!!
         val status = pvIntegrationService.getSearchStatusIfReady(search)!!
 
         pvIntegrationService.importFilesFromProjektiVelho(search, status)
