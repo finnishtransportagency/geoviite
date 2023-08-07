@@ -42,6 +42,12 @@ type VerticalGeometryDiagramHolderProps = {
     savedVisibleExtentLookup: VisibleExtentLookup;
 };
 
+type AlignmentAndExtents = {
+    alignmentId: VerticalGeometryDiagramAlignmentId;
+    startM: number;
+    endM: number;
+};
+
 // we don't really need the station values in the plan geometry for anything in this entire diagram
 async function getStartAndEnd(alignmentId: VerticalGeometryDiagramAlignmentId) {
     return 'planId' in alignmentId
@@ -77,29 +83,30 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
 }) => {
     const [startM, setStartM] = React.useState<number>();
     const [endM, setEndM] = React.useState<number>();
-    const [visibleStartM, setVisibleStartM] = React.useState<number>();
-    const [visibleEndM, setVisibleEndM] = React.useState<number>();
     const [isLoadingGeometry, setIsLoadingGeometry] = React.useState(true);
     const [diagramHeight, setDiagramHeight] = React.useState<number>();
     const [diagramWidth, setDiagramWidth] = React.useState<number>();
     const [linkingSummary, setLinkingSummary] = React.useState<PlanLinkingSummaryItem[]>();
     const [processedGeometry, setProcessedGeometry] = React.useState<VerticalGeometryItem[]>();
+    const [alignmentAndExtents, setAlignmentAndExtents] = React.useState<AlignmentAndExtents>();
     const { t } = useTranslation();
 
     const ref = React.useRef<HTMLDivElement>(null);
 
     const horizontalTickLengthMeters = minimumIntervalOrLongest(
-        diagramWidth !== undefined && visibleEndM !== undefined && visibleStartM !== undefined
-            ? diagramWidth / (visibleEndM - visibleStartM)
+        diagramWidth !== undefined &&
+            alignmentAndExtents?.endM !== undefined &&
+            alignmentAndExtents?.startM !== undefined
+            ? diagramWidth / (alignmentAndExtents?.endM - alignmentAndExtents?.startM)
             : 0,
         minimumApproximateHorizontalTickWidthPx,
     );
 
     const kmHeights = useAlignmentHeights(
-        alignmentId,
+        alignmentAndExtents?.alignmentId,
         changeTimes,
-        visibleStartM,
-        visibleEndM,
+        alignmentAndExtents?.startM,
+        alignmentAndExtents?.endM,
         horizontalTickLengthMeters,
     );
 
@@ -156,11 +163,13 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                             : savedVisibleExtentLookup.layout[alignmentId.locationTrackId];
 
                     if (savedVisibleExtent) {
-                        setVisibleStartM(savedVisibleExtent[0]);
-                        setVisibleEndM(savedVisibleExtent[1]);
+                        setAlignmentAndExtents({
+                            alignmentId,
+                            startM: savedVisibleExtent[0],
+                            endM: savedVisibleExtent[1],
+                        });
                     } else {
-                        setVisibleStartM(start);
-                        setVisibleEndM(end);
+                        setAlignmentAndExtents({ alignmentId, startM: start, endM: end });
                     }
 
                     setIsLoadingGeometry(false);
@@ -189,22 +198,22 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
 
             if (
                 width === undefined ||
-                visibleStartM === undefined ||
-                visibleEndM === undefined ||
+                alignmentAndExtents?.startM === undefined ||
+                alignmentAndExtents?.endM === undefined ||
                 diagramWidth === undefined
             ) {
                 return;
             }
 
             const oldWidthRelativeEndM =
-                visibleStartM + (visibleEndM - visibleStartM) * (width / diagramWidth);
+                alignmentAndExtents?.startM +
+                (alignmentAndExtents?.endM - alignmentAndExtents?.startM) * (width / diagramWidth);
             setEndM(endM ? Math.min(oldWidthRelativeEndM, endM) : oldWidthRelativeEndM);
         },
     });
 
     function onMove(startM: number, endM: number) {
-        setVisibleStartM(startM);
-        setVisibleEndM(endM);
+        setAlignmentAndExtents({ alignmentId, startM, endM });
         setSavedVisibleExtentM(startM, endM);
     }
 
@@ -228,8 +237,8 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                     linkingSummary={linkingSummary}
                     startM={startM}
                     endM={endM}
-                    visibleStartM={visibleStartM ?? startM}
-                    visibleEndM={visibleEndM ?? endM}
+                    visibleStartM={alignmentAndExtents?.startM ?? startM}
+                    visibleEndM={alignmentAndExtents?.endM ?? endM}
                     onMove={onMove}
                     showArea={showArea}
                     onSelect={onSelect}
