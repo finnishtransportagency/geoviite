@@ -23,12 +23,15 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         const selectedGeometryAlignment = state.selection.selectedItems.geometryAlignmentIds[0];
         const selectedLocationTrack = state.selection.selectedItems.locationTracks[0];
 
-        if (selectedGeometryAlignment) {
+        if (
+            state.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT' &&
+            selectedGeometryAlignment
+        ) {
             setAlignmentId({
                 planId: selectedGeometryAlignment.planId,
                 alignmentId: selectedGeometryAlignment.geometryId,
             });
-        } else if (selectedLocationTrack) {
+        } else if (state.selectedToolPanelTab?.type === 'LOCATION_TRACK' && selectedLocationTrack) {
             setAlignmentId({
                 locationTrackId: selectedLocationTrack,
                 publishType: state.publishType,
