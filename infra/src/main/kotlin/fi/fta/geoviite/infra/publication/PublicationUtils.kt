@@ -263,6 +263,8 @@ fun switchBaseTypeToProp(switchBaseType: SwitchBaseType) =
         SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> MATH_POINT_TRANSLATION
     }
 
+val NOT_CALCULATED_TRANSLATION = "Ei laskettu"
+
 fun getTranslation(key: String) = publicationTranslations[key] ?: ""
 
 private val publicationTranslations = mapOf(

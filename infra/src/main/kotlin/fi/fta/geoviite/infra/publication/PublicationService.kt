@@ -1096,6 +1096,7 @@ class PublicationService @Autowired constructor(
         changes: SwitchChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
+        operation: Operation,
         trackNumberCache: List<PublicationDao.CachedTrackNumber>,
         geocodingContextCaches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>
     ): List<PublicationChange<*>> {
@@ -1143,9 +1144,9 @@ class PublicationService @Autowired constructor(
             compareChangeValues(changes.owner.old, changes.owner.new, { it }, PropKey("owner")),
             compareChange(
                 { changes.locationTracks.any() },
-                null,
-                changes.locationTracks,
-                { it.joinToString(", ") { it.name } },
+                if (operation != Operation.CREATE) listOf(NOT_CALCULATED_TRANSLATION) else null,
+                changes.locationTracks.map { it.name },
+                { it.joinToString(", ") { it } },
                 PropKey(LocalizationKey("location-track-connectivity")),
                 null,
                 null,
@@ -1298,6 +1299,7 @@ class PublicationService @Autowired constructor(
                         publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
                         publication.publicationTime,
                         previousComparisonTime,
+                        s.operation,
                         trackNumberNamesCache,
                         geocodingContextsCache,
                     ),
@@ -1352,6 +1354,7 @@ class PublicationService @Autowired constructor(
                         publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
                         publication.publicationTime,
                         previousComparisonTime,
+                        s.operation,
                         trackNumberNamesCache,
                         geocodingContextsCache,
                     ),
