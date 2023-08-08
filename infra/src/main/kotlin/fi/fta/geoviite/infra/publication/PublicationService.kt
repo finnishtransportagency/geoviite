@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -830,7 +831,7 @@ class PublicationService @Autowired constructor(
                 PropKey(LocalizationKey("start-address"))
             ),
             compareChange(
-                { trackNumberChanges.endPointChanged },
+                { !pointsAreSame(trackNumberChanges.endPoint.old, trackNumberChanges.endPoint.new) },
                 trackNumberChanges.endPoint.old,
                 trackNumberChanges.endPoint.new,
                 { point ->
@@ -902,13 +903,19 @@ class PublicationService @Autowired constructor(
                 locationTrackChanges.length.new,
                 ::roundTo1Decimal,
                 PropKey(LocalizationKey("length")),
-                if (locationTrackChanges.length.old != null && locationTrackChanges.length.new != null) lengthChangedRemark(
-                    locationTrackChanges.length.old,
-                    locationTrackChanges.length.new
+                if (locationTrackChanges.length.new != null && locationTrackChanges.length.old != null && !distancesAreSame(
+                        locationTrackChanges.length.old,
+                        locationTrackChanges.length.new
+                    )
+                ) lengthChangedRemark(
+                    lengthDifference(
+                        locationTrackChanges.length.old,
+                        locationTrackChanges.length.new
+                    )
                 ) else null
             ),
             compareChange(
-                { locationTrackChanges.startPointChanged },
+                { !pointsAreSame(locationTrackChanges.startPoint.old, locationTrackChanges.startPoint.new) },
                 locationTrackChanges.startPoint.old,
                 locationTrackChanges.startPoint.new,
                 ::formatLocation,
@@ -925,7 +932,7 @@ class PublicationService @Autowired constructor(
                 ) else null
             ),
             compareChange(
-                { locationTrackChanges.endPointChanged },
+                { !pointsAreSame(locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new) },
                 locationTrackChanges.endPoint.old,
                 locationTrackChanges.endPoint.new,
                 ::formatLocation,
@@ -1001,10 +1008,19 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             compareDouble(
-                changes.length.old, changes.length.new, DISTANCE_CHANGE_THRESHOLD, { roundTo1Decimal(it) }, PropKey("length"),
-                if (changes.length.old != null && changes.length.new != null) lengthChangedRemark(
-                    changes.length.old,
-                    changes.length.new
+                changes.length.old, changes.length.new,
+                DISTANCE_CHANGE_THRESHOLD,
+                { roundTo1Decimal(it) },
+                PropKey("length"),
+                if (changes.length.old != null && changes.length.new != null && !distancesAreSame(
+                        changes.length.old,
+                        changes.length.new
+                    )
+                ) lengthChangedRemark(
+                    lengthDifference(
+                        changes.length.old,
+                        changes.length.new
+                    )
                 ) else null,
             ),
             compareChange(
@@ -1015,10 +1031,17 @@ class PublicationService @Autowired constructor(
                     point?.let { contextGetter()?.getAddress(point)?.first?.toString() }
                 },
                 PropKey(LocalizationKey("start-address")),
-                pointMovedEnough(
-                    changes.startPoint.old,
-                    changes.startPoint.new
-                ).let { (movedEnough, dist) -> if (movedEnough) pointMovedRemark(dist) else null }),
+                if (pointsAreSame(
+                        changes.startPoint.old,
+                        changes.startPoint.new
+                    )
+                ) pointMovedRemark(
+                    calculateDistance(
+                        listOfNotNull(changes.startPoint.old, changes.startPoint.new),
+                        LAYOUT_SRID
+                    )
+                ) else null
+            ),
             compareChange(
                 { newEndAndGeocodingContext.first != oldEndAndGeocodingContext.first },
                 oldEndAndGeocodingContext,
@@ -1027,10 +1050,16 @@ class PublicationService @Autowired constructor(
                     point?.let { contextGetter()?.getAddress(point)?.first?.toString() }
                 },
                 PropKey(LocalizationKey("end-address")),
-                pointMovedEnough(
-                    changes.endPoint.old,
-                    changes.endPoint.new
-                ).let { (movedEnough, dist) -> if (movedEnough) pointMovedRemark(dist) else null }),
+                if (pointsAreSame(
+                        changes.endPoint.old,
+                        changes.endPoint.new
+                    )
+                ) pointMovedRemark(
+                    calculateDistance(
+                        listOfNotNull(changes.endPoint.old, changes.endPoint.new),
+                        LAYOUT_SRID
+                    )
+                ) else null),
             if (changedKmNumbers != null && changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
                     PropKey(LocalizationKey("geometry")),

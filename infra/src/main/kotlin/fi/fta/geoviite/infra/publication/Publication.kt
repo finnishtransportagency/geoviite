@@ -350,8 +350,6 @@ data class Change<T>(
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
-    val startPointChanged: Boolean,
-    val endPointChanged: Boolean,
     val name: Change<AlignmentName>,
     val description: Change<FreeText>,
     val state: Change<LayoutState>,
@@ -390,8 +388,6 @@ data class TrackNumberChanges(
     val state: Change<LayoutState>,
     val startAddress: Change<TrackMeter>,
     val endPoint: Change<Point>,
-    val startPointChanged: Boolean,
-    val endPointChanged: Boolean,
 )
 
 data class KmPostChanges(

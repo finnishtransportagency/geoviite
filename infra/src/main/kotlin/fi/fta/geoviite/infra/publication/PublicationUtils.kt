@@ -1,12 +1,11 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -150,22 +149,21 @@ fun formatLocation(newPresentationJointLocation: Point) =
         )
     } N"
 
-fun lengthChangedRemark(
-    oldLength: Double?,
-    newLength: Double?,
-): PublicationChangeRemark? {
-    val lengthDelta = if (oldLength != null && newLength != null) abs(abs(newLength) - abs(oldLength)) else 0.0
-    return if (lengthDelta >= DISTANCE_CHANGE_THRESHOLD) {
-        PublicationChangeRemark(
-            "changed-x-meters",
-            formatDistance(lengthDelta)
-        )
-    } else null
-}
+val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
+fun lengthDifference(len1: Double, len2: Double) = abs(abs(len1) - abs(len2))
 
-fun pointMovedEnough(point1: Point?, point2: Point?) =
-    if (point1 != null && point2 != null) calculateDistance(listOf(point1, point2), LAYOUT_SRID).let { dist -> (dist > 0.005) to dist } else false to 0.0
+fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
+    point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
+
+fun distancesAreSame(oldLength: Double?, newLength: Double?) =
+    oldLength == newLength || newLength != null && oldLength != null && lengthDifference(oldLength, newLength) <= DISTANCE_CHANGE_THRESHOLD
+
+fun lengthChangedRemark(lengthDelta: Double) =
+    PublicationChangeRemark(
+        "changed-x-meters",
+        formatDistance(lengthDelta)
+    )
 
 fun pointMovedRemark(distance: Double) =
     PublicationChangeRemark(
@@ -190,8 +188,6 @@ fun <T, U> compareChangeValues(
         remark = remark,
         enumLocalizationKey = enumLocalizationKey,
     )
-
-val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
 fun <U> compareDouble(
     oldValue: Double?,

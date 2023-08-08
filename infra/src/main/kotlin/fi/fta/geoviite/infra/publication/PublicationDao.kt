@@ -446,8 +446,6 @@ class PublicationDao(
               old_tn.state as old_state,
               rl.start_address as start_address,
               old_rl.start_address as old_start_address,
-              track_number.end_changed,
-              track_number.start_changed,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) old_end_x,
               postgis.st_y(postgis.st_endpoint(old_sg_last.geometry)) old_end_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) end_x,
@@ -495,8 +493,6 @@ class PublicationDao(
                     old = rs.getPointOrNull("old_end_x", "old_end_y"),
                     new = rs.getPointOrNull("end_x", "end_y")
                 ),
-                startPointChanged = rs.getBoolean("start_changed"),
-                endPointChanged = rs.getBoolean("end_changed"),
             )
         }.toMap().also { logger.daoAccess(FETCH, "track_number_version", publicationId) }
     }
@@ -506,8 +502,6 @@ class PublicationDao(
             select
               location_track_id,
               location_track_version,
-              start_changed,
-              end_changed,
               ltv.name,
               old_ltv.name old_name,
               ltv.description,
@@ -602,8 +596,6 @@ class PublicationDao(
                     old = rs.getEnumOrNull<LocationTrackType>("old_type")
                 ),
                 length = Change(new = rs.getDoubleOrNull("length"), old = rs.getDoubleOrNull("old_length")),
-                startPointChanged = rs.getBoolean("start_changed"),
-                endPointChanged = rs.getBoolean("end_changed"),
             )
         }.toMap().also { logger.daoAccess(FETCH, "location_tracks", publicationId) }
     }
