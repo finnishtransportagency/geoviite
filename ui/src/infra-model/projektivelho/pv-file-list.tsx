@@ -95,10 +95,18 @@ export const PVFileList = ({
                 <thead>
                     <tr>
                         <Th></Th>
-                        <Th>{t('projektivelho.file-list.header.project-name')}</Th>
-                        <Th>{t('projektivelho.file-list.header.document-name')}</Th>
-                        <Th>{t('projektivelho.file-list.header.document-description')}</Th>
-                        <Th>{t('projektivelho.file-list.header.document-modified')}</Th>
+                        <Th qa-id="projektivelho.project-name">
+                            {t('projektivelho.file-list.header.project-name')}
+                        </Th>
+                        <Th qa-id="projektivelho.document-name">
+                            {t('projektivelho.file-list.header.document-name')}
+                        </Th>
+                        <Th qa-id="projektivelho.document-description">
+                            {t('projektivelho.file-list.header.document-description')}
+                        </Th>
+                        <Th qa-id="projektivelho.document-modified">
+                            {t('projektivelho.file-list.header.document-modified')}
+                        </Th>
                         <WriteAccessRequired>
                             <Th></Th>
                         </WriteAccessRequired>

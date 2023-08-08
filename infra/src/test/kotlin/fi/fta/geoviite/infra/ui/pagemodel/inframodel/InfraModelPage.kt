@@ -53,9 +53,9 @@ class InfraModelPage : PageModel(By.xpath("//div[@qa-id='main-content-container'
     fun openVelhoWaitingForApprovalList(): VelhoPage {
         childElement(byQaId("infra-model-nav-tab-waiting")).click()
         waitChildVisible(By.cssSelector("div.projektivelho-file-list"))
-        val headers =
-            childElements(By.cssSelector("div.projektivelho-file-list thead tr th")).map { it.text }
-        return VelhoPage(headers)
+        val qaHeaders =
+            childElements(By.cssSelector("div.projektivelho-file-list thead tr th")).map { it.getAttribute("qa-id") }
+        return VelhoPage(qaHeaders)
     }
 
 }

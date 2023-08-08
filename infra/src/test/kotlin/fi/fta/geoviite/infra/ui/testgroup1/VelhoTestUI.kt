@@ -37,11 +37,11 @@ class VelhoTestUI @Autowired constructor(
         insertFullExampleVelhoDocumentMetadata()
         startGeoviite()
         val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
-        fun identifyTestProject(item: VelhoListItem) = item.getColumnContent("Projektin tiedot") == "testi_projekti"
+        fun identifyTestProject(item: VelhoListItem) = item.getProjectName() == "testi_projekti"
         fun assertTestProjectIsVisible() {
             assertEquals(
                 "foo bar.xml",
-                velhoPage.getItemWhenMatches(::identifyTestProject).getColumnContent("Dokumentin nimi"))
+                velhoPage.getItemWhenMatches(::identifyTestProject).getDocumentName())
         }
 
         assertTestProjectIsVisible()
