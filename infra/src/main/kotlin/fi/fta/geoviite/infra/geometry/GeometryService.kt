@@ -362,7 +362,7 @@ class GeometryService @Autowired constructor(
     }
 
     @Scheduled(
-        cron = "\${geoviite.rail-network-export.schedule}"
+        cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}"
     )
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
         logger.serviceCall("makeVerticalGeometryListingCsv")
