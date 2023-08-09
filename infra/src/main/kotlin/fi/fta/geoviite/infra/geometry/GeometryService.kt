@@ -375,7 +375,7 @@ class GeometryService @Autowired constructor(
                 { locationTrack -> locationTrack.name },
             ))
             .flatMap { locationTrack ->
-                val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId<LocationTrack>, null, null)
+                val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
 
                 verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
                     verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
