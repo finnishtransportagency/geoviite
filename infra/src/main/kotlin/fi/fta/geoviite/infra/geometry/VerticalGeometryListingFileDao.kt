@@ -67,8 +67,8 @@ class VerticalGeometryListingFileDao @Autowired constructor(
             select max(change_time) change_time 
             from layout.vertical_geometry_listing_file
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
+
+        return jdbcTemplate.queryOne(sql) { rs , _ -> rs.getInstantOrNull("change_time") ?: Instant.EPOCH }
             .also { logger.daoAccess(AccessType.FETCH, "${VerticalGeometryListingFile::class.simpleName}.changeTime") }
-            .firstOrNull() ?: Instant.EPOCH
     }
 }
