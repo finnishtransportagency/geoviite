@@ -275,9 +275,7 @@ export async function getTrackLayoutPlans(
     ).then((plans) => plans.filter(filterNotEmpty));
 }
 
-export async function getProjects(): Promise<Project[]> {
-    const changeTime = getChangeTimes().project;
-
+export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
     return projectCache.get(changeTime, undefined, () =>
         getThrowError<Project[]>(`${GEOMETRY_URI}/projects`),
     );
