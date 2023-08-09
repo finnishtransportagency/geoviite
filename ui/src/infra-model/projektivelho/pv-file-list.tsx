@@ -189,7 +189,8 @@ const PVFileListRow = ({
                             <Button
                                 title={t('projektivelho.file-list.upload-tooltip')}
                                 variant={ButtonVariant.SECONDARY}
-                                onClick={onImport}>
+                                onClick={onImport}
+                                qa-id="pv-import-button">
                                 {t('projektivelho.file-list.upload')}
                             </Button>
                         </div>

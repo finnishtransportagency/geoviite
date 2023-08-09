@@ -27,6 +27,11 @@ class VelhoPage(headers: List<String>) : TableModel<VelhoListItem>(
     fun restoreFirstMatching(by: (item: VelhoListItem) -> Boolean) = apply {
         clickOnItemBy(by, byQaId("pv-restore-button"))
     }
+
+    fun acceptFirstMatching(by: (item: VelhoListItem) -> Boolean): InfraModelUploadAndEditForm {
+        clickOnItemBy(by, byQaId("pv-import-button"))
+        return InfraModelUploadAndEditForm()
+    }
 }
 
 data class VelhoListItem(

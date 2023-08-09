@@ -1,11 +1,13 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.VelhoListItem
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.util.FileName
@@ -15,8 +17,12 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.io.File
+import java.nio.charset.Charset
 import java.time.Instant
 import kotlin.test.assertEquals
+
+const val TESTFILE_SIMPLE_ANONYMIZED_PATH: String = "src/test/resources/inframodel/testfile_simple_anonymized.xml"
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -53,12 +59,28 @@ class VelhoTestUI @Autowired constructor(
         assertTestProjectIsVisible()
     }
 
+    @Test
+    fun import() {
+        materialDictionaries.forEach(pvDao::upsertDictionary)
+        projectDictionaries.forEach(pvDao::upsertDictionary)
+
+        pvDao.insertDocumentContent(
+            File(TESTFILE_SIMPLE_ANONYMIZED_PATH).readText(Charsets.UTF_8),
+            insertFullExampleVelhoDocumentMetadata().id
+        )
+        startGeoviite()
+        val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
+        velhoPage
+            .acceptFirstMatching { item -> item.getProjectName() == "testi_projekti" }
+            .tallenna(true)
+    }
+
     private fun insertFullExampleVelhoDocumentMetadata(
         documentOid: Oid<PVDocument> = Oid("1.2.3.4.5"),
         projectOid: Oid<PVProject> = Oid("5.6.7.8.9"),
         projectGroupOid: Oid<PVProjectGroup> = Oid("4.5.6.7.8"),
         assignmentOid: Oid<PVAssignment> = Oid("3.4.5.6.7"),
-    ) {
+    ): RowVersion<PVDocument> {
         val someProperties = PVApiProperties(
             name = PVProjectName("testi_projekti"),
             state = PVDictionaryCode("tila/tila14"),
@@ -93,7 +115,7 @@ class VelhoTestUI @Autowired constructor(
             )
         )
 
-        pvDao.insertDocumentMetadata(
+        return pvDao.insertDocumentMetadata(
             oid = documentOid,
             metadata = PVApiDocumentMetadata(
                 materialState = PVDictionaryCode("aineistotila/tila01"),

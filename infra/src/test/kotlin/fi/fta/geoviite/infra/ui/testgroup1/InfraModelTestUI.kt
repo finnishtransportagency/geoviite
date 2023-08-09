@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
@@ -15,6 +14,7 @@ import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+
 
 @ActiveProfiles("dev", "test", "e2e")
 @EnableAutoConfiguration
