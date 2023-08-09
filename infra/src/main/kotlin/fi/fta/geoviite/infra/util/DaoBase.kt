@@ -33,6 +33,7 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
 
     GEOMETRY_PLAN("geometry", "plan"),
+    GEOMETRY_PLAN_PROJECT("geometry", "plan_project"),
     GEOMETRY_ALIGNMENT("geometry", "alignment"),
     GEOMETRY_SWITCH("geometry", "switch"),
     GEOMETRY_KM_POST("geometry", "km_post", listOf("track_number_id", "km_number")),

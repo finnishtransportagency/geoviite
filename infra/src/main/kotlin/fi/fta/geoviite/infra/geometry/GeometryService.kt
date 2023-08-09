@@ -113,6 +113,11 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchProjects()
     }
 
+    fun getProjectChangeTime(): Instant {
+        logger.serviceCall("getProjectChangeTime")
+        return geometryDao.fetchProjectChangeTime()
+    }
+
     fun getProject(id: IntId<Project>): Project {
         logger.serviceCall("getProject", "id" to id)
         return geometryDao.getProject(id)

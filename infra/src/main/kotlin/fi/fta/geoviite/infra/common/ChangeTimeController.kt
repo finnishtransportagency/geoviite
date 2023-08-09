@@ -22,6 +22,7 @@ data class CollectedChangeTimes(
     val layoutSwitch: Instant,
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
+    val project: Instant,
     val publication: Instant,
     val ratkoPush: Instant,
     val pvDocument: Instant,
@@ -54,6 +55,7 @@ class ChangeTimeController(
             layoutKmPost = kmPostService.getChangeTime(),
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
+            project = geometryService.getProjectChangeTime(),
             publication = publicationService.getChangeTime(),
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
             pvDocument = pvDocumentService.getDocumentChangeTime(),
@@ -100,6 +102,13 @@ class ChangeTimeController(
     fun getGeometryPlanChangeTime(): Instant {
         logger.apiCall("getGeometryPlanChangeTime")
         return geometryService.getGeometryPlanChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projects")
+    fun getProjectChangeTime(): Instant {
+        logger.apiCall("getProjectChangeTime")
+        return geometryService.getProjectChangeTime()
     }
 
     @PreAuthorize(AUTH_ALL_READ)
