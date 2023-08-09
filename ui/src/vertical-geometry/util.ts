@@ -61,7 +61,7 @@ export function getBottomAndTopTicks(
     );
 }
 
-export function zeroDivision(a: number, b: number): number {
+export function zeroSafeDivision(a: number, b: number): number {
     return b === 0 ? 0 : a / b;
 }
 
