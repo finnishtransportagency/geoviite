@@ -370,8 +370,10 @@ class GeometryService @Autowired constructor(
             tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
         }
         val verticalGeometryListingWithTrackNumbers = locationTrackService.list(OFFICIAL, includeDeleted = false)
-            .sortedBy { locationTrack -> locationTrack.name }
-            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number }
+            .sortedWith(compareBy(
+                { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
+                { locationTrack -> locationTrack.name },
+            ))
             .flatMap { locationTrack ->
                 val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId<LocationTrack>, null, null)
 
