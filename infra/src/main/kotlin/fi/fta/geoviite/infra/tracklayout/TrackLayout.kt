@@ -138,6 +138,12 @@ data class LocationTrack(
         require(dataType == DataType.TEMP || alignmentVersion != null) {
             "LocationTrack in DB must have an alignment"
         }
+        require(
+            topologyStartSwitch?.switchId == null ||
+                    topologyStartSwitch.switchId != topologyEndSwitch?.switchId
+        ) {
+            "LocationTrack cannot topologically connect to the same switch at both ends"
+        }
     }
 
     fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> = alignmentVersion
