@@ -1,17 +1,12 @@
 package fi.fta.geoviite.infra.inframodel
 
-import PVDocument
-import PVDocumentHeader
-import PVDocumentStatus
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
-import fi.fta.geoviite.infra.projektivelho.PVApiRedirect
-import fi.fta.geoviite.infra.projektivelho.PVDocumentCounts
-import fi.fta.geoviite.infra.projektivelho.PVDocumentService
+import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

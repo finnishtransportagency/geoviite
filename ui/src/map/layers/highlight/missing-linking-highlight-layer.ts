@@ -37,7 +37,9 @@ export function createMissingLinkingHighlightLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
+        inFlight = true;
         const alignmentPromise = getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL');
 
         const linkingStatusPromise = getAlignmentSectionsWithoutLinkingByTiles(
@@ -60,7 +62,10 @@ export function createMissingLinkingHighlightLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -68,5 +73,6 @@ export function createMissingLinkingHighlightLayer(
     return {
         name: 'missing-linking-highlight-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

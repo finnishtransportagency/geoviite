@@ -95,10 +95,8 @@ class MapAlignmentService(
                     id = it.key,
                     type = LOCATION_TRACK,
                     ranges = it.value.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
-                        if (!acc.contains(info.alignmentId.index - 1)) acc.put(
-                            info.alignmentId.index,
+                        if (!acc.contains(info.alignmentId.index - 1)) acc[info.alignmentId.index] =
                             Range(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart)
-                        )
                         else {
                             val prev = acc.remove(info.alignmentId.index - 1)
                             prev?.let {
@@ -117,11 +115,11 @@ class MapAlignmentService(
         publishType: PublishType,
         referenceLineIds: List<IntId<ReferenceLine>>,
     ): List<AlignmentHeader<ReferenceLine>> {
-        val refererenceLines = referenceLineService.getMany(publishType, referenceLineIds)
+        val referenceLines = referenceLineService.getMany(publishType, referenceLineIds)
         val trackNumbers = trackNumberService
-            .getMany(publishType, refererenceLines.map(ReferenceLine::trackNumberId))
+            .getMany(publishType, referenceLines.map(ReferenceLine::trackNumberId))
             .associateBy(TrackLayoutTrackNumber::id)
-        return refererenceLines.map { line ->
+        return referenceLines.map { line ->
             val trackNumber = requireNotNull(trackNumbers[line.trackNumberId]) {
                 "ReferenceLine in DB must have an existing TrackNumber"
             }

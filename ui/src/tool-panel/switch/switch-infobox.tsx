@@ -40,6 +40,8 @@ import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-inf
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
+import { formatDateShort } from 'utils/date-utils';
+import { useSwitchChangeTimes } from 'track-layout/track-layout-react-utils';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -144,6 +146,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitchJointConnections(publishType, switchId),
         [publishType, layoutSwitch],
     );
+    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id);
 
     const switchJointTrackMeters = useLoader(() => {
         return switchJointConnections
@@ -341,6 +344,18 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 title={t('tool-panel.switch.layout.change-info-heading')}
                 qa-id="switch-heading-infobox">
                 <InfoboxContent>
+                    {switchChangeTimes && (
+                        <React.Fragment>
+                            <InfoboxField
+                                label={t('tool-panel.created')}
+                                value={formatDateShort(switchChangeTimes.created)}
+                            />
+                            <InfoboxField
+                                label={t('tool-panel.changed')}
+                                value={formatDateShort(switchChangeTimes.changed)}
+                            />
+                        </React.Fragment>
+                    )}
                     {layoutSwitch?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button

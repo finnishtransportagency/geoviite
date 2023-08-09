@@ -5,7 +5,7 @@ import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import waitUntilDoesNotExist
 
-open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(by) {
+open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")) : PageModel(by) {
 
     private val titleElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__title"))
     private val contentElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__content"))
@@ -27,8 +27,8 @@ open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(
 }
 
 class DialogPopUpWithTextField : DialogPopUp() {
-    fun inputTextField(input: String, textFieldIndx: Int = 0) =
-        webElement.findElements(By.cssSelector("input.text-field__input-element"))[textFieldIndx].sendKeys(input)
+    fun inputTextField(input: String, textFieldIdx: Int = 0) =
+        webElement.findElements(By.cssSelector("input.text-field__input-element"))[textFieldIdx].sendKeys(input)
 
     fun inputTextField(inputs: List<String>) {
         logger.info("Input text fields [$inputs]")

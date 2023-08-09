@@ -579,7 +579,7 @@ private fun calculateOverlappingLocationTracks(
     locationTracks: Collection<Pair<LocationTrack, LayoutAlignment>>,
 ) = locationTracks
     .filter { (_, alignment) -> alignmentContainsKilometer(geocodingContext, alignment, kilometers) }
-    .map { (locationTrack, _) -> locationTrack.id as IntId<LocationTrack> }
+    .map { (locationTrack, _) -> locationTrack.id as IntId }
 
 private fun findMatchingJoints(
     segment: LayoutSegment,

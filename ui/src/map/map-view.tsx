@@ -22,7 +22,7 @@ import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { LAYOUT_SRID } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
@@ -63,6 +63,7 @@ import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/tr
 import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 declare global {
     interface Window {
@@ -70,24 +71,26 @@ declare global {
     }
 }
 
-type MapViewProps = {
+export type MapViewProps = {
     map: Map;
     selection: Selection;
     publishType: PublishType;
-    linkingState?: LinkingState;
+    linkingState: LinkingState | undefined;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onClickLocation: OnClickLocationFunction;
-    onViewportUpdate?: (viewport: MapViewport) => void;
+    onViewportUpdate: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
-    onSetLayoutPoint?: (linkPoint: LinkPoint) => void;
-    onsetGeometryPoint?: (linkPoint: LinkPoint) => void;
-    onSetLayoutClusterLinkPoint?: (linkPoint: LinkPoint) => void;
-    onSetGeometryClusterLinkPoint?: (linkPoint: LinkPoint) => void;
-    onRemoveGeometryLinkPoint?: (linkPoint: LinkPoint) => void;
-    onRemoveLayoutLinkPoint?: (linkPoint: LinkPoint) => void;
-    hoveredOverPlanSection: HighlightedAlignment | undefined;
+    onSetLayoutPoint: (linkPoint: LinkPoint) => void;
+    onSetGeometryPoint: (linkPoint: LinkPoint) => void;
+    onSetLayoutClusterLinkPoint: (linkPoint: LinkPoint) => void;
+    onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
+    onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
+    onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
+    hoveredOverPlanSection?: HighlightedAlignment | undefined;
+    manuallySetPlan?: GeometryPlanLayout;
+    onDoneLoading: () => void;
 };
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
@@ -133,14 +136,22 @@ const MapView: React.FC<MapViewProps> = ({
     onSelect,
     onViewportUpdate,
     hoveredOverPlanSection,
-    ...props
+    manuallySetPlan,
+    onSetLayoutClusterLinkPoint,
+    onSetGeometryClusterLinkPoint,
+    onRemoveLayoutLinkPoint,
+    onRemoveGeometryLinkPoint,
+    onShownLayerItemsChange,
+    onHighlightItems,
+    onClickLocation,
+    onDoneLoading,
 }: MapViewProps) => {
     const { t } = useTranslation();
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
-    const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
+    const visibleLayers = React.useRef<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
@@ -151,28 +162,20 @@ const MapView: React.FC<MapViewProps> = ({
         if (clusterPoint) {
             switch (clickType) {
                 case 'all':
-                    props.onSetLayoutClusterLinkPoint &&
-                        props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
-                    props.onSetGeometryClusterLinkPoint &&
-                        props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
+                    onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
+                    onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
                     break;
                 case 'geometryPoint':
-                    props.onSetGeometryClusterLinkPoint &&
-                        props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
-                    props.onRemoveLayoutLinkPoint &&
-                        props.onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
+                    onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
+                    onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
                     break;
                 case 'layoutPoint':
-                    props.onSetLayoutClusterLinkPoint &&
-                        props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
-                    props.onRemoveGeometryLinkPoint &&
-                        props.onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
+                    onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
+                    onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
                     break;
                 case 'remove':
-                    if (props.onRemoveGeometryLinkPoint && props.onRemoveLayoutLinkPoint) {
-                        props.onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
-                        props.onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
-                    }
+                    onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
+                    onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
             }
         }
     };
@@ -200,6 +203,12 @@ const MapView: React.FC<MapViewProps> = ({
             view: getOlViewByDomainViewport(map.viewport),
         });
 
+        window.map.on('rendercomplete', () => {
+            if (!visibleLayers.current.some((l) => l.requestInFlight())) {
+                onDoneLoading();
+            }
+        });
+
         setOlMap(window.map);
     }, []);
 
@@ -208,9 +217,7 @@ const MapView: React.FC<MapViewProps> = ({
         if (!olMap) return;
 
         const listenerInfo = olMap.on('moveend', () => {
-            if (onViewportUpdate) {
-                onViewportUpdate(getDomainViewportByOlView(olMap));
-            }
+            onViewportUpdate(getDomainViewportByOlView(olMap));
         });
 
         return () => {
@@ -262,7 +269,9 @@ const MapView: React.FC<MapViewProps> = ({
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = visibleLayers.find((l) => l.name === layerName)?.layer;
+                const existingOlLayer = visibleLayers.current.find(
+                    (l) => l.name === layerName,
+                )?.layer;
 
                 switch (layerName) {
                     case 'background-map-layer':
@@ -293,7 +302,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             linkingState,
                             changeTimes,
-                            props.onShownLayerItemsChange,
+                            onShownLayerItemsChange,
                         );
                     case 'reference-line-background-layer':
                         return createReferenceLineBackgroundLayer(
@@ -321,7 +330,7 @@ const MapView: React.FC<MapViewProps> = ({
                             linkingState,
                             changeTimes,
                             olView,
-                            props.onShownLayerItemsChange,
+                            onShownLayerItemsChange,
                         );
                     case 'location-track-background-layer':
                         return createLocationTrackBackgroundLayer(
@@ -382,7 +391,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             olView,
-                            props.onShownLayerItemsChange,
+                            onShownLayerItemsChange,
                         );
                     case 'switch-layer':
                         return createSwitchLayer(
@@ -392,7 +401,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             olView,
-                            props.onShownLayerItemsChange,
+                            onShownLayerItemsChange,
                         );
                     case 'geometry-alignment-layer':
                         return createGeometryAlignmentLayer(
@@ -401,6 +410,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             resolution,
+                            manuallySetPlan,
                         );
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
@@ -408,13 +418,17 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
                             publishType,
+                            changeTimes,
+                            manuallySetPlan,
                         );
                     case 'geometry-switch-layer':
                         return createGeometrySwitchLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             publishType,
+                            changeTimes,
                             resolution,
+                            manuallySetPlan,
                         );
                     case 'alignment-linking-layer':
                         return createAlignmentLinkingLayer(
@@ -431,7 +445,7 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
-                            linkingState as LinkingSwitch,
+                            linkingState as LinkingSwitch | undefined,
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
@@ -456,11 +470,11 @@ const MapView: React.FC<MapViewProps> = ({
 
         updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
 
-        visibleLayers
+        visibleLayers.current
             .filter((vl) => !updatedLayers.some((ul) => ul.name === vl.name))
             .forEach((l) => l.onRemove && l.onRemove());
 
-        setVisibleLayers(updatedLayers);
+        visibleLayers.current = updatedLayers;
 
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
@@ -475,6 +489,7 @@ const MapView: React.FC<MapViewProps> = ({
         linkingState,
         map.layerSettings,
         hoveredOverPlanSection,
+        manuallySetPlan,
     ]);
 
     React.useEffect(() => {
@@ -483,22 +498,22 @@ const MapView: React.FC<MapViewProps> = ({
         // Activate current tool
         const toolActivateOptions: MapToolActivateOptions = {
             onSelect: onSelect,
-            onHighlightItems: props.onHighlightItems,
+            onHighlightItems: onHighlightItems,
             onHoverLocation: (p) => setHoveredLocation(p),
-            onClickLocation: props.onClickLocation,
+            onClickLocation: onClickLocation,
         };
 
         const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
+            pointLocationTool.activate(olMap, visibleLayers.current, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
             deactivateCallbacks.push(
-                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
+                selectTool.activate(olMap, visibleLayers.current, toolActivateOptions),
             );
 
             deactivateCallbacks.push(
-                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
+                highlightTool.activate(olMap, visibleLayers.current, toolActivateOptions),
             );
         }
 
@@ -506,7 +521,7 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, visibleLayers, measurementToolActive]);
+    }, [olMap, visibleLayers.current, measurementToolActive]);
 
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
@@ -570,6 +585,12 @@ const MapView: React.FC<MapViewProps> = ({
                 locationTracks={selection.selectedItems.locationTracks}
                 publishType={publishType}
             />
+
+            {map.loadingIndicatorVisible && (
+                <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
+                    <Spinner />
+                </div>
+            )}
         </div>
     );
 };

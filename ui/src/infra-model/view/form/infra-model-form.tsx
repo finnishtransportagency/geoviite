@@ -38,7 +38,11 @@ import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordina
 import { filterNotEmpty } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
+import {
+    updateReferenceLineChangeTime,
+    updateTrackNumberChangeTime,
+    updateProjectChangeTime,
+} from 'common/change-time-api';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
@@ -550,6 +554,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     onSave={(project) => {
                         setShowNewProjectDialog(false);
                         changeInOverrideParametersField(project.id, 'projectId');
+                        updateProjectChangeTime();
                     }}></NewProjectDialog>
             )}
             {showNewTrackNumberDialog && trackNumberList && (

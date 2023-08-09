@@ -36,7 +36,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     onVisibilityChange,
     onHoverOverPlanSection,
 }: TrackNumberInfoboxLinkingContainerProps) => {
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const referenceLine = useTrackNumberReferenceLine(
         trackNumber.id,
         publishType,

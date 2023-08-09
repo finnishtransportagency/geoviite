@@ -9,8 +9,7 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
         logger.info("${this.javaClass} loaded")
     }
 
-    protected fun title() =
-        webElement.findElement(By.cssSelector("div.formgroup__title")).text
+    protected fun title(): String = webElement.findElement(By.cssSelector("div.formgroup__title")).text
 
     protected fun fieldValue(fieldLabel: String): String {
         logger.info("Get field [$fieldLabel]")
@@ -29,7 +28,7 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
         logger.info("Change dropdown field [$fieldLabel] to [$inputs]")
         clickEditIcon(fieldLabel)
         inputs.forEachIndexed { index, input ->
-            val dropDown = DropDown{ fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index] }
+            val dropDown = DropDown { fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index] }
             dropDown.openDropdown()
             dropDown.selectItem(input)
         }
@@ -39,7 +38,7 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
     protected fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>): Toaster {
         logger.info("Add and change dropdown value field [$fieldLabel] to [$inputs]")
         clickEditIcon(fieldLabel)
-        val dropDown = DropDown{ fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")) }
+        val dropDown = DropDown { fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")) }
         dropDown.openDropdown()
         dropDown.clickAddNew()
         val dialogPopUp = DialogPopUpWithTextField()
@@ -59,7 +58,6 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
         logger.info("Click edit icon in field $fieldLabel")
         webElement.findElement(
             By.xpath(".//div[@class='formgroup__field' and div[contains(text(), '$fieldLabel')]]/div[@class='formgroup__edit-icon']/div")
-        )
-            .click()
+        ).click()
     }
 }

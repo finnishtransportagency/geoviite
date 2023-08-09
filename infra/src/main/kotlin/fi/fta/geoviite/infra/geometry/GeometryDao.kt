@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
+import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN_PROJECT
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -856,6 +857,8 @@ class GeometryDao @Autowired constructor(
         logger.daoAccess(FETCH, Project::class)
         return projects
     }
+
+    fun fetchProjectChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN_PROJECT)
 
     fun findAuthor(companyName: MetaDataName): Author? {
         val sql = """

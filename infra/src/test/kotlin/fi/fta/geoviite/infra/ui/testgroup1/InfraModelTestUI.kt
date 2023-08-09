@@ -21,15 +21,15 @@ import kotlin.test.assertNotNull
 @EnableConfigurationProperties(E2EProperties::class)
 @SpringBootTest
 class InfraModelTestUI @Autowired constructor(
-    @Value("\${geoviite.data.im-path:}") private val infraModelPath: String,
-    val properties: E2EProperties
+    val properties: E2EProperties,
 ) : SeleniumTest() {
 
     lateinit var infraModelPage: InfraModelPage
 
     val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
-    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
+    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
+        "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
 
     @BeforeAll
     fun clearDb() {
@@ -54,7 +54,8 @@ class InfraModelTestUI @Autowired constructor(
 
         infraModelEditPage.tallennaMuutokset()
 
-        val uploadedPlanRow = infraModelPage.infraModelList().infraModelRows().find { row -> row.projektinNimi().equals(newProjectName) }
+        val uploadedPlanRow =
+            infraModelPage.infraModelList().infraModelRows().find { row -> row.projektinNimi() == newProjectName }
         assertNotNull(uploadedPlanRow)
     }
 
@@ -91,7 +92,7 @@ class InfraModelTestUI @Autowired constructor(
         assertEquals(infraModelRows.size + 1, infraModelRowsAfterUpload.size)
 
         val uploadedPlanRow =
-            infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals("TEST_Clothoid_and_parabola") }
+            infraModelRowsAfterUpload.find { row -> row.projektinNimi() == "TEST_Clothoid_and_parabola" }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.tiedostonimi())
 
@@ -147,44 +148,49 @@ class InfraModelTestUI @Autowired constructor(
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList().infraModelRows()
         assertEquals(infraModelRowsBefore.size + 1, infraModelRowsAfterUpload.size)
 
-        val uploadedPlanRow = infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals(projektinNimi) }
+        val uploadedPlanRow = infraModelRowsAfterUpload.find { row -> row.projektinNimi() == projektinNimi }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.tiedostonimi())
 
     }
 
     @Test
-    @Disabled
     fun `Search and sort Infra Model files`() {
         clearAllTestData()
 
-        val infraModelFiles = File(infraModelPath).walk()
-            .filter { it.name.endsWith(".xml") }
-            .sortedBy { it.name }
-        logger.info("Found ${infraModelFiles.count()} infra model files:")
-        infraModelFiles.forEach { logger.info(it.name) }
+        val file1 = File(TESTFILE_SIMPLE_PATH)
+        val file2 = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
+        val file3 = File(TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH)
 
-        infraModelFiles.forEach { infraModelFile -> infraModelPage.lataaUusi(infraModelFile.absolutePath).tallenna() }
-        logger.info("All files imported")
+        val uploadForm1 = infraModelPage.lataaUusi(file1.absolutePath)
+        uploadForm1.tallenna(true)
+
+        val uploadForm2 = infraModelPage.lataaUusi(file2.absolutePath)
+        uploadForm2.tallenna(true)
+
+        val uploadForm3 = infraModelPage.lataaUusi(file3.absolutePath)
+        uploadForm3.tallenna(true)
 
         val table = infraModelPage.infraModelList()
-        var rows = table.infraModelRows()
-        assertEquals(infraModelFiles.first().name, rows.first().tiedostonimi())
-        assertEquals(infraModelFiles.last().name, rows.last().tiedostonimi())
 
+        //sorting
         table.sortBy("Laadittu")
-        rows = table.infraModelRows()
+        var rows = table.infraModelRows()
         assertThat(rows[0].laadittu()).isBefore(rows[1].laadittu())
 
         table.sortBy("Nimi")
         rows = table.infraModelRows()
         assertThat(rows[0].tiedostonimi()).isLessThan(rows[1].tiedostonimi())
 
-        val randomFile1 = infraModelFiles.shuffled().first().name
-        infraModelPage.search(randomFile1)
+        //searching
+        val files: List<File> = listOf(file1, file2, file3)
+        val randomIndex = (files.indices).random()
+        val randomFile = files[randomIndex]
+
+        infraModelPage.search(randomFile.name)
         rows = table.infraModelRows()
-        assertThat(rows.first().tiedostonimi()).isEqualTo(randomFile1)
+        assertThat(rows.first().tiedostonimi()).isEqualTo(randomFile.name)
 
+        clearAllTestData()
     }
-
 }

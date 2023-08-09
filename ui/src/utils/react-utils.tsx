@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
+import { ValueOf } from './type-utils';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -81,19 +82,36 @@ export function useLoaderWithStatus<TEntity>(
  * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
  * result.
  */
-export function useTwoPartEffect<TEntity>(
+export function useTwoPartEffectWithStatus<TEntity>(
     loadFunc: () => Promise<TEntity> | undefined,
     onceOnFulfilled: (result: TEntity) => void,
     deps: unknown[],
-): void {
-    const promise = useRef<Promise<void>>();
+): LoaderStatus {
+    const [loaderStatus, setLoaderStatus] = React.useState<LoaderStatus>(LoaderStatus.Initialized);
+
     let cancelled = false;
     useEffect(() => {
-        promise.current = loadFunc()?.then((r) => void (cancelled || onceOnFulfilled(r)));
+        const promise = loadFunc();
+
+        if (promise) {
+            setLoaderStatus(LoaderStatus.Loading);
+
+            promise.then((r) => {
+                if (!cancelled) {
+                    setLoaderStatus(LoaderStatus.Ready);
+
+                    onceOnFulfilled(r);
+                }
+            });
+        }
+
         return () => {
             cancelled = true;
+            setLoaderStatus(LoaderStatus.Cancelled);
         };
     }, deps);
+
+    return loaderStatus;
 }
 
 export function useLoaderWithTimer<TEntity>(
@@ -201,4 +219,26 @@ export function useSetState<T>(
             return copy;
         });
     return [set, addToSet, deleteFromSet, setSet];
+}
+
+type PropsType = Record<string, unknown>;
+
+export function useTraceProps(componentName: string, props: PropsType) {
+    const prev = useRef(props);
+
+    useEffect(() => {
+        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
+            if (prev.current[k] !== v) {
+                acc[k] = { old: prev.current[k], new: v };
+            }
+
+            return acc;
+        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
+
+        if (Object.keys(changedProps).length > 0) {
+            console.log(`[${componentName}] Changed props:`, changedProps);
+        }
+
+        prev.current = props;
+    });
 }

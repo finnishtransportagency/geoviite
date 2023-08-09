@@ -1,6 +1,4 @@
 import React from 'react';
-import MapView from 'map/map-view';
-import { MapViewport } from 'map/map-model';
 import styles from './form/infra-model-form.module.scss';
 import InfraModelForm from 'infra-model/view/form/infra-model-form';
 import {
@@ -8,11 +6,7 @@ import {
     InfraModelState,
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
-import {
-    OnClickLocationFunction,
-    OnHighlightItemsFunction,
-    OnSelectFunction,
-} from 'selection/selection-model';
+import { OnSelectFunction } from 'selection/selection-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
@@ -26,17 +20,16 @@ import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { Item } from 'vayla-design-lib/dropdown/dropdown';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
+import { MapContext } from 'map/map-store';
+import { MapViewContainer } from 'map/map-view-container';
 
 export type InfraModelBaseProps = InfraModelState & {
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
         parameters: Prop<ExtraInfraModelParameters, TKey>,
     ) => void;
     onOverrideParametersChange: (parameters: OverrideInfraModelParameters) => void;
-    onViewportChange: (viewport: MapViewport) => void;
-    onClickLocation: OnClickLocationFunction;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
-    onHighlightItems: OnHighlightItemsFunction;
     isLoading: boolean;
     onClose: () => void;
 };
@@ -162,18 +155,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             </div>
             <div className={styles['infra-model-upload__map-container']}>
                 {showMap && (
-                    <MapView
-                        map={props.map}
-                        onViewportUpdate={props.onViewportChange}
-                        selection={props.selection}
-                        publishType="OFFICIAL"
-                        onSelect={props.onSelect}
-                        changeTimes={props.changeTimes}
-                        onHighlightItems={props.onHighlightItems}
-                        onClickLocation={props.onClickLocation}
-                        onShownLayerItemsChange={() => undefined}
-                        hoveredOverPlanSection={undefined}
-                    />
+                    <MapContext.Provider value="infra-model">
+                        <MapViewContainer manuallySetPlan={planLayout ?? undefined} />
+                    </MapContext.Provider>
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}
             </div>

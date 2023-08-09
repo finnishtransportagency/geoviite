@@ -19,6 +19,7 @@ import trackNumberDialogFi from 'tool-panel/track-number/dialog/translations.fi.
 import linkingFi from 'linking/translations.fi.json';
 import userFi from 'user/translations.fi.json';
 import dataProductsFi from 'data-products/translations.fi.json';
+import verticalGeometryDiagramFi from 'vertical-geometry/translations.fi.json';
 
 export const resources = {
     en: {
@@ -44,6 +45,7 @@ export const resources = {
             ...linkingFi,
             ...userFi,
             ...dataProductsFi,
+            ...verticalGeometryDiagramFi,
         },
     },
 } as const;

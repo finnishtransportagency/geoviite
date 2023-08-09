@@ -9,7 +9,7 @@ import getElementWhenVisible
 import org.openqa.selenium.By
 import waitAndGetToasterElement
 
-class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']")) {
+class PreviewChangesPage : PageModel(By.xpath("//div[@qa-id='preview-content']")) {
 
     //Page is unstable before preview change table is loaded
     init {
@@ -23,7 +23,7 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
         //Iterating rows is slow, so we quickly check if iterating is even necessary
         if (changesTable.hasErrors()) {
             //changesTable.changeRows().forEach{ row -> assertThat(row.muutokset()).withFailMessage { "${row.muutoskohde()} has changes '${row.muutokset()}' that prevent publishing" }.isBlank()}
-            changesTable.changeRows().forEach{ row -> row.tila()}
+            changesTable.changeRows().forEach { row -> row.tila() }
             val errors = changesTable.errorRows()
             throw AssertionError("Following changes prevent publishing \n $errors")
         }
@@ -36,11 +36,11 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
 
     fun lisaaMuutoksetJulkaisuun() {
         logger.info("Stage changes")
-        changesTable().changeRows().forEach {row -> row.nuolinappi().click()}
+        changesTable().changeRows().forEach { row -> row.nuolinappi().click() }
     }
 
     fun hylkaaMuutos(name: String) {
-        logger.info("Revert ${name}")
+        logger.info("Revert $name")
         val row = changesTable().changeRows().find { row -> row.muutoskohde().contains(name) }
             ?: stagedChangesTable().changeRows().find { row -> row.muutoskohde().contains(name) }
         row?.menu()?.click()
@@ -68,12 +68,11 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
     fun stagedChangesTable(): ChangePreviewTable =
         ChangePreviewTable(getElementWhenVisible(By.cssSelector("section[qa-id=staged-changes] table.table")))
 
-    fun logChanges() =
-        changesTable().changeRows().forEach { logger.info(it.toString()) }
+    fun logChanges() = changesTable().changeRows().forEach { logger.info(it.toString()) }
 
 }
 
-class PreviewChangesSaveOrDiscardDialog: DialogPopUp() {
+class PreviewChangesSaveOrDiscardDialog : DialogPopUp() {
 
     fun julkaise() {
         val messageBox = getElementWhenVisible(By.cssSelector("textarea[qa-id=publication-message]"))

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Map, MapLayerMenuChange, MapLayerMenuItem } from 'map/map-model';
+import { MapLayerMenuGroups, MapLayerMenuChange, MapLayerMenuItem } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -8,9 +8,9 @@ import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
 
 type MapLayerMenuProps = {
-    map: Map;
     onMenuChange: (change: MapLayerMenuChange) => void;
     onClose?: () => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
 };
 
 type MapLayerProps = {
@@ -96,7 +96,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMe
 
 export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
     onClose,
-    map,
+    mapLayerMenuGroups,
     onMenuChange,
 }: MapLayerMenuProps) => {
     const { t } = useTranslation();
@@ -113,18 +113,18 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
 
             <MapLayerGroup
                 title={t('map-layer-menu.layout-title')}
-                visibilities={map.layerMenu.layout}
+                visibilities={mapLayerMenuGroups.layout}
                 onMenuChange={onMenuChange}
             />
             <MapLayerGroup
                 title={t('map-layer-menu.geometry-title')}
-                visibilities={map.layerMenu.geometry}
+                visibilities={mapLayerMenuGroups.geometry}
                 onMenuChange={onMenuChange}
             />
             <EnvRestricted restrictTo="dev">
                 <MapLayerGroup
                     title={t('map-layer-menu.debug-title')}
-                    visibilities={map.layerMenu.debug}
+                    visibilities={mapLayerMenuGroups.debug}
                     onMenuChange={onMenuChange}
                 />
             </EnvRestricted>

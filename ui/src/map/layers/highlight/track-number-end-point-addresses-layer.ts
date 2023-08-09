@@ -197,7 +197,9 @@ export function createTrackNumberEndPointAddressesLayer(
 
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= Limits.ALL_ALIGNMENTS) {
+        inFlight = true;
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
             .then((referenceLines) => {
                 const showAll = Object.values(layerSettings).every((s) => !s.selected);
@@ -226,7 +228,10 @@ export function createTrackNumberEndPointAddressesLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -234,6 +239,7 @@ export function createTrackNumberEndPointAddressesLayer(
     return {
         name: 'track-number-addresses-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }
 

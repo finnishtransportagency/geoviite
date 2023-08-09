@@ -358,7 +358,7 @@ data class GeometryClothoid(
         return segmentStartAngle + sign * spiralTwist
     }
 
-    fun splitLengthToMaxTwist(range: ClosedRange<Double>, maxTwistRads: Double): List<ClosedRange<Double>> {
+    private fun splitLengthToMaxTwist(range: ClosedRange<Double>, maxTwistRads: Double): List<ClosedRange<Double>> {
         val angleDiff = angleDiffRads(directionAt(range.start), directionAt(range.endInclusive))
         return if (angleDiff < maxTwistRads) {
             listOf(range)

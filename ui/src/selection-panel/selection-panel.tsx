@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './selection-panel.scss';
 import {
-    GeometryPlanLayout,
     LayoutKmPost,
     LayoutLocationTrack,
     LayoutReferenceLine,
@@ -13,15 +12,22 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     OnSelectOptions,
-    OpenedPlanLayout,
+    OpenPlanLayout,
     OptionalItemCollections,
     SelectableItemType,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { MapLayerName, MapLayerSettingChange, MapLayerSettings, MapViewport } from 'map/map-model';
+import {
+    MapLayerMenuChange,
+    MapLayerMenuItem,
+    MapLayerSettingChange,
+    MapLayerSettings,
+    MapViewport,
+} from 'map/map-model';
 import {
     createEmptyItemCollections,
     ToggleAccordionOpenPayload,
@@ -42,8 +48,9 @@ import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-se
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
-    selectedItems?: OptionalItemCollections;
-    selectedPlanLayouts?: GeometryPlanLayout[];
+    selectedItems: OptionalItemCollections;
+    openPlans: OpenPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
@@ -51,27 +58,26 @@ type SelectionPanelProps = {
     viewport: MapViewport;
     onSelect: (options: OnSelectOptions) => void;
     selectableItemTypes: SelectableItemType[];
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
     onMapLayerSettingChange: (change: MapLayerSettingChange) => void;
     mapLayerSettings: MapLayerSettings;
-    showMapLayer: (mapLayers: MapLayerName) => void;
-    hideMapLayer: (mapLayers: MapLayerName) => void;
-    visibleMapLayers: MapLayerName[];
+    onMapLayerMenuItemChange: (change: MapLayerMenuChange) => void;
+    mapLayoutMenu: MapLayerMenuItem[];
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
     changeTimes,
     selectedItems,
-    selectedPlanLayouts,
+    openPlans,
+    visiblePlans,
     kmPosts,
     referenceLines,
     locationTracks,
@@ -84,22 +90,21 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     onSelect,
     selectableItemTypes,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
     onMapLayerSettingChange,
     mapLayerSettings,
-    showMapLayer,
-    hideMapLayer,
-    visibleMapLayers,
+    onMapLayerMenuItemChange,
+    mapLayoutMenu,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
 
-    const diagramLayer = mapLayerSettings['track-number-diagram-layer'];
+    const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
+    const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
 
-    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayer)
+    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayerSettings)
         .filter(([_, setting]) => setting.selected)
         .map(([id]) => id);
 
@@ -107,10 +112,10 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
             settings: {
-                ...diagramLayer,
+                ...diagramLayerSettings,
                 [trackNumber.id]: {
-                    ...diagramLayer[trackNumber.id],
-                    selected: !diagramLayer[trackNumber.id]?.selected,
+                    ...diagramLayerSettings[trackNumber.id],
+                    selected: !diagramLayerSettings[trackNumber.id]?.selected,
                 },
             },
         });
@@ -120,14 +125,14 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         trackNumberId: LayoutTrackNumberId,
         color: TrackNumberColorKey,
     ) => {
-        showMapLayer('track-number-diagram-layer');
+        onMapLayerMenuItemChange({ name: 'track-number-diagram', visible: true });
 
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
             settings: {
-                ...diagramLayer,
+                ...diagramLayerSettings,
                 [trackNumberId]: {
-                    ...diagramLayer[trackNumberId],
+                    ...diagramLayerSettings[trackNumberId],
                     color,
                 },
             },
@@ -191,9 +196,6 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     );
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
-    const trackNumberDiagramVisible = visibleMapLayers.some(
-        (layer) => layer === 'track-number-diagram-layer',
-    );
 
     return (
         <div className={styles['selection-panel']}>
@@ -201,17 +203,20 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <h3 className={styles['selection-panel__title']}>
                     {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
                     <Eye
-                        onVisibilityToggle={() =>
-                            (trackNumberDiagramVisible ? hideMapLayer : showMapLayer)(
-                                'track-number-diagram-layer',
-                            )
-                        }
-                        visibility={trackNumberDiagramVisible}
+                        onVisibilityToggle={() => {
+                            if (diagramLayerMenuItem) {
+                                onMapLayerMenuItemChange({
+                                    name: 'track-number-diagram',
+                                    visible: !diagramLayerMenuItem.visible,
+                                });
+                            }
+                        }}
+                        visibility={diagramLayerMenuItem?.visible ?? false}
                     />
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
-                        settings={diagramLayer}
+                        settings={diagramLayerSettings}
                         trackNumbers={visibleTrackNumbers}
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
@@ -223,13 +228,13 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 publishType={publishType}
                 changeTimes={changeTimes}
                 selectedItems={selectedItems}
-                selectedPlanLayouts={selectedPlanLayouts}
+                visiblePlans={visiblePlans}
                 viewport={viewport}
                 onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                 onToggleKmPostVisibility={onToggleKmPostVisibility}
                 onTogglePlanVisibility={onTogglePlanVisibility}
                 onToggleSwitchVisibility={onToggleSwitchVisibility}
-                openedPlanLayouts={openedPlanLayouts}
+                openPlans={openPlans}
                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}
@@ -245,7 +250,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <KmPostsPanel
                         kmPosts={filteredKmPosts}
-                        selectedKmPosts={selectedItems?.kmPosts}
+                        selectedKmPosts={selectedItems.kmPosts}
                         onToggleKmPostSelection={(kmPost) =>
                             onSelect({
                                 ...createEmptyItemCollections(),
@@ -266,7 +271,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         publishType={publishType}
                         referenceLines={filteredReferenceLines}
                         trackNumberChangeTime={changeTimes.layoutTrackNumber}
-                        selectedTrackNumbers={selectedItems?.trackNumbers}
+                        selectedTrackNumbers={selectedItems.trackNumbers}
                         canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
                     />
@@ -280,7 +285,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <LocationTracksPanel
                         locationTracks={filteredLocationTracks}
-                        selectedLocationTracks={selectedItems?.locationTracks}
+                        selectedLocationTracks={selectedItems.locationTracks}
                         canSelectLocationTrack={selectableItemTypes.includes('locationTracks')}
                         onToggleLocationTrackSelection={onToggleLocationTrackSelection}
                     />
@@ -293,7 +298,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <SwitchPanel
                         switches={switches}
-                        selectedSwitches={selectedItems?.switches}
+                        selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
                     />
                 </div>

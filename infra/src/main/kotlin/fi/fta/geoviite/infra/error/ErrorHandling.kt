@@ -82,7 +82,7 @@ fun getCauseChain(exception: Exception): List<Exception> {
 
 fun getStatusCode(causeChain: List<Exception>): HttpStatus? =
     if (causeChain.any { e -> e is ServerException }) INTERNAL_SERVER_ERROR
-    else causeChain.mapNotNull(::getStatusCode).firstOrNull()
+    else causeChain.firstNotNullOfOrNull(::getStatusCode)
 
 fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     // Our own exceptions

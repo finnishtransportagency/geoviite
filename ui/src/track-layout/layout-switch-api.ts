@@ -1,5 +1,5 @@
 import { BoundingBox, Point } from 'model/geometry';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
 import {
     LayoutSwitch,
     LayoutSwitchId,
@@ -7,13 +7,14 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     deleteIgnoreError,
+    getIgnoreError,
     getThrowError,
     getWithDefault,
     postAdt,
     putAdt,
     queryParams,
 } from 'api/api-fetch';
-import { layoutUri } from 'track-layout/track-layout-api';
+import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
@@ -23,6 +24,7 @@ import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/link
 import { indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 
+// TODO: GVT-2014 this should be a cache with nullable values as a switch might not exist in valid situations
 const switchCache = asyncCache<string, LayoutSwitch>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 
@@ -162,3 +164,7 @@ export async function getSwitchValidation(
 ): Promise<ValidatedAsset> {
     return getThrowError<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }
+
+export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | null> => {
+    return getIgnoreError<ChangeTimes>(changeTimeUri('switches', id));
+};

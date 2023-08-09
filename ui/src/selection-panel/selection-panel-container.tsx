@@ -11,9 +11,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 
 export const SelectionPanelContainer: React.FC = () => {
-    const delegates = React.useMemo(() => {
-        return createDelegates(trackLayoutActionCreators);
-    }, []);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
     const state = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
@@ -51,7 +49,7 @@ export const SelectionPanelContainer: React.FC = () => {
             changeTimes={changeTimes}
             publishType={state.publishType}
             selectedItems={state.selection.selectedItems}
-            selectedPlanLayouts={state.selection.planLayouts}
+            visiblePlans={state.selection.visiblePlans}
             kmPosts={kmPosts}
             referenceLines={referenceLines}
             locationTracks={locationTracks}
@@ -59,15 +57,14 @@ export const SelectionPanelContainer: React.FC = () => {
             viewport={state.map.viewport}
             selectableItemTypes={selectableItemTypes}
             togglePlanOpen={delegates.togglePlanOpen}
-            openedPlanLayouts={state.selection.openedPlanLayouts}
+            openPlans={state.selection.openPlans}
             togglePlanKmPostsOpen={delegates.togglePlanKmPostsOpen}
             togglePlanAlignmentsOpen={delegates.togglePlanAlignmentsOpen}
             togglePlanSwitchesOpen={delegates.togglePlanSwitchesOpen}
             onMapLayerSettingChange={delegates.onLayerSettingChange}
             mapLayerSettings={state.map.layerSettings}
-            showMapLayer={(l) => delegates.showLayers([l])}
-            hideMapLayer={(l) => delegates.hideLayers([l])}
-            visibleMapLayers={state.map.visibleLayers}
+            mapLayoutMenu={state.map.layerMenu.layout}
+            onMapLayerMenuItemChange={delegates.onLayerMenuItemChange}
         />
     );
 };

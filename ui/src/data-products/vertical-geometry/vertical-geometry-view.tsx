@@ -10,7 +10,7 @@ import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-
 import { dataProductsActions } from 'data-products/data-products-slice';
 
 const VerticalGeometryView = () => {
-    const dataProductsDelegates = createDelegates(dataProductsActions);
+    const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
     const state = useDataProductsAppSelector((state) => state.verticalGeometry);
     const [loading, setLoading] = React.useState(false);
 

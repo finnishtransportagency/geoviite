@@ -9,12 +9,12 @@ import waitUntilExists
 import kotlin.test.assertTrue
 
 
-val defaultToasterBy = By.cssSelector("div.Toastify__toast")
+val defaultToasterBy: By = By.cssSelector("div.Toastify__toast")
 
 // TODO: GVT-1934 fix toaster logic
 //   Implement a way to find a particular toaster message, so multiple ones don't hurt the test logic
 //   Rather than verify the toaster text, we should ensure that the correct toaster (by localization key or qa-id) is a success-toast (by class or qa-id)
-class Toaster(by: By = defaultToasterBy): PageModel(by) {
+class Toaster(by: By = defaultToasterBy) : PageModel(by) {
 
     private val messageElement: WebElement get() = webElement.findElement(By.cssSelector("div.Toastify__toast-text"))
     val title: String get() = webElement.findElement(By.cssSelector("span.Toastify__toast-header")).text
@@ -34,6 +34,8 @@ class Toaster(by: By = defaultToasterBy): PageModel(by) {
         close()
     }
 
-    override fun toString() = ToStringBuilder.reflectionToString(this)
-    fun waitUntilVisible() { webElement.waitUntilExists() }
+    override fun toString(): String = ToStringBuilder.reflectionToString(this)
+    fun waitUntilVisible() {
+        webElement.waitUntilExists()
+    }
 }

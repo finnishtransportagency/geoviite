@@ -5,7 +5,7 @@ import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-class DropDown (elementFetch: () -> WebElement): PageModel(elementFetch) {
+class DropDown(elementFetch: () -> WebElement) : PageModel(elementFetch) {
 
     private val inputElement: WebElement get() = childElement(By.xpath(".//input"))
     private val currentValueHolder: WebElement get() = childElement(By.className("dropdown__current-value"))

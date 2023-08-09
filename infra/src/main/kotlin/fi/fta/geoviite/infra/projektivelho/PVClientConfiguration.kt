@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -37,7 +36,6 @@ class PVClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.login_url:}") private val projektiVelhoLoginUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
-    private val objectMapper: ObjectMapper,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(PVClient::class.java)

@@ -11,8 +11,10 @@ type SuggestionCreatorData = {
 };
 
 export const SwitchSuggestionCreatorContainer: React.FC = () => {
-    const { onSelect, onPublishTypeChange, startSwitchLinking } =
-        createDelegates(trackLayoutActionCreators);
+    const { onSelect, onPublishTypeChange, startSwitchLinking } = React.useMemo(
+        () => createDelegates(trackLayoutActionCreators),
+        [],
+    );
     const locationTrackChangeTime = useCommonDataAppSelector(
         (state) => state.changeTimes.layoutLocationTrack,
     );

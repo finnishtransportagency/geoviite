@@ -138,4 +138,11 @@ class LayoutKmPostController(
         logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
         return kmPostService.deleteUnpublishedDraft(kmPostId).id
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/change-times")
+    fun getKmPostChangeTimes(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): ChangeTimes {
+        logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
+        return kmPostService.getChangeTimes(kmPostId)
+    }
 }

@@ -9,10 +9,12 @@ import {
     MapViewport,
     OptionalShownItems,
     ShownItems,
+    VerticalAlignmentVisibleExtentChange,
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
+import { initialVerticalGeometryDiagramState, planAlignmentKey } from 'vertical-geometry/store';
 
 export function getEmptyShownItems(): ShownItems {
     return {
@@ -22,6 +24,8 @@ export function getEmptyShownItems(): ShownItems {
         switches: [],
     };
 }
+
+const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
 const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
@@ -44,7 +48,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
-    'plan-section': ['plan-section-highlight-layer'],
+    'track-number-diagram': ['track-number-diagram-layer'],
     'km-post': ['km-post-layer'],
     'switch': ['switch-layer'],
     'geometry-alignment': ['geometry-alignment-layer'],
@@ -78,11 +82,11 @@ export const initialMapState: Map = {
                     { name: 'missing-vertical-geometry', visible: false },
                     { name: 'missing-linking', visible: false },
                     { name: 'duplicate-tracks', visible: false },
-                    { name: 'plan-section', visible: true },
                 ],
             },
             { name: 'switch', visible: true },
             { name: 'km-post', visible: true },
+            { name: 'track-number-diagram', visible: false },
         ],
         geometry: [
             { name: 'geometry-alignment', visible: true },
@@ -107,7 +111,8 @@ export const initialMapState: Map = {
         resolution: 20,
     },
     clickLocation: null,
-    verticalGeometryDiagramVisible: false,
+    verticalGeometryDiagramState: initialVerticalGeometryDiagramState,
+    loadingIndicatorVisible: false,
 };
 
 export const mapReducers = {
@@ -131,13 +136,16 @@ export const mapReducers = {
                   1.2
                 : state.viewport.resolution,
         };
+        state.loadingIndicatorVisible = true;
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         state.visibleLayers = deduplicate([
+            ...alwaysOnLayers,
             ...state.visibleLayers,
             ...layers,
             ...collectRelatedLayers(layers),
         ]);
+        state.loadingIndicatorVisible = true;
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         const relatedLayers = collectRelatedLayers(layers);
@@ -152,6 +160,7 @@ export const mapReducers = {
             .concat(layersByMenu);
 
         state.visibleLayers = deduplicate([
+            ...alwaysOnLayers,
             ...visibleLayers,
             ...collectRelatedLayers(visibleLayers),
         ]);
@@ -187,7 +196,24 @@ export const mapReducers = {
         state: Map,
         { payload: visibilitySetting }: PayloadAction<boolean>,
     ): void => {
-        state.verticalGeometryDiagramVisible = visibilitySetting;
+        state.verticalGeometryDiagramState.visible = visibilitySetting;
+    },
+    onVerticalGeometryDiagramAlignmentVisibleExtentChange: (
+        state: Map,
+        { payload: action }: PayloadAction<VerticalAlignmentVisibleExtentChange>,
+    ): void => {
+        if ('planId' in action.alignmentId) {
+            state.verticalGeometryDiagramState.visibleExtentLookup.plan[
+                planAlignmentKey(action.alignmentId.planId, action.alignmentId.alignmentId)
+            ] = action.extent;
+        } else {
+            state.verticalGeometryDiagramState.visibleExtentLookup.layout[
+                action.alignmentId.locationTrackId
+            ] = action.extent;
+        }
+    },
+    onDoneLoading: (state: Map): void => {
+        state.loadingIndicatorVisible = false;
     },
 };
 
@@ -242,5 +268,5 @@ function updateMenuItem(items: MapLayerMenuItem[], change: MapLayerMenuChange): 
     }));
 }
 
-type MapContextState = 'trackLayout' | 'infra-model' | 'preview';
-export const MapContext = createContext<MapContextState>('trackLayout');
+export type MapContextState = 'track-layout' | 'infra-model';
+export const MapContext = createContext<MapContextState>('track-layout');

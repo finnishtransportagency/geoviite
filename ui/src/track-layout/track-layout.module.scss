@@ -28,10 +28,12 @@
 }
 
 .track-layout__navi {
+    @include shadow-8dp;
+
     grid-area: navi;
     overflow: auto;
-
-    @include shadow-8dp;
+    z-index: 2;
+    background-color: $color-white-default;
 
     padding-bottom: 64px;
     min-width: 336px;
@@ -46,17 +48,21 @@
 }
 
 .track-layout__diagram {
-    grid-area: diagram;
     @include shadow-8dp;
-    padding: 0 8px;
+    grid-area: diagram;
     overflow: hidden;
+    display: flex;
+    z-index: 1;
 }
 
 .track-layout__tool-panel {
+    @include shadow-8dp;
+
     grid-area: tool-panel;
     overflow: auto;
+    z-index: 2;
+    background-color: $color-white-default;
 
-    @include shadow-8dp;
     width: 380px;
 
     .infobox {

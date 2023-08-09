@@ -12,14 +12,7 @@ import {
 
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
-import MapView from 'map/map-view';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
-import {
-    OnClickLocationFunction,
-    OnHighlightItemsFunction,
-    OnSelectFunction,
-    Selection,
-} from 'selection/selection-model';
+import { OnSelectFunction } from 'selection/selection-model';
 import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { AssetId, PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
@@ -45,6 +38,8 @@ import { getOwnUser } from 'user/user-api';
 import { ChangeTimes } from 'common/common-slice';
 import { debounceAsync } from 'utils/async-utils';
 import { BoundingBox } from 'model/geometry';
+import { MapContext } from 'map/map-store';
+import { MapViewContainer } from 'map/map-view-container';
 
 type Candidate = {
     id: AssetId;
@@ -69,16 +64,10 @@ export type ChangesBeingReverted = {
     changeIncludingDependencies: PublishRequestIds;
 };
 
-type PreviewProps = {
-    map: Map;
-    selection: Selection;
+export type PreviewProps = {
     changeTimes: ChangeTimes;
     selectedPublishCandidateIds: PublishRequestIds;
-    onViewportChange: (viewport: MapViewport) => void;
     onSelect: OnSelectFunction;
-    onHighlightItems: OnHighlightItemsFunction;
-    onClickLocation: OnClickLocationFunction;
-    onShownItemsChange: (shownItems: OptionalShownItems) => void;
     onPublish: () => void;
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
@@ -452,19 +441,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         </div>
                     )}
                 </div>
-
-                <MapView
-                    map={props.map}
-                    onViewportUpdate={props.onViewportChange}
-                    selection={props.selection}
-                    publishType={mapMode}
-                    changeTimes={props.changeTimes}
-                    onSelect={props.onSelect}
-                    onHighlightItems={props.onHighlightItems}
-                    onClickLocation={props.onClickLocation}
-                    onShownLayerItemsChange={props.onShownItemsChange}
-                    hoveredOverPlanSection={undefined}
-                />
+                <MapContext.Provider value="track-layout">
+                    <MapViewContainer publishType={mapMode} />
+                </MapContext.Provider>
 
                 <PreviewFooter
                     onSelect={props.onSelect}

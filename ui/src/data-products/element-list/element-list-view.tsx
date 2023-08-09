@@ -13,7 +13,7 @@ import { EntireRailNetworkElementListing } from 'data-products/element-list/enti
 const ElementListView = () => {
     const { t } = useTranslation();
     const [loading, setLoading] = React.useState(false);
-    const dataProductsDelegates = createDelegates(dataProductsActions);
+    const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
     const state = useDataProductsAppSelector((state) => state.elementList);
 
     const handleRadioClick = (selected: SelectedGeometrySearch) => {

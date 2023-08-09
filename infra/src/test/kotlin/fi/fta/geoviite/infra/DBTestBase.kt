@@ -110,4 +110,18 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         alignmentDao.insert(alignment).let { alignmentVersion ->
             trackDao.insert(track.copy(alignmentVersion = alignmentVersion))
         }
+
+    fun deleteFromTables(schema: String, vararg tables: String) {
+        // Temporarily disable all triggers
+        jdbc.execute("set session_replication_role = replica") { it.execute() }
+        try {
+            tables.forEach { table ->
+                jdbc.update(
+                    "DELETE FROM ${schema}.${table};", mapOf("table_name" to table, "schema_name" to schema)
+                )
+            }
+        } finally {
+            jdbc.execute("set session_replication_role = DEFAULT") { it.execute() }
+        }
+    }
 }
