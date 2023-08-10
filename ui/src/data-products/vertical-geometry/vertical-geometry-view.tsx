@@ -7,7 +7,8 @@ import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry
 import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-geometry-table';
-import { dataProductsActions } from 'data-products/data-products-slice';
+import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
+import { EntireRailNetworkVerticalGeometryListing } from 'data-products/vertical-geometry/entire-rail-network-vertical-geometry-listing';
 
 const VerticalGeometryView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
@@ -15,12 +16,9 @@ const VerticalGeometryView = () => {
     const [loading, setLoading] = React.useState(false);
 
     const { t } = useTranslation();
-    const locationTrackSelected = state.selectedSearch === 'LOCATION_TRACK';
 
-    const handleRadioClick = () => {
-        dataProductsDelegates.setSelectedVerticalGeometrySearch(
-            locationTrackSelected ? 'PLAN' : 'LOCATION_TRACK',
-        );
+    const handleRadioClick = (selected: SelectedGeometrySearch) => {
+        dataProductsDelegates.setSelectedVerticalGeometrySearch(selected);
     };
 
     return (
@@ -29,15 +27,26 @@ const VerticalGeometryView = () => {
                 <h2>{t('data-products.vertical-geometry.vertical-geometry-title')}</h2>
                 <div>
                     <span className={styles['data-product-view__radio-layout']}>
-                        <Radio onChange={handleRadioClick} checked={locationTrackSelected}>
+                        <Radio
+                            onChange={() => handleRadioClick('LOCATION_TRACK')}
+                            checked={state.selectedSearch === 'LOCATION_TRACK'}>
                             {t('data-products.vertical-geometry.location-track-vertical-geometry')}
                         </Radio>
-                        <Radio onChange={handleRadioClick} checked={!locationTrackSelected}>
+                        <Radio
+                            onChange={() => handleRadioClick('PLAN')}
+                            checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.vertical-geometry.plan-vertical-geometry')}
+                        </Radio>
+                        <Radio
+                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                            {t(
+                                'data-products.vertical-geometry.entire-rail-network-vertical-geometry',
+                            )}
                         </Radio>
                     </span>
                 </div>
-                {locationTrackSelected ? (
+                {state.selectedSearch === 'LOCATION_TRACK' && (
                     <LocationTrackVerticalGeometrySearch
                         state={state.locationTrackSearch}
                         onUpdateProp={
@@ -51,7 +60,8 @@ const VerticalGeometryView = () => {
                         }
                         setLoading={setLoading}
                     />
-                ) : (
+                )}
+                {state.selectedSearch === 'PLAN' && (
                     <PlanVerticalGeometrySearch
                         state={state.planSearch}
                         onUpdateProp={dataProductsDelegates.onUpdatePlanVerticalGeometrySearchProp}
@@ -59,16 +69,21 @@ const VerticalGeometryView = () => {
                         setLoading={setLoading}
                     />
                 )}
+                {state.selectedSearch === 'ENTIRE_RAIL_NETWORK' && (
+                    <EntireRailNetworkVerticalGeometryListing />
+                )}
             </div>
-            <VerticalGeometryTable
-                verticalGeometry={
-                    state.selectedSearch === 'LOCATION_TRACK'
-                        ? state.locationTrackSearch.verticalGeometry
-                        : state.planSearch.verticalGeometry
-                }
-                showLocationTrack={state.selectedSearch === 'LOCATION_TRACK'}
-                isLoading={loading}
-            />
+            {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
+                <VerticalGeometryTable
+                    verticalGeometry={
+                        state.selectedSearch === 'LOCATION_TRACK'
+                            ? state.locationTrackSearch.verticalGeometry
+                            : state.planSearch.verticalGeometry
+                    }
+                    showLocationTrack={state.selectedSearch === 'LOCATION_TRACK'}
+                    isLoading={loading}
+                />
+            )}
         </div>
     );
 };

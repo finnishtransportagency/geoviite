@@ -200,6 +200,9 @@ export const getLocationTrackVerticalGeometryCsv = (
 export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>
     `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file`;
 
+export const getEntireRailNetworkVerticalGeometryCsvUrl = () =>
+    `${GEOMETRY_URI}/rail-network/vertical-geometry/file`;
+
 export const getLocationTrackElementsCsv = (
     locationTrackId: LocationTrackId,
     elementTypes: GeometryTypeIncludingMissing[],
