@@ -3,6 +3,7 @@ import {
     JointNumber,
     KmNumber,
     Oid,
+    Range,
     RowVersion,
     TimeStamp,
     TrackMeter,
@@ -32,7 +33,7 @@ export enum DraftChangeType {
     KM_POST = 'KM_POST',
 }
 
-export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE';
+export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'CALCULATED';
 
 export type PublicationId = string;
 
@@ -267,7 +268,7 @@ export type PublicationTableItem = {
     id: string; //Auto generated
     name: string;
     trackNumbers: TrackNumber[];
-    changedKmNumbers: string | null;
+    changedKmNumbers: Range<string>[];
     operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;

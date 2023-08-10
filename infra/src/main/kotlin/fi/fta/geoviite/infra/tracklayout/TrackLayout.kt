@@ -258,6 +258,12 @@ data class ChangeTimes(
     val draftChanged: Instant?,
 )
 
+data class TrackNumberAndChangeTime(
+    val id: IntId<TrackLayoutTrackNumber>,
+    val number: TrackNumber,
+    val changeTime: Instant,
+)
+
 fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""
 
 private val kmLengthTranslations = mapOf(

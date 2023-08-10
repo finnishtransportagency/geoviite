@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -32,7 +33,7 @@ enum class PublicationTableColumn {
 data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
-    val changedKmNumbers: String?,
+    val changedKmNumbers: List<Range<KmNumber>>,
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
@@ -57,13 +58,13 @@ data class PublicationChange<T>(
 
 data class PropKey(
     val key: LocalizationKey,
-    val params: List<String>? = null,
-) { constructor(key: String, params: List<String>? = null) : this(LocalizationKey(key), params) }
+    val params: List<String> = emptyList(),
+) { constructor(key: String, params: List<String> = emptyList()) : this(LocalizationKey(key), params) }
 
 data class PublicationChangeRemark(
-    val key: String,
+    val key: LocalizationKey,
     val value: String,
-)
+) { constructor(key: String, value: String) : this(LocalizationKey(key), value) }
 
 open class Publication(
     open val id: IntId<Publication>,
@@ -149,6 +150,7 @@ enum class Operation(val priority: Int) {
     MODIFY(1),
     DELETE(2),
     RESTORE(3),
+    CALCULATED(4),
 }
 
 data class ValidatedPublishCandidates(

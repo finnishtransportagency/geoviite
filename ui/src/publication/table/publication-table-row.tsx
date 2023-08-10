@@ -56,7 +56,13 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                 </td>
                 <td>{name}</td>
                 <td>{trackNumbers.sort().join(', ')}</td>
-                <td>{changedKmNumbers ? changedKmNumbers : ''}</td>
+                <td>
+                    {changedKmNumbers
+                        .map((value) =>
+                            value.min !== value.max ? `${value.min}-${value.max}` : `${value.min}`,
+                        )
+                        .join(', ')}
+                </td>
                 <td>{t(`enum.publish-operation.${operation}`)}</td>
                 <td>{formatDateFull(publicationTime)}</td>
                 <td>{publicationUser}</td>

@@ -26,7 +26,8 @@
             "changed-x-meters": "Muutos {{0}}m",
             "moved-x-meters": "Siirtynyt {{0}}m",
             "changed-km-number": "Muuttunut kilometriltä {{0}}",
-            "changed-km-numbers": "Muuttunut kilometreiltä {{0}}"
+            "changed-km-numbers": "Muuttunut kilometreiltä {{0}}",
+            "km-number-changed": "Siirtynyt ratakilometrille {{0}}"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
