@@ -3,6 +3,7 @@ import {
     JointNumber,
     KmNumber,
     Oid,
+    Range,
     RowVersion,
     TimeStamp,
     TrackMeter,
@@ -32,7 +33,7 @@ export enum DraftChangeType {
     KM_POST = 'KM_POST',
 }
 
-export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE';
+export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'CALCULATED';
 
 export type PublicationId = string;
 
@@ -167,6 +168,29 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
+export type PropKey = {
+    key: string;
+    params: string[];
+};
+
+export type ChangeValue = {
+    oldValue: string | boolean | null;
+    newValue: string | boolean | null;
+    localizationKey: string | null;
+};
+
+export type PublicationChange = {
+    propKey: PropKey;
+    value: ChangeValue;
+    remark: PublicationChangeRemark | null;
+    enumKey: string | null;
+};
+
+export type PublicationChangeRemark = {
+    key: string;
+    value: string;
+};
+
 export type ValidatedAsset = {
     id: AssetId;
     errors: PublishValidationError[];
@@ -244,10 +268,11 @@ export type PublicationTableItem = {
     id: string; //Auto generated
     name: string;
     trackNumbers: TrackNumber[];
-    changedKmNumbers: KmNumber[];
+    changedKmNumbers: Range<string>[];
     operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;
     message: string;
     ratkoPushTime: TimeStamp;
+    propChanges: PublicationChange[];
 };

@@ -17,6 +17,46 @@
         "calculated-change": "Laskettu muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta"
     },
+    "publication-details-table": {
+        "property": "Muuttunut kohde",
+        "old-value": "Edellinen arvo",
+        "new-value": "Uusi arvo",
+        "remarks": "Huomioita",
+        "remark": {
+            "changed-x-meters": "Muutos {{0}}m",
+            "moved-x-meters": "Siirtynyt {{0}}m",
+            "changed-km-number": "Muuttunut kilometriltä {{0}}",
+            "changed-km-numbers": "Muuttunut kilometreiltä {{0}}",
+            "km-number-changed": "Siirtynyt ratakilometrille {{0}}"
+        },
+        "prop": {
+            "location-track": "Sijaintiraidetunnus",
+            "track-number": "Ratanumero",
+            "track-numbers": "Ratanumerot",
+            "state": "Tila",
+            "km-post": "Tasakilometripiste",
+            "description": "Kuvaus",
+            "topological-connectivity": "Topologinen yhteys",
+            "location-track-type": "Sijaintiraidetyyppi",
+            "duplicate-of": "Duplikaatti raiteelle",
+            "owner": "Omistaja",
+            "length": "Pituus",
+            "start-location": "Alkusijainti",
+            "end-location": "Loppusijainti",
+            "geometry": "Geometria",
+            "start-address": "Alkuosoite",
+            "end-address": "Loppuosoite",
+            "switch": "Vaihdetunnus",
+            "switch-track-address": "Rataosoite ratanumerolla {{0}} ({{1}})",
+            "state-category": "Tilakategoria",
+            "switch-type": "Vaihdetyyppi",
+            "trap-point": "Turvavaihde",
+            "measurement-method": "Sijainnin mittausmenetelmä",
+            "location-track-connectivity": "Liitos raiteisiin",
+            "switch-joint-location": "Sijainti ratanumerolla {{0}} ({{1}})",
+            "address": "Rataosoite"
+        }
+    },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",

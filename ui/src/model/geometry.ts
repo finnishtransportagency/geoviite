@@ -1,4 +1,5 @@
 import { Polygon } from 'ol/geom';
+import { Range } from 'common/common-model';
 
 export enum CoordinateSystem {
     TM35FIN = 'TM35FIN',
@@ -14,14 +15,9 @@ export type Line = {
     end: Point;
 };
 
-export type Range = {
-    min: number;
-    max: number;
-};
-
 export type BoundingBox = {
-    x: Range;
-    y: Range;
+    x: Range<number>;
+    y: Range<number>;
 };
 
 export type Rectangle = Polygon;
@@ -166,10 +162,10 @@ export function boundingBoxIntersectsLine(bbox: BoundingBox, line: Line): boolea
     );
 }
 
-export const rangesIntersect = (range1: Range, range2: Range): boolean =>
+export const rangesIntersect = (range1: Range<number>, range2: Range<number>): boolean =>
     range1.min < range2.max && range1.max > range1.min;
 
-export const rangeContains = (range: Range, value: number): boolean =>
+export const rangeContains = (range: Range<number>, value: number): boolean =>
     range.min < value && range.max > value;
 
 export const centerForBoundingBox = (bbox: BoundingBox): Point => ({
@@ -183,4 +179,4 @@ export const boundingBoxScale = (source: BoundingBox, target: BoundingBox) => {
     return Math.max(scaleX, scaleY);
 };
 
-const rangeLength = (range: Range) => range.max - range.min;
+const rangeLength = (range: Range<number>) => range.max - range.min;
