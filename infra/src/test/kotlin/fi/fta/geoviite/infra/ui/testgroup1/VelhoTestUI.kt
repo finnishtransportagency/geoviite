@@ -32,6 +32,7 @@ class VelhoTestUI @Autowired constructor(
 
     @BeforeEach
     fun clearVelhoTestData() {
+        clearAllTestData()
         deleteFromTables("projektivelho", *velhoTables.toTypedArray())
     }
 
@@ -47,7 +48,8 @@ class VelhoTestUI @Autowired constructor(
         fun assertTestProjectIsVisible() {
             assertEquals(
                 "foo bar.xml",
-                velhoPage.getItemWhenMatches(::identifyTestProject).getDocumentName())
+                velhoPage.getItemWhenMatches(::identifyTestProject).getDocumentName()
+            )
         }
 
         assertTestProjectIsVisible()
@@ -71,8 +73,17 @@ class VelhoTestUI @Autowired constructor(
         startGeoviite()
         val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
         velhoPage
+            // project name comes from PV metadata here
             .acceptFirstMatching { item -> item.getProjectName() == "testi_projekti" }
             .tallenna(true)
+
+        val infraModelPage = velhoPage.goToInfraModelList()
+        assertEquals(
+            "foo bar.xml",
+            infraModelPage.infraModelList()
+                // project name comes from test file here
+                .getItemWhenMatches { item -> item.projektinNimi() == "Geoviite test" }.tiedostonimi()
+        )
     }
 
     private fun insertFullExampleVelhoDocumentMetadata(

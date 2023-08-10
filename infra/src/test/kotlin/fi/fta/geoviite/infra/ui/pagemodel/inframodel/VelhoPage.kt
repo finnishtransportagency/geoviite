@@ -12,6 +12,11 @@ class VelhoPage(headers: List<String>) : TableModel<VelhoListItem>(
     itemsBy = By.cssSelector("div.projektivelho-file-list table tbody tr"),
     getContent = { i: Int, e: WebElement -> VelhoListItem(i, e, headers) },
 ) {
+    fun goToInfraModelList(): InfraModelPage {
+        childElement(byQaId("infra-model-nav-tab-plan")).click()
+        return InfraModelPage()
+    }
+
     fun openWaitingForApprovalList(): VelhoPage = apply {
         childElement(byQaId("infra-model-nav-tab-waiting")).click()
     }

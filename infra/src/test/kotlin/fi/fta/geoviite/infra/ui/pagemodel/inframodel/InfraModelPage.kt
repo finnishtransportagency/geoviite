@@ -24,19 +24,15 @@ class InfraModelPage : PageModel(By.xpath("//div[@qa-id='main-content-container'
     }
 
     fun infraModelList(): InfraModelTable {
-        return InfraModelTable(By.className("infra-model-list-search-result__table"))
+        childElement(byQaId("infra-model-nav-tab-plan")).click()
+        return infraModelTable(By.className("infra-model-list-search-result__table"))
     }
 
     fun openInfraModel(infraModelFileName: String): InfraModelUploadAndEditForm {
 
         assertTrue(getElementsWhenVisible(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr")).isNotEmpty())
 
-        val rows = infraModelList().infraModelRows()
-        try {
-            rows.first { it.tiedostonimi() == infraModelFileName }.clickRow()
-        } catch (ex: java.util.NoSuchElementException) {
-            logger.warn("Cannot find IM file $infraModelFileName! Available files are ${rows.map { it.tiedostonimi() }}")
-        }
+        infraModelList().selectItemWhenMatches { it.tiedostonimi() == infraModelFileName }
 
         return InfraModelUploadAndEditForm()
     }

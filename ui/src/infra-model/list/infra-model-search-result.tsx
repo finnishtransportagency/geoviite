@@ -138,7 +138,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.PROJECT_NAME)}>
+                                onClick={() => setFilter(SortByValue.PROJECT_NAME)}
+                                qa-id="im-form.name-header">
                                 {t('im-form.name-field')}
                             </Th>
                             <Th
@@ -147,7 +148,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.FILE_NAME)}>
+                                onClick={() => setFilter(SortByValue.FILE_NAME)}
+                                qa-id="im-form.file-name-header">
                                 {t('im-form.file-name')}
                             </Th>
                             <Th
@@ -156,7 +158,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.TRACK_NUMBER)}>
+                                onClick={() => setFilter(SortByValue.TRACK_NUMBER)}
+                                qa-id="im-form.track-number-header">
                                 {t('im-form.tracknumberfield')}
                             </Th>
                             <Th
@@ -165,7 +168,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.KM_START)}>
+                                onClick={() => setFilter(SortByValue.KM_START)}
+                                qa-id="im-form.km-start-header">
                                 {t('im-form.km-start-field')}
                             </Th>
                             <Th
@@ -174,7 +178,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.KM_END)}>
+                                onClick={() => setFilter(SortByValue.KM_END)}
+                                qa-id="im-form.km-end-header">
                                 {t('im-form.km-end-field')}
                             </Th>
                             <Th
@@ -183,7 +188,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.PLAN_PHASE)}>
+                                onClick={() => setFilter(SortByValue.PLAN_PHASE)}
+                                qa-id="im-form.plan-phase-header">
                                 {t('im-form.plan-phase-field')}
                             </Th>
                             <Th
@@ -192,7 +198,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.DECISION_PHASE)}>
+                                onClick={() => setFilter(SortByValue.DECISION_PHASE)}
+                                qa-id="im-form.decision-phase-header">
                                 {t('im-form.decision-phase-field')}
                             </Th>
                             <Th
@@ -201,7 +208,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.CREATED_AT)}>
+                                onClick={() => setFilter(SortByValue.CREATED_AT)}
+                                qa-id="im-form.created-at-header">
                                 {t('im-form.plan-time-field')}
                             </Th>
                             <Th
@@ -210,7 +218,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.UPLOADED_AT)}>
+                                onClick={() => setFilter(SortByValue.UPLOADED_AT)}
+                                qa-id="im-form.uploaded-at-header">
                                 {t('im-form.created-field')}
                             </Th>
                             <Th
@@ -219,7 +228,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.LINKED_AT)}>
+                                onClick={() => setFilter(SortByValue.LINKED_AT)}
+                                qa-id="im-form.linked-at-header">
                                 {t('im-form.linked-at-field')}
                             </Th>
                             <Th
@@ -228,7 +238,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.LINKED_BY)}>
+                                onClick={() => setFilter(SortByValue.LINKED_BY)}
+                                qa-id="im-form.linked-by-header">
                                 {t('im-form.linked-by-users-field')}
                             </Th>
                             <Th />
