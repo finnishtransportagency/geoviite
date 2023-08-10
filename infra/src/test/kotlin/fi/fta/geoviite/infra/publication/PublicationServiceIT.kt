@@ -828,10 +828,11 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
-            mapOf(),
+            mutableMapOf(),
             latestPub.publicationTime,
             previousPub.publicationTime,
             publicationDao.fetchTrackNumberNames(),
+            false,
             emptySet()
         )
         assertEquals(5, diff.size)
@@ -872,10 +873,11 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
-            mapOf(),
+            mutableMapOf(),
             latestPub.publicationTime,
             previousPub.publicationTime,
             publicationDao.fetchTrackNumberNames(),
+            false,
             emptySet()
         )
         assertEquals(1, diff.size)
@@ -1024,12 +1026,13 @@ class PublicationServiceIT @Autowired constructor(
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
-        val changes = publicationDao.fetchPublicationChanges(latestPub.id)
+        val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
+            Operation.MODIFY,
             publicationDao.fetchTrackNumberNames(),
             mutableMapOf()
         )
@@ -1066,12 +1069,13 @@ class PublicationServiceIT @Autowired constructor(
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
-        val changes = publicationDao.fetchPublicationChanges(latestPub.id)
+        val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
+            Operation.MODIFY,
             publicationDao.fetchTrackNumberNames(),
             mutableMapOf()
         )

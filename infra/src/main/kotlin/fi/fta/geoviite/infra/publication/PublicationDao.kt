@@ -453,7 +453,7 @@ class PublicationDao(
               from publication.track_number
                 left join layout.track_number_version tn on tn.id = track_number.track_number_id and tn.version = track_number_version
                 left join publication.publication p on p.id = publication_id
-                left join layout.reference_line_at(p.publication_time) rl on rl.track_number_id = tn.id
+                left join layout.reference_line_at(p.publication_time) rl on rl.track_number_id = tn.id and rl.draft = false
                 left join layout.alignment_version av on av.id = rl.alignment_id and av.version = rl.alignment_version
                 left join layout.segment_version sv_first on av.id = sv_first.alignment_id and av.version = sv_first.alignment_version and sv_first.segment_index = 0
                 left join layout.segment_geometry sg_first on sv_first.geometry_id = sg_first.id
@@ -540,7 +540,12 @@ class PublicationDao(
                 left join layout.segment_geometry sg_last
                           on sv_last.geometry_id = sg_last.id
                 left join layout.location_track_version old_ltv
-                          on old_ltv.id = ltv.id and old_ltv.version = ltv.version - 1 and old_ltv.draft = false
+                          on old_ltv.id = ltv.id 
+                            and ((old_ltv.version = ltv.version - 1 
+                              and location_track.direct_change = true) 
+                              or (old_ltv.version = ltv.version
+                              and location_track.direct_change = false))
+                            and old_ltv.draft = false
                 left join layout.alignment_version old_av
                           on old_ltv.alignment_id = old_av.id and old_ltv.alignment_version = old_av.version
                 left join layout.segment_version old_sv_first
@@ -617,11 +622,14 @@ class PublicationDao(
               postgis.st_y(old_km_post_version.location) as old_point_y
             from publication.km_post
               left join layout.km_post_version km_post_version
-                      on km_post.km_post_id = km_post_version.id and km_post.km_post_version = km_post_version.version
+                      on km_post.km_post_id = km_post_version.id 
+                        and km_post.km_post_version = km_post_version.version
               left join publication.publication
                       on km_post.publication_id = publication.id
               left join layout.km_post_version old_km_post_version
-                      on old_km_post_version.id = km_post_version.id and old_km_post_version.version = km_post_version.version - 1 and old_km_post_version.draft = false
+                      on old_km_post_version.id = km_post_version.id 
+                        and old_km_post_version.version = km_post_version.version - 1 
+                        and old_km_post_version.draft = false
             where publication_id = :publication_id
         """.trimIndent()
 
@@ -686,7 +694,7 @@ class PublicationDao(
             id to ReferenceLineChanges(
                 id,
                 trackNumberId = Change(new = rs.getIntIdOrNull("track_number_id"), old = rs.getIntIdOrNull("old_track_number_id")),
-                length = Change(rs.getDoubleOrNull("length"), rs.getDoubleOrNull("old_length")),
+                length = Change(new = rs.getDoubleOrNull("length"), old = rs.getDoubleOrNull("old_length")),
                 startPoint = Change(new = rs.getPointOrNull("start_x", "start_y"), old = rs.getPointOrNull("old_start_x", "old_start_y")),
                 endPoint = Change(new = rs.getPointOrNull("end_x", "end_y"), old = rs.getPointOrNull("old_end_x", "old_end_y"))
             )
@@ -702,7 +710,7 @@ class PublicationDao(
         val trackNumberId: IntId<TrackLayoutTrackNumber>,
     )
 
-    fun fetchPublicationChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutSwitch>, SwitchChanges> {
+    fun fetchPublicationSwitchChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutSwitch>, SwitchChanges> {
         val sql = """
             with joints as (
               select
@@ -764,7 +772,12 @@ class PublicationDao(
                 left join geometry.plan plan
                           on gs.plan_id = plan.id
                 left join layout.switch_version old_switch_version
-                          on old_switch_version.id = switch_version.id and old_switch_version.version = switch_version.version - 1 and old_switch_version.draft = false
+                          on old_switch_version.id = switch_version.id 
+                            and ((old_switch_version.version = switch_version.version - 1 
+                              and switch.direct_change = true) 
+                              or (old_switch_version.version = switch_version.version
+                              and switch.direct_change = false)) 
+                            and old_switch_version.draft = false
                 left join common.switch_structure old_switch_structure
                           on old_switch_structure.id = old_switch_version.switch_structure_id
                 left join common.switch_owner old_switch_owner

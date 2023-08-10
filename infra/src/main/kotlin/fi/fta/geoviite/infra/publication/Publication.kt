@@ -61,9 +61,9 @@ data class PropKey(
 ) { constructor(key: String, params: List<String>? = null) : this(LocalizationKey(key), params) }
 
 data class PublicationChangeRemark(
-    val key: String,
+    val key: LocalizationKey,
     val value: String,
-)
+) { constructor(key: String, value: String) : this(LocalizationKey(key), value) }
 
 open class Publication(
     open val id: IntId<Publication>,
@@ -149,6 +149,7 @@ enum class Operation(val priority: Int) {
     MODIFY(1),
     DELETE(2),
     RESTORE(3),
+    CALCULATED(4),
 }
 
 data class ValidatedPublishCandidates(

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
@@ -11,6 +12,7 @@ import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -85,16 +87,9 @@ private fun formatOperation(operation: Operation) =
         Operation.MODIFY -> getTranslation("modify")
         Operation.DELETE -> getTranslation("delete")
         Operation.RESTORE -> getTranslation("restore")
+        Operation.CALCULATED -> getTranslation("calculated-change")
     }
 
-fun formatMessage(message: String?, isCalculatedChange: Boolean): String {
-    val calculatedChangeTranslation = getTranslation("calculated-change")
-
-    return if (message == null) {
-        if (isCalculatedChange) calculatedChangeTranslation else ""
-    } else if (isCalculatedChange) "$message ($calculatedChangeTranslation)"
-    else message
-}
 fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
     kmNumbers.sorted().fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
         if (acc.isEmpty()) acc.add(listOf(kmNumber))
@@ -152,6 +147,7 @@ fun formatLocation(newPresentationJointLocation: Point) =
 val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
 fun lengthDifference(len1: Double, len2: Double) = abs(abs(len1) - abs(len2))
+fun lengthDifference(len1: BigDecimal, len2: BigDecimal) = abs(abs(len1.toDouble()) - abs(len2.toDouble()))
 
 fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
     point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
@@ -170,6 +166,22 @@ fun pointMovedRemark(distance: Double) =
         "moved-x-meters",
         formatDistance(distance)
     )
+
+fun addressMovedRemark(oldAddress: TrackMeter, newAddress: TrackMeter) =
+    if (newAddress.kmNumber != oldAddress.kmNumber)
+        PublicationChangeRemark(
+            "km-number-changed",
+            "${newAddress.kmNumber}"
+        )
+    else if (lengthDifference(newAddress.meters, oldAddress.meters) > DISTANCE_CHANGE_THRESHOLD) PublicationChangeRemark(
+        "moved-x-meters",
+        formatDistance(
+            lengthDifference(
+                newAddress.meters,
+                oldAddress.meters
+            )
+        )
+    ) else null
 
 fun <T, U> compareChangeValues(
     oldValue: T?,
