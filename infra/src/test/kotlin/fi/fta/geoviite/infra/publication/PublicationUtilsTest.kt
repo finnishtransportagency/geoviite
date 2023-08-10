@@ -31,46 +31,21 @@ class PublicationUtilsTest {
     }
 
     @Test
-    fun `Lazy values are fetched if predicate is true`() {
-        var a = 1
-        var b = 2
-        val aMutator = { a++ }
-        val bMutator = { b++ }
-        val change = compareChangeLazy({ true }, aMutator, bMutator, { it }, PropKey("test"))
-        assertNotNull(change)
-        assertEquals(a, 2)
-        assertEquals(b, 3)
-    }
-
-    @Test
-    fun `Lazy values are not fetched if predicate is false`() {
-        var a = 1
-        var b = 2
-        val aMutator = { a++ }
-        val bMutator = { b++ }
-        val change = compareChangeLazy({ false }, aMutator, bMutator, { it }, PropKey("test"))
-        assertNull(change)
-        assertEquals(a, 1)
-        assertEquals(b, 2)
-    }
-
-    @Test
-    fun `Double comparison works properly`() {
-        val changeTrue = compareDouble(1.0, 2.0, 0.2, { it }, PropKey("test"))
-        val changeFalse = compareDouble(1.0, 1.1, 0.2, { it }, PropKey("test"))
+    fun `Length comparison works properly`() {
+        val changeTrue = compareLength(1.0, 2.0, 0.2, { it }, PropKey("test"))
+        val changeFalse = compareLength(1.0, 1.1, 0.2, { it }, PropKey("test"))
         assertNotNull(changeTrue)
         assertNull(changeFalse)
     }
 
     @Test
     fun `compareChangeValues works`() {
-        val changeTrue = compareChangeValues(1, 2, { it }, PropKey("test"))
-        val changeFalse = compareChangeValues(1, 1, { it }, PropKey("test"))
+        val changeTrue = compareChangeValues(Change(1, 2), { it }, PropKey("test"))
+        val changeFalse = compareChangeValues(Change(1, 1), { it }, PropKey("test"))
         assertNotNull(changeTrue)
         assertNull(changeFalse)
     }
 
-    // formatLocation tests
     @Test
     fun `formatLocation works`() {
         val location = Point(1.0, 2.0001)

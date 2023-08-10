@@ -5,7 +5,14 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { API_URI, getIgnoreError, getThrowError, postIgnoreError, putIgnoreError, queryParams } from 'api/api-fetch';
+import {
+    API_URI,
+    getIgnoreError,
+    getThrowError,
+    postIgnoreError,
+    putIgnoreError,
+    queryParams,
+} from 'api/api-fetch';
 import {
     GeometryPlanLinkStatus,
     LinkingGeometryWithAlignmentParameters,
@@ -23,14 +30,14 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { PublishType, SwitchStructureId } from 'common/common-model';
+import { PublishType, SwitchStructureId, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
-import { BoundingBox, Point, Range } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -107,9 +114,9 @@ export const linkGeometryWithEmptyLocationTrack = async (
 
 export async function updateReferenceLineGeometry(
     id: ReferenceLineId,
-    mRange: Range,
+    mRange: Range<number>,
 ): Promise<ReferenceLineId | null> {
-    const result = await putIgnoreError<Range, ReferenceLineId>(
+    const result = await putIgnoreError<Range<number>, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry', id),
         mRange,
     );
@@ -119,9 +126,9 @@ export async function updateReferenceLineGeometry(
 
 export async function updateLocationTrackGeometry(
     id: LocationTrackId,
-    mRange: Range,
+    mRange: Range<number>,
 ): Promise<LocationTrackId | null> {
-    const result = await putIgnoreError<Range, LocationTrackId>(
+    const result = await putIgnoreError<Range<number>, LocationTrackId>(
         linkingUri('location-tracks', 'geometry', id),
         mRange,
     );

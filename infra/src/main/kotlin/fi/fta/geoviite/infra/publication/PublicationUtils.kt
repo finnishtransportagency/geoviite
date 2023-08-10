@@ -2,11 +2,10 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.roundTo1Decimal
-import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -90,7 +89,7 @@ private fun formatOperation(operation: Operation) =
         Operation.CALCULATED -> getTranslation("calculated-change")
     }
 
-fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
+fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
     kmNumbers.sorted().fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
         if (acc.isEmpty()) acc.add(listOf(kmNumber))
         else {
@@ -102,7 +101,12 @@ fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
             } else acc.add(listOf(kmNumber))
         }
         acc
-    }.joinToString(", ") { it.joinToString("-") }
+    }.map { Range(it.first(), it.last()) }
+
+fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
+    groupChangedKmNumbers(kmNumbers)
+        .map { if (it.min == it.max) "${it.min}" else "${it.min}-${it.max}" }
+        .joinToString { ", " }
 
 fun formatDistance(dist: Double) = if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
 
@@ -124,7 +128,7 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         }
 
         PublicationTableColumn.CHANGED_KM_NUMBERS -> Comparator { a, b ->
-            compareNullsLast(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
+            compareNullsLast(a.changedKmNumbers.firstOrNull()?.min, b.changedKmNumbers.firstOrNull()?.min)
         }
 
         PublicationTableColumn.OPERATION -> Comparator.comparing { p -> p.operation.priority }
@@ -137,10 +141,10 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
     }
 }
 
-fun formatLocation(newPresentationJointLocation: Point) =
-    "${roundTo3Decimals(newPresentationJointLocation.x)} E, ${
+fun formatLocation(location: Point) =
+    "${roundTo3Decimals(location.x)} E, ${
         roundTo3Decimals(
-            newPresentationJointLocation.y
+            location.y
         )
     } N"
 
@@ -152,105 +156,102 @@ fun lengthDifference(len1: BigDecimal, len2: BigDecimal) = abs(abs(len1.toDouble
 fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
     point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
 
-fun distancesAreSame(oldLength: Double?, newLength: Double?) =
-    oldLength == newLength || newLength != null && oldLength != null && lengthDifference(oldLength, newLength) <= DISTANCE_CHANGE_THRESHOLD
+fun getLengthChangedRemarkOrNull(length1: Double?, length2: Double?) =
+    if (length1 != null && length2 != null)
+        lengthDifference(length1, length2).let { lengthDifference ->
+            if (lengthDifference > DISTANCE_CHANGE_THRESHOLD)
+                PublicationChangeRemark(
+                    "changed-x-meters",
+                    formatDistance(lengthDifference)
+                )
+            else null
+        }
+    else null
 
-fun lengthChangedRemark(lengthDelta: Double) =
-    PublicationChangeRemark(
-        "changed-x-meters",
-        formatDistance(lengthDelta)
-    )
+fun getPointMovedRemarkOrNull(oldPoint: Point?, newPoint: Point?) =
+    oldPoint?.let { p1 ->
+        newPoint?.let { p2 ->
+            if (!pointsAreSame(p1, p2)) {
+                val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
+                if (distance > DISTANCE_CHANGE_THRESHOLD)
+                    PublicationChangeRemark(
+                        "moved-x-meters",
+                        formatDistance(distance)
+                    )
+                else null
+            } else null
+        }
+    }
 
-fun pointMovedRemark(distance: Double) =
-    PublicationChangeRemark(
-        "moved-x-meters",
-        formatDistance(distance)
-    )
-
-fun addressMovedRemark(oldAddress: TrackMeter, newAddress: TrackMeter) =
-    if (newAddress.kmNumber != oldAddress.kmNumber)
+fun getAddressMovedRemarkOrNull(oldAddress: TrackMeter?, newAddress: TrackMeter?) =
+    if (newAddress == null || oldAddress == null) null
+    else if (newAddress.kmNumber != oldAddress.kmNumber)
         PublicationChangeRemark(
             "km-number-changed",
             "${newAddress.kmNumber}"
         )
-    else if (lengthDifference(newAddress.meters, oldAddress.meters) > DISTANCE_CHANGE_THRESHOLD) PublicationChangeRemark(
-        "moved-x-meters",
-        formatDistance(
-            lengthDifference(
-                newAddress.meters,
-                oldAddress.meters
+    else if (lengthDifference(newAddress.meters, oldAddress.meters) > DISTANCE_CHANGE_THRESHOLD)
+        PublicationChangeRemark(
+            "moved-x-meters",
+            formatDistance(
+                lengthDifference(
+                    newAddress.meters,
+                    oldAddress.meters
+                )
             )
         )
-    ) else null
+    else null
+
+fun getKmNumbersChangedRemarkOrNull(changedKmNumbers: Set<KmNumber>) =
+    PublicationChangeRemark(
+        if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+        formatChangedKmNumbers(changedKmNumbers.toList())
+    )
 
 fun <T, U> compareChangeValues(
-    oldValue: T?,
-    newValue: T?,
-    valueTransform: (T) -> U?,
+    change: Change<T>,
+    valueTransform: (T) -> U,
     propKey: PropKey,
     remark: PublicationChangeRemark? = null,
     enumLocalizationKey: String? = null
 ) =
     compareChange(
-        predicate = { newValue != oldValue },
-        oldValue = oldValue,
-        newValue = newValue,
+        predicate = { change.new != change.old },
+        oldValue = change.old,
+        newValue = change.new,
         valueTransform = valueTransform,
         propKey = propKey,
         remark = remark,
         enumLocalizationKey = enumLocalizationKey,
     )
 
-fun <U> compareDouble(
+fun <U> compareLength(
     oldValue: Double?,
     newValue: Double?,
     threshold: Double,
-    valueTransform: (Double) -> U?,
+    valueTransform: (Double) -> U,
     propKey: PropKey,
     remark: PublicationChangeRemark? = null,
     enumLocalizationKey: String? = null
 ) = compareChange(
     predicate = {
-        if (oldValue != null && newValue != null) abs(abs(newValue) - abs(oldValue)) > threshold
+        if (oldValue != null && newValue != null) lengthDifference(oldValue, newValue) > threshold
         else if (oldValue != null || newValue != null) true
         else false
     },
     oldValue = oldValue,
     newValue = newValue,
     valueTransform = valueTransform,
-        propKey = propKey,
-        remark = remark,
-        enumLocalizationKey = enumLocalizationKey,
+    propKey = propKey,
+    remark = remark,
+    enumLocalizationKey = enumLocalizationKey,
     )
-
-fun <T, U>compareChangeLazy(
-    predicate: () -> Boolean,
-    oldValueGetter: () -> T?,
-    newValueGetter: () -> T?,
-    valueTransform: (T) -> U?,
-    propKey: PropKey,
-    remark: PublicationChangeRemark? = null,
-    enumLocalizationKey: String? = null,
-): PublicationChange<U>? {
-    val pred = predicate()
-    return if (pred) {
-        compareChange(
-            predicate = predicate,
-            oldValue = oldValueGetter(),
-            newValue = newValueGetter(),
-            valueTransform = valueTransform,
-            propKey = propKey,
-            remark = remark,
-            enumLocalizationKey = enumLocalizationKey,
-        )
-    } else null
-}
 
 fun <T, U> compareChange(
     predicate: () -> Boolean,
     oldValue: T?,
     newValue: T?,
-    valueTransform: (T) -> U?,
+    valueTransform: (T) -> U,
     propKey: PropKey,
     remark: PublicationChangeRemark? = null,
     enumLocalizationKey: String? = null,

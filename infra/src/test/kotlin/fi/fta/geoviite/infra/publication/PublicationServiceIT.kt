@@ -718,7 +718,7 @@ class PublicationServiceIT @Autowired constructor(
             changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
             thisAndPreviousPublication.last().publicationTime,
-            mutableMapOf()
+            { a, b -> null }
         )
         assertEquals(3, diff.size)
         assertEquals("track-number", diff[0].propKey.key.toString())
@@ -755,7 +755,7 @@ class PublicationServiceIT @Autowired constructor(
             changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
             thisAndPreviousPublication.last().publicationTime,
-            mutableMapOf())
+            { a, b -> null })
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
         assertEquals(trackNumber.description, diff[0].value.oldValue)
@@ -828,12 +828,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
-            mutableMapOf(),
             latestPub.publicationTime,
             previousPub.publicationTime,
-            publicationDao.fetchTrackNumberNames(),
+            trackNumberDao.fetchTrackNumberNames(),
             false,
-            emptySet()
+            emptySet(),
+            { a, b -> null }
         )
         assertEquals(5, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
@@ -873,12 +873,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
-            mutableMapOf(),
             latestPub.publicationTime,
             previousPub.publicationTime,
-            publicationDao.fetchTrackNumberNames(),
+            trackNumberDao.fetchTrackNumberNames(),
             false,
-            emptySet()
+            emptySet(),
+            { a, b -> null }
         )
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
@@ -940,7 +940,7 @@ class PublicationServiceIT @Autowired constructor(
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
-            publicationDao.fetchTrackNumberNames(),
+            trackNumberDao.fetchTrackNumberNames(),
         )
         assertEquals(2, diff.size)
         // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
@@ -976,7 +976,7 @@ class PublicationServiceIT @Autowired constructor(
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
-            publicationDao.fetchTrackNumberNames(),
+            trackNumberDao.fetchTrackNumberNames(),
         )
         assertEquals(1, diff.size)
         assertEquals("km-post", diff[0].propKey.key.toString())
@@ -1033,8 +1033,8 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,
-            publicationDao.fetchTrackNumberNames(),
-            mutableMapOf()
+            trackNumberDao.fetchTrackNumberNames(),
+            { a, b -> null }
         )
         assertEquals(5, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
@@ -1076,8 +1076,8 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,
-            publicationDao.fetchTrackNumberNames(),
-            mutableMapOf()
+            trackNumberDao.fetchTrackNumberNames(),
+            { a, b -> null }
         )
         assertEquals(1, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
