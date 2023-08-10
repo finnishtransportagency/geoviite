@@ -11,6 +11,7 @@ import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { infraModelActionCreators } from 'infra-model/infra-model-slice';
 import { PublishType } from 'common/common-model';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 
 const emptyFn = () => void 0;
 
@@ -69,10 +70,12 @@ const getInfraModelProps = (): MapViewProps => {
 type MapViewContainerProps = {
     publishType?: PublishType;
     hoveredOverPlanSection?: HighlightedAlignment;
+    manuallySetPlan?: GeometryPlanLayout;
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     publishType,
     hoveredOverPlanSection,
+    manuallySetPlan,
 }) => {
     const mapContext = React.useContext(MapContext);
 
@@ -80,6 +83,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
 
     mapProps.publishType = publishType ? publishType : mapProps.publishType;
     mapProps.hoveredOverPlanSection = hoveredOverPlanSection;
+    mapProps.manuallySetPlan = manuallySetPlan;
 
     return <MapView {...mapProps} />;
 };

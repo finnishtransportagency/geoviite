@@ -69,6 +69,8 @@ export function queryParams(params: Record<string, unknown>): string {
     return nonNull.length == 0 ? '' : `?${nonNull.join('&')}`;
 }
 
+// TODO: GVT-2014 unify these functions as described in the ticket
+
 /**
  * @deprecated Throwing loses type information. If you need to handle the error in your use-place, use getAdt instead, fetching a result object with output or error
  */

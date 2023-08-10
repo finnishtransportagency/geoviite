@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publish
 import publishRequest
+import java.math.BigDecimal
 import kotlin.test.*
 
 @ActiveProfiles("dev", "test")
@@ -183,6 +184,33 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         assertEqualsCalculatedChanges(draftCalculatedChanges, publication)
+    }
+
+    @Test
+    fun `Publishing reference line change without track number figures out the operation correctly`() {
+        val (line, alignment) = referenceLineAndAlignment(someTrackNumber())
+        val draftId = referenceLineService.saveDraft(line, alignment).id
+        assertThrows<NoSuchEntityException> { referenceLineService.getWithAlignmentOrThrow(OFFICIAL, draftId) }
+        assertEquals(draftId, referenceLineService.getDraft(draftId).id)
+
+        val publishRequest = publishRequest(referenceLines = listOf(draftId))
+        val versions = publicationService.getValidationVersions(publishRequest)
+        val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
+        val publication = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")
+        val publicationDetails = publicationService.getPublicationDetails(publication.publishId!!)
+        assertEquals(1, publicationDetails.referenceLines.size)
+        assertEquals(Operation.CREATE, publicationDetails.referenceLines[0].operation)
+        val publishedReferenceLine = referenceLineService.getOfficial(draftId)!!
+        
+        val updateResponse = referenceLineService.updateTrackNumberReferenceLine(publishedReferenceLine.trackNumberId, publishedReferenceLine.startAddress.copy(meters = publishedReferenceLine.startAddress.meters.add(
+            BigDecimal.ONE)))
+        val pubReq2 = publishRequest(referenceLines = listOf(updateResponse!!.id))
+        val versions2 = publicationService.getValidationVersions(pubReq2)
+        val draftCalculatedChanges2 = getCalculatedChangesInRequest(versions2)
+        val publication2 = publicationService.publishChanges(versions2, draftCalculatedChanges2, "Test 2")
+        val publicationDetails2 = publicationService.getPublicationDetails(publication2.publishId!!)
+        assertEquals(1, publicationDetails2.referenceLines.size)
+        assertEquals(Operation.MODIFY, publicationDetails2.referenceLines[0].operation)
     }
 
     @Test

@@ -41,10 +41,6 @@ fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>)
     else info("accessType=$accessType objectType=${objectType} ids=$ids")
 }
 
-fun Logger.daoCall(method: String, vararg params: Pair<String, *>) {
-    info("method=$method params=${paramsToLog(params)}")
-}
-
 fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
     info("method=$method params=${paramsToLog(params)}")
 }

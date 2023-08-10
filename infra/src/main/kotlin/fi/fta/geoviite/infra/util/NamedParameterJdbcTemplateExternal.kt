@@ -41,4 +41,4 @@ fun <T> NamedParameterJdbcTemplate.batchUpdate(
     sql: String,
     items: List<T>,
     paramSetter: ParameterizedPreparedStatementSetter<T>,
-) = jdbcTemplate.batchUpdate(sql, items, items.size, paramSetter)
+): Array<IntArray> = jdbcTemplate.batchUpdate(sql, items, items.size, paramSetter)

@@ -20,6 +20,7 @@ import {
 } from 'common/common-model';
 import { deduplicateById } from 'utils/array-utils';
 import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
+import { GeometryPlanLinkStatus } from 'linking/linking-model';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -186,6 +187,11 @@ export type GeometryPlanLayout = {
     boundingBox: BoundingBox;
     planId: GeometryPlanLayoutId;
     planDataType: DataType;
+};
+
+export type PlanAndStatus = {
+    plan: GeometryPlanLayout;
+    status: GeometryPlanLinkStatus | undefined;
 };
 
 export type PlanLayoutAlignment = {

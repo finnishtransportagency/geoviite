@@ -28,11 +28,13 @@ import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
 
 const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
-
+const val VERTICAL_GEOMETRY_LISTING_GENERATION_USER = "VERT_GEOM_LIST_GEN"
 
 
 @Service
@@ -47,6 +49,7 @@ class GeometryService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val heightTriangleDao: HeightTriangleDao,
     private val elementListingFileDao: ElementListingFileDao,
+    private val verticalGeometryListingFileDao: VerticalGeometryListingFileDao,
     private val lockDao: LockDao,
 ) {
 
@@ -57,6 +60,18 @@ class GeometryService @Autowired constructor(
         try {
             lockDao.runWithLock(DatabaseLock.ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
                 val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
+                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+            }
+        } finally {
+            MDC.remove(USER_HEADER)
+        }
+    }
+
+    private fun runVerticalGeometryListGeneration(op: () -> Unit) {
+        MDC.put(USER_HEADER, VERTICAL_GEOMETRY_LISTING_GENERATION_USER)
+        try {
+            lockDao.runWithLock(DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
+                val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
                 if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
             }
         } finally {
@@ -111,6 +126,11 @@ class GeometryService @Autowired constructor(
     fun getProjects(): List<Project> {
         logger.serviceCall("getProjects")
         return geometryDao.fetchProjects()
+    }
+
+    fun getProjectChangeTime(): Instant {
+        logger.serviceCall("getProjectChangeTime")
+        return geometryDao.fetchProjectChangeTime()
     }
 
     fun getProject(id: IntId<Project>): Project {
@@ -212,7 +232,7 @@ class GeometryService @Autowired constructor(
     fun getElementListing(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
-        geocodingContext: GeocodingContext?
+        geocodingContext: GeocodingContext?,
     ): List<ElementListing> {
         logger.serviceCall("getElementListing", "locationTrack" to locationTrack, "alignment" to alignment)
         return toElementListing(
@@ -233,9 +253,10 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<ElementListing> {
-        logger.serviceCall("getElementListing",
+        logger.serviceCall(
+            "getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
-            "startAddress" to startAddress, "endAdress" to endAddress,
+            "startAddress" to startAddress, "endAddress" to endAddress,
         )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
         return toElementListing(
@@ -256,9 +277,10 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): ElementListingFile {
-        logger.serviceCall("getElementListing",
+        logger.serviceCall(
+            "getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
-            "startAddress" to startAddress, "endAdress" to endAddress,
+            "startAddress" to startAddress, "endAddress" to endAddress,
         )
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
@@ -271,29 +293,23 @@ class GeometryService @Autowired constructor(
     )
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().map { tn ->
+        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
             tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
-        }.toMap()
+        }
         val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
             .sortedBy { locationTrack -> locationTrack.name }
-            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache.get(locationTrack.trackNumberId)?.first?.number }
+            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number }
             .flatMap { locationTrack ->
-                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(
-                    OFFICIAL,
-                    locationTrack.id as IntId<LocationTrack>
-                )
-                val geocodingContext = trackNumberAndGeocodingContextCache.get(locationTrack.trackNumberId)?.second
-                getElementListing(
-                    locationTrack,
-                    alignment,
-                    geocodingContext
-
-                )
+                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId)
+                val geocodingContext = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.second
+                getElementListing(locationTrack, alignment, geocodingContext)
             }
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
         elementListingFileDao.upsertElementListingFile(
             ElementListingFile(
-                name = FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK),
+                name = FileName("$ELEMENT_LISTING_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
                 content = csvFileContent
             )
         )
@@ -303,7 +319,7 @@ class GeometryService @Autowired constructor(
 
 
     fun getVerticalGeometryListing(
-        planId: IntId<GeometryPlan>
+        planId: IntId<GeometryPlan>,
     ): List<VerticalGeometryListing> {
         logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
@@ -314,7 +330,7 @@ class GeometryService @Autowired constructor(
     }
 
     fun getVerticalGeometryListingCsv(
-        planId: IntId<GeometryPlan>
+        planId: IntId<GeometryPlan>,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
@@ -343,13 +359,45 @@ class GeometryService @Autowired constructor(
         endAddress: TrackMeter?,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv",
-            "trackId" to locationTrackId, "startAddress" to startAddress, "endAdress" to endAddress,)
+            "trackId" to locationTrackId, "startAddress" to startAddress, "endAddress" to endAddress)
         val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
         val verticalGeometryListing = getVerticalGeometryListing(OFFICIAL, locationTrackId, startAddress, endAddress)
 
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
         return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
     }
+
+    @Scheduled(
+        cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}"
+    )
+    fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
+        logger.serviceCall("makeVerticalGeometryListingCsv")
+        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
+            tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
+        }
+        val verticalGeometryListingWithTrackNumbers = locationTrackService.list(OFFICIAL, includeDeleted = false)
+            .sortedWith(compareBy(
+                { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
+                { locationTrack -> locationTrack.name },
+            ))
+            .flatMap { locationTrack ->
+                val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
+
+                verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
+                    verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
+                }
+            }
+
+        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
+        verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
+            VerticalGeometryListingFile(
+                name = FileName(VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK),
+                content = csvFileContent
+            )
+        )
+    }
+
+    fun getEntireVerticalGeometryListingCsv() = verticalGeometryListingFileDao.getVerticalGeometryListingFile()
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)
@@ -449,12 +497,12 @@ class GeometryService @Autowired constructor(
             geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId) ?: return null
 
         val segmentSources = collectSegmentSources(alignment)
-        val planLinkEndSegmentIndices = segmentSources
-            .zipWithNext { a, b -> a.plan == b.plan }
+        val alignmentLinkEndSegmentIndices = segmentSources
+            .zipWithNext { a, b -> a.alignment == b.alignment }
             .mapIndexedNotNull { i, equals -> if (equals) null else i }
 
-        val planBoundaryAddresses =
-            planLinkEndSegmentIndices.flatMap { i ->
+        val alignmentBoundaryAddresses =
+            alignmentLinkEndSegmentIndices.flatMap { i ->
                 listOf(
                     PlanBoundaryPoint(alignment.segments[i].endM, i),
                     PlanBoundaryPoint(alignment.segments[i + 1].startM, i + 1),
@@ -469,7 +517,7 @@ class GeometryService @Autowired constructor(
             geocodingContext,
             alignment,
             tickLength,
-            planBoundaryAddresses = planBoundaryAddresses,
+            alignmentBoundaryAddresses = alignmentBoundaryAddresses,
         ) { point, givenSegmentIndex ->
             val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
             val segment = alignment.segments[segmentIndex]
@@ -539,7 +587,7 @@ class GeometryService @Autowired constructor(
         geocodingContext: GeocodingContext,
         alignment: IAlignment,
         tickLength: Int,
-        planBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
+        alignmentBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
         getHeightAt: (point: LayoutPoint, segmentIndex: Int?) -> Double?,
     ): List<KmHeights>? {
         val addressOfStartDistance =
@@ -551,8 +599,8 @@ class GeometryService @Autowired constructor(
             geocodingContext.referencePoints.indexOfFirst { referencePoint -> referencePoint.kmNumber == addressOfStartDistance.kmNumber }..
                     geocodingContext.referencePoints.indexOfFirst { referencePoint -> referencePoint.kmNumber == addressOfEndDistance.kmNumber }
 
-        val planBoundaryAddressesByKm =
-            planBoundaryAddresses.mapNotNull { boundary ->
+        val alignmentBoundaryAddressesByKm =
+            alignmentBoundaryAddresses.mapNotNull { boundary ->
                 alignment.getPointAtM(boundary.distanceOnAlignment)?.let { point ->
                     geocodingContext.getAddress(point)?.let { address -> address.first to boundary.segmentIndex }
                 }
@@ -578,7 +626,7 @@ class GeometryService @Autowired constructor(
             // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
             // point, but potentially have different heights (or more often null/not-null heights).
-            val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf()) +
+            val allTicks = ((alignmentBoundaryAddressesByKm[kmNumber] ?: listOf()) +
                     ((0..lastPoint step tickLength).map { distance -> distance.toBigDecimal() to null }))
                 .sortedBy { (trackMeterInKm) -> trackMeterInKm }
 

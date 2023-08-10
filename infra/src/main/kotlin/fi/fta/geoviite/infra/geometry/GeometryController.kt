@@ -272,6 +272,20 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/rail-network/vertical-geometry/file")
+    fun getEntireNetworkVerticalGeometryListingCSV(): ResponseEntity<ByteArray> {
+        log.apiCall("getEntireNetworkVerticalGeometryListingCSV")
+        val verticalGeometryListingFile = geometryService.getEntireVerticalGeometryListingCsv()
+        return verticalGeometryListingFile?.let {
+            toFileDownloadResponse(
+                verticalGeometryListingFile.name.withSuffix(CSV),
+                verticalGeometryListingFile.content.toByteArray(Charsets.UTF_8)
+            )
+        }
+            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/plans/{planId}/start-and-end/{planAlignmentId}")
     fun getPlanAlignmentStartAndEnd(
         @PathVariable("planId") planId: IntId<GeometryPlan>,

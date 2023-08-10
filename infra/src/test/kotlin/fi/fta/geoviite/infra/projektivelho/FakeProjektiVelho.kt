@@ -1,10 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVDictionaryCode
-import PVDictionaryEntry
-import PVDictionaryGroup
-import PVDictionaryType
-import PVDocument
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA

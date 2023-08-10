@@ -1,12 +1,21 @@
 import * as React from 'react';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
-import { GeometryPlanLayout, LayoutKmPost, LayoutSwitch } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LayoutKmPost,
+    LayoutSwitch,
+    PlanLayoutAlignment,
+} from 'track-layout/track-layout-model';
 import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { Accordion } from 'geoviite-design-lib/accordion/accordion';
-import { OpenedPlanLayout, OptionalItemCollections } from 'selection/selection-model';
+import {
+    OpenPlanLayout,
+    OptionalItemCollections,
+    VisiblePlanLayout,
+} from 'selection/selection-model';
 import styles from './geometry-plan-panel.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
@@ -16,6 +25,7 @@ import {
     ToggleKmPostPayload,
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
+    wholePlanVisibility,
 } from 'selection/selection-store';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
@@ -30,17 +40,17 @@ type GeometryPlanProps = {
     onPlanHeaderSelection: (planHeader: GeometryPlanHeader) => void;
     publishType: PublishType;
     changeTimes: ChangeTimes;
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleAlignmentSelection: (alignment: AlignmentHeader) => void;
     onToggleSwitchSelection: (switchItem: LayoutSwitch) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
-    selectedItems?: OptionalItemCollections;
-    selectedPlanLayouts?: GeometryPlanLayout[];
+    selectedItems: OptionalItemCollections;
+    openPlans: OpenPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -68,9 +78,9 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     onToggleKmPostVisibility,
     onToggleKmPostSelection,
     selectedItems,
-    selectedPlanLayouts,
+    openPlans,
+    visiblePlans,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
@@ -80,11 +90,11 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     planBeingLoaded,
 }: GeometryPlanProps) => {
     const { t } = useTranslation();
-    const openedPlanLayout = openedPlanLayouts.find((p) => p.id === planHeader.id);
-    const isPlanOpen = !!openedPlanLayout;
-    const isKmPostsOpen = openedPlanLayout ? openedPlanLayout.isKmPostsOpen : false;
-    const isAlignmentsOpen = openedPlanLayout ? openedPlanLayout.isAlignmentsOpen : false;
-    const isSwitchesOpen = openedPlanLayout ? openedPlanLayout.isSwitchesOpen : false;
+    const openPlanLayout = openPlans.find((p) => p.id === planHeader.id);
+    const isPlanOpen = !!openPlanLayout;
+    const isKmPostsOpen = openPlanLayout ? openPlanLayout.isKmPostsOpen : false;
+    const isAlignmentsOpen = openPlanLayout ? openPlanLayout.isAlignmentsOpen : false;
+    const isSwitchesOpen = openPlanLayout ? openPlanLayout.isSwitchesOpen : false;
     const [openingAccordion, setOpeningAccordion] = React.useState(false);
     const [visibilities, setVisibilities] = React.useState<Visibilities>({
         planHeader: false,
@@ -94,29 +104,27 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     });
 
     React.useEffect(() => {
-        const planHeaderSelected = !!selectedPlanLayouts?.some((p) => p.planId == planHeader.id);
+        const planVisible = visiblePlans.some((v) => v.id === planHeader.id);
 
-        const allAlignmentsSelected = !!planLayout?.alignments.every((a) =>
-            selectedPlanLayouts?.some((p) =>
-                p.alignments.some((pa) => pa.header.id === a.header.id),
-            ),
+        const allAlignmentsVisible = !!planLayout?.alignments.every((a) =>
+            visiblePlans.some((p) => p.alignments.includes(a.header.id)),
         );
 
-        const allSwitchesSelected = !!planLayout?.switches.every((s) =>
-            selectedPlanLayouts?.some((p) => p.switches.some((pa) => pa.id === s.id)),
+        const allSwitchesVisible = !!planLayout?.switches.every((s) =>
+            visiblePlans.some((p) => p.switches.some((id) => id === s.sourceId)),
         );
 
-        const allKmPostsSelected = !!planLayout?.kmPosts.every((k) =>
-            selectedPlanLayouts?.some((p) => p.kmPosts.some((pa) => pa.id === k.id)),
+        const allKmPostsVisible = !!planLayout?.kmPosts.every((k) =>
+            visiblePlans.some((p) => p.kmPosts.some((id) => id === k.sourceId)),
         );
 
         setVisibilities({
-            planHeader: planHeaderSelected,
-            alignments: allAlignmentsSelected,
-            switches: allSwitchesSelected,
-            kmPosts: allKmPostsSelected,
+            planHeader: planVisible,
+            alignments: allAlignmentsVisible,
+            switches: allSwitchesVisible,
+            kmPosts: allKmPostsVisible,
         });
-    }, [planLayout, selectedPlanLayouts]);
+    }, [planLayout, visiblePlans]);
 
     const onPlanToggle = () => {
         if (planLayout) {
@@ -147,46 +155,42 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
 
     const onPlanVisibilityToggle = () => {
         if (planLayout) {
-            onTogglePlanVisibility(planLayout);
+            onTogglePlanVisibility(wholePlanVisibility(planLayout));
         } else {
-            loadPlanLayout().then(onTogglePlanVisibility);
+            loadPlanLayout().then((p) => {
+                if (p) onTogglePlanVisibility(wholePlanVisibility(p));
+            });
         }
     };
 
-    const onAlignmentSelect = (
-        alignment: AlignmentHeader,
-        alignmentStatus: LocationTrackBadgeStatus,
-    ) => {
+    const onAlignmentSelect = (alignment: AlignmentHeader) => {
         if (planLayout) {
             onToggleAlignmentSelection(alignment);
             onToggleAlignmentVisibility({
-                alignment: alignment,
-                status: alignmentStatus,
-                planLayout,
+                alignmentId: alignment.id,
+                planId: planLayout.planId,
                 keepAlignmentVisible: true,
             });
         }
     };
 
-    const onSwitchSelect = (switchItem: LayoutSwitch, switchStatus: SwitchBadgeStatus) => {
-        if (planLayout) {
+    const onSwitchSelect = (switchItem: LayoutSwitch) => {
+        if (planLayout && switchItem.sourceId) {
             onToggleSwitchSelection(switchItem);
             onToggleSwitchVisibility({
-                switch: switchItem,
-                status: switchStatus,
-                planLayout,
+                switchId: switchItem.sourceId,
+                planId: planLayout.planId,
                 keepSwitchesVisible: true,
             });
         }
     };
 
-    const onKmPostSelect = (kmPostItem: LayoutKmPost, kmPostStatus: KmPostBadgeStatus) => {
-        if (planLayout) {
+    const onKmPostSelect = (kmPostItem: LayoutKmPost) => {
+        if (planLayout && kmPostItem.sourceId) {
             onToggleKmPostSelection(kmPostItem);
             onToggleKmPostVisibility({
-                kmPost: kmPostItem,
-                status: kmPostStatus,
-                planLayout,
+                kmPostId: kmPostItem.sourceId,
+                planId: planLayout.planId,
                 keepKmPostsVisible: true,
             });
         }
@@ -206,7 +210,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 onVisibilityToggle={onPlanVisibilityToggle}
                 visibility={visibilities.planHeader}
                 onHeaderClick={() => onPlanHeaderSelection(planHeader)}
-                headerSelected={selectedItems?.geometryPlans?.some((id) => id === planHeader.id)}
+                headerSelected={selectedItems.geometryPlans?.some((id) => id === planHeader.id)}
                 fetchingContent={openingAccordion || planBeingLoaded}>
                 {planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
@@ -220,74 +224,17 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             }}
                             open={isKmPostsOpen}>
                             <ul>
-                                {planLayout.kmPosts?.length > 0 &&
-                                    planLayout.kmPosts.map((planKmPost) => {
-                                        const isKmPostSelected =
-                                            selectedItems?.geometryKmPosts?.some(
-                                                (k) => k.geometryItem.id === planKmPost.id,
-                                            );
-                                        const isKmPostVisible = selectedPlanLayouts?.some((p) =>
-                                            p.kmPosts.some((k) => k.id === planKmPost.id),
-                                        );
-
-                                        const kmPostStatus = linkStatus?.kmPosts?.some(
-                                            (k) =>
-                                                k.id == planKmPost.sourceId &&
-                                                k.linkedKmPosts?.length > 0,
-                                        )
-                                            ? KmPostBadgeStatus.LINKED
-                                            : KmPostBadgeStatus.UNLINKED;
-
-                                        return (
-                                            <li
-                                                key={planKmPost.id}
-                                                className={createClassName(
-                                                    styles['geometry-plan-panel__kmpost'],
-                                                    isKmPostSelected &&
-                                                        styles[
-                                                            'geometry-plan-panel__kmpost--selected'
-                                                        ],
-                                                )}>
-                                                <span
-                                                    className={
-                                                        styles[
-                                                            'geometry-plan-panel__list-item-main-content'
-                                                        ]
-                                                    }
-                                                    onClick={() =>
-                                                        onKmPostSelect(planKmPost, kmPostStatus)
-                                                    }>
-                                                    <KmPostBadge
-                                                        kmPost={planKmPost}
-                                                        status={kmPostStatus}
-                                                    />
-                                                </span>
-
-                                                <span
-                                                    className={createClassName(
-                                                        styles[
-                                                            'geometry-plan-panel__kmpost-visibility'
-                                                        ],
-                                                        isKmPostVisible &&
-                                                            styles[
-                                                                'geometry-plan-panel__kmpost-visibility--visible'
-                                                            ],
-                                                    )}>
-                                                    <Icons.Eye
-                                                        color={IconColor.INHERIT}
-                                                        onClick={() =>
-                                                            isKmPostSelected ||
-                                                            onToggleKmPostVisibility({
-                                                                kmPost: planKmPost,
-                                                                status: kmPostStatus,
-                                                                planLayout: planLayout,
-                                                            })
-                                                        }
-                                                    />
-                                                </span>
-                                            </li>
-                                        );
-                                    })}
+                                {planLayout.kmPosts.map((planKmPost) =>
+                                    createKmPostRow(
+                                        planLayout,
+                                        planKmPost,
+                                        selectedItems,
+                                        visiblePlans,
+                                        linkStatus,
+                                        onKmPostSelect,
+                                        onToggleKmPostVisibility,
+                                    ),
+                                )}
                                 {planLayout.kmPosts.length == 0 && (
                                     <span className={styles['geometry-plan-panel__no-entities']}>
                                         {t('selection-panel.no-kmposts')}
@@ -305,77 +252,17 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             }}
                             open={isAlignmentsOpen}>
                             <ul>
-                                {planLayout.alignments.length > 0 &&
-                                    planLayout.alignments.map((alignment) => {
-                                        const alignmentStatus = linkStatus?.alignments?.some(
-                                            (s) => s.id == alignment.header.id && s.isLinked,
-                                        )
-                                            ? LocationTrackBadgeStatus.LINKED
-                                            : LocationTrackBadgeStatus.UNLINKED;
-
-                                        const isAlignmentSelected =
-                                            selectedItems?.geometryAlignments?.some(
-                                                (a) => a.geometryItem.id === alignment.header.id,
-                                            );
-                                        const isAlignmentVisible = selectedPlanLayouts?.some((p) =>
-                                            p.alignments.some(
-                                                (a) => a.header.id === alignment.header.id,
-                                            ),
-                                        );
-
-                                        return (
-                                            <li
-                                                key={alignment.header.id}
-                                                className={createClassName(
-                                                    styles['geometry-plan-panel__alignment'],
-                                                    isAlignmentSelected &&
-                                                        styles[
-                                                            'geometry-plan-panel__alignment--selected'
-                                                        ],
-                                                )}>
-                                                <span
-                                                    className={
-                                                        styles[
-                                                            'geometry-plan-panel__list-item-main-content'
-                                                        ]
-                                                    }
-                                                    onClick={() =>
-                                                        onAlignmentSelect(
-                                                            alignment.header,
-                                                            alignmentStatus,
-                                                        )
-                                                    }>
-                                                    <LocationTrackBadge
-                                                        locationTrack={alignment.header}
-                                                        status={alignmentStatus}
-                                                    />
-                                                </span>
-
-                                                <span
-                                                    className={createClassName(
-                                                        styles[
-                                                            'geometry-plan-panel__alignment-visibility'
-                                                        ],
-                                                        isAlignmentVisible &&
-                                                            styles[
-                                                                'geometry-plan-panel__alignment-visibility--visible'
-                                                            ],
-                                                    )}>
-                                                    <Icons.Eye
-                                                        color={IconColor.INHERIT}
-                                                        onClick={() =>
-                                                            isAlignmentSelected ||
-                                                            onToggleAlignmentVisibility({
-                                                                alignment: alignment.header,
-                                                                status: alignmentStatus,
-                                                                planLayout: planLayout,
-                                                            })
-                                                        }
-                                                    />
-                                                </span>
-                                            </li>
-                                        );
-                                    })}
+                                {planLayout.alignments.map((alignment) =>
+                                    createAlignmentRow(
+                                        planLayout,
+                                        alignment,
+                                        selectedItems,
+                                        visiblePlans,
+                                        linkStatus,
+                                        onAlignmentSelect,
+                                        onToggleAlignmentVisibility,
+                                    ),
+                                )}
                                 {planLayout.alignments.length == 0 && (
                                     <span className={styles['geometry-plan-panel__no-entities']}>
                                         {t('selection-panel.no-alignments')}
@@ -393,72 +280,17 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             }}
                             open={isSwitchesOpen}>
                             <ul>
-                                {planLayout.switches.length > 0 &&
-                                    planLayout.switches.map((planSwitch) => {
-                                        const switchStatus = linkStatus?.switches?.some(
-                                            (s) => s.id == planSwitch.sourceId && s.isLinked,
-                                        )
-                                            ? SwitchBadgeStatus.LINKED
-                                            : SwitchBadgeStatus.UNLINKED;
-
-                                        const isSwitchSelected =
-                                            selectedItems?.geometrySwitches?.some(
-                                                (s) => s.geometryItem.id === planSwitch.id,
-                                            );
-                                        const isSwitchVisible = selectedPlanLayouts?.some((p) =>
-                                            p.switches.some((a) => a.id === planSwitch.id),
-                                        );
-
-                                        return (
-                                            <li
-                                                key={planSwitch.id}
-                                                className={createClassName(
-                                                    styles['geometry-plan-panel__switch'],
-                                                    isSwitchSelected &&
-                                                        styles[
-                                                            'geometry-plan-panel__switch--selected'
-                                                        ],
-                                                )}>
-                                                <span
-                                                    className={
-                                                        styles[
-                                                            'geometry-plan-panel__list-item-main-content'
-                                                        ]
-                                                    }
-                                                    onClick={() =>
-                                                        onSwitchSelect(planSwitch, switchStatus)
-                                                    }>
-                                                    <SwitchBadge
-                                                        switchItem={planSwitch}
-                                                        status={switchStatus}
-                                                    />
-                                                </span>
-
-                                                <span
-                                                    className={createClassName(
-                                                        styles[
-                                                            'geometry-plan-panel__switch-visibility'
-                                                        ],
-                                                        isSwitchVisible &&
-                                                            styles[
-                                                                'geometry-plan-panel__switch-visibility--visible'
-                                                            ],
-                                                    )}>
-                                                    <Icons.Eye
-                                                        color={IconColor.INHERIT}
-                                                        onClick={() =>
-                                                            isSwitchSelected ||
-                                                            onToggleSwitchVisibility({
-                                                                switch: planSwitch,
-                                                                status: switchStatus,
-                                                                planLayout: planLayout,
-                                                            })
-                                                        }
-                                                    />
-                                                </span>
-                                            </li>
-                                        );
-                                    })}
+                                {planLayout.switches.map((planSwitch) =>
+                                    createSwitchRow(
+                                        planLayout,
+                                        planSwitch,
+                                        selectedItems,
+                                        visiblePlans,
+                                        linkStatus,
+                                        onSwitchSelect,
+                                        onToggleSwitchVisibility,
+                                    ),
+                                )}
                                 {planLayout.switches.length == 0 && (
                                     <span className={styles['geometry-plan-panel__no-entities']}>
                                         {t('selection-panel.no-switches')}
@@ -472,3 +304,168 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         </div>
     );
 };
+
+function createKmPostRow(
+    planLayout: GeometryPlanLayout,
+    planKmPost: LayoutKmPost,
+    selectedItems: OptionalItemCollections,
+    visiblePlans: VisiblePlanLayout[],
+    linkStatus: GeometryPlanLinkStatus | null,
+    onKmPostSelect: (kmPostItem: LayoutKmPost, kmPostStatus: KmPostBadgeStatus) => void,
+    onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void,
+): React.ReactElement {
+    const isKmPostSelected = selectedItems.geometryKmPostIds?.some(
+        ({ geometryId }) => geometryId === planKmPost.sourceId,
+    );
+    const isKmPostVisible = visiblePlans.some((p) =>
+        p.kmPosts.some((id) => id === planKmPost.sourceId),
+    );
+
+    const kmPostStatus = linkStatus?.kmPosts?.some(
+        (k) => k.id == planKmPost.sourceId && k.linkedKmPosts?.length > 0,
+    )
+        ? KmPostBadgeStatus.LINKED
+        : KmPostBadgeStatus.UNLINKED;
+    return (
+        <li
+            key={planKmPost.id}
+            className={createClassName(
+                styles['geometry-plan-panel__kmpost'],
+                isKmPostSelected && styles['geometry-plan-panel__kmpost--selected'],
+            )}>
+            <span
+                className={styles['geometry-plan-panel__list-item-main-content']}
+                onClick={() => onKmPostSelect(planKmPost, kmPostStatus)}>
+                <KmPostBadge kmPost={planKmPost} status={kmPostStatus} />
+            </span>
+
+            <span
+                className={createClassName(
+                    styles['geometry-plan-panel__kmpost-visibility'],
+                    isKmPostVisible && styles['geometry-plan-panel__kmpost-visibility--visible'],
+                )}>
+                <Icons.Eye
+                    color={IconColor.INHERIT}
+                    onClick={() =>
+                        isKmPostSelected ||
+                        (planKmPost.sourceId &&
+                            onToggleKmPostVisibility({
+                                kmPostId: planKmPost.sourceId,
+                                planId: planLayout.planId,
+                            }))
+                    }
+                />
+            </span>
+        </li>
+    );
+}
+
+function createAlignmentRow(
+    planLayout: GeometryPlanLayout,
+    alignment: PlanLayoutAlignment,
+    selectedItems: OptionalItemCollections,
+    visiblePlans: VisiblePlanLayout[],
+    linkStatus: GeometryPlanLinkStatus | null,
+    onAlignmentSelect: (alignment: AlignmentHeader, status: LocationTrackBadgeStatus) => void,
+    onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void,
+): React.ReactElement {
+    const alignmentStatus = linkStatus?.alignments?.some(
+        (s) => s.id == alignment.header.id && s.isLinked,
+    )
+        ? LocationTrackBadgeStatus.LINKED
+        : LocationTrackBadgeStatus.UNLINKED;
+
+    const isAlignmentSelected = selectedItems.geometryAlignmentIds?.some(
+        (a) => a.geometryId === alignment.header.id,
+    );
+    const isAlignmentVisible = visiblePlans.some((p) => p.alignments.includes(alignment.header.id));
+
+    return (
+        <li
+            key={alignment.header.id}
+            className={createClassName(
+                styles['geometry-plan-panel__alignment'],
+                isAlignmentSelected && styles['geometry-plan-panel__alignment--selected'],
+            )}>
+            <span
+                className={styles['geometry-plan-panel__list-item-main-content']}
+                onClick={() => onAlignmentSelect(alignment.header, alignmentStatus)}>
+                <LocationTrackBadge locationTrack={alignment.header} status={alignmentStatus} />
+            </span>
+
+            <span
+                className={createClassName(
+                    styles['geometry-plan-panel__alignment-visibility'],
+                    isAlignmentVisible &&
+                        styles['geometry-plan-panel__alignment-visibility--visible'],
+                )}>
+                <Icons.Eye
+                    color={IconColor.INHERIT}
+                    onClick={() =>
+                        isAlignmentSelected ||
+                        onToggleAlignmentVisibility({
+                            alignmentId: alignment.header.id,
+                            planId: planLayout.planId,
+                        })
+                    }
+                />
+            </span>
+        </li>
+    );
+}
+
+function createSwitchRow(
+    planLayout: GeometryPlanLayout,
+    planSwitch: LayoutSwitch,
+    selectedItems: OptionalItemCollections,
+    visiblePlans: VisiblePlanLayout[],
+    linkStatus: GeometryPlanLinkStatus | null,
+    onSwitchSelect: (switchItem: LayoutSwitch, switchStatus: SwitchBadgeStatus) => void,
+    onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void,
+): React.ReactElement {
+    const switchStatus = linkStatus?.switches?.some(
+        (s) => s.id == planSwitch.sourceId && s.isLinked,
+    )
+        ? SwitchBadgeStatus.LINKED
+        : SwitchBadgeStatus.UNLINKED;
+
+    const isSwitchSelected = selectedItems.geometrySwitchIds?.some(
+        (s) => s.geometryId === planSwitch.sourceId,
+    );
+    const isSwitchVisible = visiblePlans.some((p) =>
+        p.switches.some((id) => id === planSwitch.sourceId),
+    );
+
+    return (
+        <li
+            key={planSwitch.id}
+            className={createClassName(
+                styles['geometry-plan-panel__switch'],
+                isSwitchSelected && styles['geometry-plan-panel__switch--selected'],
+            )}>
+            <span
+                className={styles['geometry-plan-panel__list-item-main-content']}
+                onClick={() => onSwitchSelect(planSwitch, switchStatus)}>
+                <SwitchBadge switchItem={planSwitch} status={switchStatus} />
+            </span>
+
+            <span
+                className={createClassName(
+                    styles['geometry-plan-panel__switch-visibility'],
+                    isSwitchVisible && styles['geometry-plan-panel__switch-visibility--visible'],
+                )}>
+                <Icons.Eye
+                    color={IconColor.INHERIT}
+                    onClick={() =>
+                        isSwitchSelected ||
+                        (planSwitch.sourceId &&
+                            onToggleSwitchVisibility({
+                                switchId: planSwitch.sourceId,
+                                planId: planLayout.planId,
+                            }))
+                    }
+                />
+            </span>
+        </li>
+    );
+}

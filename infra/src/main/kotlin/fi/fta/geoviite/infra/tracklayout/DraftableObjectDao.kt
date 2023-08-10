@@ -168,7 +168,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         return queryRowVersion(draftFetchSql(table, FetchType.SINGLE), id)
     }
 
-    private fun <T> fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
+    private fun fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return queryRowVersionOrNull(officialFetchSql(table, FetchType.SINGLE), id)
     }
@@ -217,14 +217,14 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         //language=SQL
         val sql = """
             select
-              case when version.deleted then null else version.id end as id,
-              case when version.deleted then null else version.version end as version
-            from ${table.versionTable} version
+              case when v.deleted then null else v.id end as id,
+              case when v.deleted then null else v.version end as version
+            from ${table.versionTable} v
             where
-              version.id = :id
-              and version.change_time <= :moment
-              and not version.draft
-            order by version.change_time desc
+              v.id = :id
+              and v.change_time <= :moment
+              and not v.draft
+            order by v.change_time desc
             limit 1
         """.trimIndent()
         val params = mapOf(

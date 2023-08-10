@@ -64,11 +64,11 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             planIds={store.selection.selectedItems.geometryPlans}
             trackNumberIds={store.selection.selectedItems.trackNumbers}
             kmPostIds={kmPostIds}
-            geometryKmPosts={store.selection.selectedItems.geometryKmPosts}
+            geometryKmPostIds={store.selection.selectedItems.geometryKmPostIds}
             switchIds={switchIds}
-            geometrySwitches={store.selection.selectedItems.geometrySwitches}
+            geometrySwitchIds={store.selection.selectedItems.geometrySwitchIds}
             locationTrackIds={store.selection.selectedItems.locationTracks}
-            geometryAlignments={store.selection.selectedItems.geometryAlignments}
+            geometryAlignmentIds={store.selection.selectedItems.geometryAlignmentIds}
             linkingState={store.linkingState}
             showArea={delegates.showArea}
             changeTimes={changeTimes}
@@ -84,7 +84,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
                 delegates.hideLayers(['switch-linking-layer']);
                 delegates.stopLinking();
             }}
-            verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramVisible}
+            verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramState.visible}
             onHoverOverPlanSection={setHoveredOverItem}
         />
     );

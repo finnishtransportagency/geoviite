@@ -64,9 +64,9 @@ export const PlanLinking: React.FC<PlanLinkingProps> = ({
                                     planId &&
                                     alignmentHeader &&
                                     onSelect({
-                                        geometryAlignments: [
+                                        geometryAlignmentIds: [
                                             {
-                                                geometryItem: alignmentHeader,
+                                                geometryId: alignmentHeader.id,
                                                 planId: planId,
                                             },
                                         ],

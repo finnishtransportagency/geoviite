@@ -80,7 +80,7 @@ class NoSuchEntityException(
     type: String,
     id: String,
     localizedMessageKey: String = "error.entity_not_found",
-) : ClientException(NOT_FOUND, "No element of type ${type} exists with id $id", null, localizedMessageKey) {
+) : ClientException(NOT_FOUND, "No element of type $type exists with id $id", null, localizedMessageKey) {
     constructor(type: KClass<*>, id: DomainId<*>) : this(type.simpleName ?: type.toString(), idToString(id))
     constructor(type: String, id: DomainId<*>) : this(type, idToString(id))
     constructor(type: KClass<*>, id: String) : this(type.simpleName ?: type.toString(), id)

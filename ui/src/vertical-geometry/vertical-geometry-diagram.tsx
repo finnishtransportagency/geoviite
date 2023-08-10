@@ -12,9 +12,9 @@ import { PointIndicator } from 'vertical-geometry/point-indicator';
 import { createClassName } from 'vayla-design-lib/utils';
 import { getSnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates, xToM } from 'vertical-geometry/coordinates';
-import { getBottomAndTopTicks, sumPaddings, zeroDivision } from 'vertical-geometry/util';
+import { getBottomAndTopTicks, sumPaddings, zeroSafeDivision } from 'vertical-geometry/util';
 import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
-import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     findTrackMeterIndexContainingM,
     getTrackMeterPairAroundIndex,
@@ -22,12 +22,6 @@ import {
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { BoundingBox } from 'model/geometry';
 import { OnSelectOptions } from 'selection/selection-model';
-import { LocationTrackId } from 'track-layout/track-layout-model';
-import { PublishType } from 'common/common-model';
-
-export type VerticalGeometryDiagramAlignmentId =
-    | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
-    | { locationTrackId: LocationTrackId; publishType: PublishType };
 
 const chartBottomPadding = 60;
 const topHeightPaddingPx = 180;
@@ -67,22 +61,26 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
 }) => {
     const [panning, setPanning] = React.useState<number>();
     const [mousePositionInElement, setMousePositionInElement] = React.useState<[number, number]>();
+    const [diagramHeight, setDiagramHeight] = React.useState<number>(height);
+    const [diagramWidth, setDiagramWidth] = React.useState<number>(width);
 
     const ref = React.useRef<HTMLDivElement>(null);
     const elementPosition = ref.current?.getBoundingClientRect();
 
-    const elementStyle = ref.current && getComputedStyle(ref.current);
+    React.useEffect(() => {
+        const elementStyle = ref.current && getComputedStyle(ref.current);
 
-    const horizontalPadding = elementStyle
-        ? sumPaddings(elementStyle.paddingLeft, elementStyle.paddingRight)
-        : 0;
+        const horizontalPadding = elementStyle
+            ? sumPaddings(elementStyle.paddingLeft, elementStyle.paddingRight)
+            : 0;
 
-    const verticalPadding = elementStyle
-        ? sumPaddings(elementStyle.paddingTop, elementStyle.paddingBottom)
-        : 0;
+        const verticalPadding = elementStyle
+            ? sumPaddings(elementStyle.paddingTop, elementStyle.paddingBottom)
+            : 0;
 
-    const diagramHeight = Math.max(height - verticalPadding, 0);
-    const diagramWidth = Math.max(width - horizontalPadding, 0);
+        setDiagramHeight(Math.max(height - verticalPadding, 0));
+        setDiagramWidth(Math.max(width - horizontalPadding, 0));
+    }, [width, height]);
 
     const diagramClasses = createClassName(
         styles['vertical-geometry-diagram'],
@@ -96,11 +94,11 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         topHeightTick,
         bottomHeightTick,
         chartHeightPx: diagramHeight - chartBottomPadding,
-        meterHeightPx: zeroDivision(
+        meterHeightPx: zeroSafeDivision(
             diagramHeight - topHeightPaddingPx + bottomHeightPaddingPx,
             topHeightTick - bottomHeightTick,
         ),
-        mMeterLengthPxOverM: zeroDivision(diagramWidth, visibleEndM - visibleStartM),
+        mMeterLengthPxOverM: zeroSafeDivision(diagramWidth, visibleEndM - visibleStartM),
         diagramWidthPx: diagramWidth,
         endM: visibleEndM,
         fullDiagramHeightPx: diagramHeight,

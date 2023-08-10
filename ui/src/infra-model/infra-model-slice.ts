@@ -30,9 +30,9 @@ export enum InfraModelViewType {
 }
 
 export enum InfraModelTabType {
-    PLAN,
-    WAITING,
-    REJECTED,
+    PLAN = 'plan',
+    WAITING = 'waiting',
+    REJECTED = 'rejected',
 }
 
 export type InfraModelState = {
@@ -148,7 +148,6 @@ const infraModelSlice = createSlice({
             state.validationResponse = response;
 
             if (response.planLayout) {
-                state.selection.planLayouts = [response.planLayout];
                 const bBox = response.planLayout.boundingBox;
                 state.map.viewport = {
                     ...state.map.viewport,

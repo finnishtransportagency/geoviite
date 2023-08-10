@@ -38,7 +38,7 @@ export type AlignmentDataHolder = {
 };
 
 export type AlignmentHeader = {
-    id: LocationTrackId | ReferenceLineId;
+    id: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
     version?: RowVersion;
     trackNumberId?: LayoutTrackNumberId;
     duplicateOf?: LocationTrackId;

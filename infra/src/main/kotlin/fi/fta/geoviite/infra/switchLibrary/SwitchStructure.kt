@@ -238,18 +238,19 @@ data class SwitchStructure(
             alignments = alignments.map { alignment ->
                 alignment.copy(
                     elements = alignment.elements.map { element ->
-                        if (element is SwitchElementLine) {
-                            element.copy(
-                                start = element.start * multiplier,
-                                end = element.end * multiplier
-                            )
-                        } else if (element is SwitchElementCurve) {
-                            element.copy(
-                                start = element.start * multiplier,
-                                end = element.end * multiplier
-                            )
-                        } else {
-                            element
+                        when (element) {
+                            is SwitchElementLine -> {
+                                element.copy(
+                                    start = element.start * multiplier,
+                                    end = element.end * multiplier
+                                )
+                            }
+                            is SwitchElementCurve -> {
+                                element.copy(
+                                    start = element.start * multiplier,
+                                    end = element.end * multiplier
+                                )
+                            }
                         }
                     }
                 )

@@ -19,7 +19,8 @@ import tryWait
 class MapNavigationPanel {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    val locationTracksList = LocationTracksNavigationList()
+    val locationTracksList: LocationTracksNavigationList by lazy { LocationTracksNavigationList() }
+    val kmPostsList: KmPostsNavigationList by lazy { KmPostsNavigationList() }
 
     fun selectTrackNumber(name: String) {
         logger.info("Select trackNumber $name")
@@ -161,6 +162,24 @@ class MapNavigationPanel {
     }
 }
 
+data class KmPostListItem(
+    val name: String,
+    override val index: Int,
+): ListContentItem {
+    constructor(index: Int, element: WebElement) : this(
+        name = element.findElement(By.xpath("./div/span")).text,
+        index = index
+    )
+}
+
+class KmPostsNavigationList : ListModel<KmPostListItem>(
+    listBy = By.xpath("//ol[@class='km-posts-panel__km-posts']"),
+    itemsBy = byLiTag,
+    getContent = { i: Int, e: WebElement -> KmPostListItem(i, e) }) {
+    fun selectByName(name: String) = selectItemWhenMatches { lt -> lt.name == name }
+
+    fun waitUntilNameVisible(name: String) = waitUntilItemMatches { lt -> lt.name == name }
+}
 
 class LocationTracksNavigationList :
     ListModel<LocationTrackListItem>(listBy = By.xpath("//ol[@qa-id='location-tracks-list']"),

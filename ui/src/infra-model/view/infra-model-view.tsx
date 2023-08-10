@@ -156,7 +156,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             <div className={styles['infra-model-upload__map-container']}>
                 {showMap && (
                     <MapContext.Provider value="infra-model">
-                        <MapViewContainer />
+                        <MapViewContainer manuallySetPlan={planLayout ?? undefined} />
                     </MapContext.Provider>
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}

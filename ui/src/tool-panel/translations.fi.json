@@ -138,8 +138,6 @@
             "true-length": "Todellinen pituus (m)",
             "start-coordinates": "Alkukoordinaatit",
             "end-coordinates": "Loppukoordinaatit",
-            "created": "Luotu",
-            "changed": "Muokattu",
             "end-points-updated": "Pituusmittauslinjan päätepisteet päivitetty",
             "reference-line-singular": "Pituusmittauslinja",
             "reference-line-plural": "Pituusmittauslinjat"
@@ -202,8 +200,6 @@
             "has-duplicates": "Duplikaattiraiteet",
             "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
-            "created": "Luotu",
-            "changed": "Muokattu",
             "type": "Raidetyyppi",
             "identifier": "Tunniste",
             "track-location-heading": "Raiteen sijaintitiedot",
@@ -266,6 +262,8 @@
             "all-ok": "Kaikki OK",
             "errors": "Virheet",
             "warnings": "Varoitukset"
-        }
+        },
+        "created": "Luotu",
+        "changed": "Muokattu"
     }
 }

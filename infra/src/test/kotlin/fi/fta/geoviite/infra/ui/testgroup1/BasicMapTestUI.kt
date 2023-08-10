@@ -169,7 +169,7 @@ class BasicMapTestUI @Autowired constructor(
         val editedKuvaus = "$orgKuvaus-edited"
         editDialog.editKuvaus(editedKuvaus)
         editDialog.editTila(CreateEditLocationTrackDialog.TilaTyyppi.KAYTOSTA_POISTETTU)
-        editDialog.tallenna()
+        editDialog.tallenna().close()
 
         navigationPanel.locationTracksList.waitUntilNameVisible(editedTunnus)
         val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo()

@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull

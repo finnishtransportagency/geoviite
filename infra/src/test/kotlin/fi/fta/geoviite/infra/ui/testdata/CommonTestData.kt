@@ -102,15 +102,7 @@ fun locationTrack(
     incrementPoints: List<Point>,
     description: String = "$name location track description",
 ): Pair<LocationTrack, LayoutAlignment> {
-
-    val points = pointsFromIncrementList(basePoint, incrementPoints)
-
-    val segments = points.dropLast(1).mapIndexed { index, pointA ->
-        val pointB = points[index + 1]
-        segment(toTrackLayoutPoints(pointA, pointB))
-    }
-
-    val alignment = alignment(segments)
+    val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
     val track = locationTrack(
         trackNumberId = trackNumber,
         alignment = alignment,
@@ -120,6 +112,29 @@ fun locationTrack(
         state = LayoutState.IN_USE,
     )
     return track to alignment
+}
+
+fun referenceLine(
+    trackNumber: IntId<TrackLayoutTrackNumber>,
+    basePoint: Point,
+    incrementPoints: List<Point>,
+): Pair<ReferenceLine, LayoutAlignment> {
+    val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
+    val line = referenceLine(
+        trackNumberId = trackNumber,
+        alignment = alignment,
+    )
+    return line to alignment
+}
+
+private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
+    val points = pointsFromIncrementList(basePoint, incrementPoints)
+
+    val segments = points.dropLast(1).mapIndexed { index, pointA ->
+        val pointB = points[index + 1]
+        segment(toTrackLayoutPoints(pointA, pointB))
+    }
+    return alignment(segments)
 }
 
 /*

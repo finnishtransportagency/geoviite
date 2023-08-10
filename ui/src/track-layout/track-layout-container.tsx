@@ -10,7 +10,7 @@ export const TrackLayoutContainer: React.FC = () => {
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     const showVerticalGeometryDiagram =
-        trackLayoutState.map.verticalGeometryDiagramVisible &&
+        trackLayoutState.map.verticalGeometryDiagramState.visible &&
         (trackLayoutState.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT' ||
             trackLayoutState.selectedToolPanelTab?.type === 'LOCATION_TRACK');
 

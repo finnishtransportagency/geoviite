@@ -1,15 +1,17 @@
 import {
-    GeometryPlanLayout,
-    LayoutKmPost,
     LayoutKmPostId,
     LayoutSegmentId,
-    LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryPlanId, GeometryPlanLayoutId } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryKmPostId,
+    GeometryPlanId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import {
     ClusterPoint,
     LinkPoint,
@@ -21,18 +23,17 @@ import {
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
 import { PublicationId } from 'publication/publication-model';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trackNumber';
 
 export type ItemCollections = {
     locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPostId[];
-    geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
+    geometryKmPostIds: SelectedGeometryItem<GeometryKmPostId>[];
     switches: LayoutSwitchId[];
-    geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
+    geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     trackNumbers: LayoutTrackNumberId[];
-    geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
+    geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     layoutLinkPoints: LinkPoint[];
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
@@ -61,9 +62,10 @@ export type UnselectableItemCollections = {
 
 export type OptionalUnselectableItemCollections = Partial<UnselectableItemCollections>;
 
-export type SelectedGeometryItem<T> = {
+export type GeometryItemId = GeometryKmPostId | GeometrySwitchId | GeometryAlignmentId;
+export type SelectedGeometryItem<T extends GeometryItemId> = {
     planId: GeometryPlanId;
-    geometryItem: T;
+    geometryId: T;
 };
 
 export type SelectableItemType = keyof ItemCollections;
@@ -71,11 +73,11 @@ export type SelectableItemType = keyof ItemCollections;
 export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<SelectableItemType>()([
     'locationTracks',
     'kmPosts',
-    'geometryKmPosts',
+    'geometryKmPostIds',
     'switches',
-    'geometrySwitches',
+    'geometrySwitchIds',
     'trackNumbers',
-    'geometryAlignments',
+    'geometryAlignmentIds',
     'layoutLinkPoints',
     'geometryLinkPoints',
     'clusterPoints',
@@ -90,17 +92,19 @@ export type Selection = {
     selectionModes: SelectionMode[];
     selectedItems: ItemCollections;
     highlightedItems: ItemCollections;
-    /**
-     * GeometryPlanLayout can be used to provide a plan object manually,
-     * e.g. when plan is not yet in DB and therefore there is no ID.
-     */
-    planLayouts: GeometryPlanLayout[];
-    openedPlanLayouts: OpenedPlanLayout[];
+    openPlans: OpenPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     publication: PublicationId | undefined;
 };
 
-export type OpenedPlanLayout = {
-    id: GeometryPlanLayoutId;
+export type VisiblePlanLayout = {
+    id: GeometryPlanId;
+    switches: GeometrySwitchId[];
+    kmPosts: GeometryKmPostId[];
+    alignments: GeometryAlignmentId[];
+};
+export type OpenPlanLayout = {
+    id: GeometryPlanId;
     isSwitchesOpen: boolean;
     isKmPostsOpen: boolean;
     isAlignmentsOpen: boolean;

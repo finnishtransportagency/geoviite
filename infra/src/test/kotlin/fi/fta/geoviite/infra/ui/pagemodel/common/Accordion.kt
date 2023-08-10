@@ -33,10 +33,12 @@ open class Accordion(by: By) : PageModel(by) {
     @Deprecated("Element risks staleness")
     fun listItems() = childElements(By.cssSelector("li")).map { element -> AccordionListItem(element) }
 
-    fun selectListItem(itemName: String) = this {
+    fun listItemByName(itemName: String) = listItems().first { item -> item.name() == itemName }
+
+    fun selectListItem(itemName: String) = apply {
         logger.info("Select '$itemName'")
         try {
-            listItems().first { item -> item.name() == itemName }.select()
+            listItemByName(itemName).select()
         } catch (ex: java.util.NoSuchElementException) {
             logger.error("No such item [$itemName]! Available items ${listItems().map { it.name() }}")
         }

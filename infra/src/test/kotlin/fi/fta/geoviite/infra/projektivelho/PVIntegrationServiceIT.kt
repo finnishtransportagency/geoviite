@@ -1,18 +1,12 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVAssignment
-import PVDictionaryCode
-import PVDictionaryEntry
-import PVDictionaryGroup.MATERIAL
-import PVDictionaryGroup.PROJECT
-import PVDictionaryType
-import PVDictionaryType.*
-import PVDocument
-import PVDocumentStatus
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.projektivelho.*
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach
@@ -24,36 +18,6 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-
-val materialDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
-    DOCUMENT_TYPE to listOf(
-        PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
-        PVDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2"),
-    ),
-    MATERIAL_STATE to listOf(
-        PVDictionaryEntry("aineistotila/tila01", "test mat state 1"),
-        PVDictionaryEntry("aineistotila/tila02", "test mat state 2"),
-    ),
-    MATERIAL_CATEGORY to listOf(
-        PVDictionaryEntry("aineistolaji/al00", "test mat category 0"),
-        PVDictionaryEntry("aineistolaji/al01", "test mat category 1"),
-    ),
-    MATERIAL_GROUP to listOf(
-        PVDictionaryEntry("aineistoryhma/ar00", "test mat group 0"),
-        PVDictionaryEntry("aineistoryhma/ar01", "test mat group 1"),
-    ),
-    TECHNICS_FIELD to listOf(
-        PVDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
-        PVDictionaryEntry("tekniikka-ala/ta01", "test tech field 1"),
-    ),
-)
-
-val projectDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
-    PROJECT_STATE to listOf(
-        PVDictionaryEntry("tila/tila14", "test state 14"),
-        PVDictionaryEntry("tila/tila15", "test state 15"),
-    ),
-)
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
@@ -69,20 +33,7 @@ class PVIntegrationServiceIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        transactional {
-            jdbc.update("delete from projektivelho.document_content where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.document_rejection where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.document where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.document_type where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.material_category where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.material_group where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.material_state where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.technics_field where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.project_state where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.assignment where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.project where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.project_group where true", mapOf<String, Any>())
-        }
+        deleteFromTables("projektivelho", *velhoTables.toTypedArray())
     }
 
     @Test
@@ -91,7 +42,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         fakeProjektiVelho.search()
         val search = pvIntegrationService.search()
         assertNotNull(search)
-        assertEquals(search.searchId, pvDao.fetchLatestSearch()?.token)
+        assertEquals(search.searchId, pvDao.fetchLatestActiveSearch()?.token)
     }
 
     @Test
@@ -186,7 +137,7 @@ class PVIntegrationServiceIT @Autowired constructor(
 
         pvIntegrationService.updateDictionaries()
         pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
-        val search = pvDao.fetchLatestSearch()!!
+        val search = pvDao.fetchLatestActiveSearch()!!
         val status = pvIntegrationService.getSearchStatusIfReady(search)!!
 
         pvIntegrationService.importFilesFromProjektiVelho(search, status)
