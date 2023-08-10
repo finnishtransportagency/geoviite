@@ -106,7 +106,7 @@ fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
 fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
     groupChangedKmNumbers(kmNumbers)
         .map { if (it.min == it.max) "${it.min}" else "${it.min}-${it.max}" }
-        .joinToString { ", " }
+        .joinToString(", ")
 
 fun formatDistance(dist: Double) = if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
 
