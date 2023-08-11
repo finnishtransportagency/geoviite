@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
@@ -85,11 +86,8 @@ class FrontPageTestUI @Autowired constructor(
 
         // the publication list will only update with the changeTimes mechanism, which can take up to 15 seconds,
         // so we're not going to bother checking that; we'll just poll Ratko to see that the change went through instead
-        val maxWaitUntil = LocalDateTime.now().plusSeconds(2)
-        while (LocalDateTime.now().isBefore(maxWaitUntil)) {
-            if (fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5")).isNotEmpty()) {
-                break
-            }
+        val maxWaitUntil = Instant.now().plusSeconds(2)
+        while (Instant.now().isBefore(maxWaitUntil) && fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5")).isEmpty()) {
             Thread.sleep(100)
         }
         assertEquals("updated name", fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5"))[0].name)
