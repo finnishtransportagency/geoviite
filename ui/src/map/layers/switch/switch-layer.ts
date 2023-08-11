@@ -15,6 +15,7 @@ import { filterUniqueById } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { fromExtent } from 'ol/geom/Polygon';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
@@ -79,7 +80,12 @@ export function createSwitchLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
 
-                updateShownSwitches(switches.map((s) => s.id));
+                const visibleSwitches = findMatchingSwitches(
+                    fromExtent(olView.calculateExtent()),
+                    vectorSource,
+                    {},
+                ).map((s) => s.switch.id);
+                updateShownSwitches(visibleSwitches);
             })
             .catch(() => {
                 clearFeatures(vectorSource);
