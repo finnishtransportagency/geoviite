@@ -2,14 +2,9 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.projektivelho.*
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.VelhoListItem
-import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
@@ -18,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
-import java.nio.charset.Charset
 import java.time.Instant
 import kotlin.test.assertEquals
 
@@ -26,7 +20,7 @@ const val TESTFILE_SIMPLE_ANONYMIZED_PATH: String = "src/test/resources/inframod
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class VelhoTestUI @Autowired constructor(
+class ProjektiVelhoTestUI @Autowired constructor(
     private val pvDao: PVDao,
 ) : SeleniumTest() {
 
