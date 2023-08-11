@@ -1,3 +1,6 @@
+alter table layout.segment_version
+  drop constraint segment_version_pkey,
+  drop constraint segment_version_alignment_version_fkey;
 alter table layout.alignment_version drop constraint alignment_version_pkey;
 
 with alignment_version_pairs as
@@ -59,15 +62,23 @@ with alignment_version_pairs as
   ),
   moved as (
     update layout.alignment_version av set
-      version = version + version_delta
+      version = av.version + version_delta
     from versions_to_move todo
     where av.id = todo.id
       and av.version = todo.version
     returning
-      id,
-      version - todo.version_delta as old_version,
-      version as new_version,
+      av.id,
+      av.version - todo.version_delta as old_version,
+      av.version as new_version,
       'MOVED' as change
+  ),
+  moved_segments as (
+    update layout.segment_version sv set
+      alignment_version = moved.new_version
+    from moved
+    where sv.alignment_id = moved.id
+      and sv.alignment_version = moved.old_version
+    returning moved.id, moved.old_version, moved.new_version, moved.change, sv.segment_index
   )
 --   moved_versions as (
 --     update layout.alignment_version av set
@@ -82,22 +93,30 @@ with alignment_version_pairs as
 --   )
 
 -- select * from missing_versions order by id --, version
-select * from
-  (select
-     alignment_id as id,
-     null as old_version,
-     new_version,
-     'ADD' as change
-   from versions_to_add
-    union all
-  select
-    id,
-    version as old_version,
-    version+version_delta as new_version,
-    'MOVE' as change
-   from versions_to_move
-  ) changes
-order by id, new_version
+-- select * from
+--   (select
+--      alignment_id as id,
+--      null as old_version,
+--      new_version,
+--      'ADD' as change
+--    from versions_to_add
+--     union all
+--   select
+--     id,
+--     version as old_version,
+--     version+version_delta as new_version,
+--     'MOVE' as change
+--    from versions_to_move
+--   ) changes
+-- order by id, new_version
+
+select
+  id, old_version, new_version, array_agg(segment_index) segments, change
+from moved_segments
+group by id, old_version, new_version, change
 ;
 
-alter table layout.alignment_version add constraint alignment_version_pkey primary key (id, version)
+alter table layout.alignment_version add constraint alignment_version_pkey primary key (id, version);
+alter table layout.segment_version
+  add constraint segment_version_pkey primary key (alignment_id, alignment_version, segment_index),
+  add constraint segment_version_alignment_version_fkey foreign key (alignment_id, alignment_version) references layout.alignment_version;

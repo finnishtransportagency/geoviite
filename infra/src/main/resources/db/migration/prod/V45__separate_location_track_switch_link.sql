@@ -29,6 +29,9 @@
 alter table layout.location_track
   add constraint location_track_id_version_unique unique (id, version);
 
+-- drop table layout.alignment_switch_joint_version;
+-- drop table layout.location_track_switch_joint;
+-- drop table layout.location_track_switch_joint_version;
 create table layout.alignment_switch_joint_version
 (
   alignment_id int not null,
