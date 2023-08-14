@@ -389,9 +389,11 @@ class GeometryService @Autowired constructor(
             }
 
         val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
             VerticalGeometryListingFile(
-                name = FileName(VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK),
+                name = FileName("$VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
                 content = csvFileContent
             )
         )
