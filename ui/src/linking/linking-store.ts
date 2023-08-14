@@ -24,6 +24,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -290,8 +291,12 @@ function validateLinkingState(state: LinkingState): LinkingState {
             return validateLinkingAlignment(state);
         case LinkingType.LinkingSwitch:
             return validateLinkingSwitch(state);
-        default:
+        case LinkingType.PlacingSwitch:
+        case LinkingType.LinkingKmPost:
+        case LinkingType.UnknownAlignment:
             return state;
+        default:
+            return exhaustiveMatchingGuard(state);
     }
 }
 

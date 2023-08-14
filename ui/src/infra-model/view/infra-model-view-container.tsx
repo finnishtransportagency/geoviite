@@ -6,6 +6,7 @@ import { useCommonDataAppSelector, useInfraModelAppSelector } from 'store/hooks'
 import { useAppNavigate } from 'common/navigate';
 import { InfraModelImportLoader } from 'infra-model/view/infra-model-import-loader';
 import { InfraModelUploadLoader } from 'infra-model/view/infra-model-upload-loader';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type InfraModelViewContainerProps = {
     viewType: InfraModelViewType;
@@ -55,5 +56,7 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
             );
         case InfraModelViewType.UPLOAD:
             return <InfraModelUploadLoader {...loaderProps} />;
+        default:
+            return exhaustiveMatchingGuard(viewType);
     }
 };

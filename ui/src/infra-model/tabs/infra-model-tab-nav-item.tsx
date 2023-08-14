@@ -4,6 +4,7 @@ import { infraModelActionCreators, InfraModelTabType } from 'infra-model/infra-m
 import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamation-point';
 import styles from './infra-model-tabs.scss';
 import { createDelegates } from 'store/store-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type TabNavItemProps = {
     tabId: InfraModelTabType;
@@ -30,6 +31,8 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
                 return navigate('inframodel-waiting');
             case InfraModelTabType.REJECTED:
                 return navigate('inframodel-rejected');
+            default:
+                return exhaustiveMatchingGuard(tabId);
         }
     };
 

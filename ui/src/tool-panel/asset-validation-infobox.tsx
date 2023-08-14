@@ -11,6 +11,7 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type AssetType = 'TRACK_NUMBER' | 'REFERENCE_LINE' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
 
@@ -35,6 +36,8 @@ const typePrefix = (type: AssetType) => {
             return 'tool-panel.validation.switch-prefix';
         case 'KM_POST':
             return 'tool-panel.validation.km-post-prefix';
+        default:
+            return exhaustiveMatchingGuard(type);
     }
 };
 

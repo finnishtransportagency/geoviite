@@ -33,6 +33,7 @@ import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
 import { getSortDirectionIcon, SortDirection } from 'publication/table/publication-table-utils';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type PublicationId =
     | LayoutTrackNumberId

@@ -167,14 +167,12 @@
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
             "PLANNED": "Suunniteltu",
-            "DELETED": "Poistettu",
-            "UNKNOWN": "Tilaa ei löydy"
+            "DELETED": "Poistettu"
         },
         "layout-state-category": {
             "FUTURE_EXISTING": "Tuleva kohde",
             "EXISTING": "Olemassa oleva kohde",
-            "NOT_EXISTING": "Poistunut kohde",
-            "UNKNOWN": "Ei tiedossa"
+            "NOT_EXISTING": "Poistunut kohde"
         },
         "ratko-push-error-type": {
             "PROPERTIES": "ominaisuustietojen",

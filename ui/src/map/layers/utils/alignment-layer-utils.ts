@@ -13,6 +13,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const locationTrackStyle = new Style({
     stroke: new Stroke({
@@ -194,6 +195,8 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
         case 'LOCATION_TRACK': {
             return selection.locationTracks.includes(alignment.id);
         }
+        default:
+            return exhaustiveMatchingGuard(alignment.alignmentType);
     }
 }
 
