@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.configuration.USER_HEADER
-import fi.fta.geoviite.infra.dataImport.ImportUser
 import fi.fta.geoviite.infra.util.Code
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.assertSanitized

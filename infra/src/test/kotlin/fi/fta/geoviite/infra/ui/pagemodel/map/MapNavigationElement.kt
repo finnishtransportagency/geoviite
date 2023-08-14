@@ -12,14 +12,14 @@ abstract class TrackLayoutElement(val element: WebElement) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun select(select: Boolean = true) {
-            logger.info("Select '${name()}' to $select")
-            val selected = isSelected()
-            if (selected != select) {
-                logger.info("Track layout element '${name()}' is $selected, setting it to $select")
-                element.click()
-            } else {
-                logger.info("Track layout element '${name()}' is already $selected")
-            }
+        logger.info("Select '${name()}' to $select")
+        val selected = isSelected()
+        if (selected != select) {
+            logger.info("Track layout element '${name()}' is $selected, setting it to $select")
+            element.click()
+        } else {
+            logger.info("Track layout element '${name()}' is already $selected")
+        }
     }
 
     abstract fun name(): String
@@ -30,22 +30,22 @@ abstract class TrackLayoutElement(val element: WebElement) {
 }
 
 // TODO: GVT-1935 These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
-class TrackLayoutSwitch(liElement: WebElement): TrackLayoutElement(liElement) {
+class TrackLayoutSwitch(liElement: WebElement) : TrackLayoutElement(liElement) {
     override fun name(): String = element.findElement(By.xpath("./span/span")).text
     override fun toString(): String = name()
 }
 
-class TrackLayoutKmPost(liElement: WebElement): TrackLayoutElement(liElement) {
+class TrackLayoutKmPost(liElement: WebElement) : TrackLayoutElement(liElement) {
     override fun name(): String = element.findElement(By.xpath("./div/span")).text
     override fun toString(): String = name()
 }
 
-class TrackLayoutTrackNumber(liElement: WebElement): TrackLayoutElement(liElement) {
+class TrackLayoutTrackNumber(liElement: WebElement) : TrackLayoutElement(liElement) {
     override fun name(): String = element.text
     override fun toString(): String = name()
 }
 
-class TrackLayoutAlignment(liElement: WebElement): TrackLayoutElement(liElement) {
+class TrackLayoutAlignment(liElement: WebElement) : TrackLayoutElement(liElement) {
     override fun name(): String = element.findElement(By.xpath("./div/span")).text
     fun type(): String = element.findElement(By.xpath("./span")).text
     override fun toString(): String = name()
@@ -58,50 +58,43 @@ class GeometryPlanAccordion(by: By) : Accordion(by) {
     private val VAIHTEET = "Vaihteet"
 
     fun open() = this {
-        toggleAccordion() }
+        toggleAccordion()
+    }
 
     fun alignments(): Accordion {
         logger.info("Get geometry alignments")
-        return subAccordioByTitle(RAITEET)
+        return subAccordionByTitle(RAITEET)
     }
 
     fun openAlignments() = this {
         logger.info("Open alignments accordion")
-        subAccordioByTitle(RAITEET).toggleAccordion()
+        subAccordionByTitle(RAITEET).toggleAccordion()
     }
 
-    fun selecAlignment(alignment: String) =
-        open()
-            .openAlignments()
-            .selectListItem(alignment)
+    fun selecAlignment(alignment: String) = open().openAlignments().selectListItem(alignment)
 
     fun kmPosts(): Accordion {
         logger.info("Get geometry km-posts")
-        return subAccordioByTitle(KMPISTEET)
+        return subAccordionByTitle(KMPISTEET)
     }
 
     fun openKmPosts() = this {
         logger.info("Open KM-posts")
-        subAccordioByTitle(KMPISTEET).toggleAccordion()
+        subAccordionByTitle(KMPISTEET).toggleAccordion()
     }
 
-    fun selectKmPost(kmPost: String) =
-        open()
-            .openKmPosts()
-            .selectListItem(kmPost)
+    fun selectKmPost(kmPost: String) = open().openKmPosts().selectListItem(kmPost)
 
     fun switches(): Accordion {
         logger.info("Get geometry switches")
-        return subAccordioByTitle(VAIHTEET)
-    }
-    fun openSwitches() = this {
-        logger.info("Open switches")
-        subAccordioByTitle(VAIHTEET).toggleAccordion()
+        return subAccordionByTitle(VAIHTEET)
     }
 
-    fun selectSwitch(switch: String) =
-        open()
-            .openSwitches()
-            .selectListItem(switch)
+    fun openSwitches() = this {
+        logger.info("Open switches")
+        subAccordionByTitle(VAIHTEET).toggleAccordion()
+    }
+
+    fun selectSwitch(switch: String) = open().openSwitches().selectListItem(switch)
 
 }

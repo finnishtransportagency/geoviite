@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 
 
 // TODO: GVT-1936 Use generic table model to handle this (modeling after ListModel)
-class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
+class InfraModelTable(tableRoot: By) : PageModel(tableRoot) {
     private val headerElement: WebElement get() = childElement(By.xpath("//table/thead/tr"))
 
     // TODO: GVT-1936 This should not wait at all but only get the current listing
@@ -30,7 +30,11 @@ class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
 
     fun infraModelRows(): List<InfraModelRow> {
         logger.info("Get Infra Model rows")
-        return rowElements().map { rowElement -> InfraModelRow(headerElement.findElements(By.tagName("th")).map {it.text}, rowElement) }
+        return rowElements().map { rowElement ->
+            InfraModelRow(
+                headerElement.findElements(By.tagName("th")).map { it.text }, rowElement
+            )
+        }
     }
 
     fun sortBy(colName: String) {
@@ -44,8 +48,8 @@ class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, 
     fun projektinNimi(): String = getColumnByName("Projektin nimi").text
     fun tiedostonimi(): String = getColumnByName("Nimi").text
     fun ratanumero(): String = getColumnByName("Ratanumero").text
-    fun alkukilometri() = getColumnByName("Alkukm").text
-    fun loppukilometri() = getColumnByName("Loppukm").text
+    fun alkukilometri(): String = getColumnByName("Alkukm").text
+    fun loppukilometri(): String = getColumnByName("Loppukm").text
     fun suunnitelmavaihe(): String = getColumnByName("Suunnitelmavaihe").text
     fun paatos(): String = getColumnByName("Päätös").text
     fun laadittu(): LocalDateTime = localDateFromString(getColumnByName("Laadittu").text)
@@ -61,13 +65,11 @@ class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
     fun suunnitteluYritys() = fieldValue("Suunnitteluyritys")
 
     fun addNimi(input: String) {
-        changeToNewDropDownValue("Projektin nimi", listOf(input))
-            .assertAndClose("Uusi projekti luotu")
+        changeToNewDropDownValue("Projektin nimi", listOf(input)).assertAndClose("Uusi projekti luotu")
     }
 
     fun addNewSuunnitteluyritys(input: String) {
-        changeToNewDropDownValue("Suunnitteluyritys", listOf(input))
-            .assertAndClose("Uusi suunnitteluyritys luotu")
+        changeToNewDropDownValue("Suunnitteluyritys", listOf(input)).assertAndClose("Uusi suunnitteluyritys luotu")
     }
 }
 
@@ -83,8 +85,7 @@ class SijaintitiedotFormGroup(by: By) : FormGroup(by) {
     }
 
     fun addRatanumero(ratanumero: String, kuvaus: String) {
-        changeToNewDropDownValue("Ratanumero", listOf(ratanumero, kuvaus))
-            .assertAndClose("Ratanumero tallennettu")
+        changeToNewDropDownValue("Ratanumero", listOf(ratanumero, kuvaus)).assertAndClose("Ratanumero tallennettu")
         clickEditIcon("Ratanumero")
     }
 
@@ -111,7 +112,7 @@ class LokiJaLinkitystiedotFormGroup(by: By) : FormGroup(by) {
     fun editLaadittu(kuukausi: String, vuosi: String) = changeFieldDropDownValues("Laadittu", listOf(kuukausi, vuosi))
 }
 
-class ConfirmDialog(): DialogPopUp() {
+class ConfirmDialog : DialogPopUp() {
     fun tallenna() {
         clickButtonByText("Tallenna")
     }

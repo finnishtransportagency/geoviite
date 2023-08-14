@@ -14,9 +14,8 @@ class KeyUtils {
         }
 
         fun decodeBase64ToByteArray(encodedString: String): ByteArray {
-            val sanitizedEncodedString = encodedString.replace(" ", "").replace("\n","").trim()
-            val decodedBytes = Base64.getDecoder().decode(sanitizedEncodedString)
-            return decodedBytes
+            val sanitizedEncodedString = encodedString.replace(" ", "").replace("\n", "").trim()
+            return Base64.getDecoder().decode(sanitizedEncodedString)
         }
 
         fun parseBase64DerToPrivateKey(base64EncodedDer: String): PrivateKey {
@@ -25,4 +24,3 @@ class KeyUtils {
         }
     }
 }
-

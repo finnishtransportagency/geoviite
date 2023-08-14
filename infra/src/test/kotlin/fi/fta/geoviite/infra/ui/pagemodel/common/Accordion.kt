@@ -4,7 +4,7 @@ import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 open class Accordion(by: By) : PageModel(by) {
-    enum class Toggle {OPEN, CLOSE}
+    enum class Toggle { OPEN, CLOSE }
 
     fun header(): String {
         logger.info("Get header")
@@ -33,17 +33,19 @@ open class Accordion(by: By) : PageModel(by) {
     @Deprecated("Element risks staleness")
     fun listItems() = childElements(By.cssSelector("li")).map { element -> AccordionListItem(element) }
 
-    fun selectListItem(itemName: String) = this {
+    fun listItemByName(itemName: String) = listItems().first { item -> item.name() == itemName }
+
+    fun selectListItem(itemName: String) = apply {
         logger.info("Select '$itemName'")
         try {
-            listItems().first { item -> item.name() == itemName}.select()
+            listItemByName(itemName).select()
         } catch (ex: java.util.NoSuchElementException) {
             logger.error("No such item [$itemName]! Available items ${listItems().map { it.name() }}")
         }
     }
 
-    fun subAccordioByTitle(title: String): Accordion {
-        logger.info("Open subaccordion '$title'")
+    fun subAccordionByTitle(title: String): Accordion {
+        logger.info("Open subAccordion '$title'")
         return Accordion(
             By.xpath(".//div[@class='accordion__body']/div/div[@class='accordion' and h4/span[contains(text(), '$title')]]")
         )
@@ -70,7 +72,7 @@ open class Accordion(by: By) : PageModel(by) {
 }
 
 class AccordionListItem(val element: WebElement) {
-    fun name() = element.findElement(By.cssSelector("span span")).text
+    fun name(): String = element.findElement(By.cssSelector("span span")).text
     fun select() {
         element.findElement(By.cssSelector("span span")).click()
     }

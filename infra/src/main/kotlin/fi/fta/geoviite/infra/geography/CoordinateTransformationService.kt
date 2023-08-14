@@ -34,7 +34,7 @@ data class Transformation private constructor(
 
     init {
         require((kkjToEtrsTriangulationNetwork != null && !kkjToEtrsTriangulationNetwork.isEmpty) || !isKKJ(sourceSrid) || targetSrid != LAYOUT_SRID) {
-            "Trying to convert from KKJx (${sourceSrid}) to ${targetSrid} without triangulation network"
+            "Trying to convert from KKJx ($sourceSrid) to $targetSrid without triangulation network"
         }
     }
 
@@ -63,7 +63,7 @@ data class Transformation private constructor(
                     "Point was not inside the triangulation network: point=$point"
                 }
                 val ykjPoint = transformPointInTriangle(jtsPoint, YKJ_CRS, triangle)
-                transformYkjToKkjAndNormalizeAxes(ykjPoint).let { toGvtPoint(it, targetCrs) }
+                toGvtPoint(transformYkjToKkjAndNormalizeAxes(ykjPoint), targetCrs)
             } else {
                 val jtsPoint = toJtsPoint(point, sourceCrs)
                 val jtsPointTransformed = JTS.transform(jtsPoint, math) as org.locationtech.jts.geom.Point

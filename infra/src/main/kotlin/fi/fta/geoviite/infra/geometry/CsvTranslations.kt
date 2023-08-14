@@ -5,9 +5,10 @@ import fi.fta.geoviite.infra.common.SwitchName
 const val ELEMENT_LISTING = "Elementtilistaus"
 const val ELEMENT_LISTING_ENTIRE_RAIL_NETWORK = "$ELEMENT_LISTING (koko rataverkko)"
 const val VERTICAL_GEOMETRY = "Pystygeometria"
+const val VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK = "$VERTICAL_GEOMETRY (koko rataverkko)"
 const val VERTICAL_SECTIONS_OVERLAP = "Kaltevuusjakso on limittäin toisen jakson kanssa"
 const val IS_PARTIAL = "Raide sisältää vain osan geometriaelementistä"
-val connectedToSwitch = { switchName: SwitchName -> "Vaihteen ${switchName} elementti" }
+val connectedToSwitch = { switchName: SwitchName -> "Vaihteen $switchName elementti" }
 
 enum class ElementListingHeader {
     TRACK_NUMBER,
@@ -69,6 +70,7 @@ fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
     }
 
 enum class VerticalGeometryListingHeader {
+    TRACK_NUMBER,
     PLAN_NAME,
     LOCATION_TRACK,
     CREATION_DATE,
@@ -103,6 +105,7 @@ enum class VerticalGeometryListingHeader {
 
 fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader) =
     when (header) {
+        VerticalGeometryListingHeader.TRACK_NUMBER -> "Ratanumero"
         VerticalGeometryListingHeader.PLAN_NAME -> "Suunnitelma"
         VerticalGeometryListingHeader.LOCATION_TRACK -> "Sijaintiraide"
         VerticalGeometryListingHeader.PLAN_TRACK -> "Suunnitelman raide"

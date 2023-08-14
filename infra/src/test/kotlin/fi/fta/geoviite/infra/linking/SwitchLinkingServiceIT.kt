@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAligments
+import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -247,7 +247,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
         val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
-        val (switch, switchAlignments) = createSwitchAndAligments(
+        val (switch, switchAlignments) = createSwitchAndAlignments(
             "fooSwitch",
             switchStructure,
             0.01, // avoid plan1's bounding box becoming degenerate by slightly rotating the main track

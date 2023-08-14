@@ -47,9 +47,11 @@ export function createLocationTrackAlignmentLayer(
         }
     }
 
+    let inFlight = false;
     if (resolution <= Limits.ALL_ALIGNMENTS) {
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
+        inFlight = true;
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
@@ -69,6 +71,9 @@ export function createLocationTrackAlignmentLayer(
             .catch(() => {
                 clearFeatures(vectorSource);
                 updateShownLocationTracks([]);
+            })
+            .finally(() => {
+                inFlight = false;
             });
     } else {
         clearFeatures(vectorSource);
@@ -86,5 +91,6 @@ export function createLocationTrackAlignmentLayer(
             };
         },
         onRemove: () => updateShownLocationTracks([]),
+        requestInFlight: () => inFlight,
     };
 }

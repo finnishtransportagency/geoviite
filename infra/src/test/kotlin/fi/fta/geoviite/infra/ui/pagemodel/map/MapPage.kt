@@ -11,22 +11,30 @@ import javaScriptExecutor
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.Duration
+import waitUntilDoesNotExist
+import waitUntilValueIsNot
+import withNoImplicitWait
 import kotlin.math.roundToInt
 
 class MapPage {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    init { currentMapScale() }
+    init {
+        currentMapScale()
+    }
 
     val toolPanel = MapToolPanel()
     val navigationPanel = MapNavigationPanel()
     val mainNavigation = MainNavigationBar()
+
+    companion object {
+        fun finishLoading() {
+            withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
+        }
+    }
 
     fun addEndPointDialog(): AddEndPointDialog {
         logger.info("Get add end point popup dialog")
@@ -61,10 +69,7 @@ class MapPage {
         logger.info("Scroll map x=$xOffset y=$yOffset")
         val canvas = getElementWhenVisible(By.cssSelector("div.map"))
 
-        Actions(browser())
-            .dragAndDropBy(canvas, xOffset, yOffset)
-            .build()
-            .perform()
+        Actions(browser()).dragAndDropBy(canvas, xOffset, yOffset).build().perform()
     }
 
     fun clickAtCoordinates(point: Point, doubleClick: Boolean = false) {
@@ -76,12 +81,9 @@ class MapPage {
     }
 
     fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false) {
-        val pxlCoordinates = javaScriptExecutor()
-            .executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")
-            .toString()
-            .replace("[^0-9.,]".toRegex(), "")
-            .split(",")
-            .map { doubleStr -> doubleStr.toDouble().roundToInt() }
+        val pxlCoordinates =
+            javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])").toString()
+                .replace("[^0-9.,]".toRegex(), "").split(",").map { doubleStr -> doubleStr.toDouble().roundToInt() }
 
         logger.info("Map coordinates ($xPoint,$yPoint) are at $pxlCoordinates")
         clickAtCoordinates(pixelX = pxlCoordinates[0], pixelY = pxlCoordinates[1], doubleClick)
@@ -106,6 +108,7 @@ class MapPage {
         while (!currentMapScale().contentEquals(targetScale)) {
             zoomIn()
         }
+        finishLoading()
     }
 
     fun zoomOutToScale(targetScale: String) {
@@ -118,36 +121,20 @@ class MapPage {
     }
 
     private fun zoomOut() {
-        val currentSacle = currentMapScale()
+        val currentScale = currentMapScale()
         getElementWhenClickable(By.className("ol-zoom-out")).click()
         try {
-            WebDriverWait(browser(), Duration.ofSeconds(4))
-                .until(
-                    ExpectedConditions.not(
-                        ExpectedConditions.textToBePresentInElement(
-                            browser().findElement(By.className("ol-scale-line-inner")),
-                            currentSacle
-                        )
-                    )
-                )
+            waitUntilValueIsNot(browser().findElement(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
             logger.warn("Zoom out failed")
         }
     }
 
     private fun zoomIn() {
-        val currentSacle = currentMapScale()
+        val currentScale = currentMapScale()
         getElementWhenClickable(By.className("ol-zoom-in")).click()
         try {
-            WebDriverWait(browser(), Duration.ofSeconds(4))
-                .until(
-                    ExpectedConditions.not(
-                        ExpectedConditions.textToBePresentInElement(
-                            browser().findElement(By.className("ol-scale-line-inner")),
-                            currentSacle
-                        )
-                    )
-                )
+            waitUntilValueIsNot(browser().findElement(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
             logger.warn("Zoom in failed")
         }

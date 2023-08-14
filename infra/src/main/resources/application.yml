@@ -67,3 +67,4 @@ geoviite:
       rate: "PT15M"
   rail-network-export:
     schedule: "0 0 3 * * *"
+    vertical-geometry-schedule: "0 0 4 * * *"

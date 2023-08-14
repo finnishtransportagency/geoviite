@@ -1,8 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVDocument
-import PVDocumentHeader
-import PVDocumentStatus
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.Integration

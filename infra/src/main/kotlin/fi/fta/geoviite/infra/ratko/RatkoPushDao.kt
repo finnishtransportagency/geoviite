@@ -1,6 +1,7 @@
-package fi.fta.geoviite.infra.integration
+package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
@@ -249,7 +250,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             ) as latest_ratko_push_time
             from integrations.ratko_push
         """.trimIndent()
-        return jdbcTemplate.queryOne(sql) { rs, _, -> rs.getInstant("latest_ratko_push_time") }
+        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_ratko_push_time") }
             .also { logger.daoAccess(AccessType.FETCH, Publication::class) }
     }
 

@@ -39,9 +39,9 @@ import {
     getLocationTracks,
     getLocationTrackStartAndEnd,
 } from 'track-layout/layout-location-track-api';
-import { getSwitch, getSwitches } from 'track-layout/layout-switch-api';
+import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
 import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { getKmPost, getKmPosts } from 'track-layout/layout-km-post-api';
+import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
 
@@ -186,10 +186,11 @@ export function useTrackNumbersIncludingDeleted(
 export function useReferenceLineStartAndEnd(
     id: ReferenceLineId | undefined,
     publishType: PublishType | undefined,
+    changeTime: TimeStamp | undefined = undefined,
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id && publishType ? getReferenceLineStartAndEnd(id, publishType) : undefined),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 
@@ -220,6 +221,14 @@ export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
 ): ChangeTimes | undefined {
     return useNullableLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
+}
+
+export function useSwitchChangeTimes(id: LayoutSwitchId | undefined): ChangeTimes | undefined {
+    return useNullableLoader(() => (id ? getSwitchChangeTimes(id) : undefined), [id]);
+}
+
+export function useKmPostChangeTimes(id: LayoutKmPostId | undefined): ChangeTimes | undefined {
+    return useNullableLoader(() => (id ? getKmPostChangeTimes(id) : undefined), [id]);
 }
 
 export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {

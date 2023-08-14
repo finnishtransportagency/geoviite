@@ -37,7 +37,9 @@ export function createDuplicateTracksHighlightLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
+        inFlight = true;
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
                 if (layerId === newestLayerId) {
@@ -47,7 +49,10 @@ export function createDuplicateTracksHighlightLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -55,5 +60,6 @@ export function createDuplicateTracksHighlightLayer(
     return {
         name: 'duplicate-tracks-highlight-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

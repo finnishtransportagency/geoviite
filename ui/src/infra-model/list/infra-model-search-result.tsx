@@ -231,8 +231,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                 onClick={() => setFilter(SortByValue.LINKED_BY)}>
                                 {t('im-form.linked-by-users-field')}
                             </Th>
-                            <th />
-                            <th />
+                            <Th />
+                            <Th />
                         </tr>
                     </thead>
                     <tbody id="infra-model-list-search-result__table-body">

@@ -9,6 +9,10 @@ import {
 } from 'track-layout/track-layout-model';
 import { ValueOf } from 'utils/type-utils';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
+import {
+    VerticalGeometryDiagramAlignmentId,
+    VerticalGeometryDiagramState,
+} from 'vertical-geometry/store';
 
 export type MapLayerName =
     | 'background-map-layer'
@@ -82,7 +86,7 @@ export type MapLayerMenuItemName =
     | 'missing-vertical-geometry'
     | 'missing-linking'
     | 'duplicate-tracks'
-    | 'plan-section'
+    | 'track-number-diagram'
     | 'km-post'
     | 'switch'
     | 'geometry-alignment'
@@ -108,18 +112,21 @@ export type MapLayerSettingChange = {
     settings: ValueOf<MapLayerSettings>;
 };
 
+export type MapLayerMenuGroups = {
+    layout: MapLayerMenuItem[];
+    geometry: MapLayerMenuItem[];
+    debug: MapLayerMenuItem[];
+};
+
 export type Map = {
-    layerMenu: {
-        layout: MapLayerMenuItem[];
-        geometry: MapLayerMenuItem[];
-        debug: MapLayerMenuItem[];
-    };
+    layerMenu: MapLayerMenuGroups;
     layerSettings: MapLayerSettings;
     visibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
     clickLocation: Point | null;
-    verticalGeometryDiagramVisible: boolean;
+    verticalGeometryDiagramState: VerticalGeometryDiagramState;
+    loadingIndicatorVisible: boolean;
 };
 
 export type MapTile = {
@@ -137,4 +144,9 @@ export type AlignmentHighlight = {
 export type MapLayerMenuChange = {
     name: MapLayerMenuItemName;
     visible: boolean;
+};
+
+export type VerticalAlignmentVisibleExtentChange = {
+    alignmentId: VerticalGeometryDiagramAlignmentId;
+    extent: [number, number];
 };

@@ -14,6 +14,7 @@ fun factorial(n: Int): Long {
     }
 }
 
+fun roundTo1Decimal(value: Double): BigDecimal = round(value, 1)
 fun roundTo3Decimals(value: Double): BigDecimal = round(value, 3)
 fun roundTo3Decimals(value: BigDecimal): BigDecimal = round(value, 3)
 fun roundTo6Decimals(value: Double): BigDecimal = round(value, 6)

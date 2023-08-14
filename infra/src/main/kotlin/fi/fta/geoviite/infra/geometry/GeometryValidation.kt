@@ -286,7 +286,7 @@ fun validateKmPost(post: GeometryKmPost) = listOfNotNull(
 fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<ValidationError> {
     val referenceLineAlignments = alignments.filter { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }
     return listOfNotNull(
-        validate(referenceLineAlignments.size >= 1) {
+        validate(referenceLineAlignments.isNotEmpty()) {
             CollectionError("no-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
         },
         validate(referenceLineAlignments.size <= 1) {

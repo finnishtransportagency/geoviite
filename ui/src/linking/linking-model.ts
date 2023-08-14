@@ -18,7 +18,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Point, Range } from 'model/geometry';
+import { Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
@@ -28,6 +28,7 @@ import {
     SwitchOwnerId,
     SwitchStructure,
     SwitchStructureId,
+    Range,
     TrackMeter,
 } from 'common/common-model';
 
@@ -173,7 +174,7 @@ export enum LinkingType {
 }
 
 export type IntervalRequest = {
-    mRange: Range;
+    mRange: Range<number>;
     alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 };
 

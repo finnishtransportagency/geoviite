@@ -5,8 +5,7 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.ui.ExpectedConditions.*
 import java.time.Duration
 
-fun WebElement.childElementExists(byCondition: By) =
-    getChildElementIfExists(byCondition) != null
+fun WebElement.childElementExists(byCondition: By) = getChildElementIfExists(byCondition) != null
 
 fun WebElement.getChildElementIfExists(byCondition: By): WebElement? = try {
     findElement(byCondition)
@@ -20,13 +19,12 @@ fun WebElement.getChildElements(byCondition: By): List<WebElement> = try {
     listOf()
 }
 
-fun WebElement.waitUntilChildNotVisible(byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(
-        timeout,
-        not(visibilityOfNestedElementsLocatedBy(this, byCondition)),
-    ) {
-        "Wait for child disappearing failed: parent=${getInnerHtml()} seekBy=$byCondition"
-    }
+fun WebElement.waitUntilChildNotVisible(byCondition: By, timeout: Duration = defaultWait) = tryWait(
+    timeout,
+    not(visibilityOfNestedElementsLocatedBy(this, byCondition)),
+) {
+    "Wait for child disappearing failed: parent=${getInnerHtml()} seekBy=$byCondition"
+}
 
 fun WebElement.waitUntilChildExists(byCondition: By, timeout: Duration = defaultWait) =
     tryWait(timeout, presenceOfNestedElementLocatedBy(this, byCondition)) {
@@ -46,12 +44,11 @@ fun WebElement.waitUntilChildVisible(byCondition: By, timeout: Duration = defaul
         "Wait for child visible failed: parent=${getInnerHtml()} seekBy=$byCondition"
     }
 
-fun WebElement.waitUntilClickable(timeout: Duration = defaultWait) =
-    tryWait(timeout, elementToBeClickable(this)) {
-        "Wait for element clickable failed: element=${getInnerHtml()}"
-    }
+fun WebElement.waitUntilClickable(timeout: Duration = defaultWait) = tryWait(timeout, elementToBeClickable(this)) {
+    "Wait for element clickable failed: element=${getInnerHtml()}"
+}
 
-fun WebElement.getInnerHtml() = try {
+fun WebElement.getInnerHtml(): String = try {
     getAttribute("innerHTML")
 } catch (e: Exception) {
     "[cant get innerHtml: cause=${e.message}]"

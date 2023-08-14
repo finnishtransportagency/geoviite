@@ -66,11 +66,6 @@ interface IAlignment {
         else segment.points.take(segment.points.size - 1)
     }
 
-    fun getSegmentIndex(segmentId: DomainId<LayoutSegment>): Int? {
-        val index = segments.indexOfFirst { segment -> segment.id == segmentId }
-        return if (index != -1) index else null
-    }
-
     fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->
             val segment = segments[segmentIndex]

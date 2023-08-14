@@ -1,11 +1,13 @@
 import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
-import { LayoutKmPost } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LayoutKmPost, PlanAndStatus } from 'track-layout/track-layout-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import {
+    clearFeatures,
+    getManualPlanWithStatus,
+    getVisiblePlansWithStatus,
+} from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
-import { getPlanLinkStatus } from 'linking/linking-api';
 import {
     createKmPostFeatures,
     findMatchingKmPosts,
@@ -14,6 +16,8 @@ import {
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { filterNotEmpty } from 'utils/array-utils';
+import { ChangeTimes } from 'common/common-slice';
 
 let newestLayerId = 0;
 
@@ -22,6 +26,8 @@ export function createGeometryKmPostLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
     publishType: PublishType,
+    changeTimes: ChangeTimes,
+    manuallySetPlan?: GeometryPlanLayout,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
@@ -30,26 +36,33 @@ export function createGeometryKmPostLayer(
 
     const step = getKmPostStepByResolution(resolution);
 
+    let inFlight = false;
     if (step) {
+        inFlight = true;
         const isSelected = (kmPost: LayoutKmPost) => {
-            return selection.selectedItems.geometryKmPosts.some(
-                ({ geometryItem }) => geometryItem.id === kmPost.id,
+            return selection.selectedItems.geometryKmPostIds.some(
+                ({ geometryId }) => geometryId === kmPost.sourceId,
             );
         };
 
-        const planStatusPromises = selection.planLayouts.map((plan) =>
-            plan.planDataType == 'STORED'
-                ? getPlanLinkStatus(plan.planId, publishType).then((status) => ({ plan, status }))
-                : { plan, status: undefined },
-        );
+        const visibleKmPosts = manuallySetPlan
+            ? manuallySetPlan.kmPosts.map((p) => p.sourceId)
+            : selection.visiblePlans.flatMap((p) => p.kmPosts);
 
-        Promise.all(planStatusPromises)
+        const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
+            ? getManualPlanWithStatus(manuallySetPlan, publishType)
+            : getVisiblePlansWithStatus(selection.visiblePlans, publishType, changeTimes);
+
+        plansPromise
             .then((planStatuses) => {
                 if (layerId !== newestLayerId) return;
 
                 const features = planStatuses.flatMap(({ plan, status }) => {
-                    const kmPosts = plan.kmPosts.filter(
-                        ({ kmNumber }) => Number.parseInt(kmNumber) % step === 0,
+                    const kmPosts: LayoutKmPost[] = plan.kmPosts.filter(
+                        ({ sourceId, kmNumber }) =>
+                            sourceId &&
+                            visibleKmPosts.includes(sourceId) &&
+                            Number.parseInt(kmNumber) % step === 0,
                     );
 
                     const kmPostLinkedStatus = status
@@ -75,7 +88,10 @@ export function createGeometryKmPostLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -85,11 +101,18 @@ export function createGeometryKmPostLayer(
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
             return {
-                geometryKmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map((kp) => ({
-                    geometryItem: kp.kmPost,
-                    planId: kp.planId as GeometryPlanId,
-                })),
+                geometryKmPostIds: findMatchingKmPosts(hitArea, vectorSource, options)
+                    .map((kp) =>
+                        kp.kmPost.sourceId && kp.planId
+                            ? {
+                                  geometryId: kp.kmPost.sourceId,
+                                  planId: kp.planId,
+                              }
+                            : undefined,
+                    )
+                    .filter(filterNotEmpty),
             };
         },
+        requestInFlight: () => inFlight,
     };
 }

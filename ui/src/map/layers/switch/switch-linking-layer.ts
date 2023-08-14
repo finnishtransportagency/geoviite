@@ -69,7 +69,9 @@ export function createSwitchLinkingLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = false;
     if (resolution <= SUGGESTED_SWITCH_SHOW) {
+        inFlight = true;
         const selectedSwitches = selection.selectedItems.suggestedSwitches;
 
         const getSuggestedSwitchesPromises = linkingState
@@ -99,7 +101,10 @@ export function createSwitchLinkingLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => clearFeatures(vectorSource))
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }
@@ -112,6 +117,7 @@ export function createSwitchLinkingLayer(
                 suggestedSwitches: findMatchingSwitches(hitArea, vectorSource, options),
             };
         },
+        requestInFlight: () => inFlight,
     };
 }
 

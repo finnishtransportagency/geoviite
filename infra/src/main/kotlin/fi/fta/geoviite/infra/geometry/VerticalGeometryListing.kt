@@ -85,6 +85,8 @@ data class VerticalGeometryListing(
     val layoutStartStation: Double? = null,
     val layoutPointStation: Double? = null,
     val layoutEndStation: Double? = null,
+
+    val trackNumber: TrackNumber? = null,
 )
 
 fun toVerticalGeometryListing(
@@ -324,8 +326,16 @@ fun toVerticalGeometryListing(
 fun locationTrackVerticalGeometryListingToCsv(listing: List<VerticalGeometryListing>) =
     printCsv(listOf(locationTrackCsvEntry) + commonVerticalGeometryListingCsvEntries, listing)
 
+fun entireTrackNetworkVerticalGeometryListingToCsv(listing: List<VerticalGeometryListing>) =
+    printCsv(listOf(trackNumberCsvEntry, locationTrackCsvEntry) + commonVerticalGeometryListingCsvEntries, listing)
+
 fun planVerticalGeometryListingToCsv(listing: List<VerticalGeometryListing>) =
     printCsv(commonVerticalGeometryListingCsvEntries.toList(), listing)
+
+private val trackNumberCsvEntry =
+    CsvEntry<VerticalGeometryListing>(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_NUMBER)) {
+       verticalGeometryListing -> verticalGeometryListing.trackNumber ?: ""
+    }
 
 private val locationTrackCsvEntry =
     CsvEntry<VerticalGeometryListing>(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_TRACK)) {

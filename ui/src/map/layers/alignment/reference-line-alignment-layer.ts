@@ -43,6 +43,7 @@ export function createReferenceLineAlignmentLayer(
         }
     }
 
+    let inFlight = true;
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
@@ -61,6 +62,9 @@ export function createReferenceLineAlignmentLayer(
         .catch(() => {
             clearFeatures(vectorSource);
             updateShownReferenceLines([]);
+        })
+        .finally(() => {
+            inFlight = false;
         });
 
     return {
@@ -79,5 +83,6 @@ export function createReferenceLineAlignmentLayer(
             };
         },
         onRemove: () => updateShownReferenceLines([]),
+        requestInFlight: () => inFlight,
     };
 }

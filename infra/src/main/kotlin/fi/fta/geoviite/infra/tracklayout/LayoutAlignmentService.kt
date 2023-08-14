@@ -60,11 +60,8 @@ class LayoutAlignmentService(
                     m = distance,
                 )
             } else null
-            val end = if (section.endPoint != null) context.getAddressAndM(section.endPoint)?.let { (address, distance,) ->
-                PlanSectionPoint(
-                    address = address,
-                    m = distance
-                )
+            val end = if (section.endPoint != null) context.getAddressAndM(section.endPoint)?.let {
+                (address, distance) -> PlanSectionPoint(address = address, m = distance)
             } else null
 
             if (start != null && end != null) AlignmentPlanSection(

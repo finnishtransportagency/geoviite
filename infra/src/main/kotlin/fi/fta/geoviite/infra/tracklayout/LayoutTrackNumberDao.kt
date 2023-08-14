@@ -162,4 +162,21 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
         return response
     }
+
+    fun fetchTrackNumberNames(): List<TrackNumberAndChangeTime> {
+        val sql = """
+            select tn.id, tn.number, tn.change_time
+            from layout.track_number_version tn
+            where tn.draft = false
+            order by tn.change_time
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            TrackNumberAndChangeTime(
+                rs.getIntId<TrackLayoutTrackNumber>("id"),
+                rs.getTrackNumber("number"),
+                rs.getInstant("change_time"),
+            )
+        }.also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
+    }
 }

@@ -2,6 +2,7 @@ import * as React from 'react';
 import styles from './datepicker.scss';
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 import { format } from 'date-fns';
+import { fi } from 'date-fns/locale';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { TextField, TextInputIconPosition } from 'vayla-design-lib/text-field/text-field';
@@ -35,7 +36,7 @@ function getHeaderElement({
                 />
             </div>
             <span className={styles['datepicker__current-month']}>
-                {format(date, 'MMMM')} {date.getFullYear()}
+                {format(date, 'MMM', { locale: fi })} {date.getFullYear()}
             </span>
             <div
                 className={createClassName(
@@ -79,6 +80,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...prop
             <ReactDatePicker
                 renderCustomHeader={getHeaderElement}
                 dateFormat="dd.MM.yyyy"
+                locale={fi}
                 selected={value}
                 onChange={(date: Date) => onChange && onChange(date)}
                 calendarStartDay={1}

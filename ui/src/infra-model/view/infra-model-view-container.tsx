@@ -18,7 +18,7 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
     const infraModelState = useInfraModelAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const delegates = createDelegates(infraModelActionCreators);
+    const delegates = React.useMemo(() => createDelegates(infraModelActionCreators), []);
 
     const [isLoading, setLoading] = React.useState(false);
 
@@ -27,9 +27,6 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         onExtraParametersChange: delegates.onInfraModelExtraParametersChange,
         onOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
         onSelect: delegates.onSelect,
-        onHighlightItems: delegates.onHighlightItems,
-        onClickLocation: delegates.onClickLocation,
-        onViewportChange: delegates.onViewportChange,
         changeTimes: changeTimes,
         isLoading: isLoading,
         onClose: () => navigate('inframodel-list'),

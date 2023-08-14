@@ -10,7 +10,7 @@ export const FrontpageContainer: React.FC = () => {
     );
     const ratkoPushChangeTime = useCommonDataAppSelector((state) => state.changeTimes.ratkoPush);
     const publication = useTrackLayoutAppSelector((state) => state.selection.publication);
-    const delegates = createDelegates(trackLayoutActionCreators);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     return (
         <Frontpage

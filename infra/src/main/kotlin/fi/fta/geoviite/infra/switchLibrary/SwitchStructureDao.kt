@@ -71,7 +71,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
     }
 
-    private fun fetchSwitchTypeJoints(switchStrucureId: IntId<SwitchStructure>): List<SwitchJoint> {
+    private fun fetchSwitchTypeJoints(switchStructureId: IntId<SwitchStructure>): List<SwitchJoint> {
         val sql = """
             select
               number,
@@ -81,7 +81,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             where switch_structure_id = :switch_structure_id
         """.trimIndent()
 
-        val params = mapOf("switch_structure_id" to switchStrucureId.intValue)
+        val params = mapOf("switch_structure_id" to switchStructureId.intValue)
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val switchTypeJoint = SwitchJoint(
@@ -128,7 +128,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    private fun fetchSwitchTypeAlignments(switchStrucureId: IntId<SwitchStructure>): List<SwitchAlignment> {
+    private fun fetchSwitchTypeAlignments(switchStructureId: IntId<SwitchStructure>): List<SwitchAlignment> {
         val sql = """
             select
               id,
@@ -136,7 +136,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             from common.switch_alignment
             where switch_structure_id = :switch_structure_id
         """.trimIndent()
-        val params = mapOf("switch_structure_id" to switchStrucureId.intValue)
+        val params = mapOf("switch_structure_id" to switchStructureId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val switchAlignmentId = rs.getIntId<SwitchAlignment>("id")
             val switchTypeAlignment = SwitchAlignment(

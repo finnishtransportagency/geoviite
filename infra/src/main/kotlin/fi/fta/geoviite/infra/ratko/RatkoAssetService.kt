@@ -89,13 +89,22 @@ class RatkoAssetService @Autowired constructor(
             existingRatkoSwitch = existingRatkoSwitch,
         )
 
-        val baseRatkoLocations = getBaseRatkoSwitchLocations(
-            switchId = layoutSwitch.id,
-            existingRatkoLocations = existingRatkoSwitch.locations ?: emptyList(),
-            jointChanges = jointChanges,
-            switchStructure = switchStructure,
-            moment = moment,
-        )
+        val existingLocations = existingRatkoSwitch.locations ?: emptyList()
+
+        val includeBaseLocations = layoutSwitch.joints.any { lj ->
+            jointChanges.none { jc -> jc.number == lj.number && !jc.isRemoved }
+        }
+
+        val baseRatkoLocations =
+            if (includeBaseLocations && existingLocations.isNotEmpty())
+                getBaseRatkoSwitchLocations(
+                    switchId = layoutSwitch.id,
+                    existingRatkoLocations = existingLocations,
+                    jointChanges = jointChanges,
+                    switchStructure = switchStructure,
+                    moment = moment,
+                )
+            else emptyList()
 
         updateSwitchProperties(
             switchOid = switchOid,
@@ -164,9 +173,7 @@ class RatkoAssetService @Autowired constructor(
         joints: Collection<TrackLayoutSwitchJoint>,
     ) {
         val switchGeometries = convertToRatkoAssetGeometries(joints, switchBaseType)
-        if (switchGeometries.isNotEmpty()) {
-            ratkoClient.replaceAssetGeoms(switchOid, switchGeometries)
-        }
+        ratkoClient.replaceAssetGeoms(switchOid, switchGeometries)
     }
 
     private fun updateSwitchLocations(
@@ -183,9 +190,7 @@ class RatkoAssetService @Autowired constructor(
                     ratkoAssetLocation.copy(priority = index + 1)
                 }
 
-            if (ratkoSwitchLocations.isNotEmpty()) {
-                ratkoClient.replaceAssetLocations(switchOid, ratkoSwitchLocations)
-            }
+            ratkoClient.replaceAssetLocations(switchOid, ratkoSwitchLocations)
         }
     }
 
@@ -221,9 +226,7 @@ class RatkoAssetService @Autowired constructor(
         checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
 
         generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
-            if (switchLocations.isNotEmpty()) {
-                ratkoClient.replaceAssetLocations(switchOid, switchLocations)
-            }
+            ratkoClient.replaceAssetLocations(switchOid, switchLocations)
         }
 
         updateSwitchGeoms(

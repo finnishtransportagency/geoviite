@@ -65,6 +65,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                 <Table wide isLoading={isLoading}>
                     <thead className={styles['publication-table__table-header']}>
                         <tr>
+                            <Th />
                             {sortableTableHeader(
                                 PublicationDetailsTableSortField.NAME,
                                 'publication-table.name',
@@ -103,6 +104,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         {items.map((entry) => (
                             <PublicationTableRow
                                 key={entry.id}
+                                id={entry.id}
                                 name={entry.name}
                                 trackNumbers={entry.trackNumbers}
                                 publicationTime={entry.publicationTime}
@@ -111,6 +113,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 operation={entry.operation}
                                 changedKmNumbers={entry.changedKmNumbers}
                                 message={entry.message}
+                                propChanges={entry.propChanges}
                             />
                         ))}
                     </tbody>

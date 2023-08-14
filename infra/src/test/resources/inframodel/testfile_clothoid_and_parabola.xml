@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <LandXML xmlns="http://www.inframodel.fi/inframodel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://www.inframodel.fi/inframodel https://buildingsmart.fi/infra/schema/4.0.3/inframodel.xsd"
-         date="2022-11-01" time="14:15:16" version="1.2" language="finnish" readOnly="false">
+         date="2022-11-03" time="14:15:16" version="1.2" language="finnish" readOnly="false">
   <FeatureDictionary name="inframodel" version="4.0.3">
     <DocFileRef name="Inframodel extensions"
                 location="https://buildingsmart.fi/infra/inframodel/pages/extensions.html"/>
@@ -22,7 +22,7 @@
   <Application name="Geoviite Test" desc="Geoviite test data"
                manufacturer="Geoviite test" manufacturerURL="http://vayla.fi" version="1.2.3">
     <Author createdBy="Geoviite" createdByEmail="geoviite-test@geoviite-test.fi" company="Geoviite"
-            companyURL="vayla.fi" timeStamp="2022-11-01T14:15:16"></Author>
+            companyURL="vayla.fi" timeStamp="2022-11-03T14:15:16"></Author>
   </Application>
   <Alignments name="001" desc="Test alignment" state="proposed">
     <Alignment name="1" desc="1" oID="1" state="proposed" staStart="0.000000" length="18901.845000">

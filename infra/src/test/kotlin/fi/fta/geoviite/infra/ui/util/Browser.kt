@@ -89,7 +89,7 @@ fun openBrowser() {
     //    }
     //}
 
-//        openFirefox(headless)
+//    openFirefox(headless)
     openChrome(headless)
     logger.info("Webdriver initialized")
 
@@ -126,9 +126,7 @@ fun takeScreenShot(targetFilePrefix: String) = try {
 }
 
 enum class LogSource {
-    CONSOLE,
-    NETWORK,
-    NETWORK_RESPONSES,
+    CONSOLE, NETWORK, NETWORK_RESPONSES,
 }
 
 fun printBrowserLogs() = try {
@@ -166,6 +164,16 @@ fun printNetworkLogsResponses() = try {
     logger.error("Failed to print network responses ${e.message}")
 }
 
+fun <T> withNoImplicitWait(act: () -> T): T {
+    val originalWait = browser().manage().timeouts().implicitWaitTimeout
+    browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(0))
+    try {
+        return act()
+    } finally {
+        browser().manage().timeouts().implicitlyWait(originalWait)
+    }
+}
+
 private fun printLogEntries(source: LogSource, logEntries: LogEntries) {
     printLogEntries(source, logEntries.toList())
 }
@@ -177,7 +185,7 @@ private fun printLogEntries(source: LogSource, logEntries: List<LogEntry>) {
 }
 
 private fun filter(logEntries: LogEntries, start: Long, end: Long): List<LogEntry> {
-    return logEntries.filter { logEntry -> logEntry.timestamp > start && logEntry.timestamp < end }
+    return logEntries.filter { logEntry -> logEntry.timestamp in (start + 1) until end }
 }
 
 private fun filter(logEntries: LogEntries, start: Long): List<LogEntry> {
@@ -190,10 +198,10 @@ private fun filter(logEntries: List<LogEntry>, regex: Regex): List<LogEntry> {
 
 private fun hasEntryLevel(logEntries: List<LogEntry>, level: Level): Boolean {
     val filtered = logEntries.filter { logEntry -> logEntry.level.equals(level) }
-    return filtered.size > 0;
+    return filtered.isNotEmpty()
 }
 
 private fun messageMatches(logEntries: List<LogEntry>, regex: Regex): Boolean {
     val filtered = logEntries.filter { logEntry -> logEntry.message.matches(regex) }
-    return filtered.size > 0
+    return filtered.isNotEmpty()
 }

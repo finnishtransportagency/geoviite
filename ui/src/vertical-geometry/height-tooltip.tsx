@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { SnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates } from 'vertical-geometry/coordinates';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
+import styles from './vertical-geometry-diagram.scss';
 
 interface HeightTooltipProps {
     point: SnappedPoint;
@@ -35,7 +36,7 @@ export const HeightTooltip: React.FC<HeightTooltipProps> = ({
     return (
         <div
             ref={ref}
-            className="vertical-geometry-diagram__tooltip"
+            className={styles['vertical-geometry-diagram__tooltip']}
             style={{
                 position: 'fixed',
                 left: Math.min(

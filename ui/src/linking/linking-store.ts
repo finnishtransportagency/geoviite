@@ -58,6 +58,7 @@ export const linkingReducers = {
                 errors: [],
             };
         }
+        state.map.loadingIndicatorVisible = true;
     },
     stopLinking: function (state: TrackLayoutState): void {
         state.linkingState = undefined;

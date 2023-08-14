@@ -9,24 +9,27 @@
     grid-column: 1 / -1;
     display: flex;
     background: $color-white-dark;
-    z-index: 1;
+    margin-bottom: 1px;
 
     &--draft {
         background: $color-blue-lighter;
     }
 
-    &__left-section, &__middle-section, &__right-section {
+    &__left-section,
+    &__middle-section,
+    &__right-section {
         flex: 1;
         display: flex;
         align-items: center;
     }
 
-    &__left-section, &__right-section {
+    &__left-section,
+    &__right-section {
         grid-column-gap: 6px;
     }
 
     &__left-section .dropdown {
-        width: 330px
+        width: 330px;
     }
 
     &__middle-section {
@@ -46,5 +49,6 @@
     &__new-menu {
         padding-top: 5px;
         position: absolute;
+        z-index: 2;
     }
 }

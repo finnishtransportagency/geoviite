@@ -11,11 +11,11 @@ export const selectTool: MapTool = {
 
             options.onSelect({
                 ...items,
-                geometryKmPosts: items.geometryKmPosts ?? [],
+                geometryKmPostIds: items.geometryKmPostIds ?? [],
                 kmPosts: items.kmPosts ?? [],
-                geometrySwitches: items.geometrySwitches ?? [],
+                geometrySwitchIds: items.geometrySwitchIds ?? [],
                 switches: items.switches ?? [],
-                geometryAlignments: items.geometryAlignments ?? [],
+                geometryAlignmentIds: items.geometryAlignmentIds ?? [],
                 locationTracks: items.locationTracks ?? [],
                 trackNumbers: items.trackNumbers ?? [],
                 geometryPlans: items.geometryPlans ?? [],

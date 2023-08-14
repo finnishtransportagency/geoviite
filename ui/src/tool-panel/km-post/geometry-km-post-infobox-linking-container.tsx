@@ -22,7 +22,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
     onContentVisibilityChange,
     planId,
 }) => {
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const state = useTrackLayoutAppSelector((state) => state);
     const kmPostChangeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutKmPost);
     const selectedLayoutKmPost = useKmPost(

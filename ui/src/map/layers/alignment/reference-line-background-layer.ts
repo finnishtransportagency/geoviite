@@ -22,6 +22,7 @@ export function createReferenceLineBackgroundLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
+    let inFlight = true;
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
             if (layerId === newestLayerId) {
@@ -31,10 +32,14 @@ export function createReferenceLineBackgroundLayer(
                 vectorSource.addFeatures(features);
             }
         })
-        .catch(() => clearFeatures(vectorSource));
+        .catch(() => clearFeatures(vectorSource))
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'reference-line-background-layer',
         layer: layer,
+        requestInFlight: () => inFlight,
     };
 }

@@ -16,7 +16,6 @@ $table-cell-padding: 10px 16px;
         > .table__th {
             // Heading cell
             @include typography-table-heading;
-            background: $color-white-dark;
             white-space: break-spaces;
 
             &.table__th--clickable {
@@ -26,6 +25,9 @@ $table-cell-padding: 10px 16px;
                 &:hover {
                     background: $color-white-darker;
                 }
+            }
+            &--has-background {
+                background: $color-white-dark;
             }
         }
 
@@ -40,38 +42,15 @@ $table-cell-padding: 10px 16px;
         > .table__th--multiline-bottom {
             padding: 5px 16px 10px;
         }
+
+        > .table__th--unpadded {
+            padding: 0;
+        }
     }
 
     > tbody > tr,
     > .table__tbody > .table__tr {
         // Body row
-
-        > td,
-        > .table__td {
-            // Body cell
-            @include typography-body;
-            padding: $table-cell-padding;
-            background: $color-white-default;
-            vertical-align: top;
-            border-bottom: 1px solid $color-white-dark;
-
-            &.table__td--number {
-                text-align: right;
-            }
-
-            &.table__td--narrow {
-                padding-left: 4px;
-                padding-right: 4px;
-            }
-
-            &.table__td--nowrap {
-                white-space: nowrap;
-            }
-
-            &.table__td--has-stretched-container {
-                position: relative;
-            }
-        }
     }
 
     &--loading {
@@ -82,6 +61,33 @@ $table-cell-padding: 10px 16px;
         width: 100%;
         height: 100%;
         background-color: rgba($color-white-default, 0.67);
+    }
+}
+
+td,
+.table__td {
+    // Body cell
+    @include typography-body;
+    padding: $table-cell-padding;
+    background: $color-white-default;
+    vertical-align: top;
+    border-bottom: 1px solid $color-white-dark;
+
+    &.table__td--number {
+        text-align: right;
+    }
+
+    &.table__td--narrow {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    &.table__td--nowrap {
+        white-space: nowrap;
+    }
+
+    &.table__td--has-stretched-container {
+        position: relative;
     }
 }
 

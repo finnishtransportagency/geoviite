@@ -771,6 +771,7 @@ export function createAlignmentLinkingLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     const drawLinkingDots = resolution <= LINKING_DOTS;
 
+    let inFlight = false;
     if (linkingState?.state === 'setup' || linkingState?.state === 'allSet') {
         if (linkingState.type === LinkingType.LinkingAlignment) {
             const changeTime = getMaxTimestamp(
@@ -778,6 +779,7 @@ export function createAlignmentLinkingLayer(
                 changeTimes.layoutLocationTrack,
             );
 
+            inFlight = true;
             Promise.all([
                 getLinkPointsByTiles(
                     changeTime,
@@ -811,8 +813,12 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource));
+                .catch(() => clearFeatures(vectorSource))
+                .finally(() => {
+                    inFlight = false;
+                });
         } else if (linkingState.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
+            inFlight = true;
             Promise.all([
                 getGeometryLinkPointsByTiles(
                     linkingState.geometryPlanId,
@@ -857,8 +863,12 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource));
+                .catch(() => clearFeatures(vectorSource))
+                .finally(() => {
+                    inFlight = false;
+                });
         } else if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
+            inFlight = true;
             const geometryPointsPromise = getGeometryLinkPointsByTiles(
                 linkingState.geometryPlanId,
                 linkingState.geometryAlignmentId,
@@ -927,7 +937,10 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource));
+                .catch(() => clearFeatures(vectorSource))
+                .finally(() => {
+                    inFlight = false;
+                });
         } else {
             clearFeatures(vectorSource);
         }
@@ -992,6 +1005,7 @@ export function createAlignmentLinkingLayer(
                 clusterPoints: clusterPoint ? [clusterPoint] : [],
             };
         },
+        requestInFlight: () => inFlight,
     };
 }
 

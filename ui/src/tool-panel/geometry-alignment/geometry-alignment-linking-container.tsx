@@ -40,9 +40,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     onVisibilityChange,
     verticalGeometryDiagramVisible,
 }: GeometryAlignmentLinkingContainerProps) => {
-    const delegates = React.useMemo(() => {
-        return createDelegates(TrackLayoutActions);
-    }, []);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);

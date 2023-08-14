@@ -402,11 +402,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     qa-id="location-track-log-infobox">
                     <InfoboxContent>
                         <InfoboxField
-                            label={t('tool-panel.location-track.created')}
+                            label={t('tool-panel.created')}
                             value={formatDateShort(changeTimes.created)}
                         />
                         <InfoboxField
-                            label={t('tool-panel.location-track.changed')}
+                            label={t('tool-panel.changed')}
                             value={formatDateShort(changeTimes.changed)}
                         />
                         {officialLocationTrack === undefined && (

@@ -86,5 +86,6 @@ export function createDebugLayer(
     return {
         name: 'debug-layer',
         layer: layer,
+        requestInFlight: () => false,
     };
 }

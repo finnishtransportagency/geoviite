@@ -1,14 +1,15 @@
 package fi.fta.geoviite.infra.util
 
-import PVDictionaryCode
-import PVDictionaryName
-import PVProjectName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.projektivelho.PVProjectName
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import java.sql.ResultSet
 import java.time.Instant
@@ -59,13 +60,11 @@ fun ResultSet.getSrid(name: String): Srid = verifyNotNull(name, ::getSridOrNull)
 
 fun ResultSet.getSridOrNull(name: String): Srid? = getIntOrNull(name)?.let(::Srid)
 
-fun ResultSet.getTrackNumber(name: String): TrackNumber {
-    return getTrackNumberOrNull(name) ?: throw IllegalStateException("Track number was null")
+fun ResultSet.getTrackNumber(name: String): TrackNumber = requireNotNull(getTrackNumberOrNull(name)) {
+    "Track number was null"
 }
 
-fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? {
-    return getString(name)?.let { n -> TrackNumber(n) }
-}
+fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? = getString(name)?.let(::TrackNumber)
 
 fun ResultSet.getKmNumber(name: String): KmNumber = verifyNotNull(name, ::getKmNumberOrNull)
 
@@ -199,6 +198,10 @@ fun ResultSet.getPVDictionaryCodeOrNull(name: String): PVDictionaryCode? = getSt
 fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
 
 fun ResultSet.getPVIdOrNull(name: String): PVId? = getString(name)?.let(::PVId)
+
+fun <T>ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<T> = Change(getter("old_$name"), getter(name))
+
+fun ResultSet.getChangePoint(nameX: String, nameY: String) = Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }

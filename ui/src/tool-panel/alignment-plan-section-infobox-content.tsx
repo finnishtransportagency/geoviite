@@ -39,7 +39,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 > = ({ sections, type, id, onHighlightItem }) => {
     const { t } = useTranslation();
 
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
     const errorFragment = (errorMessage = '') => (
         <span

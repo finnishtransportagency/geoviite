@@ -6,15 +6,13 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
 import org.openqa.selenium.By
 
 enum class NavBarLink(val text: String) {
-    FRONT_PAGE("Etusivu"),
-    MAP("Kartta"),
-    INFRAMODEL("InfraModel"),
+    FRONT_PAGE("Etusivu"), MAP("Kartta"), INFRA_MODEL("InfraModel"),
 }
 
-class MainNavigationBar: PageModel(By.className("app-bar")) {
+class MainNavigationBar : PageModel(By.className("app-bar")) {
 
     // TODO: GVT-1947 Change these to qa-id instead of localized link text
-    fun clickLink(to: NavBarLink) = childElement(By.ByLinkText(to.text)).click()
+    fun clickLink(to: NavBarLink) = childElement(By.ByPartialLinkText(to.text)).click()
 
     fun goToMap(): MapPage {
         clickLink(NavBarLink.MAP)
@@ -22,7 +20,7 @@ class MainNavigationBar: PageModel(By.className("app-bar")) {
     }
 
     fun goToInfraModel(): InfraModelPage {
-        clickLink(NavBarLink.INFRAMODEL)
+        clickLink(NavBarLink.INFRA_MODEL)
         return InfraModelPage()
     }
 

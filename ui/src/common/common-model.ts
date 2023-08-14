@@ -173,3 +173,8 @@ export enum LayoutEndPoint {
 }
 
 export type TimeStamp = string;
+
+export type Range<T> = {
+    min: T;
+    max: T;
+};

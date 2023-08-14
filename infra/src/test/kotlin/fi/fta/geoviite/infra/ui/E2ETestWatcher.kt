@@ -30,9 +30,11 @@ class E2ETestWatcher : TestWatcher {
 //        printNetworkLogsAll()
     }
 
-    private fun finalize(op: () -> Unit = {}) =
-        try { op() }
-        finally { if (!DEV_DEBUG) closeBrowser() }
+    private fun finalize(op: () -> Unit = {}) = try {
+        op()
+    } finally {
+        if (!DEV_DEBUG) closeBrowser()
+    }
 }
 
 fun ExtensionContext.getClassName(): String = requiredTestClass.let(Class<*>::getSimpleName)
