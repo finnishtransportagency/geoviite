@@ -8,8 +8,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { LinkingState, LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { SwitchEditDialog } from './dialog/switch-edit-dialog';
-import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
-import { getSwitch } from 'track-layout/layout-switch-api';
+import { LayoutLocationTrack, LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
+import { getSwitch, getSwitchLocationTrackChanges } from 'track-layout/layout-switch-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -28,6 +28,8 @@ import { SwitchJointInfoboxContainer } from 'tool-panel/switch/switch-joint-info
 import { GeometrySwitchLinkingErrors } from 'tool-panel/switch/geometry-switch-linking-errors';
 import { SwitchTypeMatch } from 'linking/linking-utils';
 import { GeometrySwitchLinkingInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -102,6 +104,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     }, [geometrySwitchId, selectedSuggestedSwitch, geometrySwitchLayout]);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
+    const [locationTrackBeingEdited, setLocationTrackBeingEdited] =
+        React.useState<LayoutLocationTrack>();
     const selectedLayoutSwitch = useSwitch(linkingState?.layoutSwitchId, publishType);
     const selectedLayoutSwitchStructure = useSwitchStructure(
         selectedLayoutSwitch?.switchStructureId,
@@ -162,8 +166,28 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
             };
             setLinkingCallInProgress(true);
             try {
-                await linkSwitch(params);
-                SnackBar.success(t('tool-panel.switch.geometry.linking-succeed-msg'));
+                const id = await linkSwitch(params);
+                const linkingResult = await getSwitchLocationTrackChanges(id);
+                if (linkingResult && linkingResult.length > 0) {
+                    linkingResult.map((ltSwitchChange) => {
+                        getLocationTrack(ltSwitchChange.id, 'DRAFT').then((locationTrack) => {
+                            if (
+                                locationTrack &&
+                                ltSwitchChange.changedEnd.new?.name !=
+                                    ltSwitchChange.changedEnd.old?.name
+                            ) {
+                                SnackBar.topologySwitchInfoChanged(
+                                    locationTrack,
+                                    ltSwitchChange.changedEnd.new?.name ?? '',
+                                    ltSwitchChange.otherEnd.name,
+                                    setLocationTrackBeingEdited,
+                                );
+                            }
+                        });
+                    });
+                } else {
+                    SnackBar.success(t('tool-panel.switch.geometry.linking-succeed-msg'));
+                }
                 onStopLinking();
             } finally {
                 setLinkingCallInProgress(false);
@@ -280,6 +304,14 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                     onClose={() => setShowAddSwitchDialog(false)}
                     onInsert={handleSwitchInsert}
                     prefilledSwitchStructureId={selectedSuggestedSwitch.switchStructure.id}
+                />
+            )}
+            {locationTrackBeingEdited && (
+                <LocationTrackEditDialog
+                    locationTrack={locationTrackBeingEdited}
+                    onClose={() => setLocationTrackBeingEdited(undefined)}
+                    publishType={'DRAFT'}
+                    locationTrackChangeTime={locationTrackChangeTime}
                 />
             )}
         </React.Fragment>

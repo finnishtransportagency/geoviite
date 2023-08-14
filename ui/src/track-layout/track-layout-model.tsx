@@ -247,6 +247,24 @@ export type SwitchJointTrackMeter = {
     trackMeter: TrackMeter;
 };
 
+type SwitchIdAndName = {
+    id: LayoutSwitchId;
+    name: string;
+};
+
+type Change<T> = {
+    new: T | null;
+    old: T | null;
+};
+
+export type SwitchLocationTrackLinkingChange = {
+    id: LocationTrackId;
+    name: string;
+    description: string;
+    changedEnd: Change<SwitchIdAndName>;
+    otherEnd: SwitchIdAndName;
+};
+
 export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }

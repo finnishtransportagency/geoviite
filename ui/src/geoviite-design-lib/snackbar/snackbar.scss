@@ -75,6 +75,11 @@
         display: flex;
     }
 
+    &__buttons {
+        display: flex;
+        justify-content: flex-end;
+    }
+
     &__button {
         align-self: flex-end;
         line-height: 20px;

@@ -35,13 +35,19 @@ import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getTrackMeter } from 'track-layout/layout-map-api';
-import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
+import {
+    getSwitch,
+    getSwitchJointConnections,
+    getSwitchLocationTrackChanges,
+} from 'track-layout/layout-switch-api';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { formatDateShort } from 'utils/date-utils';
 import { useSwitchChangeTimes } from 'track-layout/track-layout-react-utils';
+import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
+import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -163,6 +169,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+    const [locationTrackBeingEdited, setLocationTrackBeingEdited] =
+        React.useState<LayoutLocationTrack>();
     const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
 
     function isOfficial(): boolean {
@@ -381,8 +389,41 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 <SwitchEditDialog
                     switchId={layoutSwitch?.id}
                     onClose={closeEditSwitchDialog}
-                    onUpdate={closeEditSwitchDialog}
+                    onUpdate={() => {
+                        closeEditSwitchDialog();
+                        layoutSwitch &&
+                            getSwitchLocationTrackChanges(layoutSwitch.id).then((trackChanges) => {
+                                if (trackChanges && trackChanges.length > 0) {
+                                    trackChanges.map((ltSwitchChange) => {
+                                        getLocationTrack(ltSwitchChange.id, 'DRAFT').then(
+                                            (locationTrack) => {
+                                                if (
+                                                    locationTrack &&
+                                                    ltSwitchChange.changedEnd.new?.name !=
+                                                        ltSwitchChange.changedEnd.old?.name
+                                                ) {
+                                                    SnackBar.topologySwitchInfoChanged(
+                                                        locationTrack,
+                                                        ltSwitchChange.changedEnd.new?.name ?? '',
+                                                        ltSwitchChange.otherEnd?.name,
+                                                        setLocationTrackBeingEdited,
+                                                    );
+                                                }
+                                            },
+                                        );
+                                    });
+                                }
+                            });
+                    }}
                     onDelete={handleSwitchDelete}
+                />
+            )}
+            {locationTrackBeingEdited && (
+                <LocationTrackEditDialog
+                    locationTrack={locationTrackBeingEdited}
+                    onClose={() => setLocationTrackBeingEdited(undefined)}
+                    publishType={'DRAFT'}
+                    locationTrackChangeTime={changeTimes.layoutLocationTrack}
                 />
             )}
         </React.Fragment>

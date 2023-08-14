@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FreeText
@@ -262,6 +263,21 @@ data class TrackNumberAndChangeTime(
     val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val changeTime: Instant,
+)
+
+data class SwitchLocationTrackEndPoint(
+    val id: IntId<TrackLayoutSwitch>,
+    val name: SwitchName,
+) { constructor(switch: TrackLayoutSwitch) :
+        this(switch.id as IntId<TrackLayoutSwitch>, switch.name)
+}
+
+data class SwitchLocationTrackConnectionChange(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val description: FreeText,
+    val changedEnd: Change<SwitchLocationTrackEndPoint>,
+    val otherEnd: SwitchLocationTrackEndPoint?,
 )
 
 fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""

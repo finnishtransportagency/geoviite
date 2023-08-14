@@ -78,6 +78,12 @@
         },
         "entity_not_found": "Tietoa ei löydy"
     },
+    "topology-switch-changed": {
+        "single-end-connected": "Raiteen päässä oleva vaihde on vaihtunut. Tarkasta vastaako raiteen tunnus <strong>{{locationTrackName}}</strong> ja kuvaus <strong>{{locationTrackDescription}}</strong> nykyistä vaihdetta <strong>{{changedSwitchName}}</strong>.",
+        "both-ends-connected": "Raiteen päässä oleva vaihde on vaihtunut. Tarkasta vastaako raiteen tunnus <strong>{{locationTrackName}}</strong> ja kuvaus <strong>{{locationTrackDescription}}</strong> nykyisiä vaihteita <strong>{{changedSwitchName}}</strong> ja <strong>{{otherSwitchName}}</strong>.",
+        "close-message": "Sulje viesti",
+        "edit-track": "Muokkaa raiteen tietoja"
+    },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",
         "button": "Lataa sivu uudestaan"

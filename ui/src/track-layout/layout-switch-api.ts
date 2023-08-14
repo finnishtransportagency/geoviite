@@ -4,6 +4,7 @@ import {
     LayoutSwitch,
     LayoutSwitchId,
     LayoutSwitchJointConnection,
+    SwitchLocationTrackLinkingChange,
 } from 'track-layout/track-layout-model';
 import {
     deleteIgnoreError,
@@ -14,7 +15,7 @@ import {
     putAdt,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeTimeUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
@@ -163,6 +164,14 @@ export async function getSwitchValidation(
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset> {
     return getThrowError<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
+}
+
+export async function getSwitchLocationTrackChanges(
+    id: LayoutSwitchId,
+): Promise<SwitchLocationTrackLinkingChange[] | null> {
+    return getIgnoreError<SwitchLocationTrackLinkingChange[]>(
+        `${TRACK_LAYOUT_URI}/switches/${id}/location-track-changes`,
+    );
 }
 
 export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | null> => {

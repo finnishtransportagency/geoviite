@@ -4,12 +4,14 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.pageToList
@@ -224,6 +226,31 @@ class LayoutSwitchService @Autowired constructor(
         return dao.findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
             .map { ids -> locationTrackService.getWithAlignment(ids.rowVersion) }
     }
+
+    fun getSwitchLocationTrackChanges(switchId: IntId<TrackLayoutSwitch>) =
+        getTopologySwitchJointConnections(DRAFT, switchId)
+            .flatMap { it.accurateMatches }
+            .distinctBy { it.locationTrackId }
+            .map { locationTrackService.getDraft(it.locationTrackId) }
+            .filter { sw ->
+                sw.topologyStartSwitch?.switchId == switchId ||
+                        sw.topologyEndSwitch?.switchId == switchId
+            }.map { draftLt ->
+                val draftSwitch = get(DRAFT, switchId)
+                val previousSwitch = get(OFFICIAL, switchId) //draftSwitch?.version?.previous()?.let { previousVersion -> get(previousVersion) }
+                val otherEndSwitch = (draftLt.topologyStartSwitch?.switchId ?: draftLt.topologyEndSwitch?.switchId)?.let(::getDraft)
+
+                SwitchLocationTrackConnectionChange(
+                    id = draftLt.id as IntId<LocationTrack>,
+                    name = draftLt.name,
+                    description = draftLt.description,
+                    changedEnd = Change(
+                        old = previousSwitch?.let(::SwitchLocationTrackEndPoint),
+                        new = draftSwitch?.let(::SwitchLocationTrackEndPoint),
+                    ),
+                    otherEnd = otherEndSwitch?.let(::SwitchLocationTrackEndPoint),
+                )
+            }
 }
 
 fun <T> associateByDistance(

@@ -130,4 +130,11 @@ class LayoutSwitchController(
         logger.apiCall("getSwitchChangeTimes", "id" to switchId)
         return switchService.getChangeTimes(switchId)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/location-track-changes")
+    fun getSwitchLocationTrackChanges(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): List<SwitchLocationTrackConnectionChange> {
+        logger.apiCall("getSwitchLocationTrackChanges", "switchId" to switchId)
+        return switchService.getSwitchLocationTrackChanges(switchId)
+    }
 }
