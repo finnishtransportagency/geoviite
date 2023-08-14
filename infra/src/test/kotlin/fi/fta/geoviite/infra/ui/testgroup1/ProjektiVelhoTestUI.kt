@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.inframodel.VelhoListItem
+import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EProjektiVelhoListItem
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
@@ -38,7 +38,7 @@ class ProjektiVelhoTestUI @Autowired constructor(
         insertFullExampleVelhoDocumentMetadata()
         startGeoviite()
         val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
-        fun identifyTestProject(item: VelhoListItem) = item.getProjectName() == "testi_projekti"
+        fun identifyTestProject(item: E2EProjektiVelhoListItem) = item.getProjectName() == "testi_projekti"
         fun assertTestProjectIsVisible() {
             assertEquals(
                 "foo bar.xml",
@@ -69,14 +69,14 @@ class ProjektiVelhoTestUI @Autowired constructor(
         velhoPage
             // project name comes from PV metadata here
             .acceptFirstMatching { item -> item.getProjectName() == "testi_projekti" }
-            .tallenna(true)
+            .save(true)
 
         val infraModelPage = velhoPage.goToInfraModelList()
         assertEquals(
             "foo bar.xml",
-            infraModelPage.infraModelList()
+            infraModelPage.infraModelsList
                 // project name comes from test file here
-                .getItemWhenMatches { item -> item.projektinNimi() == "Geoviite test" }.tiedostonimi()
+                .getItemWhenMatches { item -> item.projectName == "Geoviite test" }.fileName
         )
     }
 

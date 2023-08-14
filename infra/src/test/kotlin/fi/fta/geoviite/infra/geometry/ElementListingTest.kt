@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FileName
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
@@ -85,7 +85,7 @@ class ElementListingTest {
             srid = LAYOUT_SRID,
             coordinateSystemName = CoordinateSystemName("KKJ testname"),
         )
-        val listing = toElementListing(null, getTransformation, plan, allElementTypes) { switchId -> SwitchName("Test") }
+        val listing = toElementListing(null, getTransformation, plan, allElementTypes) { _ -> SwitchName("Test") }
         listing.forEach { l ->
             assertEquals(PlanSource.GEOMETRIAPALVELU, l.planSource)
             assertEquals(plan.id, l.planId)
@@ -136,7 +136,12 @@ class ElementListingTest {
             alignments = listOf(geometryAlignment(elements = listOf(clothoid), cant = cant)),
             srid = gk27,
         )
-        val elementListing = toElementListing(geocodingContext, getTransformation, plan, GeometryElementType.values().toList()) { switchId -> SwitchName("Test") }
+        val elementListing = toElementListing(
+            geocodingContext,
+            getTransformation,
+            plan,
+            GeometryElementType.values().toList()
+        ) { _ -> SwitchName("Test") }
         assertEquals(1, elementListing.size)
         val element1 = elementListing[0]
 
@@ -263,7 +268,7 @@ class ElementListingTest {
             TrackMeter(KmNumber.ZERO, 25),
             TrackMeter(KmNumber.ZERO, 35),
             { id -> alignments.find { a -> a.second.id == id }!! },
-            { switchId -> SwitchName("Test") }
+            { _ -> SwitchName("Test") }
         )
 
         // Linked: alignment1 elements 1 & 2 (not 0) + alignment2 elements 0 & 1 (not 2)
@@ -304,7 +309,7 @@ class ElementListingTest {
             null,
             null,
             { id -> alignments.find { a -> a.second.id == id }!! },
-            { switchId -> SwitchName("Test") }
+            { _ -> SwitchName("Test") }
         )
 
         assertNull(listing[0].connectedSwitchName)
@@ -322,8 +327,8 @@ class ElementListingTest {
             null,
             getTransformation,
             plan,
-            types.toList(),
-            { switchId -> SwitchName("Test") }).map { e -> e.elementType }
+            types.toList()
+        ) { SwitchName("Test") }.map { e -> e.elementType }
 
     private fun getListingTypes(
         locationTrack: LocationTrack,
@@ -349,7 +354,7 @@ class ElementListingTest {
         null,
         null,
         { _ -> planHeader to geometryAlignment },
-        { switchId -> SwitchName("Test") }
+        { SwitchName("Test") }
     )
 
     private fun getElementTypes(alignment: GeometryAlignment) =

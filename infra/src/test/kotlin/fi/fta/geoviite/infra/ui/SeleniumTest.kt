@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.ui
 
 import browser
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.ui.pagemodel.common.MainNavigationBar
-import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
+import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import openBrowser
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
@@ -30,13 +30,13 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     }
 
 
-    val geoviite: FrontPage
+    val geoviite: E2EFrontPage
         get() {
             browser().navigate().to(startUrl)
-            return FrontPage()
+            return E2EFrontPage()
         }
 
-    val navigationBar: MainNavigationBar get() = MainNavigationBar()
+    val navigationBar: E2EAppBar get() = E2EAppBar()
 
     fun startGeoviite() {
         logger.info("Navigate to Geoviite $startUrl")

@@ -3,8 +3,6 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
-import fi.fta.geoviite.infra.ui.pagemodel.map.SearchBox
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,18 +33,20 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
         startGeoviite()
         val mapPage = goToMap()
-        val searchBox = mapPage.searchBox()
 
-        searchBox.addToSearchInput("test-lt")
-        val searchResultsAll = searchBox.searchResults().map(SearchBox.SearchResult::value)
-        assertEquals(ltNames.map { (n, d) -> "$n, $d" }, searchResultsAll)
+        val searchResults = mapPage.toolBar
+            .search("test-lt")
+            .searchResults().map { it.value }
+        assertEquals(ltNames.map { (n, d) -> "$n, $d" }, searchResults)
 
-        searchBox.addToSearchInput(" b")
-        val searchResultsBs = searchBox.searchResults().map(SearchBox.SearchResult::value)
+        val searchResultsBs = mapPage.toolBar
+            .search(" b", false)
+            .searchResults().map { it.value }
         assertEquals(listOf("test-lt B2, test-desc-2", "test-lt B3, test-desc-3"), searchResultsBs)
 
-        searchBox.addToSearchInput("2")
-        val searchResultsB2 = searchBox.searchResults().map(SearchBox.SearchResult::value)
+        val searchResultsB2 = mapPage.toolBar
+            .search("2", false)
+            .searchResults().map { it.value }
         assertEquals(listOf("test-lt B2, test-desc-2"), searchResultsB2)
     }
 
@@ -62,15 +62,13 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
         startGeoviite()
         val mapPage = goToMap()
-        val searchBox = mapPage.searchBox()
 
-        searchBox.search(track.name.toString())
-        searchBox.selectResult(track.name.toString())
+        mapPage.toolBar.search(track.name.toString()).selectResult(track.name.toString())
 
-        val locationTrackGeneralInfoBox = MapToolPanel().locationTrackGeneralInfo()
-        assertEquals(track.name.toString(), locationTrackGeneralInfoBox.sijainteraidetunnus())
-        assertEquals(track.description.toString(), locationTrackGeneralInfoBox.kuvaus())
-        assertEquals(trackNumber.number.toString(), locationTrackGeneralInfoBox.ratanumero())
+        val locationTrackGeneralInfoBox = mapPage.toolPanel.locationTrackGeneralInfo
+        assertEquals(track.name.toString(), locationTrackGeneralInfoBox.name)
+        assertEquals(track.description.toString(), locationTrackGeneralInfoBox.description)
+        assertEquals(trackNumber.number.toString(), locationTrackGeneralInfoBox.trackNumber)
 
     }
 }

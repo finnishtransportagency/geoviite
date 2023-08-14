@@ -1,22 +1,21 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import org.openqa.selenium.WebElement
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import waitAndClick
-import waitUntilClickable
 import waitUntilDoesNotExist
 
-class Button(fetch: () -> WebElement) : PageModel(fetch) {
-    fun click() {
+class E2EButton(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+    fun click(): E2EButton = apply {
         logger.info("Click button '${webElement.text}'")
-        webElement.waitUntilClickable()
         webElement.waitAndClick()
     }
 
     fun clickAndWaitToDisappear() {
-        val elementBeforeClick = webElement
-        val name = elementBeforeClick.text
+        val element = webElement;
+        val name = element.text
         click()
         logger.info("Wait until button is no longer visible '$name'")
-        elementBeforeClick.waitUntilDoesNotExist()
+
+        element.waitUntilDoesNotExist()
     }
 }

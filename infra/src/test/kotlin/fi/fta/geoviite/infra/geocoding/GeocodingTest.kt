@@ -454,7 +454,7 @@ class GeocodingTest {
             kmPostOffset = 0.0,
             intersectType = WITHIN
         )
-        val referencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
+        val combinedReferencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
             GeocodingReferencePoint(
                 kmNumber = address.kmNumber,
                 meters = address.meters,
@@ -467,7 +467,7 @@ class GeocodingTest {
         return GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
-            kmPosts = referencePoints.map { p ->
+            kmPosts = combinedReferencePoints.map { p ->
                 kmPost(
                     trackNumberId = null,
                     km = p.kmNumber,
@@ -475,7 +475,7 @@ class GeocodingTest {
                 )
             },
             referenceLineGeometry = alignment,
-            referencePoints = referencePoints,
+            referencePoints = combinedReferencePoints,
         )
     }
 

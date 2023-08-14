@@ -1,7 +1,11 @@
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EToaster
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.defaultToasterBy
-import org.openqa.selenium.*
+import fi.fta.geoviite.infra.ui.util.ElementFetch
+import org.openqa.selenium.By
+import org.openqa.selenium.Keys
+import org.openqa.selenium.NoSuchElementException
+import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
 import org.openqa.selenium.support.ui.ExpectedConditions.*
@@ -10,7 +14,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
-private val logger: Logger = LoggerFactory.getLogger(PageModel::class.java)
+private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
 val defaultWait: Duration = Duration.ofSeconds(5L)
 val defaultPoll: Duration = Duration.ofMillis(200)
@@ -30,9 +34,19 @@ fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolea
 }
 
 
-fun waitAndGetToasterElement(): Toaster {
+fun waitAndGetToasterElement(): E2EToaster {
     logger.info("Waiting toaster element to appear")
-    return Toaster().also { logger.info("Toaster appeared") }
+    return E2EToaster().also { logger.info("Toaster appeared") }
+}
+
+fun waitAndAssertToaster(content: String) {
+    logger.info("Asserting and closing toaster")
+    E2EToaster().assertAndClose(content)
+}
+
+fun waitAndClearToaster(by: By = defaultToasterBy) {
+    logger.info("Waiting and clearing toaster")
+    E2EToaster(by).close().also { logger.info("Toaster cleared") }
 }
 
 fun clearToasters() {
@@ -80,7 +94,7 @@ fun getElementWhenClickable(byCondition: By, timeout: Duration = defaultWait): W
     return browser().findElement(byCondition)
 }
 
-fun getChildWhenVisible(parentFetch: () -> WebElement, byCondition: By, timeout: Duration = defaultWait): WebElement {
+fun getChildWhenVisible(parentFetch: ElementFetch, byCondition: By, timeout: Duration = defaultWait): WebElement {
     waitUntilChildVisible(parentFetch, byCondition, timeout)
     return parentFetch().let { parent ->
         parent.getChildElementIfExists(byCondition)
@@ -89,7 +103,7 @@ fun getChildWhenVisible(parentFetch: () -> WebElement, byCondition: By, timeout:
 }
 
 fun getChildrenWhenVisible(
-    parentFetch: () -> WebElement,
+    parentFetch: ElementFetch,
     byCondition: By,
     timeout: Duration = defaultWait,
 ): List<WebElement> {
@@ -133,14 +147,14 @@ fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = 
         "Wait for element value 'to not be x' failed: expectedNot=$value element=${element.getInnerHtml()}"
     }
 
-fun waitUntilChildVisible(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) =
+fun waitUntilChildVisible(parentFetch: ElementFetch, childBy: By, timeout: Duration = defaultWait) =
     tryWait(timeout, { parentFetch().childElementExists(childBy) }, {
         parentFetch().let { parent ->
             "Child element never appeared: parent=$parent child=${parent.getChildElementIfExists(childBy)}"
         }
     })
 
-fun waitUntilChildNotVisible(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) =
+fun waitUntilChildNotVisible(parentFetch: ElementFetch, childBy: By, timeout: Duration = defaultWait) =
     tryWait(timeout, { !parentFetch().childElementExists(childBy) }, {
         parentFetch().let { parent ->
             "Child element never disappeared: parent=$parent child=${parent.getChildElementIfExists(childBy)}"
@@ -148,7 +162,7 @@ fun waitUntilChildNotVisible(parentFetch: () -> WebElement, childBy: By, timeout
     })
 
 fun waitUntilChildMatches(
-    parentFetch: () -> WebElement,
+    parentFetch: ElementFetch,
     childBy: By,
     check: (index: Int, child: WebElement) -> Boolean,
     timeout: Duration = defaultWait,
@@ -157,7 +171,7 @@ fun waitUntilChildMatches(
     { "Wait for child content to match condition failed: parent=${parentFetch()} childBy=$childBy timeout=$timeout" })
 
 fun getChildWhenMatches(
-    parentFetch: () -> WebElement,
+    parentFetch: ElementFetch,
     childBy: By,
     check: (index: Int, child: WebElement) -> Boolean,
     timeout: Duration = defaultWait,
@@ -219,5 +233,5 @@ fun tryWait(
 
 fun clickElement(by: By, timeout: Duration = defaultWait) = getElementWhenVisible(by, timeout).waitAndClick(timeout)
 
-fun clickChildElement(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) =
+fun clickChildElement(parentFetch: ElementFetch, childBy: By, timeout: Duration = defaultWait) =
     getChildWhenVisible(parentFetch, childBy, timeout).waitAndClick(timeout)

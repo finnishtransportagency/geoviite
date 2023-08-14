@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import childElementExists
 import clickChildElement
 import defaultWait
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.byText
 import fi.fta.geoviite.infra.ui.util.fetch
@@ -19,10 +20,10 @@ import waitUntilChildVisible
 import java.time.Duration
 
 
-abstract class PageModel(protected val elementFetch: () -> WebElement) {
+abstract class E2EViewFragment(protected val elementFetch: ElementFetch) {
     constructor(by: By) : this(fetch(by))
-    constructor(parentFetch: () -> WebElement, by: By) : this(fetch(parentFetch, by))
-    constructor(parent: PageModel, by: By) : this(parent.elementFetch, by)
+    constructor(parentFetch: ElementFetch, by: By) : this(fetch(parentFetch, by))
+    constructor(parent: E2EViewFragment, by: By) : this(parent.elementFetch, by)
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -30,16 +31,18 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
 
     protected inline operator fun <T> T.invoke(action: T.() -> Unit): T = apply(action)
 
-    protected fun <T> childComponent(by: By, creator: (() -> WebElement) -> T, timeout: Duration = defaultWait) =
+    protected fun <T> childComponent(by: By, creator: (ElementFetch) -> T, timeout: Duration = defaultWait) =
         creator { childElement(by, timeout) }
 
-    protected fun childTextField(by: By, timeout: Duration = defaultWait) = childComponent(by, ::TextField, timeout)
+    protected fun <T> childComponents(by: By, creator: (ElementFetch) -> T, timeout: Duration = defaultWait) =
+        childElements(by, timeout).map { e -> creator { e } }
 
-    protected fun childButton(by: By, timeout: Duration = defaultWait) = childComponent(by, ::Button, timeout)
+    protected fun childTextInput(by: By, timeout: Duration = defaultWait) = childComponent(by, ::E2ETextInput, timeout)
+
+    protected fun childButton(by: By, timeout: Duration = defaultWait) = childComponent(by, ::E2EButton, timeout)
 
     protected fun clickButton(by: By, timeout: Duration = defaultWait) = childButton(by, timeout).click()
 
-    @Deprecated("Relevant buttons should be marked with qa-id and used via that, rather than content")
     protected fun clickButtonByText(text: String, timeout: Duration = defaultWait) = clickButton(byText(text), timeout)
 
     protected fun clickButtonByQaId(id: String, timeout: Duration = defaultWait) = clickButton(byQaId(id), timeout)

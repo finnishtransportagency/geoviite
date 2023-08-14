@@ -138,6 +138,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     )}
                     <WriteAccessRequired>
                         <Button
+                            qa-id="infra-model-save-button"
                             title={getVisibleErrors()}
                             onClick={() => onProgressClick()}
                             disabled={

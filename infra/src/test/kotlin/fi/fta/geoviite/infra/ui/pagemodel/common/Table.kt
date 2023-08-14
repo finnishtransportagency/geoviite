@@ -1,24 +1,37 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
+import waitAndClick
 
+open class E2ETable<T : E2ETableRow>(
+    tableFetch: ElementFetch,
+    getContent: (index: Int, child: WebElement) -> T,
+    rowsBy: By = By.tagName("tr"),
+) : E2EList<T>(tableFetch, rowsBy, getContent) {
+    val rows: List<T> get() = items
 
-// TODO: GVT-1936 The table handling should be refactored
-//   This exposes elements directly to outside the class with a stale-risk
-@Deprecated("Element risks staleness")
-open class TableRow(private val headers: List<String>, private val row: WebElement) {
-    fun clickRow() = row.findElement(By.tagName("td")).click()
-    protected fun getColumnByName(name: String): WebElement = row.findElements(By.ByTagName("td"))[colIdx(name)]
-    private fun colIdx(name: String): Int =
-        headers.indexOf(name).apply { if (this == -1) throw RuntimeException("No such column $name") }
+    //Firefox doesn't handle tr clicks correctly, temporary fixed by clicking on the first td
+    //https://bugzilla.mozilla.org/show_bug.cgi?id=1448825
+    override fun select(index: Int): E2ETable<T> = apply {
+        childElements(itemsBy)[index].let { e ->
+            if (!isSelected(e)) e.findElement(By.tagName("td")).waitAndClick()
+        }
+    }
+
 }
 
-fun getColumnContent(headers: List<String>, rowElement: WebElement, columnName: String): String =
-    getColumnContent(rowElement, columnIndex(headers, columnName))
+open class E2ETableRow(
+    override val index: Int,
+    row: WebElement,
+    protected open val headers: List<String>,
+) : E2EListItem {
+    private val columnTexts = row.findElements(By.tagName("td")).map { it.text }
 
-fun getColumnContent(rowElement: WebElement, columnIndex: Int): String =
-    rowElement.findElements(By.ByTagName("td"))[columnIndex].text
+    private fun columnIndex(name: String) = columnIndex(headers, name)
 
-fun columnIndex(headers: List<String>, name: String): Int =
-    headers.indexOf(name).apply { if (this == -1) throw RuntimeException("No such column $name") }
+    fun getColumnContent(name: String): String {
+        return columnTexts[columnIndex(name)]
+    }
+}
