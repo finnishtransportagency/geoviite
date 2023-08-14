@@ -19,7 +19,9 @@ export const PVOid: React.FC<PVOidProps> = ({ oid }) => {
                 size={IconSize.SMALL}
                 onClick={() => {
                     navigator.clipboard.writeText(oid);
-                    Snackbar.success(t('projektivelho.file-list.oid-copied-to-clipboard'), oid);
+                    Snackbar.success(t('projektivelho.file-list.oid-copied-to-clipboard'), {
+                        body: oid,
+                    });
                 }}
             />
         </span>

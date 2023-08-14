@@ -75,18 +75,28 @@ export function info(header: string, body?: string) {
     }
 }
 
-export function success(header: string, body?: string) {
+type ToastOpts = {
+    body?: string;
+    toastId?: string;
+    autoClose?: false | number;
+    className?: string;
+};
+
+export function success(header: string, opts?: ToastOpts) {
+    const { body, ...toastOpts } = opts ?? {};
     const removeFunction = addToQueue(header, body);
 
     if (removeFunction && !blockToasts) {
         toast.success(getToastBody(header, body), {
             onClose: removeFunction,
             icon: Icons.Selected,
+            ...toastOpts,
         });
     }
 }
 
-export function error(header: string, body?: string) {
+export function error(header: string, opts?: ToastOpts) {
+    const { body, ...toastOpts } = opts ?? {};
     const removeFunction = addToQueue(header, body);
 
     if (removeFunction && !blockToasts) {
@@ -96,6 +106,7 @@ export function error(header: string, body?: string) {
             closeButton: CloseButton,
             onClose: removeFunction,
             icon: Icons.StatusError,
+            ...toastOpts,
         });
     }
 }

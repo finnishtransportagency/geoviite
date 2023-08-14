@@ -1,22 +1,25 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
-import fi.fta.geoviite.infra.ui.pagemodel.map.LocationTrackListItem
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-class VelhoPage(headers: List<String>) : TableModel<VelhoListItem>(
+class ProjektiVelhoPage(headers: List<String>) : TableModel<VelhoListItem>(
     listBy = By.xpath("//div[@qa-id='main-content-container']"),
     itemsBy = By.cssSelector("div.projektivelho-file-list table tbody tr"),
     getContent = { i: Int, e: WebElement -> VelhoListItem(i, e, headers) },
 ) {
-    fun openWaitingForApprovalList(): VelhoPage = apply {
+    fun goToInfraModelList(): InfraModelPage {
+        childElement(byQaId("infra-model-nav-tab-plan")).click()
+        return InfraModelPage()
+    }
+
+    fun openWaitingForApprovalList(): ProjektiVelhoPage = apply {
         childElement(byQaId("infra-model-nav-tab-waiting")).click()
     }
 
-    fun openRejectedList(): VelhoPage = apply {
+    fun openRejectedList(): ProjektiVelhoPage = apply {
         childElement(byQaId("infra-model-nav-tab-rejected")).click()
     }
 
@@ -26,6 +29,11 @@ class VelhoPage(headers: List<String>) : TableModel<VelhoListItem>(
 
     fun restoreFirstMatching(by: (item: VelhoListItem) -> Boolean) = apply {
         clickOnItemBy(by, byQaId("pv-restore-button"))
+    }
+
+    fun acceptFirstMatching(by: (item: VelhoListItem) -> Boolean): InfraModelUploadAndEditForm {
+        clickOnItemBy(by, byQaId("pv-import-button"))
+        return InfraModelUploadAndEditForm()
     }
 }
 

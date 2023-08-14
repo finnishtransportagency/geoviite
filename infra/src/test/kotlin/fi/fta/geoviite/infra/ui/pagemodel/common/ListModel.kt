@@ -38,7 +38,7 @@ open class ListModel<T : ListContentItem>(
         getContent: (index: Int, child: WebElement) -> T,
     ) : this(fetch(listBy), itemsBy, getContent)
 
-    protected val itemElements: List<WebElement> get() = childElements(itemsBy)
+    protected val itemElements: List<WebElement> get() = currentChildElements(itemsBy)
 
     val items: List<T> get() = itemElements.mapIndexed(getContent)
 
