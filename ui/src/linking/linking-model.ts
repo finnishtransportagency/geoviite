@@ -29,6 +29,7 @@ import {
     SwitchStructure,
     SwitchStructureId,
     Range,
+    TrackMeter,
 } from 'common/common-model';
 
 export type LocationTrackSaveRequest = {
@@ -75,6 +76,7 @@ export type LinkPoint = {
     isSegmentEndPoint: boolean;
     isEndPoint: boolean;
     direction: number | undefined;
+    address: TrackMeter | undefined;
 };
 
 export type ClusterPoint = {

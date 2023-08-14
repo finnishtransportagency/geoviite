@@ -7,6 +7,7 @@ import { chunk } from 'utils/array-utils';
 export type Cache<TKey, TVal> = {
     get(key: TKey): TVal | null;
     put: (key: TKey, val: TVal) => void;
+    getOrCreate: (key: TKey, createNew: () => TVal) => TVal;
     remove: (key: TKey) => void;
 };
 
@@ -22,15 +23,51 @@ export type AsyncCache<TKey, TVal> = {
     remove: (key: TKey) => void;
 };
 
-// Providing own API for better control but (for now)
-// using "memory-cache" as an implementation
-export function cache<TKey, TVal>(): Cache<TKey, TVal> {
-    const cache = new memCache.Cache<TKey, TVal>();
-    return {
-        get: cache.get,
-        put: (key: TKey, val: TVal) => cache.put(key, val),
-        remove: (key: TKey) => cache.del(key),
+export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
+    const items = new Map<TKey, TVal>();
+    const touched = new Map<TKey, number>();
+    let hitCount = 0;
+    let missCount = 0;
+
+    const cache = {
+        get: (key: TKey) => items.get(key) || null,
+        getOrCreate: (key: TKey, createNew: () => TVal) => {
+            const val = cache.get(key);
+            if (val != null) {
+                hitCount++;
+                return val;
+            }
+            missCount++;
+            const newVal = createNew();
+            cache.put(key, newVal);
+            return newVal;
+        },
+        put: (key: TKey, val: TVal) => {
+            while (maxSize != undefined && items.size > maxSize) {
+                // remove portion of the items
+                cache.removeOldItems(Math.ceil(maxSize * 0.1));
+            }
+            items.set(key, val);
+            touched.set(key, new Date().getTime());
+        },
+        removeOldItems: (count: number) => {
+            const sortedPairs = [...touched].sort((pair1, pair2) => pair1[1] - pair2[1]);
+            sortedPairs.slice(0, count).forEach((pair) => cache.remove(pair[0]));
+        },
+        remove: (key: TKey) => {
+            items.delete(key);
+            touched.delete(key);
+        },
+        getDebugInfo: () => {
+            return {
+                size: items.size,
+                maxSize: maxSize,
+                hitCount: hitCount,
+                missCount: missCount,
+            };
+        },
     };
+    return cache;
 }
 
 export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
