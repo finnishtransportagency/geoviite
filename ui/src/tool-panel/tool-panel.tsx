@@ -337,7 +337,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const suggestedSwitchTabs: ToolPanelTab[] = suggestedSwitches.map((ss) => {
             return {
                 asset: { type: 'GEOMETRY_SWITCH', id: ss.id },
-                title: ss.name || '-',
+                title: ss.name ?? '...',
                 element: (
                     <GeometrySwitchInfobox
                         visibilities={infoboxVisibilities.geometrySwitch}
@@ -364,7 +364,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 );
                 return {
                     asset: { type: 'GEOMETRY_SWITCH', id: s.geometryId },
-                    title: geomSwitch ? geomSwitch.name || '-' : '...',
+                    title: geomSwitch?.name ?? '...',
                     element: (
                         <GeometrySwitchInfobox
                             visibilities={infoboxVisibilities.geometrySwitch}
