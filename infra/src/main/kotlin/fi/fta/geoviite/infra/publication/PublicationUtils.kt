@@ -54,10 +54,12 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId): String {
         },
         PublicationTableColumn.CHANGED_KM_NUMBERS to {
             it.changedKmNumbers
+                .map { range -> "${range.min}${if (range.min != range.max) "-${range.max}" else ""}" }
+                .joinToString(", ")
         },
         PublicationTableColumn.OPERATION to { formatOperation(it.operation) },
         PublicationTableColumn.PUBLICATION_TIME to { formatInstant(it.publicationTime, timeZone) },
-        PublicationTableColumn.PUBLICATION_USER to { it.publicationUser },
+        PublicationTableColumn.PUBLICATION_USER to { "${it.publicationUser}" },
         PublicationTableColumn.MESSAGE to { it.message },
         PublicationTableColumn.RATKO_PUSH_TIME to {
             it.ratkoPushTime?.let { pushTime ->
@@ -137,6 +139,10 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         PublicationTableColumn.MESSAGE -> Comparator.comparing { p -> p.message }
         PublicationTableColumn.RATKO_PUSH_TIME -> Comparator { a, b ->
             compareNullsLast(a.ratkoPushTime, b.ratkoPushTime)
+        }
+
+        PublicationTableColumn.CHANGES -> Comparator { a, b ->
+            compareNullsLast(a.propChanges.firstOrNull()?.propKey?.key, b.propChanges.firstOrNull()?.propKey?.key)
         }
     }
 }
@@ -245,7 +251,7 @@ fun <U> compareLength(
     propKey = propKey,
     remark = remark,
     enumLocalizationKey = enumLocalizationKey,
-    )
+)
 
 fun <T, U> compareChange(
     predicate: () -> Boolean,
@@ -293,11 +299,12 @@ private val publicationTranslations = mapOf(
     "delete" to "Poisto",
     "restore" to "Palautus",
     "NAME-header" to "Muutoskohde",
-    "TRACK-NUMBERS-header" to "Ratanro",
+    "TRACK_NUMBERS-header" to "Ratanro",
     "CHANGED_KM_NUMBERS-header" to "Ratakilometrit",
     "OPERATION-header" to "Muutos",
     "PUBLICATION_TIME-header" to "Aika",
     "PUBLICATION_USER-header" to "Käyttäjä",
     "MESSAGE-header" to "Selite",
-    "RATKO_PUSH_TIME-header" to "Viety Ratkoon"
+    "RATKO_PUSH_TIME-header" to "Viety Ratkoon",
+    "CHANGES-header" to "Muutokset",
 )

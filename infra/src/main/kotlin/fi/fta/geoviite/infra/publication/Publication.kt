@@ -28,6 +28,7 @@ enum class PublicationTableColumn {
     PUBLICATION_USER,
     MESSAGE,
     RATKO_PUSH_TIME,
+    CHANGES,
 }
 
 data class PublicationTableItem(
