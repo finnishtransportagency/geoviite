@@ -20,7 +20,13 @@ import {
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { SerializableFile } from 'utils/file-utils';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
-import { MeasurementMethod, Message, Srid, VerticalCoordinateSystem } from 'common/common-model';
+import {
+    ElevationMeasurementMethod,
+    MeasurementMethod,
+    Message,
+    Srid,
+    VerticalCoordinateSystem,
+} from 'common/common-model';
 import { Prop } from 'utils/type-utils';
 
 export enum InfraModelViewType {
@@ -52,6 +58,7 @@ export type ExtraInfraModelParameters = {
     planPhase: PlanPhase | undefined;
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
+    elevationMeasurementMethod: ElevationMeasurementMethod | undefined;
     message: Message | undefined;
 };
 
@@ -124,6 +131,7 @@ export const initialInfraModelState: InfraModelState = {
         planPhase: undefined,
         decisionPhase: undefined,
         measurementMethod: undefined,
+        elevationMeasurementMethod: undefined,
         message: undefined,
     },
     overrideInfraModelParameters: {
@@ -222,6 +230,7 @@ const infraModelSlice = createSlice({
                 planPhase: plan?.planPhase ?? undefined,
                 decisionPhase: plan?.decisionPhase ?? undefined,
                 measurementMethod: plan?.measurementMethod ?? undefined,
+                elevationMeasurementMethod: plan?.elevationMeasurementMethod ?? undefined,
                 message: plan?.message ?? undefined,
             };
             state.overrideInfraModelParameters =
@@ -274,6 +283,10 @@ function validateParams(
         errors.push(createError('planPhase', 'critical', ValidationErrorType.WARNING));
     extraParams.measurementMethod === undefined &&
         errors.push(createError('measurementMethod', 'critical', ValidationErrorType.WARNING));
+    extraParams.elevationMeasurementMethod === undefined &&
+        errors.push(
+            createError('elevationMeasurementMethod', 'critical', ValidationErrorType.WARNING),
+        );
     extraParams.decisionPhase === undefined &&
         errors.push(createError('decisionPhase', 'critical', ValidationErrorType.WARNING));
     overrideParams.createdDate === undefined &&

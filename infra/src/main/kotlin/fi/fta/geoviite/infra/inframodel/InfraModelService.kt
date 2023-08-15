@@ -189,6 +189,7 @@ class InfraModelService @Autowired constructor(
             planPhase = extraInfoParameters?.planPhase ?: plan.planPhase,
             decisionPhase = extraInfoParameters?.decisionPhase ?: plan.decisionPhase,
             measurementMethod = extraInfoParameters?.measurementMethod ?: plan.measurementMethod,
+            elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
             message = extraInfoParameters?.message ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,

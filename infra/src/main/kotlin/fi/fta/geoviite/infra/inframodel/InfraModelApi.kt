@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.MeasurementMethod
-import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
@@ -29,6 +26,7 @@ data class ExtraInfoParameters(
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
+    val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeText?,
 )
 

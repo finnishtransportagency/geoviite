@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.ui.testdata
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.MeasurementMethod
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
@@ -90,6 +87,7 @@ class EspooTestData {
                 planPhase = PlanPhase.RAILWAY_PLAN,
                 decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
                 measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+                elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
                 uploadTime = Instant.now(),
                 trackNumberDescription = PlanElementName("diipa daapa")

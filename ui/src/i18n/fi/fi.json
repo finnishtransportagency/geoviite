@@ -133,6 +133,12 @@
             "UNVERIFIED_DESIGNED_GEOMETRY": "Epäluotettava suunnitelma",
             "UNKNOWN": "Ei tiedossa"
         },
+        "elevation-measurement-method": {
+            "TOP_OF_SLEEPER": "Korkeusviiva",
+            "TOP_OF_RAIL": "Kiskonselkä",
+            "UNKNOWN": "Ei tiedossa",
+            "UNKNOWN-WITH-TERM-CONTEXT": "Korkeusasema ei tiedossa"
+        },
         "switch-hand": {
             "LEFT": "Vasen",
             "RIGHT": "Oikea",
