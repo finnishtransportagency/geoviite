@@ -69,6 +69,11 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId): String {
                 )
             } ?: getTranslation("no")
         },
+        PublicationTableColumn.CHANGES to {
+            it.propChanges.map { change ->
+                "${change.propKey.key}: ${change.value.oldValue ?: ""} -> ${change.value.newValue ?: ""}${if (change.remark != null) " (${change.remark.key})" else ""}"
+            }
+        }
     ).map { (column, fn) ->
         CsvEntry(getTranslation("$column-header"), fn)
     }
