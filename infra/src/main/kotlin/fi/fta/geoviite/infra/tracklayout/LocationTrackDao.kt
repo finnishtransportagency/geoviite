@@ -322,4 +322,26 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             rs.getRowVersion("row_id", "row_version")
         }
     }
+
+    fun officialDuplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
+        val sql = """
+            select
+              exists(
+                  select *
+                    from layout.location_track this_track
+                      join layout.location_track duplicate_track
+                           on this_track.name = duplicate_track.name
+                             and this_track.track_number_id = duplicate_track.track_number_id
+                             and this_track.id != duplicate_track.id
+                    where not duplicate_track.draft
+                      and duplicate_track.state != 'DELETED'
+                      and this_track.id = :locationTrackId)
+        """.trimIndent()
+
+        return jdbcTemplate.queryForObject(
+            sql,
+            mapOf("locationTrackId" to locationTrackId.intValue)
+        ) { rs, _ -> rs.getBoolean("exists") }
+            ?: throw IllegalStateException("Unexpected null from exists-query")
+    }
 }

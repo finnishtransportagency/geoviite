@@ -179,4 +179,25 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             )
         }.also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
     }
+
+    fun officialDuplicateNumberExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {
+        val sql = """
+            select
+              exists(
+                  select *
+                    from layout.track_number this_tn
+                      join layout.track_number duplicate_tn
+                           on this_tn.number = duplicate_tn.number and this_tn.id != duplicate_tn.id
+                    where not duplicate_tn.draft
+                      and duplicate_tn.state != 'DELETED'
+                      and this_tn.id = :trackNumberId)
+        """.trimIndent()
+
+        return jdbcTemplate.queryForObject(
+            sql,
+            mapOf("trackNumberId" to trackNumberId.intValue)
+        ) { rs, _ -> rs.getBoolean("exists") }
+            ?: throw IllegalStateException("Unexpected null from exists-query")
+    }
+
 }

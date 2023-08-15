@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,6 +32,12 @@ class LayoutSwitchServiceIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
 ): DBTestBase() {
+
+    @BeforeEach
+    fun cleanup() {
+        deleteFromTables("layout", "switch_joint", "switch", "location_track")
+    }
+
     @Test
     fun switchOwnerIsReturned() {
         val dummyOwner = SwitchOwner(id = IntId(4), name = MetaDataName("Cinia"))
@@ -274,7 +281,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
                 alignment = alignmentDao.fetch(alignment1Version),
                 trackNumberId = trackNumberId,
                 externalId = locationTrack1Oid,
-                alignmentVersion = alignment1Version
+                alignmentVersion = alignment1Version,
+                name = "LT 1",
             ).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
             )
@@ -285,7 +293,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
             locationTrack(
                 alignment = alignmentDao.fetch(alignment2Version),
                 trackNumberId = trackNumberId,
-                alignmentVersion = alignment2Version
+                alignmentVersion = alignment2Version,
+                name = "LT 2",
             ).copy(
                 topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
             )
@@ -307,7 +316,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
                 alignment = alignmentDao.fetch(alignment3Version),
                 trackNumberId = trackNumberId,
                 externalId = locationTrack3Oid,
-                alignmentVersion = alignment3Version
+                alignmentVersion = alignment3Version,
+                name = "LT 3",
             ).copy(
                 topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
             )
@@ -399,9 +409,10 @@ class LayoutSwitchServiceIT @Autowired constructor(
         return "$first.$second.$third"
     }
 
+    private var dummySwitchNameSequence = 0
     private fun generateDummySwitch(): TrackLayoutSwitch {
         return TrackLayoutSwitch(
-            name = SwitchName("ABC123"),
+            name = SwitchName("ABC123 ${dummySwitchNameSequence++}"),
             switchStructureId = switchStructureYV60_300_1_9().id as IntId,
             stateCategory = LayoutStateCategory.EXISTING,
             joints = listOf(

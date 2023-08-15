@@ -1145,6 +1145,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             ).rowVersion
         )
 
+        var locationTrackSequence = 0
         val locationTracksAndAlignments = locationTrackData.map { line ->
             val locationTrackGeometryVersion = layoutAlignmentDao.insert(
                 alignment(
@@ -1161,7 +1162,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     locationTrack(
                         trackNumberId = trackNumber.id as IntId,
                         alignment = locationTrackGeometry,
-                        name = "TEST LocTr $sequence"
+                        name = "TEST LocTr $sequence ${locationTrackSequence++}"
                     ).copy(
                         alignmentVersion = locationTrackGeometryVersion
                     )
@@ -1213,7 +1214,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         trackB: Pair<LocationTrack, LayoutAlignment>,
     ): TrackLayoutSwitch {
         val switch = switchDao.fetch(
-            switchDao.insert(switch(joints = listOf())).rowVersion
+            switchDao.insert(switch(name = "${trackA.first.name}-${trackB.first.name}", joints = listOf())).rowVersion
         )
 
         val (locationTrackA, alignmentA) = trackA

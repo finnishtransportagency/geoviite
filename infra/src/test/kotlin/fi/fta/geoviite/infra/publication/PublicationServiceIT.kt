@@ -4,6 +4,8 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
+import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
@@ -42,7 +44,8 @@ class PublicationServiceIT @Autowired constructor(
 ): DBTestBase() {
 
     @BeforeEach
-    fun clearDrafts() {
+    fun cleanup() {
+        deleteFromTables("layout", "switch_joint", "switch", "location_track", "track_number", "reference_line")
         val request = publicationService.collectPublishCandidates().let {
             PublishRequestIds(
                 it.trackNumbers.map(TrackNumberPublishCandidate::id),
@@ -677,6 +680,135 @@ class PublicationServiceIT @Autowired constructor(
 
         val validation = publicationService.validateKmPost(kmPostId, OFFICIAL)
         assertEquals(validation.errors.size, 1)
+    }
+
+    @Test
+    fun `Publication validation identifies duplicate names`() {
+        trackNumberDao.insert(trackNumber(number = TrackNumber("TN")))
+        val draftTrackNumberId = trackNumberDao.insert(draft(trackNumber(number = TrackNumber("TN")))).id
+
+        val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        val referenceLineId =
+            referenceLineDao.insert(draft(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment))).id
+        locationTrackDao.insert(locationTrack(draftTrackNumberId, name = "LT", alignmentVersion = someAlignment))
+        val draftLocationTrackId = locationTrackDao.insert(
+            draft(
+                locationTrack(
+                    draftTrackNumberId,
+                    name = "LT",
+                    alignmentVersion = someAlignment
+                )
+            )
+        ).id
+
+        switchDao.insert(switch(123, name = "SW").copy(stateCategory = LayoutStateCategory.EXISTING))
+        val draftSwitchId =
+            switchDao.insert(draft(switch(123, name = "SW").copy(stateCategory = LayoutStateCategory.EXISTING))).id
+
+        val validation = publicationService.validatePublishCandidates(
+            publicationService.collectPublishCandidates(),
+            PublishRequestIds(
+                trackNumbers = listOf(draftTrackNumberId),
+                locationTracks = listOf(draftLocationTrackId),
+                kmPosts = listOf(),
+                referenceLines = listOf(referenceLineId),
+                switches = listOf(draftSwitchId)
+            )
+        )
+
+        assertEquals(
+            listOf(
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.location-track.duplicate-name",
+                    listOf("LT")
+                )
+            ), validation.validatedAsPublicationUnit.locationTracks[0].errors
+        )
+
+        assertEquals(
+            listOf(
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.switch.duplicate-name",
+                    listOf("SW")
+                )
+            ),
+            validation.validatedAsPublicationUnit.switches[0].errors.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" }
+        )
+
+        assertEquals(
+            listOf(
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.track-number.duplicate-name",
+                    listOf("TN")
+                )
+            ), validation.validatedAsPublicationUnit.trackNumbers[0].errors
+        )
+    }
+
+    @Test
+    fun `Publication rejects duplicate track number names`() {
+        trackNumberDao.insert(trackNumber(number = TrackNumber("TN")))
+        val draftTrackNumberId = trackNumberDao.insert(draft(trackNumber(number = TrackNumber("TN")))).id
+
+        val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        referenceLineDao.insert(draft(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment))).id
+        val exception = assertThrows<DuplicateNameInPublicationException> {
+            publish(
+                publicationService,
+                trackNumbers = listOf(draftTrackNumberId)
+            )
+        }
+        assertEquals("error.publication.duplicate-name-on.TRACK_NUMBER", exception.localizedMessageKey.toString())
+        assertEquals(listOf("TN"), exception.localizedMessageParams)
+    }
+
+    @Test
+    fun `Publication rejects duplicate location track names`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"))).id
+        val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        referenceLineDao.insert(draft(referenceLine(trackNumberId, alignmentVersion = someAlignment))).id
+
+        val lt = locationTrack(trackNumberId, name = "LT", alignmentVersion = someAlignment, externalId = null)
+        locationTrackDao.insert(lt)
+        val draftLocationTrackId = locationTrackDao.insert(draft(lt)).id
+        val exception = assertThrows<DuplicateLocationTrackNameInPublicationException> {
+            publish(publicationService, locationTracks = listOf(draftLocationTrackId))
+        }
+        assertEquals("error.publication.duplicate-name-on-location-track", exception.localizedMessageKey.toString())
+        assertEquals(listOf("LT", "TN"), exception.localizedMessageParams)
+    }
+
+    @Test
+    fun `Location tracks can be renamed over each other`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"))).id
+        val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        referenceLineDao.insert(draft(referenceLine(trackNumberId, alignmentVersion = someAlignment))).id
+
+        val lt1 = locationTrack(trackNumberId, name = "LT1", alignmentVersion = someAlignment, externalId = null)
+        val lt1OriginalVersion = locationTrackDao.insert(lt1).rowVersion
+        val lt1RenamedDraft =
+            locationTrackDao.insert(draft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2"))))
+
+        val lt2 = locationTrack(trackNumberId, name = "LT2", alignmentVersion = someAlignment, externalId = null)
+        val lt2OriginalVersion = locationTrackDao.insert(lt2).rowVersion
+        val lt2RenamedDraft =
+            locationTrackDao.insert(draft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1"))))
+
+        publish(publicationService, locationTracks = listOf(lt1RenamedDraft.id, lt2RenamedDraft.id))
+    }
+
+    @Test
+    fun `Publication rejects duplicate switch names`() {
+        switchDao.insert(switch(123, name = "SW123"))
+        val draftSwitchId = switchDao.insert(draft(switch(123, name = "SW123"))).id
+        val exception = assertThrows<DuplicateNameInPublicationException> {
+            publish(publicationService, switches = listOf(draftSwitchId))
+        }
+        assertEquals("error.publication.duplicate-name-on.SWITCH", exception.localizedMessageKey.toString())
+        assertEquals(listOf("SW123"), exception.localizedMessageParams)
     }
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {

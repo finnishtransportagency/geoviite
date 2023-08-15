@@ -169,7 +169,8 @@
                     "joint-location-mismatch": "Sijaintiraiteen ja vaihteen {{0}} vaihdepisteiden sijainnit eivät vastaa toisiaan",
                     "wrong-joint-sequence": "Sijaintiraiteen vaihdepisteet ({{2}}) vaihteella {{0}} ({{1}}) eivät vastaa vaihderakenteen linjoja",
                     "wrong-links": "Vaihteen {{0}} linkitys on vajavainen ja se täytyy linkittää uudelleen"
-                }
+                },
+                "duplicate-name": "Sijaintiraiteen nimi {{0}} on jo käytössä jollain olemassaolevalla julkaistulla saman ratanumeron sijaintiraiteella"
             },
             "switch": {
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
