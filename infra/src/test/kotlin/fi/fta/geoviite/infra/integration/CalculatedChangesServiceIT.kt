@@ -287,17 +287,21 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     Point(100.0, 0.0),
                     locationTrackIndexA = 1,
                     locationTrackIndexB = 2
+                ),
+                SwitchData(
+                    Point(100.0, 0.0),
+                    locationTrackIndexA = 1,
+                    locationTrackIndexB = 2
                 )
             )
         )
         val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
-        val switch = testData.switches[0]
 
         // Set topology switch info
         val (updatedLocationTrack, updatedAlignment) = addTopologyStartSwitchIntoLocationTrackAndUpdate(
             locationTrack1,
             alignment1,
-            switch.id as IntId,
+            testData.switches[0].id as IntId,
             JointNumber(5), // Use non-presentation joint number
             locationTrackService = locationTrackService
         ).let { locationTrackService.getWithAlignment(it.rowVersion) }
@@ -305,7 +309,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         addTopologyEndSwitchIntoLocationTrackAndUpdate(
             updatedLocationTrack,
             updatedAlignment,
-            switch.id as IntId,
+            testData.switches[1].id as IntId,
             JointNumber(3), // Use non-presentation joint number
             locationTrackService = locationTrackService
         )
@@ -1190,8 +1194,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             if (edited.draft != null) {
                 val publishResponse = switchService.publish(ValidationVersion(id, rowVersion))
                 switchDao.fetch(publishResponse.rowVersion)
-            }
-            else edited
+            } else edited
         }
 
         return TestData(
@@ -1241,17 +1244,17 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(2),
-                        location = lastPoint(alignmentA, segIndexA+2).toPoint(),
+                        location = lastPoint(alignmentA, segIndexA + 2).toPoint(),
                         segments = listOf(
-                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA+2),
+                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(3),
-                        location = lastPoint(alignmentB, segIndexB+1).toPoint(),
+                        location = lastPoint(alignmentB, segIndexB + 1).toPoint(),
                         segments = listOf(
-                            switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB+1),
+                            switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1),
                         ),
                         locationAccuracy = null
                     )
