@@ -9,6 +9,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.projektivelho.PVDocument
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -103,3 +106,11 @@ data class GeometryPlanLinkingSummary(
     val linkedAt: Instant,
     val linkedByUsers: String,
 )
+
+data class GeometryPlanLinkedItems(
+    val locationTracks: List<IntId<LocationTrack>>,
+    val switches: List<IntId<TrackLayoutSwitch>>,
+    val kmPosts: List<IntId<TrackLayoutKmPost>>,
+) {
+    val isEmpty = locationTracks.isEmpty() && switches.isEmpty() && kmPosts.isEmpty()
+}

@@ -181,16 +181,18 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             "alignment_version" to alignmentVersion.version,
         )
 
-        val segmentResults = jdbcTemplate.query(sql, params) { rs, _ -> SegmentData(
-            id = rs.getIndexedId("alignment_id", "segment_index"),
-            start = rs.getDouble("start"),
-            sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-            sourceStart = rs.getDoubleOrNull("source_start"),
-            switchId = rs.getIntIdOrNull("switch_id"),
-            startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-            endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-            source = rs.getEnum("source"),
-        ) to rs.getIntId<SegmentGeometry>("geometry_id") }
+        val segmentResults = jdbcTemplate.query(sql, params) { rs, _ ->
+            SegmentData(
+                id = rs.getIndexedId("alignment_id", "segment_index"),
+                start = rs.getDouble("start"),
+                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                sourceStart = rs.getDoubleOrNull("source_start"),
+                switchId = rs.getIntIdOrNull("switch_id"),
+                startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+                endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+                source = rs.getEnum("source"),
+            ) to rs.getIntId<SegmentGeometry>("geometry_id")
+        }
 
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
@@ -222,6 +224,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata> {
+        // TODO: GVT-2028
         //language=SQL
         val sql = """
             with
@@ -229,8 +232,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 select
                   alignment_id,
                   alignment_version,
-                  min(segment_index) min_index,
-                  max(segment_index) max_index
+                  min(segment_index) as min_index,
+                  max(segment_index) as max_index
                 from layout.segment_version
                   inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
                 where alignment_id = :alignment_id
@@ -247,16 +250,18 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 select
                   plan.id as plan_id,
                   plan_file.name as file_name
-
                 from geometry.plan
                   inner join geometry.plan_file on plan.id = plan_file.plan_id
+                  -- Ensure that the plan is from initial imports
+                  inner join geometry.plan_version init_version 
+                          on init_version.id = plan.id and init_version.version = 1 and init_version.change_user = 'IM_IMPORT'
                 where plan.source = 'PAIKANNUSPALVELU'
               ),
               orig_metadata as (
                 select
-                  current_segment.alignment_id current_alignment_id,
-                  current_segment.alignment_version current_alignment_version,
-                  current_segment.segment_index current_segment_index,
+                  current_segment.alignment_id as current_alignment_id,
+                  current_segment.alignment_version as current_alignment_version,
+                  current_segment.segment_index as current_segment_index,
                   concat(metadata.plan_file_name, '.xml') as plan_file_name,
                   metadata.plan_alignment_name,
                   plan.plan_id
@@ -312,10 +317,10 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 select
                   alignment_id,
                   alignment_version,
-                  min(segment_index) from_segment,
-                  max(segment_index) to_segment,
-                  common.first(geometry_id order by segment_index) from_geom_id,
-                  common.last(geometry_id order by segment_index) to_geom_id,
+                  min(segment_index) as from_segment,
+                  max(segment_index) as to_segment,
+                  common.first(geometry_id order by segment_index) as from_geom_id,
+                  common.last(geometry_id order by segment_index) as to_geom_id,
                   is_linked,
                   plan_id,
                   file_name,
@@ -407,7 +412,10 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    fun <T>fetchProfileInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentProfileInfo<T>> {
+    fun <T> fetchProfileInfoForSegmentsInBoundingBox(
+        publishType: PublishType,
+        bbox: BoundingBox
+    ): List<MapSegmentProfileInfo<T>> {
         //language=SQL
         val sql = """
             select
@@ -508,7 +516,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
         require(geometries.all { geom ->
             val calculatedLength = calculateDistance(geom.points, LAYOUT_SRID)
-            val maxDelta = calculatedLength*0.01
+            val maxDelta = calculatedLength * 0.01
             abs(calculatedLength - geom.endM) <= maxDelta
         }) { "Geometries in DB should have (approximately) endM=length" }
         //language=SQL

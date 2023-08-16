@@ -196,7 +196,9 @@ class GeometryDao @Autowired constructor(
             select plan.id, plan.version
             from geometry.plan 
               left join geometry.plan_file on plan.id = plan_file.plan_id
-            where plan_file.hash = :hash and plan.source = :source::geometry.plan_source
+            where plan_file.hash = :hash 
+              and plan.source = :source::geometry.plan_source
+              and plan.hidden = false
         """.trimIndent()
         val params = mapOf("hash" to newFile.hash, "source" to source.name)
 
@@ -205,6 +207,64 @@ class GeometryDao @Autowired constructor(
         }?.also {
             logger.daoAccess(FETCH, GeometryPlan::class, it)
         }
+    }
+
+    fun getPlanLinking(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
+        //language=SQL
+        val sql = """
+            with
+              location_tracks as (
+                select
+                  distinct coalesce(track.draft_of_location_track_id, track.id) as id
+                  from layout.location_track track
+                    left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
+                    left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
+                  where ga.plan_id = :plan_id
+              ),
+              switches as (
+                select
+                  distinct coalesce(switch.draft_of_switch_id, switch.id) as id
+                  from layout.switch
+                    left join geometry.switch gs on gs.id = switch.geometry_switch_id
+                  where gs.plan_id = :plan_id
+              ),
+              km_posts as (
+                select
+                  distinct coalesce(km_post.draft_of_km_post_id, km_post.id) as id
+                  from layout.km_post
+                    left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
+                  where gp.plan_id = :plan_id
+              )
+            select
+              (select array_agg(id) from location_tracks) as location_track_ids,
+              (select array_agg(id) from switches) as switch_ids,
+              (select array_agg(id) from km_posts) as km_post_ids
+        """.trimIndent()
+        val params = mapOf("plan_id" to planId.intValue)
+        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
+            GeometryPlanLinkedItems(
+                rs.getIntIdArray("location_track_ids"),
+                rs.getIntIdArray("switch_ids"),
+                rs.getIntIdArray("km_post_ids"),
+            )
+        }.also { logger.daoAccess(FETCH, GeometryPlanLinkedItems::class, planId) }
+    }
+
+    @Transactional
+    fun setPlanHidden(id: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
+        //language=SQL
+        val sql = """
+            update geometry.plan
+            set hidden = :hidden
+            where id = :id
+            returning id, version
+        """.trimIndent()
+        val params = mapOf("id" to id.intValue)
+
+        jdbcTemplate.setUser()
+        return jdbcTemplate.queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }.also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
     }
 
     @Transactional
@@ -650,6 +710,7 @@ class GeometryDao @Autowired constructor(
             select id, version
             from geometry.plan
             where source::text in (:sources)
+              and hidden = false
               and (:polygon_wkt::varchar is null or postgis.st_intersects(
                 plan.bounding_polygon_simple,
                 postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
@@ -697,7 +758,8 @@ class GeometryDao @Autowired constructor(
             postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
           from geometry.plan
             left join geometry.plan_file on plan.id = plan_file.plan_id
-            where postgis.st_intersects(
+            where hidden = false
+              and postgis.st_intersects(
                   plan.bounding_polygon_simple, 
                   postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
               )
@@ -1180,12 +1242,14 @@ class GeometryDao @Autowired constructor(
                     switchData = getSwitchData(rs),
                     id = id,
                 )
+
                 CURVE -> GeometryCurve(
                     elementData = getElementData(rs),
                     curveData = getCurveData(rs),
                     switchData = getSwitchData(rs),
                     id = id,
                 )
+
                 CLOTHOID -> GeometryClothoid(
                     elementData = getElementData(rs),
                     spiralData = getSpiralData(rs, units),
@@ -1193,6 +1257,7 @@ class GeometryDao @Autowired constructor(
                     constant = rs.getBigDecimal("clothoid_constant"),
                     id = id,
                 )
+
                 BIQUADRATIC_PARABOLA -> BiquadraticParabola(
                     elementData = getElementData(rs),
                     spiralData = getSpiralData(rs, units),
@@ -1235,8 +1300,11 @@ class GeometryDao @Autowired constructor(
         """.trimIndent()
 
         return jdbcTemplate
-            .query<IntId<GeometryAlignment>>(sql, mapOf("id" to id.intValue)) { rs, _ -> IntId(rs.getInt("alignment_id")) }
-            .also { ids -> logger.daoAccess(UPDATE, GeometryAlignment::class, ids)}
+            .query<IntId<GeometryAlignment>>(
+                sql,
+                mapOf("id" to id.intValue)
+            ) { rs, _ -> IntId(rs.getInt("alignment_id")) }
+            .also { ids -> logger.daoAccess(UPDATE, GeometryAlignment::class, ids) }
 
     }
 
@@ -1250,7 +1318,7 @@ class GeometryDao @Autowired constructor(
 
         return jdbcTemplate
             .query<IntId<GeometryPlan>>(sql, mapOf("id" to id.intValue)) { rs, _ -> IntId(rs.getInt("plan_id")) }
-            .also {  ids -> logger.daoAccess(UPDATE, GeometryPlan::class, ids)}
+            .also { ids -> logger.daoAccess(UPDATE, GeometryPlan::class, ids) }
     }
 
     private fun getElementData(rs: ResultSet): ElementData {
@@ -1300,6 +1368,7 @@ class GeometryDao @Autowired constructor(
                     description = PlanElementName(rs.getString("description")),
                     point = rs.getPoint("point_x", "point_y"),
                 )
+
                 VerticalIntersectionType.CIRCULAR_CURVE -> VICircularCurve(
                     description = PlanElementName(rs.getString("description")),
                     point = rs.getPoint("point_x", "point_y"),
@@ -1414,6 +1483,7 @@ class GeometryDao @Autowired constructor(
                     "curve_chord" to element.chord,
                 )
                     .plus(getPointSqlParams("curve_center_point", element.center))
+
                 is GeometrySpiral -> mapOf(
                     "rotation" to element.rotation.name,
                     "spiral_dir_start" to element.directionStart?.original,

@@ -25,6 +25,7 @@ import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
@@ -60,7 +61,9 @@ class GeometryService @Autowired constructor(
         try {
             lockDao.runWithLock(DatabaseLock.ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
                 val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
-                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
+                    op()
+                }
             }
         } finally {
             MDC.remove(USER_HEADER)
@@ -72,7 +75,9 @@ class GeometryService @Autowired constructor(
         try {
             lockDao.runWithLock(DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
                 val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
-                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
+                    op()
+                }
             }
         } finally {
             MDC.remove(USER_HEADER)
@@ -326,7 +331,12 @@ class GeometryService @Autowired constructor(
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
 
-        return toVerticalGeometryListing(alignments, coordinateTransformationService::getLayoutTransformation, planHeader, geocodingContext)
+        return toVerticalGeometryListing(
+            alignments,
+            coordinateTransformationService::getLayoutTransformation,
+            planHeader,
+            geocodingContext
+        )
     }
 
     fun getVerticalGeometryListingCsv(
@@ -346,11 +356,21 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<VerticalGeometryListing> {
-        logger.serviceCall("getVerticalGeometryListing", "locationTrackId" to locationTrackId,
-            "startAddress" to startAddress, "endAddress" to endAddress)
+        logger.serviceCall(
+            "getVerticalGeometryListing", "locationTrackId" to locationTrackId,
+            "startAddress" to startAddress, "endAddress" to endAddress
+        )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(publicationType, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(publicationType, track.trackNumberId)
-        return toVerticalGeometryListing(track, alignment, startAddress, endAddress, geocodingContext, coordinateTransformationService::getLayoutTransformation, ::getHeaderAndAlignment)
+        return toVerticalGeometryListing(
+            track,
+            alignment,
+            startAddress,
+            endAddress,
+            geocodingContext,
+            coordinateTransformationService::getLayoutTransformation,
+            ::getHeaderAndAlignment
+        )
     }
 
     fun getVerticalGeometryListingCsv(
@@ -358,8 +378,10 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): Pair<FileName, ByteArray> {
-        logger.serviceCall("getVerticalGeometryListingCsv",
-            "trackId" to locationTrackId, "startAddress" to startAddress, "endAddress" to endAddress)
+        logger.serviceCall(
+            "getVerticalGeometryListingCsv",
+            "trackId" to locationTrackId, "startAddress" to startAddress, "endAddress" to endAddress
+        )
         val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
         val verticalGeometryListing = getVerticalGeometryListing(OFFICIAL, locationTrackId, startAddress, endAddress)
 
@@ -376,12 +398,15 @@ class GeometryService @Autowired constructor(
             tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
         }
         val verticalGeometryListingWithTrackNumbers = locationTrackService.list(OFFICIAL, includeDeleted = false)
-            .sortedWith(compareBy(
-                { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
-                { locationTrack -> locationTrack.name },
-            ))
+            .sortedWith(
+                compareBy(
+                    { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
+                    { locationTrack -> locationTrack.name },
+                )
+            )
             .flatMap { locationTrack ->
-                val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
+                val verticalGeometryListingWithoutTrackNumbers =
+                    getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
 
                 verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
                     verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
@@ -425,7 +450,10 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.CREATED_AT -> Comparator.comparing { h -> h.planTime ?: h.uploadTime }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
-            GeometryPlanSortField.LINKED_AT -> Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
+            GeometryPlanSortField.LINKED_AT -> Comparator.comparing { h ->
+                linkingSummaries[h.id]?.linkedAt ?: Instant.MIN
+            }
+
             GeometryPlanSortField.LINKED_BY -> stringComparator { h -> linkingSummaries[h.id]?.linkedByUsers }
         }
     }
@@ -464,7 +492,10 @@ class GeometryService @Autowired constructor(
         }
     }
 
-    fun getLocationTrackGeometryLinkingSummary(locationTrackId: IntId<LocationTrack>, publishType: PublishType): List<PlanLinkingSummaryItem>? {
+    fun getLocationTrackGeometryLinkingSummary(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType
+    ): List<PlanLinkingSummaryItem>? {
         val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val segmentSources = collectSegmentSources(alignment)
@@ -669,6 +700,21 @@ class GeometryService @Autowired constructor(
             )
         }.collect(Collectors.toList())
             .filter { km -> km.trackMeterHeights.isNotEmpty() }
+    }
+
+    @Transactional
+    fun setPlanHidden(planId: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
+        logger.serviceCall("setPlanHidden", "planId" to planId, "hidden" to hidden)
+        if (hidden && !geometryDao.getPlanLinking(planId).isEmpty) {
+            throw IllegalArgumentException("Can't hide a plan that is currently linked: planId=$planId")
+        } else {
+            return geometryDao.setPlanHidden(planId, hidden)
+        }
+    }
+
+    fun getPlanLinkedItems(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
+        logger.serviceCall("getPlanLinkedItems", "planId" to planId)
+        return geometryDao.getPlanLinking(planId)
     }
 }
 
