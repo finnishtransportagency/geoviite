@@ -30,7 +30,7 @@ import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
-import { useLocationTrackStartAndEnd } from 'track-layout/track-layout-react-utils';
+import { useLocationTrackStartAndEnd, useSwitch } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -66,6 +66,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             props.publishType,
             props.locationTrackChangeTime,
         );
+    const topologicalStartSwitch = useSwitch(
+        props.locationTrack?.topologyStartSwitch?.switchId,
+        props.publishType,
+    );
+    const topologicalEndSwitch = useSwitch(
+        props.locationTrack?.topologyEndSwitch?.switchId,
+        props.publishType,
+    );
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -479,6 +487,32 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                                   Precision.alignmentLengthMeters,
                                               )
                                             : '-'
+                                    }
+                                    wide
+                                    disabled
+                                />
+                            }
+                        />
+                        <FieldLayout
+                            label={t('location-track-dialog.topological-start-switch')}
+                            value={
+                                <TextField
+                                    value={
+                                        topologicalStartSwitch?.name ??
+                                        t('location-track-dialog.no-topological-switch')
+                                    }
+                                    wide
+                                    disabled
+                                />
+                            }
+                        />
+                        <FieldLayout
+                            label={t('location-track-dialog.topological-end-switch')}
+                            value={
+                                <TextField
+                                    value={
+                                        topologicalEndSwitch?.name ??
+                                        t('location-track-dialog.no-topological-switch')
                                     }
                                     wide
                                     disabled
