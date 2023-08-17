@@ -197,7 +197,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
 
     function handleSwitchInsert(switchId: LayoutSwitchId) {
         getSwitch(switchId, 'DRAFT').then((s) => {
-            props.onSelectSwitch(s.id);
+            if (s) props.onSelectSwitch(s.id);
         });
 
         setShowAddSwitchDialog(false);

@@ -141,7 +141,9 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     }
 
     function handleSwitchInsert(id: LayoutSwitchId) {
-        getSwitch(id, 'DRAFT').then((s) => onSwitchSelect(s));
+        getSwitch(id, 'DRAFT').then((s) => {
+            if (s) onSwitchSelect(s);
+        });
         setShowAddSwitchDialog(false);
     }
 
