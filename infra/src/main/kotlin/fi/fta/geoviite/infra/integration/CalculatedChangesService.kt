@@ -499,7 +499,7 @@ private fun getTopologySwitchJointDataHolder(
     fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
 ): Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>? {
     val switch = fetchSwitch(topologySwitch.switchId)
-        ?: throw NoSuchEntityException(TrackLayoutSwitch::class, topologySwitch.switchId)
+        ?: return null
     // Use presentation joint to filter joints to update because
     // - that is joint number that is normally used to connect tracks and switch topologically
     // - and Ratko may not want other joint numbers in this case
