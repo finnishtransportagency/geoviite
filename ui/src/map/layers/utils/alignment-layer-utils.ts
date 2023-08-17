@@ -16,6 +16,7 @@ import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 
 const tickImageCache = cache<string, RegularShape>();
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const locationTrackStyle = new Style({
     stroke: new Stroke({
@@ -203,6 +204,8 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
         case 'LOCATION_TRACK': {
             return selection.locationTracks.includes(alignment.id);
         }
+        default:
+            return exhaustiveMatchingGuard(alignment.alignmentType);
     }
 }
 

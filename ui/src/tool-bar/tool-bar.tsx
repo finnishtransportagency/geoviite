@@ -40,6 +40,7 @@ import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/t
 import { Menu } from 'vayla-design-lib/menu/menu';
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type ToolbarParams = {
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
@@ -174,6 +175,9 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 break;
             case NewMenuItems.kmPost:
                 setShowAddKmPostDialog(true);
+                break;
+            default:
+                return exhaustiveMatchingGuard(dialog);
         }
 
         setShowAddMenu(false);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { LocationTrackType } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type LocationTrackTypeLabelProps = {
     type: LocationTrackType | null;
@@ -13,8 +14,10 @@ function getTranslationKey(locationTrackType: LocationTrackType | null) {
         case 'TRAP':
         case 'CHORD':
             return locationTrackType;
-        default:
+        case null:
             return 'UNKNOWN';
+        default:
+            return exhaustiveMatchingGuard(locationTrackType);
     }
 }
 

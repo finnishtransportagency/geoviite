@@ -28,3 +28,16 @@ export function ensureAllKeys<TKey>() {
         return keys as unknown as EnsureAllKeys<TKey, TGivenKey>[];
     };
 }
+
+/**
+ * This variable is used as the return type in a switch statement's
+ * default case. Using it increases type safety; the compiler will
+ * fail unless all cases are covered in the switch statement.
+ *
+ * Usage:
+ * default:
+ *   return exhaustiveMatchingGuard(expression)
+ */
+export const exhaustiveMatchingGuard = (_: never): never => {
+    throw new Error('Should not have reached this code');
+};

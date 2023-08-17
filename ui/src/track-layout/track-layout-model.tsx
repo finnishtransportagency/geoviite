@@ -21,6 +21,7 @@ import {
 import { deduplicateById } from 'utils/array-utils';
 import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -117,8 +118,10 @@ export function booleanToTrapPoint(trapPoint: boolean | null): TrapPoint {
             return TrapPoint.Yes;
         case false:
             return TrapPoint.No;
-        default:
+        case null:
             return TrapPoint.Unknown;
+        default:
+            return exhaustiveMatchingGuard(trapPoint);
     }
 }
 
@@ -128,8 +131,10 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
             return true;
         case TrapPoint.No:
             return false;
-        default:
+        case TrapPoint.Unknown:
             return undefined;
+        default:
+            return exhaustiveMatchingGuard(trapPoint);
     }
 }
 

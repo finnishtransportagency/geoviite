@@ -13,6 +13,7 @@ import { getPVDocumentCount } from 'infra-model/infra-model-api';
 import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import DataProductsMenu from 'app-bar/data-products-menu';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type Link = {
     link: string;
@@ -44,6 +45,8 @@ export const AppBar: React.FC = () => {
                 return '/infra-model/waiting-for-approval';
             case InfraModelTabType.REJECTED:
                 return '/infra-model/rejected';
+            default:
+                return exhaustiveMatchingGuard(selectedInfraModelTab);
         }
     }
 

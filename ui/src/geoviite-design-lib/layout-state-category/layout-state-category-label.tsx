@@ -1,19 +1,20 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutStateCategory } from 'track-layout/track-layout-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type LayoutStateCategoryLabelProps = {
-    category: LayoutStateCategory | null;
+    category: LayoutStateCategory;
 };
 
-function getTranslationKey(category: LayoutStateCategory | null) {
+function getTranslationKey(category: LayoutStateCategory) {
     switch (category) {
         case 'EXISTING':
         case 'NOT_EXISTING':
         case 'FUTURE_EXISTING':
             return category;
         default:
-            return 'UNKNOWN';
+            return exhaustiveMatchingGuard(category);
     }
 }
 

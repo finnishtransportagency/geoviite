@@ -1,3 +1,5 @@
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+
 export enum Precision {
     distanceKilometers,
     distanceMeters,
@@ -42,5 +44,7 @@ export function roundToPrecision(n: number, precision: Precision): string {
             return n.toFixed(3);
         case Precision.profileRadiusMeters:
             return n.toFixed(0);
+        default:
+            return exhaustiveMatchingGuard(precision);
     }
 }
