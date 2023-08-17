@@ -131,7 +131,7 @@
                 }
             },
             "location-track": {
-                "no-context": "Sijaintiraiteelle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Sijaintiraiteelle ei voida laskea tasametripisteitä koska siitä puuttuu tietoja",
                 "duplicate-of": {
                     "state": {
                         "PLANNED": "Raiteen duplikaatti {{0}} on tilassa \"Suunniteltu\". Duplikaattitietoa ei tarvita.",
