@@ -1,4 +1,3 @@
-import io.github.bonigarcia.wdm.WebDriverManager
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
 import org.openqa.selenium.JavascriptExecutor
@@ -24,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
-    WebDriverManager.chromedriver().setup()
     val options = ChromeOptions()
 
     if (headless) options.addArguments("--headless")
@@ -54,7 +52,6 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
 }
 
 private fun createFirefoxDriver(headless: Boolean): WebDriver {
-    WebDriverManager.firefoxdriver().setup()
     val firefoxOptions = FirefoxOptions()
     if (headless) firefoxOptions.addArguments("-headless")
     firefoxOptions.addArguments("-private")
