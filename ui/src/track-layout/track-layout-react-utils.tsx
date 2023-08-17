@@ -122,7 +122,7 @@ export function useSwitch(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutSwitch | undefined {
-    return useLoader(
+    return useNullableLoader(
         () => (id ? getSwitch(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );

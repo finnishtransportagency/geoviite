@@ -84,12 +84,14 @@ export const SwitchEditDialog = ({
     React.useEffect(() => {
         if (isExistingSwitch) {
             getSwitch(switchId, 'DRAFT').then((s) => {
-                setExistingSwitch(s);
-                setSwitchStateCategory(s.stateCategory);
-                setSwitchName(s.name);
-                setSwitchStructureId(s.switchStructureId);
-                setTrapPoint(booleanToTrapPoint(s.trapPoint));
-                firstInputRef.current?.focus();
+                if (s) {
+                    setExistingSwitch(s);
+                    setSwitchStateCategory(s.stateCategory);
+                    setSwitchName(s.name);
+                    setSwitchStructureId(s.switchStructureId);
+                    setTrapPoint(booleanToTrapPoint(s.trapPoint));
+                    firstInputRef.current?.focus();
+                }
             });
         } else {
             firstInputRef.current?.focus();

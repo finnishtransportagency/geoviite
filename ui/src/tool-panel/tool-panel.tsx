@@ -230,6 +230,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const trackNumberTabs = trackNumberIds
             .map((tnId) => trackNumbers?.find((tn) => tn.id === tnId))
             .filter(filterNotEmpty)
+            .filter(visibleByTypeAndPublishType)
             .map((t) => {
                 return {
                     asset: { type: 'TRACK_NUMBER', id: t.id },
