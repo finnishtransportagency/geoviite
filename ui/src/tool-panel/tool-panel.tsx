@@ -384,29 +384,31 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 };
             });
 
-        const locationTrackTabs = locationTracks.map((track) => {
-            return {
-                asset: { type: 'LOCATION_TRACK', id: track.id },
-                title: track.name,
-                element: (
-                    <LocationTrackInfoboxLinkingContainer
-                        visibilities={infoboxVisibilities.locationTrack}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('locationTrack', visibilities)
-                        }
-                        locationTrackId={track.id}
-                        linkingState={linkingState}
-                        publishType={publishType}
-                        locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                        onDataChange={onDataChange}
-                        onUnselect={onUnSelectLocationTracks}
-                        viewport={viewport}
-                        verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
-                        onHoverOverPlanSection={onHoverOverPlanSection}
-                    />
-                ),
-            } as ToolPanelTab;
-        });
+        const locationTrackTabs = locationTracks
+            .filter(visibleByTypeAndPublishType)
+            .map((track) => {
+                return {
+                    asset: { type: 'LOCATION_TRACK', id: track.id },
+                    title: track.name,
+                    element: (
+                        <LocationTrackInfoboxLinkingContainer
+                            visibilities={infoboxVisibilities.locationTrack}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('locationTrack', visibilities)
+                            }
+                            locationTrackId={track.id}
+                            linkingState={linkingState}
+                            publishType={publishType}
+                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                            onDataChange={onDataChange}
+                            onUnselect={onUnSelectLocationTracks}
+                            viewport={viewport}
+                            verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+                            onHoverOverPlanSection={onHoverOverPlanSection}
+                        />
+                    ),
+                } as ToolPanelTab;
+            });
 
         const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
             const header = getPlan(aId.planId)?.alignments?.find(
