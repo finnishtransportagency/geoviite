@@ -454,7 +454,9 @@ class GeometryService @Autowired constructor(
                 linkingSummaries[h.id]?.linkedAt ?: Instant.MIN
             }
 
-            GeometryPlanSortField.LINKED_BY -> stringComparator { h -> linkingSummaries[h.id]?.linkedByUsers }
+            GeometryPlanSortField.LINKED_BY -> stringComparator { h ->
+                linkingSummaries[h.id]?.linkedByUsers?.joinToString(",")
+            }
         }
     }
 

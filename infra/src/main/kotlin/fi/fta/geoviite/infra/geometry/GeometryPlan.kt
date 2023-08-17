@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -103,8 +104,9 @@ data class GeometryUnits(
 )
 
 data class GeometryPlanLinkingSummary(
-    val linkedAt: Instant,
-    val linkedByUsers: String,
+    val linkedAt: Instant?,
+    val linkedByUsers: List<UserName>,
+    val currentlyLinked: Boolean,
 )
 
 data class GeometryPlanLinkedItems(

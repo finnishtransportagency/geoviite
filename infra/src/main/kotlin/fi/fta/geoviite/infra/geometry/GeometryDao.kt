@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_HEADER
@@ -209,45 +210,45 @@ class GeometryDao @Autowired constructor(
         }
     }
 
-    fun getPlanLinking(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
+    fun getPlanLinking(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems = getPlanLinkings(listOf(planId)).first()
+
+    fun getPlanLinkings(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanLinkedItems> {
+        if (planIds.isEmpty()) return listOf()
         //language=SQL
         val sql = """
             with
               location_tracks as (
                 select
-                  distinct coalesce(track.draft_of_location_track_id, track.id) as id
+                  distinct ga.plan_id, coalesce(track.draft_of_location_track_id, track.id) as id
                   from layout.location_track track
                     left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
                     left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
-                  where ga.plan_id = :plan_id
               ),
               switches as (
                 select
-                  distinct coalesce(switch.draft_of_switch_id, switch.id) as id
+                  distinct gs.plan_id, coalesce(switch.draft_of_switch_id, switch.id) as id
                   from layout.switch
                     left join geometry.switch gs on gs.id = switch.geometry_switch_id
-                  where gs.plan_id = :plan_id
               ),
               km_posts as (
                 select
-                  distinct coalesce(km_post.draft_of_km_post_id, km_post.id) as id
+                  distinct gp.plan_id, coalesce(km_post.draft_of_km_post_id, km_post.id) as id
                   from layout.km_post
                     left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
-                  where gp.plan_id = :plan_id
               )
             select
-              (select array_agg(id) from location_tracks) as location_track_ids,
-              (select array_agg(id) from switches) as switch_ids,
-              (select array_agg(id) from km_posts) as km_post_ids
+              (select array_agg(id) from location_tracks where plan_id in (:plan_ids)) as location_track_ids,
+              (select array_agg(id) from switches where plan_id in (:plan_ids)) as switch_ids,
+              (select array_agg(id) from km_posts where plan_id in (:plan_ids)) as km_post_ids
         """.trimIndent()
-        val params = mapOf("plan_id" to planId.intValue)
-        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
+        val params = mapOf("plan_id" to planIds.map(IntId<GeometryPlan>::intValue))
+        return jdbcTemplate.query(sql, params) { rs, _ ->
             GeometryPlanLinkedItems(
                 rs.getIntIdArray("location_track_ids"),
                 rs.getIntIdArray("switch_ids"),
                 rs.getIntIdArray("km_post_ids"),
             )
-        }.also { logger.daoAccess(FETCH, GeometryPlanLinkedItems::class, planId) }
+        }.also { logger.daoAccess(FETCH, GeometryPlanLinkedItems::class, planIds) }
     }
 
     @Transactional
@@ -986,7 +987,6 @@ class GeometryDao @Autowired constructor(
         planId: IntId<GeometryPlan>? = null,
         geometryAlignmentId: IntId<GeometryAlignment>? = null,
     ): List<GeometryAlignment> {
-
         val sql = """
             select 
               alignment.id, alignment.track_number_id, alignment.oid_part, 
@@ -1085,6 +1085,7 @@ class GeometryDao @Autowired constructor(
     }
 
     fun getSwitchSrid(id: IntId<GeometrySwitch>): Srid? {
+        //language=SQL
         val sql = """
             select
                 plan.srid
@@ -1092,9 +1093,7 @@ class GeometryDao @Autowired constructor(
                 left join geometry.plan plan on switch.plan_id = plan.id
             where switch.id = :switch_id
         """.trimIndent()
-        val params = mapOf(
-            "switch_id" to id.intValue
-        )
+        val params = mapOf("switch_id" to id.intValue)
         logger.daoAccess(FETCH, GeometrySwitch::class, params)
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
     }
@@ -1142,6 +1141,7 @@ class GeometryDao @Autowired constructor(
     }
 
     fun getKmPostSrid(id: IntId<GeometryKmPost>): Srid? {
+        //language=SQL
         val sql = """
             select
                 plan.srid
@@ -1149,9 +1149,7 @@ class GeometryDao @Autowired constructor(
                 left join geometry.plan plan on km_post.plan_id = plan.id
             where km_post.id = :km_post_id
         """.trimIndent()
-        val params = mapOf(
-            "km_post_id" to id.intValue
-        )
+        val params = mapOf("km_post_id" to id.intValue)
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
     }
 
@@ -1634,74 +1632,99 @@ class GeometryDao @Autowired constructor(
         // made of segments), versioning still goes based on the segment, but the change time and change user come
         // from the actual publishable unit.
         val sql = """
-            select
-              plan_id,
-              min(change_time) as linked_at,
-              string_agg(distinct change_user, ', ' order by change_user) as linked_by_users
-              from (
+            with
+              segment_links as (
                 select plan_id, segment.change_user, segment.change_time
                   from geometry.alignment
                     join lateral
                     (select track_object.change_time, track_object.change_user
-                       from layout.alignment_version 
-                       inner join layout.segment_version on alignment_version.id = segment_version.alignment_id
-                           and alignment_version.version = segment_version.alignment_version
-                       join lateral (
+                       from layout.alignment_version
+                         inner join layout.segment_version on alignment_version.id = segment_version.alignment_id
+                         and alignment_version.version = segment_version.alignment_version
+                         join lateral (
                          select change_time, change_user
-                         from layout.location_track_version
-                         where location_track_version.alignment_id = alignment_version.id
-                           and location_track_version.alignment_version = alignment_version.version
-                           and not draft
+                           from layout.location_track_version
+                           where location_track_version.alignment_id = alignment_version.id
+                             and location_track_version.alignment_version = alignment_version.version
+                             and not draft
                          union all
                          select change_time, change_user
-                         from layout.reference_line_version
-                         where reference_line_version.alignment_id = alignment_version.id
-                           and reference_line_version.alignment_version = alignment_version.version
-                           and not draft
-                       ) track_object on (true)
+                           from layout.reference_line_version
+                           where reference_line_version.alignment_id = alignment_version.id
+                             and reference_line_version.alignment_version = alignment_version.version
+                             and not draft
+                         ) track_object on (true)
                        where segment_version.geometry_alignment_id = alignment.id
                        order by alignment_version asc
                        limit 1
                     ) segment on (true)
+              ),
+              switch_links as (
+                select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time
+                  from geometry.switch geometry_switch
+                    join lateral
+                    (select change_time, change_user
+                       from layout.switch_version
+                       where switch_version.geometry_switch_id = geometry_switch.id
+                         and not draft
+                       order by version asc
+                       limit 1) layout_switch on (true)
+              ),
+              km_post_links as (
+                select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time
+                  from geometry.km_post geometry_km_post
+                    join lateral
+                    (select change_time, change_user
+                       from layout.km_post_version
+                       where km_post_version.geometry_km_post_id = geometry_km_post.id
+                         and not draft
+                       order by version asc
+                       limit 1) layout_km_post on (true)
+              )
+            select
+              linked_layout_object.plan_id,
+              min(change_time) as linked_at,
+              array_agg(distinct change_user order by change_user) filter (where change_user is not null) as linked_by_users ,
+              exists(
+                  select 1
+                    from layout.alignment a
+                      left join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
+                      left join geometry.alignment ga on sv.geometry_alignment_id = ga.id
+                    where ga.plan_id = linked_layout_object.plan_id
+                ) or exists(
+                  select 1
+                    from layout.switch
+                      left join geometry.switch gs on gs.id = switch.geometry_switch_id
+                    where gs.plan_id = linked_layout_object.plan_id
+                ) or exists(
+                  select 1
+                    from layout.km_post
+                      left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
+                    where gp.plan_id = linked_layout_object.plan_id
+                ) as is_currently_linked
+              from (
+                select id as plan_id, null as change_user, null as change_time from geometry.plan
                 union all
-                (
-                  select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time
-                    from geometry.switch geometry_switch
-                      join lateral
-                      (select change_time, change_user
-                         from layout.switch_version
-                         where switch_version.geometry_switch_id = geometry_switch.id
-                           and not draft
-                         order by version asc
-                         limit 1) layout_switch on (true)
-                )
+                select * from segment_links
                 union all
-                (
-                  select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time
-                    from geometry.km_post geometry_km_post
-                      join lateral
-                      (select change_time, change_user
-                         from layout.km_post_version
-                         where km_post_version.geometry_km_post_id = geometry_km_post.id
-                           and not draft
-                         order by version asc
-                         limit 1) layout_km_post on (true)
-                )
+                select * from switch_links
+                union all
+                select * from km_post_links
               ) as linked_layout_object
-              where plan_id in (:plan_ids) or :return_all
-              group by plan_id
-            """.trimIndent()
+              where linked_layout_object.plan_id in (:plan_ids) or :return_all
+              group by linked_layout_object.plan_id;
+        """.trimIndent()
 
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "plan_ids" to (planIds?.map { it.intValue } ?: listOf(null)),
-                "return_all" to (planIds == null)
+        val params = mapOf(
+            "plan_ids" to (planIds?.map { it.intValue } ?: listOf(null)),
+            "return_all" to (planIds == null)
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getIntId<GeometryPlan>("plan_id") to GeometryPlanLinkingSummary(
+                linkedAt = rs.getInstantOrNull("linked_at"),
+                linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(::UserName) ?: listOf(),
+                currentlyLinked = rs.getBoolean("is_currently_linked"),
             )
-        ) { rs, _ ->
-            val linkedAt = rs.getInstant("linked_at")
-            val linkedByUsers = rs.getString("linked_by_users")
-            rs.getIntId<GeometryPlan>("plan_id") to GeometryPlanLinkingSummary(linkedAt, linkedByUsers)
         }.associate { it }
     }
 }

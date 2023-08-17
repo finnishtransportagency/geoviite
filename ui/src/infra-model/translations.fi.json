@@ -93,7 +93,9 @@
             "projektivelho-files-waiting": "Velhon aineistot, odottaa käsittelyä {{number}} kpl",
             "projektivelho-files-rejected": "Velhon aineistot, hylätty {{number}} kpl"
         },
-        "download-file": "Lataa tiedosto"
+        "download-file": "Lataa tiedosto",
+        "hide-file": "Poista suunnitelma listalta",
+        "cannot-hide-file": "Suunnitelmaa ei voi poistaa, koska se sisältää linkityksiä paikannuspohjaan"
     },
     "infra-model": {
         "upload": {
