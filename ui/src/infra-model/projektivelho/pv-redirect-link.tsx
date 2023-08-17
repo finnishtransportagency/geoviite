@@ -20,13 +20,15 @@ export const PVRedirectLink: React.FC<PVRedirectLinkProps> = ({ changeTime, oid,
                 className={styles['projektivelho-file-list__link']}
                 href={url || undefined}
                 target={'_blank'}>
-                <span>{children}</span>
-                <span className={styles['projektivelho-file-list__link-icon']}>
-                    {loaderStatus === LoaderStatus.Ready ? (
-                        <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
-                    ) : (
-                        <Spinner />
-                    )}
+                <span>
+                    {children}{' '}
+                    <span className={styles['projektivelho-file-list__link-icon']}>
+                        {loaderStatus === LoaderStatus.Ready ? (
+                            <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
+                        ) : (
+                            <Spinner />
+                        )}
+                    </span>
                 </span>
             </Link>
         </React.Fragment>

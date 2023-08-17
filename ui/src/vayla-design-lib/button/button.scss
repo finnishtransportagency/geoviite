@@ -10,305 +10,306 @@ $button-animation-size: 20px;
 $button-animation-size-small: 12px;
 
 @mixin button-text-color($color) {
-  color: $color;
-  fill: $color;
+    color: $color;
+    fill: $color;
 }
 
 .button {
-  @include typography-body-strong;
-  position: relative;
-  vertical-align: middle;
-  height: $input-height;
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 16px;
-  border-radius: $button-border-radius;
-  outline: none; // disable default focus indicator
-  cursor: pointer;
-  transition: all $transitions-speed-fast;
+    @include typography-body-strong;
+    position: relative;
+    vertical-align: middle;
+    height: $input-height;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: $button-border-radius;
+    outline: none; // disable default focus indicator
+    cursor: pointer;
+    transition: all $transitions-speed-fast;
+    white-space: nowrap;
 }
 
 .button--wide {
-  width: 100%;
+    width: 100%;
 }
 
 .button--attach-left {
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
-  margin-left: -0.5px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    margin-left: -0.5px;
 }
 
 .button--attach-right {
-  border-bottom-right-radius: 0;
-  border-top-right-radius: 0;
-  margin-right: -0.5px;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+    margin-right: -0.5px;
 }
 
 .button.button--size-small {
-  height: 24px;
+    height: 24px;
 }
 
 .button--has-icon {
-  padding: 8px 12px 8px 8px;
+    padding: 8px 12px 8px 8px;
 }
 
 .button--primary {
-  @include button-text-color($color-blue-lighter);
-  background: $color-blue-default;
-  border: 1px solid $color-blue-default;
-
-  &:hover {
-    @include button-text-color($color-white-default);
-    background: $color-blue-light;
-    border-color: $color-blue-light;
-  }
-
-  &:focus {
-    @include button-text-color($color-white-default);
+    @include button-text-color($color-blue-lighter);
     background: $color-blue-default;
-    border: $button-border-focus;
-  }
+    border: 1px solid $color-blue-default;
 
-  // pressed state
-  &:active {
-    @include button-text-color($color-white-default);
-    background: $color-blue-light;
-    border-color: $color-blue-light;
-  }
+    &:hover {
+        @include button-text-color($color-white-default);
+        background: $color-blue-light;
+        border-color: $color-blue-light;
+    }
 
-  &[disabled],
-  &.button--disabled {
-    @include button-text-color($color-black-lighter);
-    background: $color-white-darker;
-    border-color: $color-white-darker;
-    cursor: default;
-  }
+    &:focus {
+        @include button-text-color($color-white-default);
+        background: $color-blue-default;
+        border: $button-border-focus;
+    }
+
+    // pressed state
+    &:active {
+        @include button-text-color($color-white-default);
+        background: $color-blue-light;
+        border-color: $color-blue-light;
+    }
+
+    &[disabled],
+    &.button--disabled {
+        @include button-text-color($color-black-lighter);
+        background: $color-white-darker;
+        border-color: $color-white-darker;
+        cursor: default;
+    }
 }
 
 .button--secondary {
-  @include button-text-color($color-blue-dark);
-  background: $color-white-default;
-  border: 1px solid $color-blue-dark;
-
-  &.button--attach-left,
-  &.button--attach-right {
-    border-color: $color-black-lighter;
-  }
-
-  &:hover {
-    background: $color-blue-lighter;
-  }
-
-  &:focus {
-    border: 1px dashed $color-blue-dark;
-  }
-
-  // pressed state
-  &:active,
-  &.button--pressed {
     @include button-text-color($color-blue-dark);
-    background: $color-blue-lighter;
-    border-color: $color-blue-dark;
-  }
+    background: $color-white-default;
+    border: 1px solid $color-blue-dark;
 
-  &[disabled],
-  &.button--disabled {
-    @include button-text-color($color-black-lighter);
-    background: $color-white-darker;
-    border: $color-white-darker;
-    cursor: default;
-  }
+    &.button--attach-left,
+    &.button--attach-right {
+        border-color: $color-black-lighter;
+    }
+
+    &:hover {
+        background: $color-blue-lighter;
+    }
+
+    &:focus {
+        border: 1px dashed $color-blue-dark;
+    }
+
+    // pressed state
+    &:active,
+    &.button--pressed {
+        @include button-text-color($color-blue-dark);
+        background: $color-blue-lighter;
+        border-color: $color-blue-dark;
+    }
+
+    &[disabled],
+    &.button--disabled {
+        @include button-text-color($color-black-lighter);
+        background: $color-white-darker;
+        border: $color-white-darker;
+        cursor: default;
+    }
 }
 
 .button--warning {
-  @include button-text-color($color-red-dark);
-  background: $color-white-default;
-  border: 1px solid $color-red-dark;
-
-  &:hover {
-    background: $color-red-lighter;
-  }
-
-  &:focus {
-    border: 1px dashed $color-red-dark;
-  }
-
-  // pressed state
-  &:active {
     @include button-text-color($color-red-dark);
-    background: $color-red-lighter;
-    border-color: $color-red-dark;
-  }
+    background: $color-white-default;
+    border: 1px solid $color-red-dark;
 
-  &[disabled],
-  &.button--disabled {
-    @include button-text-color($color-black-lighter);
-    background: $color-white-darker;
-    border: $color-white-darker;
-    cursor: default;
-  }
+    &:hover {
+        background: $color-red-lighter;
+    }
+
+    &:focus {
+        border: 1px dashed $color-red-dark;
+    }
+
+    // pressed state
+    &:active {
+        @include button-text-color($color-red-dark);
+        background: $color-red-lighter;
+        border-color: $color-red-dark;
+    }
+
+    &[disabled],
+    &.button--disabled {
+        @include button-text-color($color-black-lighter);
+        background: $color-white-darker;
+        border: $color-white-darker;
+        cursor: default;
+    }
 }
 
 .button--primary-warning {
-  @include button-text-color($color-red-lighter);
-  background: $color-red-default;
-  border: 1px solid $color-red-default;
-
-  &:hover {
-    @include button-text-color($color-white-default);
-    background: $color-red-light;
-    border-color: $color-red-light;
-  }
-
-  &:focus {
-    @include button-text-color($color-white-default);
+    @include button-text-color($color-red-lighter);
     background: $color-red-default;
-    border: $button-border-focus;
-  }
+    border: 1px solid $color-red-default;
 
-  // pressed state
-  &:active {
-    @include button-text-color($color-white-default);
-    background: $color-red-light;
-    border-color: $color-red-light;
-  }
+    &:hover {
+        @include button-text-color($color-white-default);
+        background: $color-red-light;
+        border-color: $color-red-light;
+    }
 
-  &[disabled],
-  &.button--disabled {
-    @include button-text-color($color-black-lighter);
-    background: $color-white-darker;
-    border-color: $color-white-darker;
-    cursor: default;
-  }
+    &:focus {
+        @include button-text-color($color-white-default);
+        background: $color-red-default;
+        border: $button-border-focus;
+    }
+
+    // pressed state
+    &:active {
+        @include button-text-color($color-white-default);
+        background: $color-red-light;
+        border-color: $color-red-light;
+    }
+
+    &[disabled],
+    &.button--disabled {
+        @include button-text-color($color-black-lighter);
+        background: $color-white-darker;
+        border-color: $color-white-darker;
+        cursor: default;
+    }
 }
 
 .button--ghost {
-  @include button-text-color($color-blue-dark);
-  background: transparent;
-  border: 1px solid transparent;
-
-  &:hover {
-    background: $color-blue-lighter;
-  }
-
-  &:focus {
-    border: 1px dashed $color-blue-dark;
-  }
-
-  // pressed state
-  &:active {
     @include button-text-color($color-blue-dark);
-    background: $color-blue-lighter;
-    border-color: $color-blue-dark;
-  }
-
-  &[disabled],
-  &.button--disabled {
-    @include button-text-color($color-black-lighter);
     background: transparent;
-    cursor: default;
-  }
+    border: 1px solid transparent;
+
+    &:hover {
+        background: $color-blue-lighter;
+    }
+
+    &:focus {
+        border: 1px dashed $color-blue-dark;
+    }
+
+    // pressed state
+    &:active {
+        @include button-text-color($color-blue-dark);
+        background: $color-blue-lighter;
+        border-color: $color-blue-dark;
+    }
+
+    &[disabled],
+    &.button--disabled {
+        @include button-text-color($color-black-lighter);
+        background: transparent;
+        cursor: default;
+    }
 }
 
 .button__icon-and-animation {
-  position: relative;
-  width: 0;
-  transition: all $transitions-speed-fast;
+    position: relative;
+    width: 0;
+    transition: all $transitions-speed-fast;
 }
 
 .button--has-icon {
-  padding: 8px 12px;
+    padding: 8px 12px;
 
-  .button__icon-and-animation {
-    margin-bottom: -2px; // adjust vertical position
-    width: auto;
-  }
+    .button__icon-and-animation {
+        margin-bottom: -2px; // adjust vertical position
+        width: auto;
+    }
 
-  .button__label {
-    margin-left: 8px;
-  }
+    .button__label {
+        margin-left: 8px;
+    }
 }
 
 .button__icon {
-  // button__icon contains an icon
-  transition: all $transitions-speed-fast;
+    // button__icon contains an icon
+    transition: all $transitions-speed-fast;
 }
 
 .button--has-animation:not(.button--has-icon) {
-  padding-left: 12px;
+    padding-left: 12px;
 
-  &.button--size-small {
-    padding-left: 6px;
-  }
+    &.button--size-small {
+        padding-left: 6px;
+    }
 
-  .button__icon-and-animation {
-    width: 20px;
-    margin-right: 5px;
-    margin-bottom: 0;
-  }
+    .button__icon-and-animation {
+        width: 20px;
+        margin-right: 5px;
+        margin-bottom: 0;
+    }
 }
 
 .button--has-animation.button--has-icon {
-  padding-left: 12px;
+    padding-left: 12px;
 
-  .button__label {
-    margin-left: 8px;
-  }
+    .button__label {
+        margin-left: 8px;
+    }
 
-  .button__icon {
-    opacity: 0;
-  }
+    .button__icon {
+        opacity: 0;
+    }
 }
 
 .button--has-animation.button--has-icon.button--no-label {
-  padding-left: 8px;
+    padding-left: 8px;
 
-  &.button--size-small {
-    padding-left: 5px;
-  }
+    &.button--size-small {
+        padding-left: 5px;
+    }
 }
 
 .button__animation {
-  @include spinner-animation;
-  position: absolute;
-  width: $button-animation-size;
-  height: $button-animation-size;
-  top: 50%;
-  left: 50%;
-  margin-top: -$button-animation-size * 0.5;
-  margin-left: -$button-animation-size * 0.5;
-  box-sizing: border-box;
+    @include spinner-animation;
+    position: absolute;
+    width: $button-animation-size;
+    height: $button-animation-size;
+    top: 50%;
+    left: 50%;
+    margin-top: -$button-animation-size * 0.5;
+    margin-left: -$button-animation-size * 0.5;
+    box-sizing: border-box;
 }
 
 .button--size-small .button__animation {
-  width: $button-animation-size-small;
-  height: $button-animation-size-small;
-  margin-top: -$button-animation-size-small * 0.5;
-  margin-left: -$button-animation-size-small * 0.5;
+    width: $button-animation-size-small;
+    height: $button-animation-size-small;
+    margin-top: -$button-animation-size-small * 0.5;
+    margin-left: -$button-animation-size-small * 0.5;
 }
 
 .button--no-label {
-  padding: 8px;
+    padding: 8px;
 }
 
 .button--no-label.button--has-icon {
-  width: 36px;
-  justify-content: center;
+    width: 36px;
+    justify-content: center;
 }
 
 .button--no-label.button--has-icon.button--size-small {
-  width: 24px;
+    width: 24px;
 }
 
 .button--size-small {
-  padding: 2px 12px;
-  height: 24px;
+    padding: 2px 12px;
+    height: 24px;
 }
 
 .button--size-small.button--has-icon {
-  padding: 2px 8px 2px 8px;
+    padding: 2px 8px 2px 8px;
 }
 
 .button--size-small.button--no-label {
-  padding: 5px;
+    padding: 5px;
 }
