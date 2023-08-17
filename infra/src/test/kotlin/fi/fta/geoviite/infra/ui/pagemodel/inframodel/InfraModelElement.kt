@@ -1,41 +1,29 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
+import browser
 import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
 import fi.fta.geoviite.infra.ui.pagemodel.common.FormGroup
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.TableRow
+import fi.fta.geoviite.infra.ui.pagemodel.common.TableModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.TableRowItem
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
-import getChildElements
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
 import java.time.LocalDateTime
 
 
-// TODO: GVT-1936 Use generic table model to handle this (modeling after ListModel)
-class InfraModelTable(tableRoot: By) : PageModel(tableRoot) {
+fun infraModelTable(tableRoot: By): InfraModelTable {
+    val headers =
+        browser().findElement(tableRoot).findElements(By.cssSelector("thead th")).map { it.getAttribute("qa-id") }
+    return InfraModelTable(tableRoot, headers)
+}
+
+class InfraModelTable(tableRoot: By, headers: List<String>) : TableModel<InfraModelRow>(
+    listBy = tableRoot,
+    itemsBy = By.cssSelector("tbody tr"),
+    getContent = { i, e -> InfraModelRow(i, headers, e) }) {
     private val headerElement: WebElement get() = childElement(By.xpath("//table/thead/tr"))
-
-    // TODO: GVT-1936 This should not wait at all but only get the current listing
-    //  If the caller wants to wait for some specific data to appear, it has to have a different condition anyhow
-    private fun rowElements(): List<WebElement> = try {
-        webElement.getChildElements(
-            By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"),
-        )
-    } catch (ex: TimeoutException) {
-        emptyList()
-    }
-
-    fun infraModelRows(): List<InfraModelRow> {
-        logger.info("Get Infra Model rows")
-        return rowElements().map { rowElement ->
-            InfraModelRow(
-                headerElement.findElements(By.tagName("th")).map { it.text }, rowElement
-            )
-        }
-    }
 
     fun sortBy(colName: String) {
         logger.info("Select column $colName")
@@ -44,18 +32,17 @@ class InfraModelTable(tableRoot: By) : PageModel(tableRoot) {
 }
 
 // TODO: GVT-1947 code language
-class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, row) {
-    fun projektinNimi(): String = getColumnByName("Projektin nimi").text
-    fun tiedostonimi(): String = getColumnByName("Nimi").text
-    fun ratanumero(): String = getColumnByName("Ratanumero").text
-    fun alkukilometri(): String = getColumnByName("Alkukm").text
-    fun loppukilometri(): String = getColumnByName("Loppukm").text
-    fun suunnitelmavaihe(): String = getColumnByName("Suunnitelmavaihe").text
-    fun paatos(): String = getColumnByName("Päätös").text
-    fun laadittu(): LocalDateTime = localDateFromString(getColumnByName("Laadittu").text)
-    fun ladattu(): LocalDateTime = localDateTimeFromString(getColumnByName("Ladattu").text)
-    fun linkitetty(): LocalDateTime = localDateTimeFromString(getColumnByName("Linkitetty").text)
-    fun editInfraModel() = clickRow()
+class InfraModelRow(index: Int, headers: List<String>, row: WebElement) : TableRowItem(index, row, headers) {
+    fun projektinNimi(): String = getColumnContent("im-form.name-header")
+    fun tiedostonimi(): String = getColumnContent("im-form.file-name-header")
+    fun ratanumero(): String = getColumnContent("im-form.track-number-header")
+    fun alkukilometri(): String = getColumnContent("im-form.km-start-header")
+    fun loppukilometri(): String = getColumnContent("im-form.km-end-header")
+    fun suunnitelmavaihe(): String = getColumnContent("im-form.plan-phase-header")
+    fun paatos(): String = getColumnContent("im-form.decision-phase-header")
+    fun laadittu(): LocalDateTime = localDateFromString(getColumnContent("im-form.created-at-header"))
+    fun ladattu(): LocalDateTime = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header"))
+    fun linkitetty(): LocalDateTime = localDateTimeFromString(getColumnContent("im-form.linked-at-header"))
 
     override fun toString(): String = ToStringBuilder.reflectionToString(this)
 }

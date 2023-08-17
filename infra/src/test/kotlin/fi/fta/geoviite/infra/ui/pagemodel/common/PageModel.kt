@@ -50,6 +50,8 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
     protected fun childElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
         getChildrenWhenVisible(elementFetch, by, timeout)
 
+    protected fun currentChildElements(by: By): List<WebElement> = elementFetch().findElements(by)
+
     protected fun clickChild(by: By, timeout: Duration = defaultWait) = clickChildElement(elementFetch, by, timeout)
 
     protected fun childText(by: By, timeout: Duration = defaultWait): String = childElement(by, timeout).text

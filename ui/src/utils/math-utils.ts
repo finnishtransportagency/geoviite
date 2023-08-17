@@ -93,21 +93,21 @@ function interpolate(value1: number, value2: number, portion: number): number {
     return value1 + (value2 - value1) * portion;
 }
 
-function sqr(x: number) {
+function square(x: number) {
     return x * x;
 }
 
-function dist2(v: Point, w: Point) {
-    return sqr(v.x - w.x) + sqr(v.y - w.y);
+function distanceSquared(v: Point, w: Point) {
+    return square(v.x - w.x) + square(v.y - w.y);
 }
 
 export function distToSegmentSquared(p: Point, start: Point, end: Point) {
-    const l2 = dist2(start, end);
-    if (l2 == 0) return dist2(p, start);
+    const l2 = distanceSquared(start, end);
+    if (l2 == 0) return distanceSquared(p, start);
     let t = ((p.x - start.x) * (end.x - start.x) + (p.y - start.y) * (end.y - start.y)) / l2;
     t = Math.max(0, Math.min(1, t));
-    return dist2(p, { x: start.x + t * (end.x - start.x), y: start.y + t * (end.y - start.y) });
-}
-export function distToSegment(p: Point, v: Point, w: Point) {
-    return Math.sqrt(distToSegmentSquared(p, v, w));
+    return distanceSquared(p, {
+        x: start.x + t * (end.x - start.x),
+        y: start.y + t * (end.y - start.y),
+    });
 }

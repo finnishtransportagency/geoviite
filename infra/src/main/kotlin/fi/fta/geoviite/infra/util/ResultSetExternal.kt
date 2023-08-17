@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import java.sql.ResultSet
 import java.time.Instant
@@ -197,6 +198,10 @@ fun ResultSet.getPVDictionaryCodeOrNull(name: String): PVDictionaryCode? = getSt
 fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
 
 fun ResultSet.getPVIdOrNull(name: String): PVId? = getString(name)?.let(::PVId)
+
+fun <T>ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<T> = Change(getter("old_$name"), getter(name))
+
+fun ResultSet.getChangePoint(nameX: String, nameY: String) = Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }

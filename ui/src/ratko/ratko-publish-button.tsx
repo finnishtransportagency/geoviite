@@ -32,7 +32,8 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
                     isProcessing={isPublishing}
                     variant={ButtonVariant.PRIMARY}
                     size={size}
-                    icon={Icons.Redo}>
+                    icon={Icons.Redo}
+                    qa-id="publish-to-ratko">
                     {t('publishing.publish-to-ratko')}
                 </Button>
             </WriteAccessRequired>
@@ -48,7 +49,10 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button onClick={publishToRatko} variant={ButtonVariant.PRIMARY}>
+                            <Button
+                                qa-id="confirm-publish-to-ratko"
+                                onClick={publishToRatko}
+                                variant={ButtonVariant.PRIMARY}>
                                 {t('button.ok')}
                             </Button>
                         </React.Fragment>

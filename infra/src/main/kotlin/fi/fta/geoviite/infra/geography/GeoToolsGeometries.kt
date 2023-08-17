@@ -41,7 +41,8 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
         }
 }
 
-fun crs(srid: Srid): CoordinateReferenceSystem = CRS.decode(srid.toString())
+private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = mutableMapOf()
+fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
 fun toJtsPolygon(polygonPoints: List<IPoint>, ref: CoordinateReferenceSystem): Polygon? {
     val geometryPointList = polygonPoints.map { point -> toJtsPoint(point, ref) }

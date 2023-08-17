@@ -353,7 +353,6 @@ export const Dropdown = function <TItemValue>({
                         disabled={props.disabled}
                         value={searchTerm}
                         onChange={(e) => handleInputChange(e.target.value)}
-                        placeholder={selectedName}
                     />
                     {!searchTerm && (
                         <div className={styles['dropdown__current-value']}>

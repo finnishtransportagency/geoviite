@@ -28,11 +28,13 @@ import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
 
 const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
-
+const val VERTICAL_GEOMETRY_LISTING_GENERATION_USER = "VERT_GEOM_LIST_GEN"
 
 
 @Service
@@ -47,6 +49,7 @@ class GeometryService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val heightTriangleDao: HeightTriangleDao,
     private val elementListingFileDao: ElementListingFileDao,
+    private val verticalGeometryListingFileDao: VerticalGeometryListingFileDao,
     private val lockDao: LockDao,
 ) {
 
@@ -57,6 +60,18 @@ class GeometryService @Autowired constructor(
         try {
             lockDao.runWithLock(DatabaseLock.ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
                 val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
+                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+            }
+        } finally {
+            MDC.remove(USER_HEADER)
+        }
+    }
+
+    private fun runVerticalGeometryListGeneration(op: () -> Unit) {
+        MDC.put(USER_HEADER, VERTICAL_GEOMETRY_LISTING_GENERATION_USER)
+        try {
+            lockDao.runWithLock(DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
+                val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
                 if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
             }
         } finally {
@@ -111,6 +126,11 @@ class GeometryService @Autowired constructor(
     fun getProjects(): List<Project> {
         logger.serviceCall("getProjects")
         return geometryDao.fetchProjects()
+    }
+
+    fun getProjectChangeTime(): Instant {
+        logger.serviceCall("getProjectChangeTime")
+        return geometryDao.fetchProjectChangeTime()
     }
 
     fun getProject(id: IntId<Project>): Project {
@@ -212,7 +232,7 @@ class GeometryService @Autowired constructor(
     fun getElementListing(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
-        geocodingContext: GeocodingContext?
+        geocodingContext: GeocodingContext?,
     ): List<ElementListing> {
         logger.serviceCall("getElementListing", "locationTrack" to locationTrack, "alignment" to alignment)
         return toElementListing(
@@ -233,7 +253,8 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<ElementListing> {
-        logger.serviceCall("getElementListing",
+        logger.serviceCall(
+            "getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
             "startAddress" to startAddress, "endAddress" to endAddress,
         )
@@ -256,7 +277,8 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): ElementListingFile {
-        logger.serviceCall("getElementListing",
+        logger.serviceCall(
+            "getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
             "startAddress" to startAddress, "endAddress" to endAddress,
         )
@@ -283,9 +305,11 @@ class GeometryService @Autowired constructor(
                 getElementListing(locationTrack, alignment, geocodingContext)
             }
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
         elementListingFileDao.upsertElementListingFile(
             ElementListingFile(
-                name = FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK),
+                name = FileName("$ELEMENT_LISTING_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
                 content = csvFileContent
             )
         )
@@ -295,7 +319,7 @@ class GeometryService @Autowired constructor(
 
 
     fun getVerticalGeometryListing(
-        planId: IntId<GeometryPlan>
+        planId: IntId<GeometryPlan>,
     ): List<VerticalGeometryListing> {
         logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
@@ -306,7 +330,7 @@ class GeometryService @Autowired constructor(
     }
 
     fun getVerticalGeometryListingCsv(
-        planId: IntId<GeometryPlan>
+        planId: IntId<GeometryPlan>,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
@@ -342,6 +366,40 @@ class GeometryService @Autowired constructor(
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
         return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
     }
+
+    @Scheduled(
+        cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}"
+    )
+    fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
+        logger.serviceCall("makeVerticalGeometryListingCsv")
+        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
+            tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
+        }
+        val verticalGeometryListingWithTrackNumbers = locationTrackService.list(OFFICIAL, includeDeleted = false)
+            .sortedWith(compareBy(
+                { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
+                { locationTrack -> locationTrack.name },
+            ))
+            .flatMap { locationTrack ->
+                val verticalGeometryListingWithoutTrackNumbers = getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
+
+                verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
+                    verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
+                }
+            }
+
+        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
+        verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
+            VerticalGeometryListingFile(
+                name = FileName("$VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
+                content = csvFileContent
+            )
+        )
+    }
+
+    fun getEntireVerticalGeometryListingCsv() = verticalGeometryListingFileDao.getVerticalGeometryListingFile()
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)

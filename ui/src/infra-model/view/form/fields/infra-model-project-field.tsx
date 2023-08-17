@@ -5,7 +5,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { ProjectId } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
-import { fetchProjects } from 'geometry/geometry-api';
+import { getProjects } from 'geometry/geometry-api';
 
 type ProjectDropdownProps = {
     id: ProjectId;
@@ -19,7 +19,7 @@ export const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
     onAddProject,
 }) => {
     const { t } = useTranslation();
-    const [projects, projectLoaderStatus] = useLoaderWithStatus(fetchProjects, [id]);
+    const [projects, projectLoaderStatus] = useLoaderWithStatus(getProjects, [id]);
     return projectLoaderStatus != LoaderStatus.Ready ? (
         <Spinner />
     ) : (

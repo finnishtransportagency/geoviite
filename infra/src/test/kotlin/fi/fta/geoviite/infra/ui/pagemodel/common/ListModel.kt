@@ -38,7 +38,7 @@ open class ListModel<T : ListContentItem>(
         getContent: (index: Int, child: WebElement) -> T,
     ) : this(fetch(listBy), itemsBy, getContent)
 
-    protected val itemElements: List<WebElement> get() = childElements(itemsBy)
+    protected val itemElements: List<WebElement> get() = currentChildElements(itemsBy)
 
     val items: List<T> get() = itemElements.mapIndexed(getContent)
 
@@ -52,6 +52,12 @@ open class ListModel<T : ListContentItem>(
 
     fun select(index: Int) = itemElements[index].let { e ->
         if (!isSelected(e)) e.waitAndClick()
+    }
+
+    fun clickOnItemBy(selectItem: (T) -> Boolean, by: By) {
+        waitUntilItemMatches(selectItem)
+        val index = items.indexOfFirst(selectItem)
+        itemElements[index].findElement(by).click()
     }
 
     // TODO: GVT-1935 Implement a generic way to communicate selection in lists from UI to tests

@@ -113,7 +113,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             .then((r) => {
                 if (r.isOk()) {
                     const result = r.unwrapOr(null);
-                    Snackbar.success(t('publish.publish-success'), describeResult(result));
+                    Snackbar.success(t('publish.publish-success'), {
+                        body: describeResult(result),
+                    });
                     updateChangeTimes(result);
                     props.onPublish();
                 }

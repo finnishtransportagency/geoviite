@@ -1,0 +1,5 @@
+geoviite:
+  ratko:
+    enabled: true
+    url: http://localhost:12345
+    test-port: 12345

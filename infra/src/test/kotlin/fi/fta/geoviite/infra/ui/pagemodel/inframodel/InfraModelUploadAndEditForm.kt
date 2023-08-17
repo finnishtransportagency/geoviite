@@ -13,9 +13,7 @@ class InfraModelUploadAndEditForm : PageModel(By.className("infra-model-upload__
         logger.info("Saving infra model to database...")
         clickButtonByText("Tallenna")
         if (expectConfirm) confirmSaving()
-        Toaster().assertAndClose("Uusi InfraModel-tiedosto tallennettu Geoviitteeseen")
-
-        waitUntilVisible(By.xpath("//td[text() = '$projectName']"))
+        Toaster(By.className("infra-model-import-upload__success-toast")).close()
     }
 
     fun tallennaMuutokset() {

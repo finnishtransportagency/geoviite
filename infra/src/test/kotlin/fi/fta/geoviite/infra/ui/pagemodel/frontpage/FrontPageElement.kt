@@ -1,8 +1,11 @@
 package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 
+import fi.fta.geoviite.infra.ui.pagemodel.common.ListContentItem
+import fi.fta.geoviite.infra.ui.pagemodel.common.ListModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -16,7 +19,7 @@ class PublicationList(by: By = byQaId("publication-list")) : PageModel(by) {
     fun openPublicationDetails(index: Int): PublicationDetails {
         logger.info("Open publication details")
         listElements[index].findElement(By.cssSelector("div.publication-list-item__text a")).click()
-        return PublicationDetails()
+        return publicationDetails()
     }
 }
 
@@ -28,15 +31,27 @@ data class PublicationListItem(val trackNumbers: String, val timestamp: String, 
     )
 }
 
-class PublicationDetails : PageModel(By.cssSelector("div.publication-details")) {
-    fun returnToFrontPage() = clickChild(By.cssSelector("div.publication-details__title a"))
+fun publicationDetails(): PublicationDetails {
+    val headers = getElementWhenVisible(By.cssSelector("div.publication-details")).findElements(By.cssSelector("th span.table__th-children")).map { it.text }
+    return PublicationDetails(headers)
+}
 
-    fun detailRowContents(): List<PublicationDetailRowContent> {
-        logger.info("Read publication detail rows")
-        val header = childElements(By.cssSelector("th span.table__th-children")).map { it.text }
-        return childElements(By.cssSelector("tr.publication-table__row")).map {
-            PublicationDetailRowContent(it, header)
-        }
+class PublicationDetails(
+    headers: List<String>,
+) : ListModel<PublicationDetailRowContent>(
+    listBy = By.cssSelector("div.publication-details"),
+    itemsBy = By.cssSelector("tr.publication-table__row"),
+    getContent = { index, element ->
+        PublicationDetailRowContent(
+            element,
+            headers,
+            index
+        )
+    }
+) {
+    fun returnToFrontPage(): FrontPage {
+        clickChild(By.cssSelector("div.publication-details__title a"))
+        return FrontPage()
     }
 }
 
@@ -44,10 +59,12 @@ data class PublicationDetailRowContent(
     val muutoskohde: String,
     val ratanumero: String,
     val vietyRatkoon: String,
-) {
-    constructor(row: WebElement, headers: List<String>) : this(
+    override val index: Int,
+): ListContentItem {
+    constructor(row: WebElement, headers: List<String>, index: Int) : this(
         muutoskohde = getColumnContent(headers, row, "Muutoskohde"),
         ratanumero = getColumnContent(headers, row, "Ratanro"),
         vietyRatkoon = getColumnContent(headers, row, "Viety Ratkoon"),
+        index,
     )
 }

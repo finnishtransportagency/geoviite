@@ -72,6 +72,9 @@
             "location-track-search-legend": "Raiteen pystygeometria näyttää luettelossa paikannuspohjan raiteeseen liityvät taitepisteet. Paikannuspohjan raide voi olla koostettu useasta suunnitelmasta, eikä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-search-legend": "Suunnitelman pystygeometria näyttää luettelossa suunnitelman sisältämät taitepisteet. Rataosoiteet on laskettu paikannuspohjan pituusmittauksen mukaan, joten rataosoitteiden tarkkuutta on syytä pitää epäluotettavana. Myös  paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "overlaps-another": "Kaltevuusjakso on limittäin toisen jakson kanssa",
+            "entire-rail-network-vertical-geometry": "Koko rataverkon pystygeometria",
+            "entire-rail-network-vertical-geometry-legend": "Koko rataverkon pystygeometria on luettelo kaikkien paikannuspohjan raiteiden kaikista taitepisteistä. Paikannuspohjan raiteet voivat olla koostettu useasta suunnitelmasta, eivätkä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raiteet on maastoon rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemistyön lähtötietona.",
+            "entire-rail-network-length-warning": "Koska koko rataverkon aineisto on laaja, se tuotetaan vain kerran vuorokaudessa.",
             "unknown": "Ei tiedossa",
             "table": {
                 "location-track": "Sijaintiraide",

@@ -39,7 +39,8 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
     return (
         <li
             onClick={handleClick}
-            className={activeTab === tabId ? styles['active'] : styles['inactive']}>
+            className={activeTab === tabId ? styles['active'] : styles['inactive']}
+            qa-id={`infra-model-nav-tab-${tabId}`}>
             {title}
             {exclamationPointVisible && (
                 <span className={styles['tabs__exclamation-point-container']}>

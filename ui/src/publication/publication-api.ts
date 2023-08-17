@@ -41,15 +41,6 @@ export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
-    const params = queryParams({
-        from: fromDate ? fromDate.toISOString() : '',
-        to: toDate ? toDate.toISOString() : '',
-    });
-
-    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
-};
-
 export const getLatestPublications = (count: number) => {
     const params = queryParams({
         count,

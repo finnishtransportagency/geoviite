@@ -30,9 +30,9 @@ export enum InfraModelViewType {
 }
 
 export enum InfraModelTabType {
-    PLAN,
-    WAITING,
-    REJECTED,
+    PLAN = 'plan',
+    WAITING = 'waiting',
+    REJECTED = 'rejected',
 }
 
 export type InfraModelState = {

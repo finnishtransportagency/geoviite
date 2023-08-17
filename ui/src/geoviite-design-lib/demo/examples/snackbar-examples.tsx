@@ -12,11 +12,11 @@ export const SnackbarExamples: React.FC = () => {
     };
 
     const successSnackbar = () => {
-        Snackbar.success(header, body);
+        Snackbar.success(header, { body });
     };
 
     const errorSnackbar = () => {
-        Snackbar.error(header, body);
+        Snackbar.error(header, { body });
     };
 
     return (

@@ -149,7 +149,8 @@
             "CREATE": "Luonti",
             "DELETE": "Poisto",
             "MODIFY": "Muokkaus",
-            "RESTORE": "Palautus"
+            "RESTORE": "Palautus",
+            "CALCULATED": "Laskettu muutos"
         },
         "topological-connectivity-type": {
             "NONE": "Ei kytketty",

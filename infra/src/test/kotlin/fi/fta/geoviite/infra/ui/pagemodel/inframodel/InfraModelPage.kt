@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import clearInput
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import getElementWhenVisible
 import getElementsWhenVisible
@@ -23,19 +24,15 @@ class InfraModelPage : PageModel(By.xpath("//div[@qa-id='main-content-container'
     }
 
     fun infraModelList(): InfraModelTable {
-        return InfraModelTable(By.className("infra-model-list-search-result__table"))
+        childElement(byQaId("infra-model-nav-tab-plan")).click()
+        return infraModelTable(By.className("infra-model-list-search-result__table"))
     }
 
     fun openInfraModel(infraModelFileName: String): InfraModelUploadAndEditForm {
 
         assertTrue(getElementsWhenVisible(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr")).isNotEmpty())
 
-        val rows = infraModelList().infraModelRows()
-        try {
-            rows.first { it.tiedostonimi() == infraModelFileName }.clickRow()
-        } catch (ex: java.util.NoSuchElementException) {
-            logger.warn("Cannot find IM file $infraModelFileName! Available files are ${rows.map { it.tiedostonimi() }}")
-        }
+        infraModelList().selectItemWhenMatches { it.tiedostonimi() == infraModelFileName }
 
         return InfraModelUploadAndEditForm()
     }
@@ -47,6 +44,14 @@ class InfraModelPage : PageModel(By.xpath("//div[@qa-id='main-content-container'
             getElementWhenVisible(By.xpath("//div[@class='infra-model-search-form__auto-complete']//input"))
         clearInput(searchField)
         searchField.sendKeys(query)
+    }
+
+    fun openVelhoWaitingForApprovalList(): ProjektiVelhoPage {
+        childElement(byQaId("infra-model-nav-tab-waiting")).click()
+        waitChildVisible(By.cssSelector("div.projektivelho-file-list"))
+        val qaHeaders =
+            childElements(By.cssSelector("div.projektivelho-file-list thead tr th")).map { it.getAttribute("qa-id") }
+        return ProjektiVelhoPage(qaHeaders)
     }
 
 }

@@ -13,6 +13,9 @@ import { filterNotEmpty } from 'utils/array-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
+import { cache } from 'cache/cache';
+
+const tickImageCache = cache<string, RegularShape>();
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const locationTrackStyle = new Style({
@@ -86,17 +89,23 @@ export function getTickStyle(
     position: 'start' | 'end',
     style: Style,
 ): Style {
-    const angleVersionCount = 100;
-    const angleStep = (Math.PI * 2) / angleVersionCount;
+    const numberOfDifferentAngles = 128;
+    const angleStep = (Math.PI * 2) / numberOfDifferentAngles;
     const actualAngle = Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2;
     const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
-    const image = new RegularShape({
-        stroke: style.getStroke(),
-        points: 2,
-        radius: length,
-        radius2: 0,
-        angle: roundAngle,
-    });
+
+    const cacheKey = `${roundAngle}-${JSON.stringify(style.getStroke())}`;
+    const image = tickImageCache.getOrCreate(
+        cacheKey,
+        () =>
+            new RegularShape({
+                stroke: style.getStroke(),
+                points: 2,
+                radius: length,
+                radius2: 0,
+                angle: roundAngle,
+            }),
+    );
 
     return new Style({
         geometry: new OlPoint(position == 'start' ? point1 : point2),

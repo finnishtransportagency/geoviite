@@ -323,5 +323,5 @@ const showHttpError = (response: ApiErrorResponse) => {
         response.localizedMessageKey &&
         i18n.t(response.localizedMessageKey, response.localizedMessageParams);
     const content = msg || response.messageRows.map((r) => `${r}`).join('\n');
-    Snackbar.error(`Request failed (${response.status})`, `${content}`);
+    Snackbar.error(`Request failed (${response.status})`, { body: `${content}` });
 };

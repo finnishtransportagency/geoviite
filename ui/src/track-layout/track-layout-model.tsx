@@ -78,6 +78,11 @@ export type LayoutLocationTrackDuplicate = {
     id: LocationTrackId;
 };
 
+export type TopologyLocationTrackSwitch = {
+    switchId: LayoutSwitchId;
+    joint: JointNumber;
+};
+
 export type LayoutLocationTrack = {
     name: string;
     description: string | null;
@@ -95,6 +100,8 @@ export type LayoutLocationTrack = {
     draftType: DraftType;
     duplicateOf: LocationTrackId | null;
     topologicalConnectivity: TopologicalConnectivityType;
+    topologyStartSwitch: TopologyLocationTrackSwitch | null;
+    topologyEndSwitch: TopologyLocationTrackSwitch | null;
 };
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;

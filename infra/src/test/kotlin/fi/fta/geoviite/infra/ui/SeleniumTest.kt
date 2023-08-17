@@ -58,6 +58,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
                 "reference_line",
                 "switch",
                 "track_number",
+                "track_number_km",
                 "publication",
             )
         )

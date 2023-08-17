@@ -106,6 +106,8 @@ data class TopologyLocationTrackSwitch(
     val jointNumber: JointNumber,
 )
 
+val locationTrackDescriptionLength = 4..256
+
 data class LocationTrack(
     val name: AlignmentName,
     val description: FreeText,
@@ -132,11 +134,24 @@ data class LocationTrack(
     val exists = !state.isRemoved()
 
     init {
-        require(description.length in 4..256) {
-            "LocationTrack description length ${description.length} not in range 4-256"
+        require(description.length in locationTrackDescriptionLength) {
+            "LocationTrack description length invalid  not in range 4-256: " +
+                    "id=$id " +
+                    "length=${description.length} " +
+                    "allowed=$locationTrackDescriptionLength"
         }
         require(dataType == DataType.TEMP || alignmentVersion != null) {
-            "LocationTrack in DB must have an alignment"
+            "LocationTrack in DB must have an alignment: id=$id"
+        }
+        require(
+            topologyStartSwitch?.switchId == null ||
+                    topologyStartSwitch.switchId != topologyEndSwitch?.switchId
+        ) {
+            "LocationTrack cannot topologically connect to the same switch at both ends: " +
+                    "trackId=$id " +
+                    "switchId=${topologyStartSwitch?.switchId} " +
+                    "startJoint=${topologyStartSwitch?.jointNumber} " +
+                    "endJoint=${topologyEndSwitch?.jointNumber}"
         }
     }
 
@@ -256,6 +271,12 @@ data class ChangeTimes(
     val changed: Instant,
     val officialChanged: Instant?,
     val draftChanged: Instant?,
+)
+
+data class TrackNumberAndChangeTime(
+    val id: IntId<TrackLayoutTrackNumber>,
+    val number: TrackNumber,
+    val changeTime: Instant,
 )
 
 fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""

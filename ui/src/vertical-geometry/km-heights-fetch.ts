@@ -172,7 +172,7 @@ function getQueryableRange(
 }
 
 export function useAlignmentHeights(
-    alignmentId: VerticalGeometryDiagramAlignmentId,
+    alignmentId: VerticalGeometryDiagramAlignmentId | undefined,
     changeTimes: ChangeTimes,
     startM: number | undefined,
     endM: number | undefined,
@@ -184,7 +184,7 @@ export function useAlignmentHeights(
     renderedRange.current = { alignmentId, startM, endM, tickLength };
 
     const updateLoadedHeights = (sM: number, eM: number) => {
-        const cacheItem = getCacheItem(changeTimes, alignmentId, tickLength);
+        const cacheItem = alignmentId && getCacheItem(changeTimes, alignmentId, tickLength);
         if (cacheItem) {
             setLoadedHeights(
                 cacheItem.resolved.filter(
@@ -205,11 +205,11 @@ export function useAlignmentHeights(
             return;
         }
 
-        const cacheItem = getOrCreateCacheItem(changeTimes, alignmentId, tickLength);
-        const queryRange = getQueryableRange(cacheItem.resolved, startM, endM);
+        const cacheItem = alignmentId && getOrCreateCacheItem(changeTimes, alignmentId, tickLength);
+        const queryRange = cacheItem && getQueryableRange(cacheItem.resolved, startM, endM);
         if (queryRange === null) {
             updateLoadedHeights(startM, endM);
-        } else {
+        } else if (alignmentId && queryRange) {
             throttledLoadAlignmentHeights(
                 alignmentId,
                 queryRange[0],
