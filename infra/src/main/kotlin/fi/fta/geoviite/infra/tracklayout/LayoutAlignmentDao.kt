@@ -35,9 +35,8 @@ data class MapSegmentProfileInfo<T>(
 @Component
 class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> = Caffeine.newBuilder()
-        .maximumSize(GEOMETRY_CACHE_SIZE)
-        .build()
+    private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> =
+        Caffeine.newBuilder().maximumSize(GEOMETRY_CACHE_SIZE).build()
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
@@ -224,7 +223,6 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata> {
-        // TODO: GVT-2028
         //language=SQL
         val sql = """
             with
@@ -414,7 +412,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
     fun <T> fetchProfileInfoForSegmentsInBoundingBox(
         publishType: PublishType,
-        bbox: BoundingBox
+        bbox: BoundingBox,
     ): List<MapSegmentProfileInfo<T>> {
         //language=SQL
         val sql = """
@@ -497,9 +495,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 ps.setNullableInt(9, s.endJointNumber?.intValue)
                 ps.setNullableDouble(10, s.sourceStart)
                 ps.setString(11, s.source.name)
-                val geometryId =
-                    if (s.geometry.id is IntId) s.geometry.id
-                    else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
+                val geometryId = if (s.geometry.id is IntId) s.geometry.id
+                else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
                 ps.setInt(12, geometryId.intValue)
             }
         }
