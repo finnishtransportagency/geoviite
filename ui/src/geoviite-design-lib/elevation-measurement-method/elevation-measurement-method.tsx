@@ -1,6 +1,7 @@
 import React from 'react';
 import { ElevationMeasurementMethod } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type ElevationMeasurementMethodProps = {
     method: ElevationMeasurementMethod | null;
@@ -19,7 +20,7 @@ function getTranslationKey(
         case null:
             return includeTermContextForUnknownMethod ? 'UNKNOWN-WITH-TERM-CONTEXT' : 'UNKNOWN';
         default:
-            throw new Error('TODO Modify to exhaustiveMatchingGuard!');
+            return exhaustiveMatchingGuard(method);
     }
 }
 
