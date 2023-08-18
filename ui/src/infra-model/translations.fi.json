@@ -4,6 +4,11 @@
         "unreliable-plan": "Epäluotettava suunnitelma",
         "warning-content": "{{planFileName}}-suunnitelman lähde on Paikannuspalvelu ja se saattaa sisältää mm. ilmakuvista digitoitua epätarkkaa geometriaa. Tätä suunnitelmaa ei saa välittää vastauksena  tietopyyntöihin tai käyttää muutoinkaan mihinkään tarkkuuttaa vaativaan tehtävään."
     },
+    "infra-model-hide": {
+        "title": "Suunnitelman poistaminen",
+        "content": "Haluatko poistaa suunnitelman {{planFileName}}?",
+        "hide": "Poista"
+    },
     "im-form": {
         "pv-document-information": {
             "title": "ProjektiVelhon dokumentti",

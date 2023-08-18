@@ -61,7 +61,7 @@ fun clothoidToOrigin(rotation: RotationDirection, dirEndGrads: Double) = clothoi
     end = Point(0.0, 0.0),
     // Start point doesn't matter as the spiral is flattening (calculated from the end)
     dirStartGrads = 0.0, start = Point(1.0, 1.0),
-    pi = Point(0.0,0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
+    pi = Point(0.0, 0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
 )
 
 fun biquadraticParabolaFromOrigin(rotation: RotationDirection, dirStartGrads: Double) = biquadraticParabola(
@@ -83,7 +83,7 @@ fun biquadraticParabolaToOrigin(rotation: RotationDirection, dirEndGrads: Double
     end = Point(0.0, 0.0),
     // Start point doesn't matter as the spiral is flattening (calculated from the end)
     dirStartGrads = 0.0, start = Point(1.0, 1.0),
-    pi = Point(0.0,0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
+    pi = Point(0.0, 0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
 )
 
 fun line(
@@ -555,6 +555,7 @@ fun linearCant(startDistance: Double, endDistance: Double, startValue: Double, e
     )
     return geometryCant(points = listOf(point1, point2))
 }
+
 fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
     name = PlanElementName("TST Cant"),
     description = PlanElementName("Test alignment cant"),
@@ -586,7 +587,11 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
     )
 )
 
-fun geometryUnits(srid: Srid, coordinateSystemName: CoordinateSystemName? = null, verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000) =
+fun geometryUnits(
+    srid: Srid,
+    coordinateSystemName: CoordinateSystemName? = null,
+    verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000
+) =
     GeometryUnits(
         coordinateSystemSrid = srid,
         coordinateSystemName = coordinateSystemName,
@@ -608,3 +613,11 @@ fun application(
 ) = Application(MetaDataName(name), MetaDataName(manufacturer), MetaDataName(version))
 
 fun testFile() = InfraModelFile(FileName("testfile_empty_xml.xml"), "<a></a>")
+
+fun someBoundingPolygon() = listOf(
+    Point(494585.0, 6710975.0),
+    Point(494791.0, 6711265.0),
+    Point(495074.0, 6711718.0),
+    Point(494786.0, 6711281.0),
+    Point(494585.0, 6710975.0),
+)

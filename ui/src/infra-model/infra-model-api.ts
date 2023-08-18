@@ -122,6 +122,14 @@ export async function updateGeometryPlan(
     }
     return response;
 }
+export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | null> {
+    return putIgnoreError<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
+        (id) => {
+            updatePlanChangeTime();
+            return id;
+        },
+    );
+}
 
 export async function getPVDocuments(
     changeTime: TimeStamp,

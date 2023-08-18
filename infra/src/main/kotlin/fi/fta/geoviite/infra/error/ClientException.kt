@@ -30,15 +30,17 @@ sealed class ClientException(
 }
 
 
-class GeocodingFailureException(message: String, cause: Throwable? = null)
-    : ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, "error.geocoding.generic")
+class GeocodingFailureException(message: String, cause: Throwable? = null) :
+    ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, "error.geocoding.generic")
 
 class LinkingFailureException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "generic",
 ) : ClientException(BAD_REQUEST, "Linking failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
-    companion object { const val LOCALIZATION_KEY_BASE = "error.linking" }
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "error.linking"
+    }
 }
 
 class PublicationFailureException(
@@ -46,7 +48,9 @@ class PublicationFailureException(
     cause: Throwable? = null,
     localizedMessageKey: String = "generic",
 ) : ClientException(BAD_REQUEST, "Publishing failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
-    companion object { const val LOCALIZATION_KEY_BASE = "error.publication" }
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "error.publication"
+    }
 }
 
 class DeletingFailureException(
@@ -74,12 +78,13 @@ class InframodelParsingException(
     localizedMessageKey: String = INFRAMODEL_PARSING_KEY_GENERIC,
     localizedMessageParams: List<String> = listOf(),
 ) : ClientException(
-    BAD_REQUEST, "InfraModel could not be parsed: $message", cause, localizedMessageKey, localizedMessageParams)
+    BAD_REQUEST, "InfraModel could not be parsed: $message", cause, localizedMessageKey, localizedMessageParams
+)
 
 class NoSuchEntityException(
     type: String,
     id: String,
-    localizedMessageKey: String = "error.entity_not_found",
+    localizedMessageKey: String = "error.entity-not-found",
 ) : ClientException(NOT_FOUND, "No element of type $type exists with id $id", null, localizedMessageKey) {
     constructor(type: KClass<*>, id: DomainId<*>) : this(type.simpleName ?: type.toString(), idToString(id))
     constructor(type: String, id: DomainId<*>) : this(type, idToString(id))
@@ -87,7 +92,7 @@ class NoSuchEntityException(
 }
 
 enum class Integration { RATKO, PROJEKTIVELHO }
-class IntegrationNotConfiguredException(type: Integration): ClientException(
+class IntegrationNotConfiguredException(type: Integration) : ClientException(
     status = SERVICE_UNAVAILABLE,
     message = "Integration not configured: $type",
     cause = null,

@@ -42,7 +42,8 @@
             }
         },
         "deleting": {
-            "generic": "Poistamisessa tapahtui virhe"
+            "generic": "Poistamisessa tapahtui virhe",
+            "plan-linked": "Suunnitelmaa ei voida poistaa, koska se on linkitettynä paikannuspohjaan."
         },
         "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
         "infra-model": {
@@ -76,7 +77,7 @@
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
             }
         },
-        "entity_not_found": "Tietoa ei löydy"
+        "entity-not-found": "Tietoa ei löydy"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",

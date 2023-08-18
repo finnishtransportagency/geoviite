@@ -241,7 +241,7 @@ class GeometryDao @Autowired constructor(
               (select array_agg(id) from switches where plan_id in (:plan_ids)) as switch_ids,
               (select array_agg(id) from km_posts where plan_id in (:plan_ids)) as km_post_ids
         """.trimIndent()
-        val params = mapOf("plan_id" to planIds.map(IntId<GeometryPlan>::intValue))
+        val params = mapOf("plan_ids" to planIds.map(IntId<GeometryPlan>::intValue))
         return jdbcTemplate.query(sql, params) { rs, _ ->
             GeometryPlanLinkedItems(
                 rs.getIntIdArray("location_track_ids"),
@@ -260,7 +260,10 @@ class GeometryDao @Autowired constructor(
             where id = :id
             returning id, version
         """.trimIndent()
-        val params = mapOf("id" to id.intValue)
+        val params = mapOf(
+            "id" to id.intValue,
+            "hidden" to hidden,
+        )
 
         jdbcTemplate.setUser()
         return jdbcTemplate.queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->

@@ -5,6 +5,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
+import { hidePlan } from 'infra-model/infra-model-api';
 
 type ConfirmHideInfraModelProps = {
     onClose: () => void;
@@ -28,8 +29,7 @@ export const ConfirmHideInfraModel: React.FC<ConfirmHideInfraModelProps> = ({
                     </Button>
                     <Button
                         onClick={() => {
-                            console.log('hide');
-                            onClose();
+                            hidePlan(plan.id).then((id) => id && onClose());
                         }}
                         icon={Icons.Delete}>
                         {t('infra-model-hide.hide')}

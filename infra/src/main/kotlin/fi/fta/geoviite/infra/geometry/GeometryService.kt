@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.configuration.USER_HEADER
+import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -708,7 +709,10 @@ class GeometryService @Autowired constructor(
     fun setPlanHidden(planId: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
         logger.serviceCall("setPlanHidden", "planId" to planId, "hidden" to hidden)
         if (hidden && !geometryDao.getPlanLinking(planId).isEmpty) {
-            throw IllegalArgumentException("Can't hide a plan that is currently linked: planId=$planId")
+            throw DeletingFailureException(
+                message = "Cannot hide geometry plan that is linked to layout",
+                localizedMessageKey = "error.deleting.plan-linked",
+            )
         } else {
             return geometryDao.setPlanHidden(planId, hidden)
         }
