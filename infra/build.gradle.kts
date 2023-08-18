@@ -30,6 +30,7 @@ configurations {
 }
 
 val geotoolsVersion = "27.2"
+ext["selenium.version"] = "4.11.0"
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
 
@@ -86,8 +87,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.9.1")
-    testImplementation("io.github.bonigarcia:webdrivermanager:5.3.3")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.11.0")
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.2.1")
 }
