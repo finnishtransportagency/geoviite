@@ -36,6 +36,11 @@ class PVDocumentService @Autowired constructor(
         return pvDao.updateDocumentStatus(id, status)
     }
 
+    fun updateDocumentsStatuses(ids: List<IntId<PVDocument>>, status: PVDocumentStatus): List<IntId<PVDocument>> {
+        logger.serviceCall("updateDocumentsStatusByProject", "ids" to ids, "status" to status)
+        return pvDao.updateDocumentsStatuses(ids, status)
+    }
+
     fun getFile(id: IntId<PVDocument>): InfraModelFile? {
         logger.serviceCall("getFile", "id" to id)
         return pvDao.getFileContent(id)

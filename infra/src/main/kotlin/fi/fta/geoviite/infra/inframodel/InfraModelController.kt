@@ -51,7 +51,8 @@ class InfraModelController @Autowired constructor(
         @RequestPart(value = "file") file: MultipartFile,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
     ): ValidationResponse {
-        logger.apiCall("validateFile",
+        logger.apiCall(
+            "validateFile",
             "file.originalFilename" to file.originalFilename,
             "overrides" to overrides,
         )
@@ -115,13 +116,13 @@ class InfraModelController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
-    @PutMapping("/projektivelho/documents/{id}/status")
-    fun updatePVDocumentStatus(
-        @PathVariable("id") id: IntId<PVDocument>,
+    @PutMapping("/projektivelho/documents/{ids}/status")
+    fun updatePVDocumentsStatuses(
+        @PathVariable("ids") ids: List<IntId<PVDocument>>,
         @RequestBody status: PVDocumentStatus,
-    ): IntId<PVDocument> {
-        logger.apiCall("updatePVDocumentStatus", "id" to id, "status" to status)
-        return pvDocumentService.updateDocumentStatus(id, status)
+    ): List<IntId<PVDocument>> {
+        logger.apiCall("updatePVDocumentsStatuses", "ids" to ids, "status" to status)
+        return pvDocumentService.updateDocumentsStatuses(ids, status)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -153,7 +154,7 @@ class InfraModelController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/projektivelho/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadPVDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
-        logger.apiCall("downloadPVDocument",  "documentId" to documentId)
+        logger.apiCall("downloadPVDocument", "documentId" to documentId)
         return pvDocumentService.getFile(documentId)
             ?.let(::toFileDownloadResponse)
             ?: throw NoSuchEntityException(PVDocument::class, documentId)

@@ -11,17 +11,19 @@ import { useAppNavigate } from 'common/navigate';
 import {
     getPVDocuments,
     projektivelhoDocumentDownloadUri,
-    rejectPVDocument,
+    rejectPVDocuments,
     restorePVDocument,
 } from 'infra-model/infra-model-api';
 import { updatePVDocumentsChangeTime } from 'common/change-time-api';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { TimeStamp } from 'common/common-model';
+import { Oid, TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useState } from 'react';
 import { WriteAccessRequired } from 'user/write-access-required';
+import { useContextMenu, Menu, Item } from 'react-contexify';
+import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -34,7 +36,7 @@ type PVFileListProps = {
     documentHeaders: PVDocumentHeader[];
     isLoading: boolean;
     listMode: ListMode;
-    onReject: (id: PVDocumentId) => void;
+    onReject: (ids: PVDocumentId[]) => void;
     onImport: (id: PVDocumentId) => void;
     onRestore: (id: PVDocumentId) => void;
     changeTime: TimeStamp;
@@ -58,8 +60,8 @@ export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
             <PVFileList
                 documentHeaders={documentHeaders || []}
                 isLoading={isLoading !== LoaderStatus.Ready && !loadingForUserTriggeredChange}
-                onReject={(id) =>
-                    rejectPVDocument(id).then(() => {
+                onReject={(ids) =>
+                    rejectPVDocuments(ids).then(() => {
                         setLoadingForUserTriggeredChange(true);
                         updatePVDocumentsChangeTime();
                     })
@@ -88,6 +90,17 @@ export const PVFileList = ({
     changeTime,
 }: PVFileListProps) => {
     const { t } = useTranslation();
+
+    const rejectByFilter = (filter: (item: PVDocumentHeader) => boolean) => {
+        onReject(documentHeaders.filter((item) => filter(item)).map((item) => item.document.id));
+    };
+
+    const rejectByAssignment = (assignmentOid: string) =>
+        rejectByFilter((item: PVDocumentHeader) => item.assignment?.oid === assignmentOid);
+    const rejectByProject = (projectOid: string) =>
+        rejectByFilter((item: PVDocumentHeader) => item.project?.oid === projectOid);
+    const rejectByProjectGroup = (projectGroupOid: string) =>
+        rejectByFilter((item: PVDocumentHeader) => item.projectGroup?.oid === projectGroupOid);
 
     return (
         <div>
@@ -118,10 +131,29 @@ export const PVFileList = ({
                             listMode={listMode}
                             key={item.document.id}
                             item={item}
-                            onReject={() => onReject(item.document.id)}
+                            onReject={() => onReject([item.document.id])}
                             onImport={() => onImport(item.document.id)}
                             onRestore={() => onRestore(item.document.id)}
+                            onRejectByProject={(oid: Oid) => rejectByProject(oid)}
+                            onRejectByProjectGroup={(oid: Oid) => rejectByProjectGroup(oid)}
+                            onRejectByAssignment={(oid: Oid) => rejectByAssignment(oid)}
                             changeTime={changeTime}
+                            itemCounts={{
+                                assignment: documentHeaders.filter(
+                                    (i) =>
+                                        i.assignment !== null &&
+                                        i.assignment?.oid === item.assignment?.oid,
+                                ).length,
+                                project: documentHeaders.filter(
+                                    (i) =>
+                                        i.project !== null && i.project?.oid === item.project?.oid,
+                                ).length,
+                                projectGroup: documentHeaders.filter(
+                                    (i) =>
+                                        i.projectGroup !== null &&
+                                        i.projectGroup?.oid === item.projectGroup?.oid,
+                                ).length,
+                            }}
                         />
                     ))}
                 </tbody>
@@ -137,6 +169,10 @@ type PVFileListRowProps = {
     onImport: () => void;
     onRestore: () => void;
     changeTime: TimeStamp;
+    onRejectByProject: (oid: Oid) => void;
+    onRejectByProjectGroup: (oid: Oid) => void;
+    onRejectByAssignment: (oid: Oid) => void;
+    itemCounts: { project: number; projectGroup: number; assignment: number };
 };
 
 const PVFileListRow = ({
@@ -146,9 +182,22 @@ const PVFileListRow = ({
     onImport,
     onRestore,
     changeTime,
+    onRejectByProject,
+    onRejectByProjectGroup,
+    onRejectByAssignment,
+    itemCounts,
 }: PVFileListRowProps) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = React.useState(false);
+
+    const menuId = () => `contextmenu_${item.document.id}}`;
+    const { show: showContextMenu, hideAll: hideContextMenu } = useContextMenu({
+        id: menuId(),
+    });
+    const [showConfirmAssignmentReject, setShowConfirmAssignmentReject] = useState(false);
+    const [showConfirmProjectReject, setShowConfirmProjectReject] = useState(false);
+    const [showConfirmProjectGroupReject, setShowConfirmProjectGroupReject] = useState(false);
+
     return (
         <>
             <tr key={`${item.document.id}`}>
@@ -193,6 +242,54 @@ const PVFileListRow = ({
                                 qa-id="pv-import-button">
                                 {t('projektivelho.file-list.upload')}
                             </Button>
+                            {listMode === 'SUGGESTED' && (
+                                <Button
+                                    title={t('projektivelho.file-list.more')}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={(event: React.MouseEvent) => {
+                                        showContextMenu({ event });
+                                    }}
+                                    qa-id="pv-menu-button">
+                                    {'...'}
+                                </Button>
+                            )}
+                        </div>
+                        <div>
+                            <Menu animation={false} id={menuId()}>
+                                <Item
+                                    id="1"
+                                    disabled={!item.assignment?.oid}
+                                    onClick={() => {
+                                        setShowConfirmAssignmentReject(true);
+                                        hideContextMenu();
+                                    }}>
+                                    {t('projektivelho.file-list.reject-by-assignment', [
+                                        itemCounts.assignment ? itemCounts.assignment : '-',
+                                    ])}
+                                </Item>
+                                <Item
+                                    id="2"
+                                    disabled={!item.project?.oid}
+                                    onClick={() => {
+                                        setShowConfirmProjectReject(true);
+                                        hideContextMenu();
+                                    }}>
+                                    {t('projektivelho.file-list.reject-by-project', [
+                                        itemCounts.project ? itemCounts.project : '-',
+                                    ])}
+                                </Item>
+                                <Item
+                                    id="3"
+                                    disabled={!item.projectGroup?.oid}
+                                    onClick={() => {
+                                        setShowConfirmProjectGroupReject(true);
+                                        hideContextMenu();
+                                    }}>
+                                    {t('projektivelho.file-list.reject-by-project-group', [
+                                        itemCounts.projectGroup ? itemCounts.projectGroup : '-',
+                                    ])}
+                                </Item>
+                            </Menu>
                         </div>
                     </td>
                 </WriteAccessRequired>
@@ -206,6 +303,107 @@ const PVFileListRow = ({
                 </tr>
             ) : (
                 <></>
+            )}
+            {showConfirmAssignmentReject && (
+                <Dialog
+                    className={'dialog--wide'}
+                    variant={DialogVariant.LIGHT}
+                    title={t('projektivelho.file-list.reject-by-assignment-title')}
+                    onClose={() => setShowConfirmAssignmentReject(false)}
+                    footerContent={
+                        <React.Fragment>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={() => setShowConfirmAssignmentReject(false)}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    item.assignment && onRejectByAssignment(item.assignment?.oid);
+                                    setShowConfirmAssignmentReject(false);
+                                }}>
+                                {t('projektivelho.file-list.reject-confirm', [
+                                    itemCounts.assignment,
+                                ])}
+                            </Button>
+                        </React.Fragment>
+                    }>
+                    <span
+                        dangerouslySetInnerHTML={{
+                            __html: t('projektivelho.file-list.reject-by-assignment-message', [
+                                item.assignment?.name,
+                                itemCounts.assignment,
+                            ]),
+                        }}
+                    />
+                </Dialog>
+            )}
+            {showConfirmProjectReject && (
+                <Dialog
+                    className={'dialog--wide'}
+                    variant={DialogVariant.LIGHT}
+                    title={t('projektivelho.file-list.reject-by-project-title')}
+                    onClose={() => setShowConfirmProjectReject(false)}
+                    footerContent={
+                        <React.Fragment>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={() => setShowConfirmProjectReject(false)}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    item.project && onRejectByProject(item.project?.oid);
+                                    setShowConfirmProjectReject(false);
+                                }}>
+                                {t('projektivelho.file-list.reject-confirm', [itemCounts.project])}
+                            </Button>
+                        </React.Fragment>
+                    }>
+                    <span
+                        dangerouslySetInnerHTML={{
+                            __html: t('projektivelho.file-list.reject-by-project-message', [
+                                item.project?.name,
+                                itemCounts.project,
+                            ]),
+                        }}
+                    />
+                </Dialog>
+            )}
+            {showConfirmProjectGroupReject && (
+                <Dialog
+                    className={'dialog--wide'}
+                    variant={DialogVariant.LIGHT}
+                    title={t('projektivelho.file-list.reject-by-project-group-title')}
+                    onClose={() => setShowConfirmProjectGroupReject(false)}
+                    footerContent={
+                        <React.Fragment>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={() => setShowConfirmProjectGroupReject(false)}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    item.projectGroup &&
+                                        onRejectByProjectGroup(item.projectGroup?.oid);
+                                    setShowConfirmProjectGroupReject(false);
+                                }}>
+                                {t('projektivelho.file-list.reject-confirm', [
+                                    itemCounts.projectGroup,
+                                ])}
+                            </Button>
+                        </React.Fragment>
+                    }>
+                    <span
+                        dangerouslySetInnerHTML={{
+                            __html: t('projektivelho.file-list.reject-by-project-group-message', [
+                                item.projectGroup?.name,
+                                itemCounts.projectGroup,
+                            ]),
+                        }}
+                    />
+                </Dialog>
             )}
         </>
     );
