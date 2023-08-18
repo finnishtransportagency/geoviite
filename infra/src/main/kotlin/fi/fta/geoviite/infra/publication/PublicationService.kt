@@ -592,7 +592,7 @@ class PublicationService @Autowired constructor(
         switch: TrackLayoutSwitch,
         id: IntId<TrackLayoutSwitch>
     ): List<PublishValidationError> {
-        return if (switchService.officialDuplicateNameExistsFor(id))
+        return if (switchService.duplicateNameExistsForPublicationCandidate(id))
             listOf(
                 PublishValidationError(
                     PublishValidationErrorType.WARNING,
@@ -674,7 +674,7 @@ class PublicationService @Autowired constructor(
         locationTrack: LocationTrack,
         id: IntId<LocationTrack>
     ): List<PublishValidationError> {
-        return if (locationTrackService.officialDuplicateNameExistsFor(id))
+        return if (locationTrackService.duplicateNameExistsFor(id))
             listOf(
                 PublishValidationError(
                     PublishValidationErrorType.WARNING,

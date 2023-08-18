@@ -323,7 +323,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun officialDuplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
+    fun duplicateNameExistsForPublicationCandidate(locationTrackId: IntId<LocationTrack>): Boolean {
         val sql = """
             select
               exists(
@@ -333,8 +333,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                            on this_track.name = duplicate_track.name
                              and this_track.track_number_id = duplicate_track.track_number_id
                              and this_track.id != duplicate_track.id
-                    where not duplicate_track.draft
-                      and duplicate_track.state != 'DELETED'
+                             and this_track.draft_of_location_track_id is distinct from duplicate_track.id
+                    where duplicate_track.state != 'DELETED'
                       and this_track.id = :locationTrackId)
         """.trimIndent()
 

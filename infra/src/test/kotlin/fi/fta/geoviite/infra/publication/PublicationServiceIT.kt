@@ -691,6 +691,7 @@ class PublicationServiceIT @Autowired constructor(
         val referenceLineId =
             referenceLineDao.insert(draft(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment))).id
         locationTrackDao.insert(locationTrack(draftTrackNumberId, name = "LT", alignmentVersion = someAlignment))
+        // one new draft location track trying to use an official one's name
         val draftLocationTrackId = locationTrackDao.insert(
             draft(
                 locationTrack(
@@ -701,18 +702,29 @@ class PublicationServiceIT @Autowired constructor(
             )
         ).id
 
+        // two new location tracks stepping over each other's names
+        val newLt = draft(locationTrack(draftTrackNumberId, name = "NLT", alignmentVersion = someAlignment, externalId = null))
+        val newLocationTrack1 = locationTrackDao.insert(newLt).id
+        val newLocationTrack2 = locationTrackDao.insert(newLt).id
+
         switchDao.insert(switch(123, name = "SW").copy(stateCategory = LayoutStateCategory.EXISTING))
+        // one new switch trying to use an official one's name
         val draftSwitchId =
             switchDao.insert(draft(switch(123, name = "SW").copy(stateCategory = LayoutStateCategory.EXISTING))).id
+
+        // two new switches both trying to use the same name
+        val newSwitch = draft(switch(124, name = "NSW").copy(stateCategory = LayoutStateCategory.EXISTING))
+        val newSwitch1 = switchDao.insert(newSwitch).id
+        val newSwitch2 = switchDao.insert(newSwitch).id
 
         val validation = publicationService.validatePublishCandidates(
             publicationService.collectPublishCandidates(),
             PublishRequestIds(
                 trackNumbers = listOf(draftTrackNumberId),
-                locationTracks = listOf(draftLocationTrackId),
+                locationTracks = listOf(draftLocationTrackId, newLocationTrack1, newLocationTrack2),
                 kmPosts = listOf(),
                 referenceLines = listOf(referenceLineId),
-                switches = listOf(draftSwitchId)
+                switches = listOf(draftSwitchId, newSwitch1, newSwitch2)
             )
         )
 
@@ -723,7 +735,19 @@ class PublicationServiceIT @Autowired constructor(
                     "validation.layout.location-track.duplicate-name",
                     listOf("LT")
                 )
-            ), validation.validatedAsPublicationUnit.locationTracks[0].errors
+            ), validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.errors
+        )
+
+        assertEquals(
+            List(2) {
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.location-track.duplicate-name",
+                    listOf("NLT")
+                )
+            },
+            validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
+                .flatMap { it.errors }
         )
 
         assertEquals(
@@ -734,9 +758,21 @@ class PublicationServiceIT @Autowired constructor(
                     listOf("SW")
                 )
             ),
-            validation.validatedAsPublicationUnit.switches[0].errors.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" }
+            validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors
+                ?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" }
         )
 
+        assertEquals(
+            List(2) {
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.switch.duplicate-name",
+                    listOf("NSW")
+                )
+            },
+            validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }.flatMap { it.errors }
+                .filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" }
+        )
         assertEquals(
             listOf(
                 PublishValidationError(

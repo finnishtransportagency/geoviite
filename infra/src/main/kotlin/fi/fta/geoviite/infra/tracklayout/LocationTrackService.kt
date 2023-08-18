@@ -314,9 +314,9 @@ class LocationTrackService(
         return getLocationTrackEndpoints(listWithAlignments(publishType), bbox)
     }
 
-    fun officialDuplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
-        logger.serviceCall("checkDuplicateNames", "locationTrackId" to locationTrackId)
-        return dao.officialDuplicateNameExistsFor(locationTrackId)
+    fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
+        logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
+        return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
     }
 }
 

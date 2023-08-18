@@ -198,9 +198,9 @@ class LayoutSwitchService @Autowired constructor(
             }
     }
 
-    fun officialDuplicateNameExistsFor(switchId: IntId<TrackLayoutSwitch>): Boolean {
-        logger.serviceCall("officialDuplicateNameExistsFor", "switchId" to switchId)
-        return dao.officialDuplicateNameExistsFor(switchId)
+    fun duplicateNameExistsForPublicationCandidate(switchId: IntId<TrackLayoutSwitch>): Boolean {
+        logger.serviceCall("duplicateNameExistsForPublicationCandidate", "switchId" to switchId)
+        return dao.duplicateNameExistsForPublicationCandidate(switchId)
     }
 
     private fun getTopologySwitchJointConnections(
