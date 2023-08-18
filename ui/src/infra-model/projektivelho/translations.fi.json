@@ -23,7 +23,18 @@
             "restore-success": "Aineisto siirretty käsiteltävien aineistojen kokoelmaan",
             "upload": "Tuo suunnitelma...",
             "upload-tooltip": "Tuo aineisto Geoviitteen suunnitelmaksi",
-            "oid-copied-to-clipboard": "OID kopioitu leikepöydälle"
+            "oid-copied-to-clipboard": "OID kopioitu leikepöydälle",
+            "reject-by-assignment": "Hylkää toimeksiannon aineistot ({{0}} kpl)",
+            "reject-by-assignment-title": "Toimeksiannon aineistojen hylkääminen",
+            "reject-by-assignment-message": "Haluatko siirtää kaikki toimeksiannon <strong>{{0}}</strong> aineistot ({{1}} kpl) hylättyjen aineistojen kokoelmaan?",
+            "reject-by-project": "Hylkää projektin aineistot ({{0}} kpl)",
+            "reject-by-project-title": "Projektin aineistojen hylkääminen",
+            "reject-by-project-message": "Haluatko siirtää kaikki projektin <strong>{{0}}</strong> aineistot ({{1}} kpl) hylättyjen aineistojen kokoelmaan?",
+            "reject-by-project-group": "Hylkää projektijoukon aineistot ({{0}} kpl)",
+            "reject-by-project-group-title": "Projektijoukon aineistojen hylkääminen",
+            "reject-by-project-group-message": "Haluatko siirtää kaikki projektijoukon <strong>{{0}}</strong> aineistot ({{1}} kpl) hylättyjen aineistojen kokoelmaan?",
+            "reject-confirm": "Hylkää aineistot ({{0}} kpl)",
+            "more": "Lisää"
         }
     }
 }
