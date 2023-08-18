@@ -33,7 +33,7 @@ class PVDocumentService @Autowired constructor(
 
     fun updateDocumentStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
         logger.serviceCall("updateDocumentStatus", "id" to id, "status" to status)
-        return pvDao.updateDocumentStatus(id, status)
+        return pvDao.updateDocumentsStatuses(listOf(id), status).first()
     }
 
     fun updateDocumentsStatuses(ids: List<IntId<PVDocument>>, status: PVDocumentStatus): List<IntId<PVDocument>> {

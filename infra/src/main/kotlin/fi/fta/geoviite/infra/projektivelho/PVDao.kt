@@ -280,21 +280,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     }
 
     @Transactional
-    fun updateDocumentStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
-        val sql = """
-            update projektivelho.document
-            set status = :status::projektivelho.document_status
-            where id = :id
-            returning id
-        """.trimIndent()
-        val params = mapOf("id" to id.intValue, "status" to status.name)
-        jdbcTemplate.setUser()
-        return getOne<PVDocument, IntId<PVDocument>?>(id, jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId("id")
-        }).also { _ -> logger.daoAccess(UPDATE, PVDocument::class, id) }
-    }
-
-    @Transactional
     fun updateDocumentsStatuses(ids: List<IntId<PVDocument>>, status: PVDocumentStatus): List<IntId<PVDocument>> {
         if (ids.isEmpty()) return emptyList()
         val sql = """
