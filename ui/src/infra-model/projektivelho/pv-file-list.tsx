@@ -95,12 +95,19 @@ export const PVFileList = ({
         onReject(documentHeaders.filter((item) => filter(item)).map((item) => item.document.id));
     };
 
+    const isAssignment = (header: PVDocumentHeader, assignmentOid: string | undefined) =>
+        header.assignment?.oid === assignmentOid;
+    const isProject = (header: PVDocumentHeader, projectOid: string | undefined) =>
+        header.project?.oid === projectOid;
+    const isProjectGroup = (header: PVDocumentHeader, projectGroupOid: string | undefined) =>
+        header.projectGroup?.oid === projectGroupOid;
+
     const rejectByAssignment = (assignmentOid: string) =>
-        rejectByFilter((item: PVDocumentHeader) => item.assignment?.oid === assignmentOid);
+        rejectByFilter((item: PVDocumentHeader) => isAssignment(item, assignmentOid));
     const rejectByProject = (projectOid: string) =>
-        rejectByFilter((item: PVDocumentHeader) => item.project?.oid === projectOid);
+        rejectByFilter((item: PVDocumentHeader) => isProject(item, projectOid));
     const rejectByProjectGroup = (projectGroupOid: string) =>
-        rejectByFilter((item: PVDocumentHeader) => item.projectGroup?.oid === projectGroupOid);
+        rejectByFilter((item: PVDocumentHeader) => isProjectGroup(item, projectGroupOid));
 
     return (
         <div>
@@ -140,18 +147,19 @@ export const PVFileList = ({
                             changeTime={changeTime}
                             itemCounts={{
                                 assignment: documentHeaders.filter(
-                                    (i) =>
-                                        i.assignment !== null &&
-                                        i.assignment?.oid === item.assignment?.oid,
+                                    (document) =>
+                                        document.assignment !== null &&
+                                        isAssignment(document, item.assignment?.oid),
                                 ).length,
                                 project: documentHeaders.filter(
-                                    (i) =>
-                                        i.project !== null && i.project?.oid === item.project?.oid,
+                                    (document) =>
+                                        document.project != null &&
+                                        isProject(document, item.project?.oid),
                                 ).length,
                                 projectGroup: documentHeaders.filter(
-                                    (i) =>
-                                        i.projectGroup !== null &&
-                                        i.projectGroup?.oid === item.projectGroup?.oid,
+                                    (document) =>
+                                        document.projectGroup !== null &&
+                                        isProjectGroup(document, item.projectGroup?.oid),
                                 ).length,
                             }}
                         />
