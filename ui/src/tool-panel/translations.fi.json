@@ -21,6 +21,7 @@
             "plan-age-content": "{{ageYears}}v sitten",
             "plan-age-under-1-year": "alle 1v sitten",
             "measurement-method": "Laatu",
+            "elevation-measurement-method": "Korkeusasema",
             "vertical-coordinate-system": "Korkeusjärjestelmä",
             "has-vertical-geometry": "Pystygeometria",
             "has-cant": "Kallistus",

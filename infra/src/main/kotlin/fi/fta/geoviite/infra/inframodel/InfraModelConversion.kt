@@ -122,6 +122,7 @@ fun toGvtPlan(
         kmPosts = kmPosts,
         pvDocumentId = null,
         measurementMethod = null,
+        elevationMeasurementMethod = null,
         planPhase = null,
         decisionPhase = null,
         message = null,

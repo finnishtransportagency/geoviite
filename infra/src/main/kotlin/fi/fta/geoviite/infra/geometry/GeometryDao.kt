@@ -85,6 +85,7 @@ class GeometryDao @Autowired constructor(
               plan_phase,
               plan_decision,
               measurement_method,
+              elevation_measurement_method,
               message
             )
             values(
@@ -106,6 +107,7 @@ class GeometryDao @Autowired constructor(
               :plan_phase::geometry.plan_phase,
               :plan_decision::geometry.plan_decision,
               :measurement_method::common.measurement_method,
+              :elevation_measurement_method::common.elevation_measurement_method,
               :message
             )
             returning id, version
@@ -133,6 +135,7 @@ class GeometryDao @Autowired constructor(
             "plan_phase" to plan.planPhase?.name,
             "plan_decision" to plan.decisionPhase?.name,
             "measurement_method" to plan.measurementMethod?.name,
+            "elevation_measurement_method" to plan.elevationMeasurementMethod?.name,
             "message" to plan.message,
         )
 
@@ -228,6 +231,7 @@ class GeometryDao @Autowired constructor(
               plan_phase = :plan_phase::geometry.plan_phase,
               plan_decision = :plan_decision::geometry.plan_decision,
               measurement_method = :measurement_method::common.measurement_method,
+              elevation_measurement_method = :elevation_measurement_method::common.elevation_measurement_method,
               message = :message,
               source = :source::geometry.plan_source
             where id = :id
@@ -247,6 +251,7 @@ class GeometryDao @Autowired constructor(
             "plan_phase" to geometryPlan.planPhase?.name,
             "plan_decision" to geometryPlan.decisionPhase?.name,
             "measurement_method" to geometryPlan.measurementMethod?.name,
+            "elevation_measurement_method" to geometryPlan.elevationMeasurementMethod?.name,
             "message" to geometryPlan.message,
             "source" to geometryPlan.source.name,
         )
@@ -571,6 +576,7 @@ class GeometryDao @Autowired constructor(
               plan.plan_time, 
               plan.upload_time, 
               plan.measurement_method,
+              plan.elevation_measurement_method,
               plan.plan_phase, 
               plan.plan_decision,
               plan.linear_unit,
@@ -621,6 +627,7 @@ class GeometryDao @Autowired constructor(
                 planTime = rs.getInstantOrNull("plan_time"),
                 trackNumberId = rs.getIntIdOrNull("track_number_id"),
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
+                elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
                 decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
                 planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
                 message = rs.getFreeTextOrNull("message"),
@@ -745,6 +752,7 @@ class GeometryDao @Autowired constructor(
               plan.plan_phase,
               plan.plan_decision,
               plan.measurement_method,
+              plan.elevation_measurement_method,
               plan.message
             from geometry.plan 
               left join geometry.plan_file on plan_file.plan_id = plan.id
@@ -788,6 +796,7 @@ class GeometryDao @Autowired constructor(
                 planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
                 decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
+                elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
                 dataType = DataType.STORED,
                 message = rs.getFreeTextOrNull("message"),
                 uploadTime = rs.getInstant("upload_time"),

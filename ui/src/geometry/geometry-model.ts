@@ -4,6 +4,7 @@ import {
     AngularUnit,
     DataType,
     ElementLocation,
+    ElevationMeasurementMethod,
     JointNumber,
     KmNumber,
     LinearUnit,
@@ -76,6 +77,7 @@ export type GeometryPlanHeader = {
     trackNumberId: LayoutTrackNumberId | undefined;
     kmNumberRange: KmNumberRange | undefined;
     measurementMethod: MeasurementMethod;
+    elevationMeasurementMethod: ElevationMeasurementMethod | null;
     planPhase: PlanPhase;
     decisionPhase: DecisionPhase;
     planTime: TimeStamp;
@@ -108,6 +110,7 @@ export type GeometryPlan = {
     planPhase: PlanPhase | null;
     decisionPhase: DecisionPhase | null;
     measurementMethod: MeasurementMethod | null;
+    elevationMeasurementMethod: ElevationMeasurementMethod | null;
     message: string | null;
     linkedAsPlanId: GeometryPlanId | null;
     uploadTime: Date | null;
@@ -313,6 +316,7 @@ export type VerticalGeometryItem = {
     locationTrackName: string;
     overlapsAnother: boolean;
     verticalCoordinateSystem: VerticalCoordinateSystem | null;
+    elevationMeasurementMethod: ElevationMeasurementMethod | null;
     coordinateSystemSrid: Srid | null;
     coordinateSystemName: string | null;
 

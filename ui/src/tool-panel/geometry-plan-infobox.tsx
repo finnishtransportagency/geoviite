@@ -23,6 +23,7 @@ import MeasurementMethod from 'geoviite-design-lib/measurement-method/measuremen
 import { TimeStamp } from 'common/common-model';
 import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
 import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -166,6 +167,14 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     <InfoboxField
                         label={t('tool-panel.geometry-plan.vertical-coordinate-system')}
                         value={planHeader.units.verticalCoordinateSystem}
+                    />
+                    <InfoboxField
+                        label={t('tool-panel.geometry-plan.elevation-measurement-method')}
+                        value={
+                            <ElevationMeasurementMethod
+                                method={planHeader.elevationMeasurementMethod}
+                            />
+                        }
                     />
                     <InfoboxButtons>
                         <Button

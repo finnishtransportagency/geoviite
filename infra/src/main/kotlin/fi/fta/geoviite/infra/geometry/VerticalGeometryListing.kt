@@ -77,6 +77,7 @@ data class VerticalGeometryListing(
     val linearSectionForward: LinearSection,
     val linearSectionBackward: LinearSection,
     val overlapsAnother: Boolean,
+    val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
@@ -315,6 +316,7 @@ fun toVerticalGeometryListing(
         tangent = lineLength(segment.start, stationPoint).let(::roundTo3Decimals),
         linearSectionBackward = previousLinearSection(segment, curvedSegments, linearSegments),
         linearSectionForward = nextLinearSection(segment, curvedSegments, linearSegments),
+        elevationMeasurementMethod = planHeader.elevationMeasurementMethod,
         verticalCoordinateSystem = planHeader.units.verticalCoordinateSystem,
         coordinateSystemSrid = planHeader.units.coordinateSystemSrid,
         coordinateSystemName = planHeader.units.coordinateSystemName,
@@ -412,6 +414,9 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { it.point.station },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { it.end.station },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM)) { it.verticalCoordinateSystem },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ELEVATION_MEASUREMENT_METHOD)) {
+        translateElevationMeasurementMethod(it.elevationMeasurementMethod)
+    },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.REMARKS)) { if (it.overlapsAnother) VERTICAL_SECTIONS_OVERLAP else "" }
 )
 

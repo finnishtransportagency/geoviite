@@ -38,7 +38,13 @@ import {
 import { BoundingBox, Point } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
-import { KmNumber, PublishType, TimeStamp, VerticalCoordinateSystem } from 'common/common-model';
+import {
+    ElevationMeasurementMethod,
+    KmNumber,
+    PublishType,
+    TimeStamp,
+    VerticalCoordinateSystem,
+} from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
@@ -341,6 +347,7 @@ export interface PlanLinkingSummaryItem {
     alignmentHeader: AlignmentHeader | null;
     planId: GeometryPlanId | null;
     verticalCoordinateSystem: VerticalCoordinateSystem | null;
+    elevationMeasurementMethod: ElevationMeasurementMethod | null;
 }
 
 export interface TrackKmHeights {

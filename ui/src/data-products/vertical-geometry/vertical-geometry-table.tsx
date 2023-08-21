@@ -46,6 +46,7 @@ const COMMON_HEADINGS = [
     numericHeading('station-vertical-intersection'),
     numericHeading('station-end'),
     withSeparator(nonNumericHeading('vertical-coordinate-system')),
+    withSeparator(nonNumericHeading('elevation-measurement-method')),
     nonNumericHeading('remarks'),
 ];
 
@@ -137,7 +138,7 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
                                 {t(`data-products.vertical-geometry.table.station`)}
                             </Th>
                             <Th
-                                colSpan={2}
+                                colSpan={3}
                                 scope={'colgroup'}
                                 variant={ThVariant.MULTILINE_TOP}
                                 className={separatorAndCenteredClassName}></Th>

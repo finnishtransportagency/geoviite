@@ -481,6 +481,7 @@ class GeometryService @Autowired constructor(
                     segmentSources[thisPlanEndIndex].alignment?.let(::toAlignmentHeader),
                     segmentSources[thisPlanEndIndex].plan?.id,
                     segmentSources[thisPlanEndIndex].plan?.units?.verticalCoordinateSystem,
+                    segmentSources[thisPlanEndIndex].plan?.elevationMeasurementMethod,
                 )
             }
     }
