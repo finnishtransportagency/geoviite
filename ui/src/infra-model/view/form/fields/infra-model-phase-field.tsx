@@ -49,7 +49,10 @@ export const InfraModelPhaseField: React.FC<InfraModelPhaseFieldProps> = ({
                             wide
                             wideList
                             value={extraInframodelParameters.planPhase}
-                            options={planPhases}
+                            options={planPhases.map(({ value, name: nameFn }) => ({
+                                value,
+                                name: nameFn(),
+                            }))}
                             unselectText={t('im-form.information-missing')}
                             canUnselect
                             onChange={(phase) => changeInExtraParametersField(phase, 'planPhase')}

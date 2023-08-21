@@ -79,7 +79,7 @@ export const SwitchEditDialog = ({
 
     const switchStateCategoryOptions = layoutStateCategories
         .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
+        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING', name: sc.name() }));
 
     React.useEffect(() => {
         if (isExistingSwitch) {
@@ -388,7 +388,10 @@ export const SwitchEditDialog = ({
                             value={
                                 <Dropdown
                                     value={trapPoint}
-                                    options={switchTrapPoints}
+                                    options={switchTrapPoints.map(({ value, name: nameFn }) => ({
+                                        name: nameFn(),
+                                        value,
+                                    }))}
                                     onChange={(value) => value && updateTrapPoint(value)}
                                     onBlur={() => visitField('trapPoint')}
                                     wide

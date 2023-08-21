@@ -68,3 +68,4 @@ geoviite:
   rail-network-export:
     schedule: "0 0 3 * * *"
     vertical-geometry-schedule: "0 0 4 * * *"
+  default-language: "fi"

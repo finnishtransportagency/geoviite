@@ -231,7 +231,10 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Dropdown
                                 value={state.request.state}
                                 canUnselect={false}
-                                options={trackNumberStateOptions}
+                                options={trackNumberStateOptions.map(({ value, name: nameFn }) => ({
+                                    value,
+                                    name: nameFn(),
+                                }))}
                                 onChange={(state) =>
                                     stateActions.onUpdateProp({
                                         key: 'state' as keyof TrackNumberSaveRequest,

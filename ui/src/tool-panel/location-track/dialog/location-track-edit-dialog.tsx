@@ -79,7 +79,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
+        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', name: ls.name() }));
 
     const closeNonDraftDeleteConfirmation = () => {
         setNonDraftDeleteConfirmationVisible(false);
@@ -345,7 +345,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <Dropdown
                                     value={state.locationTrack?.type}
-                                    options={locationTrackTypes}
+                                    options={locationTrackTypes.map(({ value, name: nameFn }) => ({
+                                        name: nameFn(),
+                                        value,
+                                    }))}
                                     onChange={(value) => value && updateProp('type', value)}
                                     onBlur={() => stateActions.onCommitField('type')}
                                     hasError={hasErrors('type')}
@@ -405,7 +408,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <Dropdown
                                     value={state.locationTrack?.topologicalConnectivity}
-                                    options={topologicalConnectivityTypes}
+                                    options={topologicalConnectivityTypes.map(
+                                        ({ value, name: nameFn }) => ({
+                                            name: nameFn(),
+                                            value,
+                                        }),
+                                    )}
                                     onChange={(value) =>
                                         value && updateProp('topologicalConnectivity', value)
                                     }
