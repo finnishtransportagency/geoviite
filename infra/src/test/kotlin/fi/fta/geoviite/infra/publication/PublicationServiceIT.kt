@@ -797,7 +797,7 @@ class PublicationServiceIT @Autowired constructor(
                 trackNumbers = listOf(draftTrackNumberId)
             )
         }
-        assertEquals("error.publication.duplicate-name-on.TRACK_NUMBER", exception.localizedMessageKey.toString())
+        assertEquals("error.publication.duplicate-name-on.track-number", exception.localizedMessageKey.toString())
         assertEquals(listOf("TN"), exception.localizedMessageParams)
     }
 
@@ -813,7 +813,7 @@ class PublicationServiceIT @Autowired constructor(
         val exception = assertThrows<DuplicateLocationTrackNameInPublicationException> {
             publish(publicationService, locationTracks = listOf(draftLocationTrackId))
         }
-        assertEquals("error.publication.duplicate-name-on-location-track", exception.localizedMessageKey.toString())
+        assertEquals("error.publication.duplicate-name-on.location-track", exception.localizedMessageKey.toString())
         assertEquals(listOf("LT", "TN"), exception.localizedMessageParams)
     }
 
@@ -843,7 +843,7 @@ class PublicationServiceIT @Autowired constructor(
         val exception = assertThrows<DuplicateNameInPublicationException> {
             publish(publicationService, switches = listOf(draftSwitchId))
         }
-        assertEquals("error.publication.duplicate-name-on.SWITCH", exception.localizedMessageKey.toString())
+        assertEquals("error.publication.duplicate-name-on.switch", exception.localizedMessageKey.toString())
         assertEquals(listOf("SW123"), exception.localizedMessageParams)
     }
 

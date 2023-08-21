@@ -96,7 +96,7 @@ class DuplicateNameInPublicationException(
     BAD_REQUEST,
     "Duplicate $type in publication: $duplicatedName",
     cause,
-    localizedMessageKey = "error.publication.duplicate-name-on.$type",
+    localizedMessageKey = "error.publication.duplicate-name-on.${if (type == DuplicateNameInPublication.SWITCH) "switch" else "track-number"}",
     localizedMessageParams = listOf(duplicatedName),
 )
 class DuplicateLocationTrackNameInPublicationException(
@@ -105,7 +105,7 @@ class DuplicateLocationTrackNameInPublicationException(
     cause: Throwable? = null
 ) : ClientException(
     BAD_REQUEST, "Duplicate location track $alignmentName in $trackNumber", cause,
-    localizedMessageKey = "error.publication.duplicate-name-on-location-track",
+    localizedMessageKey = "error.publication.duplicate-name-on.location-track",
     localizedMessageParams = listOf(alignmentName.toString(), trackNumber.value)
 )
 
