@@ -11,7 +11,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getKmPost } from 'track-layout/layout-km-post-api';
+import { getKmLengths, getKmPost } from 'track-layout/layout-km-post-api';
 import { useLoader } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
@@ -47,7 +47,18 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         () => getKmPost(kmPost.id, publishType),
         [kmPost, kmPostChangeTime, publishType],
     );
+    const [kmPostLength, setKmPostLength] = React.useState<number>();
     const changeTimes = useKmPostChangeTimes(kmPost.id);
+
+    React.useEffect(() => {
+        getKmLengths(publishType, kmPost.trackNumberId).then((details) => {
+            details.filter((value) => value.kmNumber === kmPost.kmNumber)[0]
+                ? setKmPostLength(
+                      details.filter((value) => value.kmNumber === kmPost.kmNumber)[0].length,
+                  )
+                : '';
+        });
+    }, [kmPost]);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -102,6 +113,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
+
+                    <InfoboxField label={'Ratakilometrin pituus'} value={kmPostLength} />
+
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
