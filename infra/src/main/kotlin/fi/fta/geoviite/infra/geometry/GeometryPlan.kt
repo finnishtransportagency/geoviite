@@ -20,8 +20,7 @@ import java.time.Instant
 
 
 enum class PlanSource {
-    GEOMETRIAPALVELU,
-    PAIKANNUSPALVELU,
+    GEOMETRIAPALVELU, PAIKANNUSPALVELU,
 }
 
 /**
@@ -46,6 +45,7 @@ data class GeometryPlanHeader(
     val author: String?,
     val hasProfile: Boolean,
     val hasCant: Boolean,
+    val isHidden: Boolean,
 ) {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
@@ -77,6 +77,7 @@ data class GeometryPlan(
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
     val message: FreeText?,
+    val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) {

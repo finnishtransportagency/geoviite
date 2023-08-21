@@ -149,6 +149,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         if (linkingState?.suggestedSwitch && linkingState.layoutSwitchId) {
             const params = {
                 switchStructureId: linkingState.suggestedSwitch.switchStructure.id,
+                geometryPlanId: planId ?? null,
                 geometrySwitchId: linkingState.suggestedSwitch.geometrySwitchId,
                 layoutSwitchId: linkingState.layoutSwitchId,
                 joints: linkingState.suggestedSwitch.joints.map((joint) => {

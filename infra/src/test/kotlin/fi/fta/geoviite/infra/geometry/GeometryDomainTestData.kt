@@ -16,11 +16,9 @@ import java.math.RoundingMode
 import java.time.Instant
 import kotlin.math.PI
 
-fun lineFromOrigin(dirStartGrads: Double) =
-    line(Point(0.0, 0.0), pointInDirection(50.0, gradsToRads(dirStartGrads)))
+fun lineFromOrigin(dirStartGrads: Double) = line(Point(0.0, 0.0), pointInDirection(50.0, gradsToRads(dirStartGrads)))
 
-fun lineToOrigin(dirEndGrads: Double) =
-    line(pointInDirection(50.0, gradsToRads(dirEndGrads - 200)), Point(0.0, 0.0))
+fun lineToOrigin(dirEndGrads: Double) = line(pointInDirection(50.0, gradsToRads(dirEndGrads - 200)), Point(0.0, 0.0))
 
 fun curveFromOrigin(rotation: RotationDirection, dirStartGrads: Double): GeometryCurve {
     // For simple math, make it a 90-degree turn: chord = radius & end-point is in a 45-degree angle
@@ -368,7 +366,7 @@ fun infraModelFile(name: String = "test_file.xml") = InfraModelFile(
 fun plan(
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
     srid: Srid = Srid(3879),
-    vararg alignments: GeometryAlignment = arrayOf(geometryAlignment(trackNumberId))
+    vararg alignments: GeometryAlignment = arrayOf(geometryAlignment(trackNumberId)),
 ): GeometryPlan = plan(trackNumberId, srid, alignments.toList())
 
 fun plan(
@@ -436,6 +434,7 @@ fun planHeader(
     hasCant = false,
     hasProfile = false,
     author = "Test Company",
+    isHidden = false,
 )
 
 fun minimalPlan(
@@ -492,9 +491,7 @@ fun geometryLine(
         length = length,
     ),
     switchData = elementSwitchData ?: SwitchData(
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null
+        switchId = null, startJointNumber = null, endJointNumber = null
     ),
 )
 
@@ -525,7 +522,7 @@ fun geometryAlignment(
     cant: GeometryCant? = null,
     name: String = "001",
     id: DomainId<GeometryAlignment> = StringId(),
-    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111")
+    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111"),
 ) = GeometryAlignment(
     id = id,
     name = AlignmentName(name),
@@ -574,8 +571,7 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
         state = PlanState.PROPOSED,
         location = null,
         trackNumberId = trackNumberId,
-    ),
-    GeometryKmPost(
+    ), GeometryKmPost(
         staBack = BigDecimal("1003.440894"),
         staAhead = BigDecimal("854.711894"),
         staInternal = BigDecimal("854.711894"),
@@ -590,26 +586,24 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
 fun geometryUnits(
     srid: Srid,
     coordinateSystemName: CoordinateSystemName? = null,
-    verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000
-) =
-    GeometryUnits(
-        coordinateSystemSrid = srid,
-        coordinateSystemName = coordinateSystemName,
-        verticalCoordinateSystem = verticalCoordinateSystem,
-        directionUnit = AngularUnit.GRADS,
-        linearUnit = LinearUnit.METER,
-    )
+    verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000,
+) = GeometryUnits(
+    coordinateSystemSrid = srid,
+    coordinateSystemName = coordinateSystemName,
+    verticalCoordinateSystem = verticalCoordinateSystem,
+    directionUnit = AngularUnit.GRADS,
+    linearUnit = LinearUnit.METER,
+)
 
 fun project(name: String = "TEST Project", description: String? = null) =
     Project(ProjectName(name), description?.let(::FreeText))
 
-fun author(companyName: String = "TEST Company") =
-    Author(MetaDataName(companyName))
+fun author(companyName: String = "TEST Company") = Author(MetaDataName(companyName))
 
 fun application(
     name: String = "TEST Application",
     manufacturer: String = "Solita Ab/Oy",
-    version: String = "04.02.21.14.02.21.1"
+    version: String = "04.02.21.14.02.21.1",
 ) = Application(MetaDataName(name), MetaDataName(manufacturer), MetaDataName(version))
 
 fun testFile() = InfraModelFile(FileName("testfile_empty_xml.xml"), "<a></a>")

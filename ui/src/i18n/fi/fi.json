@@ -7,7 +7,8 @@
         "linking": {
             "generic": "Linkityksessä tapahtui virhe",
             "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",
-            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma"
+            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
+            "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",

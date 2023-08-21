@@ -186,6 +186,7 @@ export type GeometryPlanLayout = {
     kmPosts: LayoutKmPost[];
     boundingBox: BoundingBox;
     planId: GeometryPlanLayoutId;
+    planHidden: boolean;
     planDataType: DataType;
 };
 

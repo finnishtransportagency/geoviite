@@ -6,8 +6,13 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
-import fi.fta.geoviite.infra.map.*
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.map.AlignmentHeader
+import fi.fta.geoviite.infra.map.MapAlignmentSource
+import fi.fta.geoviite.infra.map.MapAlignmentType
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import java.math.BigDecimal
 import kotlin.math.max
@@ -38,6 +43,7 @@ fun toTrackLayout(
 
     return GeometryPlanLayout(
         planId = geometryPlan.id,
+        planHidden = geometryPlan.isHidden,
         planDataType = geometryPlan.dataType,
         fileName = geometryPlan.fileName,
         alignments = alignments,
@@ -89,9 +95,7 @@ fun toTrackLayoutSwitches(
     geometrySwitches: List<GeometrySwitch>,
     planToLayout: Transformation,
 ): Map<DomainId<GeometrySwitch>, TrackLayoutSwitch> =
-    geometrySwitches
-        .mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }
-        .associate { it }
+    geometrySwitches.mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }.associate { it }
 
 fun toMapAlignments(
     geometryAlignments: List<GeometryAlignment>,
@@ -101,8 +105,7 @@ fun toMapAlignments(
     verticalCoordinateSystem: VerticalCoordinateSystem?,
     includeGeometryData: Boolean = true,
 ): List<PlanLayoutAlignment> {
-    return geometryAlignments
-        .map { alignment ->
+    return geometryAlignments.map { alignment ->
             val mapSegments = toMapSegments(
                 alignment = alignment,
                 planToLayoutTransformation = planToLayout,
@@ -153,41 +156,38 @@ private fun toMapSegments(
 ): List<PlanLayoutSegment> {
     val alignmentStationStart = alignment.staStart.toDouble()
     var segmentStartLength = 0.0
-    val elements = alignment.elements
-        .map { element ->
+    val elements = alignment.elements.map { element ->
             val startLength = segmentStartLength
             segmentStartLength += element.calculatedLength
             element to startLength
-        }
-        .filter { (e, _) -> e.calculatedLength >= 0.001 }
-    val segments =
-        if (!includeGeometryData) listOf()
-        else elements.map { (element, segmentStartLength) ->
-            val segmentPoints = toPointList(element, pointListStepLength).map { p ->
-                toTrackLayoutPoint(
-                    planToLayoutTransformation.transform(p),
-                    segmentStartLength + p.m,
-                    alignment.profile,
-                    alignment.cant,
-                    alignmentStationStart,
-                    segmentStartLength,
-                    heightTriangles,
-                    verticalCoordinateSystem
-                )
-            }
-
-            PlanLayoutSegment(
-                id = deriveFromSourceId("AS", element.id),
-                geometry = SegmentGeometry(
-                    resolution = pointListStepLength,
-                    points = segmentPoints,
-                ),
-                sourceId = element.id,
-                sourceStart = 0.0,
-                source = GeometrySource.PLAN,
-                pointCount = segmentPoints.size,
+        }.filter { (e, _) -> e.calculatedLength >= 0.001 }
+    val segments = if (!includeGeometryData) listOf()
+    else elements.map { (element, segmentStartLength) ->
+        val segmentPoints = toPointList(element, pointListStepLength).map { p ->
+            toTrackLayoutPoint(
+                planToLayoutTransformation.transform(p),
+                segmentStartLength + p.m,
+                alignment.profile,
+                alignment.cant,
+                alignmentStationStart,
+                segmentStartLength,
+                heightTriangles,
+                verticalCoordinateSystem
             )
         }
+
+        PlanLayoutSegment(
+            id = deriveFromSourceId("AS", element.id),
+            geometry = SegmentGeometry(
+                resolution = pointListStepLength,
+                points = segmentPoints,
+            ),
+            sourceId = element.id,
+            sourceStart = 0.0,
+            source = GeometrySource.PLAN,
+            pointCount = segmentPoints.size,
+        )
+    }
 
     return segments
 }
@@ -244,18 +244,16 @@ fun toTrackLayoutPoint(
  */
 fun toPointList(element: GeometryElement, stepLength: Int): List<Point3DM> {
     return lengthPoints(element.calculatedLength, stepLength).map { length ->
-        val point =
-            if (length <= 0.0) element.start
-            else if (length > element.calculatedLength - MIN_POINT_DISTANCE) element.end
-            else element.getCoordinateAt(length)
+        val point = if (length <= 0.0) element.start
+        else if (length > element.calculatedLength - MIN_POINT_DISTANCE) element.end
+        else element.getCoordinateAt(length)
         Point3DM(point.x, point.y, length)
     }
 }
 
 fun lengthPoints(length: Double, stepSize: Int): List<Double> {
-    val last1mPoint =
-        if (length % 1.0 > MIN_POINT_DISTANCE) length.toInt()
-        else max(length.toInt() - 1, 0)
+    val last1mPoint = if (length % 1.0 > MIN_POINT_DISTANCE) length.toInt()
+    else max(length.toInt() - 1, 0)
     val midPoints = (0..last1mPoint step stepSize).map(Int::toDouble)
     return midPoints + length
 }
@@ -271,8 +269,10 @@ private fun getPlanStartAddress(planKmPosts: List<GeometryKmPost>): TrackMeter? 
         // safety: minimumKmNumberPosts was filtered for equality with a known-not-null kmNumber
         // Negative or zero staInternals are assumed to be the distance of the preceding km post from the plan's
         // reference line's start; for anything else, let's not assume we know what to do with it
-        if (precedingKmPost.staInternal <= BigDecimal.ZERO)
-            TrackMeter(precedingKmPost.kmNumber!!, -precedingKmPost.staInternal)
+        if (precedingKmPost.staInternal <= BigDecimal.ZERO) TrackMeter(
+            precedingKmPost.kmNumber!!,
+            -precedingKmPost.staInternal
+        )
         else null
     } else null
 }
