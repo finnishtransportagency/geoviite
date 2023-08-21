@@ -82,7 +82,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...prop
                 dateFormat="dd.MM.yyyy"
                 locale={fi}
                 selected={value}
-                onChange={(date: Date) => onChange && onChange(date)}
+                onChange={(date: Date) => onChange && !isNaN(date.getDate()) && onChange(date)}
                 calendarStartDay={1}
                 showWeekNumbers
                 popperModifiers={[
