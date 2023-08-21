@@ -313,6 +313,11 @@ class LocationTrackService(
         logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
         return getLocationTrackEndpoints(listWithAlignments(publishType), bbox)
     }
+
+    fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
+        logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
+        return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
+    }
 }
 
 private fun findBestTopologySwitchFromSegments(

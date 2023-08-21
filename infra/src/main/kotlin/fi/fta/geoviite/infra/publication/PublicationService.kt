@@ -3,6 +3,9 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
+import fi.fta.geoviite.infra.error.DuplicateNameInPublication
+import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -22,11 +25,14 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
+import org.postgresql.util.PSQLException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
@@ -53,8 +59,8 @@ class PublicationService @Autowired constructor(
     private val ratkoPushDao: RatkoPushDao,
     private val geometryDao: GeometryDao,
     private val geocodingCacheService: GeocodingCacheService,
+    private val transactionTemplate: TransactionTemplate,
 ) {
-
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Transactional(readOnly = true)
@@ -460,8 +466,11 @@ class PublicationService @Autowired constructor(
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
 
-    @Transactional
-    fun publishChanges(versions: ValidationVersions, calculatedChanges: CalculatedChanges, message: String): PublishResult {
+    fun publishChanges(
+        versions: ValidationVersions,
+        calculatedChanges: CalculatedChanges,
+        message: String
+    ): PublishResult {
         logger.serviceCall(
             "publishChanges",
             "versions" to versions,
@@ -469,12 +478,24 @@ class PublicationService @Autowired constructor(
             "message" to message
         )
 
+        try {
+            return transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
+                ?: throw Exception("unexpected null from publishChangesTransaction")
+        } catch (exception: DataIntegrityViolationException) {
+            enrichDuplicateNameExceptionOrRethrow(exception)
+        }
+    }
+
+    private fun publishChangesTransaction(
+        versions: ValidationVersions,
+        calculatedChanges: CalculatedChanges,
+        message: String
+    ): PublishResult {
         val trackNumbers = versions.trackNumbers.map(trackNumberService::publish).map { r -> r.rowVersion }
         val kmPosts = versions.kmPosts.map(kmPostService::publish).map { r -> r.rowVersion }
         val switches = versions.switches.map(switchService::publish).map { r -> r.rowVersion }
         val referenceLines = versions.referenceLines.map(referenceLineService::publish).map { r -> r.rowVersion }
         val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
-
         val publishId = publicationDao.createPublication(message)
         publicationDao.insertCalculatedChanges(publishId, calculatedChanges)
 
@@ -509,9 +530,23 @@ class PublicationService @Autowired constructor(
         val geocodingErrors = if (trackNumber.exists && referenceLine != null) {
             validateGeocodingContext(cacheKeys[version.officialId], VALIDATION_TRACK_NUMBER)
         } else listOf()
-        return fieldErrors + referenceErrors + geocodingErrors
+        val duplicateNameErrors = validateTrackNumberNumberDuplication(trackNumber, version.validatedAssetVersion.id)
+        return fieldErrors + referenceErrors + geocodingErrors + duplicateNameErrors
     }
 
+    private fun validateTrackNumberNumberDuplication(
+        trackNumber: TrackLayoutTrackNumber,
+        id: IntId<TrackLayoutTrackNumber>
+    ): List<PublishValidationError> {
+        return if (trackNumberDao.officialDuplicateNumberExistsFor(id))
+            listOf(
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.track-number.duplicate-name",
+                    listOf(trackNumber.number.toString())
+                )
+            ) else listOf()
+    }
     private fun validateKmPost(
         version: ValidationVersion<TrackLayoutKmPost>,
         validationVersions: ValidationVersions,
@@ -548,7 +583,23 @@ class PublicationService @Autowired constructor(
             validationVersions.locationTracks.map { it.officialId },
         )
         val structureErrors = validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
-        return fieldErrors + referenceErrors + structureErrors
+        val duplicationErrors =
+            if (switch.exists) validateSwitchNameDuplication(switch, version.validatedAssetVersion.id) else listOf()
+        return fieldErrors + referenceErrors + structureErrors + duplicationErrors
+    }
+
+    private fun validateSwitchNameDuplication(
+        switch: TrackLayoutSwitch,
+        id: IntId<TrackLayoutSwitch>
+    ): List<PublishValidationError> {
+        return if (switchService.duplicateNameExistsForPublicationCandidate(id))
+            listOf(
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.switch.duplicate-name",
+                    listOf(switch.name.toString())
+                )
+            ) else listOf()
     }
 
     private fun validateReferenceLine(
@@ -611,7 +662,26 @@ class PublicationService @Autowired constructor(
                 validateAddressPoints(trackNumber, key, locationTrack, VALIDATION_LOCATION_TRACK)
             } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
         } else listOf()
-        return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors
+        val duplicateNameErrors =
+            if (locationTrack.exists) validateLocationTrackNameDuplication(
+                locationTrack,
+                version.validatedAssetVersion.id,
+            ) else listOf()
+        return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
+    }
+
+    private fun validateLocationTrackNameDuplication(
+        locationTrack: LocationTrack,
+        id: IntId<LocationTrack>
+    ): List<PublishValidationError> {
+        return if (locationTrackService.duplicateNameExistsFor(id))
+            listOf(
+                PublishValidationError(
+                    PublishValidationErrorType.WARNING,
+                    "validation.layout.location-track.duplicate-name",
+                    listOf(locationTrack.name.toString())
+                )
+            ) else listOf()
     }
 
     private fun getTrackNumber(
@@ -1371,4 +1441,68 @@ class PublicationService @Autowired constructor(
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
         propChanges = propChanges,
     )
+
+    private fun enrichDuplicateNameExceptionOrRethrow(exception: DataIntegrityViolationException): Nothing {
+        val psqlException = exception.cause as? PSQLException ?: throw exception
+        val constraint = psqlException.serverErrorMessage?.constraint
+        val detail = psqlException.serverErrorMessage?.detail ?: throw exception
+
+        when (constraint) {
+            "switch_unique_official_name" -> maybeThrowDuplicateSwitchNameException(detail, exception)
+            "track_number_number_draft_unique" -> maybeThrowDuplicateTrackNumberNumberException(detail, exception)
+            "location_track_unique_official_name" -> maybeThrowDuplicateLocationTrackNameException(detail, exception)
+        }
+        throw exception
+    }
+
+    private val duplicateLocationTrackErrorRegex =
+        Regex("""Key \(track_number_id, name\)=\((\d+), ([^)]+)\) conflicts with existing key""")
+    private val duplicateTrackNumberErrorRegex =
+        Regex("""Key \(number, draft\)=\(([^)]+), ([tf])\) already exists""")
+    private val duplicateSwitchErrorRegex =
+        Regex("""Key \(name\)=\(([^)]+)\) conflicts with existing key""")
+
+    private fun maybeThrowDuplicateLocationTrackNameException(detail: String, exception: DataIntegrityViolationException) {
+        duplicateLocationTrackErrorRegex.matchAt(detail, 0)
+            ?.let { match ->
+                val trackIdString = match.groups[1]?.value
+                val nameString = match.groups[2]?.value
+                val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
+                if (trackIdString != null && nameString != null) {
+                    val trackNumberVersion = trackNumberDao.fetchOfficialVersion(trackId)
+                    if (trackNumberVersion != null) {
+                        val trackNumber = trackNumberDao.fetch(trackNumberVersion)
+                        throw DuplicateLocationTrackNameInPublicationException(
+                            AlignmentName(nameString),
+                            trackNumber.number,
+                            exception
+                        )
+                    }
+                }
+            }
+    }
+
+    private fun maybeThrowDuplicateTrackNumberNumberException(detail: String, exception: DataIntegrityViolationException) {
+        duplicateTrackNumberErrorRegex.matchAt(detail, 0)
+            ?.let { match -> match.groups[1]?.value }
+            ?.let { name ->
+                throw DuplicateNameInPublicationException(
+                    DuplicateNameInPublication.TRACK_NUMBER,
+                    name,
+                    exception
+                )
+            }
+    }
+
+    private fun maybeThrowDuplicateSwitchNameException(detail: String, exception: DataIntegrityViolationException) {
+        duplicateSwitchErrorRegex.matchAt(detail, 0)
+            ?.let { match -> match.groups[1]?.value }
+            ?.let { name ->
+                throw DuplicateNameInPublicationException(
+                    DuplicateNameInPublication.SWITCH,
+                    name,
+                    exception
+                )
+            }
+    }
 }

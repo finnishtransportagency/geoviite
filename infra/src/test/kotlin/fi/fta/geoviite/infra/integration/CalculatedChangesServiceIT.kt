@@ -286,12 +286,14 @@ class CalculatedChangesServiceIT @Autowired constructor(
                 SwitchData(
                     Point(100.0, 0.0),
                     locationTrackIndexA = 1,
-                    locationTrackIndexB = 2
+                    locationTrackIndexB = 2,
+                    name = "switch-A",
                 ),
                 SwitchData(
                     Point(100.0, 0.0),
                     locationTrackIndexA = 1,
-                    locationTrackIndexB = 2
+                    locationTrackIndexB = 2,
+                    name = "switch-B",
                 )
             )
         )
@@ -1049,7 +1051,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
     data class SwitchData(
         val location: IPoint,
         val locationTrackIndexA: Int,
-        val locationTrackIndexB: Int
+        val locationTrackIndexB: Int,
+        val name: String? = null,
     )
 
     /**
@@ -1145,6 +1148,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             ).rowVersion
         )
 
+        var locationTrackSequence = 0
         val locationTracksAndAlignments = locationTrackData.map { line ->
             val locationTrackGeometryVersion = layoutAlignmentDao.insert(
                 alignment(
@@ -1161,7 +1165,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     locationTrack(
                         trackNumberId = trackNumber.id as IntId,
                         alignment = locationTrackGeometry,
-                        name = "TEST LocTr $sequence"
+                        name = "TEST LocTr $sequence ${locationTrackSequence++}"
                     ).copy(
                         alignmentVersion = locationTrackGeometryVersion
                     )
@@ -1175,6 +1179,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                 refPoint + switch.location,
                 locationTracksAndAlignments[switch.locationTrackIndexA],
                 locationTracksAndAlignments[switch.locationTrackIndexB],
+                switch.name,
             )
         }
 
@@ -1211,9 +1216,15 @@ class CalculatedChangesServiceIT @Autowired constructor(
         switchLocation: IPoint,
         trackA: Pair<LocationTrack, LayoutAlignment>,
         trackB: Pair<LocationTrack, LayoutAlignment>,
+        name: String?,
     ): TrackLayoutSwitch {
         val switch = switchDao.fetch(
-            switchDao.insert(switch(joints = listOf())).rowVersion
+            switchDao.insert(
+                switch(
+                    name = name ?: "${trackA.first.name}-${trackB.first.name}",
+                    joints = listOf()
+                )
+            ).rowVersion
         )
 
         val (locationTrackA, alignmentA) = trackA

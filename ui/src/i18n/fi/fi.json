@@ -12,7 +12,12 @@
         "publication": {
             "generic": "Julkaisu epäonnistui",
             "lock-obtain-failed": "Toinen julkaisu käynnissä - yritä hetken kuluttua uudelleen",
-            "validation-failed": "Julkaisuvalidointi epäonnistui"
+            "validation-failed": "Julkaisuvalidointi epäonnistui",
+            "duplicate-name-on": {
+                "location-track": "Julkaisussa on useammalla sijaintiraiteella sama nimi {{0}} (ratanumerolla {{1}})",
+                "switch": "Julkaisussa on useammalla vaihteella sama nimi {{0}}",
+                "track-number": "Julkaisussa on useammalla radalla sama ratanumero {{0}}"
+            }
         },
         "input": {
             "generic": "Tarkasta syötekentät ja yritä uudestaan",

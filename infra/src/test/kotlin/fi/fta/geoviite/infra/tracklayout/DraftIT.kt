@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -28,6 +29,11 @@ class DraftIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val trackNumberDao: LayoutTrackNumberDao,
 ): DBTestBase() {
+
+    @BeforeEach
+    fun cleanup() {
+        deleteFromTables("layout", "switch")
+    }
 
     @Test
     fun tempReferenceLineDraftDoesntChangeId() {
