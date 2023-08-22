@@ -49,7 +49,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, t: (String, L
             it.changedKmNumbers.map { range -> "${range.min}${if (range.min != range.max) "-${range.max}" else ""}" }
                 .joinToString(", ")
         },
-        "publication-table.operation" to { formatOperation(it.operation) },
+        "publication-table.operation" to { formatOperation(it.operation, t) },
         "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
         "publication-table.publication-user" to { "${it.publicationUser}" },
         "publication-table.message" to { it.message },
@@ -58,7 +58,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, t: (String, L
                 formatInstant(
                     pushTime, timeZone
                 )
-            } ?: getTranslation("no")
+            } ?: t("no", emptyList())
         },
         "publication-table.changes" to {
             it.propChanges.map { change ->
@@ -102,12 +102,12 @@ private fun <T> formatChangeValue(value: ChangeValue<T>, t: (String, List<String
 private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
-private fun formatOperation(operation: Operation) = when (operation) {
-    Operation.CREATE -> getTranslation("create")
-    Operation.MODIFY -> getTranslation("modify")
-    Operation.DELETE -> getTranslation("delete")
-    Operation.RESTORE -> getTranslation("restore")
-    Operation.CALCULATED -> getTranslation("calculated-change")
+private fun formatOperation(operation: Operation, t: (String, List<String>) -> String) = when (operation) {
+    Operation.CREATE -> t("create", emptyList())
+    Operation.MODIFY -> t("modify", emptyList())
+    Operation.DELETE -> t("delete", emptyList())
+    Operation.RESTORE -> t("restore", emptyList())
+    Operation.CALCULATED -> t("calculated-change", emptyList())
 }
 
 fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
@@ -279,36 +279,7 @@ fun <T, U> compareChange(
     )
 } else null
 
-val MATH_POINT_TRANSLATION = "matemaattinen piste"
-val FORWARD_JOINT_TRANSLATION = "etujatkos"
-fun switchBaseTypeToProp(switchBaseType: SwitchBaseType) = when (switchBaseType) {
-    SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> FORWARD_JOINT_TRANSLATION
-    SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> MATH_POINT_TRANSLATION
+fun switchBaseTypeToProp(switchBaseType: SwitchBaseType, t: (String) -> String) = when (switchBaseType) {
+    SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> t("publication-details-table.joint.forward-joint")
+    SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> t("publication-details-table.joint.math-point")
 }
-
-val NOT_CALCULATED_TRANSLATION = "Ei laskettu"
-
-fun getTranslation(key: String) = publicationTranslations[key] ?: ""
-
-private val publicationTranslations = mapOf(
-    "track-number" to "Ratanumero",
-    "reference-line" to "Pituusmittauslinja",
-    "km-post" to "Tasakilometripiste",
-    "location-track" to "Sijaintiraide",
-    "switch" to "Vaihde",
-    "calculated-change" to "Laskettu muutos",
-    "no" to "Ei",
-    "create" to "Luonti",
-    "modify" to "Muokkaus",
-    "delete" to "Poisto",
-    "restore" to "Palautus",
-    "NAME-header" to "Muutoskohde",
-    "TRACK_NUMBERS-header" to "Ratanro",
-    "CHANGED_KM_NUMBERS-header" to "Ratakilometrit",
-    "OPERATION-header" to "Muutos",
-    "PUBLICATION_TIME-header" to "Aika",
-    "PUBLICATION_USER-header" to "Käyttäjä",
-    "MESSAGE-header" to "Selite",
-    "RATKO_PUSH_TIME-header" to "Viety Ratkoon",
-    "CHANGES-header" to "Muutokset",
-)

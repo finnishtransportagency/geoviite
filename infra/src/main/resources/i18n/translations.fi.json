@@ -1147,6 +1147,7 @@
         "old-value": "Edellinen arvo",
         "new-value": "Uusi arvo",
         "remarks": "Huomioita",
+        "not-calculated": "Ei laskettu",
         "remark": {
             "changed-x-meters": "Muutos {{0}}m",
             "moved-x-meters": "Siirtynyt {{0}}m",
@@ -1154,12 +1155,17 @@
             "changed-km-numbers": "Muuttunut kilometreiltä {{0}}",
             "km-number-changed": "Siirtynyt ratakilometrille {{0}}"
         },
+        "joint": {
+            "math-point": "Matemaattinen piste",
+            "forward-joint": "Etujatkos"
+        },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
             "track-number": "Ratanumero",
             "track-numbers": "Ratanumerot",
             "state": "Tila",
             "km-post": "Tasakilometripiste",
+            "reference-line": "Pituusmittauslinja",
             "description": "Kuvaus",
             "topological-connectivity": "Topologinen yhteys",
             "location-track-type": "Sijaintiraidetyyppi",

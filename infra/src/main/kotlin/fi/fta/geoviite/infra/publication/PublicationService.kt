@@ -1042,10 +1042,9 @@ class PublicationService @Autowired constructor(
             val distance = if (oldLocation != null) calculateDistance(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
-            val jointPropKeyParams = listOfNotNull(
-                trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
-                changes.type.new?.parts?.baseType?.let(::switchBaseTypeToProp)
-            )
+            val jointPropKeyParams =
+                listOfNotNull(trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
+                    changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(it, localeService::t) })
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(
                     joint.trackNumberId, oldTimestamp
@@ -1078,7 +1077,7 @@ class PublicationService @Autowired constructor(
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
             compareChange(
                 { changes.locationTracks.any() },
-                if (operation != Operation.CREATE) listOf(NOT_CALCULATED_TRANSLATION) else null,
+                if (operation != Operation.CREATE) listOf(localeService.t("publication-details-table.not-calculated")) else null,
                 changes.locationTracks.map { it.name },
                 { it.joinToString(", ") { it } },
                 PropKey("location-track-connectivity"),
@@ -1175,7 +1174,7 @@ class PublicationService @Autowired constructor(
 
         val trackNumbers = publication.trackNumbers.map { tn ->
             mapToPublicationTableItem(
-                name = "${getTranslation("track-number")} ${tn.number}",
+                name = "${localeService.t("publication-details-table.prop.track-number")} ${tn.number}",
                 trackNumbers = setOf(tn.number),
                 changedKmNumbers = tn.changedKmNumbers,
                 operation = tn.operation,
@@ -1194,7 +1193,7 @@ class PublicationService @Autowired constructor(
                 trackNumberNamesCache.findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }?.number
 
             mapToPublicationTableItem(
-                name = "${getTranslation("reference-line")} ${tn}",
+                name = "${localeService.t("publication-details-table.prop.reference-line")} ${tn}",
                 trackNumbers = setOfNotNull(tn),
                 changedKmNumbers = rl.changedKmNumbers,
                 operation = rl.operation,
@@ -1213,7 +1212,7 @@ class PublicationService @Autowired constructor(
             val tn =
                 trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
-                name = "${getTranslation("location-track")} ${lt.name}",
+                name = "${localeService.t("publication-details-table.prop.location-track")} ${lt.name}",
                 trackNumbers = setOfNotNull(tn),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
@@ -1234,7 +1233,7 @@ class PublicationService @Autowired constructor(
             val tns =
                 latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
             mapToPublicationTableItem(
-                name = "${getTranslation("switch")} ${s.name}",
+                name = "${localeService.t("publication-details-table.prop.switch")} ${s.name}",
                 trackNumbers = tns,
                 operation = s.operation,
                 publication = publication,
@@ -1253,7 +1252,7 @@ class PublicationService @Autowired constructor(
             val tn =
                 trackNumberNamesCache.findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
-                name = "${getTranslation("km-post")} ${kp.kmNumber}",
+                name = "${localeService.t("publication-details-table.prop.km-post")} ${kp.kmNumber}",
                 trackNumbers = setOfNotNull(tn),
                 operation = kp.operation,
                 publication = publication,
@@ -1270,7 +1269,7 @@ class PublicationService @Autowired constructor(
             val tn =
                 trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
-                name = "${getTranslation("location-track")} ${lt.name}",
+                name = "${localeService.t("publication-details-table.prop.location-track")} ${lt.name}",
                 trackNumbers = setOfNotNull(tn),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = Operation.CALCULATED,
@@ -1291,7 +1290,7 @@ class PublicationService @Autowired constructor(
             val tns =
                 latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
             mapToPublicationTableItem(
-                name = "${getTranslation("switch")} ${s.name}",
+                name = "${localeService.t("publication-details-table.prop.switch")} ${s.name}",
                 trackNumbers = tns,
                 operation = Operation.CALCULATED,
                 publication = publication,
