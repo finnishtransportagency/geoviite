@@ -41,7 +41,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
     @Cacheable(CACHE_LAYOUT_ALIGNMENT, sync = true)
-    fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
+    fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment = measureAndCollect("alignment") {
         val sql = """
             select id, geometry_alignment_id
             from layout.alignment_version
@@ -58,11 +58,11 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 dataType = DataType.STORED,
                 id = rs.getIntId("id"),
                 sourceId = rs.getIntIdOrNull("geometry_alignment_id"),
-                segments = fetchSegments(alignmentVersion),
+                segments = measureAndCollect("segments") { fetchSegments(alignmentVersion) },
             )
         })
         logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id)
-        return alignment
+        alignment
     }
 
     @Transactional
@@ -193,7 +193,9 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             ) to rs.getIntId<SegmentGeometry>("geometry_id")
         }
 
-        val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
+        val geometries = measureAndCollect("geometries") {
+            fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
+        }
 
         var start = 0.0
         return segmentResults.map { (data, geometryId) ->
@@ -451,7 +453,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             MapSegmentProfileInfo(
                 id = rs.getIntId("official_id"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
-                points = getSegmentPoints(rs, "geometry_wkt"),
+                points = getSegmentPointsWkt(rs, "geometry_wkt"),
                 segmentStart = rs.getDouble("start"),
                 hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
             )
@@ -548,6 +550,95 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
+    fun preloadSegmentGeometries() {
+//        val allIds = measureAndCollect("geometry-ids-preload") {
+//            val sql = """
+//                select distinct geom.id as id
+//                from layout.alignment a
+//                  left join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
+//                  left join layout.segment_geometry geom on geom.id = sv.geometry_id
+//                where geom.id is not null
+//            """.trimIndent()
+//            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getIntId<SegmentGeometry>("id") }
+//        }
+        measureAndCollect("geometries-preload") {
+//            fetchSegmentGeometries(allIds)
+            val sql_values_as_arrays = """
+                
+select
+  id,
+  resolution,
+  case
+    when height_values is null then null
+    else array_to_string(height_values, ',', 'null')
+  end as height_values,
+  case
+    when cant_values is null then null
+    else array_to_string(cant_values, ',', 'null')
+  end as cant_values,
+--   string_agg((postgis.st_x(point.geom))::text, ',' order by point.path) as x_values,
+--   string_agg((postgis.st_y(point.geom))::text, ',' order by point.path) as y_values,
+--   string_agg((postgis.st_m(point.geom))::text, ',' order by point.path) as m_values,
+  array_to_string(array_agg(postgis.st_x(point.geom) order by point.path), ',', 'null') as x_values,
+  array_to_string(array_agg(postgis.st_y(point.geom) order by point.path), ',', 'null') as y_values,
+  array_to_string(array_agg(postgis.st_m(point.geom) order by point.path), ',', 'null') as m_values,
+--   array_agg(postgis.st_x(point.geom) order by point.path) as x_values,
+--   array_agg(postgis.st_y(point.geom) order by point.path) as y_values,
+--   array_agg(postgis.st_m(point.geom) order by point.path) as m_values
+1 as one
+  from layout.segment_geometry, postgis.st_dumppoints(geometry) point
+  where exists(
+    select 1
+    from layout.alignment a
+      left join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
+    where sv.geometry_id = segment_geometry.id
+    )
+group by id
+            """.trimIndent()
+            val sql_wkt = """
+                  select 
+                    geom.id,
+                    postgis.st_astext(geom.geometry) as geometry_wkt,
+                    geom.resolution,
+                    case 
+                      when geom.height_values is null then null 
+                      else array_to_string(geom.height_values, ',', 'null') 
+                    end as height_values,
+                    case 
+                      when geom.cant_values is null then null 
+                      else array_to_string(geom.cant_values, ',', 'null') 
+                    end as cant_values
+                  from layout.alignment a
+                    left join layout.segment_version sv on a.id = sv.alignment_id and a.version = sv.alignment_version
+                    left join layout.segment_geometry geom on geom.id = sv.geometry_id
+                  where geom.id is not null
+                  group by geom.id
+                """.trimIndent()
+            val allGeoms = measureAndCollect("geom-query-total") {
+                jdbcTemplate.query(sql_wkt, mapOf<String, Any>()) { rs, _ ->
+                    measureAndCollect("geom-resultset-map") {
+                        val id = measureAndCollect("geom-id-pick") { rs.getIntId<SegmentGeometry>("id") }
+                        id to measureAndCollect("geom-data-pick") {
+                            SegmentGeometry(
+                                id = id,
+                                points = measureAndCollect("geom-wkt-read") {
+                                    getSegmentPointsWkt(
+                                        rs, "geometry_wkt", "height_values", "cant_values"
+                                    )
+//                                    getSegmentPointsArrays(
+//                                        rs, "height_values", "cant_values"
+//                                    )
+                                },
+                                resolution = rs.getInt("resolution"),
+                            )
+                        }
+                    }
+                }
+            }.associate { it }
+            segmentGeometryCache.putAll(allGeoms)
+        }
+    }
+
     private fun fetchSegmentGeometries(
         ids: List<IntId<SegmentGeometry>>,
     ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
@@ -558,7 +649,31 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         ids: Set<IntId<SegmentGeometry>>,
     ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
         return if (ids.isNotEmpty()) {
-            val sql = """
+            val sql_arrays = """
+select
+  id,
+  resolution,
+  --height_values,
+  --cant_values,
+  case 
+    when height_values is null then null 
+    else array_to_string(height_values, ',', 'null') 
+  end as height_values,
+  case 
+    when cant_values is null then null 
+    else array_to_string(cant_values, ',', 'null') 
+  end as cant_values,
+  --array_agg(postgis.st_x(point.geom) order by point.path) as x_values,
+  --array_agg(postgis.st_y(point.geom) order by point.path) as y_values,
+  --array_agg(postgis.st_m(point.geom) order by point.path) as m_values
+  array_to_string(array_agg(postgis.st_x(point.geom) order by point.path), ',', 'null') as x_values,
+  array_to_string(array_agg(postgis.st_y(point.geom) order by point.path), ',', 'null') as y_values,
+  array_to_string(array_agg(postgis.st_m(point.geom) order by point.path), ',', 'null') as m_values
+  from layout.segment_geometry, postgis.st_dumppoints(geometry) point
+                  where id in (:ids)
+group by id
+""".trimIndent()
+            val sql_wkt = """
                   select 
                     id,
                     postgis.st_astext(geometry) as geometry_wkt,
@@ -575,11 +690,12 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   where id in (:ids)
                 """.trimIndent()
             val params = mapOf("ids" to ids.map(IntId<SegmentGeometry>::intValue))
-            jdbcTemplate.query(sql, params) { rs, _ ->
+            jdbcTemplate.query(sql_wkt, params) { rs, _ ->
                 val id = rs.getIntId<SegmentGeometry>("id")
                 id to SegmentGeometry(
                     id = id,
-                    points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
+                    points = getSegmentPointsWkt(rs, "geometry_wkt", "height_values", "cant_values"),
+//                    points = getSegmentPointsArrays(rs, "height_values", "cant_values"),
                     resolution = rs.getInt("resolution"),
                 )
             }.associate { it }
@@ -587,24 +703,66 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     }
 }
 
-private fun getSegmentPoints(
+private fun getSegmentPointsWkt(
     rs: ResultSet,
     geometryColumn: String,
     heightColumn: String? = null,
     cantColumn: String? = null,
 ): List<LayoutPoint> {
-    val rawGeometry = rs.getString(geometryColumn) ?: return emptyList()
-    val geometryValues = parse3DMLineString(rawGeometry)
-    val heightValues = heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
-    val cantValues = cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
-    return geometryValues.mapIndexed { index, coordinate ->
-        LayoutPoint(
-            x = coordinate.x,
-            y = coordinate.y,
-            z = heightValues?.getOrNull(index),
-            m = coordinate.m,
-            cant = cantValues?.getOrNull(index),
-        )
+    val rawGeometry = measureAndCollect("rawGeom-read") { rs.getString(geometryColumn) } ?: return emptyList()
+    val geometryValues = measureAndCollect("3DM-parse") { parse3DMLineString(rawGeometry) }
+    val heightValues = measureAndCollect("heights") {
+        heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
+    }
+    val cantValues = measureAndCollect("cants") {
+        cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
+    }
+    return measureAndCollect("LayoutPoint()") {
+        geometryValues.mapIndexed { index, coordinate ->
+            LayoutPoint(
+                x = coordinate.x,
+                y = coordinate.y,
+                z = heightValues?.getOrNull(index),
+                m = coordinate.m,
+                cant = cantValues?.getOrNull(index),
+            )
+        }
+    }
+}
+
+private fun getSegmentPointsArrays(
+    rs: ResultSet,
+    heightColumn: String? = null,
+    cantColumn: String? = null,
+): List<LayoutPoint> {
+    val xValues = measureAndCollect("x_values") {
+//        rs.getDoubleArray("x_values")
+        rs.getDoubleListFromString("x_values")
+    }
+    val yValues = measureAndCollect("y_values") {
+//        rs.getDoubleArray("y_values")
+        rs.getDoubleListFromString("y_values")
+    }
+    val mValues = measureAndCollect("m_values") {
+//        rs.getDoubleArray("m_values")
+        rs.getDoubleListFromString("m_values")
+    }
+    val heightValues = measureAndCollect("heights") {
+        heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
+    }
+    val cantValues = measureAndCollect("cants") {
+        cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
+    }
+    return measureAndCollect("LayoutPoint()") {
+        (0..xValues.lastIndex).map { index ->
+            LayoutPoint(
+                x = xValues[index],
+                y = yValues[index],
+                z = heightValues?.getOrNull(index),
+                m = mValues[index],
+                cant = cantValues?.getOrNull(index),
+            )
+        }
     }
 }
 

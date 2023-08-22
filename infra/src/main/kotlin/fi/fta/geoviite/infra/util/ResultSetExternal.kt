@@ -105,8 +105,7 @@ fun ResultSet.getStringListFromString(name: String): List<String> =
 
 fun ResultSet.getStringsListOrNullFromString(name: String): List<String>? = getString(name)?.split(",")
 
-fun ResultSet.getDoubleListFromString(name: String): List<Double> =
-    verifyNotNull(name, ::getDoubleListOrNullFromString)
+fun ResultSet.getDoubleListFromString(name: String): List<Double> = verifyNotNull(name, ::getDoubleListOrNullFromString)
 
 fun ResultSet.getDoubleListOrNullFromString(name: String): List<Double>? =
     getStringsListOrNullFromString(name)?.map { s -> s.toDouble() }
@@ -116,15 +115,17 @@ fun ResultSet.getNullableDoubleListOrNullFromString(name: String): List<Double?>
 
 fun ResultSet.getIntListFromString(name: String): List<Int> = verifyNotNull(name, ::getIntListOrNullFromString)
 
-fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(name)
-    ?.split(",")
-    ?.map { s -> s.toInt() }
+fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(name)?.split(",")?.map { s -> s.toInt() }
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
+
+fun ResultSet.getDoubleArray(name: String): List<Double> = verifyNotNull(name, ::getDoubleArrayOrNull)
+
+fun ResultSet.getDoubleArrayOrNull(name: String): List<Double>? = getListOrNull(name)
 
 fun ResultSet.getNullableIntArray(name: String): List<Int?> = verifyNotNull(name, ::getNullableIntArrayOrNull)
 
@@ -140,15 +141,15 @@ fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
 inline fun <reified T> ResultSet.getList(name: String): List<T> = verifyNotNull(name, ::getListOrNull)
 
 inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? = getArray(name)?.array?.let { arr ->
-    if (arr is Array<*>) (arr as Array<out Any?>).toList().mapNotNull(::verifyType)
+//    if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType)
+    if (arr is Array<*>) (arr as Array<T>).toList()
     else null
 }
 
-fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) =
-    DaoResponse<T>(
-        id = getIntId(officialIdName),
-        rowVersion = getRowVersion(versionIdName, versionName),
-    )
+fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = DaoResponse<T>(
+    id = getIntId(officialIdName),
+    rowVersion = getRowVersion(versionIdName, versionName),
+)
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
@@ -161,8 +162,7 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
 
 fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: throw IllegalStateException("$name can't be null")
 
-fun ResultSet.getCode(name: String): Code = getCodeOrNull(name)
-    ?: throw IllegalStateException("StringCode was null")
+fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: throw IllegalStateException("StringCode was null")
 
 fun ResultSet.getCodeOrNull(name: String): Code? = getString(name)?.let(::Code)
 
@@ -199,9 +199,11 @@ fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
 
 fun ResultSet.getPVIdOrNull(name: String): PVId? = getString(name)?.let(::PVId)
 
-fun <T>ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<T> = Change(getter("old_$name"), getter(name))
+fun <T> ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<T> =
+    Change(getter("old_$name"), getter(name))
 
-fun ResultSet.getChangePoint(nameX: String, nameY: String) = Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
+fun ResultSet.getChangePoint(nameX: String, nameY: String) =
+    Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }

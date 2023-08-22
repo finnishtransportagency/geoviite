@@ -33,27 +33,36 @@ class CachePreloader(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
-    fun scheduleReload() {
+    fun scheduleBasicReload() {
         if (cacheEnabled && cachePreloadEnabled) {
             switchStructureDao.fetchSwitchStructures()
             refreshCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch)
             refreshCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch)
             refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
-            refreshCache("Alignment", alignmentDao::fetchVersions, alignmentDao::fetch)
             refreshCache("Switch", switchDao::fetchAllVersions, switchDao::fetch)
             refreshCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch)
             refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
         }
     }
 
-    private fun <T,S> refreshCache(
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun scheduleAlignmentReload() {
+        if (cacheEnabled && cachePreloadEnabled) {
+            refreshCache("SegmentGeometries") { alignmentDao.preloadSegmentGeometries() }
+            refreshCache("Alignment", alignmentDao::fetchVersions, alignmentDao::fetch)
+        }
+    }
+
+    private fun <T, S> refreshCache(
         name: String,
         fetchVersions: () -> List<RowVersion<T>>,
         fetchRow: (RowVersion<T>) -> S,
-    ) {
+    ) = refreshCache(name) { fetchVersions().forEach { version -> fetchRow(version) } }
+
+    private fun refreshCache(name: String, refresh: () -> Unit) {
         logger.info("Refreshing cache: name=$name")
         val start = Instant.now()
-        fetchVersions().forEach { version -> fetchRow(version) }
+        refresh()
         logger.info("Cache refreshed: name=$name duration=${Duration.between(start, Instant.now()).toMillis()}ms")
     }
 }
