@@ -7,7 +7,8 @@
         "linking": {
             "generic": "Linkityksessä tapahtui virhe",
             "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",
-            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma"
+            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
+            "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",
@@ -47,7 +48,8 @@
             }
         },
         "deleting": {
-            "generic": "Poistamisessa tapahtui virhe"
+            "generic": "Poistamisessa tapahtui virhe",
+            "plan-linked": "Suunnitelmaa ei voida poistaa, koska se on linkitettynä paikannuspohjaan."
         },
         "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
         "infra-model": {
@@ -81,7 +83,7 @@
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
             }
         },
-        "entity_not_found": "Tietoa ei löydy"
+        "entity-not-found": "Tietoa ei löydy"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",

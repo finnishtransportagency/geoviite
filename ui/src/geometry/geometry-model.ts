@@ -88,6 +88,7 @@ export type GeometryPlanHeader = {
     author: string;
     hasProfile: boolean;
     hasCant: boolean;
+    isHidden: boolean;
 };
 
 export type GeometryPlan = {
@@ -105,15 +106,14 @@ export type GeometryPlan = {
     alignments: GeometryAlignment[];
     switches: GeometrySwitch[];
     kmPosts: GeometryKmPost[];
-    fileContent: string;
     pvDocumentId: PVDocumentId | null;
     planPhase: PlanPhase | null;
     decisionPhase: DecisionPhase | null;
     measurementMethod: MeasurementMethod | null;
     elevationMeasurementMethod: ElevationMeasurementMethod | null;
     message: string | null;
-    linkedAsPlanId: GeometryPlanId | null;
     uploadTime: Date | null;
+    isHidden: boolean;
 };
 
 export enum SortByValue {

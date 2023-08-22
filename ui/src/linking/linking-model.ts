@@ -278,10 +278,16 @@ export type SwitchLinkingJoint = {
 };
 
 export type SwitchLinkingParameters = {
+    geometryPlanId: GeometryPlanId | null;
     geometrySwitchId: GeometrySwitchId | null;
     layoutSwitchId: LayoutSwitchId;
     joints: SwitchLinkingJoint[];
     switchStructureId: SwitchStructureId;
+};
+export type KmPostLinkingParameters = {
+    geometryPlanId: GeometryPlanId | null;
+    geometryKmPostId: GeometryKmPostId;
+    layoutKmPostId: LayoutKmPostId;
 };
 
 export type TrackLayoutSwitchSaveRequest = {

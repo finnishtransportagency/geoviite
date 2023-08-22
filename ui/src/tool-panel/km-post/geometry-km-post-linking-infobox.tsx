@@ -93,7 +93,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
         try {
             if (linkingState && geometryKmPost && geometryKmPost.sourceId && layoutKmPost) {
-                await linkKmPost(geometryKmPost.sourceId, layoutKmPost.id);
+                await linkKmPost({
+                    geometryPlanId: planId,
+                    geometryKmPostId: geometryKmPost.sourceId,
+                    layoutKmPostId: layoutKmPost.id,
+                });
                 Snackbar.success(t('tool-panel.km-post.geometry.linking.linking-succeed-msg'));
                 stopLinking();
             }

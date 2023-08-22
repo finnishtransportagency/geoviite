@@ -21,39 +21,40 @@ data class GeometryPlanLayout(
     val switches: List<TrackLayoutSwitch>,
     val kmPosts: List<TrackLayoutKmPost>,
     val planId: DomainId<GeometryPlan>,
+    val planHidden: Boolean,
     val planDataType: DataType,
     val startAddress: TrackMeter?,
 ) {
     val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox })
 
     fun withLayoutGeometry(resolution: Int? = null) = copy(
-        alignments = alignments.map { alignment -> alignment.copy(
-            polyLine = toAlignmentPolyLine(alignment.id, alignment.header.alignmentType, alignment, resolution),
-            segmentMValues = getSegmentBorderMValues(alignment),
-        )},
+        alignments = alignments.map { alignment ->
+            alignment.copy(
+                polyLine = toAlignmentPolyLine(alignment.id, alignment.header.alignmentType, alignment, resolution),
+                segmentMValues = getSegmentBorderMValues(alignment),
+            )
+        },
     )
 }
 
 data class PlanLayoutAlignment(
     val header: AlignmentHeader<GeometryAlignment>,
-    @JsonIgnore
-    override val segments: List<PlanLayoutSegment>,
+    @JsonIgnore override val segments: List<PlanLayoutSegment>,
     val polyLine: AlignmentPolyLine<GeometryAlignment>? = null,
     val segmentMValues: List<Double> = listOf(),
-): IAlignment {
+) : IAlignment {
     @get:JsonIgnore
     override val id: DomainId<GeometryAlignment> get() = header.id
+
     @get:JsonIgnore
     override val boundingBox: BoundingBox? get() = header.boundingBox
 }
 
 data class PlanLayoutSegment(
-    @JsonIgnore
-    override val geometry: SegmentGeometry,
+    @JsonIgnore override val geometry: SegmentGeometry,
     val pointCount: Int,
     override val sourceId: DomainId<GeometryElement>?,
     override val sourceStart: Double?,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
-): ISegment, ISegmentGeometry by geometry
-
+) : ISegment, ISegmentGeometry by geometry

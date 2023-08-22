@@ -7,14 +7,14 @@ import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 
-type UnreliableInframodelDownloadConfirmDialogProps = {
+type ConfirmDownloadUnreliableInfraModelDialogProps = {
     onClose: () => void;
     plan: GeometryPlanHeader;
 };
 
-export const UnreliableInfraModelDownloadConfirmDialog: React.FC<
-    UnreliableInframodelDownloadConfirmDialogProps
-> = ({ onClose, plan }: UnreliableInframodelDownloadConfirmDialogProps) => {
+export const ConfirmDownloadUnreliableInfraModelDialog: React.FC<
+    ConfirmDownloadUnreliableInfraModelDialogProps
+> = ({ onClose, plan }: ConfirmDownloadUnreliableInfraModelDialogProps) => {
     const { t } = useTranslation();
     return (
         <Dialog

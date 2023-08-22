@@ -313,8 +313,9 @@ export async function createAuthor(author: Author): Promise<Author | null> {
 }
 
 export interface GeometryPlanLinkingSummary {
-    linkedAt: Date;
+    linkedAt: Date | null;
     linkedByUsers: string;
+    currentlyLinked: boolean;
 }
 export async function getGeometryPlanLinkingSummaries(
     planIds: GeometryPlanId[],
