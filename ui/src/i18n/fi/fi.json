@@ -140,7 +140,7 @@
         },
         "elevation-measurement-method": {
             "TOP_OF_SLEEPER": "Korkeusviiva",
-            "TOP_OF_RAIL": "Kiskonselkä",
+            "TOP_OF_RAIL": "Kiskon selkä",
             "UNKNOWN": "Ei tiedossa",
             "UNKNOWN-WITH-TERM-CONTEXT": "Korkeusasema ei tiedossa"
         },
