@@ -318,6 +318,7 @@ class GeometryDao @Autowired constructor(
             "elevation_measurement_method" to geometryPlan.elevationMeasurementMethod?.name,
             "message" to geometryPlan.message,
             "source" to geometryPlan.source.name,
+            "hidden" to geometryPlan.isHidden,
         )
 
         check(jdbcTemplate.update(sql, params) > 0)
