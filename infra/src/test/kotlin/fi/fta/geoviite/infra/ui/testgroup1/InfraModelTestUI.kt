@@ -4,7 +4,9 @@ import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -139,6 +141,9 @@ class InfraModelTestUI @Autowired constructor(
         val laatu = "Digitoitu ilmakuvasta"
         tilanneJaLaatutiedot.editLaatu(laatu)
         assertEquals(laatu, tilanneJaLaatutiedot.laatu())
+        val korkeusasema = "Kiskon selkä"
+        tilanneJaLaatutiedot.editKorkeusasema(korkeusasema)
+        assertEquals(korkeusasema, tilanneJaLaatutiedot.korkeusasema())
 
         //Loki- ja linkitysdata
         val lokiJaLinkitystiedotFormGroup = uploadForm.lokiJaLinkitystiedot()
@@ -150,7 +155,8 @@ class InfraModelTestUI @Autowired constructor(
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList()
         assertEquals(originalCount + 1, infraModelRowsAfterUpload.items.size)
 
-        val uploadedPlanRow = infraModelRowsAfterUpload.getItemWhenMatches { row -> row.projektinNimi() == projektinNimi }
+        val uploadedPlanRow =
+            infraModelRowsAfterUpload.getItemWhenMatches { row -> row.projektinNimi() == projektinNimi }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.tiedostonimi())
 
