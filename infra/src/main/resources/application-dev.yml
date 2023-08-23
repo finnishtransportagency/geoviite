@@ -8,3 +8,6 @@ logging:
     fi:
       fta:
         geoviite: #debug
+geoviite:
+  i18n:
+    override-path: "./src/main/resources/i18n/"

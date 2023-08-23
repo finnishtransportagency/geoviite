@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.locale
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
@@ -13,16 +14,18 @@ import org.springframework.web.bind.annotation.RestController
 
 
 @RestController
-@RequestMapping("/locale")
-class LocaleController @Autowired constructor(
-    val localeService: LocaleService,
+@RequestMapping("/localization")
+class LocalizationController @Autowired constructor(
+    val localizationService: LocalizationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/{language}.json")
     @PreAuthorize(AUTH_ALL_READ)
-    fun getLocale(@PathVariable("language") language: String): Any {
-        logger.apiCall("getLocale", "language" to language)
-        return localeService.getLocale(language)
+    fun getLocalization(@PathVariable("language") language: String): Any {
+        logger.apiCall("getLocalization", "language" to language)
+        return localizationService.getLocalization(language).let { translation ->
+            ObjectMapper().readValue(translation, Any::class.java)
+        }
     }
 }

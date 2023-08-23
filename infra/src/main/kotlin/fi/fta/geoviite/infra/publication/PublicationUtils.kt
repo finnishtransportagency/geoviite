@@ -1,8 +1,10 @@
 package fi.fta.geoviite.infra.publication
 
+import com.fasterxml.jackson.databind.JsonNode
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.locale.t
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -40,7 +42,7 @@ fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<By
     return ResponseEntity.ok().headers(headers).body(content.toByteArray())
 }
 
-fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, t: (String, List<String>) -> String): String {
+fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translations: JsonNode): String {
     val columns = mapOf<String, (item: PublicationTableItem) -> Any?>("publication-table.name" to { it.name },
         "publication-table.track-number" to {
             it.trackNumbers.sorted().joinToString(", ")
@@ -49,7 +51,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, t: (String, L
             it.changedKmNumbers.map { range -> "${range.min}${if (range.min != range.max) "-${range.max}" else ""}" }
                 .joinToString(", ")
         },
-        "publication-table.operation" to { formatOperation(it.operation, t) },
+        "publication-table.operation" to { formatOperation(translations, it.operation) },
         "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
         "publication-table.publication-user" to { "${it.publicationUser}" },
         "publication-table.message" to { it.message },
@@ -58,24 +60,26 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, t: (String, L
                 formatInstant(
                     pushTime, timeZone
                 )
-            } ?: t("no", emptyList())
+            } ?: t(translations, "no")
         },
         "publication-table.changes" to {
             it.propChanges.map { change ->
                 "${
                     t(
-                        "publication-details-table.prop.${change.propKey.key}", change.propKey.params
+                        translations, "publication-details-table.prop.${change.propKey.key}", change.propKey.params
                     )
-                }: ${formatChangeValue(change.value, t)}${
+                }: ${formatChangeValue(translations, change.value)}${
                     if (change.remark != null) " (${
                         t(
-                            "publication-details-table.remark.${change.remark.key}", listOf(change.remark.value)
+                            translations,
+                            "publication-details-table.remark.${change.remark.key}",
+                            listOf(change.remark.value)
                         )
                     })" else ""
                 }"
             }
         }).map { (column, fn) ->
-        CsvEntry(t(column, emptyList()), fn)
+        CsvEntry(t(translations, column), fn)
     }
 
     return printCsv(columns, items)
@@ -83,16 +87,16 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, t: (String, L
 
 private fun enumTranslationKey(enumName: LocalizationKey, value: String) = "enum.${enumName}.${value}"
 
-private fun <T> formatChangeValue(value: ChangeValue<T>, t: (String, List<String>) -> String): String {
+private fun <T> formatChangeValue(translations: JsonNode, value: ChangeValue<T>): String {
     val oldValue = if (value.localizationKey != null && value.oldValue != null) t(
-        enumTranslationKey(
+        translations, enumTranslationKey(
             value.localizationKey, value.oldValue.toString()
-        ), emptyList()
+        )
     ) else if (value.oldValue == null) null else value.oldValue.toString()
     val newValue = if (value.localizationKey != null && value.newValue != null) t(
-        enumTranslationKey(
+        translations, enumTranslationKey(
             value.localizationKey, value.newValue.toString()
-        ), emptyList()
+        )
     ) else if (value.newValue == null) null else value.newValue.toString()
 
     return "${if (oldValue != null) oldValue else ""} -> ${if (newValue != null) newValue else ""}"
@@ -102,12 +106,12 @@ private fun <T> formatChangeValue(value: ChangeValue<T>, t: (String, List<String
 private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
-private fun formatOperation(operation: Operation, t: (String, List<String>) -> String) = when (operation) {
-    Operation.CREATE -> t("create", emptyList())
-    Operation.MODIFY -> t("modify", emptyList())
-    Operation.DELETE -> t("delete", emptyList())
-    Operation.RESTORE -> t("restore", emptyList())
-    Operation.CALCULATED -> t("calculated-change", emptyList())
+private fun formatOperation(translations: JsonNode, operation: Operation) = when (operation) {
+    Operation.CREATE -> t(translations, "create", emptyList())
+    Operation.MODIFY -> t(translations, "modify", emptyList())
+    Operation.DELETE -> t(translations, "delete", emptyList())
+    Operation.RESTORE -> t(translations, "restore", emptyList())
+    Operation.CALCULATED -> t(translations, "calculated-change", emptyList())
 }
 
 fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
@@ -279,7 +283,12 @@ fun <T, U> compareChange(
     )
 } else null
 
-fun switchBaseTypeToProp(switchBaseType: SwitchBaseType, t: (String) -> String) = when (switchBaseType) {
-    SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> t("publication-details-table.joint.forward-joint")
-    SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> t("publication-details-table.joint.math-point")
+fun switchBaseTypeToProp(translations: JsonNode, switchBaseType: SwitchBaseType) = when (switchBaseType) {
+    SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> t(
+        translations, "publication-details-table.joint.forward-joint"
+    )
+
+    SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> t(
+        translations, "publication-details-table.joint.math-point"
+    )
 }

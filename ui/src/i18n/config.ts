@@ -7,7 +7,7 @@ i18n.use(initReactI18next)
     .use(Backend)
     .init({
         backend: {
-            loadPath: `${API_URI}/locale/{{lng}}.json?ns={{ns}}`,
+            loadPath: `${API_URI}/localization/{{lng}}.json`,
             preload: true,
         },
         lng: 'fi',
