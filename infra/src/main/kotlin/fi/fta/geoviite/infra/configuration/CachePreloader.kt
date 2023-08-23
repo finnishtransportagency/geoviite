@@ -75,7 +75,7 @@ class CachePreloader(
         name: String,
         fetchVersions: () -> List<RowVersion<T>>,
         fetchRow: (RowVersion<T>) -> S,
-    ) = refreshCache(name) { fetchVersions().forEach { version -> fetchRow(version) } }
+    ) = refreshCache(name) { fetchVersions().parallelStream().forEach { version -> fetchRow(version) } }
 
     private fun refreshCache(name: String, refresh: () -> Unit) {
         logger.info("Refreshing cache: name=$name")
