@@ -87,7 +87,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                             <Radio
                                 checked={state.source === source.value}
                                 onChange={() => setSource(source.value)}>
-                                {t(source.name())}
+                                {t(source.name)}
                             </Radio>
                         </span>
                     ))}

@@ -102,7 +102,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
-    const trackNumberStateOptions = layoutStates.filter((s) => s.value !== 'PLANNED');
+    const trackNumberStateOptions = layoutStates
+        .filter((s) => s.value !== 'PLANNED')
+        .map((s) => ({ value: s.value, name: t(s.name) }));
 
     const confirmNewDraftDelete = () => {
         setDraftDeleteConfirmationVisible(true);
@@ -231,10 +233,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Dropdown
                                 value={state.request.state}
                                 canUnselect={false}
-                                options={trackNumberStateOptions.map(({ value, name: nameFn }) => ({
-                                    value,
-                                    name: nameFn(),
-                                }))}
+                                options={trackNumberStateOptions}
                                 onChange={(state) =>
                                     stateActions.onUpdateProp({
                                         key: 'state' as keyof TrackNumberSaveRequest,

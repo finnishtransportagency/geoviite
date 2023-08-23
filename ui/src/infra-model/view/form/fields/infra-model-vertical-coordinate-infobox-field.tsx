@@ -54,10 +54,7 @@ export const InfraModelVerticalCoordinateInfoboxField: React.FC<
                         <Dropdown
                             placeholder={t('im-form.vertical-coordinate-system-field')}
                             value={value}
-                            options={verticalCoordinateSystems.map(({ value, name: nameFn }) => ({
-                                value,
-                                name: nameFn(),
-                            }))}
+                            options={verticalCoordinateSystems}
                             canUnselect
                             onChange={(verticalCoordinateSystem) =>
                                 changeInOverrideParametersField(

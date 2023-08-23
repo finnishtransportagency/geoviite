@@ -47,10 +47,7 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelMeasurementMet
                         <Dropdown
                             placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.measurementMethod}
-                            options={measurementMethods.map(({ value, name: nameFn }) => ({
-                                value,
-                                name: nameFn(),
-                            }))}
+                            options={measurementMethods}
                             unselectText={t('im-form.information-missing')}
                             canUnselect
                             onChange={(measurementMethod) =>

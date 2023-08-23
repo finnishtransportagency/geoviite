@@ -47,10 +47,7 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelDecisionPhaseField
                         <Dropdown
                             placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.decisionPhase}
-                            options={planDecisionPhases.map(({ value, name: nameFn }) => ({
-                                value,
-                                name: nameFn(),
-                            }))}
+                            options={planDecisionPhases}
                             unselectText={t('im-form.information-missing')}
                             canUnselect
                             onChange={(decision) =>

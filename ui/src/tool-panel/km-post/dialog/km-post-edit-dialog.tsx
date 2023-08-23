@@ -309,10 +309,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             value={
                                 <Dropdown
                                     value={state.kmPost?.state}
-                                    options={kmPostStateOptions.map(({ name: nameFn, value }) => ({
-                                        name: nameFn(),
-                                        value: value,
-                                    }))}
+                                    options={kmPostStateOptions}
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}

@@ -95,7 +95,7 @@ const PlanGeometryElementListingSearch = ({
                                     <Radio
                                         checked={state.source === source.value}
                                         onChange={() => setSource(source.value)}>
-                                        {t(source.name())}
+                                        {t(source.name)}
                                     </Radio>
                                 </span>
                             ))}
