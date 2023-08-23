@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.locale.Translation
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID

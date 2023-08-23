@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.locale
+package fi.fta.geoviite.infra.localization
 
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.util.LocalizationKey

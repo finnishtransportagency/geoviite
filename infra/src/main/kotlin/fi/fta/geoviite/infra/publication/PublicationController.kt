@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
-import fi.fta.geoviite.infra.locale.LocalizationService
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page

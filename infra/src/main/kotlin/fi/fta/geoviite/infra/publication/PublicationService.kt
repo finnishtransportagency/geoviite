@@ -14,8 +14,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
-import fi.fta.geoviite.infra.locale.LocalizationService
-import fi.fta.geoviite.infra.locale.Translation
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.ratko.RatkoClient
