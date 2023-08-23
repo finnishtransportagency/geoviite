@@ -7,31 +7,38 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 
-enum class SupportedLanguage(val locale: String) {
-    FI("fi"), EN("en"),
+data class Translation(val lang: String, val localization: String) {
+    val jsonRoot = JsonMapper().readTree(localization)
+
+    fun t(key: LocalizationKey) = t(key, emptyList())
+    fun t(key: String) = t(LocalizationKey(key), emptyList())
+    fun t(key: String, params: List<String>) = t(LocalizationKey(key), params)
+    fun t(key: LocalizationKey, params: List<String>): String {
+        var node = jsonRoot
+        key.split(".").let { keyPart ->
+            keyPart.forEach { part ->
+                node = node.path(part)
+            }
+        }
+
+        val nodeText = if (node.isMissingNode) key.toString() else node.asText()
+        return nodeText.replace(Regex("\\{\\{[0-9]*\\}\\}")) {
+            val propIndex = it.value.substring(2, it.value.length - 2).trim().toInt()
+            params.getOrNull(propIndex) ?: ""
+        }
+    }
 }
 
-data class Translation(val lang: SupportedLanguage, val localization: JsonNode)
-
-class TranslationCache(val retentionTime: Long?, val getter: (String) -> String) {
-    private val translations = mutableMapOf<String, String>()
-    fun getOrLoadTranslation(lang: String): String = translations.getOrPut(lang) {
-        this::class.java.classLoader.getResource("i18n/translations.${lang}.json").readText()
+class TranslationCache {
+    private val translations = mutableMapOf<String, Translation>()
+    fun getOrLoadTranslation(lang: String) = translations.getOrPut(lang) {
+        Translation(lang, this::class.java.classLoader.getResource("i18n/translations.${lang}.json").readText())
     }
 }
 
 @Service
 class LocalizationService() {
-    val translationCache by lazy {
-        TranslationCache(if (overridePath.isNotEmpty()) 10000 else null) { lang ->
-            if (overridePath.isNotEmpty()) {
-                File("${overridePath}translations.${lang}.json").readText()
-            } else {
-                this::class.java.classLoader.getResource("i18n/translations.${lang}.json").readText()
-            }
-        }
-    }
-    val jsonMapper = JsonMapper()
+    val translationCache = TranslationCache()
 
     @Value("\${geoviite.default-language}")
     val defaultLanguage = ""
@@ -40,28 +47,8 @@ class LocalizationService() {
     val overridePath: String = ""
 
     fun getLocalization(language: String) = if (overridePath.isNotEmpty()) {
-        File("${overridePath}translations.${language}.json").readText()
+        Translation(language, File("${overridePath}translations.${language}.json").readText())
     } else {
         translationCache.getOrLoadTranslation(language)
-    }
-
-    fun getLocalizationJson(language: String) = jsonMapper.readTree(getLocalization(language))
-}
-
-fun t(translations: JsonNode, key: LocalizationKey) = t(translations, key, emptyList())
-fun t(translations: JsonNode, key: String) = t(translations, LocalizationKey(key), emptyList())
-fun t(translations: JsonNode, key: String, params: List<String>) = t(translations, LocalizationKey(key), params)
-fun t(translations: JsonNode, key: LocalizationKey, params: List<String>): String {
-    var node = translations
-    key.split(".").let { keyPart ->
-        keyPart.forEach { part ->
-            node = node.path(part)
-        }
-    }
-
-    val nodeText = if (node.isMissingNode) key.toString() else node.asText()
-    return nodeText.replace(Regex("\\{\\{[0-9]*\\}\\}")) {
-        val propIndex = it.value.substring(2, it.value.length - 2).trim().toInt()
-        params.getOrNull(propIndex) ?: ""
     }
 }

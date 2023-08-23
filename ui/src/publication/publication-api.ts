@@ -52,7 +52,7 @@ export const getLatestPublications = (count: number) => {
 
 export const getPublicationAsTableItems = (id: PublicationId) =>
     getIgnoreError<PublicationTableItem[]>(
-        `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}})}`,
+        `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
     );
 
 export const getPublicationsAsTableItems = (

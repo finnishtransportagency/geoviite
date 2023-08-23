@@ -25,7 +25,7 @@ class LocalizationController @Autowired constructor(
     fun getLocalization(@PathVariable("language") language: String): Any {
         logger.apiCall("getLocalization", "language" to language)
         return localizationService.getLocalization(language).let { translation ->
-            ObjectMapper().readValue(translation, Any::class.java)
+            ObjectMapper().readValue(translation.localization, Any::class.java)
         }
     }
 }

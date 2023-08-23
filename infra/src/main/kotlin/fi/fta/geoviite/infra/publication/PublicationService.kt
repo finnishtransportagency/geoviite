@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.publication
 
-import com.fasterxml.jackson.databind.JsonNode
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -16,7 +15,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.locale.LocalizationService
-import fi.fta.geoviite.infra.locale.t
+import fi.fta.geoviite.infra.locale.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.ratko.RatkoClient
@@ -692,13 +691,16 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getPublicationDetailsAsTableItems(id: IntId<Publication>, lang: String): List<PublicationTableItem> {
+    fun getPublicationDetailsAsTableItems(
+        id: IntId<Publication>,
+        translation: Translation,
+    ): List<PublicationTableItem> {
         logger.serviceCall("getPublicationDetailsAsTableRows", "id" to id)
         val geocodingContextCache = mutableMapOf<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>()
         return getPublicationDetails(id).let { publication ->
             val previousPublication = publicationDao.fetchPublicationTimes().entries.sortedByDescending { it.key }
                 .find { it.key < publication.publicationTime }
-            mapToPublicationTableItems(localizationService.getLocalizationJson(lang),
+            mapToPublicationTableItems(translation,
                 publication,
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
@@ -733,10 +735,15 @@ class PublicationService @Autowired constructor(
         to: Instant? = null,
         sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
-        lang: String,
+        translation: Translation,
     ): List<PublicationTableItem> {
         logger.serviceCall(
-            "fetchPublicationDetails", "from" to from, "to" to to, "sortBy" to sortBy, "order" to order, "lang" to lang
+            "fetchPublicationDetails",
+            "from" to from,
+            "to" to to,
+            "sortBy" to sortBy,
+            "order" to order,
+            "translation" to translation
         )
 
         return fetchPublicationDetailsBetweenInstants(from, to).sortedBy { it.publicationTime }.let { publications ->
@@ -750,7 +757,7 @@ class PublicationService @Autowired constructor(
             publications.flatMapIndexed { index: Int, publicationDetails: PublicationDetails ->
                 val previousPublication = publications.getOrNull(index - 1)
                 mapToPublicationTableItems(
-                    localizationService.getLocalizationJson(lang),
+                    translation,
                     publicationDetails,
                     previousPublication?.publicationTime ?: publicationDetails.publicationTime.minusMillis(1),
                     getGeocodingContextOrNull,
@@ -770,7 +777,7 @@ class PublicationService @Autowired constructor(
         sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
         timeZone: ZoneId? = null,
-        lang: String? = null,
+        translation: Translation,
     ): String {
         logger.serviceCall(
             "fetchPublicationsAsCsv",
@@ -779,16 +786,15 @@ class PublicationService @Autowired constructor(
             "sortBy" to sortBy,
             "order" to order,
             "timeZone" to timeZone,
-            "lang" to lang,
+            "translation" to translation,
         )
-        requireNotNull(lang) { "Language must be set" }
 
         val orderedPublishedItems = fetchPublicationDetails(
-            from = from, to = to, sortBy = sortBy, order = order, lang = lang
+            from = from, to = to, sortBy = sortBy, order = order, translation = translation
         )
 
         return asCsvFile(
-            orderedPublishedItems, timeZone ?: ZoneId.of("UTC"), localizationService.getLocalizationJson(lang)
+            orderedPublishedItems, timeZone ?: ZoneId.of("UTC"), translation
         )
     }
 
@@ -1034,7 +1040,7 @@ class PublicationService @Autowired constructor(
 
 
     fun diffSwitch(
-        translations: JsonNode,
+        translation: Translation,
         changes: SwitchChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
@@ -1051,7 +1057,7 @@ class PublicationService @Autowired constructor(
             ) else 0.0
             val jointPropKeyParams =
                 listOfNotNull(trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
-                    changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translations, it) })
+                    changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(
                     joint.trackNumberId, oldTimestamp
@@ -1085,9 +1091,7 @@ class PublicationService @Autowired constructor(
             compareChange(
                 { changes.locationTracks.any() },
                 if (operation != Operation.CREATE) listOf(
-                    t(
-                        translations, "publication-details-table.not-calculated"
-                    )
+                    translation.t("publication-details-table.not-calculated")
                 ) else null,
                 changes.locationTracks.map { it.name },
                 { it.joinToString(", ") { it } },
@@ -1171,7 +1175,7 @@ class PublicationService @Autowired constructor(
         .toSet()
 
     private fun mapToPublicationTableItems(
-        translations: JsonNode,
+        translation: Translation,
         publication: PublicationDetails,
         previousComparisonTime: Instant,
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
@@ -1186,7 +1190,7 @@ class PublicationService @Autowired constructor(
 
         val trackNumbers = publication.trackNumbers.map { tn ->
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.track-number")} ${tn.number}",
+                name = "${translation.t("publication-table.track-number-long")} ${tn.number}",
                 trackNumbers = setOf(tn.number),
                 changedKmNumbers = tn.changedKmNumbers,
                 operation = tn.operation,
@@ -1205,7 +1209,7 @@ class PublicationService @Autowired constructor(
                 trackNumberNamesCache.findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }?.number
 
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.reference-line")} ${tn}",
+                name = "${translation.t("publication-table.reference-line")} ${tn}",
                 trackNumbers = setOfNotNull(tn),
                 changedKmNumbers = rl.changedKmNumbers,
                 operation = rl.operation,
@@ -1224,7 +1228,7 @@ class PublicationService @Autowired constructor(
             val tn =
                 trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.location-track")} ${lt.name}",
+                name = "${translation.t("publication-table.location-track")} ${lt.name}",
                 trackNumbers = setOfNotNull(tn),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
@@ -1245,12 +1249,12 @@ class PublicationService @Autowired constructor(
             val tns =
                 latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.switch")} ${s.name}",
+                name = "${translation.t("publication-table.switch")} ${s.name}",
                 trackNumbers = tns,
                 operation = s.operation,
                 publication = publication,
                 propChanges = diffSwitch(
-                    translations,
+                    translation,
                     publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1265,7 +1269,7 @@ class PublicationService @Autowired constructor(
             val tn =
                 trackNumberNamesCache.findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.km-post")} ${kp.kmNumber}",
+                name = "${translation.t("publication-table.km-post")} ${kp.kmNumber}",
                 trackNumbers = setOfNotNull(tn),
                 operation = kp.operation,
                 publication = publication,
@@ -1282,7 +1286,7 @@ class PublicationService @Autowired constructor(
             val tn =
                 trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.location-track")} ${lt.name}",
+                name = "${translation.t("publication-table.location-track")} ${lt.name}",
                 trackNumbers = setOfNotNull(tn),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = Operation.CALCULATED,
@@ -1303,12 +1307,12 @@ class PublicationService @Autowired constructor(
             val tns =
                 latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
             mapToPublicationTableItem(
-                name = "${t(translations, "publication-details-table.prop.switch")} ${s.name}",
+                name = "${translation.t("publication-table.switch")} ${s.name}",
                 trackNumbers = tns,
                 operation = Operation.CALCULATED,
                 publication = publication,
                 propChanges = diffSwitch(
-                    translations,
+                    translation,
                     publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
