@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.locale
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.beans.factory.annotation.Value
@@ -39,9 +38,6 @@ class TranslationCache {
 @Service
 class LocalizationService() {
     val translationCache = TranslationCache()
-
-    @Value("\${geoviite.default-language}")
-    val defaultLanguage = ""
 
     @Value("\${geoviite.i18n.override-path}")
     val overridePath: String = ""

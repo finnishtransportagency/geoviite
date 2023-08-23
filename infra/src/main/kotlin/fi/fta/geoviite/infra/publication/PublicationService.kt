@@ -55,7 +55,6 @@ class PublicationService @Autowired constructor(
     private val ratkoPushDao: RatkoPushDao,
     private val geometryDao: GeometryDao,
     private val geocodingCacheService: GeocodingCacheService,
-    private val localizationService: LocalizationService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
