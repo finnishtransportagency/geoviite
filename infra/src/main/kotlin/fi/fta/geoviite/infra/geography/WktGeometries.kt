@@ -5,11 +5,6 @@ import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.util.logger
-import fi.fta.geoviite.infra.util.measureAndCollect
-import org.geotools.geometry.jts.JTSFactoryFinder
-import org.locationtech.jts.geom.GeometryFactory
-import org.locationtech.jts.geom.LineString
-import org.locationtech.jts.io.WKTReader
 
 
 private const val POINT_SEPARATOR = ","
@@ -22,23 +17,13 @@ private const val POLYGON_TYPE_2D = "POLYGON"
 
 
 fun parse2DPoint(point: String): Point = parse2DPointValues(dropWktType(point, POINT_TYPE_2D))
-//    parse2DPointValues(dropParenthesis(dropTypeInfo(POINT_TYPE_2D, point)))
 
 fun parse2DLineString(lineString: String): List<Point> = split2DPointValues(dropWktType(lineString, LINESTRING_TYPE_2D))
-//split2DPointValues(dropParenthesis(dropTypeInfo(LINESTRING_TYPE_2D, lineString)))
 
 fun parse3DMLineString(lineString: String): List<Point3DM> =
     split3DMPointValues(dropWktType(lineString, LINESTRING_TYPE_3DM))
-//split3DMPointValues(dropParenthesis(dropTypeInfo(LINESTRING_TYPE_3DM, lineString)))
-
-fun parse3DMLineStringGeotools(lineString: String): List<Point3DM> {
-    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory()
-    val reader = WKTReader(geometryFactory)
-    return (reader.read(lineString) as LineString).coordinates.map { c -> Point3DM(c.x, c.y, c.m) }
-}
 
 fun parse2DPolygon(polygon: String): List<Point> = split2DPointValues(dropWktType(polygon, POLYGON_TYPE_2D, 2))
-//split2DPointValues(dropParenthesis(dropTypeInfo(POLYGON_TYPE_2D, polygon), 2))
 
 fun create2DPoint(coordinate: IPoint): String {
     val content = point2DToString(coordinate)
@@ -69,16 +54,12 @@ fun split2DPointValues(valuesString: String): List<Point> {
     return valuesString.split(POINT_SEPARATOR).map { s -> parse2DPointValues(s) }
 }
 
-fun split3DMPointValues(valuesString: String): List<Point3DM> {
-    return measureAndCollect("split-points") {
-        try {
-            val pointStrs = measureAndCollect("split-points-str-split") { valuesString.split(POINT_SEPARATOR) }
-            measureAndCollect("split-points-parse-point") { pointStrs.map { s -> parse3DMPointValue(s) } }
-        } catch (e: NumberFormatException) {
-            logger.error("tried=$valuesString")
-            throw e
-        }
-    }
+fun split3DMPointValues(valuesString: String): List<Point3DM> = try {
+    val pointStrs = valuesString.split(POINT_SEPARATOR)
+    pointStrs.map { s -> parse3DMPointValue(s) }
+} catch (e: NumberFormatException) {
+    logger.error("tried=$valuesString")
+    throw e
 }
 
 fun parse2DPointValues(pointString: String): Point {
@@ -88,29 +69,10 @@ fun parse2DPointValues(pointString: String): Point {
 }
 
 fun parse3DMPointValue(pointString: String): Point3DM {
-    val values = measureAndCollect("point-3dm-sub-split") {
-        pointString.split(COORDINATE_SEPARATOR).also { values ->
-            require(values.size == 3) { "3D geometry should contain X/Y/m values: ${values.size} <> 3" }
-        }
+    val values = pointString.split(COORDINATE_SEPARATOR).also { values ->
+        require(values.size == 3) { "3D geometry should contain X/Y/m values: ${values.size} <> 3" }
     }
-//    val values = measureAndCollect("split-point") {
-//        pointString.split(COORDINATE_SEPARATOR)
-//    }
-//    measureAndCollect("double-parsing") {
-//        values.map(String::toDouble)
-//    }
-    return measureAndCollect("point-3dm-creation") {
-        Point3DM(values[0].toDouble(), values[1].toDouble(), values[2].toDouble())
-    }
-//    return Point3DM(values[0].toDouble(), values[1].toDouble(), values[2].toDouble())
-}
-
-fun parse3DMPointValueRaw(pointString: String): Point3DM {
-    val values = pointString.split(COORDINATE_SEPARATOR)
-    if (values.size != 3) throw IllegalArgumentException("3D geometry should contain X/Y/m values: ${values.size} <> 3")
-    return measureAndCollect("point-3dm-creation") {
-        Point3DM(values[0].toDouble(), values[1].toDouble(), values[2].toDouble())
-    }
+    return Point3DM(values[0].toDouble(), values[1].toDouble(), values[2].toDouble())
 }
 
 private fun dropWktType(wkt: String, typeString: String, parenthesis: Int = 1): String {
@@ -119,18 +81,5 @@ private fun dropWktType(wkt: String, typeString: String, parenthesis: Int = 1): 
     return wkt.substring(actualTypeString.length + parenthesis, wkt.length - parenthesis)
 }
 
-//private fun dropTypeInfo(typeString: String, wktString: String): String {
-//    val actualTypeString = wktString.substringBefore("(")
-//    return if (typeString == actualTypeString.trim()) wktString.drop(actualTypeString.length)
-//    else throw IllegalStateException("WKT String not the expected type: expected=$typeString actual=$actualTypeString")
-//}
-
 private fun addParenthesis(wktString: String, count: Int = 1): String =
     "${"(".repeat(count)}$wktString${")".repeat(count)}"
-
-//private fun dropParenthesis(wktString: String, count: Int = 1): String = measureAndCollect("drop-parenthesis") {
-//    val start = "(".repeat(count)
-//    val end = ")".repeat(count)
-//    if (wktString.startsWith(start) && wktString.endsWith(end)) wktString.drop(count).dropLast(count)
-//    else throw IllegalArgumentException("WKT String didn't carry expected paranthesis: count=$count wkt=$wktString")
-//}

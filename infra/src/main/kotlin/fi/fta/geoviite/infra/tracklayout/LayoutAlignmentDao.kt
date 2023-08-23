@@ -19,6 +19,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
+import java.util.stream.Collectors
 import kotlin.math.abs
 
 const val GEOMETRY_CACHE_SIZE = 500000L
@@ -614,27 +615,38 @@ group by id
                   where geom.id is not null
                   group by geom.id
                 """.trimIndent()
-            val allGeoms = measureAndCollect("geom-query-total") {
+
+            data class RowResult(
+                val id: IntId<SegmentGeometry>,
+                val wktString: String,
+                val cantValues: List<Double?>?,
+                val heightValues: List<Double?>?,
+                val resolution: Int,
+            )
+
+            val rowResults = measureAndCollect("geom-query-total") {
                 jdbcTemplate.query(sql_wkt, mapOf<String, Any>()) { rs, _ ->
                     measureAndCollect("geom-resultset-map") {
-                        val id = measureAndCollect("geom-id-pick") { rs.getIntId<SegmentGeometry>("id") }
-                        id to measureAndCollect("geom-data-pick") {
-                            SegmentGeometry(
-                                id = id,
-                                points = measureAndCollect("geom-wkt-read") {
-                                    getSegmentPointsWkt(
-                                        rs, "geometry_wkt", "height_values", "cant_values"
-                                    )
-//                                    getSegmentPointsArrays(
-//                                        rs, "height_values", "cant_values"
-//                                    )
-                                },
-                                resolution = rs.getInt("resolution"),
-                            )
-                        }
+                        RowResult(
+                            id = rs.getIntId("id"),
+                            wktString = rs.getString("geometry_wkt"),
+                            heightValues = rs.getNullableDoubleListOrNullFromString("height_values"),
+                            cantValues = rs.getNullableDoubleListOrNullFromString("cant_values"),
+                            resolution = rs.getInt("resolution"),
+                        )
                     }
                 }
-            }.associate { it }
+            }
+            val allGeoms = measureAndCollect("parse-and-create-geometry") {
+                rowResults.parallelStream().map { row ->
+                    SegmentGeometry(
+                        id = row.id,
+                        points = getSegmentPointsWkt(row.wktString, row.heightValues, row.cantValues),
+                        resolution = row.resolution,
+                    )
+                }.collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
+            }
+            println("Preloaded geoms: count=${allGeoms.size}")
             segmentGeometryCache.putAll(allGeoms)
         }
     }
@@ -710,59 +722,29 @@ private fun getSegmentPointsWkt(
     cantColumn: String? = null,
 ): List<LayoutPoint> {
     val rawGeometry = measureAndCollect("rawGeom-read") { rs.getString(geometryColumn) } ?: return emptyList()
-    val geometryValues = measureAndCollect("3DM-parse") { parse3DMLineString(rawGeometry) }
     val heightValues = measureAndCollect("heights") {
         heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
     }
     val cantValues = measureAndCollect("cants") {
         cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
     }
-    return measureAndCollect("LayoutPoint()") {
-        geometryValues.mapIndexed { index, coordinate ->
-            LayoutPoint(
-                x = coordinate.x,
-                y = coordinate.y,
-                z = heightValues?.getOrNull(index),
-                m = coordinate.m,
-                cant = cantValues?.getOrNull(index),
-            )
-        }
-    }
+    return getSegmentPointsWkt(rawGeometry, heightValues, cantValues)
 }
 
-private fun getSegmentPointsArrays(
-    rs: ResultSet,
-    heightColumn: String? = null,
-    cantColumn: String? = null,
+private fun getSegmentPointsWkt(
+    geometryWkt: String,
+    heightValues: List<Double?>? = null,
+    cantValues: List<Double?>? = null,
 ): List<LayoutPoint> {
-    val xValues = measureAndCollect("x_values") {
-//        rs.getDoubleArray("x_values")
-        rs.getDoubleListFromString("x_values")
-    }
-    val yValues = measureAndCollect("y_values") {
-//        rs.getDoubleArray("y_values")
-        rs.getDoubleListFromString("y_values")
-    }
-    val mValues = measureAndCollect("m_values") {
-//        rs.getDoubleArray("m_values")
-        rs.getDoubleListFromString("m_values")
-    }
-    val heightValues = measureAndCollect("heights") {
-        heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
-    }
-    val cantValues = measureAndCollect("cants") {
-        cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
-    }
-    return measureAndCollect("LayoutPoint()") {
-        (0..xValues.lastIndex).map { index ->
-            LayoutPoint(
-                x = xValues[index],
-                y = yValues[index],
-                z = heightValues?.getOrNull(index),
-                m = mValues[index],
-                cant = cantValues?.getOrNull(index),
-            )
-        }
+    val geometryValues = parse3DMLineString(geometryWkt)
+    return geometryValues.mapIndexed { index, coordinate ->
+        LayoutPoint(
+            x = coordinate.x,
+            y = coordinate.y,
+            z = heightValues?.getOrNull(index),
+            m = coordinate.m,
+            cant = cantValues?.getOrNull(index),
+        )
     }
 }
 

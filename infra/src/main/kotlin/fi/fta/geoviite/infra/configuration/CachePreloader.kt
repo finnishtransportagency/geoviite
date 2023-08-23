@@ -32,16 +32,31 @@ class CachePreloader(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    data class PreloadedCache<T, S>(
+        val name: String,
+        val fetchVersions: () -> List<RowVersion<T>>,
+        val fetchRow: (RowVersion<T>) -> S,
+    )
+
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun scheduleBasicReload() {
         if (cacheEnabled && cachePreloadEnabled) {
             switchStructureDao.fetchSwitchStructures()
-            refreshCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch)
-            refreshCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch)
-            refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
-            refreshCache("Switch", switchDao::fetchAllVersions, switchDao::fetch)
-            refreshCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch)
-            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
+            listOf(
+                PreloadedCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch),
+                PreloadedCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch),
+                PreloadedCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch),
+                PreloadedCache("Switch", switchDao::fetchAllVersions, switchDao::fetch),
+                PreloadedCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch),
+                PreloadedCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader),
+            ).parallelStream().forEach { cache -> refreshCache(cache) }
+
+//            refreshCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch)
+//            refreshCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch)
+//            refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
+//            refreshCache("Switch", switchDao::fetchAllVersions, switchDao::fetch)
+//            refreshCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch)
+//            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
         }
     }
 
@@ -52,6 +67,9 @@ class CachePreloader(
             refreshCache("Alignment", alignmentDao::fetchVersions, alignmentDao::fetch)
         }
     }
+
+    private fun <T, S> refreshCache(cache: PreloadedCache<T, S>) =
+        refreshCache(cache.name) { cache.fetchVersions().forEach { v -> cache.fetchRow(v) } }
 
     private fun <T, S> refreshCache(
         name: String,
