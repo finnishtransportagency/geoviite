@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import styles from './pv-file-list.scss';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { formatDateFull } from 'utils/date-utils';
@@ -336,13 +336,9 @@ const PVFileListRow = ({
                             </Button>
                         </React.Fragment>
                     }>
-                    <span
-                        dangerouslySetInnerHTML={{
-                            __html: t('projektivelho.file-list.reject-by-assignment-message', [
-                                item.assignment?.name,
-                                itemCounts.assignment,
-                            ]),
-                        }}
+                    <Trans
+                        i18nKey="projektivelho.file-list.reject-by-assignment-message"
+                        values={[item.assignment?.name, itemCounts.assignment]}
                     />
                 </Dialog>
             )}
@@ -368,13 +364,9 @@ const PVFileListRow = ({
                             </Button>
                         </React.Fragment>
                     }>
-                    <span
-                        dangerouslySetInnerHTML={{
-                            __html: t('projektivelho.file-list.reject-by-project-message', [
-                                item.project?.name,
-                                itemCounts.project,
-                            ]),
-                        }}
+                    <Trans
+                        i18nKey="projektivelho.file-list.reject-by-project-message"
+                        values={[item.project?.name, itemCounts.project]}
                     />
                 </Dialog>
             )}
@@ -403,13 +395,9 @@ const PVFileListRow = ({
                             </Button>
                         </React.Fragment>
                     }>
-                    <span
-                        dangerouslySetInnerHTML={{
-                            __html: t('projektivelho.file-list.reject-by-project-group-message', [
-                                item.projectGroup?.name,
-                                itemCounts.projectGroup,
-                            ]),
-                        }}
+                    <Trans
+                        i18nKey="projektivelho.file-list.reject-by-project-group-message"
+                        values={[item.projectGroup?.name, itemCounts.projectGroup]}
                     />
                 </Dialog>
             )}
