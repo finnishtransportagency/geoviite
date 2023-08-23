@@ -43,6 +43,7 @@ class HelsinkiTestData {
                 planPhase = PlanPhase.RAILWAY_PLAN,
                 decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
                 measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+                elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
                 uploadTime = Instant.now()
             )

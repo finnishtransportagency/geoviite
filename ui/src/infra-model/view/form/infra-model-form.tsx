@@ -27,6 +27,7 @@ import { fetchAuthors, getProject } from 'geometry/geometry-api';
 import { InfraModelPhaseField } from 'infra-model/view/form/fields/infra-model-phase-field';
 import { InfraModelDecisionPhaseField } from 'infra-model/view/form/fields/infra-model-decision-phase-field';
 import { InfraModelMeasurementMethodField } from 'infra-model/view/form/fields/infra-model-measurement-method-field';
+import { InfraModelElevationMeasurementMethodField } from 'infra-model/view/form/fields/infra-model-elevation-measurement-method-field';
 import NewAuthorDialog from 'infra-model/view/dialogs/new-author-dialog';
 import NewProjectDialog from 'infra-model/view/dialogs/new-project-dialog';
 import { InfraModelVerticalCoordinateInfoboxField } from 'infra-model/view/form/fields/infra-model-vertical-coordinate-infobox-field';
@@ -78,6 +79,7 @@ export type EditablePlanField =
     | 'planPhase'
     | 'planDecisionPhase'
     | 'measurementMethod'
+    | 'elevationMeasurementMethod'
     | 'heightSystem'
     | 'author'
     | 'createdTime'
@@ -474,6 +476,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         changeInExtraParametersField={changeInExtraParametersField}
                     />
                     <InfraModelMeasurementMethodField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        extraInframodelParameters={extraInframodelParameters}
+                        changeInExtraParametersField={changeInExtraParametersField}
+                    />
+                    <InfraModelElevationMeasurementMethodField
                         fieldInEdit={fieldInEdit}
                         setFieldInEdit={setFieldInEdit}
                         extraInframodelParameters={extraInframodelParameters}

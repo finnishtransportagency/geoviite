@@ -6,6 +6,7 @@ import { getLocationTrackValidation } from 'track-layout/layout-location-track-a
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
 import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type AssetType = 'TRACK_NUMBER' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
 
@@ -37,7 +38,7 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
             case 'SWITCH':
                 return getSwitchValidation(publishType, id);
             default:
-                return Promise.resolve(undefined);
+                return exhaustiveMatchingGuard(type);
         }
     }, [id, type, publishType, changeTime]);
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];

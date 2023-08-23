@@ -29,6 +29,8 @@ const layoutLocationTrack: LayoutLocationTrack = {
     draftType: 'NEW_DRAFT',
     duplicateOf: null,
     topologicalConnectivity: 'NONE',
+    topologyStartSwitch: null,
+    topologyEndSwitch: null,
 };
 const kmPost = {
     id: '',

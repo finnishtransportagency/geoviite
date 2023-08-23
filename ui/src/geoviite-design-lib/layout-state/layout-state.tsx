@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutState as LayoutStateModel } from 'track-layout/track-layout-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type LayoutStateProps = {
-    state: LayoutStateModel | null;
+    state: LayoutStateModel;
 };
 
-function getTranslationKey(layoutState: LayoutStateModel | null) {
+function getTranslationKey(layoutState: LayoutStateModel) {
     switch (layoutState) {
         case 'IN_USE':
         case 'NOT_IN_USE':
@@ -14,7 +15,7 @@ function getTranslationKey(layoutState: LayoutStateModel | null) {
         case 'DELETED':
             return layoutState;
         default:
-            return 'UNKNOWN';
+            return exhaustiveMatchingGuard(layoutState);
     }
 }
 

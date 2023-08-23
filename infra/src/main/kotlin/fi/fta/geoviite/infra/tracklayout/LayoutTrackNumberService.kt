@@ -208,6 +208,11 @@ class LayoutTrackNumberService(
             )
         } else listOf()
     }
+
+    fun officialDuplicateNameExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {
+        logger.serviceCall("officialDuplicateNameExistsFor", "trackNumberId" to trackNumberId)
+        return dao.officialDuplicateNumberExistsFor(trackNumberId)
+    }
 }
 
 private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>): String {

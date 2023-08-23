@@ -5,6 +5,7 @@ import { useLoader } from 'utils/react-utils';
 import { getRatkoPushError } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
 import { RatkoAssetType, RatkoPushErrorAsset, RatkoPushStatus } from 'ratko/ratko-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type RatkoPushErrorDetailsProps = {
     latestFailure: PublicationDetails;
@@ -18,6 +19,8 @@ const assetTypeAndName = (errorAsset: RatkoPushErrorAsset) => {
             return `Ratanumeron (${errorAsset.asset.number})`;
         case RatkoAssetType.SWITCH:
             return `Vaihteen (${errorAsset.asset.name})`;
+        default:
+            return exhaustiveMatchingGuard(errorAsset);
     }
 };
 

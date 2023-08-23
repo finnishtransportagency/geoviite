@@ -91,7 +91,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "material_category" to metadata.materialCategory,
             "material_group" to metadata.materialGroup,
             "assignment_oid" to assignmentOid,
-            "project_oid" to  projectOid,
+            "project_oid" to projectOid,
             "project_group_oid" to projectGroupOid,
         )
         jdbcTemplate.setUser()
@@ -280,18 +280,19 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     }
 
     @Transactional
-    fun updateDocumentStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
+    fun updateDocumentsStatuses(ids: List<IntId<PVDocument>>, status: PVDocumentStatus): List<IntId<PVDocument>> {
+        if (ids.isEmpty()) return emptyList()
         val sql = """
             update projektivelho.document
             set status = :status::projektivelho.document_status
-            where id = :id
+            where id in (:ids)
             returning id
         """.trimIndent()
-        val params = mapOf("id" to id.intValue, "status" to status.name)
+        val params = mapOf("ids" to ids.map { it.intValue }, "status" to status.name)
         jdbcTemplate.setUser()
-        return getOne<PVDocument, IntId<PVDocument>?>(id, jdbcTemplate.query(sql, params) { rs, _ ->
+        return jdbcTemplate.query<IntId<PVDocument>>(sql, params) { rs, _ ->
             rs.getIntId("id")
-        }).also { _ -> logger.daoAccess(UPDATE, PVDocument::class, id) }
+        }.also { _ -> logger.daoAccess(UPDATE, PVDocument::class, ids) }
     }
 
     @Transactional
@@ -347,18 +348,18 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
               document.change_time, 
               document.status,
               document.project_oid,
-              project.name project_name,
-              project_state.name project_state,
+              project.name as project_name,
+              project_state.name as project_state,
               document.project_group_oid,
-              project_group.name project_group_name,
-              project_group_state.name project_group_state,
+              project_group.name as project_group_name,
+              project_group_state.name as project_group_state,
               document.assignment_oid,
-              assignment.name assignment_name,
-              assignment_state.name assignment_state,
-              document_type.name document_type,
-              material_state.name material_state,
-              material_group.name material_group,
-              material_category.name material_category
+              assignment.name as assignment_name,
+              assignment_state.name as assignment_state,
+              document_type.name as document_type,
+              material_state.name as material_state,
+              material_group.name as material_group,
+              material_category.name as material_category
             from projektivelho.document
               left join projektivelho.project on project.oid = document.project_oid
               left join projektivelho.project_state on project.state_code = project_state.code
@@ -377,29 +378,34 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "id" to id?.intValue,
             "status" to status?.name,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ -> PVDocumentHeader(
-            project = rs.getOidOrNull<PVProject>("project_oid")?.let{ oid ->
-                PVProject(oid, rs.getPVProjectName("project_name"), rs.getPVDictionaryName("project_state"))
-            },
-            projectGroup = rs.getOidOrNull<PVProjectGroup>("project_group_oid")?.let { oid ->
-                PVProjectGroup(oid, rs.getPVProjectName("project_group_name"), rs.getPVDictionaryName("project_state"))
-            },
-            assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
-                PVAssignment(oid, rs.getPVProjectName("assignment_name"), rs.getPVDictionaryName("project_state"))
-            },
-            document = PVDocument(
-                id = rs.getIntId("id"),
-                oid = rs.getOid("oid"),
-                name = rs.getFileName("filename"),
-                description = rs.getFreeTextOrNull("description"),
-                type = rs.getPVDictionaryName("document_type"),
-                state = rs.getPVDictionaryName("material_state"),
-                group = rs.getPVDictionaryName("material_group"),
-                category = rs.getPVDictionaryName("material_category"),
-                modified = rs.getInstant("change_time"),
-                status = rs.getEnum("status"),
-            ),
-        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            PVDocumentHeader(
+                project = rs.getOidOrNull<PVProject>("project_oid")?.let { oid ->
+                    PVProject(oid, rs.getPVProjectName("project_name"), rs.getPVDictionaryName("project_state"))
+                },
+                projectGroup = rs.getOidOrNull<PVProjectGroup>("project_group_oid")?.let { oid ->
+                    PVProjectGroup(
+                        oid,
+                        rs.getPVProjectName("project_group_name"),
+                        rs.getPVDictionaryName("project_state")
+                    )
+                },
+                assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
+                    PVAssignment(oid, rs.getPVProjectName("assignment_name"), rs.getPVDictionaryName("project_state"))
+                },
+                document = PVDocument(
+                    id = rs.getIntId("id"),
+                    oid = rs.getOid("oid"),
+                    name = rs.getFileName("filename"),
+                    description = rs.getFreeTextOrNull("description"),
+                    type = rs.getPVDictionaryName("document_type"),
+                    state = rs.getPVDictionaryName("material_state"),
+                    group = rs.getPVDictionaryName("material_group"),
+                    category = rs.getPVDictionaryName("material_category"),
+                    modified = rs.getInstant("change_time"),
+                    status = rs.getEnum("status"),
+                ),
+            )
         }.also { results ->
             logger.daoAccess(FETCH, PVDocument::class, results.map { r -> r.document.id })
         }
@@ -408,8 +414,8 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun getDocumentCounts(): PVDocumentCounts {
         val sql = """
             select 
-              count(*) filter (where status = 'SUGGESTED') suggested_count, 
-              count(*) filter (where status = 'REJECTED') rejected_count
+              count(*) filter (where status = 'SUGGESTED') as suggested_count, 
+              count(*) filter (where status = 'REJECTED') as rejected_count
             from projektivelho.document
         """.trimIndent()
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
@@ -433,10 +439,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             where document.id = :id
         """.trimIndent()
         val params = mapOf("id" to id.intValue)
-        return getOptional(id, jdbcTemplate.query(sql, params) { rs, _ -> InfraModelFile(
-            name = rs.getFileName("filename"),
-            content = rs.getString("file_content"),
-        ) })
+        return getOptional(id, jdbcTemplate.query(sql, params) { rs, _ ->
+            InfraModelFile(
+                name = rs.getFileName("filename"),
+                content = rs.getString("file_content"),
+            )
+        })
     }
 
     @Transactional
@@ -447,10 +455,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
               values (:code, :name) 
               on conflict (code) do update set name = :name where $tableName.name <> :name
         """.trimIndent()
-        val params = entries.map { entry -> mapOf(
-            "code" to entry.code,
-            "name" to entry.name,
-        ) }.toTypedArray()
+        val params = entries.map { entry ->
+            mapOf(
+                "code" to entry.code,
+                "name" to entry.name,
+            )
+        }.toTypedArray()
         jdbcTemplate.setUser()
         logger.daoAccess(UPSERT, PVDictionaryEntry::class, entries.map(PVDictionaryEntry::code))
         jdbcTemplate.batchUpdate(sql, params)
@@ -458,18 +468,20 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     fun fetchDictionary(type: PVDictionaryType): Map<PVDictionaryCode, PVDictionaryName> {
         val sql = "select code, name from ${tableName(type)}"
-        return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getPVDictionaryCode("code") to rs.getPVDictionaryName("name")
         }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class, type) }
     }
 
-    private fun tableName(type: PVDictionaryType) = "projektivelho.${when(type) {
-        DOCUMENT_TYPE -> "document_type"
-        MATERIAL_STATE -> "material_state"
-        MATERIAL_CATEGORY -> "material_category"
-        MATERIAL_GROUP -> "material_group"
-        TECHNICS_FIELD -> "technics_field"
-        PROJECT_STATE -> "project_state"
-    }}"
+    private fun tableName(type: PVDictionaryType) = "projektivelho.${
+        when (type) {
+            DOCUMENT_TYPE -> "document_type"
+            MATERIAL_STATE -> "material_state"
+            MATERIAL_CATEGORY -> "material_category"
+            MATERIAL_GROUP -> "material_group"
+            TECHNICS_FIELD -> "technics_field"
+            PROJECT_STATE -> "project_state"
+        }
+    }"
 
 }

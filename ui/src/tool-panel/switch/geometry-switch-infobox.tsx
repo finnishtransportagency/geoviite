@@ -90,10 +90,12 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                         {SwitchImage && (
                             <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                         )}
-                        <InfoboxField
-                            label={t('tool-panel.switch.geometry.hand')}
-                            value={<SwitchHand hand={switchStructure && switchStructure.hand} />}
-                        />
+                        {switchStructure && (
+                            <InfoboxField
+                                label={t('tool-panel.switch.geometry.hand')}
+                                value={<SwitchHand hand={switchStructure.hand} />}
+                            />
+                        )}
                         <InfoboxButtons>
                             <Button
                                 size={ButtonSize.SMALL}

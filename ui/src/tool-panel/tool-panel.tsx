@@ -230,6 +230,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const trackNumberTabs = trackNumberIds
             .map((tnId) => trackNumbers?.find((tn) => tn.id === tnId))
             .filter(filterNotEmpty)
+            .filter(visibleByTypeAndPublishType)
             .map((t) => {
                 return {
                     asset: { type: 'TRACK_NUMBER', id: t.id },
@@ -337,7 +338,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const suggestedSwitchTabs: ToolPanelTab[] = suggestedSwitches.map((ss) => {
             return {
                 asset: { type: 'GEOMETRY_SWITCH', id: ss.id },
-                title: ss.name || '-',
+                title: ss.name ?? '...',
                 element: (
                     <GeometrySwitchInfobox
                         visibilities={infoboxVisibilities.geometrySwitch}
@@ -364,7 +365,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 );
                 return {
                     asset: { type: 'GEOMETRY_SWITCH', id: s.geometryId },
-                    title: geomSwitch ? geomSwitch.name || '-' : '...',
+                    title: geomSwitch?.name ?? '...',
                     element: (
                         <GeometrySwitchInfobox
                             visibilities={infoboxVisibilities.geometrySwitch}
@@ -384,29 +385,31 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 };
             });
 
-        const locationTrackTabs = locationTracks.map((track) => {
-            return {
-                asset: { type: 'LOCATION_TRACK', id: track.id },
-                title: track.name,
-                element: (
-                    <LocationTrackInfoboxLinkingContainer
-                        visibilities={infoboxVisibilities.locationTrack}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('locationTrack', visibilities)
-                        }
-                        locationTrackId={track.id}
-                        linkingState={linkingState}
-                        publishType={publishType}
-                        locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                        onDataChange={onDataChange}
-                        onUnselect={onUnSelectLocationTracks}
-                        viewport={viewport}
-                        verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
-                        onHoverOverPlanSection={onHoverOverPlanSection}
-                    />
-                ),
-            } as ToolPanelTab;
-        });
+        const locationTrackTabs = locationTracks
+            .filter(visibleByTypeAndPublishType)
+            .map((track) => {
+                return {
+                    asset: { type: 'LOCATION_TRACK', id: track.id },
+                    title: track.name,
+                    element: (
+                        <LocationTrackInfoboxLinkingContainer
+                            visibilities={infoboxVisibilities.locationTrack}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('locationTrack', visibilities)
+                            }
+                            locationTrackId={track.id}
+                            linkingState={linkingState}
+                            publishType={publishType}
+                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                            onDataChange={onDataChange}
+                            onUnselect={onUnSelectLocationTracks}
+                            viewport={viewport}
+                            verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+                            onHoverOverPlanSection={onHoverOverPlanSection}
+                        />
+                    ),
+                } as ToolPanelTab;
+            });
 
         const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
             const header = getPlan(aId.planId)?.alignments?.find(

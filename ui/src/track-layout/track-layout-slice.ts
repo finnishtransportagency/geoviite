@@ -31,6 +31,7 @@ import { Point } from 'model/geometry';
 import { addIfExists, subtract } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -221,8 +222,10 @@ export function getSelectableItemTypes(
             return ['switches', 'suggestedSwitches'];
         case LinkingType.LinkingKmPost:
             return ['kmPosts'];
-        default:
+        case undefined:
             return allSelectableItemTypes;
+        default:
+            return exhaustiveMatchingGuard(linkingState);
     }
 }
 

@@ -32,6 +32,8 @@ export type MeasurementMethod =
     | 'DIGITIZED_AERIAL_IMAGE'
     | 'UNVERIFIED_DESIGNED_GEOMETRY';
 
+export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL';
+
 export type TrackNumber = string;
 
 export type KmNumber = string;

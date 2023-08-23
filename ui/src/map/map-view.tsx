@@ -64,6 +64,7 @@ import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 declare global {
     interface Window {
@@ -92,6 +93,8 @@ export type MapViewProps = {
     manuallySetPlan?: GeometryPlanLayout;
     onDoneLoading: () => void;
 };
+
+export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
     units: 'metric',
@@ -157,7 +160,7 @@ const MapView: React.FC<MapViewProps> = ({
 
     const mapLayers = [...map.visibleLayers].sort().join();
 
-    const handleClusterPointClick = (clickType: string) => {
+    const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = selection.selectedItems.clusterPoints[0];
         if (clusterPoint) {
             switch (clickType) {
@@ -176,6 +179,9 @@ const MapView: React.FC<MapViewProps> = ({
                 case 'remove':
                     onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
                     onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
+                    break;
+                default:
+                    return exhaustiveMatchingGuard(clickType);
             }
         }
     };
@@ -464,6 +470,8 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDebugLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                         );
+                    default:
+                        return exhaustiveMatchingGuard(layerName);
                 }
             })
             .filter(filterNotEmpty);

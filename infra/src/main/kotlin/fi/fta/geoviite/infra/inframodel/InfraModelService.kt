@@ -51,8 +51,10 @@ class InfraModelService @Autowired constructor(
         overrides: OverrideParameters?,
         extraInfo: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
-        logger.serviceCall("saveInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo)
+        logger.serviceCall(
+            "saveInfraModel",
+            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+        )
 
         val geometryPlan = parseInfraModel(file, overrides, extraInfo)
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
@@ -69,8 +71,10 @@ class InfraModelService @Autowired constructor(
         overrides: OverrideParameters? = null,
         extraInfo: ExtraInfoParameters? = null,
     ): GeometryPlan {
-        logger.serviceCall("parseInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo)
+        logger.serviceCall(
+            "parseInfraModel",
+            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+        )
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
@@ -89,9 +93,11 @@ class InfraModelService @Autowired constructor(
         multipartFile: MultipartFile,
         overrideParameters: OverrideParameters?,
     ): ValidationResponse {
-        logger.serviceCall("validateInfraModelFile",
+        logger.serviceCall(
+            "validateInfraModelFile",
             "file.originalFilename" to multipartFile.originalFilename,
-            "overrideParameters" to overrideParameters)
+            "overrideParameters" to overrideParameters
+        )
         return tryParsing(overrideParameters?.source) {
             val imFile = toInfraModelFile(multipartFile, overrideParameters?.encoding?.charset)
             validateInternal(imFile, overrideParameters)
@@ -102,8 +108,10 @@ class InfraModelService @Autowired constructor(
         file: InfraModelFile,
         overrideParameters: OverrideParameters?
     ): ValidationResponse {
-        logger.serviceCall("validateInfraModelFile",
-            "file.name" to file.name, "overrideParameters" to overrideParameters)
+        logger.serviceCall(
+            "validateInfraModelFile",
+            "file.name" to file.name, "overrideParameters" to overrideParameters
+        )
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
 
@@ -189,6 +197,7 @@ class InfraModelService @Autowired constructor(
             planPhase = extraInfoParameters?.planPhase ?: plan.planPhase,
             decisionPhase = extraInfoParameters?.decisionPhase ?: plan.decisionPhase,
             measurementMethod = extraInfoParameters?.measurementMethod ?: plan.measurementMethod,
+            elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
             message = extraInfoParameters?.message ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
@@ -205,11 +214,11 @@ class InfraModelService @Autowired constructor(
     }
 
     private fun checkForDuplicateFile(planFile: InfraModelFile, source: PlanSource) {
-        geometryService.fetchDuplicateGeometryPlanHeader(planFile, source)?.also {
+        geometryService.fetchDuplicateGeometryPlanHeader(planFile, source)?.also { duplicate ->
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
                 localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                localizedMessageParams = listOf(it.fileName.toString()),
+                localizedMessageParams = listOf(duplicate.fileName.toString()),
             )
         }
     }

@@ -20,7 +20,8 @@ import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
-import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
+import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
+import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -54,7 +55,10 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     const [linkingSummaries, setLinkingSummaries] = useState<
         Map<GeometryPlanId, GeometryPlanLinkingSummary | null>
     >(() => new Map());
-    const [downloadConfirmPlan, setDownloadConfirmPlan] = React.useState<GeometryPlanHeader>();
+    const [confirmDownloadPlan, setConfirmDownloadPlan] = React.useState<
+        GeometryPlanHeader | undefined
+    >();
+    const [confirmHidePlan, setConfirmHidePlan] = React.useState<GeometryPlanHeader | undefined>();
 
     useEffect(() => {
         const newPlans: GeometryPlanId[] = [];
@@ -98,11 +102,22 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
 
     function linkingSummaryDate(planId: GeometryPlanId) {
         const linkingSummary = linkingSummaries.get(planId);
-        return linkingSummary == null ? '' : formatDateFull(linkingSummary.linkedAt);
+        return linkingSummary?.linkedAt == null ? '' : formatDateFull(linkingSummary.linkedAt);
     }
 
     const linkingSummaryUsers = (planId: GeometryPlanId) =>
         linkingSummaries.get(planId)?.linkedByUsers ?? '';
+
+    const isCurrentlyLinked = (planId: GeometryPlanId) =>
+        linkingSummaries.get(planId)?.currentlyLinked;
+
+    const downloadPlan = (plan: GeometryPlanHeader) => {
+        if (plan.source === 'PAIKANNUSPALVELU') {
+            setConfirmDownloadPlan(plan);
+        } else {
+            location.href = inframodelDownloadUri(plan.id);
+        }
+    };
 
     const { t } = useTranslation();
     const firstItem = props.page * props.pageSize + (props.plans.length > 0 ? 1 : 0);
@@ -244,6 +259,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                             </Th>
                             <Th />
                             <Th />
+                            <Th />
                         </tr>
                     </thead>
                     <tbody id="infra-model-list-search-result__table-body">
@@ -288,18 +304,24 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 title={t('im-form.download-file')}
-                                                onClick={() => {
-                                                    if (plan.source === 'PAIKANNUSPALVELU') {
-                                                        setDownloadConfirmPlan(plan);
-                                                    } else {
-                                                        location.href = inframodelDownloadUri(
-                                                            plan.id,
-                                                        );
-                                                    }
-                                                }}
+                                                onClick={() => downloadPlan(plan)}
                                                 variant={ButtonVariant.GHOST}
                                                 size={ButtonSize.SMALL}
                                                 icon={Icons.Download}
+                                            />
+                                        </td>
+                                        <td onClick={(e) => e.stopPropagation()}>
+                                            <Button
+                                                title={
+                                                    isCurrentlyLinked(plan.id)
+                                                        ? t('im-form.cannot-hide-file')
+                                                        : t('im-form.hide-file')
+                                                }
+                                                onClick={() => setConfirmHidePlan(plan)}
+                                                disabled={isCurrentlyLinked(plan.id) ?? true}
+                                                variant={ButtonVariant.GHOST}
+                                                size={ButtonSize.SMALL}
+                                                icon={Icons.Delete}
                                             />
                                         </td>
                                         <td>
@@ -315,10 +337,16 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                     </tbody>
                 </Table>
             </div>
-            {downloadConfirmPlan && (
-                <UnreliableInfraModelDownloadConfirmDialog
-                    onClose={() => setDownloadConfirmPlan(undefined)}
-                    plan={downloadConfirmPlan}
+            {confirmDownloadPlan && (
+                <ConfirmDownloadUnreliableInfraModelDialog
+                    onClose={() => setConfirmDownloadPlan(undefined)}
+                    plan={confirmDownloadPlan}
+                />
+            )}
+            {confirmHidePlan && (
+                <ConfirmHideInfraModel
+                    onClose={() => setConfirmHidePlan(undefined)}
+                    plan={confirmHidePlan}
                 />
             )}
         </div>

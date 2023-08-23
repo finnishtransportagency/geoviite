@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.map.AlignmentHeader
@@ -26,5 +27,6 @@ data class PlanLinkingSummaryItem(
     val alignmentHeader: AlignmentHeader<GeometryAlignment>?,
     val planId: DomainId<GeometryPlan>?,
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
+    val elevationMeasurementMethod: ElevationMeasurementMethod?,
 )
 

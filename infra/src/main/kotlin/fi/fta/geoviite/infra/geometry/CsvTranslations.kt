@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.SwitchName
 
 const val ELEMENT_LISTING = "Elementtilistaus"
@@ -100,6 +101,7 @@ enum class VerticalGeometryListingHeader {
     LINEAR_SECTION_BACKWARD_LENGTH,
     LINEAR_SECTION_BACKWARD_LINEAR_SECTION,
     VERTICAL_COORDINATE_SYSTEM,
+    ELEVATION_MEASUREMENT_METHOD,
     REMARKS,
 }
 
@@ -127,6 +129,7 @@ fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader
         VerticalGeometryListingHeader.RADIUS -> "Pyöristyssäde"
         VerticalGeometryListingHeader.TANGENT -> "Tangentti"
         VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM -> "Korkeusjärjestelmä"
+        VerticalGeometryListingHeader.ELEVATION_MEASUREMENT_METHOD -> "Korkeusasema"
         VerticalGeometryListingHeader.REMARKS -> "Huomiot"
         VerticalGeometryListingHeader.CRS -> "Koordinaattijärjestelmä"
         VerticalGeometryListingHeader.CREATION_DATE -> "Luotu"
@@ -136,4 +139,11 @@ fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader
         VerticalGeometryListingHeader.LOCATION_N_END -> "Pyöristyksen loppupisteen sijainti N"
         VerticalGeometryListingHeader.LOCATION_E_POINT -> "Taitepisteen sijainti E"
         VerticalGeometryListingHeader.LOCATION_N_POINT -> "Taitepisteen sijainti N"
+    }
+
+fun translateElevationMeasurementMethod(elevationMeasurementMethod: ElevationMeasurementMethod?) =
+    when (elevationMeasurementMethod) {
+        ElevationMeasurementMethod.TOP_OF_SLEEPER -> "Korkeusviiva"
+        ElevationMeasurementMethod.TOP_OF_RAIL -> "Kiskon selkä"
+        null -> "Ei tiedossa"
     }

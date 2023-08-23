@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType: IDraftableObjectDao<ObjectType>>(
+abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoType : IDraftableObjectDao<ObjectType>>(
     protected open val dao: DaoType,
 ) {
 
@@ -41,8 +41,8 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
     fun getMany(publishType: PublishType, ids: List<IntId<ObjectType>>): List<ObjectType> {
         logger.serviceCall("getMany", "publishType" to publishType, "ids" to ids)
         return when (publishType) {
-            DRAFT -> dao.fetchDraftVersionsOrThrow(ids)
-            OFFICIAL -> dao.fetchOfficialVersionsOrThrow(ids)
+            DRAFT -> dao.fetchDraftVersions(ids)
+            OFFICIAL -> dao.fetchOfficialVersions(ids)
         }.map(dao::fetch)
     }
 
@@ -160,12 +160,12 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
     }
 
     private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
-        if (officialId != null) require (response.id == officialId) {
+        if (officialId != null) require(response.id == officialId) {
             "Insert response ID doesn't match object: officialId=$officialId updated=$response"
         } else require(response.id == response.rowVersion.id) {
             "Inserted new object refers to another official row: inserted=$response"
         }
-        require (response.rowVersion.version == 1) {
+        require(response.rowVersion.version == 1) {
             "Inserted new row has a version over 1: inserted=$response"
         }
     }
@@ -175,16 +175,18 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         previousVersion: RowVersion<ObjectType>,
         response: DaoResponse<ObjectType>,
     ) {
-        require (response.id == id) {
+        require(response.id == id) {
             "Update response ID doesn't match object: id=$id updated=$response"
         }
-        require (response.rowVersion.id == previousVersion.id) {
+        require(response.rowVersion.id == previousVersion.id) {
             "Updated the wrong row (draft vs official): id=$id previous=$previousVersion updated=$response"
         }
-        if (response.rowVersion.version != previousVersion.version+1) {
+        if (response.rowVersion.version != previousVersion.version + 1) {
             // We could do optimistic locking here by throwing
-            logger.warn("Updated version isn't the next one: a concurrent change may have been overwritten: " +
-                    "id=$id previous=$previousVersion updated=$response")
+            logger.warn(
+                "Updated version isn't the next one: a concurrent change may have been overwritten: " +
+                        "id=$id previous=$previousVersion updated=$response"
+            )
         }
     }
 

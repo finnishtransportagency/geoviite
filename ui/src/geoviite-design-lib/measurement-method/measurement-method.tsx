@@ -1,6 +1,7 @@
 import React from 'react';
 import { MeasurementMethod as MeasurementMethodModel } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type MeasurementMethodProps = {
     method: MeasurementMethodModel | null;
@@ -14,8 +15,10 @@ function getTranslationKey(method: MeasurementMethodModel | null) {
         case 'DIGITIZED_AERIAL_IMAGE':
         case 'UNVERIFIED_DESIGNED_GEOMETRY':
             return method;
-        default:
+        case null:
             return 'UNKNOWN';
+        default:
+            return exhaustiveMatchingGuard(method);
     }
 }
 

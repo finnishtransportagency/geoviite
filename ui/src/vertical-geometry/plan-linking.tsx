@@ -4,6 +4,7 @@ import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { OnSelectOptions } from 'selection/selection-model';
 import { filterNotEmpty } from 'utils/array-utils';
+import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 
 export interface PlanLinkingProps {
     coordinates: Coordinates;
@@ -31,6 +32,7 @@ export const PlanLinking: React.FC<PlanLinkingProps> = ({
                         planId,
                         alignmentHeader,
                         verticalCoordinateSystem,
+                        elevationMeasurementMethod,
                     } = summary;
                     if (endM < coordinates.startM || startM > coordinates.endM) {
                         return <React.Fragment key={i} />;
@@ -80,9 +82,16 @@ export const PlanLinking: React.FC<PlanLinkingProps> = ({
                                 <text transform={`translate(0 ${textLineOneYPx}) scale(0.7)`}>
                                     {filename}
                                 </text>
-                                <text transform={`translate(0 ${textLineTwoYPx}) scale(0.7)`}>
-                                    {verticalCoordinateSystem}
-                                </text>
+                                {verticalCoordinateSystem && (
+                                    <text transform={`translate(0 ${textLineTwoYPx}) scale(0.7)`}>
+                                        {verticalCoordinateSystem},{' '}
+                                        <ElevationMeasurementMethod
+                                            method={elevationMeasurementMethod}
+                                            lowerCase={true}
+                                            includeTermContextForUnknownMethod={true}
+                                        />
+                                    </text>
+                                )}
                             </svg>
                         </React.Fragment>
                     ) : undefined;

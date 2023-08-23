@@ -7,7 +7,12 @@ import {
     TrapPoint,
 } from 'track-layout/track-layout-model';
 import i18n from 'i18next';
-import { JointNumber, MeasurementMethod, VerticalCoordinateSystem } from 'common/common-model';
+import {
+    ElevationMeasurementMethod,
+    JointNumber,
+    MeasurementMethod,
+    VerticalCoordinateSystem,
+} from 'common/common-model';
 import { RatkoPushErrorOperation, RatkoPushErrorType } from 'ratko/ratko-model';
 import { Operation } from 'publication/publication-model';
 
@@ -121,6 +126,20 @@ export const measurementMethods: { value: MeasurementMethod; name: () => string 
     {
         value: 'UNVERIFIED_DESIGNED_GEOMETRY',
         name: () => i18n.t('enum.measurement-method.UNVERIFIED_DESIGNED_GEOMETRY'),
+    },
+];
+
+export const elevationMeasurementMethods: {
+    value: ElevationMeasurementMethod;
+    name: string;
+}[] = [
+    {
+        value: 'TOP_OF_SLEEPER',
+        name: () => i18n.t('enum.elevation-measurement-method.TOP_OF_SLEEPER'),
+    },
+    {
+        value: 'TOP_OF_RAIL',
+        name: () => i18n.t('enum.elevation-measurement-method.TOP_OF_RAIL'),
     },
 ];
 
