@@ -45,7 +45,7 @@ class CachePreloader(
             listOf(
                 PreloadedCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch),
                 PreloadedCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch),
-                PreloadedCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch),
+//                PreloadedCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch),
                 PreloadedCache("Switch", switchDao::fetchAllVersions, switchDao::fetch),
                 PreloadedCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch),
                 PreloadedCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader),
@@ -58,6 +58,12 @@ class CachePreloader(
 //            refreshCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch)
 //            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
         }
+    }
+
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun preloadTracks() {
+        refreshCache("LocationTrack-preload") { locationTrackDao.preloadLocationTracks() }
+        refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
     }
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
