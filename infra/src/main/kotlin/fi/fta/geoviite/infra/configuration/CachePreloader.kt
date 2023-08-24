@@ -45,7 +45,7 @@ class CachePreloader(
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun schedulePlanHeaderReload() {
         if (cacheEnabled && cachePreloadEnabled) {
-            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
+            refreshCache("PlanHeader", geometryDao::preloadHeaderCache)
         }
     }
 
@@ -65,9 +65,7 @@ class CachePreloader(
         fetchVersions: () -> List<RowVersion<T>>,
         fetchRow: (RowVersion<T>) -> S,
     ) = refreshCache(name) {
-        fetchVersions()
-//            .parallelStream()
-            .forEach { version -> fetchRow(version) }
+        fetchVersions().parallelStream().forEach { version -> fetchRow(version) }
     }
 
     private fun refreshCache(name: String, refresh: () -> Unit) {

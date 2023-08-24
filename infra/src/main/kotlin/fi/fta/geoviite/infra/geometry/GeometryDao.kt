@@ -1,10 +1,12 @@
 package fi.fta.geoviite.infra.geometry
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN
-import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_HEADER
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_SWITCH
+import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.create2DPolygonString
@@ -25,6 +27,7 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN_PROJECT
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -38,11 +41,17 @@ enum class VerticalIntersectionType {
     POINT, CIRCULAR_CURVE,
 }
 
+const val PLAN_HEADER_CACHE_SIZE = 10000L
+
 @Transactional(readOnly = true)
 @Component
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
 ) : DaoBase(jdbcTemplateParam) {
+
+    private val headerCache: Cache<RowVersion<GeometryPlan>, GeometryPlanHeader> =
+        Caffeine.newBuilder().maximumSize(PLAN_HEADER_CACHE_SIZE).expireAfterAccess(planCacheDuration).build()
 
     @Transactional
     fun insertPlan(
@@ -626,11 +635,20 @@ class GeometryDao @Autowired constructor(
         } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
     }
 
-    @Cacheable(CACHE_GEOMETRY_PLAN_HEADER, sync = true)
-    fun getPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
+
+    fun preloadHeaderCache() {
+        headerCache.putAll(getPlanHeaderInternal(null).associateBy(GeometryPlanHeader::version))
+    }
+
+    fun getPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader =
+        if (cacheEnabled) headerCache.get(rowVersion) { v -> getOne(rowVersion.id, getPlanHeaderInternal(v)) }
+        else getOne(rowVersion.id, getPlanHeaderInternal(rowVersion))
+
+    private fun getPlanHeaderInternal(rowVersion: RowVersion<GeometryPlan>?): List<GeometryPlanHeader> {
         val sql = """
             select 
               plan.id as plan_id, 
+              plan.version as plan_version, 
               plan_file.name as file_name, 
               plan.source,
               plan.message, 
@@ -656,7 +674,7 @@ class GeometryDao @Autowired constructor(
               has_profile,
               has_cant,
               plan.hidden
-            from geometry.plan
+            from geometry.plan_version plan
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_project project on project.id = plan.plan_project_id
               left join geometry.plan_author author on plan.plan_author_id = author.id
@@ -665,12 +683,13 @@ class GeometryDao @Autowired constructor(
                         bool_or(cant_name is not null) as has_cant
                  from geometry.alignment
                  where plan_id = plan.id) alignments on (true)
-            where :plan_id = plan.id
+            where (:plan_id::int is null or (:plan_id = plan.id and :plan_version = plan.version))
         """.trimIndent()
         val params = mapOf(
-            "plan_id" to rowVersion.id.intValue,
+            "plan_id" to rowVersion?.id?.intValue,
+            "plan_version" to rowVersion?.version,
         )
-        val header = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val headers = jdbcTemplate.query(sql, params) { rs, _ ->
             val project = Project(
                 id = rs.getIntId("project_id"),
                 name = ProjectName(rs.getString("project_name")),
@@ -682,6 +701,7 @@ class GeometryDao @Autowired constructor(
             val range = if (minKm != null && maxKm != null) Range(minKm, maxKm) else null
             GeometryPlanHeader(
                 id = rs.getIntId("plan_id"),
+                version = rs.getRowVersion("plan_id", "plan_version"),
                 project = project,
                 fileName = rs.getFileName("file_name"),
                 source = rs.getEnum("source"),
@@ -707,9 +727,9 @@ class GeometryDao @Autowired constructor(
                 hasCant = rs.getBoolean("has_cant"),
                 isHidden = rs.getBoolean("hidden"),
             )
-        } ?: throw NoSuchEntityException(GeometryPlanHeader::class, rowVersion.id)
-        logger.daoAccess(FETCH, GeometryPlanHeader::class, rowVersion.id)
-        return header
+        }
+        logger.daoAccess(FETCH, GeometryPlanHeader::class, headers.map(GeometryPlanHeader::version))
+        return headers
     }
 
     fun fetchPlanVersions(

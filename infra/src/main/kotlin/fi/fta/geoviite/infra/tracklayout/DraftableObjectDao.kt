@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
@@ -17,7 +18,6 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
-import java.time.Duration
 import java.time.Instant
 
 
@@ -83,7 +83,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 ) : DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
 
     protected val cache: Cache<RowVersion<T>, T> =
-        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(Duration.ofHours(1)).build()
+        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
 
     override fun fetch(version: RowVersion<T>): T = if (cacheEnabled) cache.get(version, ::fetchInternal)
     else fetchInternal(version)
