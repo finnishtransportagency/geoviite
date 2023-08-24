@@ -19,8 +19,6 @@ const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
 const val CACHE_GEOMETRY_PLAN_LAYOUT = "geometry-plan-layout"
 
-const val CACHE_LAYOUT_ALIGNMENT = "layout-alignment"
-
 const val CACHE_ROLES = "roles"
 const val CACHE_COORDINATE_SYSTEMS = "coordinate-systems"
 const val CACHE_FEATURE_TYPES = "feature-types"
@@ -71,7 +69,6 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))
             manager.registerCustomCache(CACHE_PLAN_GEOCODING_CONTEXTS, cache(50, planCacheDuration))
 
-            manager.registerCustomCache(CACHE_LAYOUT_ALIGNMENT, cache(10000, layoutCacheDuration))
             manager.registerCustomCache(CACHE_ADDRESS_POINTS, cache(2000, layoutCacheDuration))
 
             manager.registerCustomCache(CACHE_RATKO_HEALTH_STATUS, ephemeralCache(1, healthCheckLifetime))

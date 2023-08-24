@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.create2DPolygonString
@@ -15,7 +14,7 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +22,7 @@ import java.sql.ResultSet
 import java.util.stream.Collectors
 import kotlin.math.abs
 
+const val ALIGNMENT_CACHE_SIZE = 10000L
 const val GEOMETRY_CACHE_SIZE = 500000L
 
 data class MapSegmentProfileInfo<T>(
@@ -35,17 +35,26 @@ data class MapSegmentProfileInfo<T>(
 
 @Transactional(readOnly = true)
 @Component
-class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class LayoutAlignmentDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
+) : DaoBase(jdbcTemplateParam) {
+
+    private val alignmentsCache: Cache<RowVersion<LayoutAlignment>, LayoutAlignment> =
+        Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> =
         Caffeine.newBuilder().maximumSize(GEOMETRY_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
-    @Cacheable(CACHE_LAYOUT_ALIGNMENT, sync = true)
-    fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment = measureAndCollect("alignment") {
+    fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
+        if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal)
+        else fetchInternal(alignmentVersion)
+
+    private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql = """
-            select id, geometry_alignment_id
+            select id, version, geometry_alignment_id
             from layout.alignment_version
             where id = :id 
               and version = :version
@@ -55,16 +64,69 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             "id" to alignmentVersion.id.intValue,
             "version" to alignmentVersion.version,
         )
-        val alignment = getOne(alignmentVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
+        return getOne(alignmentVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
             LayoutAlignment(
                 dataType = DataType.STORED,
                 id = rs.getIntId("id"),
                 sourceId = rs.getIntIdOrNull("geometry_alignment_id"),
-                segments = measureAndCollect("segments") { fetchSegments(alignmentVersion) },
+                segments = fetchSegments(alignmentVersion),
             )
-        })
-        logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id)
-        alignment
+        }).also { alignment ->
+            logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id)
+        }
+    }
+
+    fun preloadAlignmentCache() {
+        val sql = """
+          select 
+            a.geometry_alignment_id,
+            sv.alignment_id,
+            sv.alignment_version,
+            sv.segment_index,
+            sv.start,
+            sv.geometry_alignment_id,
+            sv.geometry_element_index,
+            sv.source_start,
+            sv.switch_id,
+            sv.switch_start_joint_number,
+            sv.switch_end_joint_number,
+            sv.source,
+            sv.geometry_id
+          from layout.alignment a
+            left join layout.segment_version sv on sv.alignment_id = a.id and sv.alignment_version = a.version
+          where sv.segment_index is not null
+          order by sv.alignment_id, sv.segment_index
+        """.trimIndent()
+
+        data class AlignmentData(val version: RowVersion<LayoutAlignment>, val sourceId: IntId<GeometryAlignment>?)
+
+        val dataTriple = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            val alignmentData = AlignmentData(
+                version = rs.getRowVersion("alignment_id", "alignment_version"),
+                sourceId = rs.getIntIdOrNull("geometry_alignment_id"),
+            )
+            val segmentData = SegmentData(
+                id = rs.getIndexedId("alignment_id", "segment_index"),
+                start = rs.getDouble("start"),
+                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                sourceStart = rs.getDoubleOrNull("source_start"),
+                switchId = rs.getIntIdOrNull("switch_id"),
+                startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+                endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+                source = rs.getEnum("source"),
+            )
+            val geometryId = rs.getIntId<SegmentGeometry>("geometry_id")
+            Triple(alignmentData, segmentData, geometryId)
+        }
+        val groupedByAlignment = dataTriple.groupBy({ (a, _, _) -> a }, { (_, s, gId) -> s to gId })
+        val alignments = groupedByAlignment.entries.parallelStream().map { (alignmentData, segmentDatas) ->
+            alignmentData.version to LayoutAlignment(
+                id = alignmentData.version.id,
+                sourceId = alignmentData.sourceId,
+                segments = createSegments(segmentDatas),
+            )
+        }.collect(Collectors.toList()).associate { it }
+        alignmentsCache.putAll(alignments)
     }
 
     @Transactional
@@ -182,7 +244,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             "alignment_version" to alignmentVersion.version,
         )
 
-        val segmentResults = jdbcTemplate.query(sql, params) { rs, _ ->
+        return createSegments(jdbcTemplate.query(sql, params) { rs, _ ->
             SegmentData(
                 id = rs.getIndexedId("alignment_id", "segment_index"),
                 start = rs.getDouble("start"),
@@ -192,12 +254,12 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
                 endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
                 source = rs.getEnum("source"),
-            ) to rs.getIntId<SegmentGeometry>("geometry_id")
-        }
+            ) to rs.getIntId("geometry_id")
+        })
+    }
 
-        val geometries = measureAndCollect("geometries") {
-            fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
-        }
+    private fun createSegments(segmentResults: List<Pair<SegmentData, IntId<SegmentGeometry>>>): List<LayoutSegment> {
+        val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
         var start = 0.0
         return segmentResults.map { (data, geometryId) ->

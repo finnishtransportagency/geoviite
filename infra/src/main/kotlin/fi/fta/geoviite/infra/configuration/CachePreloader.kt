@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.configuration
 
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
@@ -52,21 +51,13 @@ class CachePreloader(
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun scheduleAlignmentReload() {
         if (cacheEnabled && cachePreloadEnabled) {
-            refreshCache("SegmentGeometries") { alignmentDao.preloadSegmentGeometries() }
-            refreshCache("Alignment", alignmentDao::fetchVersions, alignmentDao::fetch)
+            refreshCache("SegmentGeometries", alignmentDao::preloadSegmentGeometries)
+            refreshCache("Alignment", alignmentDao::preloadAlignmentCache)
         }
     }
 
     private fun <T : Draftable<T>> refreshCache(dao: DraftableDaoBase<T>) =
         refreshCache(dao.table.name, dao::preloadCache)
-
-    private fun <T, S> refreshCache(
-        name: String,
-        fetchVersions: () -> List<RowVersion<T>>,
-        fetchRow: (RowVersion<T>) -> S,
-    ) = refreshCache(name) {
-        fetchVersions().parallelStream().forEach { version -> fetchRow(version) }
-    }
 
     private fun refreshCache(name: String, refresh: () -> Unit) {
         logger.info("Refreshing cache: name=$name")
