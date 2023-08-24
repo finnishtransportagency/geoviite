@@ -475,7 +475,7 @@ class PublicationService @Autowired constructor(
     private fun publishChangesTransaction(
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
-        message: String
+        message: String,
     ): PublishResult {
         val trackNumbers = versions.trackNumbers.map(trackNumberService::publish).map { r -> r.rowVersion }
         val kmPosts = versions.kmPosts.map(kmPostService::publish).map { r -> r.rowVersion }
@@ -522,17 +522,17 @@ class PublicationService @Autowired constructor(
 
     private fun validateTrackNumberNumberDuplication(
         trackNumber: TrackLayoutTrackNumber,
-        id: IntId<TrackLayoutTrackNumber>
+        id: IntId<TrackLayoutTrackNumber>,
     ): List<PublishValidationError> {
-        return if (trackNumberDao.officialDuplicateNumberExistsFor(id))
-            listOf(
-                PublishValidationError(
-                    PublishValidationErrorType.WARNING,
-                    "validation.layout.track-number.duplicate-name",
-                    listOf(trackNumber.number.toString())
-                )
-            ) else listOf()
+        return if (trackNumberDao.officialDuplicateNumberExistsFor(id)) listOf(
+            PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.track-number.duplicate-name",
+                listOf(trackNumber.number.toString())
+            )
+        ) else listOf()
     }
+
     private fun validateKmPost(
         version: ValidationVersion<TrackLayoutKmPost>,
         validationVersions: ValidationVersions,
@@ -576,16 +576,15 @@ class PublicationService @Autowired constructor(
 
     private fun validateSwitchNameDuplication(
         switch: TrackLayoutSwitch,
-        id: IntId<TrackLayoutSwitch>
+        id: IntId<TrackLayoutSwitch>,
     ): List<PublishValidationError> {
-        return if (switchService.duplicateNameExistsForPublicationCandidate(id))
-            listOf(
-                PublishValidationError(
-                    PublishValidationErrorType.WARNING,
-                    "validation.layout.switch.duplicate-name",
-                    listOf(switch.name.toString())
-                )
-            ) else listOf()
+        return if (switchService.duplicateNameExistsForPublicationCandidate(id)) listOf(
+            PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.switch.duplicate-name",
+                listOf(switch.name.toString())
+            )
+        ) else listOf()
     }
 
     private fun validateReferenceLine(
@@ -648,26 +647,24 @@ class PublicationService @Autowired constructor(
                 validateAddressPoints(trackNumber, key, locationTrack, VALIDATION_LOCATION_TRACK)
             } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
         } else listOf()
-        val duplicateNameErrors =
-            if (locationTrack.exists) validateLocationTrackNameDuplication(
-                locationTrack,
-                version.validatedAssetVersion.id,
-            ) else listOf()
+        val duplicateNameErrors = if (locationTrack.exists) validateLocationTrackNameDuplication(
+            locationTrack,
+            version.validatedAssetVersion.id,
+        ) else listOf()
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
     }
 
     private fun validateLocationTrackNameDuplication(
         locationTrack: LocationTrack,
-        id: IntId<LocationTrack>
+        id: IntId<LocationTrack>,
     ): List<PublishValidationError> {
-        return if (locationTrackService.duplicateNameExistsFor(id))
-            listOf(
-                PublishValidationError(
-                    PublishValidationErrorType.WARNING,
-                    "validation.layout.location-track.duplicate-name",
-                    listOf(locationTrack.name.toString())
-                )
-            ) else listOf()
+        return if (locationTrackService.duplicateNameExistsFor(id)) listOf(
+            PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.location-track.duplicate-name",
+                listOf(locationTrack.name.toString())
+            )
+        ) else listOf()
     }
 
     private fun getTrackNumber(
@@ -972,8 +969,10 @@ class PublicationService @Autowired constructor(
                 },
                 PropKey("duplicate-of")
             ),
-            compareChangeValues(
-                locationTrackChanges.length,
+            compareLength(
+                locationTrackChanges.length.old,
+                locationTrackChanges.length.new,
+                DISTANCE_CHANGE_THRESHOLD,
                 ::roundTo1Decimal,
                 PropKey("length"),
                 getLengthChangedRemarkOrNull(locationTrackChanges.length.old, locationTrackChanges.length.new)
@@ -1024,58 +1023,30 @@ class PublicationService @Autowired constructor(
         newTimestamp: Instant,
         oldTimestamp: Instant,
         changedKmNumbers: Set<KmNumber>,
-        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
-        val newStartAddress = changes.startPoint.new?.let { newStart ->
-            changes.trackNumberId.new?.let { trackNumberId ->
-                geocodingContextGetter(
-                    trackNumberId, newTimestamp
-                )?.getAddress(newStart)?.first
-            }
-        }
-        val oldStartAddress = changes.startPoint.old?.let { oldStart ->
-            changes.trackNumberId.old?.let { trackNumberId ->
-                geocodingContextGetter(
-                    trackNumberId, oldTimestamp
-                )?.getAddress(oldStart)?.first
-            }
-        }
-        val newEndAddress = changes.endPoint.new?.let { newEnd ->
-            changes.trackNumberId.new?.let { trackNumberId ->
-                geocodingContextGetter(
-                    trackNumberId, newTimestamp
-                )?.getAddress(newEnd)?.first
-            }
-        }
-        val oldEndAddress = changes.endPoint.old?.let { oldEnd ->
-            changes.trackNumberId.old?.let { trackNumberId ->
-                geocodingContextGetter(
-                    trackNumberId, oldTimestamp
-                )?.getAddress(oldEnd)?.first
-            }
-        }
-
         return listOfNotNull(
             compareLength(
                 changes.length.old, changes.length.new,
                 DISTANCE_CHANGE_THRESHOLD,
-                { roundTo1Decimal(it) },
+                ::roundTo1Decimal,
                 PropKey("length"),
                 getLengthChangedRemarkOrNull(changes.length.old, changes.length.new),
             ),
-            compareChange({ newStartAddress != oldStartAddress },
-                oldStartAddress,
-                newStartAddress,
-                { it.toString() },
-                PropKey("start-address"),
-                remark = getAddressMovedRemarkOrNull(oldStartAddress, newStartAddress)
+            compareChange(
+                { !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
+                changes.startPoint.old,
+                changes.startPoint.new,
+                ::formatLocation,
+                PropKey("start-location"),
+                getPointMovedRemarkOrNull(changes.startPoint.old, changes.startPoint.new)
             ),
-            compareChange({ newEndAddress != oldEndAddress },
-                oldEndAddress,
-                newEndAddress,
-                { it.toString() },
-                PropKey("end-address"),
-                remark = getAddressMovedRemarkOrNull(oldEndAddress, newEndAddress)
+            compareChange(
+                { !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
+                changes.endPoint.old,
+                changes.endPoint.new,
+                ::formatLocation,
+                PropKey("end-location"),
+                getPointMovedRemarkOrNull(changes.endPoint.old, changes.endPoint.new)
             ),
             if (changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
@@ -1100,9 +1071,13 @@ class PublicationService @Autowired constructor(
         ),
         compareChangeValues(changes.kmNumber, { it }, PropKey("km-post")),
         compareChangeValues(changes.state, { it }, PropKey("state"), null, "layout-state"),
-        compareChangeValues(changes.location, ::formatLocation, PropKey("location")),
+        compareChangeValues(
+            changes.location,
+            ::formatLocation,
+            PropKey("location"),
+            remark = getPointMovedRemarkOrNull(changes.location.old, changes.location.new)
+        ),
     )
-
 
     fun diffSwitch(
         translation: Translation,
@@ -1117,7 +1092,7 @@ class PublicationService @Autowired constructor(
         val oldSwitch = if (relatedJoints.any()) switchService.getOfficialAtMoment(changes.id, oldTimestamp) else null
         val jointLocationChanges = relatedJoints.flatMap { joint ->
             val oldLocation = oldSwitch?.joints?.find { it.number == joint.jointNumber }?.location
-            val distance = if (oldLocation != null) calculateDistance(
+            val distance = if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) calculateDistance(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
             val jointPropKeyParams =
@@ -1130,10 +1105,11 @@ class PublicationService @Autowired constructor(
             }
 
             val list = listOfNotNull(
-                compareChange({ distance > DISTANCE_CHANGE_THRESHOLD },
+                compareChange(
+                    { distance > DISTANCE_CHANGE_THRESHOLD },
                     oldLocation,
                     joint.point,
-                    { it.let(::formatLocation) },
+                    ::formatLocation,
                     PropKey("switch-joint-location", jointPropKeyParams),
                     getPointMovedRemarkOrNull(oldLocation, joint.point),
                     null
@@ -1151,7 +1127,9 @@ class PublicationService @Autowired constructor(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
             compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "layout-state-category"),
             compareChangeValues(changes.type, { it.typeName }, PropKey("switch-type")),
-            compareChangeValues(changes.trapPoint, { it }, PropKey("trap-point")),
+            compareChangeValues(
+                changes.trapPoint, { it }, PropKey("trap-point"), enumLocalizationKey = "trap-point"
+            ),
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
             compareChange(
                 { changes.locationTracks.any() },
@@ -1284,7 +1262,6 @@ class PublicationService @Autowired constructor(
                     publication.publicationTime,
                     previousComparisonTime,
                     rl.changedKmNumbers,
-                    geocodingContextGetter,
                 ),
             )
         }
@@ -1425,52 +1402,45 @@ class PublicationService @Autowired constructor(
 
     private val duplicateLocationTrackErrorRegex =
         Regex("""Key \(track_number_id, name\)=\((\d+), ([^)]+)\) conflicts with existing key""")
-    private val duplicateTrackNumberErrorRegex =
-        Regex("""Key \(number, draft\)=\(([^)]+), ([tf])\) already exists""")
-    private val duplicateSwitchErrorRegex =
-        Regex("""Key \(name\)=\(([^)]+)\) conflicts with existing key""")
+    private val duplicateTrackNumberErrorRegex = Regex("""Key \(number, draft\)=\(([^)]+), ([tf])\) already exists""")
+    private val duplicateSwitchErrorRegex = Regex("""Key \(name\)=\(([^)]+)\) conflicts with existing key""")
 
-    private fun maybeThrowDuplicateLocationTrackNameException(detail: String, exception: DataIntegrityViolationException) {
-        duplicateLocationTrackErrorRegex.matchAt(detail, 0)
-            ?.let { match ->
-                val trackIdString = match.groups[1]?.value
-                val nameString = match.groups[2]?.value
-                val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
-                if (trackIdString != null && nameString != null) {
-                    val trackNumberVersion = trackNumberDao.fetchOfficialVersion(trackId)
-                    if (trackNumberVersion != null) {
-                        val trackNumber = trackNumberDao.fetch(trackNumberVersion)
-                        throw DuplicateLocationTrackNameInPublicationException(
-                            AlignmentName(nameString),
-                            trackNumber.number,
-                            exception
-                        )
-                    }
+    private fun maybeThrowDuplicateLocationTrackNameException(
+        detail: String,
+        exception: DataIntegrityViolationException,
+    ) {
+        duplicateLocationTrackErrorRegex.matchAt(detail, 0)?.let { match ->
+            val trackIdString = match.groups[1]?.value
+            val nameString = match.groups[2]?.value
+            val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
+            if (trackIdString != null && nameString != null) {
+                val trackNumberVersion = trackNumberDao.fetchOfficialVersion(trackId)
+                if (trackNumberVersion != null) {
+                    val trackNumber = trackNumberDao.fetch(trackNumberVersion)
+                    throw DuplicateLocationTrackNameInPublicationException(
+                        AlignmentName(nameString), trackNumber.number, exception
+                    )
                 }
             }
+        }
     }
 
-    private fun maybeThrowDuplicateTrackNumberNumberException(detail: String, exception: DataIntegrityViolationException) {
-        duplicateTrackNumberErrorRegex.matchAt(detail, 0)
-            ?.let { match -> match.groups[1]?.value }
-            ?.let { name ->
-                throw DuplicateNameInPublicationException(
-                    DuplicateNameInPublication.TRACK_NUMBER,
-                    name,
-                    exception
-                )
-            }
+    private fun maybeThrowDuplicateTrackNumberNumberException(
+        detail: String,
+        exception: DataIntegrityViolationException,
+    ) {
+        duplicateTrackNumberErrorRegex.matchAt(detail, 0)?.let { match -> match.groups[1]?.value }?.let { name ->
+            throw DuplicateNameInPublicationException(
+                DuplicateNameInPublication.TRACK_NUMBER, name, exception
+            )
+        }
     }
 
     private fun maybeThrowDuplicateSwitchNameException(detail: String, exception: DataIntegrityViolationException) {
-        duplicateSwitchErrorRegex.matchAt(detail, 0)
-            ?.let { match -> match.groups[1]?.value }
-            ?.let { name ->
-                throw DuplicateNameInPublicationException(
-                    DuplicateNameInPublication.SWITCH,
-                    name,
-                    exception
-                )
-            }
+        duplicateSwitchErrorRegex.matchAt(detail, 0)?.let { match -> match.groups[1]?.value }?.let { name ->
+            throw DuplicateNameInPublicationException(
+                DuplicateNameInPublication.SWITCH, name, exception
+            )
+        }
     }
 }

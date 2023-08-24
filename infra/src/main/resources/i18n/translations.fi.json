@@ -1197,6 +1197,7 @@
             "duplicate-of": "Duplikaatti raiteelle",
             "owner": "Omistaja",
             "length": "Pituus",
+            "location": "Sijainti",
             "start-location": "Alkusijainti",
             "end-location": "Loppusijainti",
             "geometry": "Geometria",
