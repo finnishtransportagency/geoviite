@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service
 import java.io.File
 
 data class Translation(val lang: String, val localization: String) {
-    val jsonRoot = JsonMapper().readTree(localization)
+    private val jsonRoot = JsonMapper().readTree(localization)
 
     fun t(key: LocalizationKey) = t(key, emptyList())
     fun t(key: String) = t(LocalizationKey(key), emptyList())

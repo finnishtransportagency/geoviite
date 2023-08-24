@@ -102,11 +102,14 @@ private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
-    Operation.CREATE -> translation.t("create", emptyList())
-    Operation.MODIFY -> translation.t("modify", emptyList())
-    Operation.DELETE -> translation.t("delete", emptyList())
-    Operation.RESTORE -> translation.t("restore", emptyList())
-    Operation.CALCULATED -> translation.t("calculated-change", emptyList())
+    Operation.CREATE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), emptyList())
+    Operation.MODIFY -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), emptyList())
+    Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyList())
+    Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyList())
+    Operation.CALCULATED -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
+        emptyList()
+    )
 }
 
 fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
