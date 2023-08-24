@@ -1,26 +1,28 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DbTable.LAYOUT_TRACK_NUMBER
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.Duration
+
+const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
 @Transactional(readOnly = true)
 @Component
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
-
-    private val cache: Cache<RowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> =
-        Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(Duration.ofHours(1)).build()
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<TrackLayoutTrackNumber>(
+    jdbcTemplateParam,
+    LAYOUT_TRACK_NUMBER,
+    cacheEnabled,
+    TRACK_NUMBER_CACHE_SIZE,
+) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
@@ -57,11 +59,7 @@ class LayoutTrackNumberDao(
         return result.associate { it }
     }
 
-    override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber =
-        if (cacheEnabled) cache.get(version, ::fetchInternal)
-        else fetchInternal(version)
-
-    private fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
+    override fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
               id as row_id,
@@ -97,7 +95,7 @@ class LayoutTrackNumberDao(
         return trackNumber
     }
 
-    fun preloadCache() {
+    override fun preloadCache() {
         val sql = """
             select 
               id as row_id,

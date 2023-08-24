@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -13,18 +11,16 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
-import java.time.Duration
 import java.time.Instant
+
+const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
 @Transactional(readOnly = true)
 @Component
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK) {
-
-    private val cache: Cache<RowVersion<LocationTrack>, LocationTrack> =
-        Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(Duration.ofHours(1)).build()
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
     fun fetchDuplicates(id: IntId<LocationTrack>, publicationState: PublishType): List<LocationTrackDuplicate> {
         val sql = """
@@ -49,11 +45,7 @@ class LocationTrackDao(
         return locationTracks
     }
 
-    override fun fetch(version: RowVersion<LocationTrack>): LocationTrack =
-        if (cacheEnabled) cache.get(version, ::fetchInternal)
-        else fetchInternal(version)
-
-    private fun fetchInternal(version: RowVersion<LocationTrack>): LocationTrack {
+    override fun fetchInternal(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 
               ltv.id as row_id,
@@ -125,7 +117,7 @@ class LocationTrackDao(
         return track
     }
 
-    fun preloadCache() {
+    override fun preloadCache() {
         val sql = """
             select 
               lt.id as row_id,

@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -15,6 +17,7 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
+import java.time.Duration
 import java.time.Instant
 
 
@@ -55,20 +58,18 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>?
     fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T>
     fun fetchOfficialVersions(ids: List<IntId<T>>): List<RowVersion<T>>
-    fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? =
-        when (publishType) {
-            OFFICIAL -> fetchOfficialVersion(id)
-            DRAFT -> fetchDraftVersion(id)
-        }
+    fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? = when (publishType) {
+        OFFICIAL -> fetchOfficialVersion(id)
+        DRAFT -> fetchDraftVersion(id)
+    }
 
     fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
-    fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> =
-        when (publishType) {
-            OFFICIAL -> fetchOfficialVersionOrThrow(id)
-            DRAFT -> fetchDraftVersionOrThrow(id)
-        }
+    fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> = when (publishType) {
+        OFFICIAL -> fetchOfficialVersionOrThrow(id)
+        DRAFT -> fetchDraftVersionOrThrow(id)
+    }
 }
 
 interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
@@ -76,8 +77,20 @@ interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDr
 @Transactional(readOnly = true)
 abstract class DraftableDaoBase<T : Draftable<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    private val table: DbTable,
+    val table: DbTable,
+    val cacheEnabled: Boolean,
+    cacheSize: Long,
 ) : DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
+
+    protected val cache: Cache<RowVersion<T>, T> =
+        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(Duration.ofHours(1)).build()
+
+    override fun fetch(version: RowVersion<T>): T = if (cacheEnabled) cache.get(version, ::fetchInternal)
+    else fetchInternal(version)
+
+    protected abstract fun fetchInternal(version: RowVersion<T>): T
+
+    abstract fun preloadCache()
 
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
@@ -159,8 +172,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     override fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>? {
         val pair = fetchVersionPair(id)
-        return pair.official
-            ?: if (pair.draft != null) null else throw NoSuchEntityException(table.name, id)
+        return pair.official ?: if (pair.draft != null) null else throw NoSuchEntityException(table.name, id)
     }
 
     override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> {
@@ -181,11 +193,10 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchOfficialVersions(ids: List<IntId<T>>): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, ids)
         val params = mapOf("ids" to ids.distinct().map { it.intValue })
-        val versions: List<RowVersion<T>> =
-            if (ids.isEmpty()) emptyList()
-            else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), params) { rs, _ ->
-                rs.getRowVersion("id", "version")
-            }
+        val versions: List<RowVersion<T>> = if (ids.isEmpty()) emptyList()
+        else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
         return versions
     }
 
@@ -197,11 +208,10 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchDraftVersions(ids: List<IntId<T>>): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
         val params = mapOf("ids" to ids.distinct().map { it.intValue })
-        val versions: List<RowVersion<T>> =
-            if (ids.isEmpty()) emptyList()
-            else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), params) { rs, _ ->
-                rs.getRowVersion("id", "version")
-            }
+        val versions: List<RowVersion<T>> = if (ids.isEmpty()) emptyList()
+        else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
         return versions
     }
 

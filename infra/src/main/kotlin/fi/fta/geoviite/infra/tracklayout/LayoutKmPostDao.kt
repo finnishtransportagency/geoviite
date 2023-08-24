@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
@@ -14,17 +12,15 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.Duration
+
+const val KM_POST_CACHE_SIZE = 10000L
 
 @Transactional(readOnly = true)
 @Component
 class LayoutKmPostDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST) {
-
-    private val cache: Cache<RowVersion<TrackLayoutKmPost>, TrackLayoutKmPost> =
-        Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(Duration.ofHours(1)).build()
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST, cacheEnabled, KM_POST_CACHE_SIZE) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null, null)
@@ -110,11 +106,7 @@ class LayoutKmPostDao(
         return result.firstOrNull()
     }
 
-    override fun fetch(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost =
-        if (cacheEnabled) cache.get(version, ::fetchInternal)
-        else fetchInternal(version)
-
-    private fun fetchInternal(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
+    override fun fetchInternal(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
               id as row_id,
@@ -152,7 +144,7 @@ class LayoutKmPostDao(
         return post
     }
 
-    fun preloadCache() {
+    override fun preloadCache() {
         val sql = """
             select 
               id as row_id,

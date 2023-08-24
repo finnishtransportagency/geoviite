@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -15,24 +13,17 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.Duration
+
+const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
 @Transactional(readOnly = true)
 @Component
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE) {
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
 
-    private val cache: Cache<RowVersion<ReferenceLine>, ReferenceLine> =
-        Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(Duration.ofHours(1)).build()
-
-
-    override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine =
-        if (cacheEnabled) cache.get(version, ::fetchInternal)
-        else fetchInternal(version)
-
-    private fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
+    override fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select
               rlv.id as row_id,
@@ -75,7 +66,7 @@ class ReferenceLineDao(
         return referenceLine
     }
 
-    fun preloadCache() {
+    override fun preloadCache() {
         val sql = """
             select
               rl.id as row_id,
