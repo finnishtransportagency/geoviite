@@ -39,7 +39,7 @@ class TranslationCache {
 class LocalizationService() {
     val translationCache = TranslationCache()
 
-    @Value("\${geoviite.i18n.override-path}")
+    @Value("\${geoviite.i18n.override-path:}")
     val overridePath: String = ""
 
     fun getLocalization(language: String) = if (overridePath.isNotEmpty()) {
