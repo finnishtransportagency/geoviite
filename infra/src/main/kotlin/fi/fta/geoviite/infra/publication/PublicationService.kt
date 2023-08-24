@@ -665,9 +665,13 @@ class PublicationService @Autowired constructor(
             trackNumber,
             validationVersions.trackNumbers.map { it.officialId },
         )
-        val switchErrors = validateSegmentSwitchReferences(
+        val switchErrorsSegments = validateSegmentSwitchReferences(
             locationTrack,
             getSegmentSwitches(alignment, validationVersions),
+            validationVersions.switches.map { it.officialId },
+        )
+        val switchErrorsTopological = validateTopologicallyConnectedSwitchReferences(
+            getTopologicallyConnectedSwitches(locationTrack, validationVersions),
             validationVersions.switches.map { it.officialId },
         )
         val duplicateErrors = validateDuplicateOfState(
@@ -685,7 +689,8 @@ class PublicationService @Autowired constructor(
         val duplicateNameErrors = if (locationTrack.exists) validateLocationTrackNameDuplication(
             locationTrack, validationVersions
         ) else listOf()
-        return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
+
+        return fieldErrors + referenceErrors + switchErrorsSegments + switchErrorsTopological + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
     }
 
     private fun validateLocationTrackNameDuplication(
@@ -1221,21 +1226,23 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    private fun getSegmentSwitches(alignment: LayoutAlignment, versions: ValidationVersions): List<SegmentSwitch> {
-        val segmentsBySwitch =
-            alignment.segments.mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
-                .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
-                .mapKeys { (switchId, _) ->
-                    val version =
-                        versions.findSwitch(switchId)?.validatedAssetVersion ?: switchDao.fetchVersionPair(switchId)
-                            .let { (o, d) ->
-                                o ?: checkNotNull(d) {
-                                    "Fetched switch is neither official nor draft, switchId=$switchId"
-                                }
-                            }
-
-                    switchDao.fetch(version)
+    private fun getSwitchForValidation(switchId: IntId<TrackLayoutSwitch>, versions: ValidationVersions): TrackLayoutSwitch {
+        val version = versions.findSwitch(switchId)?.validatedAssetVersion
+            ?: switchDao.fetchVersionPair(switchId).let { (o, d) ->
+                o ?: checkNotNull(d) {
+                    "Fetched switch is neither official nor draft, switchId=$switchId"
                 }
+            }
+
+        return switchDao.fetch(version)
+    }
+
+    private fun getSegmentSwitches(alignment: LayoutAlignment, versions: ValidationVersions): List<SegmentSwitch> {
+
+        val segmentsBySwitch = alignment.segments
+            .mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
+            .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
+            .mapKeys { (switchId, _) -> getSwitchForValidation(switchId, versions) }
 
         return segmentsBySwitch.entries.map { (switch, segments) ->
             SegmentSwitch(
@@ -1244,6 +1251,13 @@ class PublicationService @Autowired constructor(
                 segments = segments,
             )
         }
+    }
+
+    private fun getTopologicallyConnectedSwitches(locationTrack: LocationTrack, versions: ValidationVersions): List<TrackLayoutSwitch> {
+        return listOfNotNull(
+            locationTrack.topologyStartSwitch?.switchId,
+            locationTrack.topologyEndSwitch?.switchId,
+        ).map { switchId -> getSwitchForValidation(switchId, versions) }
     }
 
     private fun collectCacheKeys(versions: ValidationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
