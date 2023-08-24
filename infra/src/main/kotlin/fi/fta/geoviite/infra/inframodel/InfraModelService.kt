@@ -183,6 +183,9 @@ class InfraModelService @Autowired constructor(
             ?: plan.application
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
+
+        // Nullable fields that do not contain a default parameter via the elvis-operator are considered to be assignable
+        // to null even if they have non-null values stored in the database.
         return plan.copy(
             units = plan.units.copy(
                 coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
@@ -194,9 +197,9 @@ class InfraModelService @Autowired constructor(
             project = planProject,
             author = planAuthor,
             application = application,
-            planPhase = extraInfoParameters?.planPhase ?: plan.planPhase,
-            decisionPhase = extraInfoParameters?.decisionPhase ?: plan.decisionPhase,
-            measurementMethod = extraInfoParameters?.measurementMethod ?: plan.measurementMethod,
+            planPhase = extraInfoParameters?.planPhase,
+            decisionPhase = extraInfoParameters?.decisionPhase,
+            measurementMethod = extraInfoParameters?.measurementMethod,
             elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
             message = extraInfoParameters?.message ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
