@@ -20,7 +20,7 @@ import { KmNumber } from 'common/common-model';
 export type KmPostEditState = {
     isNewKmPost: boolean;
     existingKmPost?: LayoutKmPost;
-    kmPost?: KmPostSaveRequest;
+    kmPost: KmPostSaveRequest;
     loading: {
         trackNumbers: boolean;
         kmPost: boolean;
@@ -37,7 +37,9 @@ export type KmPostEditState = {
 export const initialKmPostEditState: KmPostEditState = {
     isNewKmPost: false,
     existingKmPost: undefined,
-    kmPost: undefined,
+    kmPost: {
+        kmNumber: '',
+    },
     loading: {
         trackNumbers: false,
         kmPost: false,
