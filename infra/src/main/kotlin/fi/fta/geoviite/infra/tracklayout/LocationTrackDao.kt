@@ -50,16 +50,10 @@ class LocationTrackDao(
     }
 
     override fun fetch(version: RowVersion<LocationTrack>): LocationTrack =
-        if (cacheEnabled) cache.get(version) { v -> fetchInternal(listOf(v)).single() }
-        else fetchInternal(listOf(version)).single()
+        if (cacheEnabled) cache.get(version, ::fetchInternal)
+        else fetchInternal(version)
 
-    fun multiFetch(versions: List<RowVersion<LocationTrack>>): List<LocationTrack> =
-        if (cacheEnabled) cache.getAll(versions) { vs ->
-            fetchInternal(vs.toList()).associateBy(LocationTrack::version)
-        }.values.toList()
-        else fetchInternal(versions.toList())
-
-    private fun fetchInternal(fetchVersions: List<RowVersion<LocationTrack>>): List<LocationTrack> {
+    private fun fetchInternal(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 
               ltv.id as row_id,
@@ -85,52 +79,50 @@ class LocationTrackDao(
               ltv.topology_end_switch_joint_number
             from layout.location_track_version ltv
               left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
-            where (ltv.id||':'||ltv.version) in (:row_versions)
+            where ltv.id = :id
+              and ltv.version = :version
               and ltv.deleted = false
              
         """.trimIndent()
-        // JDBC breaks the params list into individual ? arguments in the SQL -> chunk to limit the arg amount
-        val tracks = fetchVersions.chunked(50).flatMap { versions ->
-            val params = mapOf("row_versions" to versions.map { v -> "${v.id.intValue}:${v.version}" })
-            jdbcTemplate.query(sql, params) { rs, _ ->
-                LocationTrack(
-                    dataType = DataType.STORED,
-                    id = rs.getIntId("official_id"),
-                    alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                    sourceId = null,
-                    externalId = rs.getOidOrNull("external_id"),
-                    trackNumberId = rs.getIntId("track_number_id"),
-                    name = rs.getString("name").let(::AlignmentName),
-                    description = rs.getFreeText("description"),
-                    type = rs.getEnum("type"),
-                    state = rs.getEnum("state"),
-                    boundingBox = rs.getBboxOrNull("bounding_box"),
-                    length = rs.getDouble("length"),
-                    segmentCount = rs.getInt("segment_count"),
-                    draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
-                    version = rs.getRowVersion("row_id", "row_version"),
-                    duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                    topologicalConnectivity = rs.getEnum("topological_connectivity"),
-                    topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
-                        TopologyLocationTrackSwitch(
-                            id,
-                            rs.getJointNumber("topology_start_switch_joint_number"),
-                        )
-                    },
-                    topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
-                        TopologyLocationTrackSwitch(
-                            id,
-                            rs.getJointNumber("topology_end_switch_joint_number"),
-                        )
-                    },
-                )
-            }
-        }
-        require(tracks.size == fetchVersions.size) {
-            "Fetched row count does not match the request: requested=${fetchVersions.size} found=${tracks.size}"
-        }
-        logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.map(LocationTrack::id))
-        return tracks
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
+        val track = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
+            LocationTrack(
+                dataType = DataType.STORED,
+                id = rs.getIntId("official_id"),
+                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+                sourceId = null,
+                externalId = rs.getOidOrNull("external_id"),
+                trackNumberId = rs.getIntId("track_number_id"),
+                name = rs.getString("name").let(::AlignmentName),
+                description = rs.getFreeText("description"),
+                type = rs.getEnum("type"),
+                state = rs.getEnum("state"),
+                boundingBox = rs.getBboxOrNull("bounding_box"),
+                length = rs.getDouble("length"),
+                segmentCount = rs.getInt("segment_count"),
+                draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
+                version = rs.getRowVersion("row_id", "row_version"),
+                duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
+                topologicalConnectivity = rs.getEnum("topological_connectivity"),
+                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
+                    TopologyLocationTrackSwitch(
+                        id,
+                        rs.getJointNumber("topology_start_switch_joint_number"),
+                    )
+                },
+                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
+                    TopologyLocationTrackSwitch(
+                        id,
+                        rs.getJointNumber("topology_end_switch_joint_number"),
+                    )
+                },
+            )
+        })
+        logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
+        return track
     }
 
     fun preloadCache() {

@@ -43,8 +43,8 @@ class CachePreloader(
         if (cacheEnabled && cachePreloadEnabled) {
             switchStructureDao.fetchSwitchStructures()
             listOf(
-                PreloadedCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch),
-                PreloadedCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch),
+//                PreloadedCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch),
+//                PreloadedCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch),
 //                PreloadedCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch),
 //                PreloadedCache("Switch", switchDao::fetchAllVersions, switchDao::fetch),
 //                PreloadedCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch),
@@ -63,8 +63,13 @@ class CachePreloader(
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun preloadTracks() {
 //        refreshCache("LocationTrack-preload") { locationTrackDao.preloadLocationTracks() }
-        refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
-//        refreshCache("LocationTrack", locationTrackDao::preloadCache)
+//        refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
+        refreshCache("LocationTrack", locationTrackDao::preloadCache)
+    }
+
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun preloadReferenceLines() {
+        refreshCache("ReferenceLine", referenceLineDao::preloadCache)
     }
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
@@ -75,6 +80,11 @@ class CachePreloader(
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun preloadKmPosts() {
         refreshCache("KM-Post", layoutKmPostDao::preloadCache)
+    }
+
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun preloadTrackNumbers() {
+        refreshCache("TrackNumber", layoutTrackNumberDao::preloadCache)
     }
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)

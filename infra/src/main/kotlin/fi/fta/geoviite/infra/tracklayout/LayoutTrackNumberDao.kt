@@ -1,19 +1,26 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 
 @Transactional(readOnly = true)
 @Component
-class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
-    DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+class LayoutTrackNumberDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
+) : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+
+    private val cache: Cache<RowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> =
+        Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(Duration.ofHours(1)).build()
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
@@ -50,8 +57,11 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         return result.associate { it }
     }
 
-    @Cacheable(CACHE_LAYOUT_TRACK_NUMBER, sync = true)
-    override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
+    override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber =
+        if (cacheEnabled) cache.get(version, ::fetchInternal)
+        else fetchInternal(version)
+
+    private fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
               id as row_id,
@@ -85,6 +95,34 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         })
         logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)
         return trackNumber
+    }
+
+    fun preloadCache() {
+        val sql = """
+            select 
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_track_number_id, id) as official_id, 
+              case when draft then id end as draft_id,
+              external_id, 
+              number, 
+              description,
+              state 
+            from layout.track_number
+        """.trimIndent()
+        val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            TrackLayoutTrackNumber(
+                id = rs.getIntId("official_id"),
+                number = rs.getTrackNumber("number"),
+                description = rs.getFreeText("description"),
+                state = rs.getEnum("state"),
+                externalId = rs.getOidOrNull("external_id"),
+                dataType = DataType.STORED,
+                draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
+                version = rs.getRowVersion("row_id", "row_version"),
+            )
+        }.associateBy(TrackLayoutTrackNumber::version)
+        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumbers.keys)
     }
 
     @Transactional
@@ -194,10 +232,8 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         """.trimIndent()
 
         return jdbcTemplate.queryForObject(
-            sql,
-            mapOf("trackNumberId" to trackNumberId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") }
-            ?: throw IllegalStateException("Unexpected null from exists-query")
+            sql, mapOf("trackNumberId" to trackNumberId.intValue)
+        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
 
 }

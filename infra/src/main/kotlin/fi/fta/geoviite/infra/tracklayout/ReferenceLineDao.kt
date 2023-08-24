@@ -1,32 +1,43 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_REFERENCE_LINE
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 
 @Transactional(readOnly = true)
 @Component
-class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE) {
+class ReferenceLineDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
+) : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE) {
 
-    @Cacheable(CACHE_LAYOUT_REFERENCE_LINE, sync = true)
-    override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine {
+    private val cache: Cache<RowVersion<ReferenceLine>, ReferenceLine> =
+        Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(Duration.ofHours(1)).build()
+
+
+    override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine =
+        if (cacheEnabled) cache.get(version, ::fetchInternal)
+        else fetchInternal(version)
+
+    private fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select
               rlv.id as row_id,
               rlv.version as row_version,
-              coalesce(rlv.draft_of_reference_line_id, rlv.id) official_id, 
+              coalesce(rlv.draft_of_reference_line_id, rlv.id) as official_id, 
               case when rlv.draft then rlv.id end as draft_id,
               rlv.alignment_id,
               rlv.alignment_version,
@@ -62,6 +73,42 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         })
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLine.id)
         return referenceLine
+    }
+
+    fun preloadCache() {
+        val sql = """
+            select
+              rl.id as row_id,
+              rl.version as row_version,
+              coalesce(rl.draft_of_reference_line_id, rl.id) as official_id, 
+              case when rl.draft then rl.id end as draft_id,
+              rl.alignment_id,
+              rl.alignment_version,
+              rl.track_number_id, 
+              postgis.st_astext(av.bounding_box) as bounding_box,
+              av.length,
+              av.segment_count,
+              rl.start_address
+            from layout.reference_line rl
+              left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
+        """.trimIndent()
+        val referenceLines = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            ReferenceLine(
+                dataType = DataType.STORED,
+                id = rs.getIntId("official_id"),
+                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+                sourceId = null,
+                trackNumberId = rs.getIntId("track_number_id"),
+                startAddress = rs.getTrackMeter("start_address"),
+                boundingBox = rs.getBboxOrNull("bounding_box"),
+                length = rs.getDouble("length"),
+                segmentCount = rs.getInt("segment_count"),
+                draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let { id -> Draft(id) },
+                version = rs.getRowVersion("row_id", "row_version"),
+            )
+        }.associateBy(ReferenceLine::version)
+        logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
+        cache.putAll(referenceLines)
     }
 
     @Transactional

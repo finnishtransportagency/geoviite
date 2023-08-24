@@ -111,16 +111,10 @@ class LayoutKmPostDao(
     }
 
     override fun fetch(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost =
-        if (cacheEnabled) cache.get(version) { v -> fetchInternal(listOf(v)).single() }
-        else fetchInternal(listOf(version)).single()
+        if (cacheEnabled) cache.get(version, ::fetchInternal)
+        else fetchInternal(version)
 
-    fun multiFetch(versions: List<RowVersion<TrackLayoutKmPost>>): List<TrackLayoutKmPost> =
-        if (cacheEnabled) cache.getAll(versions) { vs ->
-            fetchInternal(vs.toList()).associateBy(TrackLayoutKmPost::version)
-        }.values.toList()
-        else fetchInternal(versions.toList())
-
-    private fun fetchInternal(fetchVersions: List<RowVersion<TrackLayoutKmPost>>): List<TrackLayoutKmPost> {
+    private fun fetchInternal(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
               id as row_id,
@@ -133,31 +127,29 @@ class LayoutKmPostDao(
               postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
               state
             from layout.km_post_version
-            where (id||':'||version) in (:row_versions)
+            where id=:id 
+              and version=:version
               and deleted = false
         """.trimIndent()
-        // JDBC breaks the params list into individual ? arguments in the SQL -> chunk to limit the arg amount
-        val posts = fetchVersions.chunked(50).flatMap { versions ->
-            val params = mapOf("row_versions" to versions.map { v -> "${v.id.intValue}:${v.version}" })
-            jdbcTemplate.query(sql, params) { rs, _ ->
-                TrackLayoutKmPost(
-                    id = rs.getIntId("official_id"),
-                    dataType = DataType.STORED,
-                    trackNumberId = rs.getIntId("track_number_id"),
-                    kmNumber = rs.getKmNumber("km_number"),
-                    location = rs.getPointOrNull("point_x", "point_y"),
-                    state = rs.getEnum("state"),
-                    sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-                    draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
-                    version = rs.getRowVersion("row_id", "row_version"),
-                )
-            }
-        }
-        require(posts.size == fetchVersions.size) {
-            "Fetched row count does not match the request: requested=${fetchVersions.size} found=${posts.size}"
-        }
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.map(TrackLayoutKmPost::version))
-        return posts
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
+        val post = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
+            TrackLayoutKmPost(
+                id = rs.getIntId("official_id"),
+                dataType = DataType.STORED,
+                trackNumberId = rs.getIntId("track_number_id"),
+                kmNumber = rs.getKmNumber("km_number"),
+                location = rs.getPointOrNull("point_x", "point_y"),
+                state = rs.getEnum("state"),
+                sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
+                draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
+                version = rs.getRowVersion("row_id", "row_version"),
+            )
+        })
+        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
+        return post
     }
 
     fun preloadCache() {

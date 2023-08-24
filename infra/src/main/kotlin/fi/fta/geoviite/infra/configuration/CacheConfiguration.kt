@@ -80,8 +80,8 @@ class CacheConfiguration @Autowired constructor(
 
             manager.registerCustomCache(CACHE_LAYOUT_ALIGNMENT, cache(10000, layoutCacheDuration))
 //            manager.registerCustomCache(CACHE_LAYOUT_LOCATION_TRACK, cache(10000, layoutCacheDuration))
-            manager.registerCustomCache(CACHE_LAYOUT_REFERENCE_LINE, cache(1000, layoutCacheDuration))
-            manager.registerCustomCache(CACHE_LAYOUT_TRACK_NUMBER, cache(1000, layoutCacheDuration))
+//            manager.registerCustomCache(CACHE_LAYOUT_REFERENCE_LINE, cache(1000, layoutCacheDuration))
+//            manager.registerCustomCache(CACHE_LAYOUT_TRACK_NUMBER, cache(1000, layoutCacheDuration))
 //            manager.registerCustomCache(CACHE_LAYOUT_KM_POST, cache(10000, layoutCacheDuration))
 //            manager.registerCustomCache(CACHE_LAYOUT_SWITCH, cache(10000, layoutCacheDuration))
             manager.registerCustomCache(CACHE_ADDRESS_POINTS, cache(2000, layoutCacheDuration))
