@@ -187,7 +187,9 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                   select *
                     from layout.track_number this_tn
                       join layout.track_number duplicate_tn
-                           on this_tn.number = duplicate_tn.number and this_tn.id != duplicate_tn.id
+                           on this_tn.number = duplicate_tn.number
+                             and this_tn.id != duplicate_tn.id
+                             and this_tn.draft_of_track_number_id is distinct from duplicate_tn.id
                     where not duplicate_tn.draft
                       and duplicate_tn.state != 'DELETED'
                       and this_tn.id = :trackNumberId)
