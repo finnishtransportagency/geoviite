@@ -46,8 +46,8 @@ class CachePreloader(
                 PreloadedCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch),
                 PreloadedCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch),
 //                PreloadedCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch),
-                PreloadedCache("Switch", switchDao::fetchAllVersions, switchDao::fetch),
-                PreloadedCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch),
+//                PreloadedCache("Switch", switchDao::fetchAllVersions, switchDao::fetch),
+//                PreloadedCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch),
                 PreloadedCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader),
             ).parallelStream().forEach { cache -> refreshCache(cache) }
 
@@ -62,8 +62,19 @@ class CachePreloader(
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun preloadTracks() {
-        refreshCache("LocationTrack-preload") { locationTrackDao.preloadLocationTracks() }
+//        refreshCache("LocationTrack-preload") { locationTrackDao.preloadLocationTracks() }
         refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
+//        refreshCache("LocationTrack", locationTrackDao::preloadCache)
+    }
+
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun preloadSwitches() {
+        refreshCache("Switch", switchDao::preloadCache)
+    }
+
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun preloadKmPosts() {
+        refreshCache("KM-Post", layoutKmPostDao::preloadCache)
     }
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
@@ -81,7 +92,11 @@ class CachePreloader(
         name: String,
         fetchVersions: () -> List<RowVersion<T>>,
         fetchRow: (RowVersion<T>) -> S,
-    ) = refreshCache(name) { fetchVersions().parallelStream().forEach { version -> fetchRow(version) } }
+    ) = refreshCache(name) {
+        fetchVersions()
+//            .parallelStream()
+            .forEach { version -> fetchRow(version) }
+    }
 
     private fun refreshCache(name: String, refresh: () -> Unit) {
         logger.info("Refreshing cache: name=$name")

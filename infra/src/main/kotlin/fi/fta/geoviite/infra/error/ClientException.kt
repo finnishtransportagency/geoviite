@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.error
 
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.idToString
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.http.HttpStatus
@@ -31,8 +28,8 @@ sealed class ClientException(
     ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
 }
 
-class GeocodingFailureException(message: String, cause: Throwable? = null)
-    : ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, "error.geocoding.generic")
+class GeocodingFailureException(message: String, cause: Throwable? = null) :
+    ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, "error.geocoding.generic")
 
 class LinkingFailureException(
     message: String,
@@ -88,6 +85,7 @@ class NoSuchEntityException(
     localizedMessageKey: String = "error.entity-not-found",
 ) : ClientException(NOT_FOUND, "No element of type $type exists with id $id", null, localizedMessageKey) {
     constructor(type: KClass<*>, id: DomainId<*>) : this(type.simpleName ?: type.toString(), idToString(id))
+    constructor(type: KClass<*>, id: RowVersion<*>) : this(type.simpleName ?: type.toString(), id.toString())
     constructor(type: String, id: DomainId<*>) : this(type, idToString(id))
     constructor(type: KClass<*>, id: String) : this(type.simpleName ?: type.toString(), id)
 }
@@ -104,12 +102,15 @@ class DuplicateNameInPublicationException(
     localizedMessageKey = "error.publication.duplicate-name-on.${if (type == DuplicateNameInPublication.SWITCH) "switch" else "track-number"}",
     localizedMessageParams = listOf(duplicatedName),
 )
+
 class DuplicateLocationTrackNameInPublicationException(
     alignmentName: AlignmentName,
     trackNumber: TrackNumber,
-    cause: Throwable? = null
+    cause: Throwable? = null,
 ) : ClientException(
-    BAD_REQUEST, "Duplicate location track $alignmentName in $trackNumber", cause,
+    BAD_REQUEST,
+    "Duplicate location track $alignmentName in $trackNumber",
+    cause,
     localizedMessageKey = "error.publication.duplicate-name-on.location-track",
     localizedMessageParams = listOf(alignmentName.toString(), trackNumber.value)
 )

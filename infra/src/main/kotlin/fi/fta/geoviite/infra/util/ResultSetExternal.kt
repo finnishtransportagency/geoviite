@@ -127,13 +127,27 @@ fun ResultSet.getDoubleArray(name: String): List<Double> = verifyNotNull(name, :
 
 fun ResultSet.getDoubleArrayOrNull(name: String): List<Double>? = getListOrNull(name)
 
-fun ResultSet.getNullableIntArray(name: String): List<Int?> = verifyNotNull(name, ::getNullableIntArrayOrNull)
-
-fun ResultSet.getNullableIntArrayOrNull(name: String): List<Int?>? = getListOrNull(name)
-
 fun ResultSet.getStringArray(name: String): List<String> = verifyNotNull(name, ::getListOrNull)
 
 fun ResultSet.getStringArrayOrNull(name: String): List<String>? = getListOrNull(name)
+
+fun ResultSet.getNullableIntArray(name: String): List<Int?> = verifyNotNull(name, ::getNullableIntArrayOrNull)
+
+fun ResultSet.getNullableIntArrayOrNull(name: String): List<Int?>? = getNullableListOrNull(name)
+
+fun ResultSet.getNullableDoubleArray(name: String): List<Double?> = verifyNotNull(name, ::getNullableDoubleArrayOrNull)
+
+fun ResultSet.getNullableDoubleArrayOrNull(name: String): List<Double?>? = getNullableListOrNull(name)
+
+fun ResultSet.getNullableStringArray(name: String): List<String?> = verifyNotNull(name, ::getNullableStringArrayOrNull)
+
+fun ResultSet.getNullableStringArrayOrNull(name: String): List<String?>? = getNullableListOrNull(name)
+
+inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArray(name: String): List<T?> =
+    verifyNotNull(name) { getNullableEnumArrayOrNull<T>(name) }
+
+inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArrayOrNull(name: String): List<T?>? =
+    getNullableStringArrayOrNull(name)?.map { string -> string?.let { s -> enumValueOf<T>(s) } }
 
 fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
     getListOrNull<Array<Int>>(name)?.map { it.toList() }
@@ -141,8 +155,12 @@ fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
 inline fun <reified T> ResultSet.getList(name: String): List<T> = verifyNotNull(name, ::getListOrNull)
 
 inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? = getArray(name)?.array?.let { arr ->
-//    if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType)
-    if (arr is Array<*>) (arr as Array<T>).toList()
+    if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType)
+    else null
+}
+
+inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? = getArray(name)?.array?.let { arr ->
+    if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) }
     else null
 }
 

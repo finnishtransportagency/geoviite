@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -9,18 +10,24 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_SWITCH
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
+import java.time.Duration
 import java.time.Instant
 
 @Suppress("SameParameterValue")
 @Transactional(readOnly = true)
 @Component
-class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
-    DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
+class LayoutSwitchDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
+) : DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
+
+    private val cache: Cache<RowVersion<TrackLayoutSwitch>, TrackLayoutSwitch> =
+        Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(Duration.ofHours(1)).build()
 
     override fun fetchVersions(
         publicationState: PublishType,
@@ -45,7 +52,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
 
     fun fetchSegmentSwitchJointConnections(
         publicationState: PublishType,
-        switchId: IntId<TrackLayoutSwitch>
+        switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val sql = """
             with alignment as (
@@ -112,9 +119,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
             if (locationTrackId != null) {
                 val matchedAtStart = rs.getBoolean("matched_at_segment_start")
-                val location =
-                    if (matchedAtStart) rs.getPoint("location_start_x", "location_start_y")
-                    else rs.getPoint("location_end_x", "location_end_y")
+                val location = if (matchedAtStart) rs.getPoint("location_start_x", "location_start_y")
+                else rs.getPoint("location_end_x", "location_end_y")
                 accurateMatches.computeIfAbsent(jointKey) { mutableMapOf() }[locationTrackId] = location
             } else {
                 unmatchedJoints.add(jointKey)
@@ -229,7 +235,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
 
     private fun upsertJoints(
         switchVersion: RowVersion<TrackLayoutSwitch>,
-        joints: List<TrackLayoutSwitchJoint>
+        joints: List<TrackLayoutSwitchJoint>,
     ) {
         if (joints.isNotEmpty()) {
             val sql = """
@@ -281,26 +287,105 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         }
     }
 
-    @Cacheable(CACHE_LAYOUT_SWITCH, sync = true)
-    override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
+    override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch =
+        if (cacheEnabled) cache.get(version, ::fetchInternal)
+        else fetchInternal(version)
+//    override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch =
+//        if (cacheEnabled) cache.get(version) { v -> fetchInternal(listOf(v)).single() }
+//        else fetchInternal(listOf(version)).single()
+
+//    fun multiFetch(versions: List<RowVersion<TrackLayoutSwitch>>): List<TrackLayoutSwitch> =
+//        if (cacheEnabled) cache.getAll(versions) { vs ->
+//            fetchInternal(vs.toList()).associateBy(TrackLayoutSwitch::version)
+//        }.values.toList()
+//        else fetchInternal(versions.toList())
+
+//    private fun fetchInternalMulti(fetchVersions: List<RowVersion<TrackLayoutSwitch>>): List<TrackLayoutSwitch> {
+//        val sql = """
+//            select
+//              sv.id as row_id,
+//              sv.version as row_version,
+//              coalesce(sv.draft_of_switch_id, sv.id) as official_id,
+//              case when sv.draft then sv.id end as draft_id,
+//              sv.geometry_switch_id,
+//              sv.external_id,
+//              sv.name,
+//              sv.switch_structure_id,
+//              sv.state_category,
+//              sv.trap_point,
+//              sv.owner_id,
+//              sv.source,
+//              array_agg(jv.number order by jv.number) as joint_numbers,
+//              array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
+//              array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
+//              array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
+//            from layout.switch_version sv
+//              left join layout.switch_joint_version jv on jv.switch_id = sv.id and jv.switch_version = sv.version
+//            where (sv.id||':'||sv.version) in (:row_versions)
+//              and sv.deleted = false
+//              and coalesce(jv.deleted,false) = false
+//            group by sv.id, sv.version
+//        """.trimIndent()
+//        // JDBC breaks the params list into individual ? arguments in the SQL -> chunk to limit the arg amount
+//        val switches = fetchVersions.chunked(50).flatMap { versions ->
+//            val params = mapOf("row_versions" to versions.map { v -> "${v.id.intValue}:${v.version}" })
+//            jdbcTemplate.query(sql, params) { rs, _ ->
+//                val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
+//                val version = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
+//                TrackLayoutSwitch(
+//                    id = rs.getIntId("official_id"),
+//                    dataType = DataType.STORED,
+//                    externalId = rs.getOidOrNull("external_id"),
+//                    sourceId = rs.getIntIdOrNull("geometry_switch_id"),
+//                    name = SwitchName(rs.getString("name")),
+//                    switchStructureId = switchStructureId,
+//                    stateCategory = rs.getEnum("state_category"),
+//                    joints = parseJoints(
+//                        numbers = rs.getNullableIntArray("joint_numbers"),
+//                        xValues = rs.getNullableDoubleArray("joint_x_values"),
+//                        yValues = rs.getNullableDoubleArray("joint_y_values"),
+//                        accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
+//                    ),
+//                    trapPoint = rs.getBooleanOrNull("trap_point"),
+//                    ownerId = rs.getIntIdOrNull("owner_id"),
+//                    draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
+//                    version = version,
+//                    source = rs.getEnum("source"),
+//                )
+//            }
+//        }
+//        require(switches.size == fetchVersions.size) {
+//            "Fetched row count does not match the request: requested=${fetchVersions.size} found=${switches.size}"
+//        }
+//        logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.map(TrackLayoutSwitch::version))
+//        return switches
+//    }
+
+    private fun fetchInternal(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
         val sql = """
             select 
-              id as row_id,
-              version as row_version,
-              coalesce(draft_of_switch_id, id) official_id, 
-              case when draft then id end as draft_id,
-              geometry_switch_id, 
-              external_id, 
-              name, 
-              switch_structure_id,
-              state_category,
-              trap_point,
-              owner_id,
-              source
-            from layout.switch_version
-            where id = :id
-              and version = :version
-              and deleted = false
+              sv.id as row_id,
+              sv.version as row_version,
+              coalesce(sv.draft_of_switch_id, sv.id) as official_id, 
+              case when sv.draft then sv.id end as draft_id,
+              sv.geometry_switch_id, 
+              sv.external_id, 
+              sv.name, 
+              sv.switch_structure_id,
+              sv.state_category,
+              sv.trap_point,
+              sv.owner_id,
+              sv.source ,
+              array_agg(jv.number order by jv.number) as joint_numbers,
+              array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
+              array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
+              array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
+            from layout.switch_version sv
+              left join layout.switch_joint_version jv on jv.switch_id = sv.id and jv.switch_version = sv.version
+            where sv.id = :id and sv.version = :version
+              and sv.deleted = false
+              and coalesce(jv.deleted,false) = false
+            group by sv.id, sv.version
         """.trimIndent()
         val params = mapOf(
             "id" to version.id.intValue,
@@ -308,7 +393,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         )
         val switch = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
-
+            val switchVersion = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
             TrackLayoutSwitch(
                 id = rs.getIntId("official_id"),
                 dataType = DataType.STORED,
@@ -317,19 +402,102 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 name = SwitchName(rs.getString("name")),
                 switchStructureId = switchStructureId,
                 stateCategory = rs.getEnum("state_category"),
-                joints = fetchSwitchJoints(version),
+//                joints = fetchSwitchJoints(version),
+                joints = parseJoints(
+                    numbers = rs.getNullableIntArray("joint_numbers"),
+                    xValues = rs.getNullableDoubleArray("joint_x_values"),
+                    yValues = rs.getNullableDoubleArray("joint_y_values"),
+                    accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
+                ),
                 trapPoint = rs.getBooleanOrNull("trap_point"),
                 ownerId = rs.getIntIdOrNull("owner_id"),
                 draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
+                version = switchVersion,
                 source = rs.getEnum("source"),
             )
         })
-        logger.daoAccess(FETCH, TrackLayoutSwitch::class, switch.id)
+        logger.daoAccess(FETCH, TrackLayoutSwitch::class, version)
         return switch
     }
 
-    private fun fetchSwitchJoints(switchId: RowVersion<TrackLayoutSwitch>): List<TrackLayoutSwitchJoint> {
+    private fun parseJoints(
+        numbers: List<Int?>,
+        xValues: List<Double?>,
+        yValues: List<Double?>,
+        accuracies: List<LocationAccuracy?>,
+    ): List<TrackLayoutSwitchJoint> {
+        require(numbers.size == xValues.size && numbers.size == yValues.size && numbers.size == accuracies.size) {
+            "Joint piece arrays should be the same size: numbers=${numbers.size} xValues=${xValues.size} yValues=${yValues.size} accuracies=${accuracies.size}"
+        }
+        return (0..numbers.lastIndex).mapNotNull { i ->
+            numbers[i]?.let(::JointNumber)?.let { jointNumber ->
+                TrackLayoutSwitchJoint(
+                    number = jointNumber,
+                    location = Point(
+                        requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },
+                        requireNotNull(yValues[i]) { "Joint should have an y-coordinate: number=$jointNumber" },
+                    ),
+                    locationAccuracy = accuracies[i],
+                )
+            }
+        }
+    }
+
+    fun preloadCache() {
+        val sql = """
+            select 
+              s.id as row_id,
+              s.version as row_version,
+              coalesce(s.draft_of_switch_id, s.id) as official_id, 
+              case when s.draft then s.id end as draft_id,
+              s.geometry_switch_id, 
+              s.external_id, 
+              s.name, 
+              s.switch_structure_id,
+              s.state_category,
+              s.trap_point,
+              s.owner_id,
+              s.source ,
+              array_agg(jv.number order by jv.number) as joint_numbers,
+              array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
+              array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
+              array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
+            from layout.switch s
+              left join layout.switch_joint_version jv on jv.switch_id = s.id and jv.switch_version = s.version
+            where coalesce(jv.deleted,false) = false
+            group by s.id, s.version
+        """.trimIndent()
+        val switches = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
+            val switchVersion = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
+            TrackLayoutSwitch(
+                id = rs.getIntId("official_id"),
+                dataType = DataType.STORED,
+                externalId = rs.getOidOrNull("external_id"),
+                sourceId = rs.getIntIdOrNull("geometry_switch_id"),
+                name = SwitchName(rs.getString("name")),
+                switchStructureId = switchStructureId,
+                stateCategory = rs.getEnum("state_category"),
+//                joints = fetchSwitchJoints(version),
+                joints = parseJoints(
+                    numbers = rs.getNullableIntArray("joint_numbers"),
+                    xValues = rs.getNullableDoubleArray("joint_x_values"),
+                    yValues = rs.getNullableDoubleArray("joint_y_values"),
+                    accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
+                ),
+                trapPoint = rs.getBooleanOrNull("trap_point"),
+                ownerId = rs.getIntIdOrNull("owner_id"),
+                draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
+                version = switchVersion,
+                source = rs.getEnum("source"),
+            )
+        }.associateBy(TrackLayoutSwitch::version)
+
+        logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.keys)
+        cache.putAll(switches)
+    }
+
+    private fun fetchSwitchJoints(switchVersion: RowVersion<TrackLayoutSwitch>): List<TrackLayoutSwitchJoint> {
         val sql = """
             select 
               number, 
@@ -343,8 +511,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             order by switch_id, number
         """.trimIndent()
         val params = mapOf(
-            "switch_id" to switchId.id.intValue,
-            "switch_version" to switchId.version,
+            "switch_id" to switchVersion.id.intValue,
+            "switch_version" to switchVersion.version,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutSwitchJoint(
@@ -450,9 +618,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         """.trimIndent()
 
         return jdbcTemplate.queryForObject(
-            sql,
-            mapOf("switchId" to switchId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") }
-            ?: throw IllegalStateException("Unexpected null from exists-query")
+            sql, mapOf("switchId" to switchId.intValue)
+        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
 }
