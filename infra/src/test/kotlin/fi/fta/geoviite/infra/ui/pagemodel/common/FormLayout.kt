@@ -20,14 +20,16 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
 
     fun inputFieldValue(label: String, value: String): E2EFormLayout = apply {
         logger.info("Change field $label to $value")
-        getTextInputForField(label).clear().inputValue(value)
+        getTextInputForField(label)
+            .clear()
+            .inputValue(value)
     }
 
     fun clearInput(label: String): E2EFormLayout = apply {
         getTextInputForField(label).clear()
     }
 
-    // TODO: GVT-1947 use qa-ids to find fields. Don't give out WebElement - only data
+    // TODO: GVT-1947 use qa-ids to find fields
     private fun getFieldValueElement(fieldName: String) = childElement(
         By.xpath(
             ".//div[contains(@class, 'field-layout') and div[contains(text(), '$fieldName')]]/div[@class='field-layout__value']"

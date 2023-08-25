@@ -1,69 +1,57 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.OldTableRow
+import childElementExists
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
-import org.openqa.selenium.NoSuchElementException
 import org.openqa.selenium.WebElement
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
-class E2EChangePreviewTable(private val table: WebElement) {
-    private val logger: Logger = LoggerFactory.getLogger(E2EChangePreviewTable::class.java)
+class E2EChangePreviewTable(
+    tableFetch: ElementFetch,
+) : E2ETable<E2EChangePreviewRow>(tableFetch, By.cssSelector("tbody tr")) {
+    val errorRows: List<E2EChangePreviewRow> get() = rows.filter { it.state == E2EChangePreviewRow.State.ERROR }
 
-    // TODO: GVT-1935 These row elements hold a reference to the WebElement, risking staleness. Use TableModel to replace this.
-    @Deprecated("Element risks staleness")
-    fun changeRows(): List<E2EChangePreviewRow> {
-        val header = header()
-        return rowElements().map { rowElement -> E2EChangePreviewRow(header, rowElement) }
+    val warningRows: List<E2EChangePreviewRow> get() = rows.filter { it.state == E2EChangePreviewRow.State.WARNING }
+
+    fun hasErrors(): Boolean = errorRows.isNotEmpty()
+
+    fun hasWarnings(): Boolean = warningRows.isNotEmpty()
+
+    fun stageChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+        selectBy(change, byQaId("stage-change-button"))
     }
 
-    fun errorRows(): List<String> =
-        table.findElements(By.className("preview-table-item__msg-group--errors")).map { errorRow ->
-            errorRow.findElements(By.className("preview-table-item__msg")).joinToString { it.text + "\n" }
-        }
+    fun revertChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+        openMenu(change)
 
-    fun hasErrors(): Boolean {
-        if (rowElements().isEmpty()) return false
-
-        return try {
-            table.findElement(By.className("preview-table-item__error-status"))
-            logger.warn("Table has errors")
-            true
-        } catch (ex: NoSuchElementException) {
-            logger.info("No errors")
-            false
-        }
+        clickChild(By.xpath("//div[text() = 'Hylkää muutos']"))
+        E2EPreviewChangesSaveOrDiscardDialog().reject()
     }
 
-    private fun rowElements() = table.findElements(By.cssSelector("table tbody tr"))
-    private fun header() = table.findElements(By.cssSelector("table thead tr th")).map { it.text }
+    fun openMenu(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+        selectBy(change, byQaId("menu-button"))
+    }
+
+    override fun getRowContent(row: WebElement): E2EChangePreviewRow {
+        return E2EChangePreviewRow(row, row.findElements(By.tagName("td")), headerElements)
+    }
 }
 
-// TODO: GVT-1935 These row elements hold a reference to the WebElement, risking staleness. Use TableModel to replace this.
-class E2EChangePreviewRow(header: List<String>, val row: WebElement) : OldTableRow(header, row) {
-    enum class State { OK, ERRORS }
+data class E2EChangePreviewRow(
+    val name: String,
+    val trackNumber: String,
+    val state: State,
+) {
+    enum class State { OK, WARNING, ERROR }
 
-    val name: String get() = getColumnByName("Muutoskohde").text
-    val trackNumber: String get() = getColumnByName("Ratanro").text
-    fun getState(openErrors: Boolean = true): State {
-        val col = getColumnByName("Tila")
+    constructor(row: WebElement, columns: List<WebElement>, headers: List<WebElement>) : this(
+        name = getColumnContent("Muutoskohde", columns, headers),
+        trackNumber = getColumnContent("Ratanro", columns, headers),
+        state = if (row.childElementExists(By.className("preview-table-item__error-status"))) State.ERROR
+        else if (row.childElementExists(By.className("preview-table-item__warning-status"))) State.WARNING
+        else State.OK
+    )
 
-        //Check if row has errors and in that case click Tila-col to open errors into view
-        return try {
-            col.findElement(By.className("preview-table-item__error-status"))
-            if (openErrors) col.click()
-            State.ERRORS
-        } catch (ex: NoSuchElementException) {
-            State.OK
-        }
-    }
-
-    fun stage(): E2EChangePreviewRow = apply {
-        row.findElement(byQaId("stage-change-button")).click()
-    }
-
-    fun openMenu(): E2EChangePreviewRow = apply {
-        row.findElement(byQaId("menu-button")).click()
-    }
 }

@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.defaultDialogBy
 import org.openqa.selenium.By
-import waitUntilDoesNotExist
 
 class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     enum class State(val uiText: String) {
@@ -51,24 +50,19 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
             content.selectDropdownValue(label = "Topologinen kytkeytyminen", topologicalConnectivity.uiText)
         }
 
-    fun save() {
-        val element = webElement
+    fun save() = waitUntilClosed {
         val isDeleted = content.getValueForField("Tila") == State.DELETED.uiText
-        clickButtonByText("Tallenna")
+        clickPrimaryButton()
 
         if (isDeleted) {
-            childElement(
+            clickChild(
                 By.xpath("div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-            ).click()
+            )
         }
-
-        element.waitUntilDoesNotExist()
     }
 
-    fun cancel() {
-        val element = webElement
+    fun cancel() = waitUntilClosed {
         clickSecondaryButton()
-        element.waitUntilDoesNotExist()
     }
 }
 
@@ -91,18 +85,15 @@ class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
         content.inputFieldValue("Kuvaus", description)
     }
 
-    fun save() {
-        val element = webElement
+    fun save() = waitUntilClosed {
         val isDeleted = content.getValueForField("Tila") == E2ELocationTrackEditDialog.State.DELETED.uiText
         clickButtonByText("Tallenna")
 
         if (isDeleted) {
-            childElement(
+            clickChild(
                 By.xpath("div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-            ).click()
+            )
         }
-
-        webElement.waitUntilDoesNotExist()
     }
 }
 
@@ -122,16 +113,12 @@ class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
         content.selectDropdownValue("Tila", state.uiText)
     }
 
-    fun save() {
-        val element = webElement
+    fun save() = waitUntilClosed { 
         clickButtonByText("Tallenna")
-        element.waitUntilDoesNotExist()
     }
 
-    fun cancel() {
-        val element = webElement
+    fun cancel() = waitUntilClosed {
         clickSecondaryButton()
-        element.waitUntilDoesNotExist()
     }
 }
 
@@ -150,17 +137,14 @@ class E2ELayoutSwitchEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
         content.selectDropdownValue("Tilakategoria", stateCategory.uiText)
     }
 
-    fun save() {
-        val element = webElement;
+    fun save() = waitUntilClosed { 
         val isNotExisting = content.getValueForField("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
         clickButtonByText("Tallenna")
 
         if (isNotExisting) {
-            childElement(
+            clickChild(
                 By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-            ).click()
+            )
         }
-
-        element.waitUntilDoesNotExist()
     }
 }

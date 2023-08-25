@@ -1,46 +1,18 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
 import getElementWhenVisible
 import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
 import waitUntilVisible
 
 class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch, By.className("tool-bar"))) {
-
-    //todo GVT-1935
-    class SearchResult(private val resultRow: WebElement) {
-        val value: String = resultRow.text
-        fun select() = resultRow.click()
-    }
-
-    private val searchDropdown: E2EDropdown by lazy { E2EDropdown(elementFetch) }
-
-    fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
-        if (clear) searchDropdown.clearInput()
-        searchDropdown.inputValue(value)
-        waitUntilSearchIsNotLoading()
-    }
-
-    fun searchResults(): List<SearchResult> {
-        // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
-        val searchResults = searchDropdown.options().map { SearchResult(it) }
-        logger.info("Search results: ${searchResults.map { it.value }}")
-        return searchResults
-    }
-
-    fun selectResult(resultContains: String) {
-        logger.info("Select result '$resultContains'")
-        searchResults().first { it.value.contains(resultContains) }.select()
-    }
-
-    fun waitUntilSearchIsNotLoading() {
-        waitChildVisible(By.className("dropdown__list"))
-        waitChildNotVisible(byQaId("search-box-loading"))
+    private val searchDropdown: E2EDropdown by lazy {
+        E2EDropdown(fetch(elementFetch, byQaId("search-box")))
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {
@@ -51,6 +23,18 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
 
         //todo gvt-1947: layer menu is in a weird part of dom tree
         E2EMapLayerPanel { getElementWhenVisible(By.className("map-layer-menu")) }
+    }
+
+    fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
+        if (clear) searchDropdown.clearInput()
+        searchDropdown.inputValue(value)
+    }
+
+    val searchResults: List<E2ETextListItem> get() = searchDropdown.options
+
+    fun selectSearchResult(resultContains: String) = apply {
+        logger.info("Select result '$resultContains'")
+        searchDropdown.select(resultContains)
     }
 
     fun goToPreview(): E2EPreviewChangesPage {

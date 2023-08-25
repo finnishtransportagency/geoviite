@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EToaster
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
-import waitAndClearToaster
 
 class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form-column")) {
     fun saveAsNew() {
@@ -14,8 +14,7 @@ class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form
     fun save(expectConfirm: Boolean = false) {
         clickButtonByQaId("infra-model-save-button")
         if (expectConfirm) confirmSaving()
-        //todo GVT-1934: validate toaster
-        waitAndClearToaster()
+        E2EToaster().waitUntilVisible()
     }
 
     val metaFormGroup: E2EMetaFormGroup by lazy {

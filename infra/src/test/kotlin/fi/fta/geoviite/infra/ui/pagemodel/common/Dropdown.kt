@@ -1,13 +1,22 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import fi.fta.geoviite.infra.ui.util.ElementFetch
+import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
+    private val CONTAINER_BY: By = By.className("dropdown__list-container")
+
     private val input: E2ETextInput get() = childTextInput(By.tagName("input"))
     private val currentValueHolder: WebElement get() = childElement(By.className("dropdown__current-value"))
+
+    private val optionsList: E2ETextList by lazy {
+        E2ETextList(fetch(elementFetch, CONTAINER_BY), By.className("dropdown__list-item"))
+    }
+
+    val options: List<E2ETextListItem> get() = optionsList.items
 
     val value: String
         get() {
@@ -18,23 +27,18 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
 
-        if (!childExists(By.className("dropdown__list-container"))) {
+        if (!childExists(CONTAINER_BY)) {
             clickChild(By.className("dropdown__header"))
-            waitChildVisible(By.className("dropdown__list-container"))
+            waitChildVisible(CONTAINER_BY)
         }
-        
     }
-
-    // TODO: GVT-1935 This exposes elements directly to outside the class with a stale-risk
-    //   Can be fixed by handling the contents like lists in ListModel
-    @Deprecated("Element risks staleness")
-    fun options() = childElements(By.cssSelector(".dropdown__list-item .dropdown__list-item-text"))
 
     fun select(name: String): E2EDropdown = apply {
         logger.info("Select item $name")
         open()
-        clickChild(By.xpath(".//li[contains(@class, 'dropdown__list-item') and span[@class='dropdown__list-item-text' and contains(text(), '$name')]]"))
-        waitChildNotVisible(By.className("dropdown__list-container"))
+        waitChildNotVisible(By.className("dropdown__loading-indicator"))
+        optionsList.selectByTextWhenContains(name)
+        waitChildNotVisible(CONTAINER_BY)
     }
 
     fun new() {
@@ -42,12 +46,13 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
         clickChild(By.cssSelector(".dropdown__add-new-container > button"))
     }
 
-    fun inputValue(text: String) {
+    fun inputValue(text: String): E2EDropdown = apply {
         logger.info("Input text $text")
         input.inputValue(text)
+        waitChildNotVisible(By.className("dropdown__loading-indicator"))
     }
 
-    fun clearInput() {
+    fun clearInput(): E2EDropdown = apply {
         if (!currentValueHolder.isDisplayed) {
             input.clear()
         }

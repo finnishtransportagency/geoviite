@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import waitAndAssertToaster
 import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
@@ -48,6 +49,7 @@ class InfraModelTestUI @Autowired constructor(
     fun `Import and edit testfile_simple_xml`() {
         val file = File(TESTFILE_SIMPLE_PATH)
         infraModelPage.upload(file.absolutePath).saveAsNew()
+        waitAndAssertToaster("Uusi InfraModel-tiedosto tallennettu Geoviitteeseen")
         val infraModelEditPage = infraModelPage.openInfraModel("testfile_simple.xml")
 
         val newProjectName = "Test"

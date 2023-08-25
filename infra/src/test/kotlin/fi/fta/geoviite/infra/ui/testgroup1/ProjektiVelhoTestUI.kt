@@ -38,11 +38,11 @@ class ProjektiVelhoTestUI @Autowired constructor(
         insertFullExampleVelhoDocumentMetadata()
         startGeoviite()
         val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
-        fun identifyTestProject(item: E2EProjektiVelhoListItem) = item.getProjectName() == "testi_projekti"
+        fun identifyTestProject(item: E2EProjektiVelhoListItem) = item.projectName == "testi_projekti"
         fun assertTestProjectIsVisible() {
             assertEquals(
                 "foo bar.xml",
-                velhoPage.getItemWhenMatches(::identifyTestProject).getDocumentName()
+                velhoPage.getItemWhenMatches(::identifyTestProject).documentName
             )
         }
 
@@ -68,7 +68,7 @@ class ProjektiVelhoTestUI @Autowired constructor(
         val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
         velhoPage
             // project name comes from PV metadata here
-            .acceptFirstMatching { item -> item.getProjectName() == "testi_projekti" }
+            .acceptFirstMatching { item -> item.projectName == "testi_projekti" }
             .save(true)
 
         val infraModelPage = velhoPage.goToInfraModelList()

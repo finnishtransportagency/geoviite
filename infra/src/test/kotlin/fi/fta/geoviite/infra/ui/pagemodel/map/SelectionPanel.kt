@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.fetch
 import getElementsWhenVisible
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import tryWait
 
 class E2ESelectionPanel(
@@ -32,14 +31,10 @@ class E2ESelectionPanel(
         E2ESwitchesSelectionList(this.elementFetch)
     }
 
-    val geometryPlans: List<E2EGeometryPlansAccordion> by lazy {
-        try {
-            getElementsWhenVisible(By.cssSelector(".geometry-plan-panel .accordion__header-title"))
-                .map { it.text }
-                .map { E2EGeometryPlansAccordion(By.xpath("//div[@class='accordion' and parent::div[@class='geometry-plan-panel'] and h4/span[text() = '${it}']]")) }
-        } catch (ex: TimeoutException) {
-            emptyList()
-        }
+    val geometryPlans: List<E2EGeometryPlanAccordion> by lazy {
+        getElementsWhenVisible(By.cssSelector(".geometry-plan-panel .accordion__header-title"))
+            .map { it.text }
+            .map { E2EGeometryPlanAccordion(By.xpath("//div[@class='accordion' and parent::div[@class='geometry-plan-panel'] and h4/span[text() = '${it}']]")) }
     }
 
     fun selectTrackNumber(name: String): E2ESelectionPanel = apply {
@@ -67,12 +62,13 @@ class E2ESelectionPanel(
         switchesList.selectByName(name)
     }
 
-    fun geometryPlanByName(planName: String): E2EGeometryPlansAccordion {
+    fun geometryPlanByName(planName: String): E2EGeometryPlanAccordion {
         logger.info("Select geometry plan '$planName'")
         Thread.sleep(500) //Only way to ensure the list is stable and not updating
-        val plans = geometryPlans
-        return plans.find { plan -> plan.header == planName }
-            ?: throw RuntimeException("Geometry plan '$planName' not found! Available plans ${plans.map { plan -> plan.header }}")
+        return geometryPlans.let { plans ->
+            plans.find { plan -> plan.header == planName }
+                ?: throw RuntimeException("Geometry plan '$planName' not found! Available plans ${plans.map { plan -> plan.header }}")
+        }
     }
 
 

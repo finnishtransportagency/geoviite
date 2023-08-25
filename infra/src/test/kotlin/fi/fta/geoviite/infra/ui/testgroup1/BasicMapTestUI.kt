@@ -6,9 +6,6 @@ import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
-import fi.fta.geoviite.infra.ui.pagemodel.map.E2ESelectionPanel
-import fi.fta.geoviite.infra.ui.pagemodel.map.E2EToolPanel
-import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.EAST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_2
@@ -29,8 +26,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import waitAndAssertToaster
 import waitAndClearToaster
-import kotlin.test.assertContains
 
 
 @ActiveProfiles("dev", "test", "e2e")
@@ -43,10 +40,6 @@ class BasicMapTestUI @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
 ) : SeleniumTest() {
-    lateinit var trackLayoutPage: E2ETrackLayoutPage
-    lateinit var navigationPanel: E2ESelectionPanel
-    lateinit var toolPanel: E2EToolPanel
-
     lateinit var WEST_LT: Pair<LocationTrack, LayoutAlignment>
     lateinit var GEOMETRY_PLAN: GeometryPlan
     lateinit var WEST_REFERENCE_LINE: Pair<ReferenceLine, LayoutAlignment>
@@ -87,22 +80,19 @@ class BasicMapTestUI @Autowired constructor(
         )
 
         startGeoviite()
-        trackLayoutPage = goToMap()
-        navigationPanel = trackLayoutPage.selectionPanel
-        toolPanel = trackLayoutPage.toolPanel
-
-        // TODO: GVT-1945 Remove this: if the test needs to select something in the beginning, it should do that itself
-        navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
-        toolPanel.referenceLineLocation.zoomTo()
     }
 
     @Test
     fun `Edit and discard location track changes`() {
         val locationTrackToBeEdited = EAST_LT_NAME
 
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
-        goToMap().switchToDraftMode()
-        val infobox = toolPanel.locationTrackGeneralInfo
+        val trackLayoutPage = goToMap().switchToDraftMode()
+
+        trackLayoutPage.selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        trackLayoutPage.toolPanel.referenceLineLocation.zoomTo()
+
+        trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        val infobox = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         val orgTunniste = infobox.oid
         val orgTila = infobox.state
         val orgKuvaus = infobox.description
@@ -120,30 +110,30 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
         editDialog.save()
 
-        navigationPanel.waitUntilLocationTrackVisible(editedTunnus)
-        val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo
+        trackLayoutPage.selectionPanel.waitUntilLocationTrackVisible(editedTunnus)
+        val infoboxAfterFirstEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.name)
         assertNotEquals(orgTila, infoboxAfterFirstEdit.state)
         assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.description)
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
-        val previewChangesPage = goToMap().goToPreview()
-        val changePreviewTable = previewChangesPage.changesTable()
-        assertTrue(changePreviewTable.changeRows().isNotEmpty())
+        val previewChangesPage = trackLayoutPage.goToPreview()
+        val changePreviewTable = previewChangesPage.changesTable
+        assertTrue(changePreviewTable.rows.isNotEmpty())
 
-        val changedAlignment = changePreviewTable.changeRows().first { row -> row.name.contains(editedTunnus) }
+        val changedAlignment = changePreviewTable.rows.first { row -> row.name.contains(editedTunnus) }
 
         val nameColumnValue = "Sijaintiraide $editedTunnus"
         assertEquals(nameColumnValue, changedAlignment.name)
         assertEquals(HKI_TRACK_NUMBER_2, changedAlignment.trackNumber)
 
-        changedAlignment.openMenu()
-        previewChangesPage.revertChanges(nameColumnValue)
+        changePreviewTable.openMenu(changedAlignment)
+        previewChangesPage.revertChange(nameColumnValue)
         previewChangesPage.goToTrackLayout()
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
+        trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)
 
-        val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo
+        val infoBoxAfterSecondEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)
         assertEquals(orgSijaintiraidetunnus, infoBoxAfterSecondEdit.name)
         assertEquals(orgTila, infoBoxAfterSecondEdit.state)
@@ -155,10 +145,12 @@ class BasicMapTestUI @Autowired constructor(
     @Test
     fun `Edit and save location track changes`() {
         val locationTrackToBeEdited = WEST_LT_NAME
+        val trackLayoutPage = goToMap().switchToDraftMode()
 
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
-        goToMap().switchToDraftMode()
-        val infobox = toolPanel.locationTrackGeneralInfo
+        trackLayoutPage.selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        trackLayoutPage.toolPanel.referenceLineLocation.zoomTo()
+        trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        val infobox = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         val orgTunniste = infobox.oid
         val orgTila = infobox.state
         val orgKuvaus = infobox.description
@@ -177,28 +169,28 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.save()
         waitAndClearToaster()
 
-        navigationPanel.waitUntilLocationTrackVisible(editedTunnus)
-        val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo
+        trackLayoutPage.selectionPanel.waitUntilLocationTrackVisible(editedTunnus)
+        val infoboxAfterFirstEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.name)
         assertNotEquals(orgTila, infoboxAfterFirstEdit.state)
         assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.description)
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
-        val previewChangesPage = goToMap().goToPreview()
-        val changePreviewTable = previewChangesPage.changesTable()
-        assertTrue(changePreviewTable.changeRows().isNotEmpty())
+        val previewChangesPage = trackLayoutPage.goToPreview()
+        val changePreviewTable = previewChangesPage.changesTable
+        assertTrue(changePreviewTable.rows.isNotEmpty())
 
-        val changedAlignment = changePreviewTable.changeRows().first { row -> row.name.contains(editedTunnus) }
+        val changedAlignment = changePreviewTable.rows.first { row -> row.name.contains(editedTunnus) }
 
         assertEquals("Sijaintiraide $editedTunnus", changedAlignment.name)
         assertEquals(HKI_TRACK_NUMBER_1, changedAlignment.trackNumber)
-        changedAlignment.stage()
+        previewChangesPage.stageChange(changedAlignment.name)
 
-        val notificationAfterSave = previewChangesPage.publish().readAndClose()
-        assertContains(notificationAfterSave, "Muutokset julkaistu")
+        previewChangesPage.publish()
+        waitAndAssertToaster("Muutokset julkaistu")
 
-        val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo
+        val infoBoxAfterSecondEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)
         assertNotEquals(orgSijaintiraidetunnus, infoBoxAfterSecondEdit.name)
         assertNotEquals(orgTila, infoBoxAfterSecondEdit.state)

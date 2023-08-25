@@ -144,7 +144,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                 </div>
             </div>
             <div className="infra-model-list-search-result__table">
-                <Table wide>
+                <Table wide isLoading={props.searchState != 'idle'}>
                     <thead>
                         <tr>
                             <Th

@@ -3,11 +3,11 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EFormGroup
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETableRow
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByAttr
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
 import fi.fta.geoviite.infra.ui.util.ElementFetch
-import org.apache.commons.lang3.builder.ToStringBuilder
+import getChildElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import waitAndAssertToaster
@@ -16,51 +16,64 @@ import java.time.LocalDateTime
 
 class E2EInfraModelTable(tableFetch: ElementFetch) : E2ETable<E2EInfraModelTableRow>(
     tableFetch = tableFetch,
+    headersBy = By.cssSelector("thead th"),
     rowsBy = By.cssSelector("tbody tr"),
-    getContent = { idx, element ->
-        E2EInfraModelTableRow(
-            index = idx,
-            row = element,
-            headers = tableFetch().findElements(By.cssSelector("thead th")).map { it.getAttribute("qa-id") })
-    }
 ) {
-    private val headers: List<WebElement> get() = childElements(By.cssSelector("thead th"))
+    override fun getRowContent(row: WebElement): E2EInfraModelTableRow {
+        return E2EInfraModelTableRow(row.getChildElements(By.tagName("td")), headerElements)
+    }
 
     fun getRow(projectName: String? = null, fileName: String? = null): E2EInfraModelTableRow? {
         return rows.find { it.projectName == projectName || it.fileName == fileName }
     }
 
-    fun sortBy(colName: String) {
-        logger.info("Select column $colName")
-        headers.first { it.text == colName }.click()
+    fun sortBy(colName: String): E2EInfraModelTable = apply {
+        logger.info("Sort by column $colName")
+        headerElements.first { it.text == colName }.click()
+        waitUntilReady()
     }
 }
 
-class E2EInfraModelTableRow(index: Int, row: WebElement, headers: List<String>) : E2ETableRow(index, row, headers) {
-    val projectName: String get() = getColumnContent("im-form.name-header")
-    val fileName: String get() = getColumnContent("im-form.file-name-header")
-    val trackNumber: String get() = getColumnContent("im-form.track-number-header")
-    val startKmNumber: String get() = getColumnContent("im-form.km-start-header")
-    val endKmNumber: String get() = getColumnContent("im-form.km-end-header")
-    val planPhase: String get() = getColumnContent("im-form.plan-phase-header")
-    val decisionPhase: String get() = getColumnContent("im-form.decision-phase-header")
-    val planTime: LocalDateTime get() = localDateFromString(getColumnContent("im-form.created-at-header"))
-    val created: LocalDateTime get() = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header"))
-    val linked: LocalDateTime get() = localDateTimeFromString(getColumnContent("im-form.linked-at-header"))
+data class E2EInfraModelTableRow(
+    val projectName: String,
+    val fileName: String,
+    val trackNumber: String,
+    val startKmNumber: String,
+    val endKmNumber: String,
+    val planPhase: String,
+    val decisionPhase: String,
+    val planTime: LocalDateTime,
+    val created: LocalDateTime,
+    val linked: LocalDateTime?,
+) {
 
-    override fun toString(): String = ToStringBuilder.reflectionToString(this)
+    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
+        projectName = getColumnContentByAttr("im-form.name-header", columns, headers),
+        fileName = getColumnContentByAttr("im-form.file-name-header", columns, headers),
+        trackNumber = getColumnContentByAttr("im-form.track-number-header", columns, headers),
+        startKmNumber = getColumnContentByAttr("im-form.km-start-header", columns, headers),
+        endKmNumber = getColumnContentByAttr("im-form.km-end-header", columns, headers),
+        planPhase = getColumnContentByAttr("im-form.plan-phase-header", columns, headers),
+        decisionPhase = getColumnContentByAttr("im-form.decision-phase-header", columns, headers),
+        planTime = localDateFromString(getColumnContentByAttr("im-form.created-at-header", columns, headers)),
+        created = localDateTimeFromString(getColumnContentByAttr("im-form.uploaded-at-header", columns, headers)),
+        linked = getColumnContentByAttr("im-form.linked-at-header", columns, headers).let { v ->
+            if (v.isNotBlank()) localDateTimeFromString(v)
+            else null
+        },
+    )
 }
 
 class E2EMetaFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
     val projectName: String get() = getValueForField("Projektin nimi")
     val author: String get() = getValueForField("Suunnitteluyritys")
 
-    fun selectNewProject(newProject: String) {
+    fun selectNewProject(newProject: String): E2EMetaFormGroup = apply {
         selectNewDropdownValue("Projektin nimi", listOf(newProject))
         waitAndAssertToaster("Uusi projekti luotu")
     }
 
-    fun selectNewAuthor(newAuthor: String) {
+    fun selectNewAuthor(newAuthor: String): E2EMetaFormGroup = apply {
         selectNewDropdownValue("Suunnitteluyritys", listOf(newAuthor))
         waitAndAssertToaster("Uusi suunnitteluyritys luotu")
     }
@@ -124,7 +137,7 @@ class E2ELogFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
 }
 
 class E2EConfirmDialog : E2EDialog() {
-    fun confirm() {
+    fun confirm() = waitUntilClosed {
         clickButtonByText("Tallenna")
     }
 }
