@@ -26,11 +26,11 @@ import { Item, Menu, useContextMenu } from 'react-contexify';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import {
     getPVSortDirectionIcon,
-    getSortInfoForPVProp,
+    getPVSortInfoForProp,
     PVInitiallyUnsorted,
-    PVSortDirection,
     PVTableSortField,
     PVTableSortInformation,
+    sortPVTableColumns,
 } from 'infra-model/projektivelho/pv-file-list-utils';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
@@ -123,99 +123,14 @@ export const PVFileList = ({
         ...documentHeaders,
     ]);
 
-    const getSortDirection = (direction: PVSortDirection, firstParamHasPriority: boolean) => {
-        if (firstParamHasPriority) {
-            if (direction === PVSortDirection.ASCENDING) return 1;
-            if (direction === PVSortDirection.DESCENDING) return -1;
-        } else if (!firstParamHasPriority) {
-            if (direction === PVSortDirection.ASCENDING) return -1;
-            if (direction === PVSortDirection.DESCENDING) return 1;
-        }
-        return 0;
-    };
-
     React.useEffect(() => {
-        const sortableDocumentHeaders = [...documentHeaders];
-        if (sortInfo) {
-            if (sortInfo.propName === PVTableSortField.PROJECT_NAME) {
-                sortableDocumentHeaders.sort((a, b) => {
-                    if (
-                        (a.project?.name && b.project === null) ||
-                        (a.project?.name &&
-                            b.project?.name &&
-                            a.project?.name.trim().toUpperCase() >
-                                b.project?.name.trim().toUpperCase())
-                    ) {
-                        return getSortDirection(sortInfo.direction, true);
-                    }
-
-                    if (
-                        (a.project === null && b.project?.name) ||
-                        (a.project?.name &&
-                            b.project?.name &&
-                            a.project?.name.trim().toUpperCase() <
-                                b.project?.name.trim().toUpperCase())
-                    ) {
-                        return getSortDirection(sortInfo.direction, false);
-                    }
-                    return 0;
-                });
-            }
-
-            if (sortInfo.propName === PVTableSortField.DOCUMENT_NAME) {
-                sortableDocumentHeaders.sort((a, b) => {
-                    if (a.document.name.toUpperCase() > b.document.name.trim().toUpperCase()) {
-                        return getSortDirection(sortInfo.direction, true);
-                    }
-                    if (a.document.name.toUpperCase() < b.document.name.trim().toUpperCase()) {
-                        return getSortDirection(sortInfo.direction, false);
-                    }
-                    return 0;
-                });
-            }
-
-            if (sortInfo.propName === PVTableSortField.DOCUMENT_DESCRIPTION) {
-                sortableDocumentHeaders.sort((a, b) => {
-                    if (
-                        (a.document.description && b.document.description === null) ||
-                        (a.document.description &&
-                            b.document.description &&
-                            a.document.description.trim().toUpperCase() >
-                                b.document.description.trim().toUpperCase())
-                    ) {
-                        return getSortDirection(sortInfo.direction, true);
-                    }
-                    if (
-                        (a.document.description === null && b.document.description) ||
-                        (a.document.description &&
-                            b.document.description &&
-                            a.document.description.trim().toUpperCase() <
-                                b.document.description.trim().toUpperCase())
-                    ) {
-                        return getSortDirection(sortInfo.direction, false);
-                    }
-                    return 0;
-                });
-            }
-
-            if (sortInfo.propName === PVTableSortField.DOCUMENT_MODIFIED) {
-                sortableDocumentHeaders.sort((a, b) => {
-                    if (a.document.modified > b.document.modified) {
-                        return getSortDirection(sortInfo.direction, true);
-                    }
-                    if (a.document.modified > b.document.modified) {
-                        return getSortDirection(sortInfo.direction, false);
-                    }
-                    return 0;
-                });
-            }
-        }
+        const sortableDocumentHeaders = sortPVTableColumns(sortInfo, [...documentHeaders]);
         setSortedDocumentHeaders(sortableDocumentHeaders);
     }, [documentHeaders, sortInfo]);
 
     const sortByProp = (propName: PVTableSortField) => {
         if (sortInfo) {
-            const newSortInfo = getSortInfoForPVProp(
+            const newSortInfo = getPVSortInfoForProp(
                 sortInfo.direction,
                 sortInfo.propName,
                 propName,
