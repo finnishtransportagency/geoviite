@@ -186,7 +186,7 @@
                     "wrong-joint-sequence": "Kaikki vaihteeseen kytketyt raiteet ({{0}}) eivät vastaa vaihderakenteen linjoja",
                     "unlinked": "Jotkut vaihteen linjoista ({{0}}) eivät ole kytkettynä mihinkään sijaintiraiteiseen"
                 },
-                "duplicate-name": "Vaihteed nimi {{0}} on jo käytössä"
+                "duplicate-name": "Vaihteen nimi {{0}} on jo käytössä"
             },
             "geocoding": {
                 "sharp-angle": "Sijaintiraiteen {{1}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
