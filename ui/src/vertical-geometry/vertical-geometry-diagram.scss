@@ -61,3 +61,17 @@
     border-radius: 2px;
     padding: 4px 8px;
 }
+
+.vertical-geometry-diagram__text-stroke-narrow,
+.vertical-geometry-diagram__text-stroke-wide {
+    stroke: $color-white-default;
+    paint-order: stroke;
+}
+
+.vertical-geometry-diagram__text-stroke-narrow {
+    stroke-width: 4;
+}
+
+.vertical-geometry-diagram__text-stroke-wide {
+    stroke-width: 6;
+}

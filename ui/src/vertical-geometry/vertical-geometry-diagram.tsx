@@ -3,7 +3,6 @@ import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
 import { HeightLabels, HeightLines } from 'vertical-geometry/height-lines';
 import { LabeledTicks } from 'vertical-geometry/labeled-ticks';
-import { PlanLinking } from 'vertical-geometry/plan-linking';
 import { HeightGraph } from 'vertical-geometry/height-graph';
 import { PviGeometry } from 'vertical-geometry/pvi-geometry';
 import { Translate } from 'vertical-geometry/translate';
@@ -213,15 +212,12 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
             <svg height="100%" width="100%">
                 <>
                     <HeightLines coordinates={coordinates} />
-                    <LabeledTicks trackKmHeights={kmHeights} coordinates={coordinates} />
-                    {linkingSummary !== undefined && (
-                        <PlanLinking
-                            coordinates={coordinates}
-                            planLinkingSummary={linkingSummary}
-                            onSelect={onSelect}
-                        />
-                    )}
-
+                    <LabeledTicks
+                        trackKmHeights={kmHeights}
+                        coordinates={coordinates}
+                        planLinkingSummary={linkingSummary}
+                        planLinkingOnSelect={onSelect}
+                    />
                     <HeightGraph coordinates={coordinates} kmHeights={kmHeights} />
                     <PviGeometry
                         geometry={geometry}

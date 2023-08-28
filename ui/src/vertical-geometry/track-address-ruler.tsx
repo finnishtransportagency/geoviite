@@ -6,6 +6,7 @@ import {
     minimumIntervalOrLongest,
     minimumRulerHeightLabelDistancePx,
 } from 'vertical-geometry/ticks-at-intervals';
+import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
 export interface TrackAddressRulerProps {
     kmHeights: TrackKmHeights[];
@@ -68,7 +69,9 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
             <g transform={`translate(${x} ${heightPx})`} key={`${i}`}>
                 <line y2={-5} stroke={'black'} />
                 {height && (
-                    <text transform={`translate(3 -6) scale(0.7) rotate(-90)`}>
+                    <text
+                        className={styles['vertical-geometry-diagram__text-stroke-wide']}
+                        transform={`translate(3 -6) scale(0.7) rotate(-90)`}>
                         {height.toLocaleString('fi', { maximumFractionDigits: 2 })}
                     </text>
                 )}

@@ -3,16 +3,21 @@ import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import { Translate } from 'vertical-geometry/translate';
 import { lineGridStrokeColor } from 'vertical-geometry/height-lines';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
-import { TrackKmHeights } from 'geometry/geometry-api';
+import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
 import {
     minimumInterval,
     minimumIntervalOrLongest,
     minimumLabeledTickDistancePx,
 } from 'vertical-geometry/ticks-at-intervals';
+import { PlanLinkingItemHeader } from 'vertical-geometry/plan-linking-item-header';
+import { OnSelectOptions } from 'selection/selection-model';
+import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
 export interface LabeledTicksProps {
     trackKmHeights: TrackKmHeights[];
     coordinates: Coordinates;
+    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
+    planLinkingOnSelect: (options: OnSelectOptions) => void;
 }
 
 const TickLabel: React.FC<{
@@ -25,7 +30,9 @@ const TickLabel: React.FC<{
     return (
         <>
             <Translate x={x - 50} y={coordinates.fullDiagramHeightPx - (meter === 0 ? 3 : 8)}>
-                <text scale="0.7 0.7">
+                <text
+                    className={styles['vertical-geometry-diagram__text-stroke-narrow']}
+                    scale="0.7 0.7">
                     KM{' '}
                     {formatTrackMeterWithoutMeters({
                         kmNumber,
@@ -47,7 +54,90 @@ const TickLabel: React.FC<{
     );
 };
 
-export const LabeledTicks: React.FC<LabeledTicksProps> = ({ trackKmHeights, coordinates }) => {
+const PlanLinkingDividers: React.FC<{
+    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
+    coordinates: Coordinates;
+    startM: number;
+    endM: number;
+}> = ({ planLinkingSummary, coordinates, startM, endM }) => {
+    if (!planLinkingSummary) {
+        return <React.Fragment />;
+    }
+
+    return (
+        <>
+            {planLinkingSummary.map((summary, i) => {
+                if (endM < coordinates.startM || startM > coordinates.endM) {
+                    return <React.Fragment key={i} />;
+                }
+
+                const planStartTickPosition = mToX(coordinates, summary.startM);
+                const planEndTickPosition = mToX(coordinates, endM);
+
+                return (
+                    <React.Fragment key={i}>
+                        <line
+                            x1={planStartTickPosition}
+                            x2={planStartTickPosition}
+                            y1={0}
+                            y2={coordinates.fullDiagramHeightPx}
+                            stroke="black"
+                            fill="none"
+                            shapeRendering="crispEdges"
+                        />
+                        <line
+                            x1={planEndTickPosition}
+                            x2={planEndTickPosition}
+                            y1={0}
+                            y2={coordinates.fullDiagramHeightPx}
+                            stroke="black"
+                            fill="none"
+                            shapeRendering="crispEdges"
+                        />
+                    </React.Fragment>
+                );
+            })}
+        </>
+    );
+};
+
+const PlanLinkingHeaders: React.FC<{
+    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
+    planLinkingOnSelect: (options: OnSelectOptions) => void;
+    coordinates: Coordinates;
+    startM: number;
+    endM: number;
+}> = ({ planLinkingSummary, planLinkingOnSelect, coordinates, startM, endM }) => {
+    if (!planLinkingSummary) {
+        return <React.Fragment />;
+    }
+
+    return (
+        <>
+            {planLinkingSummary.map((summary, i) => {
+                if (endM < coordinates.startM || startM > coordinates.endM) {
+                    return <React.Fragment key={i} />;
+                }
+
+                return (
+                    <PlanLinkingItemHeader
+                        key={i}
+                        coordinates={coordinates}
+                        planLinkingSummaryItem={summary}
+                        onSelect={planLinkingOnSelect}
+                    />
+                );
+            })}
+        </>
+    );
+};
+
+export const LabeledTicks: React.FC<LabeledTicksProps> = ({
+    trackKmHeights,
+    coordinates,
+    planLinkingSummary,
+    planLinkingOnSelect,
+}) => {
     // avoid rendering too far off the screen for performance
     const startM = coordinates.startM - 80 / coordinates.mMeterLengthPxOverM;
     const endM = coordinates.endM + 25 / coordinates.mMeterLengthPxOverM;
@@ -64,6 +154,13 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({ trackKmHeights, coor
 
     return (
         <>
+            <PlanLinkingDividers
+                planLinkingSummary={planLinkingSummary}
+                coordinates={coordinates}
+                startM={startM}
+                endM={endM}
+            />
+
             {trackKmHeights
                 .filter(
                     ({ kmNumber }) =>
@@ -102,6 +199,14 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({ trackKmHeights, coor
                             />
                         )),
                 )}
+
+            <PlanLinkingHeaders
+                planLinkingSummary={planLinkingSummary}
+                planLinkingOnSelect={planLinkingOnSelect}
+                coordinates={coordinates}
+                startM={startM}
+                endM={endM}
+            />
         </>
     );
 };
