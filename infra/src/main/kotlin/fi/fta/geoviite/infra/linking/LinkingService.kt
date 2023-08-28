@@ -223,7 +223,7 @@ class LinkingService @Autowired constructor(
             ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
         requireNotNull(geometryKmPost.location) { "Cannot link a geometry km post without a location!" }
 
-        val layoutKmPost = layoutKmPostService.getDraft(parameters.layoutKmPostId)
+        val layoutKmPost = layoutKmPostService.getOrThrow(DRAFT, parameters.layoutKmPostId)
 
         val newLocationInLayoutSpace =
             coordinateTransformationService.transformCoordinate(kmPostSrid, LAYOUT_SRID, geometryKmPost.location)

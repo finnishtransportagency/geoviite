@@ -1042,7 +1042,7 @@ class SwitchLinkingService @Autowired constructor(
     else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
 
     private fun updateLayoutSwitch(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
-        val layoutSwitch = switchService.getDraft(linkingParameters.layoutSwitchId)
+        val layoutSwitch = switchService.getOrThrow(DRAFT, linkingParameters.layoutSwitchId)
         val newGeometrySwitchId = linkingParameters.geometrySwitchId ?: layoutSwitch.sourceId
         val newJoints = linkingParameters.joints.map { linkingJoint ->
             TrackLayoutSwitchJoint(
