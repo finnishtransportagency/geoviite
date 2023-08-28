@@ -23,7 +23,7 @@ export type LocationTrackEditState = {
     };
     isSaving: boolean;
     trackNumbers: LayoutTrackNumber[];
-    locationTrack?: LocationTrackSaveRequest;
+    locationTrack: LocationTrackSaveRequest;
     validationErrors: ValidationError<LocationTrackSaveRequest>[];
     committedFields: (keyof LocationTrackSaveRequest)[];
     allFieldsCommitted: boolean;
@@ -38,7 +38,13 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
     },
     isSaving: false,
     trackNumbers: [],
-    locationTrack: undefined,
+    locationTrack: {
+        name: '',
+        state: undefined,
+        type: undefined,
+        description: '',
+        duplicateOf: null,
+    },
     validationErrors: [],
     committedFields: [],
     allFieldsCommitted: false,

@@ -35,20 +35,18 @@ export const InfraModelListView: React.FC<InfraModelListViewProps> = (
                     onSearchParamsChange={props.onSearchParamsChange}
                 />
             </div>
-            <div className="infra-model-list__search-result">
-                <InfraModelSearchResult
-                    searchParams={props.searchParams}
-                    plans={props.plans}
-                    searchState={props.searchState}
-                    onSearchParamsChange={props.onSearchParamsChange}
-                    onSelectPlan={props.onSelectPlan}
-                    page={props.page}
-                    pageSize={props.pageSize}
-                    totalCount={props.totalCount}
-                    onNextPage={props.onNextPage}
-                    onPrevPage={props.onPrevPage}
-                />
-            </div>
+            <InfraModelSearchResult
+                searchParams={props.searchParams}
+                plans={props.plans}
+                searchState={props.searchState}
+                onSearchParamsChange={props.onSearchParamsChange}
+                onSelectPlan={props.onSelectPlan}
+                page={props.page}
+                pageSize={props.pageSize}
+                totalCount={props.totalCount}
+                onNextPage={props.onNextPage}
+                onPrevPage={props.onPrevPage}
+            />
         </div>
     );
 };
