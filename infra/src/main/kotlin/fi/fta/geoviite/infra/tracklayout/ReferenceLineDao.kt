@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
@@ -47,23 +48,9 @@ class ReferenceLineDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val referenceLine = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            ReferenceLine(
-                dataType = DataType.STORED,
-                id = rs.getIntId("official_id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                trackNumberId = rs.getIntId("track_number_id"),
-                startAddress = rs.getTrackMeter("start_address"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLine.id)
-        return referenceLine
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) }).also { rl ->
+            logger.daoAccess(AccessType.FETCH, ReferenceLine::class, rl.id)
+        }
     }
 
     override fun preloadCache() {
@@ -83,24 +70,26 @@ class ReferenceLineDao(
             from layout.reference_line rl
               left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
         """.trimIndent()
-        val referenceLines = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            ReferenceLine(
-                dataType = DataType.STORED,
-                id = rs.getIntId("official_id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                trackNumberId = rs.getIntId("track_number_id"),
-                startAddress = rs.getTrackMeter("start_address"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        }.associateBy(ReferenceLine::version)
+
+        val referenceLines = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getReferenceLine(rs) }
+            .associateBy(ReferenceLine::version)
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
         cache.putAll(referenceLines)
     }
+
+    private fun getReferenceLine(rs: ResultSet): ReferenceLine = ReferenceLine(
+        dataType = DataType.STORED,
+        id = rs.getIntId("official_id"),
+        alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+        sourceId = null,
+        trackNumberId = rs.getIntId("track_number_id"),
+        startAddress = rs.getTrackMeter("start_address"),
+        boundingBox = rs.getBboxOrNull("bounding_box"),
+        length = rs.getDouble("length"),
+        segmentCount = rs.getInt("segment_count"),
+        draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+    )
 
     @Transactional
     override fun insert(newItem: ReferenceLine): DaoResponse<ReferenceLine> {

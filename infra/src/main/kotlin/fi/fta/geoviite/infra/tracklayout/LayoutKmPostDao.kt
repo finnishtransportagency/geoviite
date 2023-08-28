@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val KM_POST_CACHE_SIZE = 10000L
 
@@ -127,21 +128,9 @@ class LayoutKmPostDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val post = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            TrackLayoutKmPost(
-                id = rs.getIntId("official_id"),
-                dataType = DataType.STORED,
-                trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number"),
-                location = rs.getPointOrNull("point_x", "point_y"),
-                state = rs.getEnum("state"),
-                sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-                draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
-        return post
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
+            logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
+        }
     }
 
     override fun preloadCache() {
@@ -158,23 +147,24 @@ class LayoutKmPostDao(
               state
             from layout.km_post
         """.trimIndent()
-        // JDBC breaks the params list into individual ? arguments in the SQL -> chunk to limit the arg amount
-        val posts = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            TrackLayoutKmPost(
-                id = rs.getIntId("official_id"),
-                dataType = DataType.STORED,
-                trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number"),
-                location = rs.getPointOrNull("point_x", "point_y"),
-                state = rs.getEnum("state"),
-                sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-                draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        }.associateBy(TrackLayoutKmPost::version)
+
+        val posts = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
+            .associateBy(TrackLayoutKmPost::version)
         logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
         cache.putAll(posts)
     }
+
+    private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost = TrackLayoutKmPost(
+        id = rs.getIntId("official_id"),
+        dataType = DataType.STORED,
+        trackNumberId = rs.getIntId("track_number_id"),
+        kmNumber = rs.getKmNumber("km_number"),
+        location = rs.getPointOrNull("point_x", "point_y"),
+        state = rs.getEnum("state"),
+        sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
+        draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+    )
 
     @Transactional
     override fun insert(newItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {

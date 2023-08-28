@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -76,45 +77,14 @@ class LocationTrackDao(
               and ltv.deleted = false
              
         """.trimIndent()
+
         val params = mapOf(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val track = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            LocationTrack(
-                dataType = DataType.STORED,
-                id = rs.getIntId("official_id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                externalId = rs.getOidOrNull("external_id"),
-                trackNumberId = rs.getIntId("track_number_id"),
-                name = rs.getString("name").let(::AlignmentName),
-                description = rs.getFreeText("description"),
-                type = rs.getEnum("type"),
-                state = rs.getEnum("state"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-                duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                topologicalConnectivity = rs.getEnum("topological_connectivity"),
-                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
-                    TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_start_switch_joint_number"),
-                    )
-                },
-                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
-                    TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_end_switch_joint_number"),
-                    )
-                },
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
-        return track
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
+            logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
+        }
     }
 
     override fun preloadCache() {
@@ -144,42 +114,44 @@ class LocationTrackDao(
             from layout.location_track lt
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
         """.trimIndent()
-        val tracks = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            LocationTrack(
-                dataType = DataType.STORED,
-                id = rs.getIntId("official_id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                externalId = rs.getOidOrNull("external_id"),
-                trackNumberId = rs.getIntId("track_number_id"),
-                name = rs.getString("name").let(::AlignmentName),
-                description = rs.getFreeText("description"),
-                type = rs.getEnum("type"),
-                state = rs.getEnum("state"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-                duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                topologicalConnectivity = rs.getEnum("topological_connectivity"),
-                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
-                    TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_start_switch_joint_number"),
-                    )
-                },
-                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
-                    TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_end_switch_joint_number"),
-                    )
-                },
-            )
-        }.associateBy(LocationTrack::version)
+
+        val tracks = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLocationTrack(rs) }
+            .associateBy(LocationTrack::version)
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.keys)
         cache.putAll(tracks)
     }
+
+    private fun getLocationTrack(rs: ResultSet): LocationTrack = LocationTrack(
+        dataType = DataType.STORED,
+        id = rs.getIntId("official_id"),
+        alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+        sourceId = null,
+        externalId = rs.getOidOrNull("external_id"),
+        trackNumberId = rs.getIntId("track_number_id"),
+        name = rs.getString("name").let(::AlignmentName),
+        description = rs.getFreeText("description"),
+        type = rs.getEnum("type"),
+        state = rs.getEnum("state"),
+        boundingBox = rs.getBboxOrNull("bounding_box"),
+        length = rs.getDouble("length"),
+        segmentCount = rs.getInt("segment_count"),
+        draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+        duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
+        topologicalConnectivity = rs.getEnum("topological_connectivity"),
+        topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
+            TopologyLocationTrackSwitch(
+                id,
+                rs.getJointNumber("topology_start_switch_joint_number"),
+            )
+        },
+        topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
+            TopologyLocationTrackSwitch(
+                id,
+                rs.getJointNumber("topology_end_switch_joint_number"),
+            )
+        },
+    )
 
     @Transactional
     override fun insert(newItem: LocationTrack): DaoResponse<LocationTrack> {

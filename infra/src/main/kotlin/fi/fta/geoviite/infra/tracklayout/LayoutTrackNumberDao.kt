@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
@@ -79,20 +80,9 @@ class LayoutTrackNumberDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val trackNumber = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            TrackLayoutTrackNumber(
-                id = rs.getIntId("official_id"),
-                number = rs.getTrackNumber("number"),
-                description = rs.getFreeText("description"),
-                state = rs.getEnum("state"),
-                externalId = rs.getOidOrNull("external_id"),
-                dataType = DataType.STORED,
-                draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)
-        return trackNumber
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
+            logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, version)
+        }
     }
 
     override fun preloadCache() {
@@ -108,20 +98,22 @@ class LayoutTrackNumberDao(
               state 
             from layout.track_number
         """.trimIndent()
-        val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            TrackLayoutTrackNumber(
-                id = rs.getIntId("official_id"),
-                number = rs.getTrackNumber("number"),
-                description = rs.getFreeText("description"),
-                state = rs.getEnum("state"),
-                externalId = rs.getOidOrNull("external_id"),
-                dataType = DataType.STORED,
-                draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        }.associateBy(TrackLayoutTrackNumber::version)
+        val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
+            .associateBy(TrackLayoutTrackNumber::version)
         logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumbers.keys)
+        cache.putAll(trackNumbers)
     }
+
+    private fun getLayoutTrackNumber(rs: ResultSet): TrackLayoutTrackNumber = TrackLayoutTrackNumber(
+        id = rs.getIntId("official_id"),
+        number = rs.getTrackNumber("number"),
+        description = rs.getFreeText("description"),
+        state = rs.getEnum("state"),
+        externalId = rs.getOidOrNull("external_id"),
+        dataType = DataType.STORED,
+        draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+    )
 
     @Transactional
     override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
@@ -209,7 +201,7 @@ class LayoutTrackNumberDao(
 
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             TrackNumberAndChangeTime(
-                rs.getIntId<TrackLayoutTrackNumber>("id"),
+                rs.getIntId("id"),
                 rs.getTrackNumber("number"),
                 rs.getInstant("change_time"),
             )

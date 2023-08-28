@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -313,55 +314,8 @@ class LayoutSwitchDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val switch = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
-            val switchVersion = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
-            TrackLayoutSwitch(
-                id = rs.getIntId("official_id"),
-                dataType = DataType.STORED,
-                externalId = rs.getOidOrNull("external_id"),
-                sourceId = rs.getIntIdOrNull("geometry_switch_id"),
-                name = SwitchName(rs.getString("name")),
-                switchStructureId = switchStructureId,
-                stateCategory = rs.getEnum("state_category"),
-//                joints = fetchSwitchJoints(version),
-                joints = parseJoints(
-                    numbers = rs.getNullableIntArray("joint_numbers"),
-                    xValues = rs.getNullableDoubleArray("joint_x_values"),
-                    yValues = rs.getNullableDoubleArray("joint_y_values"),
-                    accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
-                ),
-                trapPoint = rs.getBooleanOrNull("trap_point"),
-                ownerId = rs.getIntIdOrNull("owner_id"),
-                draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
-                version = switchVersion,
-                source = rs.getEnum("source"),
-            )
-        })
-        logger.daoAccess(FETCH, TrackLayoutSwitch::class, version)
-        return switch
-    }
-
-    private fun parseJoints(
-        numbers: List<Int?>,
-        xValues: List<Double?>,
-        yValues: List<Double?>,
-        accuracies: List<LocationAccuracy?>,
-    ): List<TrackLayoutSwitchJoint> {
-        require(numbers.size == xValues.size && numbers.size == yValues.size && numbers.size == accuracies.size) {
-            "Joint piece arrays should be the same size: numbers=${numbers.size} xValues=${xValues.size} yValues=${yValues.size} accuracies=${accuracies.size}"
-        }
-        return (0..numbers.lastIndex).mapNotNull { i ->
-            numbers[i]?.let(::JointNumber)?.let { jointNumber ->
-                TrackLayoutSwitchJoint(
-                    number = jointNumber,
-                    location = Point(
-                        requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },
-                        requireNotNull(yValues[i]) { "Joint should have an y-coordinate: number=$jointNumber" },
-                    ),
-                    locationAccuracy = accuracies[i],
-                )
-            }
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) }).also {
+            logger.daoAccess(FETCH, TrackLayoutSwitch::class, version)
         }
     }
 
@@ -389,59 +343,58 @@ class LayoutSwitchDao(
             where coalesce(jv.deleted,false) = false
             group by s.id, s.version
         """.trimIndent()
-        val switches = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
-            val switchVersion = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
-            TrackLayoutSwitch(
-                id = rs.getIntId("official_id"),
-                dataType = DataType.STORED,
-                externalId = rs.getOidOrNull("external_id"),
-                sourceId = rs.getIntIdOrNull("geometry_switch_id"),
-                name = SwitchName(rs.getString("name")),
-                switchStructureId = switchStructureId,
-                stateCategory = rs.getEnum("state_category"),
-//                joints = fetchSwitchJoints(version),
-                joints = parseJoints(
-                    numbers = rs.getNullableIntArray("joint_numbers"),
-                    xValues = rs.getNullableDoubleArray("joint_x_values"),
-                    yValues = rs.getNullableDoubleArray("joint_y_values"),
-                    accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
-                ),
-                trapPoint = rs.getBooleanOrNull("trap_point"),
-                ownerId = rs.getIntIdOrNull("owner_id"),
-                draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
-                version = switchVersion,
-                source = rs.getEnum("source"),
-            )
-        }.associateBy(TrackLayoutSwitch::version)
 
+        val switches = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
+            .associateBy(TrackLayoutSwitch::version)
         logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.keys)
         cache.putAll(switches)
     }
 
-    private fun fetchSwitchJoints(switchVersion: RowVersion<TrackLayoutSwitch>): List<TrackLayoutSwitchJoint> {
-        val sql = """
-            select 
-              number, 
-              postgis.st_x(location) as location_x, 
-              postgis.st_y(location) as location_y,
-              location_accuracy
-            from layout.switch_joint_version joint 
-            where switch_id = :switch_id
-              and switch_version = :switch_version
-              and deleted = false
-            order by switch_id, number
-        """.trimIndent()
-        val params = mapOf(
-            "switch_id" to switchVersion.id.intValue,
-            "switch_version" to switchVersion.version,
+    private fun getLayoutSwitch(rs: ResultSet): TrackLayoutSwitch {
+        val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
+        val switchVersion = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
+        return TrackLayoutSwitch(
+            id = rs.getIntId("official_id"),
+            dataType = DataType.STORED,
+            externalId = rs.getOidOrNull("external_id"),
+            sourceId = rs.getIntIdOrNull("geometry_switch_id"),
+            name = SwitchName(rs.getString("name")),
+            switchStructureId = switchStructureId,
+            stateCategory = rs.getEnum("state_category"),
+            joints = parseJoints(
+                numbers = rs.getNullableIntArray("joint_numbers"),
+                xValues = rs.getNullableDoubleArray("joint_x_values"),
+                yValues = rs.getNullableDoubleArray("joint_y_values"),
+                accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
+            ),
+            trapPoint = rs.getBooleanOrNull("trap_point"),
+            ownerId = rs.getIntIdOrNull("owner_id"),
+            draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
+            version = switchVersion,
+            source = rs.getEnum("source"),
         )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            TrackLayoutSwitchJoint(
-                number = rs.getJointNumber("number"),
-                location = rs.getPoint("location_x", "location_y"),
-                locationAccuracy = rs.getEnumOrNull<LocationAccuracy>("location_accuracy")
-            )
+    }
+
+    private fun parseJoints(
+        numbers: List<Int?>,
+        xValues: List<Double?>,
+        yValues: List<Double?>,
+        accuracies: List<LocationAccuracy?>,
+    ): List<TrackLayoutSwitchJoint> {
+        require(numbers.size == xValues.size && numbers.size == yValues.size && numbers.size == accuracies.size) {
+            "Joint piece arrays should be the same size: numbers=${numbers.size} xValues=${xValues.size} yValues=${yValues.size} accuracies=${accuracies.size}"
+        }
+        return (0..numbers.lastIndex).mapNotNull { i ->
+            numbers[i]?.let(::JointNumber)?.let { jointNumber ->
+                TrackLayoutSwitchJoint(
+                    number = jointNumber,
+                    location = Point(
+                        requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },
+                        requireNotNull(yValues[i]) { "Joint should have an y-coordinate: number=$jointNumber" },
+                    ),
+                    locationAccuracy = accuracies[i],
+                )
+            }
         }
     }
 
