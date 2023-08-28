@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
-import fi.fta.geoviite.infra.util.resetCollected
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -32,7 +31,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 ) : DBTestBase() {
 
     @BeforeEach
-    fun lol() {
+    fun setUp() {
         initUserMdc()
         jdbc.execute("truncate layout.alignment cascade") { it.execute() }
     }
@@ -40,12 +39,6 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     @Test
     fun alignmentsAreStoredAndLoadedOk() {
         (0..20).map { seed -> alignmentWithZAndCant(seed) }.forEach { alignment -> insertAndVerify(alignment) }
-    }
-
-    @Test
-    fun preloadSpeed() {
-        alignmentDao.preloadSegmentGeometries()
-        println("Measured: ${resetCollected()}")
     }
 
     @Test

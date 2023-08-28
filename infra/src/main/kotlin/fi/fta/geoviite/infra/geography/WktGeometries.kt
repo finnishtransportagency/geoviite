@@ -55,8 +55,7 @@ fun split2DPointValues(valuesString: String): List<Point> {
 }
 
 fun split3DMPointValues(valuesString: String): List<Point3DM> = try {
-    val pointStrs = valuesString.split(POINT_SEPARATOR)
-    pointStrs.map { s -> parse3DMPointValue(s) }
+    valuesString.split(POINT_SEPARATOR).map { s -> parse3DMPointValue(s) }
 } catch (e: NumberFormatException) {
     logger.error("tried=$valuesString")
     throw e
