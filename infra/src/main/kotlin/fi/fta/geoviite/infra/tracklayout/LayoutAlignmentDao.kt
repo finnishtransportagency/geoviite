@@ -711,7 +711,7 @@ private fun getSegmentPointsWkt(
     heightColumn: String? = null,
     cantColumn: String? = null,
 ): List<LayoutPoint> = rs.getString(geometryColumn)?.let { wktString ->
-    parseSegmentPointsWkt(wktString, rs.getString(heightColumn), rs.getString(cantColumn))
+    parseSegmentPointsWkt(wktString, heightColumn?.let(rs::getString), cantColumn?.let(rs::getString))
 } ?: emptyList()
 
 private fun parseSegmentPointsWkt(
