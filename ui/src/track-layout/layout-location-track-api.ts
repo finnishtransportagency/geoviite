@@ -86,8 +86,9 @@ export async function getLocationTrackStartAndEnd(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
 ): Promise<AlignmentStartAndEnd | undefined> {
-    return getThrowError<AlignmentStartAndEnd>(
+    return getWithDefault<AlignmentStartAndEnd | undefined>(
         `${layoutUri('location-tracks', publishType, locationTrackId)}/start-and-end`,
+        undefined,
     );
 }
 

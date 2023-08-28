@@ -66,8 +66,9 @@ export async function getReferenceLineStartAndEnd(
     referenceLineId: ReferenceLineId,
     publishType: PublishType,
 ): Promise<AlignmentStartAndEnd | undefined> {
-    return getThrowError<AlignmentStartAndEnd>(
+    return getWithDefault<AlignmentStartAndEnd | undefined>(
         `${layoutUri('reference-lines', publishType, referenceLineId)}/start-and-end`,
+        undefined,
     );
 }
 
