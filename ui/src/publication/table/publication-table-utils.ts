@@ -1,5 +1,4 @@
-import { Icons } from 'vayla-design-lib/icon/Icon';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { nextSortDirection, SortDirection } from 'utils/table-utils';
 
 export enum PublicationDetailsTableSortField {
     NAME = 'NAME',
@@ -12,21 +11,9 @@ export enum PublicationDetailsTableSortField {
     MESSAGE = 'MESSAGE',
 }
 
-export enum SortDirection {
-    ASCENDING = 'ASCENDING',
-    DESCENDING = 'DESCENDING',
-    UNSORTED = 'UNSORTED',
-}
-
 export type PublicationDetailsTableSortInformation = {
     propName: PublicationDetailsTableSortField;
     direction: SortDirection;
-};
-
-export const nextSortDirection = {
-    ASCENDING: SortDirection.DESCENDING,
-    DESCENDING: SortDirection.UNSORTED,
-    UNSORTED: SortDirection.ASCENDING,
 };
 
 export const InitiallyUnsorted = {
@@ -45,16 +32,3 @@ export const getSortInfoForProp = (
             ? nextSortDirection[oldSortDirection]
             : SortDirection.ASCENDING,
 });
-
-export const getSortDirectionIcon = (direction: SortDirection) => {
-    switch (direction) {
-        case SortDirection.ASCENDING:
-            return Icons.Ascending;
-        case SortDirection.DESCENDING:
-            return Icons.Descending;
-        case SortDirection.UNSORTED:
-            return undefined;
-        default:
-            return exhaustiveMatchingGuard(direction);
-    }
-};

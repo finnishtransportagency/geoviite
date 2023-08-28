@@ -25,13 +25,13 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import {
-    getPVSortDirectionIcon,
     getPVSortInfoForProp,
     PVInitiallyUnsorted,
     PVTableSortField,
     PVTableSortInformation,
     sortPVTableColumns,
 } from 'infra-model/projektivelho/pv-file-list-utils';
+import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -129,18 +129,12 @@ export const PVFileList = ({
     }, [documentHeaders, sortInfo]);
 
     const sortByProp = (propName: PVTableSortField) => {
-        if (sortInfo) {
-            const newSortInfo = getPVSortInfoForProp(
-                sortInfo.direction,
-                sortInfo.propName,
-                propName,
-            );
+        const newSortInfo = getPVSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
 
-            setSortInfo(newSortInfo);
+        setSortInfo(newSortInfo);
 
-            if (sortInfo.direction === 'UNSORTED') {
-                setSortedDocumentHeaders([...documentHeaders]);
-            }
+        if (newSortInfo.direction === SortDirection.UNSORTED) {
+            setSortedDocumentHeaders([...documentHeaders]);
         }
     };
 
@@ -149,7 +143,7 @@ export const PVFileList = ({
             onClick={() => sortByProp(prop)}
             qa-id={qaId}
             icon={
-                sortInfo?.propName === prop ? getPVSortDirectionIcon(sortInfo.direction) : undefined
+                sortInfo?.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
             }>
             {t(translationKey)}
         </Th>
