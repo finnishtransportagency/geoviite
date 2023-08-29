@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 data class Translation(val lang: String, val localization: String) {
     private val jsonRoot = JsonMapper().readTree(localization)
@@ -29,18 +30,15 @@ data class Translation(val lang: String, val localization: String) {
 }
 
 class TranslationCache {
-    private val translations = mutableMapOf<String, Translation>()
+    private val translations = ConcurrentHashMap<String, Translation>()
     fun getOrLoadTranslation(lang: String) = translations.getOrPut(lang) {
         Translation(lang, this::class.java.classLoader.getResource("i18n/translations.${lang}.json").readText())
     }
 }
 
 @Service
-class LocalizationService() {
+class LocalizationService(@Value("\${geoviite.i18n.override-path:}") val overridePath: String = "") {
     val translationCache = TranslationCache()
-
-    @Value("\${geoviite.i18n.override-path:}")
-    val overridePath: String = ""
 
     fun getLocalization(language: String) = if (overridePath.isNotEmpty()) {
         Translation(language, File("${overridePath}translations.${language}.json").readText())

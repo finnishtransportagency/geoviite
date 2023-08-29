@@ -805,7 +805,6 @@ class PublicationService @Autowired constructor(
             "to" to to,
             "sortBy" to sortBy,
             "order" to order,
-            "translation" to translation
         )
 
         return fetchPublicationDetailsBetweenInstants(from, to).sortedBy { it.publicationTime }.let { publications ->
@@ -848,7 +847,6 @@ class PublicationService @Autowired constructor(
             "sortBy" to sortBy,
             "order" to order,
             "timeZone" to timeZone,
-            "translation" to translation,
         )
 
         val orderedPublishedItems = fetchPublicationDetails(
