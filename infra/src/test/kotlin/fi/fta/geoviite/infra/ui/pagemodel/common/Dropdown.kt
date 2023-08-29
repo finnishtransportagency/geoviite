@@ -36,7 +36,6 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     fun select(name: String): E2EDropdown = apply {
         logger.info("Select item $name")
         open()
-        waitChildNotVisible(By.className("dropdown__loading-indicator"))
         optionsList.selectByTextWhenContains(name)
         waitChildNotVisible(CONTAINER_BY)
     }
@@ -49,7 +48,6 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     fun inputValue(text: String): E2EDropdown = apply {
         logger.info("Input text $text")
         input.inputValue(text)
-        waitChildNotVisible(By.className("dropdown__loading-indicator"))
     }
 
     fun clearInput(): E2EDropdown = apply {

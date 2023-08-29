@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
-import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByAttr
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
@@ -26,10 +27,12 @@ class E2EProjektiVelhoPage : E2ETable<E2EProjektiVelhoListItem>(
 
     fun rejectFirstMatching(by: (item: E2EProjektiVelhoListItem) -> Boolean) = apply {
         clickChild(byQaId("pv-reject-button"))
+        waitAndClearToastByContent("Aineisto siirretty hylättyjen aineistojen kokoelmaan")
     }
 
     fun restoreFirstMatching(by: (item: E2EProjektiVelhoListItem) -> Boolean) = apply {
         clickChild(byQaId("pv-restore-button"))
+        waitAndClearToastByContent("Aineisto siirretty käsiteltävien aineistojen kokoelmaan")
     }
 
     fun acceptFirstMatching(by: (item: E2EProjektiVelhoListItem) -> Boolean): E2EInfraModelForm {
@@ -49,9 +52,9 @@ data class E2EProjektiVelhoListItem(
     val documentModified: String,
 ) {
     constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
-        projectName = getColumnContentByAttr("projektivelho.project-name", columns, headers),
-        documentName = getColumnContentByAttr("projektivelho.document-name", columns, headers),
-        documentDescription = getColumnContentByAttr("projektivelho.document-description", columns, headers),
-        documentModified = getColumnContentByAttr("projektivelho.document-modified", columns, headers),
+        projectName = getColumnContent("projektivelho.project-name", columns, headers),
+        documentName = getColumnContent("projektivelho.document-name", columns, headers),
+        documentDescription = getColumnContent("projektivelho.document-description", columns, headers),
+        documentModified = getColumnContent("projektivelho.document-modified", columns, headers),
     )
 }

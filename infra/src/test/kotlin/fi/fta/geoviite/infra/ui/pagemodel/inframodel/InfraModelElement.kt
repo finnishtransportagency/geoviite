@@ -1,16 +1,12 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EFormGroup
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
-import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByAttr
+import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import getChildElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-import waitAndAssertToaster
 import java.time.LocalDateTime
 
 
@@ -24,7 +20,7 @@ class E2EInfraModelTable(tableFetch: ElementFetch) : E2ETable<E2EInfraModelTable
     }
 
     fun getRow(projectName: String? = null, fileName: String? = null): E2EInfraModelTableRow? {
-        return rows.find { it.projectName == projectName || it.fileName == fileName }
+        return rows.firstOrNull { it.projectName == projectName || it.fileName == fileName }
     }
 
     fun sortBy(colName: String): E2EInfraModelTable = apply {
@@ -48,16 +44,17 @@ data class E2EInfraModelTableRow(
 ) {
 
     constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
-        projectName = getColumnContentByAttr("im-form.name-header", columns, headers),
-        fileName = getColumnContentByAttr("im-form.file-name-header", columns, headers),
-        trackNumber = getColumnContentByAttr("im-form.track-number-header", columns, headers),
-        startKmNumber = getColumnContentByAttr("im-form.km-start-header", columns, headers),
-        endKmNumber = getColumnContentByAttr("im-form.km-end-header", columns, headers),
-        planPhase = getColumnContentByAttr("im-form.plan-phase-header", columns, headers),
-        decisionPhase = getColumnContentByAttr("im-form.decision-phase-header", columns, headers),
-        planTime = localDateFromString(getColumnContentByAttr("im-form.created-at-header", columns, headers)),
-        created = localDateTimeFromString(getColumnContentByAttr("im-form.uploaded-at-header", columns, headers)),
-        linked = getColumnContentByAttr("im-form.linked-at-header", columns, headers).let { v ->
+        projectName = getColumnContent("im-form.name-header", columns, headers),
+        fileName = getColumnContent("im-form.file-name-header", columns, headers),
+        trackNumber = getColumnContent("im-form.track-number-header", columns, headers),
+        startKmNumber = getColumnContent("im-form.km-start-header", columns, headers),
+        endKmNumber = getColumnContent("im-form.km-end-header", columns, headers),
+        planPhase = getColumnContent("im-form.plan-phase-header", columns, headers),
+        decisionPhase = getColumnContent("im-form.decision-phase-header", columns, headers),
+        planTime = localDateFromString(getColumnContent("im-form.created-at-header", columns, headers)),
+        created = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
+        linked = getColumnContent("im-form.linked-at-header", columns, headers)
+            .let { v ->
             if (v.isNotBlank()) localDateTimeFromString(v)
             else null
         },
@@ -70,12 +67,12 @@ class E2EMetaFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) 
 
     fun selectNewProject(newProject: String): E2EMetaFormGroup = apply {
         selectNewDropdownValue("Projektin nimi", listOf(newProject))
-        waitAndAssertToaster("Uusi projekti luotu")
+        waitAndClearToastByContent("Uusi projekti luotu onnistuneesti")
     }
 
     fun selectNewAuthor(newAuthor: String): E2EMetaFormGroup = apply {
         selectNewDropdownValue("Suunnitteluyritys", listOf(newAuthor))
-        waitAndAssertToaster("Uusi suunnitteluyritys luotu")
+        waitAndClearToastByContent("Uusi suunnitteluyritys luotu onnistuneesti")
     }
 }
 
@@ -92,7 +89,7 @@ class E2ELocationFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFet
 
     fun selectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
         selectNewDropdownValue("Ratanumero", listOf(trackNumber, description))
-        waitAndAssertToaster("Ratanumero tallennettu")
+        waitAndClearToastByContent("Ratanumero tallennettu")
         clickEditIcon("Ratanumero")
     }
 
@@ -137,7 +134,9 @@ class E2ELogFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
 }
 
 class E2EConfirmDialog : E2EDialog() {
-    fun confirm() = waitUntilClosed {
-        clickButtonByText("Tallenna")
+    fun confirm() {
+        waitUntilClosed {
+            clickButtonByText("Tallenna")
+        }
     }
 }

@@ -105,8 +105,7 @@ function getOptions(
         }));
     });
     return Promise.all([locationTracks, switches]).then((result) => {
-        const allItems: Item<SearchItemValue>[] = [...result[0], ...result[1]];
-        return allItems;
+        return [...result[0], ...result[1]];
     });
 }
 
@@ -238,7 +237,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     onChange={onItemSelected}
                     size={DropdownSize.STRETCH}
                     wideList
-                    qaId="search-box"
+                    qa-id="search-box"
                 />
                 <Button
                     variant={ButtonVariant.SECONDARY}

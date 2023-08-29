@@ -2,17 +2,17 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import waitAndAssertToaster
 import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
@@ -26,9 +26,6 @@ import kotlin.test.assertNotNull
 class InfraModelTestUI @Autowired constructor(
     val properties: E2EProperties,
 ) : SeleniumTest() {
-
-    lateinit var infraModelPage: E2EInfraModelPage
-
     val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
@@ -39,17 +36,17 @@ class InfraModelTestUI @Autowired constructor(
         clearAllTestData()
     }
 
-    @BeforeEach
-    fun setup() {
+    fun startGeoviiteAndGoToWork(): E2EInfraModelPage {
         startGeoviite()
-        infraModelPage = goToInfraModelPage()
+        return goToInfraModelPage()
     }
 
     @Test
     fun `Import and edit testfile_simple_xml`() {
         val file = File(TESTFILE_SIMPLE_PATH)
+        val infraModelPage = startGeoviiteAndGoToWork()
+        
         infraModelPage.upload(file.absolutePath).saveAsNew()
-        waitAndAssertToaster("Uusi InfraModel-tiedosto tallennettu Geoviitteeseen")
         val infraModelEditPage = infraModelPage.openInfraModel("testfile_simple.xml")
 
         val newProjectName = "Test"
@@ -57,6 +54,7 @@ class InfraModelTestUI @Autowired constructor(
         projektinTiedot.selectNewProject(newProjectName)
 
         infraModelEditPage.save(true)
+        waitAndClearToastByContent("InfraModel-tiedosto tallennettu")
 
         val uploadedPlanRow = infraModelPage.infraModelsList.getRow(projectName = newProjectName)
         assertNotNull(uploadedPlanRow)
@@ -65,7 +63,7 @@ class InfraModelTestUI @Autowired constructor(
     @Test
     fun `Import testfile_clothoid_and_parabola_xml`() {
         val file = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
-
+        val infraModelPage = startGeoviiteAndGoToWork()
         val uploadForm = infraModelPage.upload(file.absolutePath)
         val projektinTiedot = uploadForm.metaFormGroup
 
@@ -104,6 +102,7 @@ class InfraModelTestUI @Autowired constructor(
     fun `Edit and import testfile_clothoid_and_parabola_2_xml`() {
         val file = File(TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH)
 
+        val infraModelPage = startGeoviiteAndGoToWork()
         val uploadForm = infraModelPage.upload(file.absolutePath)
 
         //Projektin tiedot
@@ -144,6 +143,7 @@ class InfraModelTestUI @Autowired constructor(
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 
         uploadForm.save(true)
+        waitAndClearToast("infra-model-import-upload__success-toast")
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 
@@ -160,6 +160,8 @@ class InfraModelTestUI @Autowired constructor(
         val file1 = File(TESTFILE_SIMPLE_PATH)
         val file2 = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
         val file3 = File(TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH)
+
+        val infraModelPage = startGeoviiteAndGoToWork()
 
         val uploadForm1 = infraModelPage.upload(file1.absolutePath)
         uploadForm1.saveAsNew()

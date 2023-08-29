@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EProjektiVelhoListItem
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -70,6 +71,8 @@ class ProjektiVelhoTestUI @Autowired constructor(
             // project name comes from PV metadata here
             .acceptFirstMatching { item -> item.projectName == "testi_projekti" }
             .save(true)
+
+        waitAndClearToastByContent("Projektivelhon InfraModel-tiedosto tuotu Geoviitteeseen")
 
         val infraModelPage = velhoPage.goToInfraModelList()
         assertEquals(

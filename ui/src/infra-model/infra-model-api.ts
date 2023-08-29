@@ -99,7 +99,7 @@ export const saveInfraModelFile = async (
     const response = await postFormIgnoreError<InsertResponse>(INFRAMODEL_URI, formData);
     if (response) {
         Snackbar.success(i18n.t('infra-model.upload.success'), {
-            className: 'infra-model-import-upload__success-toast',
+            qaId: 'infra-model-import-upload__success-toast',
         });
         updatePlanChangeTime();
     }
@@ -201,7 +201,7 @@ export async function importPVDocument(
     const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
     if (response) {
         Snackbar.success(i18n.t('infra-model.import.success'), {
-            className: 'infra-model-import-upload__success-toast',
+            qaId: 'infra-model-import-upload__success-toast',
         });
         updatePlanChangeTime();
     }

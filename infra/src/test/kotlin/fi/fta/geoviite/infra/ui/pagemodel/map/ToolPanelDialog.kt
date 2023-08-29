@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.defaultDialogBy
+import fi.fta.geoviite.infra.ui.pagemodel.common.expectToast
 import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
@@ -50,14 +51,16 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
             content.selectDropdownValue(label = "Topologinen kytkeytyminen", topologicalConnectivity.uiText)
         }
 
-    fun save() = waitUntilClosed {
-        val isDeleted = content.getValueForField("Tila") == State.DELETED.uiText
-        clickPrimaryButton()
+    fun save() = expectToast {
+        waitUntilClosed {
+            val isDeleted = content.getValueForField("Tila") == State.DELETED.uiText
+            clickPrimaryButton()
 
-        if (isDeleted) {
-            clickChild(
-                By.xpath("div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-            )
+            if (isDeleted) {
+                clickChild(
+                    By.xpath("div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
+                )
+            }
         }
     }
 
@@ -113,8 +116,10 @@ class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
         content.selectDropdownValue("Tila", state.uiText)
     }
 
-    fun save() = waitUntilClosed { 
-        clickButtonByText("Tallenna")
+    fun save() = expectToast {
+        waitUntilClosed {
+            clickButtonByText("Tallenna")
+        }
     }
 
     fun cancel() = waitUntilClosed {
@@ -137,14 +142,16 @@ class E2ELayoutSwitchEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
         content.selectDropdownValue("Tilakategoria", stateCategory.uiText)
     }
 
-    fun save() = waitUntilClosed { 
-        val isNotExisting = content.getValueForField("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
-        clickButtonByText("Tallenna")
+    fun save() = expectToast {
+        waitUntilClosed {
+            val isNotExisting = content.getValueForField("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
+            clickButtonByText("Tallenna")
 
-        if (isNotExisting) {
-            clickChild(
-                By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-            )
+            if (isNotExisting) {
+                clickChild(
+                    By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
+                )
+            }
         }
     }
 }

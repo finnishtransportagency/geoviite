@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.EAST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
@@ -26,8 +27,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import waitAndAssertToaster
-import waitAndClearToaster
 
 
 @ActiveProfiles("dev", "test", "e2e")
@@ -110,6 +109,8 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
         editDialog.save()
 
+        waitAndClearToastByContent("Sijaintiraiteen tiedot päivitetty")
+
         trackLayoutPage.selectionPanel.waitUntilLocationTrackVisible(editedTunnus)
         val infoboxAfterFirstEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
@@ -167,7 +168,7 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.setDescription(editedKuvaus)
         editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
         editDialog.save()
-        waitAndClearToaster()
+        waitAndClearToastByContent("Sijaintiraiteen tiedot päivitetty")
 
         trackLayoutPage.selectionPanel.waitUntilLocationTrackVisible(editedTunnus)
         val infoboxAfterFirstEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
@@ -188,7 +189,6 @@ class BasicMapTestUI @Autowired constructor(
         previewChangesPage.stageChange(changedAlignment.name)
 
         previewChangesPage.publish()
-        waitAndAssertToaster("Muutokset julkaistu")
 
         val infoBoxAfterSecondEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)

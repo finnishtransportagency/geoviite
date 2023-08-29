@@ -16,7 +16,6 @@ import org.openqa.selenium.logging.LoggingPreferences
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.time.Duration
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -90,7 +89,7 @@ fun openBrowser() {
     openChrome(headless)
     logger.info("Webdriver initialized")
 
-    browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(1))
+    browser().manage().timeouts()
     logger.info("Browser window size : ${browser().manage().window().size}")
     logger.info("Timezone: ${TimeZone.getDefault().id}")
 }
@@ -159,16 +158,6 @@ fun printNetworkLogsResponses() = try {
     printLogEntries(LogSource.NETWORK_RESPONSES, filtered)
 } catch (e: Exception) {
     logger.error("Failed to print network responses ${e.message}")
-}
-
-fun <T> withNoImplicitWait(act: () -> T): T {
-    val originalWait = browser().manage().timeouts().implicitWaitTimeout
-    browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(0))
-    try {
-        return act()
-    } finally {
-        browser().manage().timeouts().implicitlyWait(originalWait)
-    }
 }
 
 private fun printLogEntries(source: LogSource, logEntries: LogEntries) {

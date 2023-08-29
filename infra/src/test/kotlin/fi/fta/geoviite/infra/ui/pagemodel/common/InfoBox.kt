@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
 import waitUntilValueIs
 import waitUntilValueIsNot
-import java.time.Duration
 
 abstract class E2EInfoBox(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
@@ -37,13 +36,13 @@ abstract class E2EInfoBox(elementFetch: ElementFetch) : E2EViewFragment(elementF
     protected fun waitUntilValueChangesForField(fieldName: String): E2EInfoBox = apply {
         val originalValue = getValueForField(fieldName)
         logger.info("Wait until field value is not $originalValue")
-        waitUntilValueIsNot(getValueElementForField(fieldName), originalValue, Duration.ofSeconds(10))
+        waitUntilValueIsNot(getValueElementForField(fieldName), originalValue)
         logger.info("Field $fieldName changed and is now ${getValueForField(fieldName)}")
     }
 
     protected fun waitUntilValueChangesForField(fieldName: String, targetValue: String): E2EInfoBox = apply {
         logger.info("Wait until field value is  $targetValue")
-        waitUntilValueIs(getValueElementForField(fieldName), targetValue, Duration.ofSeconds(10))
+        waitUntilValueIs(getValueElementForField(fieldName), targetValue)
         logger.info("Field $fieldName changed to $targetValue")
     }
 

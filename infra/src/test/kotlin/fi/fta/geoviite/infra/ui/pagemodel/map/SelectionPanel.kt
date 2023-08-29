@@ -62,15 +62,21 @@ class E2ESelectionPanel(
         switchesList.selectByName(name)
     }
 
-    fun geometryPlanByName(planName: String): E2EGeometryPlanAccordion {
-        logger.info("Select geometry plan '$planName'")
-        Thread.sleep(500) //Only way to ensure the list is stable and not updating
-        return geometryPlans.let { plans ->
-            plans.find { plan -> plan.header == planName }
-                ?: throw RuntimeException("Geometry plan '$planName' not found! Available plans ${plans.map { plan -> plan.header }}")
-        }
+    fun selectPlanAlignment(planName: String, name: String): E2ESelectionPanel = apply {
+        geometryPlanByName(planName).selectAlignment(name)
     }
 
+    fun selectPlanSwitch(planName: String, name: String): E2ESelectionPanel = apply {
+        geometryPlanByName(planName).selectSwitch(name)
+    }
+
+    fun selectPlanKmPost(planName: String, name: String): E2ESelectionPanel = apply {
+        geometryPlanByName(planName).selectKmPost(name)
+    }
+
+    fun geometryPlanByName(name: String): E2EGeometryPlanAccordion {
+        return geometryPlans.first { it.header == name }
+    }
 
     fun waitUntilSwitchNotVisible(name: String): E2ESelectionPanel = apply {
         tryWait(

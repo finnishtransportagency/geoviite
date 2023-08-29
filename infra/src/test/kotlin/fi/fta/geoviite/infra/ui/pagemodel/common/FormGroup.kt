@@ -44,12 +44,12 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
             .open()
             .new()
 
-        E2EDialogWithTextField()
-            .inputValues(values)
-            .clickPrimaryButton()
-
-        E2EToaster().waitUntilVisible()
-
+        expectToast {
+            E2EDialogWithTextField()
+                .inputValues(values)
+                .clickPrimaryButton()
+        }
+        
         clickEditIcon(label)
     }
 

@@ -33,9 +33,14 @@ function removeFromQueue(id: number) {
     };
 }
 
-function getToastBody(header: string, body?: string, button?: SnackbarButtonOptions) {
+function getToastBody(
+    header: string,
+    body?: string,
+    qaId?: string,
+    button?: SnackbarButtonOptions,
+) {
     return (
-        <div className={styles['Toastify__toast-content']}>
+        <div className={styles['Toastify__toast-content']} qa-id={qaId}>
             <div className={styles['Toastify__toast-text']}>
                 <span className={styles['Toastify__toast-header']} title={header}>
                     {header}
@@ -64,30 +69,31 @@ const CloseButton = ({ closeToast }: never) => (
     </button>
 );
 
-export function info(header: string, body?: string) {
+type ToastOpts = {
+    body?: string;
+    qaId?: string;
+    className?: string;
+};
+
+export function info(header: string, opts?: ToastOpts) {
+    const { body, qaId, ...toastOpts } = opts ?? {};
     const removeFunction = addToQueue(header, body);
 
     if (removeFunction && !blockToasts) {
-        toast.warn(getToastBody(header, body), {
+        toast.warn(getToastBody(header, body, qaId), {
             onClose: removeFunction,
             icon: Icons.Info,
+            ...toastOpts,
         });
     }
 }
 
-type ToastOpts = {
-    body?: string;
-    toastId?: string;
-    autoClose?: false | number;
-    className?: string;
-};
-
 export function success(header: string, opts?: ToastOpts) {
-    const { body, ...toastOpts } = opts ?? {};
+    const { body, qaId, ...toastOpts } = opts ?? {};
     const removeFunction = addToQueue(header, body);
 
     if (removeFunction && !blockToasts) {
-        toast.success(getToastBody(header, body), {
+        toast.success(getToastBody(header, body, qaId), {
             onClose: removeFunction,
             icon: Icons.Selected,
             ...toastOpts,
@@ -96,11 +102,11 @@ export function success(header: string, opts?: ToastOpts) {
 }
 
 export function error(header: string, opts?: ToastOpts) {
-    const { body, ...toastOpts } = opts ?? {};
+    const { body, qaId, ...toastOpts } = opts ?? {};
     const removeFunction = addToQueue(header, body);
 
     if (removeFunction && !blockToasts) {
-        toast.error(getToastBody(header, body), {
+        toast.error(getToastBody(header, body, qaId), {
             autoClose: false,
             closeOnClick: false,
             closeButton: CloseButton,
@@ -120,7 +126,7 @@ export function sessionExpired() {
         toast.clearWaitingQueue();
 
         toast.error(
-            getToastBody(i18n.t('unauthorized-request.title'), undefined, {
+            getToastBody(i18n.t('unauthorized-request.title'), undefined, undefined, {
                 text: i18n.t('unauthorized-request.button'),
                 onClick: () => location.reload(),
             }),
