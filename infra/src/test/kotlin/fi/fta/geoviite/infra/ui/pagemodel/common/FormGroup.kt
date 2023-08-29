@@ -5,7 +5,7 @@ import getChildElementIfExists
 import org.openqa.selenium.By
 
 abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
-    
+
     init {
         logger.info("${this.javaClass} loaded")
     }
@@ -49,7 +49,7 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
                 .inputValues(values)
                 .clickPrimaryButton()
         }
-        
+
         clickEditIcon(label)
     }
 

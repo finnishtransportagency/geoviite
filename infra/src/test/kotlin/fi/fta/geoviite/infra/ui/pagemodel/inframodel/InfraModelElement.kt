@@ -55,9 +55,9 @@ data class E2EInfraModelTableRow(
         created = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
         linked = getColumnContent("im-form.linked-at-header", columns, headers)
             .let { v ->
-            if (v.isNotBlank()) localDateTimeFromString(v)
-            else null
-        },
+                if (v.isNotBlank()) localDateTimeFromString(v)
+                else null
+            },
     )
 }
 

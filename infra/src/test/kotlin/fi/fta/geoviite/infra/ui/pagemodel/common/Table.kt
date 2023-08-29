@@ -16,8 +16,8 @@ abstract class E2ETable<T>(
     abstract fun getRowContent(row: WebElement): T
 
     override fun getItemContent(item: WebElement) = getRowContent(item)
-    
-    
+
+
     //Firefox doesn't handle tr clicks correctly, temporary fixed by clicking on the first td
     //https://bugzilla.mozilla.org/show_bug.cgi?id=1448825
     override fun select(item: T): E2ETable<T> = apply {
@@ -39,7 +39,11 @@ fun getColumnIndex(
     qaId: String,
     headers: List<WebElement>,
 ) = headers.indexOfFirst { it.getAttribute("qa-id") == qaId }
-    .also { idx -> check(idx != -1) { "No header found with qa-id $qaId. Header: ${headers.map { it.getAttribute("qa-id") }}" } }
+    .also { idx ->
+        check(idx != -1) {
+            "No header found with qa-id $qaId. Header: ${headers.map { it.getAttribute("qa-id") }}"
+        }
+    }
 
 fun getColumnContent(
     qaId: String,

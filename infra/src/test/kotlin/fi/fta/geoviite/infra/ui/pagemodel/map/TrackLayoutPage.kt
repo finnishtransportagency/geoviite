@@ -44,7 +44,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         KM_200("200 km"),
         KM_500("500 km")
     }
-    
+
     init {
         mapScale
     }

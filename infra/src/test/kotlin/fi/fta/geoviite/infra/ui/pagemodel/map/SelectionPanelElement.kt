@@ -23,7 +23,7 @@ class E2EGeometryPlanAccordion(by: By) : E2EAccordion(by) {
     val kmPostsList: E2ETextList get() = open().let { kmPostsAccordion.items }
     val alignmentsList: E2ETextList get() = open().let { alignmentsAccordion.items }
     val switchesList: E2ETextList get() = open().let { switchesAccordion.items }
-    
+
     fun selectAlignment(alignment: String) {
         logger.info("Select geometry alignment $alignment")
         open().also { alignmentsAccordion.selectItem(alignment) }
@@ -70,7 +70,7 @@ abstract class E2ESelectionList<T : E2ESelectionListItem>(
     itemsBy: By = byLiTag,
 ) : E2EList<T>(listFetch, itemsBy) {
     override fun getItemContent(item: WebElement) = this.getContent(item)
-    
+
     fun selectByName(name: String) = selectItemWhenMatches { it.name == name }
 }
 

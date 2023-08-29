@@ -16,7 +16,7 @@ class E2EProjektiVelhoPage : E2ETable<E2EProjektiVelhoListItem>(
         clickChild(byQaId("infra-model-nav-tab-plan"))
         return E2EInfraModelPage()
     }
-    
+
     fun openWaitingForApprovalList(): E2EProjektiVelhoPage = apply {
         clickChild(byQaId("infra-model-nav-tab-waiting"))
     }

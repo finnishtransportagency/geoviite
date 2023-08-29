@@ -182,25 +182,35 @@ fun tryWait(
     throw e
 }
 
+fun <T> tryWait(
+    condition: () -> T?,
+    lazyErrorMessage: () -> String,
+): T = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
+
 fun tryWait(
     condition: () -> Boolean,
     lazyErrorMessage: () -> String,
-) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
+) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage).let {}
+
+fun <T> tryWait(
+    timeout: Duration,
+    condition: () -> T?,
+    lazyErrorMessage: () -> String,
+): T = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
 
 fun tryWait(
     timeout: Duration,
     condition: () -> Boolean,
     lazyErrorMessage: () -> String,
-) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
+) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage).let { }
 
-fun tryWait(
+fun <T> tryWait(
     timeout: Duration,
     pollInterval: Duration,
-    condition: () -> Boolean,
+    condition: () -> T?,
     lazyErrorMessage: () -> String,
-) = try {
-    WebDriverWait(browser(), timeout, pollInterval).until { _ -> condition() }
-    Unit
+): T = try {
+    WebDriverWait(browser(), timeout, pollInterval).until<T> { _ -> condition() }
 } catch (e: Exception) {
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e

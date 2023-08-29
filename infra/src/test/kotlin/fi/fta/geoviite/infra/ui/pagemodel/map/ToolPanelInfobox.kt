@@ -273,7 +273,7 @@ class E2EGeometrySwitchLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkingIn
     fun createNewTrackLayoutSwitch(): E2ELayoutSwitchEditDialog {
         logger.info("Create new track layout switch")
         clickChild(By.cssSelector("div.geometry-switch-infobox__search-container button"))
-        
+
         return E2ELayoutSwitchEditDialog()
     }
 

@@ -45,7 +45,7 @@ class InfraModelTestUI @Autowired constructor(
     fun `Import and edit testfile_simple_xml`() {
         val file = File(TESTFILE_SIMPLE_PATH)
         val infraModelPage = startGeoviiteAndGoToWork()
-        
+
         infraModelPage.upload(file.absolutePath).saveAsNew()
         val infraModelEditPage = infraModelPage.openInfraModel("testfile_simple.xml")
 
@@ -142,7 +142,7 @@ class InfraModelTestUI @Autowired constructor(
         lokiJaLinkitystiedotFormGroup.setPlanTime("elokuu", "1999")
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 
-        uploadForm.save(true)
+        uploadForm.save(false)
         waitAndClearToast("infra-model-import-upload__success-toast")
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
