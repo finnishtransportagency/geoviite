@@ -107,8 +107,7 @@ private fun formatOperation(translation: Translation, operation: Operation) = wh
     Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyList())
     Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyList())
     Operation.CALCULATED -> translation.t(
-        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
-        emptyList()
+        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"), emptyList()
     )
 }
 

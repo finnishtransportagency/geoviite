@@ -49,7 +49,11 @@ data class ChangeValue<T>(
     val oldValue: T?,
     val newValue: T?,
     val localizationKey: LocalizationKey? = null,
-) { constructor(oldValue: T?, newValue: T?, localizationKey: String?) : this(oldValue, newValue, localizationKey?.let(::LocalizationKey)) }
+) {
+    constructor(oldValue: T?, newValue: T?, localizationKey: String?) : this(
+        oldValue, newValue, localizationKey?.let(::LocalizationKey)
+    )
+}
 
 data class PublicationChange<T>(
     val propKey: PropKey,
@@ -60,12 +64,16 @@ data class PublicationChange<T>(
 data class PropKey(
     val key: LocalizationKey,
     val params: List<String> = emptyList(),
-) { constructor(key: String, params: List<String> = emptyList()) : this(LocalizationKey(key), params) }
+) {
+    constructor(key: String, params: List<String> = emptyList()) : this(LocalizationKey(key), params)
+}
 
 data class PublicationChangeRemark(
     val key: LocalizationKey,
     val value: String,
-) { constructor(key: String, value: String) : this(LocalizationKey(key), value) }
+) {
+    constructor(key: String, value: String) : this(LocalizationKey(key), value)
+}
 
 open class Publication(
     open val id: IntId<Publication>,
@@ -147,11 +155,7 @@ enum class DraftChangeType {
 }
 
 enum class Operation(val priority: Int) {
-    CREATE(0),
-    MODIFY(1),
-    DELETE(2),
-    RESTORE(3),
-    CALCULATED(4),
+    CREATE(0), MODIFY(1), DELETE(2), RESTORE(3), CALCULATED(4),
 }
 
 data class ValidatedPublishCandidates(
@@ -161,7 +165,7 @@ data class ValidatedPublishCandidates(
 
 data class ValidatedAsset<T>(
     val errors: List<PublishValidationError>,
-    val id: IntId<T>
+    val id: IntId<T>,
 )
 
 data class PublishCandidates(
@@ -250,9 +254,7 @@ data class PublishValidationError(
     val params: List<String> = listOf(),
 ) {
     constructor(type: PublishValidationErrorType, localizationKey: String, params: List<String> = listOf()) : this(
-        type,
-        LocalizationKey(localizationKey),
-        params
+        type, LocalizationKey(localizationKey), params
     )
 }
 
@@ -344,7 +346,7 @@ data class RemovedTrackNumberReferenceIds(
     val planIds: List<IntId<GeometryPlan>>,
 )
 
-data class SwitchLocationTrack(val name: AlignmentName, val trackNumberId: IntId<TrackLayoutTrackNumber>,)
+data class SwitchLocationTrack(val name: AlignmentName, val trackNumberId: IntId<TrackLayoutTrackNumber>)
 
 data class Change<T>(
     val old: T?,
@@ -364,16 +366,21 @@ data class LocationTrackChanges(
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
 )
 
+// Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
+enum class TrapPoint {
+    Yes, No, Unknown
+}
+
 data class SwitchChanges(
     val id: IntId<TrackLayoutSwitch>,
     val name: Change<SwitchName>,
     val state: Change<LayoutStateCategory>,
-    val trapPoint: Change<Boolean>,
+    val trapPoint: Change<TrapPoint>,
     val type: Change<SwitchType>,
     val owner: Change<MetaDataName>,
     val measurementMethod: Change<MeasurementMethod>,
     val joints: List<PublicationDao.PublicationSwitchJoint>,
-    val locationTracks: List<SwitchLocationTrack>
+    val locationTracks: List<SwitchLocationTrack>,
 )
 
 data class ReferenceLineChanges(
@@ -398,12 +405,11 @@ data class KmPostChanges(
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
     val kmNumber: Change<KmNumber>,
     val state: Change<LayoutState>,
-    val location: Change<Point>
+    val location: Change<Point>,
 )
 
 fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
-    officialId = draftableObject.id as IntId,
-    validatedAssetVersion = draftableObject.version as RowVersion<T>
+    officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
 )
 
 fun toValidationVersions(
