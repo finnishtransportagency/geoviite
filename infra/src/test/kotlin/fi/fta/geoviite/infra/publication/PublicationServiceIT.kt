@@ -738,14 +738,14 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(
             listOf(
                 PublishValidationError(
-                    PublishValidationErrorType.WARNING, "validation.layout.location-track.duplicate-name", listOf("LT")
+                    PublishValidationErrorType.ERROR, "validation.layout.location-track.duplicate-name", listOf("LT")
                 )
             ), validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.errors
         )
 
         assertEquals(List(2) {
             PublishValidationError(
-                PublishValidationErrorType.WARNING, "validation.layout.location-track.duplicate-name", listOf("NLT")
+                PublishValidationErrorType.ERROR, "validation.layout.location-track.duplicate-name", listOf("NLT")
             )
         },
             validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
@@ -753,14 +753,14 @@ class PublicationServiceIT @Autowired constructor(
 
         assertEquals(listOf(
             PublishValidationError(
-                PublishValidationErrorType.WARNING, "validation.layout.switch.duplicate-name", listOf("SW")
+                PublishValidationErrorType.ERROR, "validation.layout.switch.duplicate-name", listOf("SW")
             )
         ),
             validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" })
 
         assertEquals(List(2) {
             PublishValidationError(
-                PublishValidationErrorType.WARNING, "validation.layout.switch.duplicate-name", listOf("NSW")
+                PublishValidationErrorType.ERROR, "validation.layout.switch.duplicate-name", listOf("NSW")
             )
         },
             validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }
@@ -769,7 +769,7 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(
             listOf(
                 PublishValidationError(
-                    PublishValidationErrorType.WARNING, "validation.layout.track-number.duplicate-name", listOf("TN")
+                    PublishValidationErrorType.ERROR, "validation.layout.track-number.duplicate-name", listOf("TN")
                 )
             ), validation.validatedAsPublicationUnit.trackNumbers[0].errors
         )

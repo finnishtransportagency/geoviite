@@ -396,8 +396,7 @@ class PublicationService @Autowired constructor(
             }.forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
             request.trackNumbers.filter { trackNumberId ->
                 trackNumberService.getOrThrow(
-                    DRAFT,
-                    trackNumberId
+                    DRAFT, trackNumberId
                 ).externalId == null
             }.forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
             request.switches.filter { switchId -> switchService.getOrThrow(DRAFT, switchId).externalId == null }
@@ -531,7 +530,7 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         return if (trackNumberDao.officialDuplicateNumberExistsFor(id)) listOf(
             PublishValidationError(
-                PublishValidationErrorType.WARNING,
+                PublishValidationErrorType.ERROR,
                 "validation.layout.track-number.duplicate-name",
                 listOf(trackNumber.number.toString())
             )
@@ -585,7 +584,7 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         return if (switchService.duplicateNameExistsForPublicationCandidate(id)) listOf(
             PublishValidationError(
-                PublishValidationErrorType.WARNING,
+                PublishValidationErrorType.ERROR,
                 "validation.layout.switch.duplicate-name",
                 listOf(switch.name.toString())
             )
@@ -663,13 +662,13 @@ class PublicationService @Autowired constructor(
         locationTrack: LocationTrack,
         id: IntId<LocationTrack>,
     ): List<PublishValidationError> {
-        return if (locationTrackService.duplicateNameExistsFor(id)) listOf(
-            PublishValidationError(
-                PublishValidationErrorType.WARNING,
+        return listOfNotNull(
+            if (locationTrackService.duplicateNameExistsFor(id)) PublishValidationError(
+                PublishValidationErrorType.ERROR,
                 "validation.layout.location-track.duplicate-name",
                 listOf(locationTrack.name.toString())
-            )
-        ) else listOf()
+            ) else null
+        )
     }
 
     private fun getTrackNumber(
