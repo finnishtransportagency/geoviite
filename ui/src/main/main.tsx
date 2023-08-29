@@ -13,7 +13,7 @@ import { LayoutMode } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, withTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
@@ -143,4 +143,4 @@ export const MainContainer: React.FC = () => {
     );
 };
 
-export default MainContainer;
+export default withTranslation()(MainContainer);

@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -41,6 +42,7 @@ class PublicationServiceIT @Autowired constructor(
     val switchDao: LayoutSwitchDao,
     val switchService: LayoutSwitchService,
     val calculatedChangesService: CalculatedChangesService,
+    val localizationService: LocalizationService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -924,7 +926,8 @@ class PublicationServiceIT @Autowired constructor(
     fun `Changing specific Track Number field returns only that field`() {
         val address = TrackMeter(0, 0)
         val trackNumber = trackNumberService.getOrThrow(
-            DRAFT, trackNumberService.insert(
+            DRAFT,
+            trackNumberService.insert(
                 TrackNumberSaveRequest(
                     getUnusedTrackNumber(),
                     FreeText("TEST"),
@@ -1232,7 +1235,8 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(changes.getValue(switch.id as IntId),
+        val diff = publicationService.diffSwitch(localizationService.getLocalization("fi"),
+            changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,
@@ -1272,7 +1276,8 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(changes.getValue(switch.id as IntId),
+        val diff = publicationService.diffSwitch(localizationService.getLocalization("fi"),
+            changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,

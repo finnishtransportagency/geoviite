@@ -9,5 +9,9 @@ logging:
       fta:
         geoviite: #debug
 geoviite:
-  i18n:
-    override-path: "./src/main/resources/i18n/"
+  e2e:
+    url: "${FRONT_END_URL:http://127.0.0.1:9000}"
+    username: foobar
+    password: s3cret
+  scheduler-lock:
+    enabled: false
