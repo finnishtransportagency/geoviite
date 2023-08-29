@@ -390,11 +390,18 @@ class PublicationService @Autowired constructor(
         logger.serviceCall("updateExternalId", "request" to request)
 
         try {
-            request.locationTracks.filter { locationTrackId -> locationTrackService.getDraft(locationTrackId).externalId == null }
-                .forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
-            request.trackNumbers.filter { trackNumberId -> trackNumberService.getDraft(trackNumberId).externalId == null }
-                .forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
-            request.switches.filter { switchId -> switchService.getDraft(switchId).externalId == null }
+            request.locationTracks.filter { locationTrackId ->
+                locationTrackService.getOrThrow(
+                    DRAFT, locationTrackId
+                ).externalId == null
+            }.forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
+            request.trackNumbers.filter { trackNumberId ->
+                trackNumberService.getOrThrow(
+                    DRAFT,
+                    trackNumberId
+                ).externalId == null
+            }.forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
+            request.switches.filter { switchId -> switchService.getOrThrow(DRAFT, switchId).externalId == null }
                 .forEach { switchId -> updateExternalIdForSwitch(switchId) }
         } catch (e: Exception) {
             throw PublicationFailureException(
@@ -1030,16 +1037,14 @@ class PublicationService @Autowired constructor(
                 PropKey("length"),
                 getLengthChangedRemarkOrNull(changes.length.old, changes.length.new),
             ),
-            compareChange(
-                { !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
+            compareChange({ !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
                 changes.startPoint.old,
                 changes.startPoint.new,
                 ::formatLocation,
                 PropKey("start-location"),
                 getPointMovedRemarkOrNull(changes.startPoint.old, changes.startPoint.new)
             ),
-            compareChange(
-                { !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
+            compareChange({ !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
                 changes.endPoint.old,
                 changes.endPoint.new,
                 ::formatLocation,
@@ -1074,7 +1079,7 @@ class PublicationService @Autowired constructor(
             ::formatLocation,
             PropKey("location"),
             remark = getPointMovedRemarkOrNull(changes.location.old, changes.location.new)
-        ),
+    ),
     )
 
     fun diffSwitch(

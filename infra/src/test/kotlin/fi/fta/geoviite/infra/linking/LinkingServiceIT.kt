@@ -77,18 +77,14 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(),
-            segment1,
-            segment2,
-            segment3
+            insertOfficialTrackNumber(), segment1, segment2, segment3
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
 
         val (officialTrack, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
         assertMatches(
-            officialTrack to officialAlignment,
-            locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+            officialTrack to officialAlignment, locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         )
 
         // Pick the whole geometry as interval
@@ -137,7 +133,7 @@ class LinkingServiceIT @Autowired constructor(
         val kmPostId = kmPostDao.insert(kmPost).id
         val officialKmPost = kmPostService.getOfficial(kmPostId)
 
-        assertMatches(officialKmPost!!, kmPostService.getDraft(kmPostId))
+        assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId))
 
         val trackNumberId = trackNumberDao.insert(
             trackNumber(TrackNumber(System.currentTimeMillis().toString()))
@@ -155,7 +151,7 @@ class LinkingServiceIT @Autowired constructor(
 
         assertEquals(officialKmPost, kmPostService.getOfficial(kmPostId))
 
-        val draftKmPost = kmPostService.getDraft(kmPostId)
+        val draftKmPost = kmPostService.getOrThrow(DRAFT, kmPostId)
 
         assertNotEquals(officialKmPost, draftKmPost)
 
