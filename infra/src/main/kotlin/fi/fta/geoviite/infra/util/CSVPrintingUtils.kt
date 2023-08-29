@@ -23,7 +23,14 @@ fun <T> printCsv(columns: List<CsvEntry<T>>, data: List<T>): String {
     CSVPrinter(csvBuilder, CSVFormat.RFC4180).use { csvPrinter ->
         csvPrinter.printRecord(columns.map { it.header })
         data.forEach { dataRow ->
-            columns.map { column -> csvPrinter.print(column.getValue(dataRow)) }
+            columns.map { column ->
+                val csvValue = column.getValue(dataRow)
+                if (csvValue is String) {
+                    csvPrinter.print(csvValue)
+                } else if (csvValue is List<*>) {
+                    csvValue.forEach { csvPrinter.print(it) }
+                }
+            }
             csvPrinter.println()
         }
     }
