@@ -32,7 +32,7 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import styles from 'tool-panel/location-track/dialog/location-track-edit-dialog.scss';
+import styles from './switch-edit-dialog.scss';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -517,7 +517,7 @@ export const SwitchEditDialog = ({
                     <p>{t('switch-dialog.changed-switch-structure-warning')}</p>
                     <p>
                         {' '}
-                        <span className={styles['location-track-edit-dialog__warning']}>
+                        <span className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />
                         </span>{' '}
                         {t('switch-dialog.switch-will-be-unlinked')}{' '}
@@ -551,7 +551,7 @@ export const SwitchEditDialog = ({
                     <p>{t('switch-dialog.deleted-state-warning')}</p>
                     <p>
                         {' '}
-                        <span className={styles['location-track-edit-dialog__warning']}>
+                        <span className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />
                         </span>{' '}
                         {t('switch-dialog.switch-will-be-unlinked')}{' '}
