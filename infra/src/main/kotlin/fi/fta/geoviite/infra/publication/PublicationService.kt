@@ -522,21 +522,36 @@ class PublicationService @Autowired constructor(
         val geocodingErrors = if (trackNumber.exists && referenceLine != null) {
             validateGeocodingContext(cacheKeys[version.officialId], VALIDATION_TRACK_NUMBER)
         } else listOf()
-        val duplicateNameErrors = validateTrackNumberNumberDuplication(trackNumber, version.validatedAssetVersion.id)
+        val duplicateNameErrors = validateTrackNumberNumberDuplication(trackNumber, validationVersions)
         return fieldErrors + referenceErrors + geocodingErrors + duplicateNameErrors
     }
 
     private fun validateTrackNumberNumberDuplication(
         trackNumber: TrackLayoutTrackNumber,
-        id: IntId<TrackLayoutTrackNumber>,
+        versions: ValidationVersions,
     ): List<PublishValidationError> {
-        return if (trackNumberDao.officialDuplicateNumberExistsFor(id)) listOf(
-            PublishValidationError(
+        val drafts = versions.trackNumbers.map { it.officialId to trackNumberService.get(it.validatedAssetVersion) }
+        val officials =
+            trackNumberDao.fetchVersions(OFFICIAL, false).map(trackNumberService::get).filterNot { official ->
+                drafts.map { draft -> draft.first }.contains(official.id)
+            }
+        val officialDuplicateExists =
+            officials.any { official -> official.id != trackNumber.id && official.number == trackNumber.number }
+        val stagedDuplicateExists =
+            drafts.any { (_, draft) -> draft.number == trackNumber.number && draft.id != trackNumber.id && draft.state != LayoutState.DELETED }
+
+        return listOfNotNull(
+            if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                "validation.layout.track-number.duplicate-name",
+                "validation.layout.track-number.duplicate-name-official",
                 listOf(trackNumber.number.toString())
-            )
-        ) else listOf()
+            ) else null,
+            if (stagedDuplicateExists) PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                "validation.layout.track-number.duplicate-name-draft",
+                listOf(trackNumber.number.toString())
+            ) else null,
+        )
     }
 
     private fun validateKmPost(
@@ -576,21 +591,35 @@ class PublicationService @Autowired constructor(
         )
         val structureErrors = validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
         val duplicationErrors =
-            if (switch.exists) validateSwitchNameDuplication(switch, version.validatedAssetVersion.id) else listOf()
+            if (switch.exists) validateSwitchNameDuplication(switch, validationVersions) else listOf()
         return fieldErrors + referenceErrors + structureErrors + duplicationErrors
     }
 
     private fun validateSwitchNameDuplication(
         switch: TrackLayoutSwitch,
-        id: IntId<TrackLayoutSwitch>,
+        versions: ValidationVersions,
     ): List<PublishValidationError> {
-        return if (switchService.duplicateNameExistsForPublicationCandidate(id)) listOf(
-            PublishValidationError(
+        val drafts = versions.switches.map { it.officialId to switchService.get(it.validatedAssetVersion) }
+        val officials = switchDao.fetchVersions(OFFICIAL, false).map(switchService::get).filterNot { official ->
+            drafts.map { draft -> draft.first }.contains(official.id)
+        }
+        val officialDuplicateExists =
+            officials.any { official -> official.id != switch.id && official.name == switch.name }
+        val stagedDuplicateExists =
+            drafts.any { (_, draft) -> draft.name == switch.name && draft.id != switch.id && draft.stateCategory != LayoutStateCategory.NOT_EXISTING }
+
+        return listOfNotNull(
+            if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                "validation.layout.switch.duplicate-name",
+                "validation.layout.switch.duplicate-name-official",
                 listOf(switch.name.toString())
-            )
-        ) else listOf()
+            ) else null,
+            if (stagedDuplicateExists) PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                "validation.layout.switch.duplicate-name-draft",
+                listOf(switch.name.toString())
+            ) else null,
+        )
     }
 
     private fun validateReferenceLine(
@@ -654,21 +683,38 @@ class PublicationService @Autowired constructor(
             } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
         } else listOf()
         val duplicateNameErrors = if (locationTrack.exists) validateLocationTrackNameDuplication(
-            locationTrack,
-            version.validatedAssetVersion.id,
+            locationTrack, validationVersions
         ) else listOf()
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
     }
 
     private fun validateLocationTrackNameDuplication(
         locationTrack: LocationTrack,
-        id: IntId<LocationTrack>,
+        versions: ValidationVersions,
     ): List<PublishValidationError> {
+        val drafts = versions.locationTracks.map { it.officialId to locationTrackService.get(it.validatedAssetVersion) }
+            .filter { (_, lt) -> lt.trackNumberId == locationTrack.trackNumberId }
+        val officials = locationTrackDao.fetchVersions(OFFICIAL, false, locationTrack.trackNumberId)
+            .map(locationTrackService::get)
+            .filterNot { official ->
+                drafts.map { draft -> draft.first }.contains(official.id)
+            }
+        val officialDuplicateExists =
+            officials.any { official -> official.id != locationTrack.id && official.name == locationTrack.name }
+        val stagedDuplicateExists =
+            drafts.any { (_, draft) -> draft.name == locationTrack.name && draft.id != locationTrack.id && draft.state != LayoutState.DELETED }
+        val trackNumberName =
+            locationTrack.trackNumberId.let { trackNumberService.get(DRAFT, it)?.number.toString() } ?: ""
+
         return listOfNotNull(
-            if (locationTrackService.duplicateNameExistsFor(id)) PublishValidationError(
+            if (stagedDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                "validation.layout.location-track.duplicate-name",
-                listOf(locationTrack.name.toString())
+                "validation.layout.location-track.duplicate-name-draft",
+                listOf(locationTrack.name.toString(), trackNumberName)
+            ) else null, if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                "validation.layout.location-track.duplicate-name-official",
+                listOf(locationTrack.name.toString(), trackNumberName)
             ) else null
         )
     }
@@ -1036,14 +1082,16 @@ class PublicationService @Autowired constructor(
                 PropKey("length"),
                 getLengthChangedRemarkOrNull(changes.length.old, changes.length.new),
             ),
-            compareChange({ !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
+            compareChange(
+                { !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
                 changes.startPoint.old,
                 changes.startPoint.new,
                 ::formatLocation,
                 PropKey("start-location"),
                 getPointMovedRemarkOrNull(changes.startPoint.old, changes.startPoint.new)
             ),
-            compareChange({ !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
+            compareChange(
+                { !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
                 changes.endPoint.old,
                 changes.endPoint.new,
                 ::formatLocation,
@@ -1078,7 +1126,7 @@ class PublicationService @Autowired constructor(
             ::formatLocation,
             PropKey("location"),
             remark = getPointMovedRemarkOrNull(changes.location.old, changes.location.new)
-    ),
+        ),
     )
 
     fun diffSwitch(
