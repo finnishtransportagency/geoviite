@@ -27,6 +27,7 @@ import {
     VerticalGeometryDiagramAlignmentId,
     VisibleExtentLookup,
 } from 'vertical-geometry/store';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 type VerticalGeometryDiagramHolderProps = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
@@ -130,7 +131,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
             'planId' in alignmentId
                 ? undefined
                 : getLocationTrackLinkingSummary(
-                      changeTimes.layoutLocationTrack,
+                      getMaxTimestamp(changeTimes.geometryPlan, changeTimes.layoutLocationTrack),
                       alignmentId.locationTrackId,
                       alignmentId.publishType,
                   );

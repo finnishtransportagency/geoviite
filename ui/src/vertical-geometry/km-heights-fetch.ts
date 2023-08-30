@@ -6,8 +6,9 @@ import {
 } from 'geometry/geometry-api';
 import throttle from '@jcoreio/async-throttle';
 import { ChangeTimes } from 'common/common-slice';
-import { toDate } from 'utils/date-utils';
+import { getMaxTimestamp, toDate } from 'utils/date-utils';
 import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
+import { TimeStamp } from 'common/common-model';
 
 type HeightCacheKey = string;
 type HeightCacheItem = {
@@ -46,28 +47,28 @@ function heightCacheKey(
         : `${alignmentId.planId}_${alignmentId.alignmentId}_${tickLength}`;
 }
 
-function getCache(changeTimes: ChangeTimes, alignmentId: VerticalGeometryDiagramAlignmentId) {
+function getCache(changeTime: TimeStamp, alignmentId: VerticalGeometryDiagramAlignmentId) {
     return 'planId' in alignmentId
-        ? geometryHeightsCache(toDate(changeTimes.geometryPlan))
-        : locationTrackHeightsCache(toDate(changeTimes.layoutLocationTrack));
+        ? geometryHeightsCache(toDate(changeTime))
+        : locationTrackHeightsCache(toDate(changeTime));
 }
 
 function getCacheItem(
-    changeTimes: ChangeTimes,
+    changeTime: TimeStamp,
     alignmentId: VerticalGeometryDiagramAlignmentId,
     tickLength: number,
 ): HeightCacheItem | undefined {
-    const cache = getCache(changeTimes, alignmentId);
+    const cache = getCache(changeTime, alignmentId);
     const key = heightCacheKey(alignmentId, tickLength);
     return cache.get(key);
 }
 
 function getOrCreateCacheItem(
-    changeTimes: ChangeTimes,
+    changeTime: TimeStamp,
     alignmentId: VerticalGeometryDiagramAlignmentId,
     tickLength: number,
 ): HeightCacheItem {
-    const cache = getCache(changeTimes, alignmentId);
+    const cache = getCache(changeTime, alignmentId);
     const key = heightCacheKey(alignmentId, tickLength);
     const item = cache.get(key);
     if (item !== undefined) {
@@ -180,11 +181,15 @@ export function useAlignmentHeights(
 ): TrackKmHeights[] | undefined {
     const [loadedHeights, setLoadedHeights] = useState<TrackKmHeights[]>();
 
-    const renderedRange = useRef({ alignmentId, startM, endM, tickLength });
-    renderedRange.current = { alignmentId, startM, endM, tickLength };
+    const changeTime =
+        alignmentId && 'planId' in alignmentId
+            ? changeTimes.geometryPlan
+            : getMaxTimestamp(changeTimes.geometryPlan, changeTimes.layoutLocationTrack);
+    const renderedRange = useRef({ alignmentId, startM, endM, tickLength, changeTime });
+    renderedRange.current = { alignmentId, startM, endM, tickLength, changeTime };
 
     const updateLoadedHeights = (sM: number, eM: number) => {
-        const cacheItem = alignmentId && getCacheItem(changeTimes, alignmentId, tickLength);
+        const cacheItem = alignmentId && getCacheItem(changeTime, alignmentId, tickLength);
         if (cacheItem) {
             setLoadedHeights(
                 cacheItem.resolved.filter(
@@ -205,7 +210,7 @@ export function useAlignmentHeights(
             return;
         }
 
-        const cacheItem = alignmentId && getOrCreateCacheItem(changeTimes, alignmentId, tickLength);
+        const cacheItem = alignmentId && getOrCreateCacheItem(changeTime, alignmentId, tickLength);
         const queryRange = cacheItem && getQueryableRange(cacheItem.resolved, startM, endM);
         if (queryRange === null) {
             updateLoadedHeights(startM, endM);
@@ -218,7 +223,7 @@ export function useAlignmentHeights(
             ).then(([loadedKms, loadedTickLength]) => {
                 // the throttled fetcher can return results for earlier queries
                 const loadedCacheItem = getOrCreateCacheItem(
-                    changeTimes,
+                    changeTime,
                     alignmentId,
                     loadedTickLength,
                 );
@@ -233,13 +238,14 @@ export function useAlignmentHeights(
                     renderedRange.current.alignmentId === alignmentId &&
                     renderedRange.current.startM === startM &&
                     renderedRange.current.endM === endM &&
-                    renderedRange.current.tickLength === tickLength
+                    renderedRange.current.tickLength === tickLength &&
+                    renderedRange.current.changeTime === changeTime
                 ) {
                     updateLoadedHeights(startM, endM);
                 }
             });
         }
-    }, [alignmentId, startM, endM, tickLength]);
+    }, [alignmentId, startM, endM, tickLength, changeTime]);
 
     return loadedHeights;
 }
