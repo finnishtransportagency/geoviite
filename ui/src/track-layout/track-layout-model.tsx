@@ -235,6 +235,10 @@ export type AlignmentStartAndEnd = {
     end: AddressPoint | null;
 };
 
+export type SwitchesAtEnds = {
+    start: LayoutSwitchId | null;
+    end: LayoutSwitchId | null;
+};
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,
     presentationJointNumber: JointNumber,
