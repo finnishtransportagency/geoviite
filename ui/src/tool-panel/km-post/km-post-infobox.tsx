@@ -52,7 +52,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
 
     React.useEffect(() => {
         getKmLengths(publishType, kmPost.trackNumberId).then((details) => {
-            details.filter((value) => value.kmNumber === kmPost.kmNumber)[0]
+            details.find((value) => value.kmNumber === kmPost.kmNumber)
                 ? setKmPostLength(
                       details.filter((value) => value.kmNumber === kmPost.kmNumber)[0].length,
                   )
@@ -113,9 +113,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-
-                    <InfoboxField label={'Ratakilometrin pituus'} value={kmPostLength} />
-
+                    {kmPostLength && (
+                        <InfoboxField label={'Ratakilometrin pituus'} value={kmPostLength} />
+                    )}
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
