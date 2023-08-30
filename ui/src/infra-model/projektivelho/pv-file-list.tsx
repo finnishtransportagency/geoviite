@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState } from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { Trans, useTranslation } from 'react-i18next';
 import styles from './pv-file-list.scss';
@@ -20,10 +21,17 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Oid, TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
-import { useState } from 'react';
 import { WriteAccessRequired } from 'user/write-access-required';
-import { useContextMenu, Menu, Item } from 'react-contexify';
+import { Item, Menu, useContextMenu } from 'react-contexify';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import {
+    getPVSortInfoForProp,
+    PVInitiallyUnsorted,
+    PVTableSortField,
+    PVTableSortInformation,
+    sortPVTableColumns,
+} from 'infra-model/projektivelho/pv-file-list-utils';
+import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -109,31 +117,71 @@ export const PVFileList = ({
     const rejectByProjectGroup = (projectGroupOid: string) =>
         rejectByFilter((item: PVDocumentHeader) => isProjectGroup(item, projectGroupOid));
 
+    const [sortInfo, setSortInfo] = React.useState<PVTableSortInformation>(PVInitiallyUnsorted);
+
+    const [sortedDocumentHeaders, setSortedDocumentHeaders] = React.useState<PVDocumentHeader[]>([
+        ...documentHeaders,
+    ]);
+
+    React.useEffect(() => {
+        const sortableDocumentHeaders = sortPVTableColumns(sortInfo, [...documentHeaders]);
+        setSortedDocumentHeaders(sortableDocumentHeaders);
+    }, [documentHeaders, sortInfo]);
+
+    const sortByProp = (propName: PVTableSortField) => {
+        const newSortInfo = getPVSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
+
+        setSortInfo(newSortInfo);
+
+        if (newSortInfo.direction === SortDirection.UNSORTED) {
+            setSortedDocumentHeaders([...documentHeaders]);
+        }
+    };
+
+    const sortableTableHeader = (prop: PVTableSortField, translationKey: string, qaId: string) => (
+        <Th
+            onClick={() => sortByProp(prop)}
+            qa-id={qaId}
+            icon={
+                sortInfo?.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
+            }>
+            {t(translationKey)}
+        </Th>
+    );
+
     return (
         <div>
             <Table className={styles['projektivelho-file-list__table']} wide isLoading={isLoading}>
                 <thead>
                     <tr>
                         <Th></Th>
-                        <Th qa-id="projektivelho.project-name">
-                            {t('projektivelho.file-list.header.project-name')}
-                        </Th>
-                        <Th qa-id="projektivelho.document-name">
-                            {t('projektivelho.file-list.header.document-name')}
-                        </Th>
-                        <Th qa-id="projektivelho.document-description">
-                            {t('projektivelho.file-list.header.document-description')}
-                        </Th>
-                        <Th qa-id="projektivelho.document-modified">
-                            {t('projektivelho.file-list.header.document-modified')}
-                        </Th>
+                        {sortableTableHeader(
+                            PVTableSortField.PROJECT_NAME,
+                            'projektivelho.file-list.header.project-name',
+                            'projektivelho.project-name',
+                        )}
+                        {sortableTableHeader(
+                            PVTableSortField.DOCUMENT_NAME,
+                            'projektivelho.file-list.header.document-name',
+                            'projektivelho.document-name',
+                        )}
+                        {sortableTableHeader(
+                            PVTableSortField.DOCUMENT_DESCRIPTION,
+                            'projektivelho.file-list.header.document-description',
+                            'projektivelho.document-description',
+                        )}
+                        {sortableTableHeader(
+                            PVTableSortField.DOCUMENT_MODIFIED,
+                            'projektivelho.file-list.header.document-modified',
+                            'projektivelho.document-modified',
+                        )}
                         <WriteAccessRequired>
                             <Th></Th>
                         </WriteAccessRequired>
                     </tr>
                 </thead>
                 <tbody>
-                    {documentHeaders.map((item) => (
+                    {sortedDocumentHeaders.map((item) => (
                         <PVFileListRow
                             listMode={listMode}
                             key={item.document.id}

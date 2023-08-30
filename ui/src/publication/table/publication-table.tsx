@@ -5,11 +5,11 @@ import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
 import { PublicationTableItem } from 'publication/publication-model';
 import {
-    getSortDirectionIcon,
     getSortInfoForProp,
     PublicationDetailsTableSortField,
     PublicationDetailsTableSortInformation,
 } from './publication-table-utils';
+import { getSortDirectionIcon } from 'utils/table-utils';
 
 export type PublicationTableProps = {
     truncated?: boolean;

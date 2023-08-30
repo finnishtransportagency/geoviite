@@ -1,6 +1,6 @@
 import { Operation, PublishValidationError } from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
-import { nextSortDirection, SortDirection } from 'publication/table/publication-table-utils';
+import { nextSortDirection, SortDirection } from 'utils/table-utils';
 
 export enum SortProps {
     NAME = 'NAME',

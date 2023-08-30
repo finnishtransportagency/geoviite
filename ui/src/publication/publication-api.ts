@@ -18,11 +18,9 @@ import {
     PublishResult,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
-import {
-    PublicationDetailsTableSortField,
-    SortDirection,
-} from 'publication/table/publication-table-utils';
 import i18next from 'i18next';
+import { PublicationDetailsTableSortField } from 'publication/table/publication-table-utils';
+import { SortDirection } from 'utils/table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
