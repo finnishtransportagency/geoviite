@@ -114,7 +114,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         }
                     />
                     {kmPostLength && (
-                        <InfoboxField label={'Ratakilometrin pituus'} value={kmPostLength} />
+                        <InfoboxField
+                            label={t('tool-panel.km-post.layout.kilometer-length')}
+                            value={kmPostLength}
+                        />
                     )}
                     <InfoboxButtons>
                         <Button

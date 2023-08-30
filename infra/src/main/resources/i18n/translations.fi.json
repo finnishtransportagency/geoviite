@@ -353,6 +353,7 @@
                 "general-title": "Tasakmpisteen perustiedot",
                 "km-post": "Tasakmpistetunnus",
                 "track-number": "Ratanumero",
+                "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
                 "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
