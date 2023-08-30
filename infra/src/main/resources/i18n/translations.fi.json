@@ -1353,7 +1353,9 @@
         "confirmation-delete-title": "Vaihteen poistaminen",
         "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
         "changed-switch-structure-warning": "Vaihteen vaihdetyyppiä on muokattu.",
-        "confirm-switch-save": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä. Haluatko varmasti tallentaa muutokset?"
+        "switch-will-be-unlinked": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä.",
+        "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
+        "confirm-switch-delete": "Haluatko varmasti poistaa vaihteen paikannuspohjasta?"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

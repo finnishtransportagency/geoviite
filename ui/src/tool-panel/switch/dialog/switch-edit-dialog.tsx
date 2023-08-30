@@ -15,11 +15,10 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Icons } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import styles from '../switch-infobox.scss';
 import {
     SwitchOwner,
     SwitchOwnerId,
@@ -33,6 +32,7 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import styles from 'tool-panel/location-track/dialog/location-track-edit-dialog.scss';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -54,8 +54,11 @@ export const SwitchEditDialog = ({
     onDelete,
 }: SwitchDialogProps) => {
     const { t } = useTranslation();
-    const [showConfirmationDialog, setShowConfirmationDialog] = React.useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+    const [showStructureChangeConfirmationDialog, setShowStructureChangeConfirmationDialog] =
+        React.useState(false);
+    const [showDeleteOfficialConfirmDialog, setShowDeleteOfficialConfirmDialog] =
+        React.useState(false);
+    const [showDeleteDraftConfirmDialog, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] = React.useState<LayoutStateCategory>();
     const [switchName, setSwitchName] = React.useState<string>('');
     const [trapPoint, setTrapPoint] = React.useState<TrapPoint>(TrapPoint.Unknown);
@@ -155,8 +158,9 @@ export const SwitchEditDialog = ({
     }
 
     function saveOrConfirm() {
-        if (switchStateCategory === 'NOT_EXISTING' || switchStructureChanged) {
-            setShowConfirmationDialog(true);
+        if (switchStateCategory === 'NOT_EXISTING') setShowDeleteOfficialConfirmDialog(true);
+        else if (switchStructureChanged) {
+            setShowStructureChangeConfirmationDialog(true);
         } else {
             save();
         }
@@ -288,7 +292,7 @@ export const SwitchEditDialog = ({
     }
 
     function handleOnDelete() {
-        setShowDeleteDialog(false);
+        setShowDeleteDraftConfirmDialog(false);
         onDelete && onDelete();
     }
 
@@ -307,7 +311,7 @@ export const SwitchEditDialog = ({
                         {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
                             <div className={dialogStyles['dialog-footer__content--shrink']}>
                                 <Button
-                                    onClick={() => setShowDeleteDialog(true)}
+                                    onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
                                     {t('tool-panel.switch.layout.delete-draft')}
@@ -489,20 +493,16 @@ export const SwitchEditDialog = ({
                     </FormLayoutColumn>
                 </FormLayout>
             </Dialog>
-            {showConfirmationDialog && (
+            {showStructureChangeConfirmationDialog && (
                 <Dialog
-                    title={
-                        switchStructureChanged
-                            ? t('switch-dialog.confirmation-title')
-                            : t('switch-dialog.confirmation-delete-title')
-                    }
+                    title={t('switch-dialog.confirmation-title')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
                     className={dialogStyles['dialog--normal']}
                     footerContent={
                         <>
                             <Button
-                                onClick={() => setShowConfirmationDialog(false)}
+                                onClick={() => setShowStructureChangeConfirmationDialog(false)}
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={isSaving}>
                                 {t('button.cancel')}
@@ -514,23 +514,56 @@ export const SwitchEditDialog = ({
                             )}
                         </>
                     }>
-                    <ul className={styles['switch-edit-dialog__confirmation-list']}>
-                        {switchStateCategory == 'NOT_EXISTING' && (
-                            <li>{t('switch-dialog.deleted-state-warning')}</li>
-                        )}
-
-                        {switchStructureChanged && (
-                            <li>{t('switch-dialog.changed-switch-structure-warning')}</li>
-                        )}
-                    </ul>
-                    <p>{t('switch-dialog.confirm-switch-save')}</p>
+                    <p>{t('switch-dialog.changed-switch-structure-warning')}</p>
+                    <p>
+                        {' '}
+                        <span className={styles['location-track-edit-dialog__warning']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />
+                        </span>{' '}
+                        {t('switch-dialog.switch-will-be-unlinked')}{' '}
+                        {t('switch-dialog.confirm-switch-save')}
+                    </p>
                 </Dialog>
             )}
-            {showDeleteDialog && switchId && (
+            {showDeleteOfficialConfirmDialog && (
+                <Dialog
+                    title={t('switch-dialog.confirmation-delete-title')}
+                    variant={DialogVariant.DARK}
+                    allowClose={false}
+                    className={dialogStyles['dialog--normal']}
+                    footerContent={
+                        <>
+                            <Button
+                                onClick={() => setShowDeleteOfficialConfirmDialog(false)}
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={isSaving}>
+                                {t('button.cancel')}
+                            </Button>
+                            {isSaving ? (
+                                <Spinner />
+                            ) : (
+                                <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                                    {t('button.delete')}
+                                </Button>
+                            )}
+                        </>
+                    }>
+                    <p>{t('switch-dialog.deleted-state-warning')}</p>
+                    <p>
+                        {' '}
+                        <span className={styles['location-track-edit-dialog__warning']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />
+                        </span>{' '}
+                        {t('switch-dialog.switch-will-be-unlinked')}{' '}
+                        {t('switch-dialog.confirm-switch-delete')}
+                    </p>
+                </Dialog>
+            )}
+            {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteDialog
                     switchId={switchId}
                     onDelete={handleOnDelete}
-                    onCancel={() => setShowDeleteDialog(false)}
+                    onCancel={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}
         </React.Fragment>
