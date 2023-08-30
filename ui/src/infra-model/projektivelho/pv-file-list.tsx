@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import styles from './pv-file-list.scss';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { formatDateFull } from 'utils/date-utils';
@@ -254,6 +254,91 @@ const PVFileListRow = ({
     const [showConfirmProjectReject, setShowConfirmProjectReject] = useState(false);
     const [showConfirmProjectGroupReject, setShowConfirmProjectGroupReject] = useState(false);
 
+    const confirmAssignmentRejectDialog = () => (
+        <Dialog
+            className={'dialog--wide'}
+            variant={DialogVariant.LIGHT}
+            title={t('projektivelho.file-list.reject-by-assignment-title')}
+            onClose={() => setShowConfirmAssignmentReject(false)}
+            footerContent={
+                <React.Fragment>
+                    <Button
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => setShowConfirmAssignmentReject(false)}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            item.assignment && onRejectByAssignment(item.assignment?.oid);
+                            setShowConfirmAssignmentReject(false);
+                        }}>
+                        {t('projektivelho.file-list.reject-confirm', [itemCounts.assignment])}
+                    </Button>
+                </React.Fragment>
+            }>
+            <Trans
+                i18nKey="projektivelho.file-list.reject-by-assignment-message"
+                values={[item.assignment?.name, itemCounts.assignment]}
+            />
+        </Dialog>
+    );
+    const confirmProjectRejectDialog = () => (
+        <Dialog
+            className={'dialog--wide'}
+            variant={DialogVariant.LIGHT}
+            title={t('projektivelho.file-list.reject-by-project-title')}
+            onClose={() => setShowConfirmProjectReject(false)}
+            footerContent={
+                <React.Fragment>
+                    <Button
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => setShowConfirmProjectReject(false)}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            item.project && onRejectByProject(item.project?.oid);
+                            setShowConfirmProjectReject(false);
+                        }}>
+                        {t('projektivelho.file-list.reject-confirm', [itemCounts.project])}
+                    </Button>
+                </React.Fragment>
+            }>
+            <Trans
+                i18nKey="projektivelho.file-list.reject-by-project-message"
+                values={[item.project?.name, itemCounts.project]}
+            />
+        </Dialog>
+    );
+    const confirmProjectGroupRejectDialog = () => (
+        <Dialog
+            className={'dialog--wide'}
+            variant={DialogVariant.LIGHT}
+            title={t('projektivelho.file-list.reject-by-project-group-title')}
+            onClose={() => setShowConfirmProjectGroupReject(false)}
+            footerContent={
+                <React.Fragment>
+                    <Button
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => setShowConfirmProjectGroupReject(false)}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            item.projectGroup && onRejectByProjectGroup(item.projectGroup?.oid);
+                            setShowConfirmProjectGroupReject(false);
+                        }}>
+                        {t('projektivelho.file-list.reject-confirm', [itemCounts.projectGroup])}
+                    </Button>
+                </React.Fragment>
+            }>
+            <Trans
+                i18nKey="projektivelho.file-list.reject-by-project-group-message"
+                values={[item.projectGroup?.name, itemCounts.projectGroup]}
+            />
+        </Dialog>
+    );
+
     return (
         <>
             <tr key={`${item.document.id}`}>
@@ -347,6 +432,9 @@ const PVFileListRow = ({
                                 </Item>
                             </Menu>
                         </div>
+                        {showConfirmAssignmentReject && confirmAssignmentRejectDialog()}
+                        {showConfirmProjectReject && confirmProjectRejectDialog()}
+                        {showConfirmProjectGroupReject && confirmProjectGroupRejectDialog()}
                     </td>
                 </WriteAccessRequired>
             </tr>
@@ -359,107 +447,6 @@ const PVFileListRow = ({
                 </tr>
             ) : (
                 <></>
-            )}
-            {showConfirmAssignmentReject && (
-                <Dialog
-                    className={'dialog--wide'}
-                    variant={DialogVariant.LIGHT}
-                    title={t('projektivelho.file-list.reject-by-assignment-title')}
-                    onClose={() => setShowConfirmAssignmentReject(false)}
-                    footerContent={
-                        <React.Fragment>
-                            <Button
-                                variant={ButtonVariant.SECONDARY}
-                                onClick={() => setShowConfirmAssignmentReject(false)}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    item.assignment && onRejectByAssignment(item.assignment?.oid);
-                                    setShowConfirmAssignmentReject(false);
-                                }}>
-                                {t('projektivelho.file-list.reject-confirm', [
-                                    itemCounts.assignment,
-                                ])}
-                            </Button>
-                        </React.Fragment>
-                    }>
-                    <span
-                        dangerouslySetInnerHTML={{
-                            __html: t('projektivelho.file-list.reject-by-assignment-message', [
-                                item.assignment?.name,
-                                itemCounts.assignment,
-                            ]),
-                        }}
-                    />
-                </Dialog>
-            )}
-            {showConfirmProjectReject && (
-                <Dialog
-                    className={'dialog--wide'}
-                    variant={DialogVariant.LIGHT}
-                    title={t('projektivelho.file-list.reject-by-project-title')}
-                    onClose={() => setShowConfirmProjectReject(false)}
-                    footerContent={
-                        <React.Fragment>
-                            <Button
-                                variant={ButtonVariant.SECONDARY}
-                                onClick={() => setShowConfirmProjectReject(false)}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    item.project && onRejectByProject(item.project?.oid);
-                                    setShowConfirmProjectReject(false);
-                                }}>
-                                {t('projektivelho.file-list.reject-confirm', [itemCounts.project])}
-                            </Button>
-                        </React.Fragment>
-                    }>
-                    <span
-                        dangerouslySetInnerHTML={{
-                            __html: t('projektivelho.file-list.reject-by-project-message', [
-                                item.project?.name,
-                                itemCounts.project,
-                            ]),
-                        }}
-                    />
-                </Dialog>
-            )}
-            {showConfirmProjectGroupReject && (
-                <Dialog
-                    className={'dialog--wide'}
-                    variant={DialogVariant.LIGHT}
-                    title={t('projektivelho.file-list.reject-by-project-group-title')}
-                    onClose={() => setShowConfirmProjectGroupReject(false)}
-                    footerContent={
-                        <React.Fragment>
-                            <Button
-                                variant={ButtonVariant.SECONDARY}
-                                onClick={() => setShowConfirmProjectGroupReject(false)}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    item.projectGroup &&
-                                        onRejectByProjectGroup(item.projectGroup?.oid);
-                                    setShowConfirmProjectGroupReject(false);
-                                }}>
-                                {t('projektivelho.file-list.reject-confirm', [
-                                    itemCounts.projectGroup,
-                                ])}
-                            </Button>
-                        </React.Fragment>
-                    }>
-                    <span
-                        dangerouslySetInnerHTML={{
-                            __html: t('projektivelho.file-list.reject-by-project-group-message', [
-                                item.projectGroup?.name,
-                                itemCounts.projectGroup,
-                            ]),
-                        }}
-                    />
-                </Dialog>
             )}
         </>
     );

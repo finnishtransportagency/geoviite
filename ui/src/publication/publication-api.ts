@@ -18,6 +18,7 @@ import {
     PublishResult,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
+import i18next from 'i18next';
 import { PublicationDetailsTableSortField } from 'publication/table/publication-table-utils';
 import { SortDirection } from 'utils/table-utils';
 
@@ -48,7 +49,9 @@ export const getLatestPublications = (count: number) => {
 };
 
 export const getPublicationAsTableItems = (id: PublicationId) =>
-    getIgnoreError<PublicationTableItem[]>(`${PUBLICATION_URL}/${id}/table-rows`);
+    getIgnoreError<PublicationTableItem[]>(
+        `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
+    );
 
 export const getPublicationsAsTableItems = (
     from?: Date,
@@ -63,6 +66,7 @@ export const getPublicationsAsTableItems = (
         to: to ? to.toISOString() : undefined,
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
+        lang: i18next.language,
     });
 
     return getIgnoreError<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
@@ -82,6 +86,7 @@ export const getPublicationsCsvUri = (
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        lang: i18next.language,
     });
 
     return `${PUBLICATION_URL}/csv${params}`;

@@ -36,7 +36,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getReferenceLine } from 'track-layout/layout-reference-line-api';
-import { getAddress } from 'common/geocoding-api';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
@@ -509,7 +508,7 @@ function createAlignmentFeatures(
             },
             isGeometryAlignment,
         ),
-        ...(selectedLinkInterval.start
+        ...(selectedLinkInterval.start && selectedLinkInterval.start.address
             ? [
                   createPointTagFeature(
                       selectedLinkInterval.start,
@@ -517,7 +516,7 @@ function createAlignmentFeatures(
                   ),
               ]
             : []),
-        ...(selectedLinkInterval.end
+        ...(selectedLinkInterval.end && selectedLinkInterval.end.address
             ? [
                   createPointTagFeature(
                       selectedLinkInterval.end,
@@ -525,7 +524,7 @@ function createAlignmentFeatures(
                   ),
               ]
             : []),
-        ...(highlightLinkPoint
+        ...(highlightLinkPoint && highlightLinkPoint.address
             ? [
                   createPointTagFeature(
                       highlightLinkPoint,
@@ -733,7 +732,9 @@ async function getLinkPointsWithAddresses<
         .map((propertyName: TPropertyName) => {
             const originalPoint = points[propertyName];
             return originalPoint != undefined
-                ? getAddress(trackNumberId, originalPoint, 'DRAFT').then((address) => ({
+                ? // This is commented out for now to re-evaluate the linking tag feature
+                  //getAddress(trackNumberId, originalPoint, 'DRAFT')
+                  Promise.resolve(null).then((address) => ({
                       propertyName: propertyName,
                       address: address || undefined,
                   }))

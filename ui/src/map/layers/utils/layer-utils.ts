@@ -218,7 +218,9 @@ export async function getVisiblePlansWithStatus(
     );
     return Promise.all(
         planPromises.map((planPromise) =>
-            planPromise.then((plan) => getPlanAndStatus(plan, publishType)),
+            planPromise.then((plan) =>
+                plan && !plan.planHidden ? getPlanAndStatus(plan, publishType) : undefined,
+            ),
         ),
     ).then((plans) => plans.filter(filterNotEmpty));
 }

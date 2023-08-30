@@ -89,9 +89,11 @@ class VaiheJaLaatutiedotFormGroup(by: By) : FormGroup(by) {
     fun suunnitteluvaihe(): String = fieldValue("Suunnitteluvaihe")
     fun vaiheenTarkennus(): String = fieldValue("Vaiheen tarkennus")
     fun laatu(): String = fieldValue("Laatu")
+    fun korkeusasema(): String = fieldValue("Korkeusasema")
     fun editSuunnitteluvaihe(input: String) = changeFieldDropDownValues("Suunnitteluvaihe", listOf(input))
     fun editVaiheenTarkennus(input: String) = changeFieldDropDownValues("Vaiheen tarkennus", listOf(input))
     fun editLaatu(input: String) = changeFieldDropDownValues("Laatu", listOf(input))
+    fun editKorkeusasema(input: String) = changeFieldDropDownValues("Korkeusasema", listOf(input))
 }
 
 class LokiJaLinkitystiedotFormGroup(by: By) : FormGroup(by) {
