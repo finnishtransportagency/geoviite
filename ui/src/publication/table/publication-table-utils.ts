@@ -1,4 +1,5 @@
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export enum PublicationDetailsTableSortField {
     NAME = 'NAME',
@@ -53,5 +54,7 @@ export const getSortDirectionIcon = (direction: SortDirection) => {
             return Icons.Descending;
         case SortDirection.UNSORTED:
             return undefined;
+        default:
+            return exhaustiveMatchingGuard(direction);
     }
 };

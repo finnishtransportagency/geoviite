@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -9,6 +10,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.projektivelho.PVDocument
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -16,8 +20,7 @@ import java.time.Instant
 
 
 enum class PlanSource {
-    GEOMETRIAPALVELU,
-    PAIKANNUSPALVELU,
+    GEOMETRIAPALVELU, PAIKANNUSPALVELU,
 }
 
 /**
@@ -32,6 +35,7 @@ data class GeometryPlanHeader(
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val kmNumberRange: Range<KmNumber>?,
     val measurementMethod: MeasurementMethod?,
+    val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val planTime: Instant?,
@@ -42,6 +46,7 @@ data class GeometryPlanHeader(
     val author: String?,
     val hasProfile: Boolean,
     val hasCant: Boolean,
+    val isHidden: Boolean,
 ) {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
@@ -72,7 +77,9 @@ data class GeometryPlan(
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
+    val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeText?,
+    val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) {
@@ -100,6 +107,15 @@ data class GeometryUnits(
 )
 
 data class GeometryPlanLinkingSummary(
-    val linkedAt: Instant,
-    val linkedByUsers: String,
+    val linkedAt: Instant?,
+    val linkedByUsers: List<UserName>,
+    val currentlyLinked: Boolean,
 )
+
+data class GeometryPlanLinkedItems(
+    val locationTracks: List<IntId<LocationTrack>>,
+    val switches: List<IntId<TrackLayoutSwitch>>,
+    val kmPosts: List<IntId<TrackLayoutKmPost>>,
+) {
+    val isEmpty = locationTracks.isEmpty() && switches.isEmpty() && kmPosts.isEmpty()
+}

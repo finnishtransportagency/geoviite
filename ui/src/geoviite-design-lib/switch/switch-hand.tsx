@@ -1,18 +1,20 @@
 import React from 'react';
 import { SwitchHand as SwitchHandModel } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type SwitchHandProps = {
-    hand?: SwitchHandModel | null;
+    hand: SwitchHandModel;
 };
 
-function getTranslationKey(switchHand: SwitchHandModel | null) {
+function getTranslationKey(switchHand: SwitchHandModel) {
     switch (switchHand) {
         case 'LEFT':
         case 'RIGHT':
+        case 'NONE':
             return switchHand;
         default:
-            return 'NONE';
+            return exhaustiveMatchingGuard(switchHand);
     }
 }
 

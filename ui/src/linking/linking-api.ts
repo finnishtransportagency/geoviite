@@ -15,6 +15,7 @@ import {
 } from 'api/api-fetch';
 import {
     GeometryPlanLinkStatus,
+    KmPostLinkingParameters,
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     LocationTrackEndpoint,
@@ -32,7 +33,7 @@ import {
 } from 'common/change-time-api';
 import { PublishType, SwitchStructureId, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
-import { GeometryAlignmentId, GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
@@ -236,14 +237,7 @@ export async function createSuggestedSwitch(
     });
 }
 
-export async function linkKmPost(
-    geometryKmPostId: GeometryKmPostId,
-    layoutKmPostId: LayoutKmPostId,
-): Promise<LayoutKmPostId> {
-    const params = {
-        geometryKmPostId: geometryKmPostId,
-        layoutKmPostId: layoutKmPostId,
-    };
+export async function linkKmPost(params: KmPostLinkingParameters): Promise<LayoutKmPostId> {
     const result = await postIgnoreError<typeof params, LayoutKmPostId>(
         linkingUri('km-posts', 'geometry'),
         params,

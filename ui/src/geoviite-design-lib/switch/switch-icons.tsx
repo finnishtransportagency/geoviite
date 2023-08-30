@@ -24,6 +24,7 @@ import switchSkvOSvgLarge from 'geoviite-design-lib/glyphs/switch-large/switch_s
 import switchKrvSvgLarge from 'geoviite-design-lib/glyphs/switch-large/switch_krv.svg';
 import switchSrrSvgLarge from 'geoviite-design-lib/glyphs/switch-large/switch_srr.svg';
 import switchTyvSvgLarge from 'geoviite-design-lib/glyphs/switch-large/switch_tyv.svg';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | null): string {
     switch (type) {
@@ -46,7 +47,7 @@ function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | null): string {
         case 'SKV':
             return hand === 'LEFT' ? switchSkvVSvg : switchSkvOSvg;
         default:
-            return '';
+            return exhaustiveMatchingGuard(type);
     }
 }
 
@@ -69,7 +70,7 @@ function getSwitchLargeSvg(type: SwitchBaseType, hand: SwitchHand | null): strin
         case 'SKV':
             return hand === 'LEFT' ? switchSkvVSvgLarge : switchSkvOSvgLarge;
         default:
-            return '';
+            return exhaustiveMatchingGuard(type);
     }
 }
 

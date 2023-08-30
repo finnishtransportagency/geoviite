@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
@@ -30,6 +31,7 @@ class PublicationController @Autowired constructor(
     private val lockDao: LockDao,
     private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
+    private val localizationService: LocalizationService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -111,15 +113,13 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("latest")
     fun getLatestPublications(
-        @RequestParam("count") count: Int
+        @RequestParam("count") count: Int,
     ): Page<PublicationDetails> {
         logger.apiCall("getLatestPublications", "count" to count)
         val publications = publicationService.fetchLatestPublicationDetails(count)
 
         return Page(
-            totalCount = publications.size,
-            start = 0,
-            items = publications
+            totalCount = publications.size, start = 0, items = publications
         )
     }
 
@@ -131,6 +131,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
+        @RequestParam("lang") lang: String,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getPublicationsAsCsv",
@@ -138,11 +139,13 @@ class PublicationController @Autowired constructor(
             "to" to to,
             "sortBy" to sortBy,
             "order" to order,
-            "timeZone" to timeZone
+            "timeZone" to timeZone,
+            "lang" to lang
         )
 
-        val publicationsAsCsv =
-            publicationService.fetchPublicationsAsCsv(from, to, sortBy, order, timeZone)
+        val publicationsAsCsv = publicationService.fetchPublicationsAsCsv(
+            from, to, sortBy, order, timeZone, localizationService.getLocalization(lang)
+        )
 
         val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
 
@@ -157,6 +160,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
+        @RequestParam("lang") lang: String,
     ): Page<PublicationTableItem> {
         logger.apiCall(
             "getPublicationDetailsAsTableRows",
@@ -164,6 +168,7 @@ class PublicationController @Autowired constructor(
             "to" to to,
             "sortBy" to sortBy,
             "order" to order,
+            "lang" to lang
         )
 
         val publications = publicationService.fetchPublicationDetails(
@@ -171,6 +176,7 @@ class PublicationController @Autowired constructor(
             to = to,
             sortBy = sortBy,
             order = order,
+            translation = localizationService.getLocalization(lang)
         )
 
         return Page(
@@ -182,9 +188,12 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/table-rows")
-    fun getPublicationDetailsAsTableRows(@PathVariable("id") id: IntId<Publication>): List<PublicationTableItem> {
+    fun getPublicationDetailsAsTableRows(
+        @PathVariable("id") id: IntId<Publication>,
+        @RequestParam("lang") lang: String,
+    ): List<PublicationTableItem> {
         logger.apiCall("getPublicationDetailsAsTableRow", "id" to id)
-        return publicationService.getPublicationDetailsAsTableItems(id)
+        return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

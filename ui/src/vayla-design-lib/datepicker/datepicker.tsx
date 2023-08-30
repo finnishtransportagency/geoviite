@@ -10,7 +10,7 @@ import { useCloneRef } from 'utils/react-utils';
 
 type DatePickerProps = {
     value: Date | undefined;
-    onChange?: (date: Date) => void;
+    onChange?: (date: Date | undefined) => void;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 function getHeaderElement({
@@ -82,7 +82,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...prop
                 dateFormat="dd.MM.yyyy"
                 locale={fi}
                 selected={value}
-                onChange={(date: Date) => onChange && onChange(date)}
+                onChange={(date) => onChange && onChange(date ?? undefined)}
                 calendarStartDay={1}
                 showWeekNumbers
                 popperModifiers={[

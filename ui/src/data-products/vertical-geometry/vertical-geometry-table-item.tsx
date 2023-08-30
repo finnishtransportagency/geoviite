@@ -11,6 +11,7 @@ import { findCoordinateSystem } from 'data-products/data-products-utils';
 import { useLoader } from 'utils/react-utils';
 import { getSridList } from 'common/common-api';
 import { formatDateShort } from 'utils/date-utils';
+import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 
 type VerticalGeometryTableItemProps = {
     verticalGeometry: VerticalGeometryItem;
@@ -157,6 +158,9 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
             <td>
                 {verticalGeometry.verticalCoordinateSystem ??
                     t('data-products.vertical-geometry.unknown')}
+            </td>
+            <td>
+                <ElevationMeasurementMethod method={verticalGeometry.elevationMeasurementMethod} />
             </td>
             <td>{overlapsAnother ? t('data-products.vertical-geometry.overlaps-another') : ''}</td>
         </tr>

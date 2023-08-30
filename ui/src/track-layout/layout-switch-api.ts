@@ -21,11 +21,11 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
-import { indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 
 // TODO: GVT-2014 this should be a cache with nullable values as a switch might not exist in valid situations
-const switchCache = asyncCache<string, LayoutSwitch>();
+const switchCache = asyncCache<string, LayoutSwitch | null>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
@@ -77,7 +77,7 @@ export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutSwitch,
-): Promise<LayoutSwitch> {
+): Promise<LayoutSwitch | null> {
     return switchCache.get(changeTime, cacheKey(switchId, publishType), () =>
         getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
@@ -88,24 +88,20 @@ export async function getSwitches(
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutSwitch,
 ): Promise<LayoutSwitch[]> {
-    return switchCache.getMany(
-        changeTime,
-        switchIds,
-        (id) => cacheKey(id, publishType),
-        (fetchIds) =>
-            getThrowError<LayoutSwitch[]>(
-                `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
-            ).then((switches) => {
-                const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
-                return (id) => {
-                    const sw = switchMap.get(id);
-                    if (sw == undefined) {
-                        throw Error(`Couldn't find switch ${id}`);
-                    }
-                    return sw;
-                };
-            }),
-    );
+    return switchCache
+        .getMany(
+            changeTime,
+            switchIds,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getThrowError<LayoutSwitch[]>(
+                    `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
+                ).then((switches) => {
+                    const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
+                    return (id) => switchMap.get(id) ?? null;
+                }),
+        )
+        .then((switches) => switches.filter(filterNotEmpty));
 }
 
 export async function getSwitchJointConnections(

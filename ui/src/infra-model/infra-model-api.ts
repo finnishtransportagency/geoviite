@@ -122,6 +122,14 @@ export async function updateGeometryPlan(
     }
     return response;
 }
+export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | null> {
+    return putIgnoreError<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
+        (id) => {
+            updatePlanChangeTime();
+            return id;
+        },
+    );
+}
 
 export async function getPVDocuments(
     changeTime: TimeStamp,
@@ -151,13 +159,13 @@ export async function getPVDocumentCount(): Promise<PVDocumentCount | null> {
     return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
 }
 
-export async function rejectPVDocument(id: PVDocumentId): Promise<null> {
+export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
-        `${PROJEKTIVELHO_URI}/documents/${id}/status`,
+        `${PROJEKTIVELHO_URI}/documents/${ids}/status`,
         'REJECTED',
-    ).then((id) => {
+    ).then((ids) => {
         Snackbar.success(i18n.t('projektivelho.file-list.reject-success'));
-        return id;
+        return ids;
     });
 }
 

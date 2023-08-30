@@ -7,6 +7,7 @@ import {
     ErrorType,
     ValidationResponse,
 } from 'infra-model/infra-model-slice';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type InframodelValidationErrorListProps = {
     validationResponse: ValidationResponse | null;
@@ -22,6 +23,8 @@ const getIcon = (errorType: ErrorType) => {
         case 'OBSERVATION_MAJOR':
         case 'OBSERVATION_MINOR':
             return Icons.StatusError;
+        default:
+            return exhaustiveMatchingGuard(errorType);
     }
 };
 

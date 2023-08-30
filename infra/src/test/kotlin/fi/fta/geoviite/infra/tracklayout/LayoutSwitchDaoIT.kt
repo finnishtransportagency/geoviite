@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,6 +22,11 @@ import kotlin.test.assertContains
 class LayoutSwitchDaoIT @Autowired constructor(
     private val switchDao: LayoutSwitchDao,
 ): DBTestBase() {
+
+    @BeforeEach
+    fun cleanup() {
+        deleteFromTables("layout", "switch_joint", "switch")
+    }
 
     @Test
     fun switchExternalIdIsUnique() {

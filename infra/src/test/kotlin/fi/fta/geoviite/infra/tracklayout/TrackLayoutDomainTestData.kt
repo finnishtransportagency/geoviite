@@ -186,9 +186,11 @@ fun referenceLine(
     alignmentVersion = alignmentVersion,
 )
 
+private var locationTrackNameCounter = 0
+
 fun locationTrackAndAlignment(
     vararg segments: LayoutSegment,
-    name: String = "T001",
+    name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment(IntId(0), segments.toList(), name=name, description=description)
@@ -197,7 +199,7 @@ fun locationTrackAndAlignment(
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     vararg segments: LayoutSegment,
-    name: String = "T001",
+    name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment(trackNumberId, segments.toList(), name=name, description=description)
@@ -208,7 +210,7 @@ fun locationTrackAndAlignment(
     segments: List<LayoutSegment>,
     id: IntId<LocationTrack>? = null,
     draft: Draft<LocationTrack>? = null,
-    name: String = "T001",
+    name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
@@ -221,7 +223,7 @@ fun locationTrack(
     alignment: LayoutAlignment? = null,
     id: IntId<LocationTrack>? = null,
     draft: Draft<LocationTrack>? = null,
-    name: String = "T001",
+    name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LayoutState = LayoutState.IN_USE,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlanPhase as PlanPhaseModel } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type PlanPhaseProps = {
     phase: PlanPhaseModel | null;
@@ -16,8 +17,10 @@ function getTranslationKey(phase: PlanPhaseModel | null) {
         case 'NEW_INVESTMENT':
         case 'REMOVED_FROM_USE':
             return phase;
-        default:
+        case null:
             return 'UNKNOWN';
+        default:
+            return exhaustiveMatchingGuard(phase);
     }
 }
 

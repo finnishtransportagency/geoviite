@@ -24,8 +24,8 @@ export type PublicationLogProps = {
 const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     const { t } = useTranslation();
 
-    const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
-    const [endDate, setEndDate] = React.useState<Date>(currentDay);
+    const [startDate, setStartDate] = React.useState<Date | undefined>(subMonths(currentDay, 1));
+    const [endDate, setEndDate] = React.useState<Date | undefined>(currentDay);
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -35,8 +35,8 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
         setIsLoading(true);
 
         getPublicationsAsTableItems(
-            startOfDay(startDate),
-            endOfDay(endDate),
+            startDate && startOfDay(startDate),
+            endDate && endOfDay(endDate),
             sortInfo.propName,
             sortInfo.direction,
         ).then((r) => {
@@ -46,7 +46,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     }, [startDate, endDate, sortInfo]);
 
     const endDateErrors =
-        endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
+        startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
 
     return (
         <div className={styles['publication-log']}>
@@ -79,7 +79,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                         onClick={() =>
                             (location.href = getPublicationsCsvUri(
                                 startDate,
-                                endOfDay(endDate),
+                                endDate && endOfDay(endDate),
                                 sortInfo?.propName,
                                 sortInfo?.direction,
                             ))

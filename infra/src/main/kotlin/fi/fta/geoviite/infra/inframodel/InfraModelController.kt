@@ -2,12 +2,16 @@ package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
+import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.projektivelho.*
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.HttpsUrl
+import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -51,7 +55,8 @@ class InfraModelController @Autowired constructor(
         @RequestPart(value = "file") file: MultipartFile,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
     ): ValidationResponse {
-        logger.apiCall("validateFile",
+        logger.apiCall(
+            "validateFile",
             "file.originalFilename" to file.originalFilename,
             "overrides" to overrides,
         )
@@ -77,6 +82,23 @@ class InfraModelController @Autowired constructor(
     ): GeometryPlan {
         logger.apiCall("updateInfraModel", "overrides" to overrides, "extraInfo" to extraInfo)
         return infraModelService.updateInfraModel(planId, overrides, extraInfo)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PutMapping("/{planId}/hidden")
+    fun setInfraModelHidden(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @RequestBody hidden: Boolean,
+    ): IntId<GeometryPlan> {
+        logger.apiCall("setInfraModelHidden", "planId" to planId, "hidden" to hidden)
+        return geometryService.setPlanHidden(planId, hidden).id
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PutMapping("/{planId}/linked-items")
+    fun getInfraModelLinkedItems(@PathVariable("planId") planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
+        logger.apiCall("getInfraModelLinkedItems", "planId" to planId)
+        return geometryService.getPlanLinkedItems(planId)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -115,13 +137,13 @@ class InfraModelController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
-    @PutMapping("/projektivelho/documents/{id}/status")
-    fun updatePVDocumentStatus(
-        @PathVariable("id") id: IntId<PVDocument>,
+    @PutMapping("/projektivelho/documents/{ids}/status")
+    fun updatePVDocumentsStatuses(
+        @PathVariable("ids") ids: List<IntId<PVDocument>>,
         @RequestBody status: PVDocumentStatus,
-    ): IntId<PVDocument> {
-        logger.apiCall("updatePVDocumentStatus", "id" to id, "status" to status)
-        return pvDocumentService.updateDocumentStatus(id, status)
+    ): List<IntId<PVDocument>> {
+        logger.apiCall("updatePVDocumentsStatuses", "ids" to ids, "status" to status)
+        return pvDocumentService.updateDocumentsStatuses(ids, status)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -153,9 +175,10 @@ class InfraModelController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/projektivelho/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadPVDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
-        logger.apiCall("downloadPVDocument",  "documentId" to documentId)
+        logger.apiCall("downloadPVDocument", "documentId" to documentId)
         return pvDocumentService.getFile(documentId)
             ?.let(::toFileDownloadResponse)
             ?: throw NoSuchEntityException(PVDocument::class, documentId)
     }
+
 }

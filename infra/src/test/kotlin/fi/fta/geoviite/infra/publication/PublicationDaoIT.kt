@@ -31,12 +31,17 @@ class PublicationDaoIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        locationTrackDao.deleteDrafts()
-        referenceLineDao.deleteDrafts()
-        alignmentDao.deleteOrphanedAlignments()
-        switchDao.deleteDrafts()
-        kmPostDao.deleteDrafts()
-        trackNumberDao.deleteDrafts()
+        deleteFromTables(
+            "layout",
+            "location_track",
+            "reference_line",
+            "alignment",
+            "segment_version",
+            "switch_joint",
+            "switch",
+            "km_post",
+            "track_number"
+        )
     }
 
     @Test

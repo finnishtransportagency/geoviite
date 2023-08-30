@@ -64,7 +64,7 @@ class LayoutTrackNumberService(
     ): DaoResponse<TrackLayoutTrackNumber> {
         logger.serviceCall("updateExternalIdForTrackNumber", "id" to id, "oid" to oid)
 
-        val original = getDraft(id)
+        val original = getInternalOrThrow(DRAFT, id)
         val trackLayoutTrackNumber = original.copy(externalId = oid)
 
         return saveDraftInternal(trackLayoutTrackNumber)
@@ -72,7 +72,7 @@ class LayoutTrackNumberService(
 
     @Transactional
     fun deleteDraftOnlyTrackNumberAndReferenceLine(id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
-        val trackNumber = getDraft(id)
+        val trackNumber = getInternalOrThrow(DRAFT, id)
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, id)
             ?: throw IllegalStateException("Found Track Number without Reference Line $id")
 
@@ -81,8 +81,7 @@ class LayoutTrackNumberService(
     }
 
     private fun deleteDraftOnlyTrackNumber(trackNumber: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
-        if (trackNumber.getDraftType() != DraftType.NEW_DRAFT)
-            throw DeletingFailureException("Trying to delete non-draft Track Number")
+        if (trackNumber.getDraftType() != DraftType.NEW_DRAFT) throw DeletingFailureException("Trying to delete non-draft Track Number")
         require(trackNumber.id is IntId) { "Trying to delete or reset track number not yet saved to database" }
         return trackNumber.draft?.draftRowId.let { draftRowId ->
             require(draftRowId is IntId) { "Trying to delete draft Track Number that isn't yet stored in database" }
@@ -163,13 +162,12 @@ class LayoutTrackNumberService(
         )
 
         val kmLengths = getKmLengths(publishType, trackNumberId)
-        val filteredKmLengths = kmLengths
-            .filter { kmPost ->
-                val start = startKmNumber ?: kmLengths.first().kmNumber
-                val end = endKmNumber ?: kmLengths.last().kmNumber
+        val filteredKmLengths = kmLengths.filter { kmPost ->
+            val start = startKmNumber ?: kmLengths.first().kmNumber
+            val end = endKmNumber ?: kmLengths.last().kmNumber
 
-                kmPost.kmNumber in start..end
-            }
+            kmPost.kmNumber in start..end
+        }
 
         return asCsvFile(filteredKmLengths)
     }
@@ -208,6 +206,11 @@ class LayoutTrackNumberService(
             )
         } else listOf()
     }
+
+    fun officialDuplicateNameExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {
+        logger.serviceCall("officialDuplicateNameExistsFor", "trackNumberId" to trackNumberId)
+        return dao.officialDuplicateNumberExistsFor(trackNumberId)
+    }
 }
 
 private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>): String {
@@ -223,8 +226,7 @@ private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>): String {
             if (kmPost.location != null && kmPost.locationSource == GeometrySource.IMPORTED) getTranslation("projected-location-warning")
             else if (kmPost.location != null && kmPost.locationSource == GeometrySource.GENERATED) getTranslation("start-address-location-warning")
             else ""
-        }
-    ).map { (column, fn) ->
+        }).map { (column, fn) ->
         CsvEntry(getTranslation("$column-header"), fn)
     }
 

@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://${DB_URL:localhost:5435/geoviite}"
+    username: "${DB_USERNAME:dev-geouser}"
+    password: "${DB_PASSWORD:dev-geouser-password}"
+logging:
+  level:
+    fi:
+      fta:
+        geoviite: #debug
+geoviite:
+  e2e:
+    url: "${FRONT_END_URL:http://127.0.0.1:9000}"
+    username: foobar
+    password: s3cret
+  scheduler-lock:
+    enabled: false

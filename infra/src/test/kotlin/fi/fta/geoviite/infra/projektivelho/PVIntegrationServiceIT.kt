@@ -57,7 +57,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
-                (materialDictionaries+projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
+                (materialDictionaries + projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
                 pvDao.fetchDictionary(type),
             )
         }
@@ -101,7 +101,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
-                (materialDictionaries2+projectDictionaries2)[type]!!.map { e -> e.code to e.name }.associate { it },
+                (materialDictionaries2 + projectDictionaries2)[type]!!.map { e -> e.code to e.name }.associate { it },
                 pvDao.fetchDictionary(type),
             )
         }
@@ -154,10 +154,10 @@ class PVIntegrationServiceIT @Autowired constructor(
 
     @Test
     fun `Document count fetching works`() {
-        insertTestDictionary()
-        insertDocumentMetaWithStatus(Oid("1.2.3.4.5"), PVDocumentStatus.SUGGESTED)
-        insertDocumentMetaWithStatus(Oid("1.2.3.4.6"), PVDocumentStatus.SUGGESTED)
-        insertDocumentMetaWithStatus(Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
+        insertTestDictionary(pvDao)
+        insertDocumentMetaWithStatus(pvDao, Oid("1.2.3.4.5"), PVDocumentStatus.SUGGESTED)
+        insertDocumentMetaWithStatus(pvDao, Oid("1.2.3.4.6"), PVDocumentStatus.SUGGESTED)
+        insertDocumentMetaWithStatus(pvDao, Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
         val counts = pvDocumentService.getDocumentCounts()
         assertEquals(2, counts.suggested)
         assertEquals(1, counts.rejected)
@@ -165,8 +165,8 @@ class PVIntegrationServiceIT @Autowired constructor(
 
     @Test
     fun `Document rejection works`() {
-        insertTestDictionary()
-        val version = insertDocumentMetaWithStatus(Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
+        insertTestDictionary(pvDao)
+        val version = insertDocumentMetaWithStatus(pvDao, Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
         pvDao.insertRejection(version, "test")
         val rejection = pvDao.getRejection(version)
 
@@ -192,37 +192,37 @@ class PVIntegrationServiceIT @Autowired constructor(
         assertEquals(getTestDataDictionaryName(MATERIAL_GROUP, materialGroup)!!, header.document.group)
         assertEquals(getTestDataDictionaryName(MATERIAL_CATEGORY, materialCategory)!!, header.document.category)
     }
-
-    private fun insertTestDictionary() {
-        pvDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVDictionaryEntry("test", "test")))
-        pvDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVDictionaryEntry("test", "test")))
-        pvDao.upsertDictionary(MATERIAL_GROUP, listOf(PVDictionaryEntry("test", "test")))
-        pvDao.upsertDictionary(MATERIAL_STATE, listOf(PVDictionaryEntry("test", "test")))
-    }
-
-    private fun insertDocumentMetaWithStatus(oid: Oid<PVDocument>, status: PVDocumentStatus) =
-        pvDao.insertDocumentMetadata(
-            oid = oid,
-            assignmentOid = null,
-            latestVersion = PVApiLatestVersion(
-                version = PVId("test"),
-                name = FileName("test"),
-                changeTime = Instant.now()
-            ),
-            metadata = PVApiDocumentMetadata(
-                materialCategory = PVDictionaryCode("test"),
-                description = null,
-                materialGroup = PVDictionaryCode("test"),
-                materialState = PVDictionaryCode("test"),
-                documentType = PVDictionaryCode("test"),
-                technicalFields = emptyList(),
-                containsPersonalInfo = false
-            ),
-            projectGroupOid = null,
-            projectOid = null,
-            status = status
-        )
 }
 
+fun insertTestDictionary(pvDao: PVDao) {
+    pvDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(MATERIAL_GROUP, listOf(PVDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(MATERIAL_STATE, listOf(PVDictionaryEntry("test", "test")))
+}
+
+fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVDocumentStatus) =
+    pvDao.insertDocumentMetadata(
+        oid = oid,
+        assignmentOid = null,
+        latestVersion = PVApiLatestVersion(
+            version = PVId("test"),
+            name = FileName("test"),
+            changeTime = Instant.now()
+        ),
+        metadata = PVApiDocumentMetadata(
+            materialCategory = PVDictionaryCode("test"),
+            description = null,
+            materialGroup = PVDictionaryCode("test"),
+            materialState = PVDictionaryCode("test"),
+            documentType = PVDictionaryCode("test"),
+            technicalFields = emptyList(),
+            containsPersonalInfo = false
+        ),
+        projectGroupOid = null,
+        projectOid = null,
+        status = status
+    )
+
 private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode) =
-    (materialDictionaries+ projectDictionaries)[type]?.find { e -> e.code == code }?.name
+    (materialDictionaries + projectDictionaries)[type]?.find { e -> e.code == code }?.name
