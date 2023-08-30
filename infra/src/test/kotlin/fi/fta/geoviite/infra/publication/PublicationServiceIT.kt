@@ -740,14 +740,18 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(
             listOf(
                 PublishValidationError(
-                    PublishValidationErrorType.WARNING, "validation.layout.location-track.duplicate-name", listOf("LT")
+                    PublishValidationErrorType.ERROR,
+                    "validation.layout.location-track.duplicate-name-official",
+                    listOf("LT", "TN")
                 )
             ), validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.errors
         )
 
         assertEquals(List(2) {
             PublishValidationError(
-                PublishValidationErrorType.WARNING, "validation.layout.location-track.duplicate-name", listOf("NLT")
+                PublishValidationErrorType.ERROR,
+                "validation.layout.location-track.duplicate-name-draft",
+                listOf("NLT", "TN")
             )
         },
             validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
@@ -755,23 +759,26 @@ class PublicationServiceIT @Autowired constructor(
 
         assertEquals(listOf(
             PublishValidationError(
-                PublishValidationErrorType.WARNING, "validation.layout.switch.duplicate-name", listOf("SW")
+                PublishValidationErrorType.ERROR, "validation.layout.switch.duplicate-name-official", listOf("SW")
             )
         ),
-            validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" })
+            validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name-official" })
 
         assertEquals(List(2) {
             PublishValidationError(
-                PublishValidationErrorType.WARNING, "validation.layout.switch.duplicate-name", listOf("NSW")
+                PublishValidationErrorType.ERROR, "validation.layout.switch.duplicate-name-draft", listOf("NSW")
             )
         },
             validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }
                 .flatMap { it.errors }
-                .filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name" })
+                .filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name-draft" })
+
         assertEquals(
             listOf(
                 PublishValidationError(
-                    PublishValidationErrorType.WARNING, "validation.layout.track-number.duplicate-name", listOf("TN")
+                    PublishValidationErrorType.ERROR,
+                    "validation.layout.track-number.duplicate-name-official",
+                    listOf("TN")
                 )
             ), validation.validatedAsPublicationUnit.trackNumbers[0].errors
         )
@@ -926,8 +933,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `Changing specific Track Number field returns only that field`() {
         val address = TrackMeter(0, 0)
         val trackNumber = trackNumberService.getOrThrow(
-            DRAFT,
-            trackNumberService.insert(
+            DRAFT, trackNumberService.insert(
                 TrackNumberSaveRequest(
                     getUnusedTrackNumber(),
                     FreeText("TEST"),
