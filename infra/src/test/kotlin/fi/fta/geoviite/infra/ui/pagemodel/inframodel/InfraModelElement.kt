@@ -96,6 +96,8 @@ class E2EQualityFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetc
     val planPhase: String get() = getValueForField("Suunnitteluvaihe")
     val decisionPhase: String get() = getValueForField("Vaiheen tarkennus")
     val measurementMethod: String get() = getValueForField("Laatu")
+    val elevationMeasurementMethod: String get() = getValueForField("Korkeusasema")
+
 
     fun selectPlanPhase(phase: String): E2EQualityFormGroup = apply {
         selectDropdownValues("Suunnitteluvaihe", listOf(phase))
@@ -107,6 +109,10 @@ class E2EQualityFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetc
 
     fun selectMeasurementMethod(method: String): E2EQualityFormGroup = apply {
         selectDropdownValues("Laatu", listOf(method))
+    }
+
+    fun selectElevationMeasurementMethod(method: String): E2EQualityFormGroup = apply {
+        selectDropdownValues("Korkeusasema", listOf(method))
     }
 }
 

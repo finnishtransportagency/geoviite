@@ -28,7 +28,7 @@ class DraftIT @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val trackNumberDao: LayoutTrackNumberDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
@@ -83,9 +83,7 @@ class DraftIT @Autowired constructor(
         assertNotEquals(dbDraft.first.draft?.draftRowId, dbDraft.first.id)
 
         assertMatches(
-            dbLineAndAlignment.first,
-            referenceLineService.getOfficial(dbLineAndAlignment.first.id as IntId)!!,
-            true
+            dbLineAndAlignment.first, referenceLineService.getOfficial(dbLineAndAlignment.first.id as IntId)!!, true
         )
         assertMatches(
             dbLineAndAlignment.first,
@@ -93,8 +91,8 @@ class DraftIT @Autowired constructor(
             true
         )
 
-        assertMatches(dbDraft.first, referenceLineService.getDraft(dbDraft.first.id as IntId), true)
-        assertMatches(dbDraft.first, referenceLineService.getDraft(dbDraft.first.draft!!.draftRowId as IntId), true)
+        assertMatches(dbDraft.first, referenceLineService.getDraft(dbDraft.first.id as IntId)!!, true)
+        assertMatches(dbDraft.first, referenceLineService.getDraft(dbDraft.first.draft!!.draftRowId as IntId)!!, true)
     }
 
     @Test
@@ -109,9 +107,7 @@ class DraftIT @Autowired constructor(
         assertNotEquals(dbDraft.first.draft?.draftRowId, dbDraft.first.id)
 
         assertMatches(
-            dbTrackAndAlignment.first,
-            locationTrackService.getOfficial(dbTrackAndAlignment.first.id as IntId)!!,
-            true
+            dbTrackAndAlignment.first, locationTrackService.getOfficial(dbTrackAndAlignment.first.id as IntId)!!, true
         )
         assertMatches(
             dbTrackAndAlignment.first,
@@ -119,8 +115,8 @@ class DraftIT @Autowired constructor(
             true
         )
 
-        assertMatches(dbDraft.first, locationTrackService.getDraft(dbDraft.first.id as IntId), true)
-        assertMatches(dbDraft.first, locationTrackService.getDraft(dbDraft.first.draft!!.draftRowId as IntId), true)
+        assertMatches(dbDraft.first, locationTrackService.getDraft(dbDraft.first.id as IntId)!!, true)
+        assertMatches(dbDraft.first, locationTrackService.getDraft(dbDraft.first.draft!!.draftRowId as IntId)!!, true)
     }
 
     @Test
@@ -132,8 +128,8 @@ class DraftIT @Autowired constructor(
         assertMatches(dbSwitch, switchService.getOfficial(dbSwitch.id as IntId)!!, true)
         assertMatches(dbSwitch, switchService.getOfficial(dbDraft.draft!!.draftRowId as IntId)!!, true)
 
-        assertMatches(dbDraft, switchService.getDraft(dbDraft.id as IntId), true)
-        assertMatches(dbDraft, switchService.getDraft(dbDraft.draft!!.draftRowId as IntId), true)
+        assertMatches(dbDraft, switchService.getDraft(dbDraft.id as IntId)!!, true)
+        assertMatches(dbDraft, switchService.getDraft(dbDraft.draft!!.draftRowId as IntId)!!, true)
     }
 
 
@@ -146,8 +142,8 @@ class DraftIT @Autowired constructor(
         assertMatches(dbKmPost, kmPostService.getOfficial(dbKmPost.id as IntId)!!, true)
         assertMatches(dbKmPost, kmPostService.getOfficial(dbDraft.draft!!.draftRowId as IntId)!!, true)
 
-        assertMatches(dbDraft, kmPostService.getDraft(dbDraft.id as IntId), true)
-        assertMatches(dbDraft, kmPostService.getDraft(dbDraft.draft!!.draftRowId as IntId), true)
+        assertMatches(dbDraft, kmPostService.getDraft(dbDraft.id as IntId)!!, true)
+        assertMatches(dbDraft, kmPostService.getDraft(dbDraft.draft!!.draftRowId as IntId)!!, true)
     }
 
     @Test
@@ -338,7 +334,7 @@ class DraftIT @Autowired constructor(
         locationTrackAndAlignment(insertOfficialTrackNumber(), segment(Point(10.0, 10.0), Point(11.0, 11.0)))
 
     private fun createAndVerifyDraftLine(
-        dbLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>
+        dbLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
     ): Pair<ReferenceLine, LayoutAlignment> {
         val (dbLine, dbAlignment) = dbLineAndAlignment
         assertTrue(dbLine.id is IntId)
@@ -353,7 +349,7 @@ class DraftIT @Autowired constructor(
     }
 
     private fun createAndVerifyDraftTrack(
-        dbTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>
+        dbTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
     ): Pair<LocationTrack, LayoutAlignment> {
         val (dbTrack, dbAlignment) = dbTrackAndAlignment
         assertTrue(dbTrack.id is IntId)
@@ -387,25 +383,22 @@ class DraftIT @Autowired constructor(
         return draft
     }
 
-    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) =
-        lineAndAlignment.first.copy(
-            startAddress = lineAndAlignment.first.startAddress + 10.0
-        ) to lineAndAlignment.second
+    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) = lineAndAlignment.first.copy(
+        startAddress = lineAndAlignment.first.startAddress + 10.0
+    ) to lineAndAlignment.second
 
-    private fun alterTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) =
-        trackAndAlignment.first.copy(
-            name = AlignmentName("${trackAndAlignment.first.name}-D")
-        ) to trackAndAlignment.second
+    private fun alterTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) = trackAndAlignment.first.copy(
+        name = AlignmentName("${trackAndAlignment.first.name}-D")
+    ) to trackAndAlignment.second
 
-    private fun alter(switch: TrackLayoutSwitch): TrackLayoutSwitch =
-        switch.copy(name = SwitchName("${switch.name}-D"))
+    private fun alter(switch: TrackLayoutSwitch): TrackLayoutSwitch = switch.copy(name = SwitchName("${switch.name}-D"))
 
     private fun alter(kmPost: TrackLayoutKmPost): TrackLayoutKmPost =
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))
 
 
     private fun insertAndVerifyLine(
-        lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>
+        lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
     ): Pair<ReferenceLine, LayoutAlignment> {
         val (line, alignment) = lineAndAlignment
         val alignmentVersion = alignmentDao.insert(alignment)
@@ -420,7 +413,7 @@ class DraftIT @Autowired constructor(
     }
 
     private fun insertAndVerifyTrack(
-        trackAndAlignment: Pair<LocationTrack, LayoutAlignment>
+        trackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
     ): Pair<LocationTrack, LayoutAlignment> {
         val (track, alignment) = trackAndAlignment
         val alignmentVersion = alignmentDao.insert(alignment)

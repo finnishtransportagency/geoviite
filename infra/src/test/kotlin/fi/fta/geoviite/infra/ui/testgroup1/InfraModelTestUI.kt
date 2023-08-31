@@ -132,6 +132,9 @@ class InfraModelTestUI @Autowired constructor(
         val laatu = "Digitoitu ilmakuvasta"
         tilanneJaLaatutiedot.selectMeasurementMethod(laatu)
         assertEquals(laatu, tilanneJaLaatutiedot.measurementMethod)
+        val korkeusasema = "Kiskon selkä"
+        tilanneJaLaatutiedot.selectElevationMeasurementMethod(korkeusasema)
+        assertEquals(korkeusasema, tilanneJaLaatutiedot.elevationMeasurementMethod)
 
         //Loki- ja linkitysdata
         val lokiJaLinkitystiedotFormGroup = uploadForm.logFormGroup

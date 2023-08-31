@@ -30,7 +30,7 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
 
     fun getOfficial(id: IntId<ObjectType>) = get(OFFICIAL, id)
 
-    fun getDraft(id: IntId<ObjectType>) = getOrThrow(DRAFT, id)
+    fun getDraft(id: IntId<ObjectType>) = get(DRAFT, id)
 
 
     fun get(publishType: PublishType, id: IntId<ObjectType>): ObjectType? {
@@ -184,8 +184,7 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         if (response.rowVersion.version != previousVersion.version + 1) {
             // We could do optimistic locking here by throwing
             logger.warn(
-                "Updated version isn't the next one: a concurrent change may have been overwritten: " +
-                        "id=$id previous=$previousVersion updated=$response"
+                "Updated version isn't the next one: a concurrent change may have been overwritten: " + "id=$id previous=$previousVersion updated=$response"
             )
         }
     }

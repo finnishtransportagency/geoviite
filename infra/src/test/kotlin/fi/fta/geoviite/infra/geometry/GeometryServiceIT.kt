@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Test
@@ -13,6 +14,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -24,6 +27,30 @@ class GeometryServiceIT @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
 ) : DBTestBase() {
+
+    @Test
+    fun `Hiding GeometryPlans works`() {
+        deletePlans()
+
+        val file = testFile()
+        val plan = plan(getUnusedTrackNumberId(), fileName = file.name)
+        val polygon = someBoundingPolygon()
+        val planId = geometryDao.insertPlan(plan, file, polygon).id
+        val searchBbox = boundingBoxAroundPoints(polygon)
+
+        assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file, plan.source)?.id)
+        assertEquals(listOf(planId), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
+
+        geometryService.setPlanHidden(planId, true)
+        assertFalse(geometryService.getPlanHeaders().any { p -> p.id == planId })
+        assertEquals(null, geometryService.fetchDuplicateGeometryPlanHeader(file, plan.source)?.id)
+        assertEquals(listOf(), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
+
+        geometryService.setPlanHidden(planId, false)
+        assertTrue(geometryService.getPlanHeaders().any { p -> p.id == planId })
+        assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file, plan.source)?.id)
+        assertEquals(listOf(planId), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
+    }
 
     @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
@@ -124,7 +151,8 @@ class GeometryServiceIT @Autowired constructor(
             17 to 50
         ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble(), Point(0.0, m.toDouble())) }
         assertEquals(expected, kmHeights[0].trackMeterHeights)
-        val linkingSummary = geometryService.getLocationTrackGeometryLinkingSummary(locationTrackId, PublishType.DRAFT)!!
+        val linkingSummary =
+            geometryService.getLocationTrackGeometryLinkingSummary(locationTrackId, PublishType.DRAFT)!!
         assertEquals(
             listOf(
                 Triple(0.0, 6.0, FileName("plan1.xml")),
@@ -251,4 +279,7 @@ class GeometryServiceIT @Autowired constructor(
         ),
     )
 
+    private fun deletePlans() {
+        jdbc.update("truncate geometry.plan cascade;", mapOf<String, Any>())
+    }
 }

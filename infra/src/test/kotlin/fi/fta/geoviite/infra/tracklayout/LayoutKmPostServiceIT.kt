@@ -21,7 +21,7 @@ import kotlin.test.assertNull
 class LayoutKmPostServiceIT @Autowired constructor(
     private val kmPostService: LayoutKmPostService,
     private val kmPostDao: LayoutKmPostDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @Test
     fun nearbyKmPostsAreReturnedInOrder() {
@@ -90,11 +90,13 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun doesntFindKmPostAtWrongKmNumber() {
         val trackNumberId = insertOfficialTrackNumber()
-        kmPostDao.insert(kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(1),
-            location = Point(1.0, 1.0),
-        ))
+        kmPostDao.insert(
+            kmPost(
+                trackNumberId = trackNumberId,
+                km = KmNumber(1),
+                location = Point(1.0, 1.0),
+            )
+        )
 
         assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumberId, KmNumber(2)))
     }
@@ -141,7 +143,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
         )
         val kmPostId = kmPostService.insertKmPost(kmPost)
 
-        val fetchedKmPost = kmPostService.getDraft(kmPostId)
+        val fetchedKmPost = kmPostService.getDraft(kmPostId)!!
         assertNull(kmPostService.getOfficial(kmPostId))
 
         assertEquals(DataType.STORED, fetchedKmPost.dataType)

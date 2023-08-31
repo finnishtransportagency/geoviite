@@ -31,7 +31,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val kmPostDao: LayoutKmPostDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @Test
     fun updatingExternalIdWorks() {
@@ -41,13 +41,13 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             )
         )
         val id = trackNumberService.insert(saveRequest)
-        val trackNumber = trackNumberService.getDraft(id)
+        val trackNumber = trackNumberService.getDraft(id)!!
 
         assertNull(trackNumber.externalId)
 
         trackNumberService.updateExternalId(trackNumber.id as IntId, externalIdForTrackNumber())
 
-        val updatedTrackNumber = trackNumberService.getDraft(id)
+        val updatedTrackNumber = trackNumberService.getDraft(id)!!
         assertNotNull(updatedTrackNumber.externalId)
     }
 
@@ -82,8 +82,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     fun `should return correct lengths for km posts`() {
         val trackNumber = trackNumberDao.fetch(trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).rowVersion)
         referenceLineAndAlignment(
-            trackNumberId = trackNumber.id as IntId,
-            segments = listOf(
+            trackNumberId = trackNumber.id as IntId, segments = listOf(
                 segment(
                     Point(0.0, 0.0),
                     Point(1.0, 0.0),
@@ -91,8 +90,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                     Point(3.0, 0.0),
                     Point(4.0, 0.0),
                 )
-            ),
-            startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+            ), startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
         ).let { (referenceLine, alignment) ->
             val referenceLineVersion =
                 referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
@@ -116,8 +114,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(1).setScale(3),
                 locationSource = GeometrySource.GENERATED,
                 location = Point(0.0, 0.0)
-            ),
-            kmLengths.first()
+            ), kmLengths.first()
         )
 
         assertEquals(
@@ -128,8 +125,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(3).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
                 location = Point(1.0, 0.0)
-            ),
-            kmLengths[1]
+            ), kmLengths[1]
         )
 
         assertEquals(
@@ -140,26 +136,21 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
                 location = Point(3.0, 0.0),
-            ),
-            kmLengths[2]
+            ), kmLengths[2]
         )
     }
 
     fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {
         val saveRequest = TrackNumberSaveRequest(
-            getUnusedTrackNumber(),
-            FreeText(trackNumberDescription),
-            LayoutState.IN_USE,
-            TrackMeter(
+            getUnusedTrackNumber(), FreeText(trackNumberDescription), LayoutState.IN_USE, TrackMeter(
                 KmNumber(5555), 5.5, 1
             )
         )
         val id = trackNumberService.insert(saveRequest)
-        val trackNumber = trackNumberService.getDraft(id)
+        val trackNumber = trackNumberService.getDraft(id)!!
 
         val (referenceLine, alignment) = referenceLineService.getByTrackNumberWithAlignment(
-            DRAFT,
-            trackNumber.id as IntId<TrackLayoutTrackNumber>
+            DRAFT, trackNumber.id as IntId<TrackLayoutTrackNumber>
         )!! // Always exists, since we just created it
 
         return Triple(trackNumber, referenceLine, alignment)
@@ -170,8 +161,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             .first()
             .let { version -> trackNumberService.publish(version) }
 
-    private fun publishReferenceLine(id: IntId<ReferenceLine>) =
-        referenceLineDao.fetchPublicationVersions(listOf(id))
-            .first()
-            .let { version -> referenceLineService.publish(version) }
+    private fun publishReferenceLine(id: IntId<ReferenceLine>) = referenceLineDao.fetchPublicationVersions(listOf(id))
+        .first()
+        .let { version -> referenceLineService.publish(version) }
 }

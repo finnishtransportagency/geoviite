@@ -165,7 +165,7 @@ export function createGeometryAlignmentLayer(
               selection.visiblePlans.map((p) =>
                   getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
               ),
-          ).then((plans) => plans.filter(filterNotEmpty));
+          ).then((plans) => plans.filter(filterNotEmpty).filter((p) => !p.planHidden));
     const planAlignmentsPromise: Promise<PlanAlignments[]> = plansPromise.then((plans) =>
         Promise.all(
             plans.map((plan: GeometryPlanLayout) => {
