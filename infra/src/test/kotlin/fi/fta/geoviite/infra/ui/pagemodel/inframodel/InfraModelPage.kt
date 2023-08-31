@@ -34,7 +34,7 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
     fun openVelhoWaitingForApprovalList(): E2EProjektiVelhoPage {
         clickButton(byQaId("infra-model-nav-tab-waiting"))
-        
+
         waitChildVisible(By.className("projektivelho-file-list"))
         return E2EProjektiVelhoPage()
     }

@@ -12,7 +12,7 @@ import waitUntilVisible
 
 class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch, By.className("tool-bar"))) {
     private val searchDropdown: E2EDropdown by lazy {
-        E2EDropdown(fetch(elementFetch, byQaId("search-box")))
+        E2EDropdown(fetch(elementFetch, By.cssSelector(".tool-bar__left-section .dropdown")))
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {
@@ -28,6 +28,8 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
     fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
         if (clear) searchDropdown.clearInput()
         searchDropdown.inputValue(value)
+        waitChildVisible(By.className("dropdown__loading-indicator"))
+        waitChildNotVisible(By.className("dropdown__loading-indicator"))
     }
 
     val searchResults: List<E2ETextListItem> get() = searchDropdown.options

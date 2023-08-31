@@ -14,12 +14,12 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         get() = childElements(
             ByChained(byQaId("publication-list"), By.className("publication-list-item"))
         )
-        
+
 
     fun openNthPublication(index: Int): E2EPublicationDetailsPage {
         logger.info("Open publication index=$index")
         publicationElements[index].findElement(By.tagName("a")).click()
-        
+
         return E2EPublicationDetailsPage()
     }
 

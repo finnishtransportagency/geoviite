@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
+import tryWait
 import waitAndClick
 
 val byLiTag: By = By.tagName("li")
@@ -34,9 +35,15 @@ abstract class E2EList<T>(listFetch: ElementFetch, val itemsBy: By) : E2EViewFra
     }
 
     private fun getElementWhenMatches(check: (T) -> Boolean): WebElement =
-        itemElements.first { check(it.second) }.first
+        tryWait<WebElement>(
+            { itemElements.firstOrNull { check(it.second) }?.first },
+            { "No such element in items list. Items: $itemElements" }
+        )
 
-    fun getItemWhenMatches(check: (T) -> Boolean): T = items.first { check(it) }
+    fun getItemWhenMatches(check: (T) -> Boolean): T = tryWait<T>(
+        { items.firstOrNull { check(it) } },
+        { "No such element in items list. Items: $items" }
+    )
 
     fun selectItemWhenMatches(check: (T) -> Boolean) = select(getItemWhenMatches(check))
 

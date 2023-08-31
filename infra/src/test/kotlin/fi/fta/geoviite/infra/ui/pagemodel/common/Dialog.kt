@@ -8,7 +8,7 @@ import org.openqa.selenium.WebElement
 val defaultDialogBy: By = By.className("dialog")
 
 open class E2EDialog(val by: By = defaultDialogBy) : E2EViewFragment(by) {
-    
+
     private val titleElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__title"))
     private val contentElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__content"))
 
@@ -35,9 +35,8 @@ open class E2EDialog(val by: By = defaultDialogBy) : E2EViewFragment(by) {
         clickButton(By.cssSelector("button.button--warning"))
     }
 
-    fun waitUntilClosed(fn: () -> Unit) = webElement.let { el ->
-        fn()
-        !el.exists()
+    fun <R> waitUntilClosed(fn: () -> R) = webElement.let { el ->
+        fn().also { !el.exists() }
     }
 }
 

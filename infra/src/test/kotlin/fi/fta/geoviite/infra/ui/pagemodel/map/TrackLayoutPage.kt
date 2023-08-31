@@ -13,7 +13,6 @@ import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
 import waitUntilDoesNotExist
 import waitUntilValueIsNot
-import withNoImplicitWait
 import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
@@ -45,7 +44,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         KM_200("200 km"),
         KM_500("500 km")
     }
-    
+
     init {
         mapScale
     }
@@ -62,7 +61,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
     companion object {
         fun finishLoading() {
-            withNoImplicitWait { waitUntilDoesNotExist(By.className(".map__loading-spinner")) }
+            waitUntilDoesNotExist(By.className(".map__loading-spinner"))
         }
     }
 

@@ -1,6 +1,5 @@
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EToaster
+
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.pagemodel.common.defaultToasterBy
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
 import org.openqa.selenium.Keys
@@ -17,7 +16,7 @@ import java.time.Duration
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
 val defaultWait: Duration = Duration.ofSeconds(5L)
-val defaultPoll: Duration = Duration.ofMillis(200)
+val defaultPoll: Duration = Duration.ofMillis(100)
 
 fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {
 
@@ -31,30 +30,6 @@ fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolea
     if (doubleClick) actions.click()
     actions.build().perform()
     Thread.sleep(400) //Prevents double-clicking and zooming with map canvas
-}
-
-
-fun waitAndGetToasterElement(): E2EToaster {
-    logger.info("Waiting toaster element to appear")
-    return E2EToaster().also { logger.info("Toaster appeared") }
-}
-
-fun waitAndAssertToaster(content: String) {
-    logger.info("Asserting and closing toaster")
-    E2EToaster().assertAndClose(content)
-}
-
-fun waitAndClearToaster(by: By = defaultToasterBy) {
-    logger.info("Waiting and clearing toaster")
-    E2EToaster(by).close().also { logger.info("Toaster cleared") }
-}
-
-fun clearToasters() {
-    var toaster: WebElement?
-    do {
-        toaster = getElementIfExists(defaultToasterBy)
-        toaster?.waitAndClick()
-    } while (toaster != null)
 }
 
 fun clearInput(inputElement: WebElement) {
@@ -207,25 +182,35 @@ fun tryWait(
     throw e
 }
 
+fun <T> tryWait(
+    condition: () -> T?,
+    lazyErrorMessage: () -> String,
+): T = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
+
 fun tryWait(
     condition: () -> Boolean,
     lazyErrorMessage: () -> String,
-) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
+) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage).let {}
+
+fun <T> tryWait(
+    timeout: Duration,
+    condition: () -> T?,
+    lazyErrorMessage: () -> String,
+): T = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
 
 fun tryWait(
     timeout: Duration,
     condition: () -> Boolean,
     lazyErrorMessage: () -> String,
-) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
+) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage).let { }
 
-fun tryWait(
+fun <T> tryWait(
     timeout: Duration,
     pollInterval: Duration,
-    condition: () -> Boolean,
+    condition: () -> T?,
     lazyErrorMessage: () -> String,
-) = try {
-    WebDriverWait(browser(), timeout, pollInterval).until { _ -> condition() }
-    Unit
+): T = try {
+    WebDriverWait(browser(), timeout, pollInterval).until<T> { _ -> condition() }
 } catch (e: Exception) {
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e

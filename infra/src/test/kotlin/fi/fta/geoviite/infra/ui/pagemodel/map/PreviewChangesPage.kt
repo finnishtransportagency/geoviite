@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
@@ -25,9 +26,11 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
             throw AssertionError("Following changes prevent publishing \n ${changesTable.errorRows}")
         }
 
-        clickButtonByText("Julkaise")
+        clickChild(By.cssSelector(".preview-footer__action-buttons button"))
 
         E2EPreviewChangesSaveOrDiscardDialog().confirm()
+
+        waitAndClearToastByContent("Muutokset julkaistu paikannuspohjaan")
 
         return E2ETrackLayoutPage()
     }
@@ -52,6 +55,8 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
     fun revertChange(name: String): E2EPreviewChangesPage = apply {
         logger.info("Reverting change $name")
         changesTable.rows.filter { it.name == name }.forEach { changesTable.revertChange(it) }
+
+        waitAndClearToastByContent("Luonnosmuutokset peruttu")
     }
 
     fun goToTrackLayout(): E2ETrackLayoutPage {
@@ -67,9 +72,11 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
 class E2EPreviewChangesSaveOrDiscardDialog : E2EDialog() {
 
-    fun confirm() = waitUntilClosed {
-        childTextInput(byQaId("publication-message")).inputValue("test")
-        clickButtonByQaId("publication-confirm")
+    fun confirm() {
+        waitUntilClosed {
+            childTextInput(byQaId("publication-message")).inputValue("test")
+            clickButtonByQaId("publication-confirm")
+        }
     }
 
     fun reject() = waitUntilClosed {

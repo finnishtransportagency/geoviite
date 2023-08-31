@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EToaster
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 
@@ -9,12 +9,12 @@ class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form
     fun saveAsNew() {
         logger.info("Saving infra model to database...")
         save(true)
+        waitAndClearToast("infra-model-import-upload__success-toast")
     }
 
     fun save(expectConfirm: Boolean = false) {
         clickButtonByQaId("infra-model-save-button")
         if (expectConfirm) confirmSaving()
-        E2EToaster().waitUntilVisible()
     }
 
     val metaFormGroup: E2EMetaFormGroup by lazy {

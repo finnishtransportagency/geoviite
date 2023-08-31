@@ -16,8 +16,8 @@ abstract class E2ETable<T>(
     abstract fun getRowContent(row: WebElement): T
 
     override fun getItemContent(item: WebElement) = getRowContent(item)
-    
-    
+
+
     //Firefox doesn't handle tr clicks correctly, temporary fixed by clicking on the first td
     //https://bugzilla.mozilla.org/show_bug.cgi?id=1448825
     override fun select(item: T): E2ETable<T> = apply {
@@ -29,27 +29,29 @@ abstract class E2ETable<T>(
     }
 }
 
-fun getColumnIndex(
+fun getColumnIndexByText(
     columnName: String,
     headers: List<WebElement>,
 ) = headers.indexOfFirst { it.text == columnName }
-    .also { check(it != -1) { "No header with text $columnName" } }
+    .also { idx -> check(idx != -1) { "No header with text $columnName. Headers: ${headers.map { it.text }}" } }
 
-fun getColumnIndexByAttr(
-    attrValue: String,
+fun getColumnIndex(
+    qaId: String,
     headers: List<WebElement>,
-    attrName: String = "qa-id",
-) = headers.indexOfFirst { it.getAttribute(attrName) == attrValue }
-    .also { check(it != -1) { "No header attribute ($attrName) matched with $attrValue" } }
+) = headers.indexOfFirst { it.getAttribute("qa-id") == qaId }
+    .also { idx ->
+        check(idx != -1) {
+            "No header found with qa-id $qaId. Header: ${headers.map { it.getAttribute("qa-id") }}"
+        }
+    }
 
-fun getColumnContentByAttr(
-    attrValue: String,
+fun getColumnContent(
+    qaId: String,
     columns: List<WebElement>,
     headers: List<WebElement>,
-    attrName: String = "qa-id",
 ): String {
-    return columns[getColumnIndexByAttr(attrValue, headers, attrName)].text
+    return columns[getColumnIndex(qaId, headers)].text
 }
 
-fun getColumnContent(columnName: String, columns: List<WebElement>, headers: List<WebElement>): String =
-    columns[getColumnIndex(columnName, headers)].text
+fun getColumnContentByText(columnName: String, columns: List<WebElement>, headers: List<WebElement>): String =
+    columns[getColumnIndexByText(columnName, headers)].text
