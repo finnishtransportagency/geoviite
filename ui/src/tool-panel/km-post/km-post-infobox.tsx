@@ -51,6 +51,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     const changeTimes = useKmPostChangeTimes(kmPost.id);
 
     React.useEffect(() => {
+        setKmPostLength(undefined);
         getKmLengths(publishType, kmPost.trackNumberId).then((details) => {
             details.find((value) => value.kmNumber === kmPost.kmNumber)
                 ? setKmPostLength(
@@ -116,7 +117,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     {kmPostLength && (
                         <InfoboxField
                             label={t('tool-panel.km-post.layout.kilometer-length')}
-                            value={kmPostLength}
+                            value={`${kmPostLength} m`}
                         />
                     )}
                     <InfoboxButtons>
