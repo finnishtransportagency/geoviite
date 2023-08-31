@@ -1,62 +1,51 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
 import waitUntilValueIs
 import waitUntilValueIsNot
 import java.time.Duration
 
-abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
+abstract class E2EInfoBox(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
     init {
         logger.info("${this.javaClass.simpleName} loaded")
     }
 
-    // TODO: GVT-1947 These label-content fields could be a component of their own
-    private fun fieldValueBy(fieldName: String) = By.xpath(
+    protected val title: String get() = childText(By.className("infobox__title"))
+
+    // TODO: GVT-2034 These label-content fields could be a component of their own
+    private fun getValueElementByForField(fieldName: String) = By.xpath(
         ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']"
     )
 
-    protected fun fieldValueElement(fieldName: String) = childElement(fieldValueBy(fieldName))
+    private fun getValueElementForField(fieldName: String) = childElement(getValueElementByForField(fieldName))
 
-    protected fun textField(fieldName: String) = childTextField(fieldValueBy(fieldName))
+    protected fun getValueForField(fieldName: String): String = getValueElementForField(fieldName).text
 
-    // TODO: GVT-1947 logging in getters like this is ugly. Instead log in the use-place, if needed
-    protected fun fieldValue(fieldName: String): String = textField(fieldName).text.also { value ->
-        logger.info("Get field value: field=$fieldName value=$value")
-    }
-
-    protected fun startEditingInfoBoxValues() {
+    protected fun editFields(): E2EInfoBox = apply {
         logger.info("Click edit values icon")
         clickChild(By.className("infobox__edit-icon"))
     }
 
-    protected fun fieldElement(fieldName: String): WebElement = childElement(
+    protected fun getValueForFieldWhenNotEmpty(fieldName: String): String = childText(
         By.xpath(
-            ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]"
+            ".//div[@class='infobox__field-label' and text() = '$fieldName']/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
         )
     )
 
-    protected fun fieldValueWhenNotEmpty(fieldName: String): String = childText(
-        By.xpath(
-            ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
-        )
-    )
-
-    protected fun title() = childText(By.className("infobox__title"))
-
-    protected fun waitUntilFieldValueChanges(fieldName: String) {
-        val originalValue = fieldValue(fieldName)
+    protected fun waitUntilValueChangesForField(fieldName: String): E2EInfoBox = apply {
+        val originalValue = getValueForField(fieldName)
         logger.info("Wait until field value is not $originalValue")
-        waitUntilValueIsNot(fieldValueElement(fieldName), originalValue, Duration.ofSeconds(10))
-        logger.info("Field $fieldName changed and is now ${fieldValue(fieldName)}")
+        waitUntilValueIsNot(getValueElementForField(fieldName), originalValue, Duration.ofSeconds(10))
+        logger.info("Field $fieldName changed and is now ${getValueForField(fieldName)}")
     }
 
-    protected fun waitUntilFieldValueChanges(fieldName: String, targetValue: String) {
+    protected fun waitUntilValueChangesForField(fieldName: String, targetValue: String): E2EInfoBox = apply {
         logger.info("Wait until field value is  $targetValue")
-        waitUntilValueIs(fieldValueElement(fieldName), targetValue, Duration.ofSeconds(10))
+        waitUntilValueIs(getValueElementForField(fieldName), targetValue, Duration.ofSeconds(10))
         logger.info("Field $fieldName changed to $targetValue")
     }
 
-    fun waitUntilLoaded() = waitChildNotVisible(By.className("spinner"))
+    fun waitUntilLoaded(): E2EInfoBox = apply { waitChildNotVisible(By.className("spinner")) }
 }

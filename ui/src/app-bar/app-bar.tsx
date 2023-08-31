@@ -19,13 +19,19 @@ type Link = {
     link: string;
     name: string;
     type: Environment;
+    qaId?: string;
 };
 
 const links: Link[] = [
-    { link: '/', name: 'app-bar.frontpage', type: 'prod' },
-    { link: '/track-layout', name: 'app-bar.track-layout', type: 'prod' },
+    { link: '/', name: 'app-bar.frontpage', type: 'prod', qaId: 'frontpage-link' },
+    {
+        link: '/track-layout',
+        name: 'app-bar.track-layout',
+        type: 'prod',
+        qaId: 'track-layout-link',
+    },
     { link: '/registry', name: 'app-bar.register', type: 'test' },
-    { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod' },
+    { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod', qaId: 'infra-model-link' },
     { link: '/design-lib-demo', name: 'app-bar.components', type: 'dev' },
     { link: '/localization-demo', name: 'app-bar.localization', type: 'dev' },
 ];
@@ -66,40 +72,37 @@ export const AppBar: React.FC = () => {
                 <div>Geoviite</div>
             </div>
             <ul className={styles['app-bar__links']}>
-                {links &&
-                    links.map((link) => {
-                        return (
-                            <EnvRestricted restrictTo={link.type} key={link.name}>
-                                <li>
-                                    {link.link !== '/infra-model' ? (
-                                        <NavLink
-                                            to={link.link}
-                                            className={({ isActive }) =>
-                                                `${styles['app-bar__link']} ${
-                                                    isActive ? styles['app-bar__link--active'] : ''
-                                                }`
-                                            }
-                                            end>
-                                            {t(link.name)}
-                                        </NavLink>
-                                    ) : (
-                                        <NavLink
-                                            to={getInfraModelLink()}
-                                            className={({ isActive }) =>
-                                                getInfraModelLinkClassName(isActive)
-                                            }
-                                            end>
-                                            <InfraModelLink
-                                                exclamationPointVisibility={
-                                                    exclamationPointVisibility
-                                                }
-                                            />
-                                        </NavLink>
-                                    )}
-                                </li>
-                            </EnvRestricted>
-                        );
-                    })}
+                {links.map((link) => {
+                    return (
+                        <EnvRestricted restrictTo={link.type} key={link.name}>
+                            <li qa-id={link.qaId}>
+                                {link.link !== '/infra-model' ? (
+                                    <NavLink
+                                        to={link.link}
+                                        className={({ isActive }) =>
+                                            `${styles['app-bar__link']} ${
+                                                isActive ? styles['app-bar__link--active'] : ''
+                                            }`
+                                        }
+                                        end>
+                                        {t(link.name)}
+                                    </NavLink>
+                                ) : (
+                                    <NavLink
+                                        to={getInfraModelLink()}
+                                        className={({ isActive }) =>
+                                            getInfraModelLinkClassName(isActive)
+                                        }
+                                        end>
+                                        <InfraModelLink
+                                            exclamationPointVisibility={exclamationPointVisibility}
+                                        />
+                                    </NavLink>
+                                )}
+                            </li>
+                        </EnvRestricted>
+                    );
+                })}
                 <li>
                     <DataProductsMenu />
                 </li>

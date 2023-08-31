@@ -215,6 +215,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 {planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
                         <Accordion
+                            qaId={'geometry-plan-panel-km-posts'}
                             header={`${t('selection-panel.km-posts-title')}`}
                             onToggle={() => {
                                 togglePlanKmPostsOpen({
@@ -243,6 +244,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             </ul>
                         </Accordion>
                         <Accordion
+                            qaId={'geometry-plan-panel-alignments'}
                             header={t('selection-panel.geometry-alignments-title')}
                             onToggle={() => {
                                 togglePlanAlignmentsOpen({
@@ -271,6 +273,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             </ul>
                         </Accordion>
                         <Accordion
+                            qaId={'geometry-plan-panel-switches'}
                             header={t('selection-panel.switches-title')}
                             onToggle={() => {
                                 togglePlanSwitchesOpen({

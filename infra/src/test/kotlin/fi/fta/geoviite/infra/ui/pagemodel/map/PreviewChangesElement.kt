@@ -1,66 +1,69 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.TableRow
+import fi.fta.geoviite.infra.ui.pagemodel.common.OldTableRow
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.NoSuchElementException
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class ChangePreviewTable(private val table: WebElement) {
-    private val logger: Logger = LoggerFactory.getLogger(ChangePreviewTable::class.java)
+class E2EChangePreviewTable(private val table: WebElement) {
+    private val logger: Logger = LoggerFactory.getLogger(E2EChangePreviewTable::class.java)
 
-    // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    // TODO: GVT-1935 These row elements hold a reference to the WebElement, risking staleness. Use TableModel to replace this.
     @Deprecated("Element risks staleness")
-    fun changeRows(): List<ChangePreviewRow> {
+    fun changeRows(): List<E2EChangePreviewRow> {
         val header = header()
-        return rowElements().map { rowElement -> ChangePreviewRow(header, rowElement) }
+        return rowElements().map { rowElement -> E2EChangePreviewRow(header, rowElement) }
     }
 
     fun errorRows(): List<String> =
-        table.findElements(By.cssSelector("div.preview-table-item__msg-group--errors")).map { errorRow ->
-            errorRow.findElements(By.cssSelector("div.preview-table-item__msg")).joinToString { it.text + "\n" }
+        table.findElements(By.className("preview-table-item__msg-group--errors")).map { errorRow ->
+            errorRow.findElements(By.className("preview-table-item__msg")).joinToString { it.text + "\n" }
         }
 
     fun hasErrors(): Boolean {
         if (rowElements().isEmpty()) return false
 
         return try {
-            table.findElement(By.cssSelector("span.preview-table-item__error-status"))
+            table.findElement(By.className("preview-table-item__error-status"))
             logger.warn("Table has errors")
             true
         } catch (ex: NoSuchElementException) {
             logger.info("No errors")
             false
         }
-
     }
 
     private fun rowElements() = table.findElements(By.cssSelector("table tbody tr"))
     private fun header() = table.findElements(By.cssSelector("table thead tr th")).map { it.text }
 }
 
-class ChangePreviewRow(header: List<String>, row: WebElement) : TableRow(header, row) {
-    enum class Tila { OK, ERRORS }
+// TODO: GVT-1935 These row elements hold a reference to the WebElement, risking staleness. Use TableModel to replace this.
+class E2EChangePreviewRow(header: List<String>, val row: WebElement) : OldTableRow(header, row) {
+    enum class State { OK, ERRORS }
 
-    fun muutoskohde(): String = getColumnByName("Muutoskohde").text
-    fun ratanumero(): String = getColumnByName("Ratanro").text
-    fun tila(openErrors: Boolean = true): Tila {
+    val name: String get() = getColumnByName("Muutoskohde").text
+    val trackNumber: String get() = getColumnByName("Ratanro").text
+    fun getState(openErrors: Boolean = true): State {
         val col = getColumnByName("Tila")
 
         //Check if row has errors and in that case click Tila-col to open errors into view
         return try {
-            col.findElement(By.cssSelector("span.preview-table-item__error-status"))
+            col.findElement(By.className("preview-table-item__error-status"))
             if (openErrors) col.click()
-            Tila.ERRORS
-
+            State.ERRORS
         } catch (ex: NoSuchElementException) {
-            Tila.OK
+            State.OK
         }
     }
 
-    fun nuolinappi(): WebElement =
-        getColumnByName("Toiminnot").findElement(By.xpath("//button[@qa-id='stage-change-button']"))
+    fun stage(): E2EChangePreviewRow = apply {
+        row.findElement(byQaId("stage-change-button")).click()
+    }
 
-    fun menu(): WebElement = getColumnByName("Toiminnot").findElement(By.xpath("//button[@qa-id='menu-button']"))
+    fun openMenu(): E2EChangePreviewRow = apply {
+        row.findElement(byQaId("menu-button")).click()
+    }
 }

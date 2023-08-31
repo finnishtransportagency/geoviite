@@ -1,57 +1,50 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
-import clearInput
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getElementWhenExists
-import getElementWhenVisible
-import getElementsWhenVisible
 import org.openqa.selenium.By
-import waitUntilElementClickable
-import kotlin.test.assertTrue
+import waitUntilVisible
 
-class InfraModelPage : PageModel(By.xpath("//div[@qa-id='main-content-container']")) {
-    private val SAVE_BUTTON = By.xpath("//button[span[contains(text(),'Tallenna')]]")
-    private val LIST_STATUS = By.xpath("//div[@class='infra-model-list__search-result']/div")
+class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
-    fun lataaUusi(file: String): InfraModelUploadAndEditForm {
+    val infraModelsList: E2EInfraModelTable by lazy {
+        childComponent(
+            By.className("infra-model-list-search-result__table"), ::E2EInfraModelTable
+        )
+    }
+
+
+    fun upload(file: String): E2EInfraModelForm {
         logger.info("Upload IM file $file")
-        getElementWhenExists(By.className("file-input__file-input")).sendKeys(file)
+        childElement(By.className("file-input__file-input")).sendKeys(file)
 
-        waitUntilElementClickable(SAVE_BUTTON)
-
-        return InfraModelUploadAndEditForm()
+        return waitForInfraModelForm()
     }
 
-    fun infraModelList(): InfraModelTable {
-        childElement(byQaId("infra-model-nav-tab-plan")).click()
-        return infraModelTable(By.className("infra-model-list-search-result__table"))
+    fun openInfraModel(fileName: String): E2EInfraModelForm {
+        infraModelsList.selectItemWhenMatches { it.fileName == fileName }
+
+        return waitForInfraModelForm()
     }
 
-    fun openInfraModel(infraModelFileName: String): InfraModelUploadAndEditForm {
-
-        assertTrue(getElementsWhenVisible(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr")).isNotEmpty())
-
-        infraModelList().selectItemWhenMatches { it.tiedostonimi() == infraModelFileName }
-
-        return InfraModelUploadAndEditForm()
-    }
-
-    fun search(query: String) {
+    fun search(query: String) = apply {
         logger.info("Search '$query'")
         waitChildVisible(By.className("infra-model-list-search-result__table"))
-        val searchField =
-            getElementWhenVisible(By.xpath("//div[@class='infra-model-search-form__auto-complete']//input"))
-        clearInput(searchField)
-        searchField.sendKeys(query)
+        childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).clear().inputValue(query)
     }
 
-    fun openVelhoWaitingForApprovalList(): ProjektiVelhoPage {
-        childElement(byQaId("infra-model-nav-tab-waiting")).click()
-        waitChildVisible(By.cssSelector("div.projektivelho-file-list"))
+    fun openVelhoWaitingForApprovalList(): E2EProjektiVelhoPage {
+        clickButton(byQaId("infra-model-nav-tab-waiting"))
+        
+        waitChildVisible(By.className("projektivelho-file-list"))
         val qaHeaders =
-            childElements(By.cssSelector("div.projektivelho-file-list thead tr th")).map { it.getAttribute("qa-id") }
-        return ProjektiVelhoPage(qaHeaders)
+            childElements(By.cssSelector(".projektivelho-file-list thead tr th")).map { it.getAttribute("qa-id") }
+        return E2EProjektiVelhoPage(qaHeaders)
+    }
+
+    private fun waitForInfraModelForm(): E2EInfraModelForm {
+        waitUntilVisible(By.className("infra-model-upload__form-column"))
+        return E2EInfraModelForm()
     }
 
 }

@@ -1,0 +1,291 @@
+package fi.fta.geoviite.infra.ui.pagemodel.map
+
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
+import fi.fta.geoviite.infra.ui.pagemodel.common.defaultDialogBy
+import fi.fta.geoviite.infra.ui.util.ElementFetch
+import fi.fta.geoviite.infra.ui.util.byText
+import org.openqa.selenium.By
+import waitUntilVisible
+
+// TODO: GVT-1939 Replace init-sleeps with reliable waits
+//   implement spinner-indicators for data that is still loading
+//   InfoBox already has waitUntilLoaded() that is called on init - it will wait for all spinners to disappear
+class E2EGeometryPlanGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    init {
+        //Object initializes too quickly and webElement is not stable/ready
+        Thread.sleep(500)
+    }
+
+    val remarks: String get() = getValueForField("Huomiot")
+    val author: String get() = getValueForField("Yritys")
+    val projectName: String get() = getValueForField("Projekti")
+    val fileName: String get() = getValueForField("Tiedosto")
+    val planPhase: String get() = getValueForField("Vaihe")
+    val decisionPhase: String get() = getValueForField("Vaiheen tarkennus")
+    val trackNumber: String get() = getValueForField("Ratanumero")
+    val startKmNumber: String get() = getValueForField("Ratakilometri alku")
+    val endKmNumber: String get() = getValueForField("Ratakilometri loppu")
+}
+
+class E2EGeometryPlanQualityInfobox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    init {
+        //Object initializes too quickly and webElement is not stable/ready
+        Thread.sleep(500)
+    }
+
+    val source: String get() = getValueForField("Lähde")
+    val planTime: String get() = getValueForField("Laadittu")
+    val measurementMethod: String get() = getValueForField("Laatu")
+    val coordinateSystem: String get() = getValueForField("Koordinaattijärjest.")
+    val verticalGeometry: String get() = getValueForField("Pystygeometria")
+    val cant: String get() = getValueForField("Kallistus")
+    val verticalCoordinateSystem: String get() = getValueForField("Korkeusjärjestelmä")
+}
+
+class E2ELayoutKmPostGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val name: String get() = getValueForFieldWhenNotEmpty("Tasakmpistetunnus")
+    val trackNumber: String get() = getValueForFieldWhenNotEmpty("Ratanumero")
+    fun zoomTo(): E2ELayoutKmPostGeneralInfoBox = apply {
+        clickButtonByText("Kohdista kartalla").also { E2ETrackLayoutPage.finishLoading() }
+    }
+}
+
+class E2ELayoutKmPostLocationInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val location: String get() = getValueForField("Sijainti (km+m)")
+    val coordinates: String get() = getValueForField("Koordinaatit (TM35FIN)")
+}
+
+class E2ELocationTrackLocationInfobox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val trackNumber: String get() = getValueForField("Ratanumero")
+    val startLocation: String get() = getValueForField("Alkusijainti (km + m)")
+    val endLocation: String get() = getValueForField("Loppusijainti (km + m)")
+    val startPoint: String get() = getValueForField("Alkupiste")
+    val endPoint: String get() = getValueForField("Loppupiste")
+
+    val trueLength: String get() = getValueForField("Todellinen pituus (m)")
+    val trueLengthDouble: Double? get() = Regex("[0-9.]*").find(trueLength)?.value?.toDouble()
+    val startCoordinates: String get() = getValueForField("Alkukoordinaatit TM35FIN")
+    val endCoordinates: String get() = getValueForField("Loppukoordinaatit TM35FIN")
+    fun waitForStartCoordinatesChange(text: String) = waitUntilValueChangesForField("Alkukoordinaatit TM35FIN", text)
+    fun waitForEndCoordinatesChange(text: String) = waitUntilValueChangesForField("Loppukoordinaatit TM35FIN", text)
+
+    fun startLinking(): E2ELocationTrackLocationInfobox = apply {
+        logger.info("Edit start/end point")
+        clickButtonByText("Lyhennä alkua ja/tai loppua")
+        waitChildVisible(byText("Valmis")) // Ensures that the infobox has changed to edit mode
+    }
+
+    fun save(): E2ELocationTrackLocationInfobox = apply {
+        clickButtonByText("Valmis")
+    }
+
+    fun cancel(): E2ELocationTrackLocationInfobox = apply {
+        clickButtonByText("Lopeta")
+    }
+}
+
+class E2ELocationTrackGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val oid: String get() = getValueForField("Tunniste")
+    val name: String get() = getValueForField("Sijaintiraidetunnus")
+    val state: String get() = getValueForField("Tila")
+    val description: String get() = getValueForField("Kuvaus")
+    val trackNumber: String get() = getValueForField("Ratanumero")
+
+    fun edit(): E2ELocationTrackEditDialog {
+        editFields()
+        return E2ELocationTrackEditDialog()
+    }
+
+    fun zoomTo(): E2ELocationTrackGeneralInfoBox = apply {
+        clickButtonByText("Kohdista kartalla").also { E2ETrackLayoutPage.finishLoading() }
+    }
+}
+
+
+class E2ELocationTrackLogInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val created: String get() = getValueForField("Luotu")
+    val changed: String get() = getValueForField("Muokattu")
+}
+
+class E2ETrackNumberGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val oid: String get() = getValueForField("OID")
+    val name: String get() = getValueForField("Ratanumerotunnus")
+    val state: String get() = getValueForField("Tila")
+    val description: String get() = getValueForField("Ratanumeron kuvaus")
+
+    fun edit(): E2ETrackNumberEditDialog {
+        editFields()
+        return E2ETrackNumberEditDialog()
+    }
+}
+
+class E2EReferenceLineLocationInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val startLocation: String get() = getValueForField("Alkusijainti (km + m)")
+    val endLocation: String get() = getValueForField("Loppusijainti (km + m)")
+    val trueLength: String get() = getValueForField("Todellinen pituus (m)")
+    val startCoordinates: String get() = getValueForField("Alkukoordinaatit TM35FIN")
+    val endCoordinates: String get() = getValueForField("Loppukoordinaatit TM35FIN")
+    fun zoomTo(): E2EReferenceLineLocationInfoBox = apply {
+        clickButtonByText("Kohdista kartalla").also { E2ETrackLayoutPage.finishLoading() }
+    }
+}
+
+class E2ETrackNumberLogInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val created: String get() = getValueForField("Luotu")
+    val changed: String get() = getValueForField("Muokattu")
+}
+
+class E2ELayoutSwitchGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val name: String get() = getValueForField("Vaihdetunnus")
+    val oid: String get() = getValueForField("OID")
+    val category: String get() = getValueForField("Tila")
+
+    fun edit(): E2ELayoutSwitchEditDialog {
+        editFields()
+        return E2ELayoutSwitchEditDialog()
+    }
+
+    fun zoomTo(): E2ELayoutSwitchGeneralInfoBox = apply {
+        clickButtonByText("Kohdista kartalla").also { E2ETrackLayoutPage.finishLoading() }
+    }
+}
+
+class E2ELayoutSwitchAdditionalInfoInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val owner: String get() = getValueForField("Omistaja")
+}
+
+class E2ESwitchStructureGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val type: String get() = childText(By.cssSelector("p"))
+    val hand: String get() = getValueForField("Kätisyys")
+    val trap: String get() = getValueForField("Turvavaihde")
+}
+
+class E2ESwitchCoordinatesInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    data class SwitchLineAndTrack(
+        val switchLine: String,
+        val switchTrack: String,
+    )
+
+    val coordinates: String get() = getValueForField("Koordinaatit (TM35FIN)")
+
+    val jointAlignments: List<SwitchLineAndTrack>
+        get() {
+            val switchLines = childTexts(By.cssSelector("dt.switch-joint-infobox__joint-alignments-title"))
+            val switchTracks = childTexts(By.cssSelector("dd.switch-joint-infobox__location-tracks div span"))
+            return switchLines.mapIndexed { index, line -> SwitchLineAndTrack(line, switchTracks[index]) }
+        }
+
+    fun jointAlignment(line: String) = jointAlignments.first { it.switchLine == line }
+
+}
+
+class E2EGeometryAlignmentGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val name: String get() = getValueForField("Nimi")
+    val trackNumber: String get() = getValueForField("Pituusmittauslinja")
+    fun zoomTo() = clickButtonByText("Kohdista kartalla").also { E2ETrackLayoutPage.finishLoading() }
+}
+
+open class E2ELinkingInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val linked: String get() = getValueForField("Linkitetty")
+
+    val trackNumber: String get() = getValueForField("Pituusmittauslinja")
+
+    fun startLinking() {
+        logger.info("Start linking")
+        clickButtonByText("Aloita linkitys")
+        waitChildVisible(byText("Peruuta")) //ensures that the infobox has changed
+    }
+
+    fun addLinking() {
+        logger.info("Add more linked alignments")
+        clickButtonByText("Lisää linkitettäviä")
+        waitChildVisible(byText("Peruuta")) //ensures that the infobox has changed
+    }
+
+    fun link() {
+        logger.info("Link")
+        childButton(byText("Linkitä")).clickAndWaitToDisappear()
+    }
+
+}
+
+class E2EGeometryKmPostLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkingInfoBox(elementFetch) {
+    fun linkTo(name: String): E2EGeometryKmPostLinkingInfoBox = apply {
+        logger.info("Link to $name")
+        clickChild(
+            By.xpath(
+                ".//li[@class='geometry-km-post-linking-infobox__layout-km-post' and div/span[text() = '$name']]"
+            )
+        )
+    }
+
+    fun createNewTrackLayoutKmPost(): E2EKmPostEditDialog {
+        clickChild(By.cssSelector("div.geometry-km-post-linking-infobox__search button"))
+        waitUntilVisible(defaultDialogBy)
+
+        return E2EKmPostEditDialog()
+    }
+
+    val trackLayoutKmPosts: List<String>
+        get() = childTexts(
+            By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']")
+        )
+}
+
+class E2EGeometryAlignmentLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkingInfoBox(elementFetch) {
+
+    fun linkTo(name: String): E2EGeometryAlignmentLinkingInfoBox = apply {
+        logger.info("Link to $name")
+        clickChild(
+            By.xpath(".//li[@class='geometry-alignment-infobox__alignment' and div/span[text() = '$name']]")
+        )
+    }
+
+    fun createNewLocationTrack(): E2ELocationTrackEditDialog {
+        logger.info("Create a new location track")
+        clickButtonByQaId("create-location-track-button")
+
+        waitUntilVisible(defaultDialogBy)
+
+        return E2ELocationTrackEditDialog()
+    }
+
+    fun lock(): E2EGeometryAlignmentLinkingInfoBox = apply {
+        logger.info("Lock selection")
+        clickButtonByText("Lukitse valinta")
+        waitChildVisible(byText("Poista valinta"))
+    }
+}
+
+class E2EGeometrySwitchGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    val name: String get() = getValueForField("Nimi")
+    val hand: String get() = getValueForField("Kätisyys")
+    fun zoomTo(): E2EGeometrySwitchGeneralInfoBox = apply {
+        clickButtonByText("Kohdista kartalla").also { E2ETrackLayoutPage.finishLoading() }
+    }
+
+}
+
+class E2EGeometrySwitchLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkingInfoBox(elementFetch) {
+    fun lock(): E2EGeometrySwitchLinkingInfoBox = apply {
+        logger.info("Lock selection")
+        clickButtonByText("Lukitse valinta")
+        waitChildVisible(byText("Poista valinta"))
+    }
+
+    fun createNewTrackLayoutSwitch(): E2ELayoutSwitchEditDialog {
+        logger.info("Create new track layout switch")
+        clickChild(By.cssSelector("div.geometry-switch-infobox__search-container button"))
+
+        waitUntilVisible(defaultDialogBy)
+
+        return E2ELayoutSwitchEditDialog()
+    }
+
+    fun linkTo(name: String): E2EGeometrySwitchLinkingInfoBox = apply {
+        logger.info("Link to $name")
+        clickChild(
+            By.xpath(".//li[@class='geometry-switch-infobox__switch' and span/span[text() = '$name']]")
+        )
+    }
+}

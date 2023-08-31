@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel
 import browser
 import org.openqa.selenium.By
 
-class VaylaLoginPage {
+class E2EVaylaLoginPage {
 
     fun login(username: String, password: String) {
         val usernameField = browser().findElement(By.id("username"))

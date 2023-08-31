@@ -46,7 +46,7 @@ export function filterLayoutPoints(
     let prevM = -desiredResolution;
     return points.filter((point, index) => {
         const isEndPoint = index === 0 || index === points.length - 1;
-        const result = isEndPoint || point.m - prevM >= desiredResolution;
+        const result = isEndPoint || Math.round(point.m - prevM) >= desiredResolution;
         if (result) prevM = point.m;
         return result;
     });

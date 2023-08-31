@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import clickElement
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -12,16 +11,14 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.ratko.ratkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
+import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
-import fi.fta.geoviite.infra.ui.util.byQaId
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
@@ -67,13 +64,16 @@ class FrontPageTestUI @Autowired constructor(
 
         // two publications; an original one that succeeded (with the original name), then a new one above it that
         // failed
-        FrontPage()
+        E2EFrontPage()
             .openNthPublication(1)
-            .apply { this.waitUntilItemMatches { row -> row.index == 0 && row.ratanumero == "original name" } }
+            .apply { assertEquals(rows.first().trackNumbers, "original name") }
             .returnToFrontPage()
             .openNthPublication(0)
             .apply {
-                this.waitUntilItemMatches { row -> row.index == 0 && row.ratanumero == "updated name" && row.vietyRatkoon == "Ei" }
+                rows.first().also { r ->
+                    assertEquals(r.trackNumbers, "updated name")
+                    assertEquals(r.pushedToRatko, "Ei")
+                }
             }
             .returnToFrontPage()
 
@@ -81,8 +81,7 @@ class FrontPageTestUI @Autowired constructor(
         fakeRatko.isOnline()
         fakeRatko.hasRouteNumber(ratkoRouteNumber("1.2.3.4.5"))
 
-        clickElement(byQaId("publish-to-ratko"))
-        clickElement(byQaId("confirm-publish-to-ratko"))
+        E2EFrontPage().pushToRatko()
 
         // the publication list will only update with the changeTimes mechanism, which can take up to 15 seconds,
         // so we're not going to bother checking that; we'll just poll Ratko to see that the change went through instead

@@ -1,81 +1,51 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.util.ElementFetch
+import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
 
-open class Accordion(by: By) : PageModel(by) {
+open class E2EAccordion(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     enum class Toggle { OPEN, CLOSE }
 
-    fun header(): String {
-        logger.info("Get header")
-        return childText(By.cssSelector("span.accordion__header-title"))
-    }
+    constructor(by: By) : this(fetch(by))
 
-    fun toggleVisibility() {
+    val header: String
+        get() {
+            logger.info("Get header")
+            return childText(By.className("accordion__header-title"))
+        }
+
+    fun toggleVisibility(): E2EAccordion = apply {
         logger.info("Toggle visibility")
-        webElement.findElement(By.cssSelector("span.accordion__visibility")).click()
+        clickButton(By.className("accordion__visibility"))
     }
 
-    fun toggleAccordion(toggle: Toggle = Toggle.OPEN) {
+    fun toggleAccordion(toggle: Toggle = Toggle.OPEN): E2EAccordion = apply {
         logger.info("Toggle accordion")
         when (toggle) {
-            Toggle.OPEN -> openAccordion()
-            Toggle.CLOSE -> closeAccordion()
+            Toggle.OPEN -> open()
+            Toggle.CLOSE -> close()
         }
     }
 
-    fun clickHeader() {
+    fun clickHeader(): E2EAccordion = apply {
         logger.info("Click header")
-        clickChild(By.cssSelector("span.accordion__header-title"))
+        clickChild(By.className("accordion__header-title"))
     }
 
-    // TODO: GVT-1935 These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
-    @Deprecated("Element risks staleness")
-    fun listItems() = childElements(By.cssSelector("li")).map { element -> AccordionListItem(element) }
-
-    fun listItemByName(itemName: String) = listItems().first { item -> item.name() == itemName }
-
-    fun selectListItem(itemName: String) = apply {
-        logger.info("Select '$itemName'")
-        try {
-            listItemByName(itemName).select()
-        } catch (ex: java.util.NoSuchElementException) {
-            logger.error("No such item [$itemName]! Available items ${listItems().map { it.name() }}")
-        }
-    }
-
-    fun subAccordionByTitle(title: String): Accordion {
-        logger.info("Open subAccordion '$title'")
-        return Accordion(
-            By.xpath(".//div[@class='accordion__body']/div/div[@class='accordion' and h4/span[contains(text(), '$title')]]")
-        )
-    }
-
-    private fun openAccordion() {
+    fun open(): E2EAccordion = apply {
         logger.info("Open accordion")
-        if (childExists(By.cssSelector("ul li"))) {
-            logger.warn("Accordion already open")
-        } else {
-            clickChild(By.cssSelector("span.accordion-toggle svg"))
-            waitChildVisible(By.cssSelector("div.accordion__body"))
+        if (!childExists(By.className("accordion__body"))) {
+            clickChild(By.cssSelector(".accordion-toggle svg"))
+            waitChildVisible(By.className("accordion__body"))
         }
     }
 
-    private fun closeAccordion() {
+    private fun close(): E2EAccordion = apply {
         logger.info("Close accordion")
-        if (childExists(By.cssSelector("ul li"))) {
-            clickChild(By.cssSelector("span.accordion-toggle svg"))
-        } else {
-            logger.warn("Accordion already closed")
+        if (childExists(By.className("accordion__body"))) {
+            clickChild(By.cssSelector(".accordion-toggle svg"))
+            waitChildNotVisible(By.className("accordion__body"))
         }
     }
-}
-
-class AccordionListItem(val element: WebElement) {
-    fun name(): String = element.findElement(By.cssSelector("span span")).text
-    fun select() {
-        element.findElement(By.cssSelector("span span")).click()
-    }
-
-    override fun toString(): String = name()
 }
