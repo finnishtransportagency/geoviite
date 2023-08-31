@@ -188,6 +188,8 @@ fun ResultSet.getFreeText(name: String): FreeText = verifyNotNull(name, ::getFre
 
 fun ResultSet.getFreeTextOrNull(name: String): FreeText? = getString(name)?.let(::FreeText)
 
+fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? = getString(name)?.let(::FreeTextWithNewLines)
+
 fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 
 fun ResultSet.getFileNameOrNull(name: String): FileName? = getString(name)?.let(::FileName)

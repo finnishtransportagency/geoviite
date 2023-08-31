@@ -728,6 +728,7 @@
         "file-name": "Nimi",
         "name-help": "Jos suunnitteluprojekti ei löydy listalta, luo uusi.",
         "observations-field": "Huomiot",
+        "observations-field-default": "",
         "observations-help": "Huomiot näkyvät info-symbolina listanäkymässä.",
         "location-formgroup-title": "Sijaintitiedot",
         "tracknumberfield": "Ratanumero",
