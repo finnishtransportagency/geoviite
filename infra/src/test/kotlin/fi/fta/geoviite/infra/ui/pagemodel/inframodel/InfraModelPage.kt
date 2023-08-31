@@ -13,7 +13,6 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         )
     }
 
-
     fun upload(file: String): E2EInfraModelForm {
         logger.info("Upload IM file $file")
         childElement(By.className("file-input__file-input")).sendKeys(file)
@@ -27,7 +26,7 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         return waitForInfraModelForm()
     }
 
-    fun search(query: String) = apply {
+    fun search(query: String): E2EInfraModelPage = apply {
         logger.info("Search '$query'")
         waitChildVisible(By.className("infra-model-list-search-result__table"))
         childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).clear().inputValue(query)
@@ -37,9 +36,7 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         clickButton(byQaId("infra-model-nav-tab-waiting"))
         
         waitChildVisible(By.className("projektivelho-file-list"))
-        val qaHeaders =
-            childElements(By.cssSelector(".projektivelho-file-list thead tr th")).map { it.getAttribute("qa-id") }
-        return E2EProjektiVelhoPage(qaHeaders)
+        return E2EProjektiVelhoPage()
     }
 
     private fun waitForInfraModelForm(): E2EInfraModelForm {

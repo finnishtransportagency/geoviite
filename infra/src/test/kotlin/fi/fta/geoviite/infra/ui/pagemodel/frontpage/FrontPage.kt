@@ -44,10 +44,10 @@ class E2EPublicationDetailsPage(by: By = By.className("publication-details")) : 
     val rows: List<E2EPublicationDetailRow>
         get() {
             logger.info("Read publication detail rows")
-            val headers = childTexts(By.className("table__th-children"))
+            val headers = childElements(By.className("table__th-children"))
 
-            return childElements(By.className("publication-table__row")).mapIndexed { i, e ->
-                E2EPublicationDetailRow(i, e, headers)
+            return childElements(By.className("publication-table__row")).map { e ->
+                E2EPublicationDetailRow(e.findElements(By.tagName("td")), headers)
             }
         }
 }

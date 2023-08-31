@@ -36,17 +36,17 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
         val searchResults = mapPage.toolBar
             .search("test-lt")
-            .searchResults().map { it.value }
+            .searchResults.map { it.text }
         assertEquals(ltNames.map { (n, d) -> "$n, $d" }, searchResults)
 
         val searchResultsBs = mapPage.toolBar
             .search(" b", false)
-            .searchResults().map { it.value }
+            .searchResults.map { it.text }
         assertEquals(listOf("test-lt B2, test-desc-2", "test-lt B3, test-desc-3"), searchResultsBs)
 
         val searchResultsB2 = mapPage.toolBar
             .search("2", false)
-            .searchResults().map { it.value }
+            .searchResults.map { it.text }
         assertEquals(listOf("test-lt B2, test-desc-2"), searchResultsB2)
     }
 
@@ -63,7 +63,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
         startGeoviite()
         val mapPage = goToMap()
 
-        mapPage.toolBar.search(track.name.toString()).selectResult(track.name.toString())
+        mapPage.toolBar.search(track.name.toString()).selectSearchResult(track.name.toString())
 
         val locationTrackGeneralInfoBox = mapPage.toolPanel.locationTrackGeneralInfo
         assertEquals(track.name.toString(), locationTrackGeneralInfoBox.name)

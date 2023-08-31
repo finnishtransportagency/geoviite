@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAccordion
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EList
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextList
+import fi.fta.geoviite.infra.ui.pagemodel.common.byLiTag
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
@@ -11,7 +14,7 @@ const val ALIGNMENT_ACCORDION_QA_ID = "geometry-plan-panel-alignments"
 const val KM_POST_ACCORDION_QA_ID = "geometry-plan-panel-km-posts"
 const val SWITCHES_ACCORDION_QA_ID = "geometry-plan-panel-switches"
 
-class E2EGeometryPlansAccordion(by: By) : E2EAccordion(by) {
+class E2EGeometryPlanAccordion(by: By) : E2EAccordion(by) {
 
     private val alignmentsAccordion by lazy { subAccordion(ALIGNMENT_ACCORDION_QA_ID) }
     private val kmPostsAccordion by lazy { subAccordion(KM_POST_ACCORDION_QA_ID) }
@@ -36,12 +39,12 @@ class E2EGeometryPlansAccordion(by: By) : E2EAccordion(by) {
         open().also { switchesAccordion.selectItem(switch) }
     }
 
-    private fun subAccordion(qaId: String): E2EGeometryPlanAccordion {
-        return E2EGeometryPlanAccordion(this.elementFetch, qaId)
+    private fun subAccordion(qaId: String): E2EGeometryPlanItemAccordion {
+        return E2EGeometryPlanItemAccordion(this.elementFetch, qaId)
     }
 }
 
-private class E2EGeometryPlanAccordion(
+private class E2EGeometryPlanItemAccordion(
     parentFetch: ElementFetch,
     qaId: String,
 ) : E2EAccordion(fetch(parentFetch, byQaId(qaId))) {
@@ -57,102 +60,68 @@ private class E2EGeometryPlanAccordion(
     }
 }
 
-abstract class E2ESelectionListItem(open val name: String, override val index: Int) : E2EListItem
+interface E2ESelectionListItem {
+    val name: String
+}
 
 abstract class E2ESelectionList<T : E2ESelectionListItem>(
     listFetch: ElementFetch,
-    itemsBy: By,
-    getContent: (index: Int, child: WebElement) -> T,
-) : E2EList<T>(
-    listFetch = listFetch,
-    itemsBy = itemsBy,
-    getContent = getContent
-) {
+    private val getContent: (child: WebElement) -> T,
+    itemsBy: By = byLiTag,
+) : E2EList<T>(listFetch, itemsBy) {
+    override fun getItemContent(item: WebElement) = this.getContent(item)
+    
     fun selectByName(name: String) = selectItemWhenMatches { it.name == name }
 }
 
-data class E2EKmPostSelectionListItem(
-    override val name: String,
-    override val index: Int,
-) : E2ESelectionListItem(name, index) {
-    constructor(index: Int, element: WebElement) : this(
-        name = element.findElement(By.xpath("./div/span")).text,
-        index = index,
-    )
+data class E2EKmPostSelectionListItem(override val name: String) : E2ESelectionListItem {
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
 }
 
-data class E2ELocationTrackSelectionListItem(
-    override val name: String,
-    override val index: Int,
-    val type: String,
-) : E2ESelectionListItem(name, index) {
-    constructor(index: Int, element: WebElement) : this(
+data class E2ELocationTrackSelectionListItem(override val name: String, val type: String) : E2ESelectionListItem {
+    constructor(element: WebElement) : this(
         name = element.findElement(By.xpath("./div/span")).text,
         type = element.findElement(By.tagName("span")).text,
-        index = index,
     )
 }
 
-data class E2ETrackNumberSelectionListItem(
-    override val name: String,
-    override val index: Int,
-) : E2ESelectionListItem(name, index) {
-    constructor(index: Int, element: WebElement) : this(
-        name = element.findElement(By.xpath("./div/span")).text,
-        index = index,
-    )
+data class E2ETrackNumberSelectionListItem(override val name: String) : E2ESelectionListItem {
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
 }
 
-data class E2EReferenceLineSelectionListItem(
-    override val name: String,
-    override val index: Int,
-) : E2ESelectionListItem(name, index) {
-    constructor(index: Int, element: WebElement) : this(
-        name = element.findElement(By.tagName("span")).text,
-        index = index
-    )
+data class E2EReferenceLineSelectionListItem(override val name: String) : E2ESelectionListItem {
+    constructor(element: WebElement) : this(element.findElement(By.tagName("span")).text)
 }
 
-data class E2ESwitchSelectionListItem(
-    override val name: String,
-    override val index: Int,
-) : E2ESelectionListItem(name, index) {
-    constructor(index: Int, element: WebElement) : this(
-        name = element.findElement(By.xpath("./span/span")).text,
-        index = index
-    )
+data class E2ESwitchSelectionListItem(override val name: String) : E2ESelectionListItem {
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./span/span")).text)
 }
 
 class E2EKmPostSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2EKmPostSelectionListItem>(
     listFetch = fetch(elementFetch, By.className("km-posts-panel__km-posts")),
-    itemsBy = byLiTag,
-    getContent = { i, e -> E2EKmPostSelectionListItem(i, e) },
+    getContent = { e -> E2EKmPostSelectionListItem(e) },
 )
 
 class E2ELocationTrackSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2ELocationTrackSelectionListItem>(
     listFetch = fetch(elementFetch, byQaId("location-tracks-list")),
-    itemsBy = byLiTag,
-    getContent = { i, e -> E2ELocationTrackSelectionListItem(i, e) }
+    getContent = { e -> E2ELocationTrackSelectionListItem(e) }
 ) {
-    // TODO: GVT-1935 implement a generic way to handle list selection status through qa-id
     override fun isSelected(element: WebElement): Boolean =
         element.findElement(By.xpath("./*[1]")).getAttribute("class").contains("selected")
 }
 
 class E2ETrackNumberSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2ETrackNumberSelectionListItem>(
     listFetch = fetch(elementFetch, By.className("track-number-panel__track-numbers")),
-    itemsBy = byLiTag,
-    getContent = { i, e -> E2ETrackNumberSelectionListItem(i, e) },
+    getContent = { e -> E2ETrackNumberSelectionListItem(e) },
 )
 
 class E2EReferenceLineSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2EReferenceLineSelectionListItem>(
     listFetch = fetch(elementFetch, byQaId("reference-lines-list")),
     itemsBy = By.className("reference-lines-panel__reference-line"),
-    getContent = { i, e -> E2EReferenceLineSelectionListItem(i, e) }
+    getContent = { e -> E2EReferenceLineSelectionListItem(e) }
 )
 
 class E2ESwitchesSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2ESwitchSelectionListItem>(
     listFetch = fetch(elementFetch, By.className("switch-panel__switches")),
-    itemsBy = byLiTag,
-    getContent = { i, e -> E2ESwitchSelectionListItem(i, e) }
+    getContent = { e -> E2ESwitchSelectionListItem(e) }
 )

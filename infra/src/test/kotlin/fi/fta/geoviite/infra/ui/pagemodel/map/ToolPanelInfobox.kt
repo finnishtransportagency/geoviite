@@ -1,11 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
-import fi.fta.geoviite.infra.ui.pagemodel.common.defaultDialogBy
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byText
 import org.openqa.selenium.By
-import waitUntilVisible
 
 // TODO: GVT-1939 Replace init-sleeps with reliable waits
 //   implement spinner-indicators for data that is still loading
@@ -221,8 +219,6 @@ class E2EGeometryKmPostLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkingIn
 
     fun createNewTrackLayoutKmPost(): E2EKmPostEditDialog {
         clickChild(By.cssSelector("div.geometry-km-post-linking-infobox__search button"))
-        waitUntilVisible(defaultDialogBy)
-
         return E2EKmPostEditDialog()
     }
 
@@ -244,8 +240,6 @@ class E2EGeometryAlignmentLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkin
     fun createNewLocationTrack(): E2ELocationTrackEditDialog {
         logger.info("Create a new location track")
         clickButtonByQaId("create-location-track-button")
-
-        waitUntilVisible(defaultDialogBy)
 
         return E2ELocationTrackEditDialog()
     }
@@ -276,9 +270,7 @@ class E2EGeometrySwitchLinkingInfoBox(elementFetch: ElementFetch) : E2ELinkingIn
     fun createNewTrackLayoutSwitch(): E2ELayoutSwitchEditDialog {
         logger.info("Create new track layout switch")
         clickChild(By.cssSelector("div.geometry-switch-infobox__search-container button"))
-
-        waitUntilVisible(defaultDialogBy)
-
+        
         return E2ELayoutSwitchEditDialog()
     }
 

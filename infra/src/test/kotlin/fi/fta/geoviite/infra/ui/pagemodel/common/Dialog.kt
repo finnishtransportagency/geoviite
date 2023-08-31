@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import exists
 import getChildWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-import waitUntilDoesNotExist
 
 val defaultDialogBy: By = By.className("dialog")
 
@@ -30,9 +30,15 @@ open class E2EDialog(val by: By = defaultDialogBy) : E2EViewFragment(by) {
     fun clickSecondaryButton() {
         clickButton(By.cssSelector("button.button--secondary"))
     }
-    
 
-    fun waitUntilClosed() = webElement.waitUntilDoesNotExist()
+    fun clickWarningButton() {
+        clickButton(By.cssSelector("button.button--warning"))
+    }
+
+    fun waitUntilClosed(fn: () -> Unit) = webElement.let { el ->
+        fn()
+        !el.exists()
+    }
 }
 
 class E2EDialogWithTextField(by: By = defaultDialogBy) : E2EDialog(by) {

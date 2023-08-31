@@ -40,16 +40,17 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         logger.info("Add and change dropdown value field [$label] to [$values]")
         clickEditIcon(label)
 
-        val dropdown = E2EDropdown { getFieldValueElement(label).findElement(By.className("dropdown")) }
-        dropdown.open().new()
+        E2EDropdown { getFieldValueElement(label).findElement(By.className("dropdown")) }
+            .open()
+            .new()
 
-        val dialogPopUp = E2EDialogWithTextField()
-        dialogPopUp.inputValues(values).clickPrimaryButton()
+        E2EDialogWithTextField()
+            .inputValues(values)
+            .clickPrimaryButton()
 
-        E2EToaster().also { t ->
-            t.waitUntilVisible()
-            clickEditIcon(label)
-        }
+        E2EToaster().waitUntilVisible()
+
+        clickEditIcon(label)
     }
 
     private fun getFieldValueElement(fieldName: String) =

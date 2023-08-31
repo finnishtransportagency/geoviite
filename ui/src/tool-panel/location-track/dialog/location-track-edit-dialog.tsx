@@ -59,21 +59,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     props: LocationTrackDialogProps,
 ) => {
     const { t } = useTranslation();
-    const startAndEndPoints =
-        props.locationTrack &&
-        useLocationTrackStartAndEnd(
-            props.locationTrack.id,
-            props.publishType,
-            props.locationTrackChangeTime,
-        );
-    const topologicalStartSwitch = useSwitch(
-        props.locationTrack?.topologyStartSwitch?.switchId,
-        props.publishType,
-    );
-    const topologicalEndSwitch = useSwitch(
-        props.locationTrack?.topologyEndSwitch?.switchId,
-        props.publishType,
-    );
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -84,6 +69,21 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
+
+    const startAndEndPoints = useLocationTrackStartAndEnd(
+        state.existingLocationTrack?.id,
+        props.publishType,
+        props.locationTrackChangeTime,
+    );
+
+    const topologicalStartSwitch = useSwitch(
+        state.existingLocationTrack?.topologyStartSwitch?.switchId,
+        props.publishType,
+    );
+    const topologicalEndSwitch = useSwitch(
+        state.existingLocationTrack?.topologyEndSwitch?.switchId,
+        props.publishType,
+    );
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
@@ -104,7 +104,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const onLocationTrackDeleted = () => {
         closeNonDraftDeleteConfirmation();
         props.onClose && props.onClose();
-        props.locationTrack && props.onUnselect && props.onUnselect();
+        state.existingLocationTrack && props.onUnselect && props.onUnselect();
     };
 
     // Load track numbers once
@@ -132,7 +132,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             stateActions.initWithNewLocationTrack();
             firstInputRef.current?.focus();
         }
-    }, [props.locationTrack]);
+    }, [props.locationTrack?.id]);
 
     function cancelSave() {
         props.onClose && props.onClose();
@@ -259,11 +259,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     <React.Fragment>
                         <div className={dialogStyles['dialog-footer__content-area']}>
                             <div className={dialogStyles['dialog-footer__content--shrink']}>
-                                {props.locationTrack?.draftType === 'NEW_DRAFT' &&
+                                {state.existingLocationTrack?.draftType === 'NEW_DRAFT' &&
                                     !state.isNewLocationTrack && (
                                         <Button
                                             onClick={() =>
-                                                props.locationTrack && confirmNonDraftDelete()
+                                                state.existingLocationTrack &&
+                                                confirmNonDraftDelete()
                                             }
                                             icon={Icons.Delete}
                                             variant={ButtonVariant.WARNING}>
@@ -481,9 +482,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <TextField
                                     value={
-                                        props.locationTrack
+                                        state.existingLocationTrack
                                             ? roundToPrecision(
-                                                  props.locationTrack.length,
+                                                  state.existingLocationTrack.length,
                                                   Precision.alignmentLengthMeters,
                                               )
                                             : '-'
@@ -553,9 +554,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         </div>
                     </Dialog>
                 )}
-                {props.locationTrack && draftDeleteConfirmationVisible && (
+                {state.existingLocationTrack && draftDeleteConfirmationVisible && (
                     <LocationTrackDeleteConfirmationDialog
-                        id={props.locationTrack?.id}
+                        id={state.existingLocationTrack?.id}
                         onCancel={closeDraftDeleteConfirmation}
                         onClose={onLocationTrackDeleted}
                     />
