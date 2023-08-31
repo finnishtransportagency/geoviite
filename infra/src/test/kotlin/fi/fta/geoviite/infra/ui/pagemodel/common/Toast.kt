@@ -5,9 +5,9 @@ import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import tryWait
 import waitAndClick
 import waitUntilDoesNotExist
-import waitUntilVisible
 
 private val logger: Logger = LoggerFactory.getLogger(E2EToast::class.java)
 
@@ -46,10 +46,6 @@ private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) 
     }
 }
 
-private fun waitForToasts() {
-    waitUntilVisible(toasterBy)
-}
-
 private fun getToasts(): List<Pair<E2EToast, WebElement>> {
     return browser().findElements(toasterBy).mapNotNull { e ->
         if (e.isDisplayed) E2EToast(e) to e else null
@@ -62,42 +58,33 @@ private fun clearToast(toast: WebElement) {
 }
 
 fun waitAndClearToastByContent(content: String): E2EToast {
-    waitForToasts()
-    val toasts = getToasts()
-    val matchingToast = toasts
-        .firstOrNull { (t, _) -> t.content == content || t.header == content }
-        ?.let { (toast, element) ->
-            clearToast(element)
-            toast
-        }
+    val (toast, element) = tryWait<Pair<E2EToast, WebElement>>(
+        { getToasts().firstOrNull { (t, _) -> t.content == content || t.header == content } },
+        { "None of the toasts matched with content [$content]. Toasts that were visible: ${getToasts().map { it.first }}" }
+    )
 
-    return checkNotNull(matchingToast) {
-        "None of the toasts matched with content [$content]. Toasts that were visible: ${toasts.map { it.first }}"
-    }
+    clearToast(element)
+
+    return toast
 }
 
 fun waitAndClearToast(qaId: String): E2EToast {
-    waitForToasts()
+    val (toast, element) = tryWait<Pair<E2EToast, WebElement>>(
+        { getToasts().firstOrNull { (t, _) -> t.qaId == qaId } },
+        { "None of the toasts matched with qa-id [$qaId]. Toasts that were visible: ${getToasts().map { it.first }}" }
+    )
 
-    val toasts = getToasts()
-    val matchingToast = toasts
-        .firstOrNull { (t, _) -> t.qaId == qaId }
-        ?.let { (toast, element) ->
-            clearToast(element)
-            toast
-        }
+    clearToast(element)
 
-    return checkNotNull(matchingToast) {
-        "None of the toasts matched with qa-id [$qaId]. Toasts that were visible: ${toasts.map { it.first }}"
-    }
+    return toast
 }
 
 fun <R> expectToast(fn: () -> R) {
     val oldToasts = getToasts().map { it.first }
     fn()
 
-    waitForToasts()
-    check(getToasts().any { (nt, _) -> !oldToasts.contains(nt) }) {
-        "Expected a new toast but nothing appeared"
-    }
+    tryWait(
+        { getToasts().any { (nt, _) -> !oldToasts.contains(nt) } },
+        { "Expected a new toast but nothing appeared" }
+    )
 }
