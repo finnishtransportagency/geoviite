@@ -1,11 +1,14 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
@@ -74,8 +77,20 @@ interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDr
 @Transactional(readOnly = true)
 abstract class DraftableDaoBase<T : Draftable<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    private val table: DbTable,
+    val table: DbTable,
+    val cacheEnabled: Boolean,
+    cacheSize: Long,
 ) : DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
+
+    protected val cache: Cache<RowVersion<T>, T> =
+        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
+
+    override fun fetch(version: RowVersion<T>): T = if (cacheEnabled) cache.get(version, ::fetchInternal)
+    else fetchInternal(version)
+
+    protected abstract fun fetchInternal(version: RowVersion<T>): T
+
+    abstract fun preloadCache()
 
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow

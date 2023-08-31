@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.configuration
 
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
@@ -33,27 +32,37 @@ class CachePreloader(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
-    fun scheduleReload() {
+    fun scheduleDraftableReload() {
         if (cacheEnabled && cachePreloadEnabled) {
             switchStructureDao.fetchSwitchStructures()
-            refreshCache("TrackNumber", layoutTrackNumberDao::fetchAllVersions, layoutTrackNumberDao::fetch)
-            refreshCache("ReferenceLine", referenceLineDao::fetchAllVersions, referenceLineDao::fetch)
-            refreshCache("LocationTrack", locationTrackDao::fetchAllVersions, locationTrackDao::fetch)
-            refreshCache("Alignment", alignmentDao::fetchVersions, alignmentDao::fetch)
-            refreshCache("Switch", switchDao::fetchAllVersions, switchDao::fetch)
-            refreshCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch)
-            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
+            listOf(
+                layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao
+            ).parallelStream().forEach { dao -> refreshCache(dao) }
         }
     }
 
-    private fun <T,S> refreshCache(
-        name: String,
-        fetchVersions: () -> List<RowVersion<T>>,
-        fetchRow: (RowVersion<T>) -> S,
-    ) {
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun schedulePlanHeaderReload() {
+        if (cacheEnabled && cachePreloadEnabled) {
+            refreshCache("PlanHeader", geometryDao::preloadHeaderCache)
+        }
+    }
+
+    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
+    fun scheduleAlignmentReload() {
+        if (cacheEnabled && cachePreloadEnabled) {
+            refreshCache("SegmentGeometries", alignmentDao::preloadSegmentGeometries)
+            refreshCache("Alignment", alignmentDao::preloadAlignmentCache)
+        }
+    }
+
+    private fun <T : Draftable<T>> refreshCache(dao: DraftableDaoBase<T>) =
+        refreshCache(dao.table.name, dao::preloadCache)
+
+    private fun refreshCache(name: String, refresh: () -> Unit) {
         logger.info("Refreshing cache: name=$name")
         val start = Instant.now()
-        fetchVersions().forEach { version -> fetchRow(version) }
+        refresh()
         logger.info("Cache refreshed: name=$name duration=${Duration.between(start, Instant.now()).toMillis()}ms")
     }
 }

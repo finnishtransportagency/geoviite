@@ -29,6 +29,7 @@ enum class PlanSource {
  */
 data class GeometryPlanHeader(
     val id: IntId<GeometryPlan>,
+    val version: RowVersion<GeometryPlan>,
     val project: Project,
     val fileName: FileName,
     val source: PlanSource,

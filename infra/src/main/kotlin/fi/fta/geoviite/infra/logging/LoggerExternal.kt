@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.logging
 
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
+import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.resetCollected
 import org.slf4j.Logger
@@ -13,7 +15,7 @@ import kotlin.reflect.KClass
 
 
 fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) =
-    debug("Request: ${req.method}:${req.requestURL} ip=$requestIp")
+    debug("Request: {}:{} ip={}", req.method, req.requestURL, requestIp)
 
 fun Logger.apiResponse(req: HttpServletRequest, res: HttpServletResponse, requestIp: String, startTime: Instant) {
     val timeMs = Duration.between(startTime, Instant.now()).toMillis()
@@ -37,8 +39,11 @@ fun Logger.daoAccess(accessType: AccessType, objectType: String, vararg ids: Any
 }
 
 fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>) {
-    if (accessType == AccessType.VERSION_FETCH) debug("accessType=$accessType objectType=${objectType} ids=$ids")
-    else info("accessType=$accessType objectType=${objectType} ids=$ids")
+
+    if (accessType == VERSION_FETCH || accessType == FETCH) debug(
+        "accessType={} objectType={} ids={}", accessType, objectType, ids
+    )
+    else info("accessType=$accessType objectType=$objectType ids=$ids")
 }
 
 fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
@@ -46,7 +51,7 @@ fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
 }
 
 fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
-    debug("method=$method params=${paramsToLog(params)}")
+    debug("method={} params={}", method, paramsToLog(params))
 }
 
 fun paramsToLog(params: Array<out Pair<String, *>>): List<String> =

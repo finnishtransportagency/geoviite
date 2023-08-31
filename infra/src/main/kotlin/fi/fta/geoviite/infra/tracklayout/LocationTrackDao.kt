@@ -1,23 +1,27 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_LOCATION_TRACK
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
+const val LOCATIONTRACK_CACHE_SIZE = 10000L
+
 @Transactional(readOnly = true)
 @Component
-class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK) {
+class LocationTrackDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
     fun fetchDuplicates(id: IntId<LocationTrack>, publicationState: PublishType): List<LocationTrackDuplicate> {
         val sql = """
@@ -42,14 +46,12 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return locationTracks
     }
 
-
-    @Cacheable(CACHE_LAYOUT_LOCATION_TRACK, sync = true)
-    override fun fetch(version: RowVersion<LocationTrack>): LocationTrack {
+    override fun fetchInternal(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 
               ltv.id as row_id,
               ltv.version as row_version,
-              coalesce(ltv.draft_of_location_track_id, ltv.id) official_id, 
+              coalesce(ltv.draft_of_location_track_id, ltv.id) as official_id, 
               case when ltv.draft then ltv.id end as draft_id,
               ltv.alignment_id,
               ltv.alignment_version,
@@ -73,45 +75,83 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             where ltv.id = :id
               and ltv.version = :version
               and ltv.deleted = false
+             
         """.trimIndent()
+
         val params = mapOf(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val locationTrack = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            LocationTrack(
-                dataType = DataType.STORED,
-                id = rs.getIntId("official_id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                externalId = rs.getOidOrNull("external_id"),
-                trackNumberId = rs.getIntId("track_number_id"),
-                name = rs.getString("name").let(::AlignmentName),
-                description = rs.getFreeText("description"),
-                type = rs.getEnum("type"),
-                state = rs.getEnum("state"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-                duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                topologicalConnectivity = rs.getEnum("topological_connectivity"),
-                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
-                    ?.let { id -> TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_start_switch_joint_number"),
-                    ) },
-                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")
-                    ?.let { id -> TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_end_switch_joint_number"),
-                    ) },
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, LocationTrack::class, locationTrack.id)
-        return locationTrack
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
+            logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
+        }
     }
+
+    override fun preloadCache() {
+        val sql = """
+            select 
+              lt.id as row_id,
+              lt.version as row_version,
+              coalesce(lt.draft_of_location_track_id, lt.id) as official_id, 
+              case when lt.draft then lt.id end as draft_id,
+              lt.alignment_id,
+              lt.alignment_version,
+              lt.track_number_id, 
+              lt.external_id, 
+              lt.name, 
+              lt.description, 
+              lt.type, 
+              lt.state, 
+              postgis.st_astext(av.bounding_box) as bounding_box,
+              av.length,
+              av.segment_count,            
+              lt.duplicate_of_location_track_id,
+              lt.topological_connectivity,
+              lt.topology_start_switch_id,
+              lt.topology_start_switch_joint_number,
+              lt.topology_end_switch_id,
+              lt.topology_end_switch_joint_number
+            from layout.location_track lt
+              left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
+        """.trimIndent()
+
+        val tracks = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLocationTrack(rs) }
+            .associateBy(LocationTrack::version)
+        logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.keys)
+        cache.putAll(tracks)
+    }
+
+    private fun getLocationTrack(rs: ResultSet): LocationTrack = LocationTrack(
+        dataType = DataType.STORED,
+        id = rs.getIntId("official_id"),
+        alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+        sourceId = null,
+        externalId = rs.getOidOrNull("external_id"),
+        trackNumberId = rs.getIntId("track_number_id"),
+        name = rs.getString("name").let(::AlignmentName),
+        description = rs.getFreeText("description"),
+        type = rs.getEnum("type"),
+        state = rs.getEnum("state"),
+        boundingBox = rs.getBboxOrNull("bounding_box"),
+        length = rs.getDouble("length"),
+        segmentCount = rs.getInt("segment_count"),
+        draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+        duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
+        topologicalConnectivity = rs.getEnum("topological_connectivity"),
+        topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
+            TopologyLocationTrackSwitch(
+                id,
+                rs.getJointNumber("topology_start_switch_joint_number"),
+            )
+        },
+        topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")?.let { id ->
+            TopologyLocationTrackSwitch(
+                id,
+                rs.getJointNumber("topology_end_switch_joint_number"),
+            )
+        },
+    )
 
     @Transactional
     override fun insert(newItem: LocationTrack): DaoResponse<LocationTrack> {
@@ -339,9 +379,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
 
         return jdbcTemplate.queryForObject(
-            sql,
-            mapOf("locationTrackId" to locationTrackId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") }
-            ?: throw IllegalStateException("Unexpected null from exists-query")
+            sql, mapOf("locationTrackId" to locationTrackId.intValue)
+        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
 }

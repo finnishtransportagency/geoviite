@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_KM_POST
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.logging.AccessType
@@ -9,15 +8,20 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_KM_POST
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+
+const val KM_POST_CACHE_SIZE = 10000L
 
 @Transactional(readOnly = true)
 @Component
-class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST) {
+class LayoutKmPostDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST, cacheEnabled, KM_POST_CACHE_SIZE) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null, null)
@@ -40,14 +44,16 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               ))
             order by km_post.track_number_id, km_post.km_number
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf(
-            "track_number_id" to trackNumberId?.intValue,
-            "publicationState" to publicationState,
-            "include_deleted" to includeDeleted,
-            "publication_state" to publicationState.name,
-            "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
-            "map_srid" to LAYOUT_SRID.code,
-        )) { rs, _ ->
+        return jdbcTemplate.query(
+            sql, mapOf(
+                "track_number_id" to trackNumberId?.intValue,
+                "publicationState" to publicationState,
+                "include_deleted" to includeDeleted,
+                "publication_state" to publicationState.name,
+                "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
+                "map_srid" to LAYOUT_SRID.code,
+            )
+        ) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
     }
@@ -67,12 +73,12 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               and km_post.state != 'DELETED'
             order by km_post.track_number_id, km_post.km_number
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf(
-            "track_number_id" to trackNumberId.intValue,
+        return jdbcTemplate.query(sql, mapOf("track_number_id" to trackNumberId.intValue,
             // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
             // explicitly for false or null, since "foo in (null)" in SQL is null
             "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) })
-        )) { rs, _ ->
+        )
+        ) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
     }
@@ -101,13 +107,12 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return result.firstOrNull()
     }
 
-    @Cacheable(CACHE_LAYOUT_KM_POST, sync = true)
-    override fun fetch(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
+    override fun fetchInternal(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
               id as row_id,
               version as row_version,
-              coalesce(draft_of_km_post_id, id) official_id, 
+              coalesce(draft_of_km_post_id, id) as official_id, 
               case when draft then id end as draft_id,
               track_number_id,
               geometry_km_post_id,
@@ -115,38 +120,58 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
               state
             from layout.km_post_version
-            where id = :id 
-              and version = :version
+            where id=:id 
+              and version=:version
               and deleted = false
         """.trimIndent()
         val params = mapOf(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val post = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            TrackLayoutKmPost(
-                id = rs.getIntId("official_id"),
-                dataType = DataType.STORED,
-                trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number"),
-                location = rs.getPointOrNull("point_x", "point_y"),
-                state = rs.getEnum("state"),
-                sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-                draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, post.id)
-        return post
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
+            logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
+        }
     }
+
+    override fun preloadCache() {
+        val sql = """
+            select 
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_km_post_id, id) as official_id, 
+              case when draft then id end as draft_id,
+              track_number_id,
+              geometry_km_post_id,
+              km_number,
+              postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
+              state
+            from layout.km_post
+        """.trimIndent()
+
+        val posts = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
+            .associateBy(TrackLayoutKmPost::version)
+        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
+        cache.putAll(posts)
+    }
+
+    private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost = TrackLayoutKmPost(
+        id = rs.getIntId("official_id"),
+        dataType = DataType.STORED,
+        trackNumberId = rs.getIntId("track_number_id"),
+        kmNumber = rs.getKmNumber("km_number"),
+        location = rs.getPointOrNull("point_x", "point_y"),
+        state = rs.getEnum("state"),
+        sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
+        draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+    )
 
     @Transactional
     override fun insert(newItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
         verifyDraftableInsert(newItem.id, newItem.draft)
 
-        val trackNumberId =
-            if (newItem.trackNumberId is IntId) newItem.trackNumberId
-            else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$newItem")
+        val trackNumberId = if (newItem.trackNumberId is IntId) newItem.trackNumberId
+        else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$newItem")
         val sql = """
             insert into layout.km_post(
               track_number_id, 
@@ -193,9 +218,8 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     @Transactional
     override fun update(updatedItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
-        val trackNumberId =
-            if (updatedItem.trackNumberId is IntId) updatedItem.trackNumberId
-            else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$updatedItem")
+        val trackNumberId = if (updatedItem.trackNumberId is IntId) updatedItem.trackNumberId
+        else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$updatedItem")
         val sql = """
             update layout.km_post 
             set

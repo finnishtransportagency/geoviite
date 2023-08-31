@@ -421,6 +421,7 @@ fun planHeader(
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
 ) = GeometryPlanHeader(
     id = id,
+    version = RowVersion(id, 1),
     fileName = fileName,
     project = project(),
     units = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),

@@ -1,10 +1,12 @@
 package fi.fta.geoviite.infra.geometry
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN
-import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_HEADER
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_SWITCH
+import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.create2DPolygonString
@@ -25,6 +27,7 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN_PROJECT
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -38,11 +41,17 @@ enum class VerticalIntersectionType {
     POINT, CIRCULAR_CURVE,
 }
 
+const val PLAN_HEADER_CACHE_SIZE = 10000L
+
 @Transactional(readOnly = true)
 @Component
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
 ) : DaoBase(jdbcTemplateParam) {
+
+    private val headerCache: Cache<RowVersion<GeometryPlan>, GeometryPlanHeader> =
+        Caffeine.newBuilder().maximumSize(PLAN_HEADER_CACHE_SIZE).expireAfterAccess(planCacheDuration).build()
 
     @Transactional
     fun insertPlan(
@@ -626,90 +635,146 @@ class GeometryDao @Autowired constructor(
         } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
     }
 
-    @Cacheable(CACHE_GEOMETRY_PLAN_HEADER, sync = true)
-    fun getPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
+    fun preloadHeaderCache() {
         val sql = """
-            select 
-              plan.id as plan_id, 
-              plan_file.name as file_name, 
-              plan.source,
-              plan.message, 
-              plan.plan_time, 
-              plan.upload_time, 
-              plan.measurement_method,
-              plan.elevation_measurement_method,
-              plan.plan_phase, 
-              plan.plan_decision,
-              plan.linear_unit,
-              plan.direction_unit,
-              plan.srid,
-              plan.coordinate_system_name,
-              plan.vertical_coordinate_system,
-              plan.linked_as_plan_id,
-              project.id as project_id, 
-              project.name as project_name,
-              project.description as project_description,
-              plan.track_number_id,
-              (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
-              (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
-              author.company_name as author,
-              has_profile,
-              has_cant,
-              plan.hidden
-            from geometry.plan
-              left join geometry.plan_file on plan_file.plan_id = plan.id
-              left join geometry.plan_project project on project.id = plan.plan_project_id
-              left join geometry.plan_author author on plan.plan_author_id = author.id
-              left join lateral
-                (select bool_or(profile_name is not null) as has_profile,
-                        bool_or(cant_name is not null) as has_cant
-                 from geometry.alignment
-                 where plan_id = plan.id) alignments on (true)
-            where :plan_id = plan.id
+          select 
+            plan.id as plan_id, 
+            plan.version as plan_version, 
+            plan_file.name as file_name, 
+            plan.source,
+            plan.message, 
+            plan.plan_time, 
+            plan.upload_time, 
+            plan.measurement_method,
+            plan.elevation_measurement_method,
+            plan.plan_phase, 
+            plan.plan_decision,
+            plan.linear_unit,
+            plan.direction_unit,
+            plan.srid,
+            plan.coordinate_system_name,
+            plan.vertical_coordinate_system,
+            plan.linked_as_plan_id,
+            project.id as project_id, 
+            project.name as project_name,
+            project.description as project_description,
+            plan.track_number_id,
+            (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
+            (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
+            author.company_name as author,
+            has_profile,
+            has_cant,
+            plan.hidden
+          from geometry.plan
+            left join geometry.plan_file on plan_file.plan_id = plan.id
+            left join geometry.plan_project project on project.id = plan.plan_project_id
+            left join geometry.plan_author author on plan.plan_author_id = author.id
+            left join lateral (
+              select 
+                bool_or(profile_name is not null) as has_profile,
+                bool_or(cant_name is not null) as has_cant
+              from geometry.alignment where plan_id = plan.id
+            ) alignments on (true)
+        """.trimIndent()
+        val headers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getPlanHeader(rs) }
+            .associateBy(GeometryPlanHeader::version)
+        logger.daoAccess(FETCH, GeometryPlanHeader::class, headers.keys)
+        headerCache.putAll(headers)
+    }
+
+    fun getPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader =
+        if (cacheEnabled) headerCache.get(rowVersion) { v -> getPlanHeaderInternal(v) }
+        else getPlanHeaderInternal(rowVersion)
+
+    private fun getPlanHeaderInternal(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
+        val sql = """
+          select 
+            plan.id as plan_id, 
+            plan.version as plan_version, 
+            plan_file.name as file_name, 
+            plan.source,
+            plan.message, 
+            plan.plan_time, 
+            plan.upload_time, 
+            plan.measurement_method,
+            plan.elevation_measurement_method,
+            plan.plan_phase, 
+            plan.plan_decision,
+            plan.linear_unit,
+            plan.direction_unit,
+            plan.srid,
+            plan.coordinate_system_name,
+            plan.vertical_coordinate_system,
+            plan.linked_as_plan_id,
+            project.id as project_id, 
+            project.name as project_name,
+            project.description as project_description,
+            plan.track_number_id,
+            (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
+            (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
+            author.company_name as author,
+            has_profile,
+            has_cant,
+            plan.hidden
+          from geometry.plan_version plan
+            left join geometry.plan_file on plan_file.plan_id = plan.id
+            left join geometry.plan_project project on project.id = plan.plan_project_id
+            left join geometry.plan_author author on plan.plan_author_id = author.id
+            left join lateral (
+              select 
+                bool_or(profile_name is not null) as has_profile,
+                bool_or(cant_name is not null) as has_cant
+              from geometry.alignment where plan_id = plan.id
+            ) alignments on (true)
+          where (:plan_id::int is null or (:plan_id = plan.id and :plan_version = plan.version))
         """.trimIndent()
         val params = mapOf(
             "plan_id" to rowVersion.id.intValue,
+            "plan_version" to rowVersion.version,
         )
-        val header = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            val project = Project(
-                id = rs.getIntId("project_id"),
-                name = ProjectName(rs.getString("project_name")),
-                description = rs.getFreeTextOrNull("project_description"),
-            )
+        return getOne(rowVersion.id, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) }).also { header ->
+            logger.daoAccess(FETCH, GeometryPlanHeader::class, header.version)
+        }
+    }
 
-            val minKm = rs.getKmNumberOrNull("min_km_number")
-            val maxKm = rs.getKmNumberOrNull("max_km_number")
-            val range = if (minKm != null && maxKm != null) Range(minKm, maxKm) else null
-            GeometryPlanHeader(
-                id = rs.getIntId("plan_id"),
-                project = project,
-                fileName = rs.getFileName("file_name"),
-                source = rs.getEnum("source"),
-                kmNumberRange = range,
-                planTime = rs.getInstantOrNull("plan_time"),
-                trackNumberId = rs.getIntIdOrNull("track_number_id"),
-                measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
-                elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
-                decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
-                planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
-                message = rs.getFreeTextOrNull("message"),
-                linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
-                uploadTime = rs.getInstant("upload_time"),
-                units = GeometryUnits(
-                    coordinateSystemSrid = rs.getSridOrNull("srid"),
-                    coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
-                    verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
-                    directionUnit = rs.getEnum("direction_unit"),
-                    linearUnit = rs.getEnum("linear_unit"),
-                ),
-                author = rs.getString("author"),
-                hasProfile = rs.getBoolean("has_profile"),
-                hasCant = rs.getBoolean("has_cant"),
-                isHidden = rs.getBoolean("hidden"),
-            )
-        } ?: throw NoSuchEntityException(GeometryPlanHeader::class, rowVersion.id)
-        logger.daoAccess(FETCH, GeometryPlanHeader::class, rowVersion.id)
-        return header
+    private fun getPlanHeader(rs: ResultSet): GeometryPlanHeader {
+        val project = Project(
+            id = rs.getIntId("project_id"),
+            name = ProjectName(rs.getString("project_name")),
+            description = rs.getFreeTextOrNull("project_description"),
+        )
+
+        val minKm = rs.getKmNumberOrNull("min_km_number")
+        val maxKm = rs.getKmNumberOrNull("max_km_number")
+        val range = if (minKm != null && maxKm != null) Range(minKm, maxKm) else null
+        return GeometryPlanHeader(
+            id = rs.getIntId("plan_id"),
+            version = rs.getRowVersion("plan_id", "plan_version"),
+            project = project,
+            fileName = rs.getFileName("file_name"),
+            source = rs.getEnum("source"),
+            kmNumberRange = range,
+            planTime = rs.getInstantOrNull("plan_time"),
+            trackNumberId = rs.getIntIdOrNull("track_number_id"),
+            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
+            elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
+            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
+            planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
+            message = rs.getFreeTextOrNull("message"),
+            linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
+            uploadTime = rs.getInstant("upload_time"),
+            units = GeometryUnits(
+                coordinateSystemSrid = rs.getSridOrNull("srid"),
+                coordinateSystemName = rs.getString("coordinate_system_name")?.let(::CoordinateSystemName),
+                verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
+                directionUnit = rs.getEnum("direction_unit"),
+                linearUnit = rs.getEnum("linear_unit"),
+            ),
+            author = rs.getString("author"),
+            hasProfile = rs.getBoolean("has_profile"),
+            hasCant = rs.getBoolean("has_cant"),
+            isHidden = rs.getBoolean("hidden"),
+        )
     }
 
     fun fetchPlanVersions(

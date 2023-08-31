@@ -1,4 +1,8 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 5
   security:
     filter:
       # Set security filter to be after our own request filter that sets authorization

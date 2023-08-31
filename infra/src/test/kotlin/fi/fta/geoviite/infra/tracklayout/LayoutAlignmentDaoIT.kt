@@ -28,26 +28,22 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val geometryDao: GeometryDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @BeforeEach
-    fun lol() {
+    fun setUp() {
         initUserMdc()
         jdbc.execute("truncate layout.alignment cascade") { it.execute() }
     }
 
     @Test
     fun alignmentsAreStoredAndLoadedOk() {
-        (0..20)
-            .map { seed -> alignmentWithZAndCant(seed) }
-            .forEach { alignment -> insertAndVerify(alignment) }
+        (0..20).map { seed -> alignmentWithZAndCant(seed) }.forEach { alignment -> insertAndVerify(alignment) }
     }
 
     @Test
     fun alignmentsWithoutProfileOrCantIsStoredAndLoadedOk() {
-        (0..20)
-            .map { alignmentSeed -> alignmentWithoutZAndCant(alignmentSeed) }
-            .forEach { a -> insertAndVerify(a) }
+        (0..20).map { alignmentSeed -> alignmentWithoutZAndCant(alignmentSeed) }.forEach { a -> insertAndVerify(a) }
     }
 
     @Test
@@ -100,12 +96,12 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
         val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
-        locationTrackDao.insert(locationTrack(trackNumberId, alignmentLocationTrack)
-            .copy(alignmentVersion = locationTrackAlignmentVersion)
+        locationTrackDao.insert(
+            locationTrack(trackNumberId, alignmentLocationTrack).copy(alignmentVersion = locationTrackAlignmentVersion)
         )
         val referenceLineAlignmentVersion = alignmentDao.insert(alignmentReferenceLine)
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentReferenceLine)
-            .copy(alignmentVersion = referenceLineAlignmentVersion)
+        referenceLineDao.insert(
+            referenceLine(trackNumberId, alignmentReferenceLine).copy(alignmentVersion = referenceLineAlignmentVersion)
         )
 
         val orphanAlignmentBeforeDelete = alignmentDao.fetch(orphanAlignmentVersion)
@@ -187,13 +183,13 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val trackNumberId = getUnusedTrackNumberId()
         val planVersion = geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId,
-                alignments = listOf(
+                trackNumberId = trackNumberId, alignments = listOf(
                     geometryAlignment(
                         name = "test-alignment-name",
                         elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
                     )
-                ) ),
+                )
+            ),
             file = infraModelFile("testfile.xml"),
             boundingBoxInLayoutCoordinates = null,
         )
@@ -292,8 +288,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version))
 
         val profileInfo = alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-            PublishType.OFFICIAL,
-            boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
+            PublishType.OFFICIAL, boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
         )
         assertEquals(5, profileInfo.size)
         assertTrue(profileInfo[0].hasProfile)
@@ -315,21 +310,23 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int) =
         fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
 
-    private fun segmentWithoutZAndCant(segmentSeed: Int) =
-        createSegment(segmentSeed, points(
+    private fun segmentWithoutZAndCant(segmentSeed: Int) = createSegment(
+        segmentSeed, points(
             count = 10,
-            x = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
-            y = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
-        ))
+            x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+            y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+        )
+    )
 
-    private fun segmentWithZAndCant(segmentSeed: Int) =
-        createSegment(segmentSeed, points(
+    private fun segmentWithZAndCant(segmentSeed: Int) = createSegment(
+        segmentSeed, points(
             count = 20,
-            x = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
-            y = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
+            x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
+            y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             z = segmentSeed.toDouble()..segmentSeed + 20.0,
             cant = segmentSeed.toDouble()..segmentSeed + 20.0,
-        ))
+        )
+    )
 
     private fun createSegment(segmentSeed: Int, points: List<LayoutPoint>) = segment(
         points = points,
@@ -354,29 +351,30 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         return rowVersion
     }
 
-    fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int =
-        jdbc.queryForObject(
-            """
+    fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int = jdbc.queryForObject(
+        """
                 select count(*) 
                 from layout.alignment inner join layout.segment_version 
                   on alignment.id = segment_version.alignment_id and alignment.version = segment_version.alignment_version
                 where alignment_id = :id
                 """,
-            mapOf("id" to alignmentId.intValue),
-        ) { rs, _ -> rs.getInt("count") } ?: 0
+        mapOf("id" to alignmentId.intValue),
+    ) { rs, _ -> rs.getInt("count") } ?: 0
 
     private fun assertDbGeometriesHaveCorrectMValues() {
         val sql = """
-           select id, postgis.st_astext(geometry) geom, postgis.st_length(geometry) length
+           select id, postgis.st_astext(geometry) as geom, postgis.st_length(geometry) as length
            from layout.segment_geometry
            where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
              or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
         """.trimIndent()
-        val geometriesWithInvalidMValues = jdbc.query(sql, mapOf<String,Any>()) { rs, _ -> Triple(
-            rs.getIntId<SegmentGeometry>("id"),
-            rs.getDouble("length"),
-            rs.getString("geom"),
-        ) }
+        val geometriesWithInvalidMValues = jdbc.query(sql, mapOf<String, Any>()) { rs, _ ->
+            Triple(
+                rs.getIntId<SegmentGeometry>("id"),
+                rs.getDouble("length"),
+                rs.getString("geom"),
+            )
+        }
         assertTrue(
             geometriesWithInvalidMValues.isEmpty(),
             "All geometries should have m-values at 0.0-length: violations=$geometriesWithInvalidMValues",
