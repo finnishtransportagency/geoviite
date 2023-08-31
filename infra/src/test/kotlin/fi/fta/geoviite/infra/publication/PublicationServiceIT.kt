@@ -7,12 +7,16 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.integration.CalculatedChangesService
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.SortOrder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -58,6 +62,22 @@ class PublicationServiceIT @Autowired constructor(
             )
         }
         publicationService.revertPublishCandidates(request)
+    }
+
+    fun clearPublicationTables() {
+        deleteFromTables(
+            "publication",
+            "km_post",
+            "location_track",
+            "location_track_km",
+            "publication",
+            "reference_line",
+            "switch",
+            "switch_joint",
+            "switch_location_tracks",
+            "track_number",
+            "track_number_km"
+        )
     }
 
     @Test
@@ -1293,6 +1313,153 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals(switch.name, diff[0].value.oldValue)
         assertEquals(updatedSwitch.name, diff[0].value.newValue)
+    }
+
+    @Test
+    fun `should filter publication details by dates`() {
+        clearPublicationTables()
+
+        val trackNumberId1 = insertDraftTrackNumber()
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId1), alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        )
+
+        val locationTrack1 = locationTrackAndAlignment(trackNumberId1).let { (lt, a) ->
+            locationTrackService.saveDraft(lt, a).id
+        }
+
+        val publish1 = publish(
+            publicationService,
+            trackNumbers = listOf(trackNumberId1),
+            locationTracks = listOf(locationTrack1),
+        )
+
+        val trackNumberId2 = insertDraftTrackNumber()
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId2), alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        )
+
+        val locationTrack2 = locationTrackAndAlignment(trackNumberId2).let { (lt, a) ->
+            locationTrackService.saveDraft(lt, a).id
+        }
+
+        val publish2 = publish(
+            publicationService,
+            trackNumbers = listOf(trackNumberId2),
+            locationTracks = listOf(locationTrack2),
+        )
+
+        val publication1 = publicationDao.getPublication(publish1.publishId!!)
+        val publication2 = publicationDao.getPublication(publish2.publishId!!)
+
+        assertTrue {
+            publicationService.fetchPublicationDetailsBetweenInstants(to = publication1.publicationTime).isEmpty()
+        }
+
+        assertTrue {
+            publicationService.fetchPublicationDetailsBetweenInstants(
+                from = publication2.publicationTime.plusMillis(1)
+            ).isEmpty()
+        }
+
+        assertEquals(
+            2,
+            publicationService.fetchPublicationDetailsBetweenInstants(
+                from = publication1.publicationTime,
+                to = publication2.publicationTime.plusMillis(1)
+            ).size
+        )
+    }
+
+    @Test
+    fun `should fetch latest publications`() {
+        clearPublicationTables()
+
+        val trackNumberId1 = insertDraftTrackNumber()
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId1), alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        )
+
+        val locationTrack1 = locationTrackAndAlignment(trackNumberId1).let { (lt, a) ->
+            locationTrackService.saveDraft(lt, a).id
+        }
+
+        val publish1 = publish(
+            publicationService,
+            trackNumbers = listOf(trackNumberId1),
+            locationTracks = listOf(locationTrack1),
+        )
+
+        val trackNumberId2 = insertDraftTrackNumber()
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId2), alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        )
+
+        val locationTrack2 = locationTrackAndAlignment(trackNumberId2).let { (lt, a) ->
+            locationTrackService.saveDraft(lt, a).id
+        }
+
+        val publish2 = publish(
+            publicationService,
+            trackNumbers = listOf(trackNumberId2),
+            locationTracks = listOf(locationTrack2),
+        )
+
+        assertEquals(2, publicationService.fetchPublications().size)
+
+        assertEquals(1, publicationService.fetchLatestPublicationDetails(1).size)
+        assertEquals(publish2.publishId, publicationService.fetchLatestPublicationDetails(1)[0].id)
+
+        assertEquals(2, publicationService.fetchLatestPublicationDetails(2).size)
+        assertEquals(publish1.publishId, publicationService.fetchLatestPublicationDetails(10)[1].id)
+
+        assertTrue { publicationService.fetchLatestPublicationDetails(0).isEmpty() }
+    }
+
+    @Test
+    fun `should sort publications by header column`() {
+        clearPublicationTables()
+
+        val trackNumberId1 = insertNewTrackNumber(TrackNumber("1234"), true).id
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId1), alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        )
+
+        publish(publicationService, trackNumbers = listOf(trackNumberId1))
+
+        val trackNumberId2 = insertNewTrackNumber(TrackNumber("4321"), true).id
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId2), alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        )
+
+        publish(publicationService, trackNumbers = listOf(trackNumberId2))
+
+
+        val rows1 = publicationService.fetchPublicationDetails(
+            sortBy = PublicationTableColumn.NAME,
+            translation = localizationService.getLocalization("fi")
+        )
+
+        assertEquals(2, rows1.size)
+        assertTrue { rows1[0].name.contains("1234") }
+
+        val rows2 = publicationService.fetchPublicationDetails(
+            sortBy = PublicationTableColumn.NAME,
+            order = SortOrder.DESCENDING,
+            translation = localizationService.getLocalization("fi")
+        )
+
+        assertEquals(2, rows2.size)
+        assertTrue { rows2[0].name.contains("4321") }
+
+        val rows3 = publicationService.fetchPublicationDetails(
+            sortBy = PublicationTableColumn.PUBLICATION_TIME,
+            order = SortOrder.ASCENDING,
+            translation = localizationService.getLocalization("fi")
+        )
+
+        assertEquals(2, rows3.size)
+        assertTrue { rows3[0].name.contains("1234") }
     }
 }
 
