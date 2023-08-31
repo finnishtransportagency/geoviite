@@ -690,7 +690,8 @@ class PublicationService @Autowired constructor(
             locationTrack, validationVersions
         ) else listOf()
 
-        return fieldErrors + referenceErrors + switchErrorsSegments + switchErrorsTopological + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
+        return fieldErrors + referenceErrors + switchErrorsSegments + switchErrorsTopological +
+               duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
     }
 
     private fun validateLocationTrackNameDuplication(
