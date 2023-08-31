@@ -1462,150 +1462,141 @@ class PublicationServiceIT @Autowired constructor(
         assertTrue { rows3[0].name.contains("1234") }
     }
 
-    @Test
-    fun `Location track validation accounts for the publication state of topologically linked switches`() {
+    private data class TopologicalSwitchConnectionTestData(
+        val locationTracksUnderTest: List<Pair<IntId<LocationTrack>, LocationTrack>>,
+        val switchIdsUnderTest: List<IntId<TrackLayoutSwitch>>,
+    )
 
-        fun getLocationTrackValidationResult(
-            locationTrackId: IntId<LocationTrack>,
-            stagedSwitches: List<IntId<TrackLayoutSwitch>> = listOf(),
-        ): LocationTrackPublishCandidate? {
-            val publishRequestIds = PublishRequestIds(
-                trackNumbers = listOf(),
-                locationTracks = listOf(locationTrackId),
-                referenceLines = listOf(),
-                switches = stagedSwitches,
-                kmPosts = listOf(),
-            )
-
-            val validationResult = publicationService
-                .validatePublishCandidates(publicationService.collectPublishCandidates(), publishRequestIds)
-
-            return validationResult.validatedAsPublicationUnit.locationTracks
-                .find { lt -> lt.id == locationTrackId }
-        }
-
-        val switchSection1 = Point(0.0, 0.0) to Point(1.0, 0.0)
-        val locationTrackAlignment = alignment(segment(Point(1.0, 0.0), Point(2.0, 0.0)))
-        val switchSection2 = Point(2.0, 0.0) to Point(3.0, 0.0)
-
-        val switchIds = listOf(switchSection1, switchSection2)
-            .mapIndexed { i, switchSection ->
-                switch(name="Topology test switch $i").copy(
-                    joints=listOf(
-                        TrackLayoutSwitchJoint(
-                            number=JointNumber(1),
-                            location=switchSection.first,
-                            locationAccuracy = null
-                        ),
-                        TrackLayoutSwitchJoint(
-                            number=JointNumber(3),
-                            location=switchSection.second,
-                            locationAccuracy = null
-                        )
-                    )
-                )
-            }
-            .map{ switch -> switchDao.insert(draft(switch)).id}
-
-        val locationTracksUnderTest = listOf(
-            locationTrack(
-                trackNumberId = getUnusedTrackNumberId(),
-            ),
-
-            locationTrack(
-                trackNumberId = getUnusedTrackNumberId(),
-                topologyStartSwitch = TopologyLocationTrackSwitch(
-                    switchId = switchIds.first(),
-                    jointNumber = JointNumber(3)
-                )
-            ),
-
-            locationTrack(
-                trackNumberId = getUnusedTrackNumberId(),
-                topologyEndSwitch = TopologyLocationTrackSwitch(
-                    switchId = switchIds.first(),
-                    jointNumber = JointNumber(1)
-                )
-            ),
-
-            locationTrack(
-                trackNumberId = getUnusedTrackNumberId(),
-                topologyStartSwitch = TopologyLocationTrackSwitch(
-                    switchId = switchIds.first(),
-                    jointNumber = JointNumber(3)
-                ),
-                topologyEndSwitch = TopologyLocationTrackSwitch(
-                    switchId = switchIds.last(),
-                    jointNumber = JointNumber(1)
-                )
+    private fun getTopologicalSwitchConnectionTestData(): TopologicalSwitchConnectionTestData {
+        val topologyStartSwitch = createSwitchWithJoints(
+            name = "Topological switch connection start switch", jointPositions = listOf(
+                JointNumber(1) to Point(0.0, 0.0),
+                JointNumber(3) to Point(1.0, 0.0),
             )
         )
 
-        val locationTrackIdsUnderTest = locationTracksUnderTest
-            .map { locationTrack ->
+        val topologyEndSwitch = createSwitchWithJoints(
+            name = "Topological switch connection test end switch", jointPositions = listOf(
+                JointNumber(1) to Point(2.0, 0.0), JointNumber(3) to Point(3.0, 0.0)
+            )
+        )
+
+        val topologyStartSwitchId = switchDao.insert(draft(topologyStartSwitch)).id
+        val topologyEndSwitchId = switchDao.insert(draft(topologyEndSwitch)).id
+
+        val locationTrackAlignment = alignment(segment(Point(1.0, 0.0), Point(2.0, 0.0)))
+        val locationTracksUnderTest = getTopologicalSwitchConnectionTestCases(
+            ::getUnusedTrackNumberId,
+            createTopologySwitch(topologyStartSwitchId, JointNumber(1)),
+            createTopologySwitch(topologyEndSwitchId, JointNumber(3)),
+        )
+
+        val locationTrackIdsUnderTest = locationTracksUnderTest.map { locationTrack ->
                 locationTrack.copy(alignmentVersion = alignmentDao.insert(locationTrackAlignment))
-            }
-            .map { locationTrack ->
+            }.map { locationTrack ->
                 locationTrackDao.insert(draft(locationTrack)).id to locationTrack
             }
 
-        assertEquals(2, switchIds.size)
-        assertEquals(4, locationTrackIdsUnderTest.size)
+        return TopologicalSwitchConnectionTestData(
+            locationTracksUnderTest = locationTrackIdsUnderTest,
+            switchIdsUnderTest = listOf(topologyStartSwitchId, topologyEndSwitchId),
+        )
+    }
 
-        // During these tests, a single geocoding validation error is expected in all cases.
-        // However, it is currently unmatched, partially due to validation errors not having type information available.
-        // Matching could still be accomplished with language strings, but this is currently not done.
-        val expectedValidationErrors = 1;
+
+    private fun getLocationTrackValidationResult(
+        locationTrackId: IntId<LocationTrack>,
+        stagedSwitches: List<IntId<TrackLayoutSwitch>> = listOf(),
+    ): LocationTrackPublishCandidate? {
+        val publishRequestIds = PublishRequestIds(
+            trackNumbers = listOf(),
+            locationTracks = listOf(locationTrackId),
+            referenceLines = listOf(),
+            switches = stagedSwitches,
+            kmPosts = listOf(),
+        )
+
+        val validationResult = publicationService.validatePublishCandidates(
+                publicationService.collectPublishCandidates(),
+                publishRequestIds
+            )
+
+        return validationResult.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == locationTrackId }
+    }
+
+    @Test
+    fun `Location track validation should fail for unofficial and unstaged topologically linked switches`() {
+        val topologyTestData = getTopologicalSwitchConnectionTestData()
+        val expectedValidationErrors = 1; // Unverified, but expected geocoding error.
 
         val singleTopologicallyConnectedSwitchValidationErrors = 1;
         val doubleTopologicallyConnectedSwitchValidationErrors = 2;
 
-        // Location track validation should fail for unofficial and unstaged topologically linked switches.
-        locationTrackIdsUnderTest.forEach { (locationTrackId, lt) ->
+        topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
             val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size;
 
             when {
-                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
+                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
+                    expectedValidationErrors,
+                    validationErrorAmount
+                )
+
                 lt.topologyStartSwitch == null -> assertEquals(
-                    expectedValidationErrors + singleTopologicallyConnectedSwitchValidationErrors,
-                    validationErrorAmount
+                    expectedValidationErrors + singleTopologicallyConnectedSwitchValidationErrors, validationErrorAmount
                 )
+
                 lt.topologyEndSwitch == null -> assertEquals(
-                    expectedValidationErrors + singleTopologicallyConnectedSwitchValidationErrors,
-                    validationErrorAmount
+                    expectedValidationErrors + singleTopologicallyConnectedSwitchValidationErrors, validationErrorAmount
                 )
+
                 else -> assertEquals(
-                    expectedValidationErrors + doubleTopologicallyConnectedSwitchValidationErrors,
-                    validationErrorAmount
+                    expectedValidationErrors + doubleTopologicallyConnectedSwitchValidationErrors, validationErrorAmount
                 )
             }
         }
+    }
 
-        // Location track validation should succeed for unofficial, but staged topologically linked switches.
-        locationTrackIdsUnderTest.forEach { (locationTrackId, lt) ->
+    @Test
+    fun `Location track validation should succeed for unofficial, but staged topologically linked switches`() {
+        val topologyTestData = getTopologicalSwitchConnectionTestData()
+        val expectedValidationErrors = 1; // Unverified, but expected geocoding error.
+
+        topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
             val validationErrorAmount = getLocationTrackValidationResult(
                 locationTrackId,
-                switchIds,
+                topologyTestData.switchIdsUnderTest,
             )?.errors?.size;
 
             when {
-                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
+                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
+                    expectedValidationErrors, validationErrorAmount
+                )
+
                 lt.topologyStartSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
                 lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
                 else -> assertEquals(expectedValidationErrors, validationErrorAmount)
             }
         }
+    }
 
-        // Location track validation should succeed for official switches.
-        publish(publicationService, switches = switchIds)
+    @Test
+    fun `Location track validation should succeed for topologically linked official switches`() {
+        val topologyTestData = getTopologicalSwitchConnectionTestData()
+        val expectedValidationErrors = 1; // Unverified, but expected geocoding error.
 
-        locationTrackIdsUnderTest.forEach { (locationTrackId, lt) ->
+        publish(publicationService, switches = topologyTestData.switchIdsUnderTest)
+
+        topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
             val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size;
 
             when {
-                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
+                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
+                    expectedValidationErrors, validationErrorAmount
+                )
+
                 lt.topologyStartSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
                 lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
+
                 else -> assertEquals(expectedValidationErrors, validationErrorAmount)
             }
         }
@@ -1655,7 +1646,6 @@ private fun assertEqualsCalculatedChanges(
         assertNotNull(switch)
         assertEquals(switch.changedJoints, calculatedSwitch.changedJoints)
     }
-
 
     trackNumberEquals(
         calculatedChanges.indirectChanges.trackNumberChanges, publicationDetails.indirectChanges.trackNumbers
@@ -1755,4 +1745,57 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
     assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
     checkMatch(dao.fetch(validationVersion.validatedAssetVersion), dao.fetch(currentOfficialVersion))
+}
+
+private fun getTopologicalSwitchConnectionTestCases(
+    trackNumberGenerator: () -> IntId<TrackLayoutTrackNumber>,
+    topologyStartSwitch: TopologyLocationTrackSwitch,
+    topologyEndSwitch: TopologyLocationTrackSwitch,
+): List<LocationTrack> {
+    return listOf(
+        locationTrack(
+            trackNumberId = trackNumberGenerator(),
+        ),
+
+        locationTrack(
+            trackNumberId = trackNumberGenerator(),
+            topologyStartSwitch = topologyStartSwitch,
+        ),
+
+        locationTrack(
+            trackNumberId = trackNumberGenerator(),
+            topologyEndSwitch = topologyEndSwitch,
+        ),
+
+        locationTrack(
+            trackNumberId = trackNumberGenerator(),
+            topologyStartSwitch = topologyStartSwitch,
+            topologyEndSwitch = topologyEndSwitch,
+        )
+    )
+}
+
+private fun createSwitchWithJoints(
+    name: String,
+    jointPositions: List<Pair<JointNumber, Point>>
+): TrackLayoutSwitch {
+    return switch(name=name).copy(
+        joints=jointPositions.map { (jointNumber, position) ->
+            TrackLayoutSwitchJoint(
+                number=jointNumber,
+                location=position,
+                locationAccuracy = null
+            )
+        }
+    )
+}
+
+private fun createTopologySwitch(
+    switchId: IntId<TrackLayoutSwitch>,
+    jointNumber: JointNumber,
+): TopologyLocationTrackSwitch {
+    return TopologyLocationTrackSwitch(
+        switchId = switchId,
+        jointNumber = jointNumber,
+    )
 }
