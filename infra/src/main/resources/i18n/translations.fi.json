@@ -293,9 +293,9 @@
         "not-a-duplicate": "Ei duplikaatti",
         "search": "Hae...",
         "topological-connectivity": "Topologinen kytkeytyminen",
-        "topological-start-switch": "Vaihde raiteen alussa",
-        "topological-end-switch": "Vaihde raiteen lopussa",
-        "no-topological-switch": "Ei vaihdetta"
+        "start-switch": "Vaihde raiteen alussa",
+        "end-switch": "Vaihde raiteen lopussa",
+        "no-start-or-end-switch": "Ei vaihdetta"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
@@ -545,9 +545,9 @@
                 "diagram-visibility": "Kuvaaja"
             },
             "topological-connectivity": "Topologinen kytkeytyminen",
-            "topological-start-switch": "Vaihde raiteen alussa",
-            "topological-end-switch": "Vaihde raiteen lopussa",
-            "no-topological-switch": "Ei vaihdetta"
+            "start-switch": "Vaihde raiteen alussa",
+            "end-switch": "Vaihde raiteen lopussa",
+            "no-start-or-end-switch": "Ei vaihdetta"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."

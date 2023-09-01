@@ -3,6 +3,7 @@ import {
     LayoutLocationTrack,
     LayoutLocationTrackDuplicate,
     LocationTrackId,
+    SwitchesAtEnds,
 } from 'track-layout/track-layout-model';
 import { ChangeTimes, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import {
@@ -37,6 +38,7 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
+const locationTrackSwitchesAtEndsCache = asyncCache<string, SwitchesAtEnds | null>();
 
 type PlanSectionPoint = {
     address: TrackMeter;
@@ -89,6 +91,21 @@ export async function getLocationTrackStartAndEnd(
     return getWithDefault<AlignmentStartAndEnd | undefined>(
         `${layoutUri('location-tracks', publishType, locationTrackId)}/start-and-end`,
         undefined,
+    );
+}
+
+export async function getLocationTrackSwitchesAtEnds(
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+    changeTime: TimeStamp,
+): Promise<SwitchesAtEnds | null> {
+    return locationTrackSwitchesAtEndsCache.get(
+        changeTime,
+        cacheKey(locationTrackId, publishType),
+        () =>
+            getIgnoreError<SwitchesAtEnds>(
+                `${layoutUri('location-tracks', publishType, locationTrackId)}/switches-at-ends`,
+            ),
     );
 }
 

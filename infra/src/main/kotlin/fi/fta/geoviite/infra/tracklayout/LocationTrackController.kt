@@ -91,6 +91,22 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/switches-at-ends")
+    fun getLocationTrackSwitchesAtEnds(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): ResponseEntity<SwitchesAtEnds> {
+        logger.apiCall("getLocationTrackSwitchesAtEnds", "publishType" to publishType, "id" to id)
+        val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
+        return toResponse(locationTrackAndAlignment?.let { (_, alignment) ->
+            SwitchesAtEnds(
+                if (alignment.segments.firstOrNull()?.startJointNumber == null) null else alignment.segments.firstOrNull()?.switchId as IntId?,
+                if (alignment.segments.lastOrNull()?.endJointNumber == null) null else alignment.segments.lastOrNull()?.switchId as IntId?,
+            )
+        })
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("{publishType}/end-points")
     fun getLocationTrackAlignmentEndpoints(
         @PathVariable("publishType") publishType: PublishType,

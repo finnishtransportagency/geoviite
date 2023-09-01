@@ -15,7 +15,7 @@ import {
     useLocationTrackChangeTimes,
     useLocationTrackDuplicates,
     useLocationTrackStartAndEnd,
-    useSwitch,
+    useLocationTrackSwitchesAtEnds,
     useTrackNumber,
 } from 'track-layout/track-layout-react-utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
@@ -98,11 +98,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         'OFFICIAL',
         locationTrackChangeTime,
     );
-    const topologicalStartSwitch = useSwitch(
-        locationTrack.topologyStartSwitch?.switchId,
+    const switchesAtEnds = useLocationTrackSwitchesAtEnds(
+        locationTrack,
         publishType,
+        locationTrackChangeTime,
     );
-    const topologicalEndSwitch = useSwitch(locationTrack.topologyEndSwitch?.switchId, publishType);
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
@@ -268,17 +268,21 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         iconDisabled={isOfficial()}
                     />
                     <InfoboxField
-                        label={t('tool-panel.location-track.topological-start-switch')}
+                        label={t('tool-panel.location-track.start-switch')}
                         value={
-                            topologicalStartSwitch?.name ??
-                            t('tool-panel.location-track.no-topological-switch')
+                            switchesAtEnds === undefined
+                                ? ''
+                                : switchesAtEnds.start?.name ??
+                                  t('tool-panel.location-track.no-start-or-end-switch')
                         }
                     />
                     <InfoboxField
-                        label={t('tool-panel.location-track.topological-end-switch')}
+                        label={t('tool-panel.location-track.end-switch')}
                         value={
-                            topologicalEndSwitch?.name ??
-                            t('tool-panel.location-track.no-topological-switch')
+                            switchesAtEnds === undefined
+                                ? ''
+                                : switchesAtEnds.end?.name ??
+                                  t('tool-panel.location-track.no-start-or-end-switch')
                         }
                     />
 
