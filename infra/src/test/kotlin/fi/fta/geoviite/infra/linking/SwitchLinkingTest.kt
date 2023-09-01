@@ -410,7 +410,6 @@ class SwitchLinkingTest {
                     Point(10.0, 0.0),
                 )
             ),
-            sourceId = null
         )
 
         val locationTrack2 = locationTrack(IntId(1))
@@ -421,7 +420,6 @@ class SwitchLinkingTest {
                     Point(5.0, 5.0),
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -495,7 +493,6 @@ class SwitchLinkingTest {
                     start = 15.0
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -559,7 +556,6 @@ class SwitchLinkingTest {
                     start = 15.0
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -622,7 +618,6 @@ class SwitchLinkingTest {
                     start = 11.0
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -674,7 +669,6 @@ class SwitchLinkingTest {
                     start = 1.0
                 ),
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -725,7 +719,6 @@ class SwitchLinkingTest {
                     start = 4.999
                 ),
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -777,7 +770,6 @@ class SwitchLinkingTest {
                     start = 10.0
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -847,7 +839,6 @@ class SwitchLinkingTest {
                     start = 16.0
                 )
             ),
-            sourceId = null
         )
 
         val locationTrack2 = locationTrack(IntId(1))
@@ -893,7 +884,6 @@ class SwitchLinkingTest {
                     start = 15.0
                 ),
             ),
-            sourceId = null
         )
 
 
@@ -955,7 +945,6 @@ class SwitchLinkingTest {
                     start = 15.0
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(
@@ -1007,7 +996,6 @@ class SwitchLinkingTest {
                     start = 15.0
                 )
             ),
-            sourceId = null
         )
 
         val suggestedSwitch = createSuggestedSwitch(

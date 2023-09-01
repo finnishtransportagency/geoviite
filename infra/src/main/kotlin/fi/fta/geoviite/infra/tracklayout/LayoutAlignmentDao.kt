@@ -54,7 +54,7 @@ class LayoutAlignmentDao(
 
     private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql = """
-            select id, version, geometry_alignment_id
+            select id, version
             from layout.alignment_version
             where id = :id 
               and version = :version
@@ -68,7 +68,6 @@ class LayoutAlignmentDao(
             LayoutAlignment(
                 dataType = DataType.STORED,
                 id = rs.getIntId("id"),
-                sourceId = rs.getIntIdOrNull("geometry_alignment_id"),
                 segments = fetchSegments(alignmentVersion),
             )
         }).also { alignment ->
@@ -79,12 +78,11 @@ class LayoutAlignmentDao(
     fun preloadAlignmentCache() {
         val sql = """
           select 
-            a.geometry_alignment_id as alignment_geometry_alignment_id,
             sv.alignment_id,
             sv.alignment_version,
             sv.segment_index,
             sv.start,
-            sv.geometry_alignment_id as segment_geometry_alignment_id,
+            sv.geometry_alignment_id,
             sv.geometry_element_index,
             sv.source_start,
             sv.switch_id,
@@ -98,17 +96,16 @@ class LayoutAlignmentDao(
           order by sv.alignment_id, sv.segment_index
         """.trimIndent()
 
-        data class AlignmentData(val version: RowVersion<LayoutAlignment>, val sourceId: IntId<GeometryAlignment>?)
+        data class AlignmentData(val version: RowVersion<LayoutAlignment>)
 
         val dataTriple = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             val alignmentData = AlignmentData(
                 version = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = rs.getIntIdOrNull("alignment_geometry_alignment_id"),
             )
             val segmentData = SegmentData(
                 id = rs.getIndexedId("alignment_id", "segment_index"),
                 start = rs.getDouble("start"),
-                sourceId = rs.getIndexedIdOrNull("segment_geometry_alignment_id", "geometry_element_index"),
+                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
                 sourceStart = rs.getDoubleOrNull("source_start"),
                 switchId = rs.getIntIdOrNull("switch_id"),
                 startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
@@ -122,7 +119,6 @@ class LayoutAlignmentDao(
         val alignments = groupedByAlignment.entries.parallelStream().map { (alignmentData, segmentDatas) ->
             alignmentData.version to LayoutAlignment(
                 id = alignmentData.version.id,
-                sourceId = alignmentData.sourceId,
                 segments = createSegments(segmentDatas),
             )
         }.collect(Collectors.toList()).associate { it }
@@ -133,13 +129,11 @@ class LayoutAlignmentDao(
     fun insert(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val sql = """
             insert into layout.alignment(
-                geometry_alignment_id,
                 bounding_box,
                 segment_count,
                 length
             ) 
             values (
-                :geometry_alignment_id,
                 postgis.st_polygonfromtext(:polygon_string, 3067), 
                 :segment_count,
                 :length
@@ -147,7 +141,6 @@ class LayoutAlignmentDao(
             returning id, version
         """.trimIndent()
         val params = mapOf(
-            "geometry_alignment_id" to if (alignment.sourceId is IntId) alignment.sourceId.intValue else null,
             "polygon_string" to alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
             "segment_count" to alignment.segments.size,
             "length" to alignment.length,
@@ -168,7 +161,6 @@ class LayoutAlignmentDao(
         val sql = """
             update layout.alignment 
             set 
-                geometry_alignment_id = :geometry_alignment_id,
                 bounding_box = postgis.st_polygonfromtext(:polygon_string, 3067),
                 segment_count = :segment_count,
                 length = :length
@@ -177,7 +169,6 @@ class LayoutAlignmentDao(
         """.trimIndent()
         val params = mapOf(
             "id" to alignmentId.intValue,
-            "geometry_alignment_id" to if (alignment.sourceId is IntId) alignment.sourceId.intValue else null,
             "polygon_string" to alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
             "segment_count" to alignment.segments.size,
             "length" to alignment.length,

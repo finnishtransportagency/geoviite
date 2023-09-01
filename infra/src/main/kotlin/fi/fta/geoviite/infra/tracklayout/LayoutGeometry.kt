@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.*
@@ -20,7 +19,7 @@ enum class GeometrySource {
     IMPORTED, PLAN, GENERATED,
 }
 
-fun emptyAlignment() = LayoutAlignment(segments = listOf(), sourceId = null)
+fun emptyAlignment() = LayoutAlignment(segments = listOf())
 
 data class SegmentGeometryAndMetadata(
     val planId: IntId<GeometryPlan>?,
@@ -156,8 +155,7 @@ interface IAlignment {
 
 data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
-    val sourceId: DomainId<GeometryAlignment>?,
-    override val id: DomainId<LayoutAlignment> = deriveFromSourceId("A", sourceId),
+    override val id: DomainId<LayoutAlignment> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) : IAlignment {
     override val boundingBox: BoundingBox? = boundingBoxCombining(segments.mapNotNull { s -> s.boundingBox })
