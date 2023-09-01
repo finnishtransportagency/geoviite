@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
-import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach
@@ -23,19 +22,18 @@ import kotlin.test.assertNotNull
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
 class PVIntegrationServiceIT @Autowired constructor(
-    @Value("\${geoviite.projektivelho.test-port:12345}") private val projektiVelhoPort: Int,
+    @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvIntegrationService: PVIntegrationService,
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
     private val jsonMapper: ObjectMapper,
-) : SeleniumTest() {
+) : DBTestBase() {
 
     fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)
 
     @BeforeEach
     fun setup() {
         deleteFromTables("projektivelho", *velhoTables.toTypedArray())
-        clearAllTestData()
     }
 
     @Test

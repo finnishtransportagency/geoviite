@@ -24,7 +24,7 @@ const val TESTFILE_SIMPLE_ANONYMIZED_PATH: String = "src/test/resources/inframod
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class ProjektiVelhoTestUI @Autowired constructor(
-    @Value("\${geoviite.projektivelho.test-port:12345}") private val projektiVelhoPort: Int,
+    @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvDao: PVDao,
     private val jsonMapper: ObjectMapper,
 ) : SeleniumTest() {
