@@ -79,12 +79,12 @@ class LayoutAlignmentDao(
     fun preloadAlignmentCache() {
         val sql = """
           select 
-            a.geometry_alignment_id,
+            a.geometry_alignment_id as alignment_geometry_alignment_id,
             sv.alignment_id,
             sv.alignment_version,
             sv.segment_index,
             sv.start,
-            sv.geometry_alignment_id,
+            sv.geometry_alignment_id as segment_geometry_alignment_id,
             sv.geometry_element_index,
             sv.source_start,
             sv.switch_id,
@@ -103,12 +103,12 @@ class LayoutAlignmentDao(
         val dataTriple = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             val alignmentData = AlignmentData(
                 version = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = rs.getIntIdOrNull("geometry_alignment_id"),
+                sourceId = rs.getIntIdOrNull("alignment_geometry_alignment_id"),
             )
             val segmentData = SegmentData(
                 id = rs.getIndexedId("alignment_id", "segment_index"),
                 start = rs.getDouble("start"),
-                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                sourceId = rs.getIndexedIdOrNull("segment_geometry_alignment_id", "geometry_element_index"),
                 sourceStart = rs.getDoubleOrNull("source_start"),
                 switchId = rs.getIntIdOrNull("switch_id"),
                 startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
