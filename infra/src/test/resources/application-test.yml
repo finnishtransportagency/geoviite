@@ -23,5 +23,5 @@ geoviite:
   projektivelho:
     enabled: true
     url: http://localhost:12345
-    login_url: http://localhost:12345/oauth2/token
+    auth_url: http://localhost:12345/oauth2/token
     test-port: 12345
