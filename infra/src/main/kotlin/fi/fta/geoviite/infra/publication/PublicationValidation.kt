@@ -302,6 +302,17 @@ fun validateSegmentSwitchReferences(
     }
 }
 
+fun validateTopologicallyConnectedSwitchReferences(
+    topologicallyConnectedSwitches: List<TrackLayoutSwitch>,
+    publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
+): List<PublishValidationError> {
+    return topologicallyConnectedSwitches.mapNotNull { switch ->
+        validateWithParams(isPublished(switch, publishSwitchIds)) {
+            "$VALIDATION_LOCATION_TRACK.switch.not-published" to listOf(switch.name.toString())
+        }
+    }
+}
+
 private fun jointSequence(joints: List<JointNumber>) =
     joints.joinToString("-") { jointNumber -> "${jointNumber.intValue}" }
 

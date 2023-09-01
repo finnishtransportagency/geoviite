@@ -229,6 +229,8 @@ fun locationTrack(
     state: LayoutState = LayoutState.IN_USE,
     externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
+    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ) = LocationTrack(
     name = AlignmentName(name),
     description = FreeText(description),
@@ -243,8 +245,8 @@ fun locationTrack(
     draft = draft,
     duplicateOf = null,
     topologicalConnectivity = TopologicalConnectivityType.START,
-    topologyStartSwitch = null,
-    topologyEndSwitch = null,
+    topologyStartSwitch = topologyStartSwitch,
+    topologyEndSwitch = topologyEndSwitch,
     alignmentVersion = alignmentVersion,
 ).let { lt -> if (id != null) lt.copy(id = id) else lt }
 
