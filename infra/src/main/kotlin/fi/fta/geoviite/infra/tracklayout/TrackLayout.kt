@@ -280,8 +280,8 @@ data class TrackNumberAndChangeTime(
 )
 
 data class SwitchesAtEnds(
-    val start: DomainId<TrackLayoutSwitch>?,
-    val end: DomainId<TrackLayoutSwitch>?,
+    val start: IntId<TrackLayoutSwitch>?,
+    val end: IntId<TrackLayoutSwitch>?,
 )
 
 fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""

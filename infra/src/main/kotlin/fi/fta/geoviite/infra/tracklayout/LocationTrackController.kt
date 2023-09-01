@@ -100,8 +100,8 @@ class LocationTrackController(
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
         return toResponse(locationTrackAndAlignment?.let { (_, alignment) ->
             SwitchesAtEnds(
-                if (alignment.segments.firstOrNull()?.startJointNumber == null) null else alignment.segments.firstOrNull()?.switchId,
-                if (alignment.segments.lastOrNull()?.endJointNumber == null) null else alignment.segments.lastOrNull()?.switchId
+                if (alignment.segments.firstOrNull()?.startJointNumber == null) null else alignment.segments.firstOrNull()?.switchId as IntId?,
+                if (alignment.segments.lastOrNull()?.endJointNumber == null) null else alignment.segments.lastOrNull()?.switchId as IntId?,
             )
         })
     }
