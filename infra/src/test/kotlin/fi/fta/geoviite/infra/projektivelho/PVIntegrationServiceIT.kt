@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
+import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach
@@ -27,13 +28,14 @@ class PVIntegrationServiceIT @Autowired constructor(
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
     private val jsonMapper: ObjectMapper,
-) : DBTestBase() {
+) : SeleniumTest() {
 
     fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)
 
     @BeforeEach
     fun setup() {
         deleteFromTables("projektivelho", *velhoTables.toTypedArray())
+        clearAllTestData()
     }
 
     @Test
@@ -203,14 +205,9 @@ fun insertTestDictionary(pvDao: PVDao) {
 
 fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVDocumentStatus) =
     pvDao.insertDocumentMetadata(
-        oid = oid,
-        assignmentOid = null,
-        latestVersion = PVApiLatestVersion(
-            version = PVId("test"),
-            name = FileName("test"),
-            changeTime = Instant.now()
-        ),
-        metadata = PVApiDocumentMetadata(
+        oid = oid, assignmentOid = null, latestVersion = PVApiLatestVersion(
+            version = PVId("test"), name = FileName("test"), changeTime = Instant.now()
+        ), metadata = PVApiDocumentMetadata(
             materialCategory = PVDictionaryCode("test"),
             description = null,
             materialGroup = PVDictionaryCode("test"),
@@ -218,10 +215,7 @@ fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVD
             documentType = PVDictionaryCode("test"),
             technicalFields = emptyList(),
             containsPersonalInfo = false
-        ),
-        projectGroupOid = null,
-        projectOid = null,
-        status = status
+        ), projectGroupOid = null, projectOid = null, status = status
     )
 
 private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode) =
