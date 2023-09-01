@@ -19,21 +19,21 @@ import reactor.netty.http.client.HttpClient
 import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
-val maxFileSize: Int = 100*1024*1024
+val maxFileSize: Int = 100 * 1024 * 1024
 
 class PVWebClient(
-    val client: WebClient
-): WebClient by client
+    val client: WebClient,
+) : WebClient by client
 
 class PVLoginWebClient(
-    val client: WebClient
-): WebClient by client
+    val client: WebClient,
+) : WebClient by client
 
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")
 class PVClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.url:}") private val projektiVelhoBaseUrl: String,
-    @Value("\${geoviite.projektivelho.login_url:}") private val projektiVelhoLoginUrl: String,
+    @Value("\${geoviite.projektivelho.auth_url:}") private val projektiVelhoAuthUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
 ) {
@@ -46,7 +46,7 @@ class PVClientConfiguration @Autowired constructor(
 
         val webClientBuilder = WebClient.builder()
             .clientConnector(ReactorClientHttpConnector(httpClient))
-            .baseUrl(projektiVelhoLoginUrl)
+            .baseUrl(projektiVelhoAuthUrl)
             .filter(logRequest())
             .filter(logResponse())
             .defaultHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
@@ -57,10 +57,7 @@ class PVClientConfiguration @Autowired constructor(
 
     @Bean
     fun pvWebClient(): PVWebClient {
-        val httpClient = HttpClient.create()
-            .responseTimeout(defaultResponseTimeout)
-            .secure()
-            .compress(true)
+        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout).secure().compress(true)
 
         val connector = ReactorClientHttpConnector(httpClient.followRedirect(true))
         val webClientBuilder = WebClient.builder()
