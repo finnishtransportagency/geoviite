@@ -25,11 +25,8 @@ fun <T> printCsv(columns: List<CsvEntry<T>>, data: List<T>): String {
         data.forEach { dataRow ->
             columns.map { column ->
                 val csvValue = column.getValue(dataRow)
-                if (csvValue is String) {
-                    csvPrinter.print(csvValue)
-                } else if (csvValue is List<*>) {
-                    csvValue.forEach { csvPrinter.print(it) }
-                }
+                if (csvValue is List<*>) csvValue.forEach { csvPrinter.print(it) }
+                else csvPrinter.print(csvValue)
             }
             csvPrinter.println()
         }
