@@ -294,9 +294,8 @@ class GeometryService @Autowired constructor(
         return ElementListingFile(FileName("$ELEMENT_LISTING ${track.name}"), csvFileContent)
     }
 
-    @Scheduled(
-        cron = "\${geoviite.rail-network-export.schedule}"
-    )
+    @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
+    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
         val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
@@ -390,9 +389,8 @@ class GeometryService @Autowired constructor(
         return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
     }
 
-    @Scheduled(
-        cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}"
-    )
+    @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
+    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
         logger.serviceCall("makeVerticalGeometryListingCsv")
         val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
