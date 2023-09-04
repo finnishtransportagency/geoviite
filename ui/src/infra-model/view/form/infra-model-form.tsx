@@ -49,7 +49,7 @@ import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-projec
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
-import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
+//import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 
 type InframodelViewFormContainerProps = {
@@ -577,13 +577,17 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
 export default InfraModelForm;
 
-function projectInfo(oid: Oid, description: string, changeTime: TimeStamp) {
+function projectInfo(oid: Oid, description: string, _changeTime: TimeStamp) {
     return (
         <span className={styles['infra-model-upload__project-field']}>
             <PVOid oid={oid} />
-            <PVRedirectLink changeTime={changeTime} oid={oid}>
-                {description}
-            </PVRedirectLink>
+            {
+                description
+                // TODO Re-enable redirect links when they work
+                /*<PVRedirectLink changeTime={changeTime} oid={oid}>
+                    description
+                </PVRedirectLink>*/
+            }
         </span>
     );
 }
