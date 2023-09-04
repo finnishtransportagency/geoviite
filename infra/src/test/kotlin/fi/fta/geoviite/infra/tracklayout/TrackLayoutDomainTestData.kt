@@ -257,7 +257,6 @@ fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
 fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(
     segments = fixSegmentStarts(segments),
-    sourceId = null,
 )
 
 fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())

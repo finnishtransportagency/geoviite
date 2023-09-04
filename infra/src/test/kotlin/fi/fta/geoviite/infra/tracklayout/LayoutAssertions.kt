@@ -78,7 +78,6 @@ fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: B
             dataType = expected.dataType,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
     assertEquals(expected.segments.size, actual.segments.size)
