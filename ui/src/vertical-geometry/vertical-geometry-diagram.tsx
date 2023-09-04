@@ -21,6 +21,7 @@ import {
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { BoundingBox } from 'model/geometry';
 import { OnSelectOptions } from 'selection/selection-model';
+import { PlanLinkingHeaders } from 'vertical-geometry/plan-linking-header';
 
 const chartBottomPadding = 60;
 const topHeightPaddingPx = 180;
@@ -216,7 +217,6 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                         trackKmHeights={kmHeights}
                         coordinates={coordinates}
                         planLinkingSummary={linkingSummary}
-                        planLinkingOnSelect={onSelect}
                     />
                     <HeightGraph coordinates={coordinates} kmHeights={kmHeights} />
                     <PviGeometry
@@ -226,6 +226,11 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                         drawTangentArrows={drawTangentArrows}
                     />
                     <HeightLabels coordinates={coordinates} />
+                    <PlanLinkingHeaders
+                        coordinates={coordinates}
+                        planLinkingSummary={linkingSummary}
+                        planLinkingOnSelect={onSelect}
+                    />
                     <Translate x={0} y={240}>
                         <TrackAddressRuler
                             kmHeights={kmHeights}

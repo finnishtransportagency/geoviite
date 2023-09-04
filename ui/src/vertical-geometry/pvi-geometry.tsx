@@ -9,7 +9,7 @@ import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
-const minimumSpacePxForPviPointSideLabels = 10;
+const minimumSpacePxForPviPointSideLabels = 14;
 const minimumSpacePxForPviPointTopLabel = 16;
 const minimumSpaceForTangentArrowLabel = 14;
 
@@ -208,6 +208,33 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                 ].filter(filterNotEmpty),
             ) * coordinates.mMeterLengthPxOverM;
 
+        if (geo.tangent !== null && drawTangentArrows) {
+            pvis.push(
+                tangentArrow(
+                    true,
+                    geo.point.station,
+                    geo.start.station,
+                    approximateHeightAtM(geo.start.station, kmHeights) ?? geo.start.height,
+                    geo.tangent,
+                    pviAssistLineHeightPx,
+                    pviKey++,
+                    coordinates,
+                ),
+            );
+            pvis.push(
+                tangentArrow(
+                    false,
+                    geo.point.station,
+                    geo.end.station,
+                    approximateHeightAtM(geo.end.station, kmHeights) ?? geo.end.height,
+                    geo.tangent,
+                    pviAssistLineHeightPx,
+                    pviKey++,
+                    coordinates,
+                ),
+            );
+        }
+
         if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels) {
             if (geo.point.address != null) {
                 pvis.push(
@@ -253,32 +280,6 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                     }) rotate(-90) scale(0.6)`}>
                     S={geo.radius}
                 </text>,
-            );
-        }
-        if (geo.tangent !== null && drawTangentArrows) {
-            pvis.push(
-                tangentArrow(
-                    true,
-                    geo.point.station,
-                    geo.start.station,
-                    approximateHeightAtM(geo.start.station, kmHeights) ?? geo.start.height,
-                    geo.tangent,
-                    pviAssistLineHeightPx,
-                    pviKey++,
-                    coordinates,
-                ),
-            );
-            pvis.push(
-                tangentArrow(
-                    false,
-                    geo.point.station,
-                    geo.end.station,
-                    approximateHeightAtM(geo.end.station, kmHeights) ?? geo.end.height,
-                    geo.tangent,
-                    pviAssistLineHeightPx,
-                    pviKey++,
-                    coordinates,
-                ),
             );
         }
     }

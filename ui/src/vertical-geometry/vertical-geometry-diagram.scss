@@ -63,7 +63,8 @@
 }
 
 .vertical-geometry-diagram__text-stroke-narrow,
-.vertical-geometry-diagram__text-stroke-wide {
+.vertical-geometry-diagram__text-stroke-wide,
+.vertical-geometry-diagram__text-stroke-header {
     stroke: $color-white-default;
     paint-order: stroke;
 }
@@ -74,4 +75,8 @@
 
 .vertical-geometry-diagram__text-stroke-wide {
     stroke-width: 6;
+}
+
+.vertical-geometry-diagram__text-stroke-header {
+    stroke-width: 12;
 }

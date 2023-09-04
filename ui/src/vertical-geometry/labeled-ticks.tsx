@@ -9,15 +9,12 @@ import {
     minimumIntervalOrLongest,
     minimumLabeledTickDistancePx,
 } from 'vertical-geometry/ticks-at-intervals';
-import { PlanLinkingItemHeader } from 'vertical-geometry/plan-linking-item-header';
-import { OnSelectOptions } from 'selection/selection-model';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
 export interface LabeledTicksProps {
     trackKmHeights: TrackKmHeights[];
     coordinates: Coordinates;
     planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
-    planLinkingOnSelect: (options: OnSelectOptions) => void;
 }
 
 const TickLabel: React.FC<{
@@ -54,80 +51,54 @@ const TickLabel: React.FC<{
     );
 };
 
-const PlanLinkingDividers: React.FC<{
-    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
+const LinkingDivider: React.FC<{
     coordinates: Coordinates;
-    startM: number;
-    endM: number;
-}> = ({ planLinkingSummary, coordinates, startM, endM }) => {
-    if (!planLinkingSummary) {
-        return <React.Fragment />;
-    }
-
+    dividerPositionX: number;
+}> = ({ coordinates, dividerPositionX }) => {
     return (
-        <>
-            {planLinkingSummary.map((summary, i) => {
-                if (endM < coordinates.startM || startM > coordinates.endM) {
-                    return <React.Fragment key={i} />;
-                }
-
-                const planStartTickPosition = mToX(coordinates, summary.startM);
-                const planEndTickPosition = mToX(coordinates, endM);
-
-                return (
-                    <React.Fragment key={i}>
-                        <line
-                            x1={planStartTickPosition}
-                            x2={planStartTickPosition}
-                            y1={0}
-                            y2={coordinates.fullDiagramHeightPx}
-                            stroke="black"
-                            fill="none"
-                            shapeRendering="crispEdges"
-                        />
-                        <line
-                            x1={planEndTickPosition}
-                            x2={planEndTickPosition}
-                            y1={0}
-                            y2={coordinates.fullDiagramHeightPx}
-                            stroke="black"
-                            fill="none"
-                            shapeRendering="crispEdges"
-                        />
-                    </React.Fragment>
-                );
-            })}
-        </>
+        <line
+            x1={dividerPositionX}
+            x2={dividerPositionX}
+            y1={0}
+            y2={coordinates.fullDiagramHeightPx}
+            stroke="black"
+            fill="none"
+            shapeRendering="crispEdges"
+        />
     );
 };
 
-const PlanLinkingHeaders: React.FC<{
+const PlanLinkingDividers: React.FC<{
     planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
-    planLinkingOnSelect: (options: OnSelectOptions) => void;
     coordinates: Coordinates;
-    startM: number;
-    endM: number;
-}> = ({ planLinkingSummary, planLinkingOnSelect, coordinates, startM, endM }) => {
-    if (!planLinkingSummary) {
-        return <React.Fragment />;
-    }
-
+}> = ({ planLinkingSummary, coordinates }) => {
     return (
         <>
-            {planLinkingSummary.map((summary, i) => {
-                if (endM < coordinates.startM || startM > coordinates.endM) {
-                    return <React.Fragment key={i} />;
-                }
+            {planLinkingSummary
+                ?.filter(
+                    (summary) =>
+                        summary.startM <= coordinates.endM && summary.endM >= coordinates.startM,
+                )
+                .map((summary, i) => {
+                    const planStartTickPosition = mToX(coordinates, summary.startM);
 
-                return (
-                    <PlanLinkingItemHeader
-                        key={i}
-                        coordinates={coordinates}
-                        planLinkingSummaryItem={summary}
-                        onSelect={planLinkingOnSelect}
-                    />
-                );
-            })}
+                    return (
+                        <React.Fragment key={i}>
+                            <LinkingDivider
+                                coordinates={coordinates}
+                                dividerPositionX={planStartTickPosition}
+                            />
+
+                            {/* The last plan linking summary won't have the divider that starts the next one. */}
+                            {i == planLinkingSummary.length - 1 && (
+                                <LinkingDivider
+                                    coordinates={coordinates}
+                                    dividerPositionX={mToX(coordinates, summary.endM)}
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
         </>
     );
 };
@@ -136,7 +107,6 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({
     trackKmHeights,
     coordinates,
     planLinkingSummary,
-    planLinkingOnSelect,
 }) => {
     // avoid rendering too far off the screen for performance
     const startM = coordinates.startM - 80 / coordinates.mMeterLengthPxOverM;
@@ -157,8 +127,6 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({
             <PlanLinkingDividers
                 planLinkingSummary={planLinkingSummary}
                 coordinates={coordinates}
-                startM={startM}
-                endM={endM}
             />
 
             {trackKmHeights
@@ -199,14 +167,6 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({
                             />
                         )),
                 )}
-
-            <PlanLinkingHeaders
-                planLinkingSummary={planLinkingSummary}
-                planLinkingOnSelect={planLinkingOnSelect}
-                coordinates={coordinates}
-                startM={startM}
-                endM={endM}
-            />
         </>
     );
 };

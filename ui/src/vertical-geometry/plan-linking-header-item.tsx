@@ -11,7 +11,7 @@ export interface PlanLinkingItemHeaderProps {
     onSelect: (options: OnSelectOptions) => void;
 }
 
-export const PlanLinkingItemHeader: React.FC<PlanLinkingItemHeaderProps> = ({
+export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
     coordinates,
     planLinkingSummaryItem,
     onSelect,
@@ -60,11 +60,11 @@ export const PlanLinkingItemHeader: React.FC<PlanLinkingItemHeaderProps> = ({
                 width={width}
                 height={textLineTwoYPx + textDropAreaPx}>
                 <text
-                    className={styles['vertical-geometry-diagram__text-stroke-narrow']}
+                    className={styles['vertical-geometry-diagram__text-stroke-header']}
                     transform={`translate(0 ${textLineOneYPx}) scale(0.7)`}>
                     <tspan>{filename}</tspan>
                     <tspan x="0" dy={textLineTwoYPx}>
-                        {verticalCoordinateSystem},{' '}
+                        {verticalCoordinateSystem + ', '}
                         <ElevationMeasurementMethod
                             method={elevationMeasurementMethod}
                             lowerCase={true}
