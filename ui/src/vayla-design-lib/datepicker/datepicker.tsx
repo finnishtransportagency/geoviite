@@ -36,7 +36,7 @@ function getHeaderElement({
                 />
             </div>
             <span className={styles['datepicker__current-month']}>
-                {format(date, 'MMM', { locale: fi })} {date.getFullYear()}
+                {format(date, 'LLLL', { locale: fi })} {date.getFullYear()}
             </span>
             <div
                 className={createClassName(
