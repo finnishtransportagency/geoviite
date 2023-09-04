@@ -20,7 +20,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Oid, TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
-import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
+//import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
@@ -457,7 +457,7 @@ type PVFileListExpandedItemProps = {
     changeTime: TimeStamp;
 };
 
-const PVFileListExpandedItem = ({ item, changeTime }: PVFileListExpandedItemProps) => {
+const PVFileListExpandedItem = ({ item, changeTime: _changeTime }: PVFileListExpandedItemProps) => {
     const { t } = useTranslation();
     return (
         <div className={styles['projektivelho-file-list__expanded']}>
@@ -466,9 +466,11 @@ const PVFileListExpandedItem = ({ item, changeTime }: PVFileListExpandedItemProp
                     <InfoboxField
                         label={t('projektivelho.file-list.field.project-group')}
                         value={
-                            <PVRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
+                            item.projectGroup.name
+                            // TODO Re-enable redirect links when they work
+                            /*<PVRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
                                 {`${item.projectGroup.name} (${item.projectGroup.state})`}
-                            </PVRedirectLink>
+                            </PVRedirectLink>*/
                         }
                     />
                 )}
@@ -476,9 +478,11 @@ const PVFileListExpandedItem = ({ item, changeTime }: PVFileListExpandedItemProp
                     <InfoboxField
                         label={t('projektivelho.file-list.field.project-name')}
                         value={
-                            <PVRedirectLink changeTime={changeTime} oid={item.project.oid}>
+                            item.project.name
+                            // TODO Re-enable redirect links when they work
+                            /*<PVRedirectLink changeTime={changeTime} oid={item.project.oid}>
                                 {`${item.project.name} (${item.project.state})`}
-                            </PVRedirectLink>
+                            </PVRedirectLink>*/
                         }
                     />
                 )}
@@ -486,9 +490,11 @@ const PVFileListExpandedItem = ({ item, changeTime }: PVFileListExpandedItemProp
                     <InfoboxField
                         label={t('projektivelho.file-list.field.assignment')}
                         value={
-                            <PVRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
+                            item.assignment.name
+                            // TODO Re-enable redirect links when they work
+                            /*<PVRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
                                 {`${item.assignment.name} (${item.assignment.state})`}
-                            </PVRedirectLink>
+                            </PVRedirectLink>*/
                         }
                     />
                 )}
