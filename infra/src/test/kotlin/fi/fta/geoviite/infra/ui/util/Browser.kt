@@ -33,6 +33,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     options.addArguments("--incognito")
     options.setExperimentalOption("excludeSwitches", listOf("enable-automation"))
     options.addArguments("--remote-allow-origins=*")
+    options.addArguments("--remote-debugging-port=9222")
 
     //if (!headless) chromeOptions.addArguments("--auto-open-devtools-for-tabs")
     if (DEV_DEBUG) options.setExperimentalOption("detach", true)
