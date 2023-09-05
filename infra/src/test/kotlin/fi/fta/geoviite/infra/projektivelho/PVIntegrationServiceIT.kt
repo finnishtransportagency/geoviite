@@ -22,7 +22,7 @@ import kotlin.test.assertNotNull
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
 class PVIntegrationServiceIT @Autowired constructor(
-    @Value("\${geoviite.projektivelho.test-port:12345}") private val projektiVelhoPort: Int,
+    @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvIntegrationService: PVIntegrationService,
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
@@ -203,14 +203,9 @@ fun insertTestDictionary(pvDao: PVDao) {
 
 fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVDocumentStatus) =
     pvDao.insertDocumentMetadata(
-        oid = oid,
-        assignmentOid = null,
-        latestVersion = PVApiLatestVersion(
-            version = PVId("test"),
-            name = FileName("test"),
-            changeTime = Instant.now()
-        ),
-        metadata = PVApiDocumentMetadata(
+        oid = oid, assignmentOid = null, latestVersion = PVApiLatestVersion(
+            version = PVId("test"), name = FileName("test"), changeTime = Instant.now()
+        ), metadata = PVApiDocumentMetadata(
             materialCategory = PVDictionaryCode("test"),
             description = null,
             materialGroup = PVDictionaryCode("test"),
@@ -218,10 +213,7 @@ fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVD
             documentType = PVDictionaryCode("test"),
             technicalFields = emptyList(),
             containsPersonalInfo = false
-        ),
-        projectGroupOid = null,
-        projectOid = null,
-        status = status
+        ), projectGroupOid = null, projectOid = null, status = status
     )
 
 private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode) =

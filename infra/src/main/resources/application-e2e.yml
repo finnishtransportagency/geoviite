@@ -5,3 +5,8 @@ geoviite:
     password: s3cret
   scheduler-lock:
     enabled: false
+  projektivelho:
+    enabled: true
+    url: http://localhost:12346
+    auth_url: http://localhost:12346/oauth2/token
+    test-port: 12346

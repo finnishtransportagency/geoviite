@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.projektivelho.*
@@ -11,6 +12,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
@@ -22,8 +24,12 @@ const val TESTFILE_SIMPLE_ANONYMIZED_PATH: String = "src/test/resources/inframod
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class ProjektiVelhoTestUI @Autowired constructor(
+    @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvDao: PVDao,
+    private val jsonMapper: ObjectMapper,
 ) : SeleniumTest() {
+
+    fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)
 
     @BeforeEach
     fun clearVelhoTestData() {
@@ -42,8 +48,7 @@ class ProjektiVelhoTestUI @Autowired constructor(
         fun identifyTestProject(item: E2EProjektiVelhoListItem) = item.projectName == "testi_projekti"
         fun assertTestProjectIsVisible() {
             assertEquals(
-                "foo bar.xml",
-                velhoPage.getItemWhenMatches(::identifyTestProject).documentName
+                "foo bar.xml", velhoPage.getItemWhenMatches(::identifyTestProject).documentName
             )
         }
 
@@ -54,33 +59,48 @@ class ProjektiVelhoTestUI @Autowired constructor(
         velhoPage.restoreFirstMatching(::identifyTestProject)
         velhoPage.openWaitingForApprovalList()
         assertTestProjectIsVisible()
+        velhoPage.goToInfraModelList()
     }
 
     @Test
     fun import() {
-        materialDictionaries.forEach(pvDao::upsertDictionary)
-        projectDictionaries.forEach(pvDao::upsertDictionary)
+        fakeProjektiVelho().use { fakeProjektiVelho ->
+            materialDictionaries.forEach(pvDao::upsertDictionary)
+            projectDictionaries.forEach(pvDao::upsertDictionary)
+            val documentOid = Oid<PVDocument>("1.2.3.4.5")
+            val projectOid = Oid<PVProject>("5.6.7.8.9")
+            val projectGroupOid = Oid<PVProjectGroup>("6.7.8.9.10")
+            val assignmentOid = Oid<PVAssignment>("7.8.9.10.11")
 
-        pvDao.insertDocumentContent(
-            File(TESTFILE_SIMPLE_ANONYMIZED_PATH).readText(Charsets.UTF_8),
-            insertFullExampleVelhoDocumentMetadata().id
-        )
-        startGeoviite()
-        val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
-        velhoPage
-            // project name comes from PV metadata here
-            .acceptFirstMatching { item -> item.projectName == "testi_projekti" }
-            .save(true)
+            pvDao.insertDocumentContent(
+                File(TESTFILE_SIMPLE_ANONYMIZED_PATH).readText(Charsets.UTF_8), insertFullExampleVelhoDocumentMetadata(
+                    documentOid = documentOid,
+                    projectOid = projectOid,
+                    projectGroupOid = projectGroupOid,
+                    assignmentOid = assignmentOid
+                ).id
+            )
 
-        waitAndClearToastByContent("Projektivelhon InfraModel-tiedosto tuotu Geoviitteeseen")
+            fakeProjektiVelho.login()
+            fakeProjektiVelho.redirect(documentOid)
+            fakeProjektiVelho.redirect(projectOid)
+            fakeProjektiVelho.redirect(projectGroupOid)
+            fakeProjektiVelho.redirect(assignmentOid)
+            startGeoviite()
+            val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
+            velhoPage
+                // project name comes from PV metadata here
+                .acceptFirstMatching { item -> item.projectName == "testi_projekti" }.save(true)
 
-        val infraModelPage = velhoPage.goToInfraModelList()
-        assertEquals(
-            "foo bar.xml",
-            infraModelPage.infraModelsList
-                // project name comes from test file here
-                .getItemWhenMatches { item -> item.projectName == "Geoviite test" }.fileName
-        )
+            waitAndClearToastByContent("Projektivelhon InfraModel-tiedosto tuotu Geoviitteeseen")
+
+            val infraModelPage = velhoPage.goToInfraModelList()
+            assertEquals(
+                "foo bar.xml", infraModelPage.infraModelsList
+                    // project name comes from test file here
+                    .getItemWhenMatches { item -> item.projectName == "Geoviite test" }.fileName
+            )
+        }
     }
 
     private fun insertFullExampleVelhoDocumentMetadata(
