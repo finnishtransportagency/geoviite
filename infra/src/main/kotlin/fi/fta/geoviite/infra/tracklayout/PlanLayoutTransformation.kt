@@ -9,10 +9,7 @@ import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentSource
 import fi.fta.geoviite.infra.map.MapAlignmentType
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Point3DM
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import java.math.BigDecimal
 import kotlin.math.max
@@ -106,25 +103,25 @@ fun toMapAlignments(
     includeGeometryData: Boolean = true,
 ): List<PlanLayoutAlignment> {
     return geometryAlignments.map { alignment ->
-            val mapSegments = toMapSegments(
-                alignment = alignment,
-                planToLayoutTransformation = planToLayout,
-                pointListStepLength = pointListStepLength,
-                heightTriangles = heightTriangles,
-                verticalCoordinateSystem = verticalCoordinateSystem,
-                includeGeometryData = includeGeometryData,
-            )
+        val mapSegments = toMapSegments(
+            alignment = alignment,
+            planToLayoutTransformation = planToLayout,
+            pointListStepLength = pointListStepLength,
+            heightTriangles = heightTriangles,
+            verticalCoordinateSystem = verticalCoordinateSystem,
+            includeGeometryData = includeGeometryData,
+        )
 
-            val boundingBoxInLayoutSpace = alignment.bounds?.let {
-                val cornersInLayoutSpace = it.corners.map { corner -> planToLayout.transform(corner) }
-                boundingBoxAroundPoints(cornersInLayoutSpace)
-            }
-
-            PlanLayoutAlignment(
-                header = toAlignmentHeader(alignment, boundingBoxInLayoutSpace),
-                segments = mapSegments,
-            )
+        val boundingBoxInLayoutSpace = alignment.bounds?.let {
+            val cornersInLayoutSpace = it.corners.map { corner -> planToLayout.transform(corner) }
+            boundingBoxAroundPoints(cornersInLayoutSpace)
         }
+
+        PlanLayoutAlignment(
+            header = toAlignmentHeader(alignment, boundingBoxInLayoutSpace),
+            segments = mapSegments,
+        )
+    }
 }
 
 fun toAlignmentHeader(
@@ -157,10 +154,10 @@ private fun toMapSegments(
     val alignmentStationStart = alignment.staStart.toDouble()
     var segmentStartLength = 0.0
     val elements = alignment.elements.map { element ->
-            val startLength = segmentStartLength
-            segmentStartLength += element.calculatedLength
-            element to startLength
-        }.filter { (e, _) -> e.calculatedLength >= 0.001 }
+        val startLength = segmentStartLength
+        segmentStartLength += element.calculatedLength
+        element to startLength
+    }.filter { (e, _) -> e.calculatedLength >= 0.001 }
     val segments = if (!includeGeometryData) listOf()
     else elements.map { (element, segmentStartLength) ->
         val segmentPoints = toPointList(element, pointListStepLength).map { p ->
@@ -268,10 +265,10 @@ private fun getPlanStartAddress(planKmPosts: List<GeometryKmPost>): TrackMeter? 
         val precedingKmPost = minimumKmNumberPosts[0]
         // safety: minimumKmNumberPosts was filtered for equality with a known-not-null kmNumber
         // Negative or zero staInternals are assumed to be the distance of the preceding km post from the plan's
-        // reference line's start; for anything else, let's not assume we know what to do with it
+        // reference line's start; for anything else, let's not assume we know what to do with it.
+        // Round to 6 decimals to make sure TrackNumber creation doesn't fail due to too many decimals
         if (precedingKmPost.staInternal <= BigDecimal.ZERO) TrackMeter(
-            precedingKmPost.kmNumber!!,
-            -precedingKmPost.staInternal
+            precedingKmPost.kmNumber!!, round(-precedingKmPost.staInternal, 6)
         )
         else null
     } else null
