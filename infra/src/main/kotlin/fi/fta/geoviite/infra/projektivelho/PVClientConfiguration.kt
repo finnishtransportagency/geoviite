@@ -35,7 +35,7 @@ class PVClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.url:}") private val projektiVelhoBaseUrl: String,
     @Value("\${geoviite.projektivelho.auth_url:}") private val projektiVelhoAuthUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
-    @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
+    @Value("\${geoviite.projektivelho.secret_key:}") private val projektiVelhoPassword: String,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(PVClient::class.java)
