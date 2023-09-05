@@ -64,11 +64,16 @@ geoviite:
     client_id: "${PROJEKTIVELHO_CLIENT_ID:}"
     client_secret: "${PROJEKTIVELHO_CLIENT_SECRET:}"
     search-poll:
-      initial: "PT1H"
-      rate: "PT4H"
+      initial: PT1H
+      rate: PT4H
     result-poll:
-      initial: "PT5M"
-      rate: "PT15M"
+      initial: PT5M
+      rate: PT15M
   rail-network-export:
     schedule: "0 0 3 * * *"
     vertical-geometry-schedule: "0 0 4 * * *"
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain,text/csv
+    min-response-size: 1KB
