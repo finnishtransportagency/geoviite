@@ -116,7 +116,7 @@ export type GeometryPlan = {
     isHidden: boolean;
 };
 
-export enum SortByValue {
+export enum GeometrySortBy {
     PROJECT_NAME,
     TRACK_NUMBER,
     KM_START,
@@ -131,7 +131,7 @@ export enum SortByValue {
     LINKED_BY,
 }
 
-export enum SortOrderValue {
+export enum GeometrySortOrder {
     ASCENDING,
     DESCENDING,
 }
@@ -140,8 +140,8 @@ export type GeometryPlanSearchParams = {
     freeText: string;
     trackNumberIds: LayoutTrackNumberId[];
     sources: PlanSource[];
-    sortBy: SortByValue;
-    sortOrder: SortOrderValue;
+    sortBy: GeometrySortBy;
+    sortOrder: GeometrySortOrder | undefined;
 };
 
 export type GeometryUnits = {
