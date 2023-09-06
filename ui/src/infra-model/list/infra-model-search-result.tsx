@@ -33,7 +33,7 @@ export type InfraModelSearchResultProps = Pick<
     onPrevPage: () => void;
 };
 
-function getSortOrder(
+function toggleSortOrder(
     currentSortBy: GeometrySortBy,
     sortBy: GeometrySortBy,
     sortOrder: GeometrySortOrder | undefined,
@@ -96,7 +96,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     }, [props.plans]);
 
     function setFilter(sortByValue: GeometrySortBy) {
-        const sort = getSortOrder(
+        const sort = toggleSortOrder(
             props.searchParams.sortBy,
             sortByValue,
             props.searchParams.sortOrder,
