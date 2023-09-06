@@ -589,9 +589,13 @@ class PublicationService @Autowired constructor(
             linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first),
             validationVersions.locationTracks.map { it.officialId },
         )
-        val structureErrors = validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
+        val locationErrors = if (switch.exists) validateSwitchLocation(switch) else emptyList()
+        val structureErrors = locationErrors.ifEmpty {
+            validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
+        }
+
         val duplicationErrors =
-            if (switch.exists) validateSwitchNameDuplication(switch, validationVersions) else listOf()
+            if (switch.exists) validateSwitchNameDuplication(switch, validationVersions) else emptyList()
         return fieldErrors + referenceErrors + structureErrors + duplicationErrors
     }
 

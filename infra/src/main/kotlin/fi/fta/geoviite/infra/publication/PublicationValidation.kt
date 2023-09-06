@@ -123,6 +123,12 @@ fun validateSwitchLocationTrackLinkReferences(
         }
 )
 
+fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationError> = listOfNotNull(
+    validate(switch.joints.isNotEmpty()) {
+        "$VALIDATION_SWITCH.no-location"
+    }
+)
+
 fun validateSwitchLocationTrackLinkStructure(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
