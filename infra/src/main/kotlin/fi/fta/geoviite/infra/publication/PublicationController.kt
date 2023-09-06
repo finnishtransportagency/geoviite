@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -10,9 +12,8 @@ import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.Page
-import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,9 +33,28 @@ class PublicationController @Autowired constructor(
     private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
     private val localizationService: LocalizationService,
+    private val switchDao: LayoutSwitchDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    @GetMapping("/validate_all_switches")
+    fun validateAllSwitches(): ResponseEntity<ByteArray> {
+        val l10n = localizationService.getLocalization("fi")
+        val str = printCsv(listOf(CsvEntry<Pair<SwitchName, String>>("switch") { x -> x.first.toString() },
+            CsvEntry("errors") { x -> x.second }), switchDao.fetchAllVersions().map { it.id }.distinct().flatMap { id ->
+            val official = switchDao.fetchVersion(id, PublishType.OFFICIAL)!!
+            val switch = switchDao.fetch(official)
+            if (!switch.exists) {
+                return@flatMap listOf()
+            }
+            val valid = publicationService.validateSwitch(id, PublishType.OFFICIAL)
+            if (valid.errors.isEmpty()) listOf(switch.name to "") else valid.errors.map { er ->
+                switch.name to l10n.t(er.localizationKey, er.params)
+            }
+        })
+        return getCsvResponseEntity(str, FileName("validate_all_switches_report.csv"))
+    }
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/candidates")

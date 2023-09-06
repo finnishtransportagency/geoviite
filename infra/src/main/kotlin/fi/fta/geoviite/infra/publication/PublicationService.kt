@@ -171,6 +171,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly=true)
     fun validateSwitch(
         switchId: IntId<TrackLayoutSwitch>,
         publishType: PublishType,
