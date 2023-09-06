@@ -181,11 +181,13 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         });
     }, [planId, publishType, locationTrackChangeTime]);
 
-    function handleLocationTrackInsert(_id: LocationTrackId) {
+    function handleLocationTrackInsert(id: LocationTrackId) {
+        onSelect({ locationTracks: [id] });
         updateLocationTrackChangeTime();
     }
 
-    function handleTrackNumberSave(_id: LayoutTrackNumberId) {
+    function handleTrackNumberSave(id: LayoutTrackNumberId) {
+        onSelect({ trackNumbers: [id] });
         updateReferenceLineChangeTime().then(() => updateTrackNumberChangeTime());
     }
 
@@ -296,7 +298,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 trackNumberChangeTime={trackNumberChangeTime}
                                 onSelect={onSelect}
                                 selectedLayoutReferenceLine={selectedLayoutReferenceLine}
-                                disableAddButton={linkingState.type !== LinkingType.UnknownAlignment}
+                                disableAddButton={
+                                    linkingState.type !== LinkingType.UnknownAlignment
+                                }
                                 onShowAddTrackNumberDialog={() => setShowAddTrackNumberDialog(true)}
                             />
                             <GeometryAlignmentLinkingLocationTrackCandidates
@@ -305,7 +309,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 locationTrackChangeTime={locationTrackChangeTime}
                                 onSelect={onSelect}
                                 selectedLayoutLocationTrack={selectedLayoutLocationTrack}
-                                disableAddButton={linkingState.type !== LinkingType.UnknownAlignment}
+                                disableAddButton={
+                                    linkingState.type !== LinkingType.UnknownAlignment
+                                }
                                 onShowAddLocationTrackDialog={() =>
                                     setShowAddLocationTrackDialog(true)
                                 }
