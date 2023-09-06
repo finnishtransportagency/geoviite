@@ -19,14 +19,16 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         />
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
-            {duplicatesOfLocationTrack.map((duplicate) => (
-                <li key={duplicate.id}>
-                    <LocationTrackLink
-                        locationTrackId={duplicate.id}
-                        locationTrackName={duplicate.name}
-                    />
-                </li>
-            ))}
+            {duplicatesOfLocationTrack
+                .sort((a, b) => (a.name > b.name ? 1 : -1))
+                .map((duplicate) => (
+                    <li key={duplicate.id}>
+                        <LocationTrackLink
+                            locationTrackId={duplicate.id}
+                            locationTrackName={duplicate.name}
+                        />
+                    </li>
+                ))}
         </ul>
     ) : (
         <React.Fragment />
