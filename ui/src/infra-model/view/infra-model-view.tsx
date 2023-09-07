@@ -143,7 +143,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             onClick={() => onProgressClick()}
                             disabled={
                                 props.isLoading ||
-                                !!props.validationResponse ||
+                                !props.validationResponse ||
                                 fileHandlingFailedErrors.length > 0 ||
                                 getFieldValidationErrors().length > 0
                             }
