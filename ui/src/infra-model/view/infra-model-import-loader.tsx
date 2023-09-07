@@ -7,14 +7,14 @@ import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { GeometryPlan } from 'geometry/geometry-model';
 
 export type InfraModelImportLoaderProps = InfraModelBaseProps & {
-    setExistingInfraModel: (plan: GeometryPlan | null) => void;
+    setExistingInfraModel: (plan: GeometryPlan | undefined) => void;
     onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 };
 
 export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ ...props }) => {
     const { id: pvDocumentId } = useParams<{ id: string }>();
-    const [initPVDocumentId, setInitPVDocumentId] = useState<PVDocumentId | null>(null);
+    const [initPVDocumentId, setInitPVDocumentId] = useState<PVDocumentId>();
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
 
@@ -36,7 +36,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
             );
             props.setLoading(false);
         }
-        return null;
+        return undefined;
     };
     // Automatically re-validate whenever the plan or manually input data changes
     React.useEffect(() => {
@@ -52,7 +52,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
         props.setLoading(true);
         const response = await importPVDocument(pvDocumentId, extraParams, overrideParams);
         props.setLoading(false);
-        return response != null;
+        return !!response;
     };
     return <InfraModelView {...props} onSave={onSave} onValidate={onValidate} />;
 };

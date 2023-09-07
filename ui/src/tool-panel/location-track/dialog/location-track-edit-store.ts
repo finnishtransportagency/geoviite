@@ -5,7 +5,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     isPropEditFieldCommitted,
@@ -40,10 +40,11 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
     trackNumbers: [],
     locationTrack: {
         name: '',
+        trackNumberId: undefined,
         state: undefined,
         type: undefined,
+        duplicateOf: undefined,
         description: '',
-        duplicateOf: null,
     },
     validationErrors: [],
     committedFields: [],
@@ -61,8 +62,8 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
         type: undefined,
         state: undefined,
         trackNumberId: undefined,
-        duplicateOf: null,
         topologicalConnectivity: undefined,
+        duplicateOf: undefined,
     };
 }
 
@@ -75,7 +76,7 @@ function validateLinkingLocationTrack(
         ...errors,
         ...['name', 'trackNumberId', 'type', 'state', 'description', 'topologicalConnectivity']
             .map((prop: keyof LocationTrackSaveRequest) => {
-                if (isNullOrBlank(saveRequest[prop])) {
+                if (isNilOrBlank(saveRequest[prop])) {
                     return {
                         field: prop,
                         reason: 'mandatory-field',
@@ -93,7 +94,7 @@ function validateLinkingLocationTrack(
                           reason: `invalid-name`,
                           type: ValidationErrorType.ERROR,
                       }
-                    : null;
+                    : undefined;
             })
             .filter(filterNotEmpty),
     ];

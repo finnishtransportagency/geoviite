@@ -11,7 +11,7 @@ import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
 import { ValidationResponse } from 'infra-model/infra-model-slice';
 
 export type InfraModelUploadLoaderProps = InfraModelBaseProps & {
-    file: SerializableFile | undefined;
+    file?: SerializableFile;
     onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 };
@@ -19,7 +19,7 @@ export type InfraModelUploadLoaderProps = InfraModelBaseProps & {
 export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ ...props }) => {
     const { t } = useTranslation();
 
-    const [file, setFile] = React.useState<File | null>(null);
+    const [file, setFile] = React.useState<File>();
 
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
@@ -49,7 +49,7 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
             props.setLoading(true);
             const response = await saveInfraModelFile(file, extraParams, overrideParams);
             props.setLoading(false);
-            return response != null;
+            return response != undefined;
         } else {
             return false;
         }

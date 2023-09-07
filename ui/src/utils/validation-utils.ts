@@ -41,9 +41,9 @@ export function validateOid(oid: string): string[] {
     const tooLong = oid.length > 50;
 
     return [
-        regexpMatch ? null : 'invalid-oid',
-        tooShort ? 'not-enough-values' : null,
-        tooLong ? 'too-many-values' : null,
+        regexpMatch ? undefined : 'invalid-oid',
+        tooShort ? 'not-enough-values' : undefined,
+        tooLong ? 'too-many-values' : undefined,
     ].filter(filterNotEmpty);
 }
 

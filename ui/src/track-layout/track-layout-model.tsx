@@ -31,9 +31,9 @@ export const LAYOUT_SRID: Srid = 'EPSG:3067';
 export type LayoutPoint = {
     x: number;
     y: number;
-    z: number | null;
+    z?: number;
     m: number;
-    cant: number | null;
+    cant?: number;
 };
 
 export type LayoutSegmentId = string;
@@ -64,17 +64,17 @@ export type LayoutReferenceLine = {
     id: ReferenceLineId;
     startAddress: TrackMeter;
     trackNumberId: LayoutTrackNumberId;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
     length: number;
-    sourceId: GeometryAlignmentId | null;
+    sourceId?: GeometryAlignmentId;
     segmentCount: number;
-    version: string | null;
+    version?: string;
     draftType: DraftType;
 };
 
 export type LayoutLocationTrackDuplicate = {
     name: string;
-    externalId: Oid | null;
+    externalId?: Oid;
     id: LocationTrackId;
 };
 
@@ -85,23 +85,23 @@ export type TopologyLocationTrackSwitch = {
 
 export type LayoutLocationTrack = {
     name: string;
-    description: string | null;
-    type: LocationTrackType | null;
+    description?: string;
+    type?: LocationTrackType;
     state: LayoutState;
-    externalId: Oid | null;
+    externalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
-    sourceId: GeometryAlignmentId | null;
+    sourceId?: GeometryAlignmentId;
     id: LocationTrackId;
     dataType: DataType;
     version: string;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
     length: number;
     segmentCount: number;
     draftType: DraftType;
-    duplicateOf: LocationTrackId | null;
+    duplicateOf?: LocationTrackId;
     topologicalConnectivity: TopologicalConnectivityType;
-    topologyStartSwitch: TopologyLocationTrackSwitch | null;
-    topologyEndSwitch: TopologyLocationTrackSwitch | null;
+    topologyStartSwitch?: TopologyLocationTrackSwitch;
+    topologyEndSwitch?: TopologyLocationTrackSwitch;
 };
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
@@ -112,13 +112,13 @@ export enum TrapPoint {
     Unknown,
 }
 
-export function booleanToTrapPoint(trapPoint: boolean | null): TrapPoint {
+export function booleanToTrapPoint(trapPoint: boolean | undefined): TrapPoint {
     switch (trapPoint) {
         case true:
             return TrapPoint.Yes;
         case false:
             return TrapPoint.No;
-        case null:
+        case undefined:
             return TrapPoint.Unknown;
         default:
             return exhaustiveMatchingGuard(trapPoint);
@@ -142,15 +142,15 @@ export type LayoutSwitchId = string;
 
 export type LayoutSwitch = {
     id: LayoutSwitchId;
-    externalId: Oid | null;
+    externalId?: Oid;
     name: string;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     joints: LayoutSwitchJoint[];
-    sourceId: GeometrySwitchId | null;
-    trapPoint: boolean | null;
-    ownerId: SwitchOwnerId | null;
-    version: string | null;
+    sourceId?: GeometrySwitchId;
+    trapPoint?: boolean;
+    ownerId?: SwitchOwnerId;
+    version?: string;
     dataType?: DataType;
     draftType: DraftType;
 };
@@ -166,11 +166,11 @@ export type LayoutKmPostId = string;
 export type LayoutKmPost = {
     id: LayoutKmPostId;
     kmNumber: KmNumber;
-    location: Point | null;
+    location?: Point;
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
-    sourceId: GeometryKmPostId | null;
-    version: string | null;
+    sourceId?: GeometryKmPostId;
+    version?: string;
     draftType: DraftType;
 };
 
@@ -181,7 +181,7 @@ export type LayoutKmLengthDetails = {
     startM: number;
     endM: number;
     locationSource: GeometrySource;
-    location: Point | null;
+    location?: Point;
 };
 
 export type PlanAreaId = string;
@@ -204,12 +204,12 @@ export type GeometryPlanLayout = {
 
 export type PlanAndStatus = {
     plan: GeometryPlanLayout;
-    status: GeometryPlanLinkStatus | undefined;
+    status?: GeometryPlanLinkStatus;
 };
 
 export type PlanLayoutAlignment = {
     header: AlignmentHeader;
-    polyLine: AlignmentPolyLine | null;
+    polyLine?: AlignmentPolyLine;
     segmentMValues: number[];
 };
 
@@ -217,11 +217,11 @@ export type LayoutTrackNumberId = string;
 
 export type LayoutTrackNumber = {
     id: LayoutTrackNumberId;
-    externalId: Oid | null;
+    externalId?: Oid;
     description: string;
     number: TrackNumber;
     state: LayoutState;
-    sourceId: GeometryTrackNumberId | null;
+    sourceId?: GeometryTrackNumberId;
     draftType: DraftType;
 };
 
@@ -231,13 +231,13 @@ export type AddressPoint = {
 };
 
 export type AlignmentStartAndEnd = {
-    start: AddressPoint | null;
-    end: AddressPoint | null;
+    start?: AddressPoint;
+    end?: AddressPoint;
 };
 
 export type SwitchesAtEnds = {
-    start: LayoutSwitchId | null;
-    end: LayoutSwitchId | null;
+    start?: LayoutSwitchId;
+    end?: LayoutSwitchId;
 };
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,

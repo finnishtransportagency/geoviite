@@ -21,12 +21,12 @@ export function useLoader<TEntity>(
     return useLoaderWithStatus(loadFunc, deps)[0];
 }
 
-export function useNullableLoader<TEntity>(
-    loadFunc: () => Promise<TEntity | null> | undefined,
+export function useOptionalLoader<TEntity>(
+    loadFunc: () => Promise<TEntity | undefined> | undefined,
     deps: unknown[],
 ): TEntity | undefined {
-    const nullMappingLoadFunc = () => loadFunc()?.then((r) => (r === null ? undefined : r));
-    return useLoader(nullMappingLoadFunc, deps);
+    const nilMappingLoadFunc = () => loadFunc()?.then((r) => (r === undefined ? undefined : r));
+    return useLoader(nilMappingLoadFunc, deps);
 }
 
 export enum LoaderStatus {

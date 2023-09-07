@@ -389,10 +389,10 @@ function isConnectorTooSteep(
 }
 
 function isSharpAngle(
-    directionRads1: number | null | undefined,
-    directionRads2: number | null | undefined,
+    directionRads1: number | undefined,
+    directionRads2: number | undefined,
 ): boolean {
-    if (directionRads1 == null || directionRads2 == null) return false;
+    if (directionRads1 == undefined || directionRads2 == undefined) return false;
     else return angleDiffRads(directionRads1, directionRads2) > Math.PI / 2;
 }
 

@@ -17,7 +17,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import {
     BoundingBox,
     boundingBoxAroundPoints,
@@ -74,7 +74,7 @@ function getOptions(
     publishType: PublishType,
     searchTerm: string,
 ): Promise<Item<SearchItemValue>[]> {
-    if (isNullOrBlank(searchTerm)) {
+    if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 

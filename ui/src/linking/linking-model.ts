@@ -34,11 +34,11 @@ import {
 
 export type LocationTrackSaveRequest = {
     name: string;
-    description?: string | null;
-    type?: LocationTrackType | null;
+    description?: string;
+    type?: LocationTrackType;
     state?: LayoutState;
-    trackNumberId?: LayoutTrackNumberId | null;
-    duplicateOf: string | null;
+    trackNumberId?: LayoutTrackNumberId;
+    duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;
 };
 
@@ -156,7 +156,7 @@ export type LinkingKmPost = LinkingBaseType & {
 export type KmPostSaveRequest = {
     kmNumber: KmNumber;
     state?: LayoutState;
-    trackNumberId?: LayoutTrackNumberId | null;
+    trackNumberId?: LayoutTrackNumberId;
 };
 
 export type KmPostSaveError = {
@@ -242,7 +242,7 @@ export type SuggestedSwitchId = string;
 
 export type SuggestedSwitchJointMatch = {
     locationTrackId: LocationTrackId;
-    layoutSwitchId: LayoutSwitchId | null;
+    layoutSwitchId?: LayoutSwitchId;
     segmentIndex: number;
     segmentM: number;
 };
@@ -256,12 +256,12 @@ export type SuggestedSwitchJoint = {
 
 export type SuggestedSwitch = {
     name: string;
-    geometryPlanId: GeometryPlanId | null;
+    geometryPlanId?: GeometryPlanId;
     id: SuggestedSwitchId;
     switchStructure: SwitchStructure;
     joints: SuggestedSwitchJoint[];
-    geometrySwitchId: GeometrySwitchId | null;
-    alignmentEndPoint: LocationTrackEndpoint | null;
+    geometrySwitchId?: GeometrySwitchId;
+    alignmentEndPoint?: LocationTrackEndpoint;
 };
 
 export type SwitchLinkingSegment = {
@@ -278,14 +278,14 @@ export type SwitchLinkingJoint = {
 };
 
 export type SwitchLinkingParameters = {
-    geometryPlanId: GeometryPlanId | null;
-    geometrySwitchId: GeometrySwitchId | null;
+    geometryPlanId?: GeometryPlanId;
+    geometrySwitchId?: GeometrySwitchId;
     layoutSwitchId: LayoutSwitchId;
     joints: SwitchLinkingJoint[];
     switchStructureId: SwitchStructureId;
 };
 export type KmPostLinkingParameters = {
-    geometryPlanId: GeometryPlanId | null;
+    geometryPlanId?: GeometryPlanId;
     geometryKmPostId: GeometryKmPostId;
     layoutKmPostId: LayoutKmPostId;
 };
@@ -295,7 +295,7 @@ export type TrackLayoutSwitchSaveRequest = {
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
-    trapPoint: boolean | undefined;
+    trapPoint?: boolean;
 };
 
 export type TrackLayoutSaveError = {
@@ -313,7 +313,7 @@ export type LocationTrackEndpoint = {
 export type SuggestedSwitchCreateParamsAlignmentMapping = {
     switchAlignmentId: SwitchAlignmentId;
     locationTrackId: LocationTrackId;
-    ascending: boolean | undefined;
+    ascending?: boolean;
 };
 
 export type SuggestedSwitchCreateParams = {

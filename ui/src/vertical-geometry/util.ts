@@ -7,10 +7,10 @@ import {
 import { VerticalGeometryItem } from 'geometry/geometry-model';
 import { filterNotEmpty } from 'utils/array-utils';
 
-export function approximateHeightAtM(m: number, kmHeights: TrackKmHeights[]): number | null {
+export function approximateHeightAtM(m: number, kmHeights: TrackKmHeights[]): number | undefined {
     const index = findTrackMeterIndexContainingM(m, kmHeights);
-    if (index == null) {
-        return null;
+    if (index == undefined) {
+        return undefined;
     }
     return approximateHeightAt(m, index, kmHeights);
 }
@@ -19,14 +19,14 @@ export function approximateHeightAt(
     m: number,
     index: TrackMeterIndex,
     kmHeights: TrackKmHeights[],
-): number | null {
+): number | undefined {
     const [leftMeter, rightMeter] = getTrackMeterPairAroundIndex(index, kmHeights);
     // We don't try to extrapolate heights; this is why the back-end puts in some extra effort to make sure to send
     // heights to cover all intervals where we might want to display heights (and hence can always interpolate)
-    if (rightMeter.height == null) {
+    if (rightMeter.height == undefined) {
         return leftMeter.height;
     }
-    if (leftMeter.height == null) {
+    if (leftMeter.height == undefined) {
         return rightMeter.height;
     }
     const proportion = (m - leftMeter.m) / (rightMeter.m - leftMeter.m);

@@ -45,11 +45,11 @@ export type PublishCandidate = {
 };
 
 export type WithBoundingBox = {
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
 };
 
 export type WithLocation = {
-    location: Point | null;
+    location?: Point;
 };
 
 export type TrackNumberPublishCandidate = PublishCandidate &
@@ -74,8 +74,8 @@ export type ReferenceLinePublishCandidate = PublishCandidate &
         id: ReferenceLineId;
         trackNumberId: LayoutTrackNumberId;
         name: TrackNumber;
-        operation: Operation | null;
-        boundingBox: BoundingBox | null;
+        operation?: Operation;
+        boundingBox?: BoundingBox;
     };
 
 export type SwitchPublishCandidate = PublishCandidate &
@@ -92,7 +92,7 @@ export type KmPostPublishCandidate = PublishCandidate &
         id: LayoutKmPostId;
         trackNumberId: LayoutTrackNumberId;
         kmNumber: KmNumber;
-        location: Point | null;
+        location?: Point;
     };
 
 export type PublishCandidates = {
@@ -117,10 +117,10 @@ export type PublicationDetails = {
     locationTracks: PublishedLocationTrack[];
     switches: PublishedSwitch[];
     kmPosts: PublishedKmPost[];
-    ratkoPushStatus: RatkoPushStatus | null;
-    ratkoPushTime: TimeStamp | null;
+    ratkoPushStatus?: RatkoPushStatus;
+    ratkoPushTime?: TimeStamp;
     calculatedChanges: PublishedCalculatedChanges;
-    message: string | undefined;
+    message?: string;
 };
 
 export type PublishedTrackNumber = {
@@ -174,16 +174,16 @@ export type PropKey = {
 };
 
 export type ChangeValue = {
-    oldValue: string | boolean | null;
-    newValue: string | boolean | null;
-    localizationKey: string | null;
+    oldValue?: string | boolean;
+    newValue?: string | boolean;
+    localizationKey?: string;
 };
 
 export type PublicationChange = {
     propKey: PropKey;
     value: ChangeValue;
-    remark: PublicationChangeRemark | null;
-    enumKey: string | null;
+    remark?: PublicationChangeRemark;
+    enumKey?: string;
 };
 
 export type PublicationChangeRemark = {
@@ -229,9 +229,9 @@ export interface SwitchJointChange {
     address: TrackMeter;
     point: Point;
     locationTrackId: LocationTrackId;
-    locationTrackExternalId: Oid | null;
+    locationTrackExternalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
-    trackNumberExternalId: Oid | null;
+    trackNumberExternalId?: Oid;
 }
 
 export interface SwitchChange {

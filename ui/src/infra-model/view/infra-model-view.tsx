@@ -143,7 +143,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             onClick={() => onProgressClick()}
                             disabled={
                                 props.isLoading ||
-                                props.validationResponse == null ||
+                                !!props.validationResponse ||
                                 fileHandlingFailedErrors.length > 0 ||
                                 getFieldValidationErrors().length > 0
                             }
@@ -191,7 +191,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 {t(`im-form.critical-warnings-dialog.${warning.field}`)}
                             </li>
                         ))}
-                        {planLayout != null || (
+                        {!!planLayout || (
                             <li>{t('im-form.critical-warnings-dialog.error-message')}</li>
                         )}
                     </ul>

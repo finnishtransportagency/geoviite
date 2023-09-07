@@ -12,7 +12,7 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { LoaderStatus, useLoader, useLoaderWithStatus, useNullableLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
 import {
     ChangeTimes,
     CoordinateSystem,
@@ -51,7 +51,7 @@ export function useTrackNumberReferenceLine(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine | undefined {
-    return useNullableLoader(
+    return useOptionalLoader(
         () =>
             trackNumberId
                 ? getTrackNumberReferenceLine(trackNumberId, publishType, changeTime)
@@ -65,7 +65,7 @@ export function useReferenceLine(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine | undefined {
-    return useNullableLoader(
+    return useOptionalLoader(
         () => (id ? getReferenceLine(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );
@@ -99,7 +99,7 @@ export function useLocationTrack(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutLocationTrack | undefined {
-    return useNullableLoader(
+    return useOptionalLoader(
         () => (id ? getLocationTrack(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );
@@ -123,7 +123,7 @@ export function useSwitch(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutSwitch | undefined {
-    return useNullableLoader(
+    return useOptionalLoader(
         () => (id ? getSwitch(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );
@@ -148,7 +148,7 @@ export function useSwitchStructure(id: SwitchStructureId | undefined): SwitchStr
 
 export function useTrackNumber(
     publishType: PublishType,
-    id: LayoutTrackNumberId | undefined | null,
+    id: LayoutTrackNumberId | undefined,
 ): LayoutTrackNumber | undefined {
     return useLoader(
         () => (id ? getTrackNumberById(id, publishType) : undefined),
@@ -158,7 +158,7 @@ export function useTrackNumber(
 
 export function useTrackNumberWithStatus(
     publishType: PublishType,
-    id: LayoutTrackNumberId | undefined | null,
+    id: LayoutTrackNumberId | undefined,
     changeTime: TimeStamp,
 ): [LayoutTrackNumber | undefined, LoaderStatus] {
     return useLoaderWithStatus(
@@ -232,30 +232,28 @@ export function useLocationTrackSwitchesAtEnds(
         : { start, end };
 }
 
-export function usePlanHeader(
-    id: GeometryPlanId | null | undefined,
-): GeometryPlanHeader | undefined {
+export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeader | undefined {
     return useLoader(() => (id ? getGeometryPlanHeader(id) : undefined), [id]);
 }
 
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
 ): ChangeTimes | undefined {
-    return useNullableLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
 }
 
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
 ): ChangeTimes | undefined {
-    return useNullableLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
 }
 
 export function useSwitchChangeTimes(id: LayoutSwitchId | undefined): ChangeTimes | undefined {
-    return useNullableLoader(() => (id ? getSwitchChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(() => (id ? getSwitchChangeTimes(id) : undefined), [id]);
 }
 
 export function useKmPostChangeTimes(id: LayoutKmPostId | undefined): ChangeTimes | undefined {
-    return useNullableLoader(() => (id ? getKmPostChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(() => (id ? getKmPostChangeTimes(id) : undefined), [id]);
 }
 
 export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {
@@ -267,7 +265,7 @@ export function useKmPost(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutKmPost | undefined {
-    return useNullableLoader(
+    return useOptionalLoader(
         () => (id ? getKmPost(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );
@@ -287,7 +285,7 @@ export function useKmPosts(
 }
 
 export function usePvDocumentHeader(
-    id: PVDocumentId | undefined | null,
+    id: PVDocumentId | undefined,
     changeTime?: TimeStamp,
 ): PVDocumentHeader | undefined {
     return useLoader(

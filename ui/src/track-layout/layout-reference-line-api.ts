@@ -13,7 +13,7 @@ import { asyncCache } from 'cache/cache';
 import { getChangeTimes } from 'common/change-time-api';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
-const referenceLineCache = asyncCache<string, LayoutReferenceLine | null>();
+const referenceLineCache = asyncCache<string, LayoutReferenceLine | undefined>();
 
 export function cacheKey(id: ReferenceLineId, publishType: PublishType) {
     return `${id}_${publishType}`;
@@ -22,7 +22,7 @@ export async function getReferenceLine(
     id: ReferenceLineId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
-): Promise<LayoutReferenceLine | null> {
+): Promise<LayoutReferenceLine | undefined> {
     return referenceLineCache.get(changeTime, cacheKey(id, publishType), () =>
         getIgnoreError<LayoutReferenceLine>(layoutUri('reference-lines', publishType, id)),
     );
@@ -43,7 +43,7 @@ export async function getReferenceLines(
                     `${layoutUri('reference-lines', publishType)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
-                    return (id) => trackMap.get(id) ?? null;
+                    return (id) => trackMap.get(id);
                 }),
         )
         .then((tracks) => tracks.filter(filterNotEmpty));
@@ -53,7 +53,7 @@ export async function getTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
-): Promise<LayoutReferenceLine | null> {
+): Promise<LayoutReferenceLine | undefined> {
     const cacheKey = `TN_${trackNumberId}_${publishType}`;
     return referenceLineCache.get(changeTime, cacheKey, () =>
         getIgnoreError<LayoutReferenceLine>(
@@ -89,6 +89,8 @@ export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[
     );
 }
 
-export const getReferenceLineChangeTimes = (id: ReferenceLineId): Promise<ChangeTimes | null> => {
+export const getReferenceLineChangeTimes = (
+    id: ReferenceLineId,
+): Promise<ChangeTimes | undefined> => {
     return getIgnoreError<ChangeTimes>(changeTimeUri('reference-lines', id));
 };

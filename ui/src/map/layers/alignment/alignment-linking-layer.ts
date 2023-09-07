@@ -734,7 +734,7 @@ async function getLinkPointsWithAddresses<
             return originalPoint != undefined
                 ? // This is commented out for now to re-evaluate the linking tag feature
                   //getAddress(trackNumberId, originalPoint, 'DRAFT')
-                  Promise.resolve(null).then((address) => ({
+                  Promise.resolve(undefined).then((address) => ({
                       propertyName: propertyName,
                       address: address || undefined,
                   }))

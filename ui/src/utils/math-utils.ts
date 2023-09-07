@@ -30,7 +30,7 @@ export function getPartialPolyLine(
     const start = findOrInterpolateXY(points, startM);
     const end = findOrInterpolateXY(points, endM);
     // If both ends are interpolated between the same 2 points or are the same point, return nothing
-    if (start == null || end == null || start.low >= end.high) return [];
+    if (start == undefined || end == undefined || start.low >= end.high) return [];
     const midStart = start.low == start.high ? start.high + 1 : start.high;
     const midEnd = end.low == end.high ? end.low : end.low + 1;
     const midPoints =
@@ -46,9 +46,9 @@ type SeekResult = {
     point: number[];
 };
 
-export function findOrInterpolateXY(points: LayoutPoint[], mValue: number): SeekResult | null {
+export function findOrInterpolateXY(points: LayoutPoint[], mValue: number): SeekResult | undefined {
     const lastIndex = points.length - 1;
-    if (points.length < 2) return null;
+    if (points.length < 2) return undefined;
     if (points[0].m >= mValue)
         return {
             low: 0,
