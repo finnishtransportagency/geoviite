@@ -283,7 +283,7 @@ class PublicationValidationTest {
             hasError = true,
             switch = switch,
             tracks = broken,
-            error = "$VALIDATION_SWITCH.location-track.unlinked",
+            error = "$VALIDATION_SWITCH.track-linkage.switch-alignment-not-connected",
         )
     }
 
