@@ -338,11 +338,7 @@ data class SwitchConnectivityType(
 )
 
 fun switchConnectivityType(structure: SwitchStructure) = when (structure.baseType) {
-    SwitchBaseType.YV, SwitchBaseType.TYV, SwitchBaseType.YRV, SwitchBaseType.SKV, SwitchBaseType.UKV -> SwitchConnectivityType(
-        structure.alignments.map { it.jointNumbers }, JointNumber(1)
-    )
-
-    SwitchBaseType.KV -> SwitchConnectivityType(
+    SwitchBaseType.YV, SwitchBaseType.TYV, SwitchBaseType.YRV, SwitchBaseType.SKV, SwitchBaseType.UKV, SwitchBaseType.KV -> SwitchConnectivityType(
         structure.alignments.map { it.jointNumbers }, JointNumber(1)
     )
 
