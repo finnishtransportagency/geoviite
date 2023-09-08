@@ -39,14 +39,13 @@ export const DisplayedPositionGuide: React.FC<DisplayedPositionGuideProps> = ({
         metersCurrentlyDisplayed / maxDisplayedMeters;
 
     const guideWidthPx = 0.15 * coordinates.diagramWidthPx;
-    const fullGuideSizePx = guideWidthPx - guideStartPx;
 
     const guideBackgroundStartPositionPx = guideStartPx;
     const guideBackgroundWidthPx = guideWidthPx;
 
-    const guideRectangleWidthPx = fullGuideSizePx * ratioOfCurrentlyDisplayedMetersToFullDiagram;
+    const guideRectangleWidthPx = guideWidthPx * ratioOfCurrentlyDisplayedMetersToFullDiagram;
     const guideRectangleStartPx =
-        guideStartPx + fullGuideSizePx * (displayedMetersAtLeftEdge / maxDisplayedMeters);
+        guideStartPx + guideWidthPx * (displayedMetersAtLeftEdge / maxDisplayedMeters);
 
     return (
         <Translate x={coordinates.diagramWidthPx - guideWidthPx - 40} y={0}>
