@@ -22,6 +22,7 @@ import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { BoundingBox } from 'model/geometry';
 import { OnSelectOptions } from 'selection/selection-model';
 import { PlanLinkingHeaders } from 'vertical-geometry/plan-linking-header';
+import { DisplayedPositionGuide } from 'vertical-geometry/displayed-position-guide';
 
 const chartBottomPadding = 60;
 const topHeightPaddingPx = 180;
@@ -230,6 +231,10 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                         coordinates={coordinates}
                         planLinkingSummary={linkingSummary}
                         planLinkingOnSelect={onSelect}
+                    />
+                    <DisplayedPositionGuide
+                        coordinates={coordinates}
+                        planLinkingSummary={linkingSummary}
                     />
                     <Translate x={0} y={240}>
                         <TrackAddressRuler
