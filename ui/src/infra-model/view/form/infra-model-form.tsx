@@ -9,7 +9,6 @@ import {
 } from 'geometry/geometry-model';
 import styles from './infra-model-form.module.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import Formgroup from 'infra-model/view/formgroup/formgroup';
 import FormgroupContent from 'infra-model/view/formgroup/formgroup-content';
 import {
@@ -51,6 +50,7 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
 //import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
+import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -71,6 +71,7 @@ type InframodelViewFormContainerProps = {
 
 export type EditablePlanField =
     | undefined
+    | 'observations'
     | 'planName'
     | 'planOid'
     | 'assignmentName'
@@ -248,18 +249,20 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}
+                        help={t('im-form.observations-help')}
                         value={
-                            <TextArea
+                            <FormgroupTextarea
+                                label={t('im-form.observations-field')}
+                                defaultDisplayedValue={t('im-form.observations-field-default')}
                                 value={extraInframodelParameters.message}
-                                wide
-                                readOnly={false}
-                                maxlength={250}
+                                inEditMode={fieldInEdit === 'observations'}
+                                onEdit={() => setFieldInEdit('observations')}
+                                onClose={() => setFieldInEdit(undefined)}
                                 onChange={(e) =>
                                     changeInExtraParametersField(e.currentTarget.value, 'message')
                                 }
                             />
                         }
-                        help={t('im-form.observations-help')}
                     />
                 </Formgroup>
             </WriteAccessRequired>

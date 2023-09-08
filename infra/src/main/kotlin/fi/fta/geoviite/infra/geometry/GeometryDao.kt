@@ -760,7 +760,7 @@ class GeometryDao @Autowired constructor(
             elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
             decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
             planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
-            message = rs.getFreeTextOrNull("message"),
+            message = rs.getFreeTextWithNewLinesOrNull("message"),
             linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
             uploadTime = rs.getInstant("upload_time"),
             units = GeometryUnits(
@@ -929,7 +929,7 @@ class GeometryDao @Autowired constructor(
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
                 elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
                 dataType = DataType.STORED,
-                message = rs.getFreeTextOrNull("message"),
+                message = rs.getFreeTextWithNewLinesOrNull("message"),
                 uploadTime = rs.getInstant("upload_time"),
                 isHidden = rs.getBoolean("hidden"),
             )
