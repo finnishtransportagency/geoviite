@@ -228,7 +228,9 @@ export function createTrackNumberEndPointAddressesLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });

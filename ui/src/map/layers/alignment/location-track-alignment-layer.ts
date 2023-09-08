@@ -79,8 +79,10 @@ export function createLocationTrackAlignmentLayer(
             updateShownLocationTracks(locationTracks.map(({ header }) => header.id));
         })
         .catch(() => {
-            clearFeatures(vectorSource);
-            updateShownLocationTracks([]);
+            if (layerId === newestLayerId) {
+                clearFeatures(vectorSource);
+                updateShownLocationTracks([]);
+            }
         })
         .finally(() => {
             inFlight = false;

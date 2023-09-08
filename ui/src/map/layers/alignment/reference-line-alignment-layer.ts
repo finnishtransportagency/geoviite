@@ -60,8 +60,10 @@ export function createReferenceLineAlignmentLayer(
             updateShownReferenceLines(referenceLines.map(({ header }) => header.id));
         })
         .catch(() => {
-            clearFeatures(vectorSource);
-            updateShownReferenceLines([]);
+            if (layerId === newestLayerId) {
+                clearFeatures(vectorSource);
+                updateShownReferenceLines([]);
+            }
         })
         .finally(() => {
             inFlight = false;

@@ -814,7 +814,9 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource))
+                .catch(() => {
+                    if (layerId === newestLayerId) clearFeatures(vectorSource);
+                })
                 .finally(() => {
                     inFlight = false;
                 });
@@ -864,7 +866,9 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource))
+                .catch(() => {
+                    if (layerId === newestLayerId) clearFeatures(vectorSource);
+                })
                 .finally(() => {
                     inFlight = false;
                 });
@@ -938,7 +942,9 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource))
+                .catch(() => {
+                    if (layerId === newestLayerId) clearFeatures(vectorSource);
+                })
                 .finally(() => {
                     inFlight = false;
                 });

@@ -50,7 +50,9 @@ export function createLocationTrackBadgeLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });

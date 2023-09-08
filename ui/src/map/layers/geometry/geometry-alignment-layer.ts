@@ -199,7 +199,9 @@ export function createGeometryAlignmentLayer(
                 vectorSource.addFeatures(f.flat());
             }
         })
-        .catch(() => clearFeatures(vectorSource))
+        .catch(() => {
+            if (layerId === newestLayerId) clearFeatures(vectorSource);
+        })
         .finally(() => {
             inFlight = false;
         });

@@ -88,8 +88,10 @@ export function createSwitchLayer(
                 updateShownSwitches(visibleSwitches);
             })
             .catch(() => {
-                clearFeatures(vectorSource);
-                updateShownSwitches([]);
+                if (layerId === newestLayerId) {
+                    clearFeatures(vectorSource);
+                    updateShownSwitches([]);
+                }
             })
             .finally(() => {
                 inFlight = false;
