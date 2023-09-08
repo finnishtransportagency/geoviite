@@ -547,7 +547,8 @@
             "topological-connectivity": "Topologinen kytkeytyminen",
             "start-switch": "Vaihde raiteen alussa",
             "end-switch": "Vaihde raiteen lopussa",
-            "no-start-or-end-switch": "Ei vaihdetta"
+            "no-start-or-end-switch": "Ei vaihdetta",
+            "unset": "Ei asetettu"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
