@@ -1136,7 +1136,13 @@
                     "unlinked": "Jotkut vaihteen linjoista ({{0}}) eivät ole kytkettynä mihinkään sijaintiraiteiseen"
                 },
                 "duplicate-name-official": "Vaihteen nimi {{0}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
-                "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{0}}"
+                "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{0}}",
+                "track-linkage": {
+                    "front-joint-not-connected":  "Vaihteen etujatkokselta ei jatku raidetta",
+                    "front-joint-only-duplicate-connected":  "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
+                    "switch-alignment-not-connected":  "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{0}}",
+                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{0}}"
+                }
             },
             "geocoding": {
                 "sharp-angle": "Sijaintiraiteen {{1}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",

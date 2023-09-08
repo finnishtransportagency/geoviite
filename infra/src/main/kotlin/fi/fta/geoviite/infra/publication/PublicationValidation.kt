@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -15,7 +16,7 @@ import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.WARNING
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.PI
 
@@ -31,6 +32,8 @@ private const val JOINT_LOCATION_DELTA = 0.5
 const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
+
+const val MATH_POINT_JOINT_NUMBER = 5
 
 fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<PublishValidationError> =
     listOfNotNull(
@@ -168,18 +171,106 @@ fun validateSwitchLocationTrackLinkStructure(
                     "$VALIDATION_SWITCH.location-track.wrong-joint-sequence" to listOf(errorTrackNames)
                 }
             },
-        structureJoints.filterNot { group ->
-            structureJointGroupFound(
-                group,
-                segmentJoints.map { (_, group) -> group })
-        }
-            .let { errorGroups ->
-                validateWithParams(errorGroups.isEmpty(), WARNING) {
-                    val errorJointLists = errorGroups.joinToString(", ") { group -> jointSequence(group) }
-                    "$VALIDATION_SWITCH.location-track.unlinked" to listOf(errorJointLists)
+    ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks) else listOf()
+}
+
+private fun validateSwitchTopologicalConnectivity(
+    switch: TrackLayoutSwitch,
+    structure: SwitchStructure,
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): List<PublishValidationError> {
+    val connectivityType = switchConnectivityType(structure)
+    val nonDuplicateTracks = locationTracks.filter { it.first.duplicateOf == null }
+
+    val tracksThroughNonMathJoint = structure.joints.map { it.number }
+        .filter { it.intValue != MATH_POINT_JOINT_NUMBER }
+        .associateWith { jointNumber ->
+            nonDuplicateTracks.filter { (_, alignment) ->
+                val jointLinkedIndexRange = alignment.segments.mapIndexedNotNull { i, segment ->
+                    if (segment.switchId == switch.id && (segment.startJointNumber == jointNumber || segment.endJointNumber == jointNumber)) i else null
                 }
-            },
-    ) else listOf()
+                jointLinkedIndexRange.isNotEmpty() && jointLinkedIndexRange.first() > 0 && jointLinkedIndexRange.last() < alignment.segments.lastIndex
+            }.map { (locationTrack, _) -> locationTrack }
+        }
+
+    return listOfNotNull(
+        validateFrontJointTopology(switch.id, tracksThroughNonMathJoint, connectivityType, locationTracks),
+        validateExcessTracksThroughJoint(tracksThroughNonMathJoint),
+        validateSwitchAlignmentTopology(switch.id, connectivityType, nonDuplicateTracks),
+    )
+}
+
+private fun validateFrontJointTopology(
+    switchId: DomainId<TrackLayoutSwitch>,
+    tracksThroughNonMathJoint: Map<JointNumber, List<LocationTrack>>,
+    connectivityType: SwitchConnectivityType,
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): PublishValidationError? {
+    val tracksThroughFrontJoint = if (connectivityType.frontJoint == null) {
+        listOf()
+    } else tracksThroughNonMathJoint.getOrDefault(connectivityType.frontJoint, listOf())
+
+    fun tracksHaveOkFrontJointLink(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
+        tracks.any { (locationTrack, _) ->
+            val topoStart =
+                locationTrack.topologyStartSwitch?.switchId == switchId && locationTrack.topologyStartSwitch.jointNumber == connectivityType.frontJoint
+            val topoEnd =
+                locationTrack.topologyEndSwitch?.switchId == switchId && locationTrack.topologyEndSwitch.jointNumber == connectivityType.frontJoint
+            topoStart || topoEnd || tracksThroughFrontJoint.isNotEmpty()
+        }
+
+    val okFrontJointLinkInDuplicates = tracksHaveOkFrontJointLink(locationTracks)
+    val okFrontJointLinkInNonDuplicates =
+        tracksHaveOkFrontJointLink(locationTracks.filter { it.first.duplicateOf == null })
+
+    return validateWithParams(
+        connectivityType.frontJoint == null || okFrontJointLinkInNonDuplicates, WARNING
+    ) {
+        (if (okFrontJointLinkInDuplicates) "$VALIDATION_SWITCH.track-linkage.front-joint-only-duplicate-connected"
+        else "$VALIDATION_SWITCH.track-linkage.front-joint-not-connected") to listOf()
+    }
+}
+
+private fun validateExcessTracksThroughJoint(
+    tracksThroughNonMathJoint: Map<JointNumber, List<LocationTrack>>,
+): PublishValidationError? {
+    val excesses = tracksThroughNonMathJoint.filter { (_, tracks) -> tracks.size > 1 }
+    return validateWithParams(excesses.isEmpty(), WARNING) {
+        "$VALIDATION_SWITCH.track-linkage.multiple-tracks-through-joint" to listOf(excesses.entries
+            .sortedBy { (jointNumber, _) -> jointNumber.intValue }
+            .joinToString { (jointNumber, tracks) ->
+            "${jointNumber.intValue} (${tracks.sortedBy { it.name }.joinToString { it.name }})"
+        })
+    }
+}
+
+private fun validateSwitchAlignmentTopology(
+    switchId: DomainId<TrackLayoutSwitch>,
+    connectivityType: SwitchConnectivityType,
+    nonDuplicateTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): PublishValidationError? {
+    val disconnectedAlignments = connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
+        nonDuplicateTracks.none { (_, alignment) ->
+            val hasStart = alignmentHasSwitchJointLink(alignment, switchId, switchAlignment.first())
+            val hasEnd = alignmentHasSwitchJointLink(alignment, switchId, switchAlignment.last())
+            hasStart && hasEnd
+        }
+    }
+    return validateWithParams(disconnectedAlignments.isEmpty(), WARNING) {
+        val alignmentsString =
+            disconnectedAlignments.joinToString { alignment -> alignment.joinToString("-") { joint -> joint.intValue.toString() } }
+        "$VALIDATION_SWITCH.track-linkage.switch-alignment-not-connected" to listOf(alignmentsString)
+    }
+}
+
+private fun alignmentHasSwitchJointLink(
+    alignment: LayoutAlignment,
+    switchId: DomainId<TrackLayoutSwitch>,
+    jointNumber: JointNumber,
+) = alignment.segments.any { segment ->
+    segment.switchId == switchId && jointNumber in listOfNotNull(
+        segment.startJointNumber, segment.endJointNumber
+    )
 }
 
 fun validateDuplicateOfState(
@@ -488,11 +579,6 @@ private fun alignmentJointGroupFound(
     alignmentJoints: List<JointNumber>,
     structureJointGroups: List<List<JointNumber>>,
 ) = structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
-
-private fun structureJointGroupFound(
-    structureJoints: List<JointNumber>,
-    alignmentJointGroups: List<List<JointNumber>>,
-) = alignmentJointGroups.any { alignmentJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
 private fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false
