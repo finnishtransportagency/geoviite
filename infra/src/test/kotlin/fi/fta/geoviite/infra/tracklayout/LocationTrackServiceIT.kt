@@ -28,6 +28,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
+    private val referenceLineDao: ReferenceLineDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -438,12 +439,42 @@ class LocationTrackServiceIT @Autowired constructor(
         val draftCopy = locationTrackService.getDraft(draftCopyVersion.id)!!
         assertEquals(
             listOf(asLocationTrackDuplicate(officialCopy.first)),
-            locationTrackService.getDuplicates(originalLocationTrackId, OFFICIAL)
+            locationTrackService.getInfoboxExtras(OFFICIAL, originalLocationTrackId)?.duplicates
         )
         assertEquals(
             listOf(asLocationTrackDuplicate(draftCopy)),
-            locationTrackService.getDuplicates(originalLocationTrackId, DRAFT)
+            locationTrackService.getInfoboxExtras(DRAFT, originalLocationTrackId)?.duplicates
         )
+    }
+
+    @Test
+    fun fetchDuplicatesIsOrderedByTrackAddress() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val fullAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = fullAlignment))
+
+        val fullTrack = locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = fullAlignment))
+
+        fun makeDuplicateAt(xCoord: Double, name: String) {
+            val duplicateAlignment =
+                alignmentDao.insert(alignment(segment(Point(xCoord, 0.0), Point(xCoord + 10.0, 0.0))))
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId,
+                    name = name,
+                    alignmentVersion = duplicateAlignment,
+                    duplicateOf = fullTrack.id
+                )
+            )
+        }
+
+        makeDuplicateAt(30.0, "dupA")
+        makeDuplicateAt(10.0, "dupB")
+        makeDuplicateAt(80.0, "dupC")
+        makeDuplicateAt(20.0, "dupD")
+
+        val extras = locationTrackService.getInfoboxExtras(OFFICIAL, fullTrack.id)
+        assertEquals(listOf("dupB", "dupD",  "dupA", "dupC"), extras?.duplicates?.map { dup -> dup.name.toString() })
     }
 
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =

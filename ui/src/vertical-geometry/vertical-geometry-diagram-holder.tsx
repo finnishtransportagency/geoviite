@@ -50,10 +50,17 @@ type AlignmentAndExtents = {
 };
 
 // we don't really need the station values in the plan geometry for anything in this entire diagram
-async function getStartAndEnd(alignmentId: VerticalGeometryDiagramAlignmentId) {
+async function getStartAndEnd(
+    changeTimes: ChangeTimes,
+    alignmentId: VerticalGeometryDiagramAlignmentId,
+) {
     return 'planId' in alignmentId
         ? getPlanAlignmentStartAndEnd(alignmentId.planId, alignmentId.alignmentId)
-        : getLocationTrackStartAndEnd(alignmentId.locationTrackId, alignmentId.publishType);
+        : getLocationTrackStartAndEnd(
+              alignmentId.locationTrackId,
+              alignmentId.publishType,
+              changeTimes.layoutLocationTrack,
+          );
 }
 
 async function getVerticalGeometry(
@@ -138,7 +145,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                   );
 
         const geometryPromise = getVerticalGeometry(changeTimes, alignmentId);
-        const startEndPromise = getStartAndEnd(alignmentId);
+        const startEndPromise = getStartAndEnd(changeTimes, alignmentId);
 
         Promise.all([linkingSummaryPromise, geometryPromise, startEndPromise]).then(
             async ([linkingSummary, geometry, startEnd]) => {
