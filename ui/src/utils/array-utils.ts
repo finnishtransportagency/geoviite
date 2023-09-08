@@ -228,3 +228,13 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
     }
     return minIndex;
 }
+
+export function partitionBy<T>(list: T[], by: (item: T) => boolean): [T[], T[]] {
+    return list.reduce(
+        (acc, item) => {
+            acc[by(item) ? 0 : 1].push(item);
+            return acc;
+        },
+        [[], []] as [T[], T[]],
+    );
+}

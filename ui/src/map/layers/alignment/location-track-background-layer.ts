@@ -1,14 +1,15 @@
 import { LineString } from 'ol/geom';
 import { MapTile } from 'map/map-model';
-import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { Selection } from 'selection/selection-model';
 
 let newestLayerId = 0;
 
@@ -18,31 +19,39 @@ export function createLocationTrackBackgroundLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
+    selection: Selection,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    let inFlight = false;
-    if (resolution <= Limits.ALL_ALIGNMENTS) {
-        inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
-            .then((locationTracks) => {
-                if (layerId === newestLayerId) {
-                    const features = createAlignmentBackgroundFeatures(locationTracks);
+    let inFlight = true;
+    const selectedTrack = selection.selectedItems.locationTracks[0];
 
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                }
-            })
-            .catch(() => clearFeatures(vectorSource))
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
+    const alignmentPromise =
+        resolution <= ALL_ALIGNMENTS || selectedTrack
+            ? getLocationTrackMapAlignmentsByTiles(
+                  changeTimes,
+                  mapTiles,
+                  publishType,
+                  resolution <= ALL_ALIGNMENTS ? undefined : selectedTrack,
+              )
+            : Promise.resolve([]);
+
+    alignmentPromise
+        .then((locationTracks) => {
+            if (layerId === newestLayerId) {
+                const features = createAlignmentBackgroundFeatures(locationTracks);
+
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
+            }
+        })
+        .catch(() => clearFeatures(vectorSource))
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'location-track-background-layer',

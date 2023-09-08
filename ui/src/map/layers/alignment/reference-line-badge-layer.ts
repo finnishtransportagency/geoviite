@@ -1,7 +1,7 @@
 import { Point as OlPoint } from 'ol/geom';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
@@ -31,7 +31,7 @@ export function createReferenceLineBadgeLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     let inFlight = true;
-    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
+    getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 

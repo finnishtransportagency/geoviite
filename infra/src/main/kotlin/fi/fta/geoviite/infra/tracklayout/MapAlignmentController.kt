@@ -6,8 +6,8 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
-import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.prepost.PreAuthorize
@@ -25,7 +25,6 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("resolution") resolution: Int,
         @RequestParam("type") type: AlignmentFetchType? = null,
-        @RequestParam("selectedId") selectedId: IntId<LocationTrack>? = null,
     ): List<AlignmentPolyLine<*>> {
         logger.apiCall(
             "getAlignmentPolyLines",
@@ -33,9 +32,8 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
             "bbox" to bbox,
             "resolution" to resolution,
             "type" to type,
-            "selectedId" to selectedId,
         )
-        return mapAlignmentService.getAlignmentPolyLines(publishType, bbox, resolution, type ?: ALL, selectedId)
+        return mapAlignmentService.getAlignmentPolyLines(publishType, bbox, resolution, type ?: ALL)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

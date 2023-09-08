@@ -4,7 +4,7 @@ import { Stroke, Style } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import {
     getAlignmentSectionsWithoutLinkingByTiles,
-    getMapAlignmentsByTiles,
+    getLocationTrackMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
@@ -40,7 +40,11 @@ export function createMissingLinkingHighlightLayer(
     let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
         inFlight = true;
-        const alignmentPromise = getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL');
+        const alignmentPromise = getLocationTrackMapAlignmentsByTiles(
+            changeTimes,
+            mapTiles,
+            publishType,
+        );
 
         const linkingStatusPromise = getAlignmentSectionsWithoutLinkingByTiles(
             getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),

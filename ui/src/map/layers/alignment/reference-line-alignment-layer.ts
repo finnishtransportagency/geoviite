@@ -7,7 +7,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
-import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import {
     createAlignmentFeatures,
     findMatchingAlignments,
@@ -44,7 +44,7 @@ export function createReferenceLineAlignmentLayer(
     }
 
     let inFlight = true;
-    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
+    getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 

@@ -1,6 +1,10 @@
 import { LineString } from 'ol/geom';
 import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
-import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    getMapAlignmentsByTiles,
+    getReferenceLineMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -71,10 +75,13 @@ export function createTrackNumberDiagramLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
-    const fetchType = resolution > Limits.ALL_ALIGNMENTS ? 'REFERENCE_LINES' : 'ALL';
+    const alignmentPromise =
+        resolution > Limits.ALL_ALIGNMENTS
+            ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            : getMapAlignmentsByTiles(changeTimes, mapTiles, publishType);
 
     let inFlight = true;
-    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
+    alignmentPromise
         .then((alignments) => {
             if (layerId !== newestLayerId) return;
 
