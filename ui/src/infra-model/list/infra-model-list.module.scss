@@ -43,6 +43,44 @@
     }
 }
 
+.infra-model-list-search-result {
+    &__project-name {
+        min-width: 440px;
+    }
+
+    &__file-name {
+        min-width: 440px;
+    }
+
+    &__track-number {
+        min-width: 95px;
+    }
+
+    &__kilometer {
+        min-width: 75px;
+    }
+
+    &__plan-phase {
+        min-width: 185px;
+    }
+
+    &__decision-phase {
+        min-width: 95px;
+    }
+
+    &__date-without-time {
+        min-width: 75px;
+    }
+
+    &__date-with-time {
+        min-width: 145px;
+    }
+
+    &__linked-by-users {
+        min-width: 130px;
+    }
+}
+
 .infra-model-list-search-result__plan-paikannuspalvelu {
     @include typography-caption;
     color: $color-red-darker;
