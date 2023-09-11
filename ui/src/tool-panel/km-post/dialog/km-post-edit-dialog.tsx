@@ -24,7 +24,7 @@ import {
     updateKmPost,
 } from 'track-layout/layout-km-post-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
+import { LayoutKmPostId } from 'track-layout/track-layout-model';
 import { GeometryTrackNumberId } from 'geometry/geometry-model';
 import { isNullOrBlank } from 'utils/string-utils';
 import { useDebouncedState } from 'utils/react-utils';
@@ -53,7 +53,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
     );
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
-    const [officialKmPost, setOfficialKmPost] = React.useState<LayoutKmPost>();
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.kmPost?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
@@ -122,14 +121,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
             );
         }
     }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state]);
-
-    React.useEffect(() => {
-        if (props.kmPostId) {
-            getKmPost(props.kmPostId, 'OFFICIAL').then((kmPost) => {
-                if (kmPost) setOfficialKmPost(kmPost);
-            });
-        }
-    }, []);
 
     function cancelSave() {
         props.onClose && props.onClose();
@@ -224,7 +215,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                     <React.Fragment>
                         <div className={styles['dialog-footer__content-area']}>
                             <div className={styles['dialog-footer__content--shrink']}>
-                                {officialKmPost?.draftType === 'NEW_DRAFT' &&
+                                {state.existingKmPost?.draftType === 'NEW_DRAFT' &&
                                     !state.isNewKmPost && (
                                         <Button
                                             onClick={() =>
