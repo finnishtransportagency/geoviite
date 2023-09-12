@@ -86,7 +86,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                         <span className={styles['publication-table__row-details-left-bar']}></span>
                     </td>
                     <td colSpan={8}>
-                        <PublicationTableDetails id={id} items={propChanges} />
+                        <PublicationTableDetails id={id} changes={propChanges} />
                     </td>
                 </tr>
             )}
