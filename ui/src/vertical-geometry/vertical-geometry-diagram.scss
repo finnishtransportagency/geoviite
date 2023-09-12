@@ -80,3 +80,22 @@
 .vertical-geometry-diagram__text-stroke-header {
     stroke-width: 12;
 }
+
+.vertical-geometry-diagram-displayed-position-guide {
+    &__background {
+        fill: $color-white-default;
+        fill-opacity: 0.85;
+    }
+
+    &__track {
+        stroke: $color-black-default;
+    }
+
+    &__divider {
+        stroke: $color-black-default;
+    }
+
+    &__guide {
+        fill: $color-black-default;
+    }
+}
