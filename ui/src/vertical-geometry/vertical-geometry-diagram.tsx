@@ -87,7 +87,12 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         panning && styles['vertical-geometry-diagram--panning'],
     );
 
-    const [bottomHeightTick, topHeightTick] = getBottomAndTopTicks(kmHeights, geometry);
+    const [bottomHeightTick, topHeightTick] = getBottomAndTopTicks(
+        kmHeights,
+        geometry,
+        visibleStartM,
+        visibleEndM,
+    );
 
     const coordinates: Coordinates = {
         bottomHeightPaddingPx,
