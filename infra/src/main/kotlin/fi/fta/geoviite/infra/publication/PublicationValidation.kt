@@ -73,11 +73,9 @@ fun validateTrackNumberReferences(
     },
 )
 
+//Location is validated by GeocodingContext
 fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidationError> =
-    listOfNotNull(
-        validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" },
-        validate(kmPost.location != null) { "$VALIDATION_KM_POST.no-location" },
-    )
+    listOfNotNull(validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" })
 
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
@@ -122,6 +120,12 @@ fun validateSwitchLocationTrackLinkReferences(
                 "$VALIDATION_SWITCH.location-track.reference-deleted" to listOf(existingNames)
             }
         }
+)
+
+fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationError> = listOfNotNull(
+    validate(switch.joints.isNotEmpty()) {
+        "$VALIDATION_SWITCH.no-location"
+    }
 )
 
 fun validateSwitchLocationTrackLinkStructure(

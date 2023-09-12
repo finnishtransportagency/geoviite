@@ -1129,6 +1129,7 @@
                 "state-category": {
                     "FUTURE_EXISTING": "Vaihde on tilakategoriassa \"Tulevaksi kohteeksi\""
                 },
+                "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen poistamattomia raiteita: {{0}}",
                     "not-published": "Vaihteeseen liittyvä sijaintiraide ei ole mukana julkaisussa: {{0}}",
