@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.math.combineContinuous
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 enum class AlignmentFetchType {
     LOCATION_TRACKS,
@@ -36,6 +37,7 @@ class MapAlignmentService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    @Transactional(readOnly=true)
     fun getAlignmentPolyLines(
         publishType: PublishType,
         bbox: BoundingBox,

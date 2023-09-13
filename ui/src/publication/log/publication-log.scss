@@ -3,23 +3,29 @@
 
 .publication-log {
     width: 100%;
+    display: flex;
+    flex-direction: column;
+
+    &__content {
+        padding: 0 24px;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+    }
+
+    .publication-table {
+        overflow: auto;
+    }
 
     &__actions {
         display: grid;
         grid-template-columns: max-content max-content auto;
         gap: 12px;
-        padding: 0 24px;
     }
 
     &__export_button {
         align-self: center;
         justify-self: end;
-    }
-
-    &__table {
-        background: $color-white-default;
-        padding: 24px;
-        flex-grow: 1;
     }
 
     &__title {
@@ -34,5 +40,9 @@
 
     &__breadcrumbs {
         white-space: pre;
+    }
+
+    &__count-header {
+        margin-bottom: 12px;
     }
 }

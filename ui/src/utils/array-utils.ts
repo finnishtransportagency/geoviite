@@ -228,3 +228,10 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
     }
     return minIndex;
 }
+
+export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B): number {
+    for (let i = objs.length - 1; i >= 0; i--) {
+        if (predicate(objs[i])) return i;
+    }
+    return -1;
+}

@@ -111,3 +111,12 @@ export function distToSegmentSquared(p: Point, start: Point, end: Point) {
         y: start.y + t * (end.y - start.y),
     });
 }
+
+export function linearFunctionFromPoints(
+    { x: x1, y: y1 }: Point,
+    { x: x2, y: y2 }: Point,
+    intercept: number,
+): (x: number) => number {
+    const slope = (y1 - y2) / (x1 - x2);
+    return (x: number) => slope * x + intercept; // ax + b
+}

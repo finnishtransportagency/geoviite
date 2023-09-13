@@ -24,6 +24,16 @@ class LayoutSwitchService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
+    @Transactional(readOnly=true)
+    fun pageSwitchesByFilter(
+        publishType: PublishType,
+        filter: (TrackLayoutSwitch) -> Boolean,
+        offset: Int?,
+        limit: Int?,
+        comparisonPoint: Point?,
+    ): List<TrackLayoutSwitch> =
+        pageSwitches(list(publishType, filter), offset ?: 0, limit, comparisonPoint)
+
     @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("insertSwitch", "request" to request)

@@ -59,6 +59,7 @@ export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
 export type DraftType = 'NEW_DRAFT' | 'EDITED_DRAFT' | 'OFFICIAL';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
+export type LocationTrackDescriptionSuffixMode = 'NONE' | 'SWITCH_TO_SWITCH' | 'SWITCH_TO_BUFFER';
 
 export type LayoutReferenceLine = {
     id: ReferenceLineId;
@@ -83,9 +84,15 @@ export type TopologyLocationTrackSwitch = {
     joint: JointNumber;
 };
 
+export type LocationTrackDescription = {
+    id: LocationTrackId;
+    description: string;
+};
+
 export type LayoutLocationTrack = {
     name: string;
-    description?: string;
+    descriptionBase?: string;
+    descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
     state: LayoutState;
     externalId?: Oid;
@@ -103,6 +110,11 @@ export type LayoutLocationTrack = {
     topologyStartSwitch?: TopologyLocationTrackSwitch;
     topologyEndSwitch?: TopologyLocationTrackSwitch;
 };
+
+export const locationTrackDescription = (lt: {
+    descriptionBase?: string | null;
+    descriptionSuffix?: string;
+}) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 

@@ -5,6 +5,7 @@ import {
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
+    LocationTrackDescriptionSuffixMode,
     LocationTrackId,
     LocationTrackType,
     MapAlignmentType,
@@ -34,7 +35,8 @@ import {
 
 export type LocationTrackSaveRequest = {
     name: string;
-    description?: string;
+    descriptionBase?: string;
+    descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
     state?: LayoutState;
     trackNumberId?: LayoutTrackNumberId;

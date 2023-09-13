@@ -8,13 +8,13 @@ import {
     GeometryPlan,
     GeometryPlanHeader,
     GeometryPlanId,
+    GeometrySortBy,
+    GeometrySortOrder,
     GeometrySwitch,
     GeometrySwitchId,
     PlanSource,
     Project,
     ProjectId,
-    SortByValue,
-    SortOrderValue,
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
@@ -89,8 +89,8 @@ export async function getGeometryPlanHeadersBySearchTerms(
     sources?: PlanSource[],
     trackNumberIds?: LayoutTrackNumberId[],
     freeText?: string,
-    sortField?: SortByValue,
-    sortOrder?: SortOrderValue,
+    sortField?: GeometrySortBy,
+    sortOrder?: GeometrySortOrder,
 ): Promise<Page<GeometryPlanHeader>> {
     const params = queryParams({
         bbox: bbox ? bboxString(bbox) : undefined,
@@ -100,13 +100,13 @@ export async function getGeometryPlanHeadersBySearchTerms(
         freeText: freeText,
         trackNumberIds: trackNumberIds,
         sortField:
-            typeof sortField === 'undefined' || sortField === SortByValue.NO_SORTING
+            sortField === undefined || sortField === GeometrySortBy.NO_SORTING
                 ? undefined
-                : SortByValue[sortField],
+                : GeometrySortBy[sortField],
         sortOrder:
-            typeof sortOrder === 'undefined' || sortField === SortByValue.NO_SORTING
+            typeof sortOrder === 'undefined' || sortField === GeometrySortBy.NO_SORTING
                 ? undefined
-                : SortOrderValue[sortOrder],
+                : GeometrySortOrder[sortOrder],
     });
 
     return getWithDefault<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`, {

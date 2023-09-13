@@ -15,7 +15,7 @@ import {
 const layoutLocationTrack: LayoutLocationTrack = {
     id: '',
     name: 'name',
-    description: 'description',
+    descriptionBase: 'description',
     state: 'IN_USE' as LayoutState,
     length: 123,
     segmentCount: 0,

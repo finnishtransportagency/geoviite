@@ -687,6 +687,7 @@ class GeometryDao @Autowired constructor(
         else getPlanHeaderInternal(rowVersion)
 
     private fun getPlanHeaderInternal(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
+        //language=SQL
         val sql = """
           select 
             plan.id as plan_id, 
@@ -726,7 +727,8 @@ class GeometryDao @Autowired constructor(
                 bool_or(cant_name is not null) as has_cant
               from geometry.alignment where plan_id = plan.id
             ) alignments on (true)
-          where (:plan_id::int is null or (:plan_id = plan.id and :plan_version = plan.version))
+          where :plan_id = plan.id 
+            and :plan_version = plan.version
         """.trimIndent()
         val params = mapOf(
             "plan_id" to rowVersion.id.intValue,
@@ -760,7 +762,7 @@ class GeometryDao @Autowired constructor(
             elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
             decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
             planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
-            message = rs.getFreeTextOrNull("message"),
+            message = rs.getFreeTextWithNewLinesOrNull("message"),
             linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
             uploadTime = rs.getInstant("upload_time"),
             units = GeometryUnits(
@@ -929,7 +931,7 @@ class GeometryDao @Autowired constructor(
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
                 elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
                 dataType = DataType.STORED,
-                message = rs.getFreeTextOrNull("message"),
+                message = rs.getFreeTextWithNewLinesOrNull("message"),
                 uploadTime = rs.getInstant("upload_time"),
                 isHidden = rs.getBoolean("hidden"),
             )

@@ -32,7 +32,10 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getLocationTracksBySearchTerm,
+} from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
@@ -102,6 +105,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         locationTrack,
         publishType,
         locationTrackChangeTime,
+    );
+    const description = useLoader(
+        () =>
+            getLocationTrackDescriptions([locationTrack.id], publishType).then(
+                (value) => (value && value[0].description) ?? undefined,
+            ),
+        [locationTrack?.id, publishType, locationTrackChangeTime],
     );
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -220,7 +230,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.description')}
-                        value={locationTrack.description}
+                        value={description}
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={isOfficial()}
                     />
@@ -305,10 +315,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     qa-id="location-track-location-infobox">
                     <InfoboxContent>
                         <InfoboxField label={t('tool-panel.location-track.start-location')}>
-                            <TrackMeter value={startAndEndPoints?.start?.address} />
+                            {startAndEndPoints?.start?.address ? (
+                                <TrackMeter value={startAndEndPoints?.start?.address} />
+                            ) : (
+                                t('tool-panel.location-track.unset')
+                            )}
                         </InfoboxField>
                         <InfoboxField label={t('tool-panel.location-track.end-location')}>
-                            <TrackMeter value={startAndEndPoints?.end?.address} />
+                            {startAndEndPoints?.end?.address ? (
+                                <TrackMeter value={startAndEndPoints?.end?.address} />
+                            ) : (
+                                t('tool-panel.location-track.unset')
+                            )}
                         </InfoboxField>
 
                         {linkingState === undefined && (
@@ -317,6 +335,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
+                                        disabled={
+                                            !startAndEndPoints.start?.point ||
+                                            !startAndEndPoints.end?.point
+                                        }
                                         onClick={() => {
                                             getEndLinkPoints(
                                                 locationTrack.id,
@@ -375,7 +397,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             value={
                                 startAndEndPoints?.start
                                     ? formatToTM35FINString(startAndEndPoints.start.point)
-                                    : ''
+                                    : t('tool-panel.location-track.unset')
                             }
                         />
                         <InfoboxField
@@ -385,7 +407,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints?.end.point)
-                                    : '-'
+                                    : t('tool-panel.location-track.unset')
                             }
                         />
                     </InfoboxContent>

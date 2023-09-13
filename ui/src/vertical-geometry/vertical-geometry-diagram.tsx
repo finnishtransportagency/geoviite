@@ -3,7 +3,6 @@ import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
 import { HeightLabels, HeightLines } from 'vertical-geometry/height-lines';
 import { LabeledTicks } from 'vertical-geometry/labeled-ticks';
-import { PlanLinking } from 'vertical-geometry/plan-linking';
 import { HeightGraph } from 'vertical-geometry/height-graph';
 import { PviGeometry } from 'vertical-geometry/pvi-geometry';
 import { Translate } from 'vertical-geometry/translate';
@@ -22,6 +21,8 @@ import {
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { BoundingBox } from 'model/geometry';
 import { OnSelectOptions } from 'selection/selection-model';
+import { PlanLinkingHeaders } from 'vertical-geometry/plan-linking-header';
+import { DisplayedPositionGuide } from 'vertical-geometry/displayed-position-guide';
 
 const chartBottomPadding = 60;
 const topHeightPaddingPx = 180;
@@ -87,7 +88,12 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         panning && styles['vertical-geometry-diagram--panning'],
     );
 
-    const [bottomHeightTick, topHeightTick] = getBottomAndTopTicks(kmHeights, geometry);
+    const [bottomHeightTick, topHeightTick] = getBottomAndTopTicks(
+        kmHeights,
+        geometry,
+        visibleStartM,
+        visibleEndM,
+    );
 
     const coordinates: Coordinates = {
         bottomHeightPaddingPx,
@@ -213,15 +219,11 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
             <svg height="100%" width="100%">
                 <>
                     <HeightLines coordinates={coordinates} />
-                    <LabeledTicks trackKmHeights={kmHeights} coordinates={coordinates} />
-                    {linkingSummary !== undefined && (
-                        <PlanLinking
-                            coordinates={coordinates}
-                            planLinkingSummary={linkingSummary}
-                            onSelect={onSelect}
-                        />
-                    )}
-
+                    <LabeledTicks
+                        trackKmHeights={kmHeights}
+                        coordinates={coordinates}
+                        planLinkingSummary={linkingSummary}
+                    />
                     <HeightGraph coordinates={coordinates} kmHeights={kmHeights} />
                     <PviGeometry
                         geometry={geometry}
@@ -230,6 +232,15 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                         drawTangentArrows={drawTangentArrows}
                     />
                     <HeightLabels coordinates={coordinates} />
+                    <PlanLinkingHeaders
+                        coordinates={coordinates}
+                        planLinkingSummary={linkingSummary}
+                        planLinkingOnSelect={onSelect}
+                    />
+                    <DisplayedPositionGuide
+                        coordinates={coordinates}
+                        planLinkingSummary={linkingSummary}
+                    />
                     <Translate x={0} y={240}>
                         <TrackAddressRuler
                             kmHeights={kmHeights}

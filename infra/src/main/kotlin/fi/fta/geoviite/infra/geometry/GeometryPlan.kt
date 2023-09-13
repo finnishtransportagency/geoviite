@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
 
 
@@ -40,7 +40,7 @@ data class GeometryPlanHeader(
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val planTime: Instant?,
-    val message: FreeText?,
+    val message: FreeTextWithNewLines?,
     val linkedAsPlanId: IntId<GeometryPlan>?,
     val uploadTime: Instant,
     val units: GeometryUnits,
@@ -79,7 +79,7 @@ data class GeometryPlan(
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
-    val message: FreeText?,
+    val message: FreeTextWithNewLines?,
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,

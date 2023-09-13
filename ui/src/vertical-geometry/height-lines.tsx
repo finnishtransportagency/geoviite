@@ -9,7 +9,7 @@ const verticalTickLengthsMeter = [1.0, 2.0, 5.0, 10.0, 25.0];
 const heightLabelOffset = 2;
 const heightLabelsBackgroundWidthPx = 18;
 // essentially, the amount of room we give the plan linking label
-const heightLabelsBackgroundStartYPx = 20;
+const heightLabelsBackgroundStartYPx = 22;
 
 function chooseVerticalTickLength(
     bottomTickHeight: number,

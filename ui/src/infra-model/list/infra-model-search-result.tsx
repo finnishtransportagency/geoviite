@@ -9,8 +9,8 @@ import {
     GeometryPlanHeader,
     GeometryPlanId,
     GeometryPlanSearchParams,
-    SortByValue,
-    SortOrderValue,
+    GeometrySortBy,
+    GeometrySortOrder,
 } from 'geometry/geometry-model';
 import { IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Table, Th } from 'vayla-design-lib/table/table';
@@ -33,17 +33,28 @@ export type InfraModelSearchResultProps = Pick<
     onPrevPage: () => void;
 };
 
-function setSortOrder(
-    currentSortByValue: SortByValue,
-    sortByValue: SortByValue,
-    sortOrderValue: SortOrderValue,
-): SortOrderValue {
-    if (sortByValue === currentSortByValue) {
-        return sortOrderValue === SortOrderValue.ASCENDING
-            ? SortOrderValue.DESCENDING
-            : SortOrderValue.ASCENDING;
+function toggleSortOrder(
+    currentSortBy: GeometrySortBy,
+    sortBy: GeometrySortBy,
+    sortOrder: GeometrySortOrder | undefined,
+): { sortOrder: GeometrySortOrder | undefined; sortBy: GeometrySortBy } {
+    if (sortBy === currentSortBy) {
+        const o =
+            sortOrder === undefined
+                ? GeometrySortOrder.ASCENDING
+                : sortOrder === GeometrySortOrder.ASCENDING
+                ? GeometrySortOrder.DESCENDING
+                : undefined;
+
+        return {
+            sortBy: o ? sortBy : GeometrySortBy.NO_SORTING,
+            sortOrder: o,
+        };
     } else {
-        return SortOrderValue.ASCENDING;
+        return {
+            sortBy: sortBy,
+            sortOrder: GeometrySortOrder.ASCENDING,
+        };
     }
 }
 
@@ -84,20 +95,24 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
         });
     }, [props.plans]);
 
-    function setFilter(sortByValue: SortByValue) {
+    function setFilter(sortByValue: GeometrySortBy) {
+        const sort = toggleSortOrder(
+            props.searchParams.sortBy,
+            sortByValue,
+            props.searchParams.sortOrder,
+        );
+
         props.onSearchParamsChange({
             ...props.searchParams,
-            sortBy: sortByValue,
-            sortOrder: setSortOrder(
-                props.searchParams.sortBy,
-                sortByValue,
-                props.searchParams.sortOrder,
-            ),
+            sortBy: sort.sortBy,
+            sortOrder: sort.sortOrder,
         });
     }
 
     function getSortingIcon(): IconComponent {
-        return props.searchParams.sortOrder == 0 ? Icons.Ascending : Icons.Descending;
+        return props.searchParams.sortOrder == GeometrySortOrder.ASCENDING
+            ? Icons.Ascending
+            : Icons.Descending;
     }
 
     function linkingSummaryDate(planId: GeometryPlanId) {
@@ -149,111 +164,111 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                         <tr>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.PROJECT_NAME
+                                    props.searchParams.sortBy == GeometrySortBy.PROJECT_NAME
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.PROJECT_NAME)}
+                                onClick={() => setFilter(GeometrySortBy.PROJECT_NAME)}
                                 qa-id="im-form.name-header">
                                 {t('im-form.name-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.FILE_NAME
+                                    props.searchParams.sortBy == GeometrySortBy.FILE_NAME
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.FILE_NAME)}
+                                onClick={() => setFilter(GeometrySortBy.FILE_NAME)}
                                 qa-id="im-form.file-name-header">
                                 {t('im-form.file-name')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.TRACK_NUMBER
+                                    props.searchParams.sortBy == GeometrySortBy.TRACK_NUMBER
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.TRACK_NUMBER)}
+                                onClick={() => setFilter(GeometrySortBy.TRACK_NUMBER)}
                                 qa-id="im-form.track-number-header">
                                 {t('im-form.tracknumberfield')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.KM_START
+                                    props.searchParams.sortBy == GeometrySortBy.KM_START
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.KM_START)}
+                                onClick={() => setFilter(GeometrySortBy.KM_START)}
                                 qa-id="im-form.km-start-header">
                                 {t('im-form.km-start-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.KM_END
+                                    props.searchParams.sortBy == GeometrySortBy.KM_END
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.KM_END)}
+                                onClick={() => setFilter(GeometrySortBy.KM_END)}
                                 qa-id="im-form.km-end-header">
                                 {t('im-form.km-end-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.PLAN_PHASE
+                                    props.searchParams.sortBy == GeometrySortBy.PLAN_PHASE
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.PLAN_PHASE)}
+                                onClick={() => setFilter(GeometrySortBy.PLAN_PHASE)}
                                 qa-id="im-form.plan-phase-header">
                                 {t('im-form.plan-phase-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.DECISION_PHASE
+                                    props.searchParams.sortBy == GeometrySortBy.DECISION_PHASE
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.DECISION_PHASE)}
+                                onClick={() => setFilter(GeometrySortBy.DECISION_PHASE)}
                                 qa-id="im-form.decision-phase-header">
                                 {t('im-form.decision-phase-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.CREATED_AT
+                                    props.searchParams.sortBy == GeometrySortBy.CREATED_AT
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.CREATED_AT)}
+                                onClick={() => setFilter(GeometrySortBy.CREATED_AT)}
                                 qa-id="im-form.created-at-header">
                                 {t('im-form.plan-time-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.UPLOADED_AT
+                                    props.searchParams.sortBy == GeometrySortBy.UPLOADED_AT
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.UPLOADED_AT)}
+                                onClick={() => setFilter(GeometrySortBy.UPLOADED_AT)}
                                 qa-id="im-form.uploaded-at-header">
                                 {t('im-form.created-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.LINKED_AT
+                                    props.searchParams.sortBy == GeometrySortBy.LINKED_AT
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.LINKED_AT)}
+                                onClick={() => setFilter(GeometrySortBy.LINKED_AT)}
                                 qa-id="im-form.linked-at-header">
                                 {t('im-form.linked-at-field')}
                             </Th>
                             <Th
                                 icon={
-                                    props.searchParams.sortBy == SortByValue.LINKED_BY
+                                    props.searchParams.sortBy == GeometrySortBy.LINKED_BY
                                         ? getSortingIcon()
                                         : undefined
                                 }
-                                onClick={() => setFilter(SortByValue.LINKED_BY)}
+                                onClick={() => setFilter(GeometrySortBy.LINKED_BY)}
                                 qa-id="im-form.linked-by-header">
                                 {t('im-form.linked-by-users-field')}
                             </Th>

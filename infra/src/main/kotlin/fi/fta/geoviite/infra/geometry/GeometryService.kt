@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.nullsLastComparator
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
@@ -442,15 +443,27 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
             GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> trackNumbers[h.trackNumberId]?.number }
-            GeometryPlanSortField.KM_START -> Comparator.comparing { h -> h.kmNumberRange?.min ?: KmNumber.ZERO }
-            GeometryPlanSortField.KM_END -> Comparator.comparing { h -> h.kmNumberRange?.max ?: KmNumber.ZERO }
+            GeometryPlanSortField.KM_START -> Comparator { a, b ->
+                nullsLastComparator(
+                    a.kmNumberRange?.min,
+                    b.kmNumberRange?.min
+                )
+            }
+
+            GeometryPlanSortField.KM_END -> Comparator { a, b ->
+                nullsLastComparator(
+                    a.kmNumberRange?.max,
+                    b.kmNumberRange?.max
+                )
+            }
+
             GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> h.planPhase?.name }
             GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> h.decisionPhase?.name }
-            GeometryPlanSortField.CREATED_AT -> Comparator.comparing { h -> h.planTime ?: h.uploadTime }
+            GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
-            GeometryPlanSortField.LINKED_AT -> Comparator.comparing { h ->
-                linkingSummaries[h.id]?.linkedAt ?: Instant.MIN
+            GeometryPlanSortField.LINKED_AT -> Comparator { a, b ->
+                nullsLastComparator(linkingSummaries[a.id]?.linkedAt, linkingSummaries[b.id]?.linkedAt)
             }
 
             GeometryPlanSortField.LINKED_BY -> stringComparator { h ->
