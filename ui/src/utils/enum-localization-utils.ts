@@ -2,6 +2,7 @@ import { DecisionPhase, PlanPhase, PlanSource } from 'geometry/geometry-model';
 import {
     LayoutState,
     LayoutStateCategory,
+    LocationTrackDescriptionSuffixMode,
     LocationTrackType,
     TopologicalConnectivityType,
     TrapPoint,
@@ -73,6 +74,11 @@ export const ratkoPushErrorOperations: LocalizedEnum<RatkoPushErrorOperation>[] 
 export const topologicalConnectivityTypes: LocalizedEnum<TopologicalConnectivityType>[] = values(
     'topological-connectivity-type',
     ['NONE', 'START', 'END', 'START_AND_END'],
+);
+
+export const descriptionSuffixModes: LocalizedEnum<LocationTrackDescriptionSuffixMode>[] = values(
+    'location-track-description-suffix-mode',
+    ['NONE', 'SWITCH_TO_SWITCH', 'SWITCH_TO_BUFFER'],
 );
 
 export const planPhases: LocalizedEnum<PlanPhase>[] = values('plan-phase', [

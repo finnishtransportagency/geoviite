@@ -36,6 +36,8 @@ class TranslationCache {
     }
 }
 
+const val RATKO_LANGUAGE = "fi"
+
 @Service
 class LocalizationService(@Value("\${geoviite.i18n.override-path:}") val overridePath: String = "") {
     val translationCache = TranslationCache()

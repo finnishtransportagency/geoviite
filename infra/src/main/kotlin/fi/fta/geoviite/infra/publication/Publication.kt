@@ -356,7 +356,8 @@ data class Change<T>(
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
     val name: Change<AlignmentName>,
-    val description: Change<FreeText>,
+    val descriptionBase: Change<FreeText>,
+    val descriptionSuffix: Change<DescriptionSuffixType>,
     val state: Change<LayoutState>,
     val duplicateOf: Change<IntId<LocationTrack>>,
     val type: Change<LocationTrackType>,

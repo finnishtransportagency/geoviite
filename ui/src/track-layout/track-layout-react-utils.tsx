@@ -219,14 +219,8 @@ export function useLocationTrackSwitchesAtEnds(
                 : getLocationTrackSwitchesAtEnds(id, publishType, changeTime),
         [id, publishType, changeTime],
     );
-    const start = useSwitch(
-        switchIds?.start ?? locationTrack?.topologyStartSwitch?.switchId,
-        publishType,
-    );
-    const end = useSwitch(
-        switchIds?.end ?? locationTrack?.topologyEndSwitch?.switchId,
-        publishType,
-    );
+    const start = useSwitch(switchIds?.start ?? undefined, publishType);
+    const end = useSwitch(switchIds?.end ?? undefined, publishType);
     return id === undefined || switchIds === undefined || status !== LoaderStatus.Ready
         ? undefined
         : { start, end };

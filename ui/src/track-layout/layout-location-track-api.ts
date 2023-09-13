@@ -2,6 +2,7 @@ import {
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutLocationTrackDuplicate,
+    LocationTrackDescription,
     LocationTrackId,
     SwitchesAtEnds,
 } from 'track-layout/track-layout-model';
@@ -35,6 +36,7 @@ import { isNullOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
+import i18next from 'i18next';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
@@ -77,10 +79,21 @@ export async function getLocationTracksBySearchTerm(
     const params = queryParams({
         searchTerm: searchTerm,
         limit: limit,
+        lang: i18next.language,
     });
     return await getWithDefault<LayoutLocationTrack[]>(
         `${layoutUri('location-tracks', publishType)}${params}`,
         [],
+    );
+}
+
+export async function getLocationTrackDescriptions(
+    locationTrackIds: LocationTrackId[],
+    publishType: PublishType,
+): Promise<LocationTrackDescription[] | null> {
+    const params = queryParams({ ids: locationTrackIds.join(',') });
+    return getIgnoreError<LocationTrackDescription[]>(
+        `${layoutUri('location-tracks', publishType)}/description/${params}`,
     );
 }
 

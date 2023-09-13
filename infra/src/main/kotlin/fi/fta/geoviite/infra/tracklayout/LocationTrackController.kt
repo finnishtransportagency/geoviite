@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -25,6 +26,7 @@ class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
     private val publicationService: PublicationService,
+    private val localizationService: LocalizationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -87,7 +89,11 @@ class LocationTrackController(
     ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "id" to id)
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
-        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) -> geocodingService.getLocationTrackStartAndEnd(publishType, locationTrack, alignment) })
+        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
+            geocodingService.getLocationTrackStartAndEnd(
+                publishType, locationTrack, alignment
+            )
+        })
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -97,13 +103,25 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<SwitchesAtEnds> {
         logger.apiCall("getLocationTrackSwitchesAtEnds", "publishType" to publishType, "id" to id)
-        val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
-        return toResponse(locationTrackAndAlignment?.let { (_, alignment) ->
-            SwitchesAtEnds(
-                if (alignment.segments.firstOrNull()?.startJointNumber == null) null else alignment.segments.firstOrNull()?.switchId as IntId?,
-                if (alignment.segments.lastOrNull()?.endJointNumber == null) null else alignment.segments.lastOrNull()?.switchId as IntId?,
-            )
-        })
+        return toResponse(locationTrackService.getSwitchesAtEnds(id, publishType))
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/description")
+    fun getDescription(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
+    ): List<LocationTrackDescription> {
+        logger.apiCall("getDescription", "publishType" to publishType, "ids" to ids)
+        return ids.mapNotNull { id ->
+            id.let { locationTrackService.get(publishType, it) }?.let { lt ->
+                LocationTrackDescription(
+                    id, locationTrackService.getFullDescription(
+                        publishType, lt
+                    )
+                )
+            }
+        }
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -171,8 +189,9 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
-        logger.apiCall("getTrackSectionsByPlan",
-            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
+        logger.apiCall(
+            "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
+        )
         return locationTrackService.getMetadataSections(id, publishType, boundingBox)
     }
 }

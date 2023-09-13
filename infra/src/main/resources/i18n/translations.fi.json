@@ -203,6 +203,11 @@
             "Yes": "Kyllä",
             "No": "Ei",
             "Unknown": "Ei tiedossa"
+        },
+        "location-track-description-suffix-mode": {
+            "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",
+            "SWITCH_TO_BUFFER": "Vaihde - Puskin",
+            "NONE": "Ei lisäosaa"
         }
     },
     "environment": {
@@ -287,7 +292,7 @@
         "deleted-successfully": "Sijaintiraide poistettu",
         "delete-draft": "Poista luonnos",
         "mandatory-field": "Pakollinen kenttä",
-        "invalid-description": "Kuvauksen tulee olla 4-256 merkkiä pitkä",
+        "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
         "duplicate-of": "Duplikaatti raiteelle",
         "not-a-duplicate": "Ei duplikaatti",
@@ -295,7 +300,8 @@
         "topological-connectivity": "Topologinen kytkeytyminen",
         "start-switch": "Vaihde raiteen alussa",
         "end-switch": "Vaihde raiteen lopussa",
-        "no-start-or-end-switch": "Ei vaihdetta"
+        "no-start-or-end-switch": "Ei vaihdetta",
+        "buffer": "Puskin"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",

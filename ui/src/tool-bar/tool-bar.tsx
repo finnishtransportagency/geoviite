@@ -6,6 +6,7 @@ import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-a
 import { getKmPost } from 'track-layout/layout-km-post-api';
 import {
     getLocationTrack,
+    getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import {
@@ -83,13 +84,22 @@ function getOptions(
         publishType,
         10,
     ).then((locationTracks) => {
-        return locationTracks.map((locationTrack) => ({
-            name: `${locationTrack.name}, ${locationTrack.description}`,
-            value: {
-                type: 'locationTrackSearchItem',
-                locationTrack: locationTrack,
-            },
-        }));
+        return getLocationTrackDescriptions(
+            locationTracks.map((lt) => lt.id),
+            publishType,
+        ).then((descriptions) => {
+            return locationTracks.map((locationTrack) => ({
+                name: `${locationTrack.name}, ${
+                    (descriptions &&
+                        descriptions.find((d) => d.id == locationTrack.id)?.description) ??
+                    ''
+                }`,
+                value: {
+                    type: 'locationTrackSearchItem',
+                    locationTrack: locationTrack,
+                },
+            }));
+        });
     });
     const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
         searchTerm,

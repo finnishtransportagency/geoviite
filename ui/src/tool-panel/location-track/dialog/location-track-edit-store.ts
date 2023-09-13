@@ -42,7 +42,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
         name: '',
         state: undefined,
         type: undefined,
-        description: '',
+        descriptionBase: '',
         duplicateOf: null,
     },
     validationErrors: [],
@@ -57,7 +57,7 @@ const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
 function newLinkingLocationTrack(): LocationTrackSaveRequest {
     return {
         name: '',
-        description: '',
+        descriptionBase: '',
         type: undefined,
         state: undefined,
         trackNumberId: undefined,
@@ -73,7 +73,15 @@ function validateLinkingLocationTrack(
 
     errors = [
         ...errors,
-        ...['name', 'trackNumberId', 'type', 'state', 'description', 'topologicalConnectivity']
+        ...[
+            'name',
+            'trackNumberId',
+            'type',
+            'state',
+            'descriptionBase',
+            'descriptionSuffix',
+            'topologicalConnectivity',
+        ]
             .map((prop: keyof LocationTrackSaveRequest) => {
                 if (isNullOrBlank(saveRequest[prop])) {
                     return {
@@ -98,8 +106,8 @@ function validateLinkingLocationTrack(
             .filter(filterNotEmpty),
     ];
     if (
-        saveRequest.description &&
-        (saveRequest.description.length < 4 || saveRequest.description.length > 256)
+        saveRequest.descriptionBase &&
+        (saveRequest.descriptionBase.length < 4 || saveRequest.descriptionBase.length > 256)
     ) {
         return [...errors, ...getErrorForInvalidDescription()];
     }
@@ -110,7 +118,7 @@ function validateLinkingLocationTrack(
 function getErrorForInvalidDescription(): ValidationError<LocationTrackSaveRequest>[] {
     return [
         {
-            field: 'description',
+            field: 'descriptionBase',
             reason: 'invalid-description',
             type: ValidationErrorType.ERROR,
         },
