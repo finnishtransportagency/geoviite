@@ -8,9 +8,9 @@ export type User = {
 
 export type UserDetails = {
     id: UserId;
-    firstName: string | null;
-    lastName: string | null;
-    organization: string | null;
+    firstName?: string;
+    lastName?: string;
+    organization?: string;
     userName: string;
 };
 

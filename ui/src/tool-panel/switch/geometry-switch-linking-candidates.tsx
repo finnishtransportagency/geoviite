@@ -12,8 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type GeometrySwitchLinkingCandidatesProps = {
-    suggestedSwitch: SuggestedSwitch | null | undefined;
-    selectedSwitchId: LayoutSwitchId | undefined;
+    suggestedSwitch?: SuggestedSwitch;
+    selectedSwitchId?: LayoutSwitchId;
     onSelectSwitch: (selectedSwitch: LayoutSwitch) => void;
     switchChangeTime: TimeStamp;
     onShowAddSwitchDialog: () => void;

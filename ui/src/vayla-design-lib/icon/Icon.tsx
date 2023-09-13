@@ -190,13 +190,13 @@ function parseViewBox(svg: string): string {
     return viewBoxMatch && viewBoxMatch.length >= 2 ? viewBoxMatch[1] : '0 0 24 24';
 }
 
-function parseSize(svg: string): number[] | null {
+function parseSize(svg: string): number[] | undefined {
     const heightMatch = /height="([0-9]+)"/.exec(svg);
     const widthMatch = /width="([0-9]+)"/.exec(svg);
     if (heightMatch && heightMatch.length >= 2 && widthMatch && widthMatch.length >= 2) {
         return [parseInt(widthMatch[1]), parseInt(heightMatch[1])];
     } else {
-        return null;
+        return undefined;
     }
 }
 

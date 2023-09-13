@@ -20,14 +20,14 @@ export type PreviewTableItemProps = {
     trackNumber?: string;
     errors: PublishValidationError[];
     changeTime: TimeStamp;
-    operation: Operation | null;
+    operation?: Operation;
     userName: string;
     pendingValidation: boolean;
     onPublishItemSelect?: () => void;
     onRevert: () => void;
     changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
     onShowOnMap: (bbox: BoundingBox) => void;
 };
 

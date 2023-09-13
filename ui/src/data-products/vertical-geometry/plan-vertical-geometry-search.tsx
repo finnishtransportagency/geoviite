@@ -67,7 +67,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
     const [verticalGeometries, fetchStatus] = useLoaderWithStatus(() => {
         return !state.plan
             ? Promise.resolve([])
-            : debouncedGetPlanVerticalGeometry(null, state.plan.id);
+            : debouncedGetPlanVerticalGeometry(undefined, state.plan.id);
     }, [state.plan]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
     React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);

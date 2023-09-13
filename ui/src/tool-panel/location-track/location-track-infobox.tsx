@@ -186,7 +186,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             locationTrack?.duplicateOf &&
             getLocationTracksBySearchTerm(locationTrack?.duplicateOf, publishType, 1);
         if (duplicateOfTrack === '') return undefined;
-        else if (duplicateOfTrack === null) return undefined;
         else return duplicateOfTrack;
     }, [locationTrack]);
 

@@ -237,7 +237,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 locationTracks
                     .filter((lt) => {
-                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === null;
+                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined;
                     })
                     .map((lt) => ({
                         name: `${lt.name}, ${locationTrackDescription(lt)}`,
@@ -251,8 +251,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     );
 
     function onDuplicateTrackSelected(duplicateTrack: LocationTrackItemValue | undefined) {
-        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id ?? null);
-        setSelectedDuplicateTrack(duplicateTrack?.locationTrack ?? undefined);
+        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id);
+        setSelectedDuplicateTrack(duplicateTrack?.locationTrack);
     }
 
     const switchToSwitchDescriptionSuffix = () =>

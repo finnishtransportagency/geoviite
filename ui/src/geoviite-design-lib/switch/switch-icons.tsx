@@ -26,7 +26,7 @@ import switchSrrSvgLarge from 'geoviite-design-lib/glyphs/switch-large/switch_sr
 import switchTyvSvgLarge from 'geoviite-design-lib/glyphs/switch-large/switch_tyv.svg';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
-function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | null): string {
+function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | undefined): string {
     switch (type) {
         case 'YV':
             return hand === 'LEFT' ? switchYvVSvg : switchYvOSvg;
@@ -51,7 +51,7 @@ function getSwitchSvg(type: SwitchBaseType, hand: SwitchHand | null): string {
     }
 }
 
-function getSwitchLargeSvg(type: SwitchBaseType, hand: SwitchHand | null): string {
+function getSwitchLargeSvg(type: SwitchBaseType, hand: SwitchHand | undefined): string {
     switch (type) {
         case 'YV':
             return hand === 'LEFT' ? switchYvVSvgLarge : switchYvOSvgLarge;
@@ -74,10 +74,10 @@ function getSwitchLargeSvg(type: SwitchBaseType, hand: SwitchHand | null): strin
     }
 }
 
-export function makeSwitchImage(type: SwitchBaseType, hand: SwitchHand | null): IconComponent {
+export function makeSwitchImage(type: SwitchBaseType, hand: SwitchHand | undefined): IconComponent {
     return makeHigherOrderSvgIcon(getSwitchLargeSvg(type, hand));
 }
 
-export function makeSwitchIcon(type: SwitchBaseType, hand: SwitchHand | null): IconComponent {
+export function makeSwitchIcon(type: SwitchBaseType, hand: SwitchHand | undefined): IconComponent {
     return makeHigherOrderSvgIcon(getSwitchSvg(type, hand));
 }

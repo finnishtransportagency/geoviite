@@ -1,5 +1,5 @@
 import { GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { debounceAsync } from 'utils/async-utils';
 import { ValidationError } from 'utils/validation-utils';
@@ -11,7 +11,7 @@ export const searchGeometryPlanHeaders = (
     source: PlanSource,
     searchTerm: string,
 ): Promise<GeometryPlanHeader[]> => {
-    if (isNullOrBlank(searchTerm)) {
+    if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 

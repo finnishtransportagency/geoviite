@@ -201,14 +201,14 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
         const minimumSpaceAroundPointPx =
             Math.min(
                 ...[
-                    i === 0 ? null : geo.point.station - geometry[i - 1].point.station,
+                    i === 0 ? undefined : geo.point.station - geometry[i - 1].point.station,
                     i === geometry.length - 1
-                        ? null
+                        ? undefined
                         : geometry[i + 1].point.station - geo.point.station,
                 ].filter(filterNotEmpty),
             ) * coordinates.mMeterLengthPxOverM;
 
-        if (geo.tangent !== null && drawTangentArrows) {
+        if (drawTangentArrows) {
             pvis.push(
                 tangentArrow(
                     true,
@@ -236,7 +236,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
         }
 
         if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels) {
-            if (geo.point.address != null) {
+            if (geo.point.address) {
                 pvis.push(
                     <text
                         className={styles['vertical-geometry-diagram__text-stroke-wide']}

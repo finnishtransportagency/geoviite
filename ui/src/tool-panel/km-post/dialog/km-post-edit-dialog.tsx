@@ -26,7 +26,7 @@ import {
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LayoutKmPostId } from 'track-layout/track-layout-model';
 import { GeometryTrackNumberId } from 'geometry/geometry-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { useDebouncedState } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
@@ -107,7 +107,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         if (
             !hasErrors('kmNumber') &&
             state.kmPost?.trackNumberId &&
-            !isNullOrBlank(state.kmPost.kmNumber) &&
+            !isNilOrBlank(state.kmPost.kmNumber) &&
             (state.kmPost.kmNumber != state.baselineKmNumber ||
                 state.kmPost.trackNumberId != state.baselineTrackNumberId) &&
             isValidKmNumber(state.kmPost.kmNumber)

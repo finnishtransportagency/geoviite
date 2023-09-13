@@ -2,13 +2,13 @@ export function objectEquals(o1: unknown, o2: unknown): boolean {
     return JSON.stringify(o1) === JSON.stringify(o2);
 }
 
-export function mapNull<T, S>(o: T | null, mapper: (o: T) => S): S | null {
-    return o != null ? mapper(o) : null;
+export function mapOptional<T, S>(o: T | undefined, mapper: (o: T) => S): S | undefined {
+    return o != undefined ? mapper(o) : undefined;
 }
 
-export function mapNullAsync<T, S>(
-    o: T | null,
-    mapper: (o: T) => Promise<S | null>,
-): Promise<S | null> {
-    return o != null ? mapper(o) : Promise.resolve(null);
+export function mapOptionalAsync<T, S>(
+    o: T | undefined,
+    mapper: (o: T) => Promise<S | undefined>,
+): Promise<S | undefined> {
+    return o != undefined ? mapper(o) : Promise.resolve(undefined);
 }

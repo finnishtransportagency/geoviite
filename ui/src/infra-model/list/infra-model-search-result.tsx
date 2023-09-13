@@ -64,7 +64,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     const trackNumbers = useTrackNumbers('DRAFT');
 
     const [linkingSummaries, setLinkingSummaries] = useState<
-        Map<GeometryPlanId, GeometryPlanLinkingSummary | null>
+        Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>
     >(() => new Map());
     const [confirmDownloadPlan, setConfirmDownloadPlan] = React.useState<
         GeometryPlanHeader | undefined
@@ -82,7 +82,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
             return;
         }
         getGeometryPlanLinkingSummaries(newPlans).then((plansAndSummaries) => {
-            if (plansAndSummaries == null) {
+            if (plansAndSummaries == undefined) {
                 return;
             }
             setLinkingSummaries((currentLinkingSummaries) => {
@@ -117,7 +117,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
 
     function linkingSummaryDate(planId: GeometryPlanId) {
         const linkingSummary = linkingSummaries.get(planId);
-        return linkingSummary?.linkedAt == null ? '' : formatDateFull(linkingSummary.linkedAt);
+        return linkingSummary?.linkedAt == undefined ? '' : formatDateFull(linkingSummary.linkedAt);
     }
 
     const linkingSummaryUsers = (planId: GeometryPlanId) =>
@@ -344,7 +344,9 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                                 <span title={plan.message}>
                                                     <Icons.Info size={IconSize.SMALL} />
                                                 </span>
-                                            ) : null}
+                                            ) : (
+                                                <React.Fragment />
+                                            )}
                                         </td>
                                     </tr>
                                 );

@@ -88,7 +88,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         }
 
         return debouncedTrackElementsFetch(
-            null,
+            undefined,
             'OFFICIAL',
             state.searchParameters.locationTrack.id,
             validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),

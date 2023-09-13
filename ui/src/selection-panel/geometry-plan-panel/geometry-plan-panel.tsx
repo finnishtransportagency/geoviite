@@ -54,9 +54,9 @@ type GeometryPlanProps = {
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
-    loadPlanLayout: () => Promise<GeometryPlanLayout | null>;
-    planLayout: GeometryPlanLayout | null;
-    linkStatus: GeometryPlanLinkStatus | null;
+    loadPlanLayout: () => Promise<GeometryPlanLayout | undefined>;
+    planLayout?: GeometryPlanLayout;
+    linkStatus?: GeometryPlanLinkStatus;
     planBeingLoaded: boolean;
 };
 
@@ -313,7 +313,7 @@ function createKmPostRow(
     planKmPost: LayoutKmPost,
     selectedItems: OptionalItemCollections,
     visiblePlans: VisiblePlanLayout[],
-    linkStatus: GeometryPlanLinkStatus | null,
+    linkStatus: GeometryPlanLinkStatus | undefined,
     onKmPostSelect: (kmPostItem: LayoutKmPost, kmPostStatus: KmPostBadgeStatus) => void,
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void,
 ): React.ReactElement {
@@ -368,7 +368,7 @@ function createAlignmentRow(
     alignment: PlanLayoutAlignment,
     selectedItems: OptionalItemCollections,
     visiblePlans: VisiblePlanLayout[],
-    linkStatus: GeometryPlanLinkStatus | null,
+    linkStatus: GeometryPlanLinkStatus | undefined,
     onAlignmentSelect: (alignment: AlignmentHeader, status: LocationTrackBadgeStatus) => void,
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void,
 ): React.ReactElement {
@@ -422,7 +422,7 @@ function createSwitchRow(
     planSwitch: LayoutSwitch,
     selectedItems: OptionalItemCollections,
     visiblePlans: VisiblePlanLayout[],
-    linkStatus: GeometryPlanLinkStatus | null,
+    linkStatus: GeometryPlanLinkStatus | undefined,
     onSwitchSelect: (switchItem: LayoutSwitch, switchStatus: SwitchBadgeStatus) => void,
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void,
 ): React.ReactElement {

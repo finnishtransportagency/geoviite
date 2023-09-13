@@ -22,15 +22,15 @@ const layoutLocationTrack: LayoutLocationTrack = {
     boundingBox: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
     trackNumberId: '',
     sourceId: '',
-    type: null,
-    externalId: null,
+    type: undefined,
+    externalId: undefined,
     dataType: 'TEMP',
     version: 'version',
     draftType: 'NEW_DRAFT',
-    duplicateOf: null,
+    duplicateOf: undefined,
     topologicalConnectivity: 'NONE',
-    topologyStartSwitch: null,
-    topologyEndSwitch: null,
+    topologyStartSwitch: undefined,
+    topologyEndSwitch: undefined,
 };
 const kmPost = {
     id: '',
@@ -38,21 +38,14 @@ const kmPost = {
     location: { x: 0, y: 0 },
     state: 'IN_USE' as LayoutState,
     trackNumberId: '',
-    sourceId: null,
-    version: null,
     draftType: 'NEW_DRAFT' as DraftType,
 };
 const layoutSwitch: LayoutSwitch = {
     id: '',
-    externalId: null,
     name: 'V1234',
     switchStructureId: '',
     stateCategory: 'EXISTING',
     joints: [],
-    sourceId: null,
-    trapPoint: null,
-    ownerId: null,
-    version: null,
     draftType: 'NEW_DRAFT' as DraftType,
 };
 

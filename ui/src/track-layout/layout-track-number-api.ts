@@ -55,7 +55,7 @@ export async function getTrackNumbers(
 export async function updateTrackNumber(
     trackNumberId: LayoutTrackNumberId,
     request: TrackNumberSaveRequest,
-): Promise<LayoutTrackNumberId | null> {
+): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
     return await putIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
@@ -64,7 +64,7 @@ export async function updateTrackNumber(
 
 export async function createTrackNumber(
     request: TrackNumberSaveRequest,
-): Promise<LayoutTrackNumberId | null> {
+): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', 'DRAFT');
     return await postIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),

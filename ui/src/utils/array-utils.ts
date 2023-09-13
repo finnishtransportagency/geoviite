@@ -1,11 +1,11 @@
 import { TimeStamp } from 'common/common-model';
 
-export function nonEmptyArray<T>(...values: Array<T | null | undefined>): T[] {
+export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
 }
 
-export function filterNotEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-    return value !== null && value !== undefined;
+export function filterNotEmpty<TValue>(value: TValue | undefined): value is TValue {
+    return value !== undefined;
 }
 
 /**
@@ -57,7 +57,7 @@ export function chunk<T>(array: T[], chunkSize: number): T[][] {
 
 //Null and undefined values are considered "max"
 export function timeStampComparator<T>(
-    getter: (obj: T) => TimeStamp | undefined | null,
+    getter: (obj: T) => TimeStamp | undefined,
 ): (v1: T, v2: T) => number {
     return (v1: T, v2: T) => {
         const aTime = getter(v1);
@@ -117,9 +117,9 @@ export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): numbe
 }
 
 export function compare<T>(f1: T, f2: T): number {
-    if (f1 == null && f2 == null) return 0;
-    else if (f1 == null) return -1;
-    else if (f2 == null) return 1;
+    if (f1 == undefined && f2 == undefined) return 0;
+    else if (f1 == undefined) return -1;
+    else if (f2 == undefined) return 1;
     else if (f1 < f2) return -1;
     else if (f2 < f1) return 1;
     else return 0;
@@ -213,9 +213,9 @@ export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, O
     return objs.reduce((map, obj) => map.set(obj.id, obj), new Map());
 }
 
-export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): number | null {
+export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): number | undefined {
     if (objs.length == 0) {
-        return null;
+        return undefined;
     }
     const values = objs.map((obj) => by(obj));
     let min = values[0];

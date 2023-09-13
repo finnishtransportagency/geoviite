@@ -119,7 +119,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
         e: React.MouseEvent<SVGSVGElement>,
     ) => {
         const elementBounds = ref.current?.getBoundingClientRect();
-        if (elementBounds == null) {
+        if (!elementBounds) {
             return;
         }
 
@@ -140,7 +140,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
     const onWheel: (e: WheelEvent) => void = (e) => {
         e.preventDefault();
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
-        if (elementLeft == null) {
+        if (elementLeft == undefined) {
             return;
         }
 
@@ -166,13 +166,13 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
 
     const onDoubleClick: React.EventHandler<React.MouseEvent<unknown>> = (e) => {
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
-        if (elementLeft == null) {
+        if (elementLeft == undefined) {
             return;
         }
 
         const m = xToM(coordinates, e.clientX - elementLeft);
         const index = findTrackMeterIndexContainingM(m, kmHeights);
-        if (index == null) {
+        if (!index) {
             return;
         }
 

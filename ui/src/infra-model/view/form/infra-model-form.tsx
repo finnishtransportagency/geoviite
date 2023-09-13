@@ -96,7 +96,7 @@ function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
 }
 
 function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {
-    return alignments.some((alignment) => alignment.profile != null);
+    return alignments.some((alignment) => alignment.profile);
 }
 
 const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
@@ -112,9 +112,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
-    const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystemModel | null>();
+    const [coordinateSystem, setCoordinateSystem] = React.useState<
+        CoordinateSystemModel | undefined
+    >();
     const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
-    const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | null>();
+    const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | undefined>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
     const [authors, setAuthors] = React.useState<Author[]>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();

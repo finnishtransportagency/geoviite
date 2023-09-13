@@ -91,11 +91,10 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                 area: boundingBox,
                 resolution: 0,
             };
-            return getSuggestedSwitchesByTile(fakeMapTile).then(
-                (suggestedSwitches) =>
-                    suggestedSwitches.find(
-                        (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitch.id,
-                    ) || null,
+            return getSuggestedSwitchesByTile(fakeMapTile).then((suggestedSwitches) =>
+                suggestedSwitches.find(
+                    (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitch.id,
+                ),
             );
         }
         return undefined;
@@ -151,7 +150,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         if (linkingState?.suggestedSwitch && linkingState.layoutSwitchId) {
             const params = {
                 switchStructureId: linkingState.suggestedSwitch.switchStructure.id,
-                geometryPlanId: planId ?? null,
+                geometryPlanId: planId,
                 geometrySwitchId: linkingState.suggestedSwitch.geometrySwitchId,
                 layoutSwitchId: linkingState.layoutSwitchId,
                 joints: linkingState.suggestedSwitch.joints.map((joint) => {
@@ -213,7 +212,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                             {suggestedSwitchFetchStatus === LoaderStatus.Ready ? (
                                 <GeometrySwitchLinkingInitiation
                                     onStartLinking={startLinking}
-                                    hasSuggestedSwitch={suggestedSwitch !== null}
+                                    hasSuggestedSwitch={!!suggestedSwitch}
                                     linkingState={linkingState}
                                 />
                             ) : (
