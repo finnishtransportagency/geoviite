@@ -68,7 +68,7 @@ dependencies {
     }
     implementation("org.geotools:gt-epsg-hsql:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
-        exclude("javax.media","jai_core")
+        exclude("javax.media", "jai_core")
         // jgridshift doesn't provide licensing information. We don't need it.
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
@@ -93,7 +93,7 @@ dependencies {
 }
 
 licenseReport {
-    renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html","Backend"))
+    renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"))
     filters = arrayOf<DependencyFilter>(
         LicenseBundleNormalizer(),
         // ExcludeTransitiveDependenciesFilter(),
@@ -121,6 +121,7 @@ tasks.withType<Test> {
     testLogging.exceptionFormat = FULL
     //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
+    maxHeapSize = "512m"
 }
 
 tasks.withType<AbstractArchiveTask> {
