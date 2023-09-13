@@ -91,7 +91,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     React.useEffect(() => {
         setLocationTrackDescriptionSuffixMode(state.locationTrack?.descriptionSuffix);
     }, [state.locationTrack]);
-    const startAndEndPoints = useLocationTrackStartAndEnd(
+    const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         state.existingLocationTrack?.id,
         props.publishType,
         props.locationTrackChangeTime,

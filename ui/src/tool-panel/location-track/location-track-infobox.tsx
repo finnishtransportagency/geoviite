@@ -37,7 +37,7 @@ import {
     getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
@@ -50,6 +50,10 @@ import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slic
 import { WriteAccessRequired } from 'user/write-access-required';
 import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -89,7 +93,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
-    const startAndEndPoints = useLocationTrackStartAndEnd(
+    const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         publishType,
         locationTrackChangeTime,
@@ -315,102 +319,112 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     title={t('tool-panel.location-track.track-location-heading')}
                     qa-id="location-track-location-infobox">
                     <InfoboxContent>
-                        <InfoboxField label={t('tool-panel.location-track.start-location')}>
-                            {startAndEndPoints?.start?.address ? (
-                                <TrackMeter value={startAndEndPoints?.start?.address} />
-                            ) : (
-                                t('tool-panel.location-track.unset')
-                            )}
-                        </InfoboxField>
-                        <InfoboxField label={t('tool-panel.location-track.end-location')}>
-                            {startAndEndPoints?.end?.address ? (
-                                <TrackMeter value={startAndEndPoints?.end?.address} />
-                            ) : (
-                                t('tool-panel.location-track.unset')
-                            )}
-                        </InfoboxField>
-
-                        {linkingState === undefined && (
-                            <WriteAccessRequired>
-                                <InfoboxButtons>
-                                    <Button
-                                        variant={ButtonVariant.SECONDARY}
-                                        size={ButtonSize.SMALL}
-                                        disabled={
-                                            !startAndEndPoints.start?.point ||
-                                            !startAndEndPoints.end?.point
-                                        }
-                                        onClick={() => {
-                                            getEndLinkPoints(
-                                                locationTrack.id,
-                                                publishType,
-                                                'LOCATION_TRACK',
-                                                locationTrackChangeTime,
-                                            ).then(onStartLocationTrackGeometryChange);
-                                        }}>
-                                        {t('tool-panel.location-track.modify-start-or-end')}
-                                    </Button>
-                                </InfoboxButtons>
-                            </WriteAccessRequired>
-                        )}
-                        {linkingState?.type === LinkingType.LinkingAlignment && (
+                        <ProgressIndicatorWrapper
+                            indicator={ProgressIndicatorType.Area}
+                            inProgress={startAndEndPointFetchStatus !== LoaderStatus.Ready}>
                             <React.Fragment>
-                                <p
-                                    className={
-                                        styles['location-track-infobox__link-alignment-guide']
-                                    }>
-                                    {t('tool-panel.location-track.choose-start-and-end-points')}
-                                </p>
-                                <InfoboxButtons>
-                                    <Button
-                                        variant={ButtonVariant.SECONDARY}
-                                        size={ButtonSize.SMALL}
-                                        disabled={updatingLength}
-                                        onClick={onEndLocationTrackGeometryChange}>
-                                        {t('button.cancel')}
-                                    </Button>
-                                    <Button
-                                        size={ButtonSize.SMALL}
-                                        isProcessing={updatingLength}
-                                        disabled={updatingLength || !canUpdate}
-                                        onClick={() => {
-                                            updateAlignment(linkingState);
-                                        }}>
-                                        {t('tool-panel.location-track.ready')}
-                                    </Button>
-                                </InfoboxButtons>
-                            </React.Fragment>
-                        )}
+                                <InfoboxField label={t('tool-panel.location-track.start-location')}>
+                                    {startAndEndPoints?.start?.address ? (
+                                        <TrackMeter value={startAndEndPoints?.start?.address} />
+                                    ) : (
+                                        t('tool-panel.location-track.unset')
+                                    )}
+                                </InfoboxField>
+                                <InfoboxField label={t('tool-panel.location-track.end-location')}>
+                                    {startAndEndPoints?.end?.address ? (
+                                        <TrackMeter value={startAndEndPoints?.end?.address} />
+                                    ) : (
+                                        t('tool-panel.location-track.unset')
+                                    )}
+                                </InfoboxField>
 
-                        <InfoboxField
-                            label={t('tool-panel.location-track.true-length')}
-                            value={
-                                roundToPrecision(
-                                    locationTrack.length,
-                                    Precision.alignmentLengthMeters,
-                                ) + ' m'
-                            }
-                        />
-                        <InfoboxField
-                            label={`${t('tool-panel.location-track.start-coordinates')} ${
-                                coordinateSystem.name
-                            }`}
-                            value={
-                                startAndEndPoints?.start
-                                    ? formatToTM35FINString(startAndEndPoints.start.point)
-                                    : t('tool-panel.location-track.unset')
-                            }
-                        />
-                        <InfoboxField
-                            label={`${t('tool-panel.location-track.end-coordinates')} ${
-                                coordinateSystem.name
-                            }`}
-                            value={
-                                startAndEndPoints?.end
-                                    ? formatToTM35FINString(startAndEndPoints?.end.point)
-                                    : t('tool-panel.location-track.unset')
-                            }
-                        />
+                                {linkingState === undefined && (
+                                    <WriteAccessRequired>
+                                        <InfoboxButtons>
+                                            <Button
+                                                variant={ButtonVariant.SECONDARY}
+                                                size={ButtonSize.SMALL}
+                                                disabled={
+                                                    !startAndEndPoints.start?.point ||
+                                                    !startAndEndPoints.end?.point
+                                                }
+                                                onClick={() => {
+                                                    getEndLinkPoints(
+                                                        locationTrack.id,
+                                                        publishType,
+                                                        'LOCATION_TRACK',
+                                                        locationTrackChangeTime,
+                                                    ).then(onStartLocationTrackGeometryChange);
+                                                }}>
+                                                {t('tool-panel.location-track.modify-start-or-end')}
+                                            </Button>
+                                        </InfoboxButtons>
+                                    </WriteAccessRequired>
+                                )}
+                                {linkingState?.type === LinkingType.LinkingAlignment && (
+                                    <React.Fragment>
+                                        <p
+                                            className={
+                                                styles[
+                                                    'location-track-infobox__link-alignment-guide'
+                                                ]
+                                            }>
+                                            {t(
+                                                'tool-panel.location-track.choose-start-and-end-points',
+                                            )}
+                                        </p>
+                                        <InfoboxButtons>
+                                            <Button
+                                                variant={ButtonVariant.SECONDARY}
+                                                size={ButtonSize.SMALL}
+                                                disabled={updatingLength}
+                                                onClick={onEndLocationTrackGeometryChange}>
+                                                {t('button.cancel')}
+                                            </Button>
+                                            <Button
+                                                size={ButtonSize.SMALL}
+                                                isProcessing={updatingLength}
+                                                disabled={updatingLength || !canUpdate}
+                                                onClick={() => {
+                                                    updateAlignment(linkingState);
+                                                }}>
+                                                {t('tool-panel.location-track.ready')}
+                                            </Button>
+                                        </InfoboxButtons>
+                                    </React.Fragment>
+                                )}
+
+                                <InfoboxField
+                                    label={t('tool-panel.location-track.true-length')}
+                                    value={
+                                        roundToPrecision(
+                                            locationTrack.length,
+                                            Precision.alignmentLengthMeters,
+                                        ) + ' m'
+                                    }
+                                />
+                                <InfoboxField
+                                    label={`${t('tool-panel.location-track.start-coordinates')} ${
+                                        coordinateSystem.name
+                                    }`}
+                                    value={
+                                        startAndEndPoints?.start
+                                            ? formatToTM35FINString(startAndEndPoints.start.point)
+                                            : t('tool-panel.location-track.unset')
+                                    }
+                                />
+                                <InfoboxField
+                                    label={`${t('tool-panel.location-track.end-coordinates')} ${
+                                        coordinateSystem.name
+                                    }`}
+                                    value={
+                                        startAndEndPoints?.end
+                                            ? formatToTM35FINString(startAndEndPoints?.end.point)
+                                            : t('tool-panel.location-track.unset')
+                                    }
+                                />
+                            </React.Fragment>
+                        </ProgressIndicatorWrapper>
                     </InfoboxContent>
                 </Infobox>
             )}
