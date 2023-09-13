@@ -204,7 +204,7 @@
             "No": "Ei",
             "Unknown": "Ei tiedossa"
         },
-        "location-track-description-suffix-mode": {
+        "location-track-description-suffix": {
             "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",
             "SWITCH_TO_BUFFER": "Vaihde - Puskin",
             "NONE": "Ei lisäosaa"
@@ -1212,6 +1212,8 @@
             "km-post": "Tasakilometripiste",
             "reference-line": "Pituusmittauslinja",
             "description": "Kuvaus",
+            "description-base": "Kuvauksen perusosa",
+            "description-suffix": "Kuvauksen lisäosa",
             "topological-connectivity": "Topologinen yhteys",
             "location-track-type": "Sijaintiraidetyyppi",
             "duplicate-of": "Duplikaatti raiteelle",
