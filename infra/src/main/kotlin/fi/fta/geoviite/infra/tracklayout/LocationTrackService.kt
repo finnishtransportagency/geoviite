@@ -9,8 +9,6 @@ import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
-import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -18,7 +16,6 @@ import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -267,6 +264,8 @@ class LocationTrackService(
         }
     }
 
+    private val BUFFER_TRANSLATION = "Puskin"
+
     fun getFullDescription(publishType: PublishType, locationTrack: LocationTrack): FreeText {
         val startAndEnd = getSwitchesAtEnds(locationTrack.id as IntId, DRAFT)
         val startSwitch = startAndEnd?.start?.let {
@@ -278,7 +277,7 @@ class LocationTrackService(
 
         return when (locationTrack.descriptionSuffix) {
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
-            DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitch?.shortName ?: endSwitch?.shortName ?: "???"} - ${"Puskin"}")
+            DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitch?.shortName ?: endSwitch?.shortName ?: "???"} - ${BUFFER_TRANSLATION}")
             DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText("${locationTrack.descriptionBase} ${startSwitch?.shortName ?: "???"} - ${endSwitch?.shortName ?: "???"}")
         }
     }

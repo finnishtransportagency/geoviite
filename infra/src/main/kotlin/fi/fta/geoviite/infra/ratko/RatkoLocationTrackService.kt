@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.localization.RATKO_LANGUAGE
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.*
@@ -26,7 +25,6 @@ class RatkoLocationTrackService @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
-    private val localizationService: LocalizationService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
