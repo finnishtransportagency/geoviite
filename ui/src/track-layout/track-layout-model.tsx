@@ -112,7 +112,7 @@ export type LayoutLocationTrack = {
 };
 
 export const locationTrackDescription = (lt: {
-    descriptionBase?: string | null;
+    descriptionBase?: string;
     descriptionSuffix?: string;
 }) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
 

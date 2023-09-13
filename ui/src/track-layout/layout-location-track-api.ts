@@ -90,7 +90,7 @@ export async function getLocationTracksBySearchTerm(
 export async function getLocationTrackDescriptions(
     locationTrackIds: LocationTrackId[],
     publishType: PublishType,
-): Promise<LocationTrackDescription[] | null> {
+): Promise<LocationTrackDescription[] | undefined> {
     const params = queryParams({ ids: locationTrackIds.join(',') });
     return getIgnoreError<LocationTrackDescription[]>(
         `${layoutUri('location-tracks', publishType)}/description/${params}`,

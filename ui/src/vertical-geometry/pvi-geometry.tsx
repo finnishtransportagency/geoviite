@@ -208,7 +208,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                 ].filter(filterNotEmpty),
             ) * coordinates.mMeterLengthPxOverM;
 
-        if (geo.tangent !== null && drawTangentArrows) {
+        if (drawTangentArrows) {
             pvis.push(
                 tangentArrow(
                     true,
