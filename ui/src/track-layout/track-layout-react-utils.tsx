@@ -199,8 +199,8 @@ export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
     changeTime: TimeStamp,
-): AlignmentStartAndEnd | undefined {
-    return useLoader(
+): [AlignmentStartAndEnd | undefined, LoaderStatus] {
+    return useLoaderWithStatus(
         () => (id && publishType ? getLocationTrackStartAndEnd(id, publishType) : undefined),
         [id, publishType, changeTime],
     );
