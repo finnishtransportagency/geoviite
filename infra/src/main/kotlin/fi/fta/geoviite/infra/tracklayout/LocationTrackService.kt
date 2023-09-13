@@ -30,7 +30,6 @@ class LocationTrackService(
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
-    private val localizationService: LocalizationService,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
 
     @Transactional

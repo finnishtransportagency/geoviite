@@ -26,7 +26,6 @@ class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
     private val publicationService: PublicationService,
-    private val localizationService: LocalizationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
