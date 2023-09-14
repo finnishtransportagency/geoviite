@@ -17,6 +17,7 @@ const guideTrackPositionPx = guideDividerTopPositionPx + 6;
 
 const guideRectangleTopPositionPx = guideDividerTopPositionPx + 4;
 const guideRectangleHeightPx = 4;
+const guideRectangleMinWidthPx = 1;
 
 export interface DisplayedPositionGuideProps {
     coordinates: Coordinates;
@@ -43,7 +44,10 @@ export const DisplayedPositionGuide: React.FC<DisplayedPositionGuideProps> = ({
     const guideBackgroundStartPositionPx = guideStartPx;
     const guideBackgroundWidthPx = guideWidthPx;
 
-    const guideRectangleWidthPx = guideWidthPx * ratioOfCurrentlyDisplayedMetersToFullDiagram;
+    const guideRectangleWidthPx = Math.max(
+        guideWidthPx * ratioOfCurrentlyDisplayedMetersToFullDiagram,
+        guideRectangleMinWidthPx,
+    );
     const guideRectangleStartPx =
         guideStartPx + guideWidthPx * (displayedMetersAtLeftEdge / maxDisplayedMeters);
 
