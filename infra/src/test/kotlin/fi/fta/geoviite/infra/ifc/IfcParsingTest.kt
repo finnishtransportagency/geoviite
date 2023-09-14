@@ -26,7 +26,7 @@ class IfcParsingTest {
             val parsed = parseIfcFromPath(filePath)
             val duration = Duration.between(startTime, Instant.now())
             println(
-                "Done parsing: " + "duration=${duration} " + "mainSection=${parsed.mainSectionName} " + "dataLines=${parsed.data.linesById.size} " + "header=${parsed.header.contentLines}"
+                "Done parsing: duration=${duration} dataLines=${parsed.data.linesById.size} header=${parsed.header.contentLines}"
             )
         }
     }

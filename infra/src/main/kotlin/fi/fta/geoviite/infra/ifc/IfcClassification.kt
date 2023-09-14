@@ -10,7 +10,7 @@ data class IfcCode(private val value: String) : CharSequence by value {
     }
 
     init {
-        assertSanitized<IfcTypeName>(value, regex, allowedLength, allowBlank = false)
+        assertSanitized<IfcEntityName>(value, regex, allowedLength, allowBlank = false)
     }
 
     override fun toString(): String = value
@@ -23,7 +23,7 @@ data class IfcClassificationName(private val value: String) : CharSequence by va
     }
 
     init {
-        assertSanitized<IfcTypeName>(value, regex, allowedLength, allowBlank = false)
+        assertSanitized<IfcEntityName>(value, regex, allowedLength, allowBlank = false)
     }
 
     override fun toString(): String = value
@@ -36,7 +36,7 @@ data class IfcPropertySetName(private val value: String) : CharSequence by value
     }
 
     init {
-        assertSanitized<IfcTypeName>(value, regex, allowedLength, allowBlank = false)
+        assertSanitized<IfcEntityName>(value, regex, allowedLength, allowBlank = false)
     }
 
     override fun toString(): String = value
