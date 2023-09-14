@@ -1,4 +1,3 @@
-import memCache from 'memory-cache';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
 import { initialChangeTime } from 'common/common-slice';
@@ -71,11 +70,11 @@ export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
 }
 
 export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
-    const cache = new memCache.Cache<TKey, Promise<TVal>>();
+    const cache = new Map<TKey, Promise<TVal>>();
     let ownChangeTime = toDate(initialChangeTime);
     const put = (key: TKey, promise: Promise<TVal>): Promise<TVal> => {
-        void cache.put(key, promise);
-        promise.catch(() => cache.del(key)); // Remove failed results from cache
+        cache.set(key, promise);
+        promise.catch(() => cache.delete(key)); // Remove failed results from cache
         return promise;
     };
     const getCached = (
@@ -84,8 +83,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         getter: () => Promise<TVal>,
     ) => {
         setChangeTime(changeTime);
-        // TODO: GVT-2014 some caches have null as a valid value -> should not cause re-fetch
-        return cache.get(key) ?? put(key, getter());
+        return cache.has(key) ? (cache.get(key) as Promise<TVal>) : put(key, getter());
     };
     function getMany<TId>(
         changeTime: TimeStamp | undefined,
@@ -94,8 +92,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
     ): Promise<TVal[]> {
         setChangeTime(changeTime);
-        // TODO: GVT-2014 some caches have null as a valid value -> should not cause re-fetch
-        const fetchIds = ids.filter((id) => cache.get(cacheKey(id)) === null);
+        const fetchIds = ids.filter((id) => !cache.has(cacheKey(id)));
 
         chunk(fetchIds, 50).forEach((chunkIds) => {
             const getting = getter(chunkIds);
@@ -106,7 +103,6 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
                 );
             }
         });
-
         // type coercion safety: we called put for every missing cache key
         return Promise.all(ids.map((id) => cache.get(cacheKey(id))) as TVal[]);
     }
@@ -125,7 +121,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         getImmutable: (key: TKey, getter: () => Promise<TVal>) => getCached(undefined, key, getter),
         get: (changeTime: TimeStamp, key: TKey, getter: () => Promise<TVal>) =>
             getCached(changeTime, key, getter),
-        remove: (key: TKey) => cache.del(key),
+        remove: (key: TKey) => cache.delete(key),
         getMany,
     };
 }

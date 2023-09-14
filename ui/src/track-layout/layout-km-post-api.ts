@@ -6,15 +6,7 @@ import {
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
 import { ChangeTimes, KmNumber, PublishType, TimeStamp } from 'common/common-model';
-import {
-    deleteAdt,
-    getAdt,
-    getIgnoreError,
-    getThrowError,
-    postAdt,
-    putAdt,
-    queryParams,
-} from 'api/api-fetch';
+import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
 import { BoundingBox, Point } from 'model/geometry';
@@ -24,7 +16,6 @@ import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
-// TODO: GVT-2014 this should be a cache with nullable values as a km-post might not exist in valid situations
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostCache = asyncCache<string, LayoutKmPost | undefined>();
@@ -37,7 +28,7 @@ export async function getKmPost(
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost | undefined> {
     return kmPostCache.get(changeTime, cacheKey(id, publishType), () =>
-        getIgnoreError<LayoutKmPost>(layoutUri('km-posts', publishType, id)),
+        getNullable<LayoutKmPost>(layoutUri('km-posts', publishType, id)),
     );
 }
 
@@ -52,7 +43,7 @@ export async function getKmPosts(
             ids,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
-                getThrowError<LayoutKmPost[]>(
+                getNonNull<LayoutKmPost[]>(
                     `${layoutUri('km-posts', publishType)}?ids=${fetchIds}`,
                 ).then((kmPosts) => {
                     const kmPostMap = indexIntoMap(kmPosts);
@@ -71,7 +62,7 @@ export async function getKmPostByNumber(
         trackNumberId: trackNumberId,
         kmNumber: kmNumber,
     });
-    return getIgnoreError<LayoutKmPost>(`${layoutUri('km-posts', publishType)}${params}`);
+    return getNullable<LayoutKmPost>(`${layoutUri('km-posts', publishType)}${params}`);
 }
 
 export async function getKmPostsByTile(
@@ -86,7 +77,7 @@ export async function getKmPostsByTile(
         publishType,
     });
     return kmPostListCache.get(changeTime, `${publishType}_${JSON.stringify(params)}`, () =>
-        getThrowError(`${layoutUri('km-posts', publishType)}${params}`),
+        getNonNull(`${layoutUri('km-posts', publishType)}${params}`),
     );
 }
 
@@ -105,7 +96,7 @@ export async function getKmPostForLinking(
         limit: limit,
     });
     return kmPostForLinkingCache.get(kmPostChangeTime, params, () =>
-        getThrowError(`${layoutUri('km-posts', publishType)}${params}`),
+        getNonNull(`${layoutUri('km-posts', publishType)}${params}`),
     );
 }
 
@@ -159,14 +150,14 @@ export async function getKmPostValidation(
     publishType: PublishType,
     id: LayoutKmPostId,
 ): Promise<ValidatedAsset> {
-    return getThrowError<ValidatedAsset>(`${layoutUri('km-posts', publishType, id)}/validation`);
+    return getNonNull<ValidatedAsset>(`${layoutUri('km-posts', publishType, id)}/validation`);
 }
 
 export async function getKmPostsOnTrackNumber(
     publishType: PublishType,
     id: LayoutTrackNumberId,
 ): Promise<LayoutKmPost[]> {
-    return getThrowError<LayoutKmPost[]>(
+    return getNonNull<LayoutKmPost[]>(
         `${layoutUri('km-posts', publishType)}/on-track-number/${id}`,
     );
 }
@@ -175,15 +166,9 @@ export async function getKmLengths(
     publishType: PublishType,
     id: LayoutTrackNumberId,
 ): Promise<LayoutKmLengthDetails[]> {
-    return getAdt<LayoutKmLengthDetails[]>(
+    return getNonNull<LayoutKmLengthDetails[]>(
         `${layoutUri('track-numbers', publishType, id)}/km-lengths`,
-    ).then((response) => {
-        if (response.isOk()) {
-            return response.value;
-        } else {
-            return [];
-        }
-    });
+    );
 }
 
 export const getKmLengthsAsCsv = (
@@ -201,4 +186,4 @@ export const getKmLengthsAsCsv = (
 };
 
 export const getKmPostChangeTimes = (id: LayoutKmPostId) =>
-    getIgnoreError<ChangeTimes>(changeTimeUri('km-posts', id));
+    getNullable<ChangeTimes>(changeTimeUri('km-posts', id));

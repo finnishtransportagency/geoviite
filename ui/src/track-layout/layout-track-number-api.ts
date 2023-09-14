@@ -5,14 +5,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { PublishType, TimeStamp } from 'common/common-model';
-import {
-    deleteAdt,
-    getIgnoreError,
-    getThrowError,
-    postIgnoreError,
-    putIgnoreError,
-    queryParams,
-} from 'api/api-fetch';
+import { deleteAdt, getNonNull, postIgnoreError, putIgnoreError, queryParams } from 'api/api-fetch';
 import { layoutUri } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
@@ -46,7 +39,7 @@ export async function getTrackNumbers(
 ): Promise<LayoutTrackNumber[]> {
     const cacheKey = `${includeDeleted}_${publishType}`;
     return trackNumbersCache.get(changeTime, cacheKey, () =>
-        getThrowError<LayoutTrackNumber[]>(
+        getNonNull<LayoutTrackNumber[]>(
             layoutUri('track-numbers', publishType) + queryParams({ includeDeleted }),
         ),
     );
@@ -88,9 +81,7 @@ export async function getTrackNumberValidation(
     publishType: PublishType,
     id: LayoutTrackNumberId,
 ): Promise<ValidatedAsset> {
-    return getThrowError<ValidatedAsset>(
-        `${layoutUri('track-numbers', publishType, id)}/validation`,
-    );
+    return getNonNull<ValidatedAsset>(`${layoutUri('track-numbers', publishType, id)}/validation`);
 }
 
 export const getTrackNumberReferenceLineSectionsByPlan = async (
@@ -99,7 +90,7 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
     bbox: BoundingBox | undefined = undefined,
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
-    return getIgnoreError<AlignmentPlanSection[]>(
+    return getNonNull<AlignmentPlanSection[]>(
         `${layoutUri('track-numbers', publishType, id)}/plan-geometry/${params}`,
     );
 };

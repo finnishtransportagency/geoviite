@@ -5,7 +5,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
-import { getIgnoreError, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
+import { getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
@@ -24,7 +24,7 @@ export async function getReferenceLine(
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
 ): Promise<LayoutReferenceLine | undefined> {
     return referenceLineCache.get(changeTime, cacheKey(id, publishType), () =>
-        getIgnoreError<LayoutReferenceLine>(layoutUri('reference-lines', publishType, id)),
+        getNullable<LayoutReferenceLine>(layoutUri('reference-lines', publishType, id)),
     );
 }
 
@@ -39,7 +39,7 @@ export async function getReferenceLines(
             ids,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
-                getThrowError<LayoutReferenceLine[]>(
+                getNonNull<LayoutReferenceLine[]>(
                     `${layoutUri('reference-lines', publishType)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
@@ -56,7 +56,7 @@ export async function getTrackNumberReferenceLine(
 ): Promise<LayoutReferenceLine | undefined> {
     const cacheKey = `TN_${trackNumberId}_${publishType}`;
     return referenceLineCache.get(changeTime, cacheKey, () =>
-        getIgnoreError<LayoutReferenceLine>(
+        getNullable<LayoutReferenceLine>(
             `${layoutUri('reference-lines', publishType)}/by-track-number/${trackNumberId}`,
         ),
     );
@@ -66,9 +66,8 @@ export async function getReferenceLineStartAndEnd(
     referenceLineId: ReferenceLineId,
     publishType: PublishType,
 ): Promise<AlignmentStartAndEnd | undefined> {
-    return getWithDefault<AlignmentStartAndEnd | undefined>(
+    return getNullable<AlignmentStartAndEnd>(
         `${layoutUri('reference-lines', publishType, referenceLineId)}/start-and-end`,
-        undefined,
     );
 }
 
@@ -77,20 +76,17 @@ export async function getReferenceLinesNear(
     bbox: BoundingBox,
 ): Promise<LayoutReferenceLine[]> {
     const params = queryParams({ bbox: bboxString(bbox) });
-    return getThrowError<LayoutReferenceLine[]>(
+    return getNonNull<LayoutReferenceLine[]>(
         `${layoutUri('reference-lines', publishType)}${params}`,
     );
 }
 
 export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[]> {
-    return getWithDefault<LayoutReferenceLine[]>(
-        `${layoutUri('reference-lines', 'DRAFT')}/non-linked`,
-        [],
-    );
+    return getNonNull<LayoutReferenceLine[]>(`${layoutUri('reference-lines', 'DRAFT')}/non-linked`);
 }
 
 export const getReferenceLineChangeTimes = (
     id: ReferenceLineId,
 ): Promise<ChangeTimes | undefined> => {
-    return getIgnoreError<ChangeTimes>(changeTimeUri('reference-lines', id));
+    return getNullable<ChangeTimes>(changeTimeUri('reference-lines', id));
 };

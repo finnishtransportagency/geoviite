@@ -83,7 +83,9 @@
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
             }
         },
-        "entity-not-found": "Tietoa ei löydy"
+        "entity-not-found": "Tietoa ei löydy",
+        "entity-not-found-on-path": "Tietoa ei löytynyt kutsussa polkuun {{0}}",
+        "request-failed": "Pyyntö epäonnistui kutsussa polkuun {{0}}"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",
