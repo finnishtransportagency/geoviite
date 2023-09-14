@@ -197,13 +197,17 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
     return (
         <div
             className={diagramClasses}
-            onMouseDown={(e) => {
+            onPointerDown={(e) => {
+                ref?.current?.setPointerCapture(e.pointerId);
                 e.preventDefault();
                 setPanning(e.clientX);
             }}
-            onMouseUp={() => setPanning(undefined)}
-            onMouseMove={onMouseMove}
-            onMouseLeave={() => {
+            onPointerUp={(e) => {
+                ref?.current?.releasePointerCapture(e.pointerId);
+                setPanning(undefined);
+            }}
+            onPointerMove={onMouseMove}
+            onPointerLeave={() => {
                 setPanning(undefined);
                 setMousePositionInElement(undefined);
             }}
