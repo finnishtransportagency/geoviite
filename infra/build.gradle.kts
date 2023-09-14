@@ -121,7 +121,6 @@ tasks.withType<Test> {
     testLogging.exceptionFormat = FULL
     //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
-    maxHeapSize = "512m"
 }
 
 tasks.withType<AbstractArchiveTask> {

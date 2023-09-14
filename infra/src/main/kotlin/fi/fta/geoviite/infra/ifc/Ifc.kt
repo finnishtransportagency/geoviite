@@ -12,7 +12,7 @@ data class Ifc(
     val data: IfcData,
 )
 
-data class IfcHeader(private val contentLines: List<IfcContentRaw>) {
+data class IfcHeader(val contentLines: List<IfcContentRaw>) {
     companion object {
         val sectionName = IfcTypeName.create("HEADER")
     }
@@ -81,7 +81,7 @@ data class IfcDataLineId(val number: Int) {
 }
 
 @Suppress("DataClassPrivateConstructor")
-data class IfcTypeName private constructor(private val value: String) : CharSequence by value {
+data class IfcTypeName private constructor(private val value: String) : IfcContentPart, CharSequence by value {
     companion object {
         private val allowedLength = 1..1000
         private val regex = Regex("^[A-Z0-9_\\-]+$")
@@ -96,6 +96,8 @@ data class IfcTypeName private constructor(private val value: String) : CharSequ
     }
 
     override fun toString(): String = value
+
+    override val name = this
 }
 
 data class IfcContentRaw(override val name: IfcTypeName, val content: String) : IfcContentPart {
