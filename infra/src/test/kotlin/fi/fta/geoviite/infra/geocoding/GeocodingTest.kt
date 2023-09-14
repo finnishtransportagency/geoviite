@@ -254,7 +254,7 @@ class GeocodingTest {
             startAddress = startAddress,
             referenceLineGeometry = alignment(startSegment, connectSegment, endSegment),
             kmPosts = listOf(),
-        )
+        ).geocodingContext
 
         val addressPoints = ctx.getAddressPoints(alignment(segment(
             Point(7.0, -2.0),
@@ -557,7 +557,7 @@ class GeocodingTest {
             startAddress = referenceLine.startAddress,
             referenceLineGeometry = referenceLineAlignment,
             kmPosts = listOf(),
-        )
+        ).geocodingContext
 
         val result = testContext.getSwitchPoints(alignment(
             segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),

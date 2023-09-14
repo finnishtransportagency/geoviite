@@ -93,7 +93,7 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
         val ZERO = TrackMeter(KmNumber.ZERO, BigDecimal.ZERO)
 
         fun isMetersValid(v: BigDecimal): Boolean {
-            return BigDecimal.ZERO <= v && v < maxMeter
+            return -maxMeter <= v && v < maxMeter
         }
 
         fun isMetersValid(v: Double) = isMetersValid(BigDecimal.valueOf(v))
