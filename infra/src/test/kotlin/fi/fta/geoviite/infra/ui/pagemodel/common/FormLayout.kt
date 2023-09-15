@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import childElementExists
+import childExists
 import fi.fta.geoviite.infra.ui.util.ElementFetch
+import getChildElement
+import getChildElements
 import org.openqa.selenium.By
 
 open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
@@ -9,11 +11,11 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
     fun getValueForField(fieldName: String): String {
         logger.info("Get field $fieldName")
         val fieldValueElement = getFieldValueElement(fieldName)
-        val value = if (fieldValueElement.childElementExists(By.className("field-layout__value"))) {
-            fieldValueElement.findElement(By.className("field-layout__value")).text
-        } else {
-            fieldValueElement.text
-        }
+        val value =
+            if (fieldValueElement.childExists(By.className("field-layout__value"))) {
+                fieldValueElement.getChildElement(By.className("field-layout__value")).text
+            } else fieldValueElement.text
+
         logger.info("Field value [$fieldName]=[$value]")
         return value
     }
@@ -47,7 +49,7 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
     fun selectDropdownValues(label: String, values: List<String>): E2EFormLayout = apply {
         logger.info("Change dropdown $label to [$values]")
         values.forEachIndexed { index, value ->
-            E2EDropdown { getFieldValueElement(label).findElements(By.className("dropdown"))[index] }.select(value)
+            E2EDropdown { getFieldValueElement(label).getChildElements(By.className("dropdown"))[index] }.select(value)
         }
     }
 }

@@ -1,19 +1,20 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import childElementExists
-import clickChildElement
+import childExists
 import defaultWait
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.byText
 import fi.fta.geoviite.infra.ui.util.fetch
+import getChildElement
+import getChildElements
 import getChildWhenMatches
-import getChildWhenVisible
-import getChildrenWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import tryWait
+import waitAndClick
 import waitUntilChildMatches
 import waitUntilChildNotVisible
 import waitUntilChildVisible
@@ -27,7 +28,7 @@ abstract class E2EViewFragment(protected val elementFetch: ElementFetch) {
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    val webElement: WebElement get() = elementFetch()
+    val webElement: WebElement get() = tryWait<WebElement>({ elementFetch() }) { "Could not fetch element" }
 
     protected inline operator fun <T> T.invoke(action: T.() -> Unit): T = apply(action)
 
@@ -48,14 +49,15 @@ abstract class E2EViewFragment(protected val elementFetch: ElementFetch) {
     protected fun clickButtonByQaId(id: String, timeout: Duration = defaultWait) = clickButton(byQaId(id), timeout)
 
     protected fun childElement(by: By, timeout: Duration = defaultWait): WebElement =
-        getChildWhenVisible(elementFetch, by, timeout)
+        webElement.getChildElement(by, timeout)
 
     protected fun childElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
-        getChildrenWhenVisible(elementFetch, by, timeout)
+        webElement.getChildElements(by, timeout)
 
-    protected fun currentChildElements(by: By): List<WebElement> = elementFetch().findElements(by)
+    protected fun currentChildElements(by: By): List<WebElement> = webElement.findElements(by)
 
-    protected fun clickChild(by: By, timeout: Duration = defaultWait) = clickChildElement(elementFetch, by, timeout)
+    protected fun clickChild(by: By, timeout: Duration = defaultWait) =
+        webElement.getChildElement(by, timeout).waitAndClick(timeout)
 
     protected fun childText(by: By, timeout: Duration = defaultWait): String = childElement(by, timeout).text
 
@@ -63,10 +65,10 @@ abstract class E2EViewFragment(protected val elementFetch: ElementFetch) {
         childElements(by, timeout).map(WebElement::getText)
 
     fun waitChildVisible(childBy: By, timeout: Duration = defaultWait) =
-        waitUntilChildVisible({ webElement }, childBy, timeout)
+        webElement.waitUntilChildVisible(childBy, timeout)
 
     fun waitChildNotVisible(childBy: By, timeout: Duration = defaultWait) =
-        waitUntilChildNotVisible({ webElement }, childBy, timeout)
+        webElement.waitUntilChildNotVisible(childBy, timeout)
 
     fun waitChildMatches(
         childBy: By,
@@ -80,5 +82,5 @@ abstract class E2EViewFragment(protected val elementFetch: ElementFetch) {
         timeout: Duration = defaultWait,
     ): Pair<Int, WebElement> = getChildWhenMatches(elementFetch, childBy, check, timeout)
 
-    protected fun childExists(by: By) = webElement.childElementExists(by)
+    protected fun childExists(by: By) = webElement.childExists(by)
 }
