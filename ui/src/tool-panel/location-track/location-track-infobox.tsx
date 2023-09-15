@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './location-track-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutLocationTrack } from 'track-layout/track-layout-model';
+import { LAYOUT_SRID, LayoutLocationTrack, LayoutSwitchId } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -50,6 +50,7 @@ import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slic
 import { WriteAccessRequired } from 'user/write-access-required';
 import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { SwitchLinkContainer } from 'geoviite-design-lib/switch/switch-link';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
@@ -160,6 +161,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
     function closeLocationTrackPushDialog() {
         setShowRatkoPushDialog(false);
+    }
+    function getSwitchLink(id?: LayoutSwitchId) {
+        if (switchesAtEnds === undefined) {
+            return '';
+        } else if (id) {
+            return <SwitchLinkContainer switchId={id} />;
+        } else {
+            return t('tool-panel.location-track.no-start-or-end-switch');
+        }
     }
 
     React.useEffect(() => {
@@ -282,21 +292,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.start-switch')}
-                        value={
-                            switchesAtEnds === undefined
-                                ? ''
-                                : switchesAtEnds.start?.name ??
-                                  t('tool-panel.location-track.no-start-or-end-switch')
-                        }
+                        value={getSwitchLink(switchesAtEnds?.start?.id)}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.end-switch')}
-                        value={
-                            switchesAtEnds === undefined
-                                ? ''
-                                : switchesAtEnds.end?.name ??
-                                  t('tool-panel.location-track.no-start-or-end-switch')
-                        }
+                        value={getSwitchLink(switchesAtEnds?.end?.id)}
                     />
 
                     <InfoboxButtons>
