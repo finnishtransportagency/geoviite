@@ -7,8 +7,9 @@ import { TrackKmHeights } from 'geometry/geometry-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
+import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
-const minimumSpacePxForPviPointSideLabels = 10;
+const minimumSpacePxForPviPointSideLabels = 14;
 const minimumSpacePxForPviPointTopLabel = 16;
 const minimumSpaceForTangentArrowLabel = 14;
 
@@ -43,6 +44,15 @@ function tangentArrow(
 
     return (
         <React.Fragment key={pviKey}>
+            {hasSpaceForText && (
+                <text
+                    className={styles['vertical-geometry-diagram__text-stroke-narrow']}
+                    transform={`translate (${tangentX + (left ? 10 : -4)},${
+                        tangentBottomPx - 2
+                    }) rotate(-90) scale(0.7)`}>
+                    {tangent.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </text>
+            )}
             <line
                 x1={tangentX}
                 x2={tangentX}
@@ -52,14 +62,6 @@ function tangentArrow(
                 fill="none"
             />
             <polyline points={arrowPoints} stroke="black" fill="none" />,
-            {hasSpaceForText && (
-                <text
-                    transform={`translate (${tangentX + (left ? 10 : -4)},${
-                        tangentBottomPx - 2
-                    }) rotate(-90) scale(0.7)`}>
-                    {tangent.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                </text>
-            )}
         </React.Fragment>
     );
 }
@@ -141,17 +143,6 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
         const angleTextScale = 0.7;
         const approximateAngleTextLengthM =
             (approximateAngleTextLengthPx / coordinates.mMeterLengthPxOverM) * angleTextScale;
-        pvis.push(
-            <line
-                key={pviKey++}
-                x1={mToX(coordinates, geo.point.station)}
-                x2={mToX(coordinates, nextGeo.point.station)}
-                y1={heightToY(coordinates, geo.point.height) - pviAssistLineHeightPx}
-                y2={heightToY(coordinates, nextGeo.point.height) - pviAssistLineHeightPx}
-                stroke="black"
-                fill="none"
-            />,
-        );
         if (nextGeo.point.station - geo.point.station > approximateAngleTextLengthM) {
             const midpoint = geo.point.station + (nextGeo.point.station - geo.point.station) * 0.5;
             const angleTextStartM = midpoint - approximateAngleTextLengthM * 0.5;
@@ -172,6 +163,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
             pvis.push(
                 <text
                     key={pviKey++}
+                    className={styles['vertical-geometry-diagram__text-stroke-wide']}
                     transform={`translate(${textStartX},${textStartY}) rotate(${angle}) scale(${angleTextScale})`}>
                     {(nextGeo.point.station - geo.point.station).toLocaleString(undefined, {
                         maximumFractionDigits: 3,
@@ -181,6 +173,18 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                 </text>,
             );
         }
+
+        pvis.push(
+            <line
+                key={pviKey++}
+                x1={mToX(coordinates, geo.point.station)}
+                x2={mToX(coordinates, nextGeo.point.station)}
+                y1={heightToY(coordinates, geo.point.height) - pviAssistLineHeightPx}
+                y2={heightToY(coordinates, nextGeo.point.height) - pviAssistLineHeightPx}
+                stroke="black"
+                fill="none"
+            />,
+        );
     }
     for (let i = leftPviI; i <= rightPviI; i++) {
         const geo = geometry[i];
@@ -191,61 +195,20 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
         const bottomY = heightToY(coordinates, bottomHeight);
         const topY = heightToY(coordinates, geo.point.height) - pviAssistLineHeightPx;
 
-        pvis.push(
-            <line key={pviKey++} x1={x} x2={x} y1={bottomY} y2={topY} stroke="black" fill="none" />,
-        );
         const diamondHeight = 5;
         const diamondWidth = 2;
-        const diamondPoints = polylinePoints([
-            [x, topY],
-            [x - diamondWidth, topY - diamondHeight],
-            [x, topY - 2 * diamondHeight],
-            [x + diamondWidth, topY - diamondHeight],
-            [x, topY],
-        ]);
-
-        pvis.push(<polyline key={pviKey++} points={diamondPoints} fill="black" stroke="black" />);
 
         const minimumSpaceAroundPointPx =
             Math.min(
                 ...[
-                    i === 0 ? null : geo.point.station - geometry[i - 1].point.station,
+                    i === 0 ? undefined : geo.point.station - geometry[i - 1].point.station,
                     i === geometry.length - 1
-                        ? null
+                        ? undefined
                         : geometry[i + 1].point.station - geo.point.station,
                 ].filter(filterNotEmpty),
             ) * coordinates.mMeterLengthPxOverM;
 
-        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels) {
-            if (geo.point.address != null) {
-                pvis.push(
-                    <text
-                        key={pviKey++}
-                        transform={`translate(${x - 8},${topY - 4}) rotate(-90) scale(0.7)`}>
-                        KM {formatTrackMeterWithoutMeters(geo.point.address)}
-                    </text>,
-                );
-            }
-            pvis.push(
-                <text
-                    key={pviKey++}
-                    transform={`translate(${x + 10},${bottomY - 4}) rotate(-90) scale(0.7)`}>
-                    kt={geo.point.height.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                </text>,
-            );
-        }
-        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointTopLabel) {
-            pvis.push(
-                <text
-                    key={pviKey++}
-                    transform={`translate(${x + diamondWidth},${
-                        topY - diamondHeight - 10
-                    }) rotate(-90) scale(0.6)`}>
-                    S={geo.radius}
-                </text>,
-            );
-        }
-        if (geo.tangent !== null && drawTangentArrows) {
+        if (drawTangentArrows) {
             pvis.push(
                 tangentArrow(
                     true,
@@ -269,6 +232,54 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                     pviKey++,
                     coordinates,
                 ),
+            );
+        }
+
+        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels) {
+            if (geo.point.address) {
+                pvis.push(
+                    <text
+                        className={styles['vertical-geometry-diagram__text-stroke-wide']}
+                        key={pviKey++}
+                        transform={`translate(${x - 8},${topY - 4}) rotate(-90) scale(0.7)`}>
+                        KM {formatTrackMeterWithoutMeters(geo.point.address)}
+                    </text>,
+                );
+            }
+            pvis.push(
+                <text
+                    className={styles['vertical-geometry-diagram__text-stroke-wide']}
+                    key={pviKey++}
+                    transform={`translate(${x + 10},${bottomY - 4}) rotate(-90) scale(0.7)`}>
+                    kt={geo.point.height.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </text>,
+            );
+        }
+
+        pvis.push(
+            <line key={pviKey++} x1={x} x2={x} y1={bottomY} y2={topY} stroke="black" fill="none" />,
+        );
+
+        const diamondPoints = polylinePoints([
+            [x, topY],
+            [x - diamondWidth, topY - diamondHeight],
+            [x, topY - 2 * diamondHeight],
+            [x + diamondWidth, topY - diamondHeight],
+            [x, topY],
+        ]);
+
+        pvis.push(<polyline key={pviKey++} points={diamondPoints} fill="black" stroke="black" />);
+
+        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointTopLabel) {
+            pvis.push(
+                <text
+                    key={pviKey++}
+                    className={styles['vertical-geometry-diagram__text-stroke-wide']}
+                    transform={`translate(${x + diamondWidth},${
+                        topY - diamondHeight - 10
+                    }) rotate(-90) scale(0.6)`}>
+                    S={geo.radius}
+                </text>,
             );
         }
     }

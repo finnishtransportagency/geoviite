@@ -45,8 +45,8 @@ export type InfraModelState = {
     map: Map;
     infraModelList: InfraModelListState;
     selection: Selection;
-    validationResponse: ValidationResponse | null;
-    file: SerializableFile | undefined;
+    validationResponse?: ValidationResponse;
+    file?: SerializableFile;
     extraInfraModelParameters: ExtraInfraModelParameters;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     validationErrors: ValidationError<InfraModelParameters>[];
@@ -55,23 +55,23 @@ export type InfraModelState = {
 };
 
 export type ExtraInfraModelParameters = {
-    planPhase: PlanPhase | undefined;
-    decisionPhase: DecisionPhase | undefined;
-    measurementMethod: MeasurementMethod | undefined;
-    elevationMeasurementMethod: ElevationMeasurementMethod | undefined;
-    message: Message | undefined;
+    planPhase?: PlanPhase;
+    decisionPhase?: DecisionPhase;
+    measurementMethod?: MeasurementMethod;
+    elevationMeasurementMethod?: ElevationMeasurementMethod;
+    message?: Message;
 };
 
 export type XmlCharset = 'US_ASCII' | 'UTF_16LE' | 'UTF_16' | 'UTF_16BE' | 'UTF_8' | 'ISO_8859_1';
 export type OverrideInfraModelParameters = {
-    coordinateSystemSrid: Srid | undefined;
+    coordinateSystemSrid?: Srid;
     projectId?: ProjectId;
     authorId?: AuthorId;
-    verticalCoordinateSystem: VerticalCoordinateSystem | undefined;
+    verticalCoordinateSystem?: VerticalCoordinateSystem;
     trackNumberId?: LayoutTrackNumberId;
-    createdDate: Date | undefined;
+    createdDate?: Date;
     encoding?: XmlCharset;
-    source: PlanSource | undefined;
+    source?: PlanSource;
 };
 
 export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraModelParameters;
@@ -79,11 +79,6 @@ export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraMode
 export type InfraModelParametersProp = keyof InfraModelParameters;
 
 export type LocalizationKey = string;
-
-export type OnPlanValidated = {
-    plan: GeometryPlan | null;
-    planLayout: GeometryPlanLayout | null;
-};
 
 export type ErrorType =
     | 'REQUEST_ERROR'
@@ -99,8 +94,8 @@ export interface CustomValidationError {
 
 export interface ValidationResponse {
     validationErrors: CustomValidationError[];
-    geometryPlan: GeometryPlan | null;
-    planLayout: GeometryPlanLayout | null;
+    geometryPlan?: GeometryPlan;
+    planLayout?: GeometryPlanLayout;
 }
 
 const visibleMapLayers: MapLayerName[] = [
@@ -125,7 +120,7 @@ export const initialInfraModelState: InfraModelState = {
         ...initialSelectionState,
         selectionModes: ['segment', 'switch'],
     },
-    validationResponse: null,
+    validationResponse: undefined,
     file: undefined,
     extraInfraModelParameters: {
         planPhase: undefined,
@@ -174,7 +169,7 @@ const infraModelSlice = createSlice({
         ) {
             state.extraInfraModelParameters[propEdit.key] = propEdit.value;
             state.validationErrors = validateParams(
-                state.validationResponse?.geometryPlan || null,
+                state.validationResponse?.geometryPlan,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
@@ -192,7 +187,7 @@ const infraModelSlice = createSlice({
         ) => {
             state.overrideInfraModelParameters = { ...payload };
             state.validationErrors = validateParams(
-                state.validationResponse?.geometryPlan || null,
+                state.validationResponse?.geometryPlan,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
@@ -217,14 +212,14 @@ const infraModelSlice = createSlice({
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
             state.validationErrors = validateParams(
-                state.validationResponse?.geometryPlan || null,
+                state.validationResponse?.geometryPlan,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
         },
         setExistingInfraModel: (
             state: InfraModelState,
-            { payload: plan }: PayloadAction<GeometryPlan | null>,
+            { payload: plan }: PayloadAction<GeometryPlan | undefined>,
         ) => {
             state.extraInfraModelParameters = {
                 planPhase: plan?.planPhase ?? undefined,
@@ -273,7 +268,7 @@ function createError<TEntity>(field: keyof TEntity, reason: string, type: Valida
 }
 
 function validateParams(
-    plan: GeometryPlan | null,
+    plan: GeometryPlan | undefined,
     extraParams: ExtraInfraModelParameters,
     overrideParams: OverrideInfraModelParameters,
 ): ValidationError<InfraModelParameters>[] {

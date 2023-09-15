@@ -24,7 +24,7 @@ export type PVDocument = {
     id: PVDocumentId;
     oid: Oid;
     name: string;
-    description: string | null;
+    description?: string;
     type: string;
     state: string;
     category: string;
@@ -36,9 +36,9 @@ export type PVDocument = {
 export type PVDocumentId = string;
 
 export type PVDocumentHeader = {
-    project: PVProject | null;
-    projectGroup: PVProjectGroup | null;
-    assignment: PVAssignment | null;
+    project?: PVProject;
+    projectGroup?: PVProjectGroup;
+    assignment?: PVAssignment;
     document: PVDocument;
 };
 

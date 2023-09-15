@@ -12,11 +12,11 @@ export enum RatkoPushStatus {
     IN_PROGRESS_M_VALUES = 'IN_PROGRESS_M_VALUES',
 }
 
-export function ratkoPushFailed(status: RatkoPushStatus | null) {
+export function ratkoPushFailed(status: RatkoPushStatus | undefined) {
     return status === RatkoPushStatus.FAILED || status === RatkoPushStatus.CONNECTION_ISSUE;
 }
 
-export function ratkoPushInProgress(status: RatkoPushStatus | null) {
+export function ratkoPushInProgress(status: RatkoPushStatus | undefined) {
     return (
         status === RatkoPushStatus.IN_PROGRESS || status === RatkoPushStatus.IN_PROGRESS_M_VALUES
     );

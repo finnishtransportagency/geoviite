@@ -15,8 +15,8 @@ import * as React from 'react';
 import {
     GeometryPlanHeader,
     GeometryPlanId,
-    SortByValue,
-    SortOrderValue,
+    GeometrySortBy,
+    GeometrySortOrder,
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { useMapState, useSetState } from 'utils/react-utils';
@@ -92,8 +92,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
                 selectedTrackNumbers,
                 undefined,
-                SortByValue.UPLOADED_AT,
-                SortOrderValue.ASCENDING,
+                GeometrySortBy.UPLOADED_AT,
+                GeometrySortOrder.ASCENDING,
             ).then((page) => {
                 setPlanHeadersInView(page.items);
                 setPlanHeaderCount(page.totalCount);
@@ -231,8 +231,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                planLayout={loadedPlans.get(h.id)?.planLayout ?? null}
-                                linkStatus={loadedPlans.get(h.id)?.linkStatus ?? null}
+                                planLayout={loadedPlans.get(h.id)?.planLayout}
+                                linkStatus={loadedPlans.get(h.id)?.linkStatus}
                                 planBeingLoaded={plansBeingLoaded.has(h.id)}
                                 loadPlanLayout={() => loadPlanLayout(h.id)}
                             />

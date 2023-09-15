@@ -226,7 +226,7 @@ export async function getVisiblePlansWithStatus(
 }
 
 export async function getPlanAndStatus(
-    plan: GeometryPlanLayout | null,
+    plan: GeometryPlanLayout | undefined,
     publishType: PublishType,
 ): Promise<PlanAndStatus | undefined> {
     if (!plan) return undefined;

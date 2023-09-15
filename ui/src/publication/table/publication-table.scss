@@ -1,17 +1,12 @@
 @import 'vayla-design-lib/colors';
 
 .publication-table {
-    overflow-y: auto;
-    height: 100%;
+    position: relative;
 
     &__table-header {
         position: sticky;
         top: 0;
         z-index: 1;
-    }
-
-    &__count-header {
-        margin-bottom: 12px;
     }
 
     &__message-column {
@@ -42,10 +37,6 @@
         }
     }
 
-    &__table-container {
-        position: relative;
-    }
-
     &__row-details {
         &--borderless > td {
             border: none;
@@ -62,7 +53,6 @@
             left: 24px;
             height: 100%;
             background-color: $color-blue-default;
-            z-index: 1;
         }
     }
 }

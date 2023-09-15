@@ -110,7 +110,6 @@ export const initialMapState: Map = {
         },
         resolution: 20,
     },
-    clickLocation: null,
     verticalGeometryDiagramState: initialVerticalGeometryDiagramState,
     loadingIndicatorVisible: false,
 };

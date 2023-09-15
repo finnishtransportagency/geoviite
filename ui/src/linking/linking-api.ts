@@ -71,7 +71,7 @@ export const getSuggestedContinuousLocationTracks = async (
 
 export const linkGeometryWithReferenceLine = async (
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<ReferenceLineId | null> => {
+): Promise<ReferenceLineId | undefined> => {
     const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry'),
         parameters,
@@ -82,7 +82,7 @@ export const linkGeometryWithReferenceLine = async (
 
 export const linkGeometryWithLocationTrack = async (
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<LocationTrackId | null> => {
+): Promise<LocationTrackId | undefined> => {
     const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, LocationTrackId>(
         linkingUri('location-tracks', 'geometry'),
         parameters,
@@ -93,7 +93,7 @@ export const linkGeometryWithLocationTrack = async (
 
 export const linkGeometryWithEmptyReferenceLine = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<ReferenceLineId | null> => {
+): Promise<ReferenceLineId | undefined> => {
     const response = await postIgnoreError<
         LinkingGeometryWithEmptyAlignmentParameters,
         ReferenceLineId
@@ -104,7 +104,7 @@ export const linkGeometryWithEmptyReferenceLine = async (
 
 export const linkGeometryWithEmptyLocationTrack = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<LocationTrackId | null> => {
+): Promise<LocationTrackId | undefined> => {
     const response = await postIgnoreError<
         LinkingGeometryWithEmptyAlignmentParameters,
         LocationTrackId
@@ -116,7 +116,7 @@ export const linkGeometryWithEmptyLocationTrack = async (
 export async function updateReferenceLineGeometry(
     id: ReferenceLineId,
     mRange: Range<number>,
-): Promise<ReferenceLineId | null> {
+): Promise<ReferenceLineId | undefined> {
     const result = await putIgnoreError<Range<number>, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry', id),
         mRange,
@@ -128,7 +128,7 @@ export async function updateReferenceLineGeometry(
 export async function updateLocationTrackGeometry(
     id: LocationTrackId,
     mRange: Range<number>,
-): Promise<LocationTrackId | null> {
+): Promise<LocationTrackId | undefined> {
     const result = await putIgnoreError<Range<number>, LocationTrackId>(
         linkingUri('location-tracks', 'geometry', id),
         mRange,
@@ -227,13 +227,13 @@ export async function linkSwitch(params: SwitchLinkingParameters): Promise<Layou
 
 export async function createSuggestedSwitch(
     params: SuggestedSwitchCreateParams,
-): Promise<SuggestedSwitch | null> {
+): Promise<SuggestedSwitch | undefined> {
     return postIgnoreError<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
         linkingUri('switches', 'suggested'),
         params,
     ).then((switches) => {
         const s = switches && switches[0];
-        return s ? { ...s, id: getSuggestedSwitchId(s) } : null;
+        return s ? { ...s, id: getSuggestedSwitchId(s) } : undefined;
     });
 }
 

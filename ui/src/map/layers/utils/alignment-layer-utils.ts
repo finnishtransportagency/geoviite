@@ -199,7 +199,7 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
     switch (alignment.alignmentType) {
         case 'REFERENCE_LINE': {
             const tnId = alignment.trackNumberId;
-            return tnId != null && selection.trackNumbers.includes(tnId);
+            return tnId != undefined && selection.trackNumbers.includes(tnId);
         }
         case 'LOCATION_TRACK': {
             return selection.locationTracks.includes(alignment.id);

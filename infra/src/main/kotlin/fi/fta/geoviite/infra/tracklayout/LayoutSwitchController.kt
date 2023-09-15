@@ -44,8 +44,7 @@ class LayoutSwitchController(
             "limit" to limit, "comparisonPoint" to comparisonPoint, "switchType" to switchType
         )
         val filter = switchService.switchFilter(name, switchType, bbox, includeSwitchesWithNoJoints)
-        val switches = switchService.list(publishType, filter)
-        return switchService.pageSwitches(switches, offset ?: 0, limit, comparisonPoint)
+        return switchService.pageSwitchesByFilter(publishType, filter, offset, limit, comparisonPoint)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

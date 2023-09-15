@@ -30,7 +30,7 @@ export async function getAddress(
     trackNumberId: LayoutTrackNumberId,
     coordinate: Point,
     publishType: PublishType,
-): Promise<TrackMeter | null> {
+): Promise<TrackMeter | undefined> {
     const params = queryParams({
         coordinate: pointString(coordinate),
     });
@@ -44,6 +44,6 @@ export async function getAddressPoints(
     publishType: PublishType,
 ): Promise<AlignmentAddresses | undefined> {
     return getIgnoreError(`${geocodingUri(publishType)}/address-pointlist/${locationTrackId}`).then(
-        (data: AlignmentAddresses | undefined | null) => (data ? data : undefined),
+        (data: AlignmentAddresses | undefined) => data,
     );
 }

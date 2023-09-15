@@ -48,6 +48,10 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     const endDateErrors =
         startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
 
+    const truncated =
+        pagedPublications !== undefined &&
+        pagedPublications.totalCount !== pagedPublications.items.length;
+
     return (
         <div className={styles['publication-log']}>
             <div className={styles['publication-log__title']}>
@@ -56,42 +60,59 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                     {' > ' + t('publication-log.breadcrumbs-text')}
                 </span>
             </div>
-            <div className={styles['publication-log__actions']}>
-                <FieldLayout
-                    label={t('publication-log.start-date')}
-                    value={
-                        <DatePicker
-                            value={startDate}
-                            onChange={(startDate) => setStartDate(startDate)}
-                        />
-                    }
-                />
-                <FieldLayout
-                    label={t('publication-log.end-date')}
-                    value={
-                        <DatePicker value={endDate} onChange={(endDate) => setEndDate(endDate)} />
-                    }
-                    errors={endDateErrors}
-                />
-                <div className={styles['publication-log__export_button']}>
-                    <Button
-                        icon={Icons.Download}
-                        onClick={() =>
-                            (location.href = getPublicationsCsvUri(
-                                startDate,
-                                endDate && endOfDay(endDate),
-                                sortInfo?.propName,
-                                sortInfo?.direction,
-                            ))
-                        }>
-                        {t('publication-log.export-csv')}
-                    </Button>
+            <div className={styles['publication-log__content']}>
+                <div className={styles['publication-log__actions']}>
+                    <FieldLayout
+                        label={t('publication-log.start-date')}
+                        value={
+                            <DatePicker
+                                value={startDate}
+                                onChange={(startDate) => setStartDate(startDate)}
+                            />
+                        }
+                    />
+                    <FieldLayout
+                        label={t('publication-log.end-date')}
+                        value={
+                            <DatePicker
+                                value={endDate}
+                                onChange={(endDate) => setEndDate(endDate)}
+                            />
+                        }
+                        errors={endDateErrors}
+                    />
+                    <div className={styles['publication-log__export_button']}>
+                        <Button
+                            icon={Icons.Download}
+                            onClick={() =>
+                                (location.href = getPublicationsCsvUri(
+                                    startDate,
+                                    endDate && endOfDay(endDate),
+                                    sortInfo?.propName,
+                                    sortInfo?.direction,
+                                ))
+                            }>
+                            {t('publication-log.export-csv')}
+                        </Button>
+                    </div>
                 </div>
-            </div>
-            <div className={styles['publication-log__table']}>
+                <div className={styles['publication-log__count-header']}>
+                    <span
+                        title={
+                            truncated
+                                ? t('publication-table.truncated', {
+                                      number: pagedPublications?.items?.length || 0,
+                                  })
+                                : ''
+                        }>
+                        {t('publication-table.count-header', {
+                            number: pagedPublications?.items?.length || 0,
+                            truncated: truncated ? '+' : '',
+                        })}
+                    </span>
+                </div>
                 <PublicationTable
                     isLoading={isLoading}
-                    truncated={pagedPublications?.totalCount != pagedPublications?.items.length}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}

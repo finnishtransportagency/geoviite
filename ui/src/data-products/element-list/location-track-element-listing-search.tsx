@@ -24,6 +24,7 @@ import {
     selectedElementTypes,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
+import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -50,7 +51,19 @@ const LocationTrackElementListingSearch = ({
     const getLocationTracks = React.useCallback(
         (searchTerm) =>
             debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
-                getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
+                getLocationTrackDescriptions(
+                    locationTracks.map((lt) => lt.id),
+                    'OFFICIAL',
+                ).then(
+                    (descriptions) =>
+                        (descriptions &&
+                            getLocationTrackOptions(
+                                locationTracks,
+                                descriptions,
+                                state.searchParameters.locationTrack,
+                            )) ??
+                        [],
+                ),
             ),
         [state.searchParameters.locationTrack],
     );

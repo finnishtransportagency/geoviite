@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.configuration
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -97,6 +98,7 @@ class WebConfig : WebMvcConfigurer {
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
+        builder.serializationInclusion(JsonInclude.Include.NON_NULL)
         converters.add(MappingJackson2HttpMessageConverter(builder.build()))
         converters.add(ByteArrayHttpMessageConverter())
     }

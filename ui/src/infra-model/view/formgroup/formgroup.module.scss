@@ -35,8 +35,29 @@
     }
 
     &__edit-icon {
+        display: flex;
+        align-items: center;
         padding: 0 5px;
         cursor: pointer;
         margin-right: 20px;
+    }
+
+    &__textarea {
+        display: flex;
+        flex: 1;
+    }
+
+    &__textarea-content {
+        flex: 1;
+        margin-right: 10px;
+    }
+
+    &__textarea-content textarea {
+        overflow-y: hidden;
+    }
+
+    &__paragraph-with-linebreaks {
+        white-space: pre-line;
+        word-break: break-all;
     }
 }

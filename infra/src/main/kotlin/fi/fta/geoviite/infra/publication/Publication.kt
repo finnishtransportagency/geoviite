@@ -253,8 +253,12 @@ data class PublishValidationError(
     val localizationKey: LocalizationKey,
     val params: List<String> = listOf(),
 ) {
-    constructor(type: PublishValidationErrorType, localizationKey: String, params: List<String> = listOf()) : this(
-        type, LocalizationKey(localizationKey), params
+    constructor(
+        type: PublishValidationErrorType,
+        localizationKey: String,
+        params: List<CharSequence> = listOf(),
+    ) : this(
+        type, LocalizationKey(localizationKey), params.map(CharSequence::toString)
     )
 }
 
@@ -356,7 +360,8 @@ data class Change<T>(
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
     val name: Change<AlignmentName>,
-    val description: Change<FreeText>,
+    val descriptionBase: Change<FreeText>,
+    val descriptionSuffix: Change<DescriptionSuffixType>,
     val state: Change<LayoutState>,
     val duplicateOf: Change<IntId<LocationTrack>>,
     val type: Change<LocationTrackType>,

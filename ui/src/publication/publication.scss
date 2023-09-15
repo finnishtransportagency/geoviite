@@ -4,8 +4,8 @@
 
 .publication-details {
     display: flex;
-    flex: 1;
     flex-direction: column;
+    width: 100%;
 
     &__title {
         @include typography-body;
@@ -21,6 +21,22 @@
         white-space: pre;
     }
 
+    &__content {
+        padding: 0 24px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: auto;
+    }
+
+    .publication-table {
+        overflow: auto;
+    }
+
+    &__count-header {
+        margin-bottom: 12px;
+    }
+
     &__footer {
         @include shadow-8dp;
         display: flex;
@@ -28,6 +44,7 @@
         justify-content: center;
 
         height: 68px;
+        z-index: 1;
     }
 
     &__failure-notification {
@@ -46,11 +63,5 @@
         &--error {
             fill: $color-red-default;
         }
-    }
-
-    &__content {
-        background: $color-white-default;
-        padding: 24px;
-        flex-grow: 1;
     }
 }

@@ -2,6 +2,7 @@ import {
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutLocationTrackDuplicate,
+    LocationTrackDescription,
     LocationTrackId,
     SwitchesAtEnds,
 } from 'track-layout/track-layout-model';
@@ -31,14 +32,15 @@ import {
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
+import i18next from 'i18next';
 
-const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
+const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
-const locationTrackSwitchesAtEndsCache = asyncCache<string, SwitchesAtEnds | null>();
+const locationTrackSwitchesAtEndsCache = asyncCache<string, SwitchesAtEnds | undefined>();
 
 type PlanSectionPoint = {
     address: TrackMeter;
@@ -61,7 +63,7 @@ export async function getLocationTrack(
     id: LocationTrackId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
-): Promise<LayoutLocationTrack | null> {
+): Promise<LayoutLocationTrack | undefined> {
     return locationTrackCache.get(changeTime, cacheKey(id, publishType), () =>
         getIgnoreError<LayoutLocationTrack>(layoutUri('location-tracks', publishType, id)),
     );
@@ -72,15 +74,26 @@ export async function getLocationTracksBySearchTerm(
     publishType: PublishType,
     limit: number,
 ): Promise<LayoutLocationTrack[]> {
-    if (isNullOrBlank(searchTerm)) return [];
+    if (isNilOrBlank(searchTerm)) return [];
 
     const params = queryParams({
         searchTerm: searchTerm,
         limit: limit,
+        lang: i18next.language,
     });
     return await getWithDefault<LayoutLocationTrack[]>(
         `${layoutUri('location-tracks', publishType)}${params}`,
         [],
+    );
+}
+
+export async function getLocationTrackDescriptions(
+    locationTrackIds: LocationTrackId[],
+    publishType: PublishType,
+): Promise<LocationTrackDescription[] | undefined> {
+    const params = queryParams({ ids: locationTrackIds.join(',') });
+    return getIgnoreError<LocationTrackDescription[]>(
+        `${layoutUri('location-tracks', publishType)}/description/${params}`,
     );
 }
 
@@ -98,7 +111,7 @@ export async function getLocationTrackSwitchesAtEnds(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
     changeTime: TimeStamp,
-): Promise<SwitchesAtEnds | null> {
+): Promise<SwitchesAtEnds | undefined> {
     return locationTrackSwitchesAtEndsCache.get(
         changeTime,
         cacheKey(locationTrackId, publishType),
@@ -189,7 +202,7 @@ export async function getLocationTracks(
                     `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
-                    return (id) => trackMap.get(id) ?? null;
+                    return (id) => trackMap.get(id);
                 }),
         )
         .then((tracks) => tracks.filter(filterNotEmpty));
@@ -202,7 +215,9 @@ export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[
     );
 }
 
-export const getLocationTrackChangeTimes = (id: LocationTrackId): Promise<ChangeTimes | null> => {
+export const getLocationTrackChangeTimes = (
+    id: LocationTrackId,
+): Promise<ChangeTimes | undefined> => {
     return getIgnoreError<ChangeTimes>(changeTimeUri('location-tracks', id));
 };
 

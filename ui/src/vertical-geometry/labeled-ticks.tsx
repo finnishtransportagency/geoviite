@@ -3,16 +3,18 @@ import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import { Translate } from 'vertical-geometry/translate';
 import { lineGridStrokeColor } from 'vertical-geometry/height-lines';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
-import { TrackKmHeights } from 'geometry/geometry-api';
+import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
 import {
     minimumInterval,
     minimumIntervalOrLongest,
     minimumLabeledTickDistancePx,
 } from 'vertical-geometry/ticks-at-intervals';
+import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
 export interface LabeledTicksProps {
     trackKmHeights: TrackKmHeights[];
     coordinates: Coordinates;
+    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
 }
 
 const TickLabel: React.FC<{
@@ -25,7 +27,9 @@ const TickLabel: React.FC<{
     return (
         <>
             <Translate x={x - 50} y={coordinates.fullDiagramHeightPx - (meter === 0 ? 3 : 8)}>
-                <text scale="0.7 0.7">
+                <text
+                    className={styles['vertical-geometry-diagram__text-stroke-narrow']}
+                    scale="0.7 0.7">
                     KM{' '}
                     {formatTrackMeterWithoutMeters({
                         kmNumber,
@@ -47,7 +51,63 @@ const TickLabel: React.FC<{
     );
 };
 
-export const LabeledTicks: React.FC<LabeledTicksProps> = ({ trackKmHeights, coordinates }) => {
+const LinkingDivider: React.FC<{
+    coordinates: Coordinates;
+    dividerPositionX: number;
+}> = ({ coordinates, dividerPositionX }) => {
+    return (
+        <line
+            x1={dividerPositionX}
+            x2={dividerPositionX}
+            y1={0}
+            y2={coordinates.fullDiagramHeightPx}
+            stroke="black"
+            fill="none"
+            shapeRendering="crispEdges"
+        />
+    );
+};
+
+const PlanLinkingDividers: React.FC<{
+    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
+    coordinates: Coordinates;
+}> = ({ planLinkingSummary, coordinates }) => {
+    return (
+        <>
+            {planLinkingSummary
+                ?.filter(
+                    (summary) =>
+                        summary.startM <= coordinates.endM && summary.endM >= coordinates.startM,
+                )
+                .map((summary, i) => {
+                    const planStartTickPosition = mToX(coordinates, summary.startM);
+
+                    return (
+                        <React.Fragment key={i}>
+                            <LinkingDivider
+                                coordinates={coordinates}
+                                dividerPositionX={planStartTickPosition}
+                            />
+
+                            {/* The last plan linking summary won't have the divider that starts the next one. */}
+                            {i == planLinkingSummary.length - 1 && (
+                                <LinkingDivider
+                                    coordinates={coordinates}
+                                    dividerPositionX={mToX(coordinates, summary.endM)}
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+        </>
+    );
+};
+
+export const LabeledTicks: React.FC<LabeledTicksProps> = ({
+    trackKmHeights,
+    coordinates,
+    planLinkingSummary,
+}) => {
     // avoid rendering too far off the screen for performance
     const startM = coordinates.startM - 80 / coordinates.mMeterLengthPxOverM;
     const endM = coordinates.endM + 25 / coordinates.mMeterLengthPxOverM;
@@ -64,6 +124,11 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({ trackKmHeights, coor
 
     return (
         <>
+            <PlanLinkingDividers
+                planLinkingSummary={planLinkingSummary}
+                coordinates={coordinates}
+            />
+
             {trackKmHeights
                 .filter(
                     ({ kmNumber }) =>

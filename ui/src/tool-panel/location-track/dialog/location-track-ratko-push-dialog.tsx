@@ -54,7 +54,7 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
         props.locationTrackChangeTime,
     );
 
-    const startAndEndPoints = useLocationTrackStartAndEnd(
+    const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         'OFFICIAL',
         props.locationTrackChangeTime,

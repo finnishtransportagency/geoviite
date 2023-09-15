@@ -33,8 +33,6 @@ const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
-const val MATH_POINT_JOINT_NUMBER = 5
-
 fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<PublishValidationError> =
     listOfNotNull(
         validate(trackNumber.state.isPublishable()) { "$VALIDATION_TRACK_NUMBER.state.${trackNumber.state}" }
@@ -75,11 +73,9 @@ fun validateTrackNumberReferences(
     },
 )
 
+//Location is validated by GeocodingContext
 fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidationError> =
-    listOfNotNull(
-        validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" },
-        validate(kmPost.location != null) { "$VALIDATION_KM_POST.no-location" },
-    )
+    listOfNotNull(validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" })
 
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
@@ -124,6 +120,12 @@ fun validateSwitchLocationTrackLinkReferences(
                 "$VALIDATION_SWITCH.location-track.reference-deleted" to listOf(existingNames)
             }
         }
+)
+
+fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationError> = listOfNotNull(
+    validate(switch.joints.isNotEmpty()) {
+        "$VALIDATION_SWITCH.no-location"
+    }
 )
 
 fun validateSwitchLocationTrackLinkStructure(
@@ -182,8 +184,7 @@ private fun validateSwitchTopologicalConnectivity(
     val connectivityType = switchConnectivityType(structure)
     val nonDuplicateTracks = locationTracks.filter { it.first.duplicateOf == null }
 
-    val tracksThroughNonMathJoint = structure.joints.map { it.number }
-        .filter { it.intValue != MATH_POINT_JOINT_NUMBER }
+    val tracksThroughJoint = structure.joints.map { it.number }
         .associateWith { jointNumber ->
             nonDuplicateTracks.filter { (_, alignment) ->
                 val jointLinkedIndexRange = alignment.segments.mapIndexedNotNull { i, segment ->
@@ -194,21 +195,21 @@ private fun validateSwitchTopologicalConnectivity(
         }
 
     return listOfNotNull(
-        validateFrontJointTopology(switch.id, tracksThroughNonMathJoint, connectivityType, locationTracks),
-        validateExcessTracksThroughJoint(tracksThroughNonMathJoint),
+        validateFrontJointTopology(switch.id, tracksThroughJoint, connectivityType, locationTracks),
+        validateExcessTracksThroughJoint(connectivityType, tracksThroughJoint),
         validateSwitchAlignmentTopology(switch.id, connectivityType, nonDuplicateTracks),
     )
 }
 
 private fun validateFrontJointTopology(
     switchId: DomainId<TrackLayoutSwitch>,
-    tracksThroughNonMathJoint: Map<JointNumber, List<LocationTrack>>,
+    tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
     connectivityType: SwitchConnectivityType,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): PublishValidationError? {
     val tracksThroughFrontJoint = if (connectivityType.frontJoint == null) {
         listOf()
-    } else tracksThroughNonMathJoint.getOrDefault(connectivityType.frontJoint, listOf())
+    } else tracksThroughJoint.getOrDefault(connectivityType.frontJoint, listOf())
 
     fun tracksHaveOkFrontJointLink(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
         tracks.any { (locationTrack, _) ->
@@ -232,9 +233,11 @@ private fun validateFrontJointTopology(
 }
 
 private fun validateExcessTracksThroughJoint(
-    tracksThroughNonMathJoint: Map<JointNumber, List<LocationTrack>>,
+    connectivityType: SwitchConnectivityType,
+    tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
 ): PublishValidationError? {
-    val excesses = tracksThroughNonMathJoint.filter { (_, tracks) -> tracks.size > 1 }
+    val excesses =
+        tracksThroughJoint.filter { (joint, tracks) -> joint != connectivityType.sharedJoint && tracks.size > 1 }
     return validateWithParams(excesses.isEmpty(), WARNING) {
         "$VALIDATION_SWITCH.track-linkage.multiple-tracks-through-joint" to listOf(excesses.entries
             .sortedBy { (jointNumber, _) -> jointNumber.intValue }

@@ -4,7 +4,7 @@ import {
     LayoutState,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
-import { isEmpty, isEqualWithoutWhitespace, isNullOrBlank } from 'utils/string-utils';
+import { isEmpty, isEqualWithoutWhitespace, isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     isPropEditFieldCommitted,
@@ -73,7 +73,7 @@ function validateTrackNumberEdit(
 ): ValidationError<TrackNumberSaveRequest>[] {
     const mandatoryFieldErrors = ['number', 'description', 'state', 'startAddress'].map(
         (prop: keyof TrackNumberSaveRequest) => {
-            if (isNullOrBlank(state.request[prop])) {
+            if (isNilOrBlank(state.request[prop])) {
                 return {
                     field: prop,
                     reason: `track-number-edit.error.mandatory-empty-${prop}`,
@@ -90,7 +90,7 @@ function validateTrackNumberEdit(
                   reason: `track-number-edit.error.invalid-${validation.field}`,
                   type: ValidationErrorType.ERROR,
               }
-            : null;
+            : undefined;
     });
     const existingTrackNumber = state.existingTrackNumbers.find((tn) =>
         isEqualWithoutWhitespace(tn.number, state.request.number),
@@ -102,7 +102,7 @@ function validateTrackNumberEdit(
                   reason: 'track-number-edit.error.duplicate-number',
                   type: ValidationErrorType.ERROR,
               }
-            : null,
+            : undefined,
     ];
     return [...mandatoryFieldErrors, ...regexErrors, ...otherErrors].filter(filterNotEmpty);
 }

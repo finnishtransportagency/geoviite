@@ -102,7 +102,7 @@ function createAlignmentFeature(
         feature.setStyle(styles);
 
         setAlignmentFeatureProperty(feature, {
-            trackNumber: null,
+            trackNumber: undefined,
             header: alignment.header,
             points: alignment.points,
             planId: planId,

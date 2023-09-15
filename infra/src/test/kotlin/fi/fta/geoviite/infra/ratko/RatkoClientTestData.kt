@@ -21,7 +21,8 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
     )
     return LocationTrack(
         name = AlignmentName("PTS 102"),
-        description = FreeText("Pietarsaari raide: 102 V111 - V114"),
+        descriptionBase = FreeText("Pietarsaari raide: 102 V111 - V114"),
+        descriptionSuffix = DescriptionSuffixType.NONE,
         type = LocationTrackType.SIDE,
         state = LayoutState.IN_USE,
         trackNumberId = IntId(70),
