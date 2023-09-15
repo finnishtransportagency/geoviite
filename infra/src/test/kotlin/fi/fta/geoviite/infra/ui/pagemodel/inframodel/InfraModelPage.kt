@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
-import waitUntilVisible
 
 class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
@@ -40,7 +39,7 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
     }
 
     private fun waitForInfraModelForm(): E2EInfraModelForm {
-        waitUntilVisible(By.className("infra-model-upload__form-column"))
+        waitChildVisible(By.className("infra-model-upload__form-column"))
         return E2EInfraModelForm()
     }
 
