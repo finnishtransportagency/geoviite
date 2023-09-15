@@ -59,7 +59,7 @@ async function getStartAndEnd(alignmentId: VerticalGeometryDiagramAlignmentId) {
 async function getVerticalGeometry(
     changeTimes: ChangeTimes,
     alignmentId: VerticalGeometryDiagramAlignmentId,
-): Promise<VerticalGeometryItem[] | null | undefined> {
+): Promise<VerticalGeometryItem[] | undefined> {
     return 'planId' in alignmentId
         ? getGeometryPlanVerticalGeometry(changeTimes.geometryPlan, alignmentId.planId).then(
               (geometries) => geometries?.filter((g) => g.alignmentId == alignmentId.alignmentId),

@@ -16,7 +16,10 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
 }) => {
     const { t } = useTranslation();
 
-    function formatValue(value: string | boolean | null, enumKey: string | null): string | null {
+    function formatValue(
+        value: string | boolean | undefined,
+        enumKey: string | undefined,
+    ): string | undefined {
         if (typeof value === 'boolean') {
             return value ? t('yes') : t('no');
         } else if (enumKey && value) {

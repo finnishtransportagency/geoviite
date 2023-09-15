@@ -27,7 +27,7 @@ import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 // TODO: GVT-2014 this should be a cache with nullable values as a km-post might not exist in valid situations
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
-const kmPostCache = asyncCache<string, LayoutKmPost | null>();
+const kmPostCache = asyncCache<string, LayoutKmPost | undefined>();
 
 const cacheKey = (id: LayoutKmPostId, publishType: PublishType) => `${id}_${publishType}`;
 
@@ -35,7 +35,7 @@ export async function getKmPost(
     id: LayoutKmPostId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
-): Promise<LayoutKmPost | null> {
+): Promise<LayoutKmPost | undefined> {
     return kmPostCache.get(changeTime, cacheKey(id, publishType), () =>
         getIgnoreError<LayoutKmPost>(layoutUri('km-posts', publishType, id)),
     );
@@ -56,7 +56,7 @@ export async function getKmPosts(
                     `${layoutUri('km-posts', publishType)}?ids=${fetchIds}`,
                 ).then((kmPosts) => {
                     const kmPostMap = indexIntoMap(kmPosts);
-                    return (id) => kmPostMap.get(id) ?? null;
+                    return (id) => kmPostMap.get(id);
                 }),
         )
         .then((kmPosts) => kmPosts.filter(filterNotEmpty));
@@ -66,7 +66,7 @@ export async function getKmPostByNumber(
     publishType: PublishType,
     trackNumberId: LayoutTrackNumberId,
     kmNumber: KmNumber,
-): Promise<LayoutKmPost | null> {
+): Promise<LayoutKmPost | undefined> {
     const params = queryParams({
         trackNumberId: trackNumberId,
         kmNumber: kmNumber,

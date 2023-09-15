@@ -6,6 +6,7 @@ import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-a
 import { getKmPost } from 'track-layout/layout-km-post-api';
 import {
     getLocationTrack,
+    getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import {
@@ -17,7 +18,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import {
     BoundingBox,
     boundingBoxAroundPoints,
@@ -74,7 +75,7 @@ function getOptions(
     publishType: PublishType,
     searchTerm: string,
 ): Promise<Item<SearchItemValue>[]> {
-    if (isNullOrBlank(searchTerm)) {
+    if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
@@ -83,13 +84,22 @@ function getOptions(
         publishType,
         10,
     ).then((locationTracks) => {
-        return locationTracks.map((locationTrack) => ({
-            name: `${locationTrack.name}, ${locationTrack.description}`,
-            value: {
-                type: 'locationTrackSearchItem',
-                locationTrack: locationTrack,
-            },
-        }));
+        return getLocationTrackDescriptions(
+            locationTracks.map((lt) => lt.id),
+            publishType,
+        ).then((descriptions) => {
+            return locationTracks.map((locationTrack) => ({
+                name: `${locationTrack.name}, ${
+                    (descriptions &&
+                        descriptions.find((d) => d.id == locationTrack.id)?.description) ??
+                    ''
+                }`,
+                value: {
+                    type: 'locationTrackSearchItem',
+                    locationTrack: locationTrack,
+                },
+            }));
+        });
     });
     const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
         searchTerm,

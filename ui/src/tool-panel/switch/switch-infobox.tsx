@@ -184,7 +184,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         onUnselect(switchId);
     }
 
-    function getOwnerName(ownerId: SwitchOwnerId | null | undefined) {
+    function getOwnerName(ownerId: SwitchOwnerId | undefined) {
         const name = switchOwners?.find((o) => o.id == ownerId)?.name;
         return name ?? '-';
     }

@@ -12,8 +12,8 @@ type BiquadraticParabolaInfoBoxProps = {
     geometryBiquadraticParabola: GeometryBiquadraticParabola;
 };
 
-function formatParabolaRadius(radius: number | null): string {
-    return radius === null ? 'Suora' : `${roundToPrecision(radius, Precision.radiusMeters)} m`;
+function formatParabolaRadius(radius: number | undefined): string {
+    return radius === undefined ? 'Suora' : `${roundToPrecision(radius, Precision.radiusMeters)} m`;
 }
 
 const BiquadraticParabolaInfobox: React.FC<BiquadraticParabolaInfoBoxProps> = ({

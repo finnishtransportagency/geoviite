@@ -24,7 +24,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
+    const [publications, setPublications] = React.useState<PublicationDetails[] | undefined>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 

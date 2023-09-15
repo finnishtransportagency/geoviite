@@ -41,7 +41,7 @@ export function createKmPostFeatures(
     isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined = undefined,
 ): Feature<OlPoint | Rectangle>[] {
     return kmPosts
-        .filter((kmPost) => kmPost.location != null)
+        .filter((kmPost) => kmPost.location)
         .flatMap((kmPost) => {
             const location = kmPost.location as Point;
             const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });

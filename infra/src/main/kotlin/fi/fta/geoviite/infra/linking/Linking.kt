@@ -40,7 +40,8 @@ data class EmptyAlignmentLinkingParameters<T>(
 
 data class LocationTrackSaveRequest(
     val name: AlignmentName,
-    val description: FreeText,
+    val descriptionBase: FreeText,
+    val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -48,8 +49,8 @@ data class LocationTrackSaveRequest(
     val topologicalConnectivity: TopologicalConnectivityType,
 ) {
     init {
-        require(description.length in 4..256) {
-            "LocationTrack description length ${description.length} not in range 4-256"
+        require(descriptionBase.length in 4..256) {
+            "LocationTrack description length ${descriptionBase.length} not in range 4-256"
         }
     }
 }

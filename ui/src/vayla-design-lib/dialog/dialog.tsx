@@ -37,7 +37,7 @@ export const Dialog: React.FC<DialogProps> = ({
     );
 
     const dialogHeaderRef = React.useRef<HTMLDivElement>(null);
-    const [dialogDragParams, setDialogDragParams] = React.useState<DragParams | null>(null);
+    const [dialogDragParams, setDialogDragParams] = React.useState<DragParams>();
     const [moved, setMoved] = React.useState(false);
     const [dialogPositionX, setDialogPositionX] = React.useState(0);
     const [dialogPositionY, setDialogPositionY] = React.useState(0);
@@ -65,7 +65,7 @@ export const Dialog: React.FC<DialogProps> = ({
     return (
         <div
             className={className}
-            onMouseUp={() => setDialogDragParams(null)}
+            onMouseUp={() => setDialogDragParams(undefined)}
             onMouseMove={(e) => moveDialog(e)}>
             <div
                 className={createClassName(

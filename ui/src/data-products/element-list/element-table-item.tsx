@@ -17,8 +17,8 @@ export type ElementTableItemProps = {
     geometryAlignmentName: string;
     type: string;
     locationTrackName: string;
-    trackAddressStart: TrackMeter | null;
-    trackAddressEnd: TrackMeter | null;
+    trackAddressStart: TrackMeter | undefined;
+    trackAddressEnd: TrackMeter | undefined;
     locationStartE: number;
     locationStartN: number;
     locationEndE: number;
@@ -26,13 +26,13 @@ export type ElementTableItemProps = {
     length: number;
     curveRadiusStart: number | undefined;
     curveRadiusEnd: number | undefined;
-    cantStart: number | null;
-    cantEnd: number | null;
+    cantStart: number | undefined;
+    cantEnd: number | undefined;
     angleStart: number;
     angleEnd: number;
     plan: string;
     source: string;
-    coordinateSystem: Srid | null;
+    coordinateSystem: Srid | undefined;
     planId: GeometryPlanId;
     showLocationTrackName: boolean;
     connectedSwitchName: string | undefined;
@@ -45,7 +45,7 @@ const remarks = (
     isPartial: boolean,
 ) =>
     [
-        connectedSwitchName !== null
+        connectedSwitchName !== undefined
             ? t('data-products.element-list.remarks.connected-to-switch', {
                   switchName: connectedSwitchName,
               })
@@ -124,10 +124,11 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                         roundToPrecision(curveRadiusEnd, Precision.radiusMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {cantStart != null && roundToPrecision(cantStart, Precision.cantMillimeters)}
+                    {cantStart != undefined &&
+                        roundToPrecision(cantStart, Precision.cantMillimeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {cantEnd != null && roundToPrecision(cantEnd, Precision.cantMillimeters)}
+                    {cantEnd != undefined && roundToPrecision(cantEnd, Precision.cantMillimeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(angleStart, Precision.angle6Decimals)}

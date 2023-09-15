@@ -25,7 +25,7 @@ import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 
 // TODO: GVT-2014 this should be a cache with nullable values as a switch might not exist in valid situations
-const switchCache = asyncCache<string, LayoutSwitch | null>();
+const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
@@ -77,7 +77,7 @@ export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutSwitch,
-): Promise<LayoutSwitch | null> {
+): Promise<LayoutSwitch | undefined> {
     return switchCache.get(changeTime, cacheKey(switchId, publishType), () =>
         getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
@@ -98,7 +98,7 @@ export async function getSwitches(
                     `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
                 ).then((switches) => {
                     const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
-                    return (id) => switchMap.get(id) ?? null;
+                    return (id) => switchMap.get(id);
                 }),
         )
         .then((switches) => switches.filter(filterNotEmpty));
@@ -145,7 +145,9 @@ export async function updateSwitch(
     }));
 }
 
-export async function deleteDraftSwitch(switchId: LayoutSwitchId): Promise<LayoutSwitchId | null> {
+export async function deleteDraftSwitch(
+    switchId: LayoutSwitchId,
+): Promise<LayoutSwitchId | undefined> {
     return await deleteIgnoreError<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then(
         (r) => {
             updateSwitchChangeTime();
@@ -161,6 +163,6 @@ export async function getSwitchValidation(
     return getThrowError<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }
 
-export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | null> => {
+export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | undefined> => {
     return getIgnoreError<ChangeTimes>(changeTimeUri('switches', id));
 };

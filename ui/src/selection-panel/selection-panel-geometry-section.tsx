@@ -231,8 +231,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                planLayout={loadedPlans.get(h.id)?.planLayout ?? null}
-                                linkStatus={loadedPlans.get(h.id)?.linkStatus ?? null}
+                                planLayout={loadedPlans.get(h.id)?.planLayout}
+                                linkStatus={loadedPlans.get(h.id)?.linkStatus}
                                 planBeingLoaded={plansBeingLoaded.has(h.id)}
                                 loadPlanLayout={() => loadPlanLayout(h.id)}
                             />

@@ -64,7 +64,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     const trackNumbers = useTrackNumbers('DRAFT');
 
     const [linkingSummaries, setLinkingSummaries] = useState<
-        Map<GeometryPlanId, GeometryPlanLinkingSummary | null>
+        Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>
     >(() => new Map());
     const [confirmDownloadPlan, setConfirmDownloadPlan] = React.useState<
         GeometryPlanHeader | undefined
@@ -82,7 +82,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
             return;
         }
         getGeometryPlanLinkingSummaries(newPlans).then((plansAndSummaries) => {
-            if (plansAndSummaries == null) {
+            if (plansAndSummaries == undefined) {
                 return;
             }
             setLinkingSummaries((currentLinkingSummaries) => {
@@ -117,11 +117,11 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
 
     function linkingSummaryDate(planId: GeometryPlanId) {
         const linkingSummary = linkingSummaries.get(planId);
-        return linkingSummary?.linkedAt == null ? '' : formatDateFull(linkingSummary.linkedAt);
+        return linkingSummary?.linkedAt == undefined ? '' : formatDateFull(linkingSummary.linkedAt);
     }
 
     const linkingSummaryUsers = (planId: GeometryPlanId) =>
-        linkingSummaries.get(planId)?.linkedByUsers ?? '';
+        linkingSummaries.get(planId)?.linkedByUsers.join(', ') ?? '';
 
     const isCurrentlyLinked = (planId: GeometryPlanId) =>
         linkingSummaries.get(planId)?.currentlyLinked;
@@ -169,6 +169,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.PROJECT_NAME)}
+                                className={'infra-model-list-search-result__project-name'}
                                 qa-id="im-form.name-header">
                                 {t('im-form.name-field')}
                             </Th>
@@ -179,6 +180,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.FILE_NAME)}
+                                className={'infra-model-list-search-result__file-name'}
                                 qa-id="im-form.file-name-header">
                                 {t('im-form.file-name')}
                             </Th>
@@ -189,6 +191,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.TRACK_NUMBER)}
+                                className={'infra-model-list-search-result__track-number'}
                                 qa-id="im-form.track-number-header">
                                 {t('im-form.tracknumberfield')}
                             </Th>
@@ -199,6 +202,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.KM_START)}
+                                className={'infra-model-list-search-result__kilometer'}
                                 qa-id="im-form.km-start-header">
                                 {t('im-form.km-start-field')}
                             </Th>
@@ -209,6 +213,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.KM_END)}
+                                className={'infra-model-list-search-result__kilometer'}
                                 qa-id="im-form.km-end-header">
                                 {t('im-form.km-end-field')}
                             </Th>
@@ -219,6 +224,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.PLAN_PHASE)}
+                                className={'infra-model-list-search-result__plan-phase'}
                                 qa-id="im-form.plan-phase-header">
                                 {t('im-form.plan-phase-field')}
                             </Th>
@@ -229,6 +235,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.DECISION_PHASE)}
+                                className={'infra-model-list-search-result__decision-phase'}
                                 qa-id="im-form.decision-phase-header">
                                 {t('im-form.decision-phase-field')}
                             </Th>
@@ -239,6 +246,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.CREATED_AT)}
+                                className={'infra-model-list-search-result__date-without-time'}
                                 qa-id="im-form.created-at-header">
                                 {t('im-form.plan-time-field')}
                             </Th>
@@ -249,6 +257,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.UPLOADED_AT)}
+                                className={'infra-model-list-search-result__date-with-time'}
                                 qa-id="im-form.uploaded-at-header">
                                 {t('im-form.created-field')}
                             </Th>
@@ -259,6 +268,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.LINKED_AT)}
+                                className={'infra-model-list-search-result__date-with-time'}
                                 qa-id="im-form.linked-at-header">
                                 {t('im-form.linked-at-field')}
                             </Th>
@@ -269,6 +279,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         : undefined
                                 }
                                 onClick={() => setFilter(GeometrySortBy.LINKED_BY)}
+                                className={'infra-model-list-search-result__linked-by-users'}
                                 qa-id="im-form.linked-by-header">
                                 {t('im-form.linked-by-users-field')}
                             </Th>
@@ -344,7 +355,9 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                                 <span title={plan.message}>
                                                     <Icons.Info size={IconSize.SMALL} />
                                                 </span>
-                                            ) : null}
+                                            ) : (
+                                                <React.Fragment />
+                                            )}
                                         </td>
                                     </tr>
                                 );

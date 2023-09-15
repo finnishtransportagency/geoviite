@@ -7,23 +7,19 @@ import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     enum class State(val uiText: String) {
-        IN_USE("Käytössä"),
-        NOT_IN_USE("Käytöstä poistettu"),
-        DELETED("Poistettu")
+        IN_USE("Käytössä"), NOT_IN_USE("Käytöstä poistettu"), DELETED("Poistettu")
     }
 
     enum class Type(val uiText: String) {
-        MAIN("Pääraide"),
-        SIDE("Sivuraide"),
-        TRAP("Turvaraide"),
-        CHORD("Kujaraide"),
+        MAIN("Pääraide"), SIDE("Sivuraide"), TRAP("Turvaraide"), CHORD("Kujaraide"),
     }
 
     enum class TopologicalConnectivity(val uiText: String) {
-        NONE("Ei kytketty"),
-        START("Raiteen alku"),
-        END("Raiteen loppu"),
-        START_AND_END("Raiteen alku ja loppu")
+        NONE("Ei kytketty"), START("Raiteen alku"), END("Raiteen loppu"), START_AND_END("Raiteen alku ja loppu")
+    }
+
+    enum class DescriptionSuffix(val uiText: String) {
+        NONE("Ei lisäosaa"), SWITCH_TO_SWITCH("Vaihde alussa - vaihde lopussa"), SWITCH_TO_BUFFER("Vaihde - Puskin")
     }
 
     fun setName(name: String): E2ELocationTrackEditDialog = apply {
@@ -43,7 +39,11 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 
     fun setDescription(description: String): E2ELocationTrackEditDialog = apply {
-        content.inputFieldValue("Kuvaus", description)
+        content.inputFieldValue("Kuvauksen perusosa", description)
+    }
+
+    fun setDescriptionSuffix(descriptionSuffix: DescriptionSuffix): E2ELocationTrackEditDialog = apply {
+        content.selectDropdownValue("Kuvauksen lisäosa", descriptionSuffix.uiText)
     }
 
     fun selectTopologicalConnectivity(topologicalConnectivity: TopologicalConnectivity): E2ELocationTrackEditDialog =
@@ -71,9 +71,7 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
 class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     enum class State(val uiText: String) {
-        IN_USE("Käytössä"),
-        NOT_IN_USE("Käytöstä poistettu"),
-        DELETED("Poistettu")
+        IN_USE("Käytössä"), NOT_IN_USE("Käytöstä poistettu"), DELETED("Poistettu")
     }
 
     fun setName(name: String): E2ETrackNumberEditDialog = apply {
@@ -103,9 +101,7 @@ class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
     enum class State(val uiText: String) {
-        PLANNED("Suunniteltu"),
-        IN_USE("Käytössä"),
-        NOT_IN_USE("Käytöstä poistettu"),
+        PLANNED("Suunniteltu"), IN_USE("Käytössä"), NOT_IN_USE("Käytöstä poistettu"),
     }
 
     fun setName(name: String): E2EKmPostEditDialog = apply {
@@ -130,8 +126,7 @@ class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 class E2ELayoutSwitchEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
     enum class StateCategory(val uiText: String) {
-        NOT_EXISTING("Poistunut kohde"),
-        EXISTING("Olemassa oleva kohde")
+        NOT_EXISTING("Poistunut kohde"), EXISTING("Olemassa oleva kohde")
     }
 
     fun setName(name: String): E2ELayoutSwitchEditDialog = apply {

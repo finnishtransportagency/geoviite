@@ -45,7 +45,7 @@ export type PreviewTableEntry = {
     type: PreviewSelectType;
     errors: PublishValidationError[];
     pendingValidation: boolean;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
 } & ChangeTableEntry;
 
 export enum PreviewSelectType {
@@ -61,7 +61,7 @@ type PreviewTableProps = {
     onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
     onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
-    changesBeingReverted: ChangesBeingReverted | undefined;
+    changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
 };
 
@@ -149,7 +149,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     pendingValidation: switchCandidate.pendingValidation,
                     boundingBox: switchCandidate.location
                         ? calculateBoundingBoxToShowAroundLocation(switchCandidate.location)
-                        : null,
+                        : undefined,
                 })),
             )
             .concat(
@@ -160,7 +160,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     pendingValidation: kmPostCandidate.pendingValidation,
                     boundingBox: kmPostCandidate.location
                         ? calculateBoundingBoxToShowAroundLocation(kmPostCandidate.location)
-                        : null,
+                        : undefined,
                 })),
             );
 

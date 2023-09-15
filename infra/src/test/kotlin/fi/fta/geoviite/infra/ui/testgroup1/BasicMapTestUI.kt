@@ -94,7 +94,6 @@ class BasicMapTestUI @Autowired constructor(
         val infobox = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         val orgTunniste = infobox.oid
         val orgTila = infobox.state
-        val orgKuvaus = infobox.description
         //TBD val orgRatanumero = infobox.ratanumero()
         val orgSijaintiraidetunnus = infobox.name
 
@@ -104,8 +103,6 @@ class BasicMapTestUI @Autowired constructor(
         //TBD editDialog.editNewRatanumero("HKI1A")
         editDialog.selectType(E2ELocationTrackEditDialog.Type.SIDE)
 
-        val editedKuvaus = "$orgKuvaus-edited"
-        editDialog.setDescription(editedKuvaus)
         editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
         editDialog.save()
 
@@ -116,7 +113,6 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.name)
         assertNotEquals(orgTila, infoboxAfterFirstEdit.state)
-        assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.description)
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
         val previewChangesPage = trackLayoutPage.goToPreview()
@@ -138,7 +134,6 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)
         assertEquals(orgSijaintiraidetunnus, infoBoxAfterSecondEdit.name)
         assertEquals(orgTila, infoBoxAfterSecondEdit.state)
-        assertEquals(orgKuvaus, infoBoxAfterSecondEdit.description)
         //TBD assertEquals(orgRatanumero, infoBoxAfterSecondEdit.ratanumero())
 
     }
@@ -154,7 +149,6 @@ class BasicMapTestUI @Autowired constructor(
         val infobox = trackLayoutPage.toolPanel.locationTrackGeneralInfo
         val orgTunniste = infobox.oid
         val orgTila = infobox.state
-        val orgKuvaus = infobox.description
         //TBD val orgRatanumero = infobox.ratanumero()
         val orgSijaintiraidetunnus = infobox.name
 
@@ -164,8 +158,6 @@ class BasicMapTestUI @Autowired constructor(
         //TBD editDialog.editNewRatanumero("HKI1A")
         editDialog.selectType(E2ELocationTrackEditDialog.Type.SIDE)
 
-        val editedKuvaus = "$orgKuvaus-edited"
-        editDialog.setDescription(editedKuvaus)
         editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
         editDialog.save()
         waitAndClearToastByContent("Sijaintiraiteen tiedot päivitetty")
@@ -175,7 +167,6 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.name)
         assertNotEquals(orgTila, infoboxAfterFirstEdit.state)
-        assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.description)
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
         val previewChangesPage = trackLayoutPage.goToPreview()
@@ -194,7 +185,6 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)
         assertNotEquals(orgSijaintiraidetunnus, infoBoxAfterSecondEdit.name)
         assertNotEquals(orgTila, infoBoxAfterSecondEdit.state)
-        assertNotEquals(orgKuvaus, infoBoxAfterSecondEdit.description)
         //TBD assertEquals(orgRatanumero, infoBoxAfterSecondEdit.ratanumero())
 
         WEST_LT_NAME = infoBoxAfterSecondEdit.name

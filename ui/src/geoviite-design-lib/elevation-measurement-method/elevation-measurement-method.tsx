@@ -4,20 +4,20 @@ import { useTranslation } from 'react-i18next';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type ElevationMeasurementMethodProps = {
-    method: ElevationMeasurementMethod | null;
+    method: ElevationMeasurementMethod | undefined;
     lowerCase?: boolean;
     includeTermContextForUnknownMethod?: boolean;
 };
 
 function getTranslationKey(
-    method: ElevationMeasurementMethod | null,
+    method: ElevationMeasurementMethod | undefined,
     includeTermContextForUnknownMethod: boolean,
 ) {
     switch (method) {
         case 'TOP_OF_SLEEPER':
         case 'TOP_OF_RAIL':
             return method;
-        case null:
+        case undefined:
             return includeTermContextForUnknownMethod ? 'UNKNOWN-WITH-TERM-CONTEXT' : 'UNKNOWN';
         default:
             return exhaustiveMatchingGuard(method);

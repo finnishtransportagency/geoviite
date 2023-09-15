@@ -16,10 +16,10 @@ export interface TrackMeterIndex {
 export function findTrackMeterIndexContainingM(
     m: number,
     kmHeights: TrackKmHeights[],
-): TrackMeterIndex | null {
+): TrackMeterIndex | undefined {
     const nextKmIndex = kmHeights.findIndex(({ trackMeterHeights }) => trackMeterHeights[0].m > m);
     if (nextKmIndex === 0 || kmHeights.length === 0) {
-        return null;
+        return undefined;
     }
     const kmIndex = nextKmIndex === -1 ? kmHeights.length - 1 : nextKmIndex - 1;
     const km = kmHeights[kmIndex];
@@ -28,22 +28,22 @@ export function findTrackMeterIndexContainingM(
     // the alignment's end, and can be considered to have zero length; hence, if we're past it, we've fallen past the
     // alignment
     if (kmIndex == kmHeights.length - 1 && meterIndex == -1) {
-        return null;
+        return undefined;
     }
     // otherwise, meterIndex will be -1 exactly if we were on a track km's last meter
     const right =
         meterIndex == -1 ? { kmIndex: kmIndex + 1, meterIndex: 0 } : { kmIndex, meterIndex };
 
     const left = previousSingleTrackMeterIndex(right, kmHeights);
-    return left == null ? null : { left, right };
+    return !left ? undefined : { left, right };
 }
 
 function previousSingleTrackMeterIndex(
     { kmIndex, meterIndex }: SingleTrackMeterIndex,
     kmHeights: TrackKmHeights[],
-): SingleTrackMeterIndex | null {
+): SingleTrackMeterIndex | undefined {
     if (meterIndex == 0 && kmIndex == 0) {
-        return null;
+        return undefined;
     } else if (meterIndex == 0) {
         return {
             kmIndex: kmIndex - 1,

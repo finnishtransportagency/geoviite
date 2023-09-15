@@ -12,7 +12,7 @@ export type ExamplePerson = {
     email: string;
     address: string;
     story: string;
-    website: string | null;
+    website?: string;
     iban: string;
 };
 

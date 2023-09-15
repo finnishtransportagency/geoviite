@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import fi.fta.geoviite.infra.ui.util.ElementFetch
+import getChildElement
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import tryWait
@@ -55,7 +56,7 @@ abstract class E2EList<T>(listFetch: ElementFetch, val itemsBy: By) : E2EViewFra
 
     open fun selectBy(item: T, by: By): E2EList<T> = apply {
         getElementWhenMatches { it == item }.also { e ->
-            if (!isSelected(e)) e.findElement(by).waitAndClick()
+            if (!isSelected(e)) e.getChildElement(by).waitAndClick()
         }
     }
 

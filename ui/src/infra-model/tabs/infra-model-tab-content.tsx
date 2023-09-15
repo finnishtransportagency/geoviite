@@ -8,7 +8,7 @@ export type TabContentProps = {
 };
 
 const InfraModelTabContent: React.FC<TabContentProps> = ({ tabId, activeTab, children }) => {
-    return activeTab === tabId ? <div>{children}</div> : null;
+    return activeTab === tabId ? <div>{children}</div> : <React.Fragment />;
 };
 
 export default InfraModelTabContent;
