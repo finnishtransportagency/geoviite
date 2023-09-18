@@ -63,6 +63,8 @@ export type PlanVerticalGeometrySearchState = {
     verticalGeometry: VerticalGeometryItem[];
 };
 
+export type SelectedKmLengthsSearch = 'TRACK_NUMBER' | 'ENTIRE_RAIL_NETWORK';
+
 export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;
     startKm: KmNumber | undefined;
@@ -71,6 +73,8 @@ export type KmLengthsSearchState = {
     validationErrors: ValidationError<KmLengthsSearchState>[];
     committedFields: (keyof KmLengthsSearchState)[];
     kmLengths: LayoutKmLengthDetails[];
+
+    selectedSearch: SelectedKmLengthsSearch;
 };
 
 enum MissingSection {
@@ -165,6 +169,8 @@ const initialPlanVerticalGeometrySearchState: PlanVerticalGeometrySearchState = 
 };
 
 const initialKmLengthsSearchState: KmLengthsSearchState = {
+    selectedSearch: 'TRACK_NUMBER',
+
     trackNumber: undefined,
     startKm: undefined,
     endKm: undefined,
@@ -497,6 +503,12 @@ const dataProductsSlice = createSlice({
             { payload: search }: PayloadAction<SelectedGeometrySearch>,
         ) {
             state.verticalGeometry.selectedSearch = search;
+        },
+        setSelectedKmLengthsSearch: function (
+            state: DataProductsState,
+            { payload: search }: PayloadAction<SelectedKmLengthsSearch>,
+        ) {
+            state.kmLenghts.selectedSearch = search;
         },
         ...wrapReducers(
             (state: DataProductsState) => state.elementList.locationTrackSearch,

@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 @Service
 class LayoutTrackNumberService(
@@ -105,6 +106,7 @@ class LayoutTrackNumberService(
     fun getKmLengths(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
+        returnEmptyListOnInvalidGeocodingContext: Boolean = false,
     ): List<TrackLayoutKmLengthDetails> {
         logger.serviceCall(
             "getKmLengths",
@@ -142,6 +144,10 @@ class LayoutTrackNumberService(
             }
         }
 
+        if (returnEmptyListOnInvalidGeocodingContext && kmLengths == null) {
+            return listOf()
+        }
+
         return checkNotNull(kmLengths) {
             "No geocoding context for track number, trackNumberId=$trackNumberId publishType=$publishType"
         }
@@ -170,6 +176,21 @@ class LayoutTrackNumberService(
         }
 
         return asCsvFile(filteredKmLengths)
+    }
+
+    fun getAllKmLengthsAsCsv(
+        publishType: PublishType,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    ): String {
+        val kmLengths = trackNumberIds
+            .parallelStream()
+            .flatMap { trackNumberId ->
+                getKmLengths(publishType, trackNumberId, returnEmptyListOnInvalidGeocodingContext = true).stream()
+            }
+            .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
+            .collect(Collectors.toList())
+
+        return asCsvFile(kmLengths)
     }
 
     private fun getKmPostDistances(context: GeocodingContext) = context.kmPosts.map { kmPost ->
