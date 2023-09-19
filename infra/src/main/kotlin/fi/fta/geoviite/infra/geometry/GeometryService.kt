@@ -451,8 +451,8 @@ class GeometryService @Autowired constructor(
                 )
             }
 
-            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> h.planPhase?.name }
-            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> h.decisionPhase?.name }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> getGeometryTranslation(h.planPhase?.name) }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> getGeometryTranslation(h.decisionPhase?.name) }
             GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
