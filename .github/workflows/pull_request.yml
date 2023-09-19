@@ -45,9 +45,3 @@ jobs:
         POSTGRES_PASSWORD: 'dev-geouser-password'
         POSTGRES_USER: 'dev-geouser'
         POSTGRES_DB: 'geoviite'
-
-    - name: Publish Test Report
-      uses: mikepenz/action-junit-report@v3
-      if: always()
-      with:
-        report_paths: './infra/build/test-results/test/*TEST.xml'
