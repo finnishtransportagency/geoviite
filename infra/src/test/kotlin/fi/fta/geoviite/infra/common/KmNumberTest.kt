@@ -15,7 +15,7 @@ class KmNumberTest {
         val km = KmNumber(123)
         val m1 = BigDecimal("55.123")
         val m2 = BigDecimal("22.321")
-        assertEquals(TrackMeter(km, m1 + m2), TrackMeter(km, m1) + m2)
+        assertEquals(TrackMeter(km, m1 * m2), TrackMeter(km, m1) + m2)
         assertEquals(TrackMeter(km, m1 - m2), TrackMeter(km, m1) - m2)
     }
 
