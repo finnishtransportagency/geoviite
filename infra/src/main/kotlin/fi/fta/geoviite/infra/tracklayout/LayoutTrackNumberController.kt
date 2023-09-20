@@ -114,7 +114,7 @@ class LayoutTrackNumberController(
             "id" to id
         )
 
-        return trackNumberService.getKmLengths(publishType, id)
+        return trackNumberService.getKmLengths(publishType, id) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_ALL_READ)

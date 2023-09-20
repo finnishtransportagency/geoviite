@@ -106,15 +106,14 @@ class LayoutTrackNumberService(
     fun getKmLengths(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        returnEmptyListOnInvalidGeocodingContext: Boolean = false,
-    ): List<TrackLayoutKmLengthDetails> {
+    ): List<TrackLayoutKmLengthDetails>? {
         logger.serviceCall(
             "getKmLengths",
             "trackNumberId" to trackNumberId,
             "publishType" to publishType,
         )
 
-        val kmLengths = geocodingService.getGeocodingContext(publishType, trackNumberId)?.let { context ->
+        return geocodingService.getGeocodingContext(publishType, trackNumberId)?.let { context ->
             val distances = getKmPostDistances(context)
             val referenceLineLength = context.referenceLineGeometry.length
             val trackNumber = context.trackNumber
@@ -143,14 +142,6 @@ class LayoutTrackNumberService(
                 )
             }
         }
-
-        if (returnEmptyListOnInvalidGeocodingContext && kmLengths == null) {
-            return listOf()
-        }
-
-        return checkNotNull(kmLengths) {
-            "No geocoding context for track number, trackNumberId=$trackNumberId publishType=$publishType"
-        }
     }
 
     fun getKmLengthsAsCsv(
@@ -167,7 +158,8 @@ class LayoutTrackNumberService(
             "endKmNumber" to endKmNumber,
         )
 
-        val kmLengths = getKmLengths(publishType, trackNumberId)
+        val kmLengths = getKmLengths(publishType, trackNumberId) ?: emptyList()
+
         val filteredKmLengths = kmLengths.filter { kmPost ->
             val start = startKmNumber ?: kmLengths.first().kmNumber
             val end = endKmNumber ?: kmLengths.last().kmNumber
@@ -185,7 +177,7 @@ class LayoutTrackNumberService(
         val kmLengths = trackNumberIds
             .parallelStream()
             .flatMap { trackNumberId ->
-                getKmLengths(publishType, trackNumberId, returnEmptyListOnInvalidGeocodingContext = true).stream()
+                (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream()
             }
             .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
             .collect(Collectors.toList())
