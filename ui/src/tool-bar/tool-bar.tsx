@@ -118,11 +118,14 @@ async function getOptions(
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const { t } = useTranslation();
+
     const [showAddMenu, setShowAddMenu] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+
+    const menuRef = React.useRef(null);
 
     enum NewMenuItems {
         'trackNumber' = 1,
@@ -253,7 +256,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     onClick={() => props.onMapLayerVisibilityChange(!props.layerMenuVisible)}
                     qa-id="map-layers-button"
                 />
-                <div className={styles['tool-bar__new-menu-button']}>
+                <div className={styles['tool-bar__new-menu-button']} ref={menuRef}>
                     <WriteAccessRequired>
                         <Button
                             variant={ButtonVariant.SECONDARY}
@@ -263,12 +266,12 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                         />
                     </WriteAccessRequired>
                     {showAddMenu && (
-                        <div className={styles['tool-bar__new-menu']}>
-                            <Menu
-                                items={newMenuItems}
-                                onChange={(item) => item && handleNewMenuItemChange(item)}
-                            />
-                        </div>
+                        <Menu
+                            positionRef={menuRef}
+                            items={newMenuItems}
+                            onSelect={(item) => item && handleNewMenuItemChange(item)}
+                            onClickOutside={() => setShowAddMenu(false)}
+                        />
                     )}
                 </div>
             </div>

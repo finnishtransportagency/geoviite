@@ -9,7 +9,7 @@ import {
     TrackNumberColor,
     TrackNumberColorKey,
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
-import { CloseableModal } from 'geoviite-design-lib/closeable-modal/closeable-modal';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 
 type ColorSelectorProps = {
     color?: TrackNumberColorKey;

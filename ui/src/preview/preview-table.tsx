@@ -218,8 +218,6 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     onPublishItemSelect={() =>
                                         handlePreviewSelect(entry.id, entry.type)
                                     }
-                                    id={entry.id}
-                                    type={entry.type}
                                     onRevert={() => onRevert(entry)}
                                     itemName={entry.uiName}
                                     trackNumber={entry.trackNumber}

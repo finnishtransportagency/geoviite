@@ -4,8 +4,9 @@ import { Breadcrumb, BreadcrumbItem } from 'geoviite-design-lib/breadcrumb/bread
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { Menu, Item } from 'vayla-design-lib/menu/menu';
 import { useAppNavigate } from 'common/navigate';
+import { Menu } from 'vayla-design-lib/menu/menu';
+import { Item } from 'vayla-design-lib/dropdown/dropdown';
 
 export type FileMenuOption = 'fix-encoding';
 export type InfraModelToolbarProps = {
@@ -20,6 +21,7 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
     const navigate = useAppNavigate();
     const { t } = useTranslation();
     const [fileMenuVisible, setFileMenuVisible] = React.useState(false);
+    const fileMenuRef = React.useRef(null);
 
     return (
         <div className="infra-model-upload__tool-bar">
@@ -31,21 +33,24 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
             </Breadcrumb>
 
             {props.fileMenuItems.length > 0 && (
-                <div className={styles['infra-model-upload__title-menu-container']}>
+                <div
+                    className={styles['infra-model-upload__title-menu-container']}
+                    ref={fileMenuRef}>
                     <Button
                         onClick={() => setFileMenuVisible(!fileMenuVisible)}
                         variant={ButtonVariant.SECONDARY}
                         icon={Icons.More}
                     />
                     {fileMenuVisible && (
-                        <div className={styles['infra-model-upload__title-menu']}>
-                            <Menu
-                                items={props.fileMenuItems}
-                                onChange={(item) => {
-                                    item && props.fileMenuItemSelected(item);
-                                    setFileMenuVisible(false);
-                                }}></Menu>
-                        </div>
+                        <Menu
+                            positionRef={fileMenuRef}
+                            items={props.fileMenuItems}
+                            onSelect={(item) => {
+                                props.fileMenuItemSelected(item);
+                                setFileMenuVisible(false);
+                            }}
+                            onClickOutside={() => setFileMenuVisible(false)}
+                        />
                     )}
                 </div>
             )}

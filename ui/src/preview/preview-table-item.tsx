@@ -4,18 +4,15 @@ import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { Operation, PublicationId, PublishValidationError } from 'publication/publication-model';
+import { Operation, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Item, Menu, useContextMenu } from 'react-contexify';
-import { PreviewSelectType } from 'preview/preview-table';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
+import { Menu } from 'vayla-design-lib/menu/menu';
 
 export type PreviewTableItemProps = {
-    id: PublicationId;
-    type: PreviewSelectType;
     itemName: string;
     trackNumber?: string;
     errors: PublishValidationError[];
@@ -32,8 +29,6 @@ export type PreviewTableItemProps = {
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
-    id,
-    type,
     itemName,
     trackNumber,
     errors,
@@ -50,16 +45,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
+    const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
-    const menuId = () => `contextmenu_${id}_${type}`;
-    const { show, hideAll } = useContextMenu({
-        id: menuId(),
-    });
-
     const errorTexts = errorsToStrings(errors, 'ERROR');
     const warningTexts = errorsToStrings(errors, 'WARNING');
     const hasErrors = errors.length > 0;
@@ -68,6 +59,26 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         styles['preview-table-item__status-cell'],
         hasErrors && styles['preview-table-item__status-cell--expandable'],
     );
+
+    const actionMenuRef = React.useRef(null);
+
+    const menuOptions = [
+        {
+            disabled: !boundingBox,
+            onSelect: () => {
+                boundingBox && onShowOnMap(boundingBox);
+                setActionMenuVisible(false);
+            },
+            name: t('publish.show-on-map'),
+        },
+        {
+            name: t('publish.revert-change'),
+            onSelect: () => {
+                onRevert();
+                setActionMenuVisible(false);
+            },
+        },
+    ];
 
     return (
         <React.Fragment>
@@ -118,7 +129,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                                 icon={publish ? Icons.Ascending : Icons.Descending}
                             />
                         </div>
-                        <div>
+                        <div ref={actionMenuRef}>
                             {changesBeingReverted ? (
                                 <div className={'preview-table-item__revert-spinner'}>
                                     <Spinner />
@@ -128,27 +139,16 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                                     qa-id={'menu-button'}
                                     variant={ButtonVariant.GHOST}
                                     icon={Icons.More}
-                                    onClick={(event: React.MouseEvent) => {
-                                        show({ event });
-                                    }}
+                                    onClick={() => setActionMenuVisible(!actionMenuVisible)}
                                 />
                             )}
-                            <div>
-                                <Menu animation={false} id={menuId()}>
-                                    <Item
-                                        id="1"
-                                        disabled={!boundingBox}
-                                        onClick={() => {
-                                            boundingBox && onShowOnMap(boundingBox);
-                                            hideAll();
-                                        }}>
-                                        {t('publish.show-on-map')}
-                                    </Item>
-                                    <Item id="2" onClick={() => onRevert()}>
-                                        {t('publish.revert-change')}
-                                    </Item>
-                                </Menu>
-                            </div>
+                            {actionMenuVisible && (
+                                <Menu
+                                    positionRef={actionMenuRef}
+                                    items={menuOptions}
+                                    onClickOutside={() => setActionMenuVisible(false)}
+                                />
+                            )}
                         </div>
                     </div>
                 </td>

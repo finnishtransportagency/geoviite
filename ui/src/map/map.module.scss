@@ -187,7 +187,7 @@ $color-highlight-blue: #389bf6;
 
 .map__popup-item {
     @extend .menu__item;
-    background: $color-blue-darker;
+
     color: $color-white-default;
     border-bottom-color: $color-black-lighter;
 

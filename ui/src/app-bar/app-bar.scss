@@ -80,10 +80,10 @@ $appbar-height: 48px;
     }
 
     &__data-menu-button {
-        position: relative;
         user-select: none;
 
         &--active {
+            user-select: none;
             color: $color-blue-light;
             border-bottom-color: $color-blue-light;
         }
@@ -91,18 +91,17 @@ $appbar-height: 48px;
 
     &__data-menu {
         @extend .menu;
-        position: absolute;
-        z-index: 21;
         background: $color-blue-darker;
-        border-radius: 5px;
-        margin-top: 1px;
 
-        .menu__item {
+        &-item {
             @extend .menu__item;
-            color: $color-white-default;
-            text-decoration: none;
 
-            &:hover {
+            > a {
+                color: $color-white-default;
+                text-decoration: none;
+            }
+
+            &:hover:not(.menu__item--disabled) {
                 background: $color-blue-dark;
                 text-decoration: underline $color-blue-dark;
             }
