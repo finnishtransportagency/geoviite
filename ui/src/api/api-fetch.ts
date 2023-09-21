@@ -4,6 +4,8 @@ import { err, ok, Result } from 'neverthrow';
 import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
 
+import { LocalizationParams } from 'i18n/config';
+
 export const API_URI = '/api';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -36,7 +38,7 @@ export type ApiErrorResponse = {
     correlationId: string;
     timestamp: string;
     localizedMessageKey?: string;
-    localizedMessageParams: string[];
+    localizedMessageParams: LocalizationParams;
     status: number;
 };
 

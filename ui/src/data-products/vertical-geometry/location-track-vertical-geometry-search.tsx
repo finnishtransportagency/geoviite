@@ -46,7 +46,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
 > = ({ state, onCommitField, onUpdateProp, setVerticalGeometry, setLoading }) => {
     const { t } = useTranslation();
     const getLocationTracks = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
                 getLocationTrackDescriptions(
                     locationTracks.map((lt) => lt.id),

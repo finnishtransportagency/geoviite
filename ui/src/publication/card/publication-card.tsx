@@ -23,7 +23,7 @@ type PublishListProps = {
 const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
     return (
         <span>
-            {i18n.t(`error-in-ratko-connection.${errorType}`, [ratkoStatusCode])}
+            {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
             <br />
             {i18n.t(`error-in-ratko-connection.${contact}`)}
         </span>

@@ -70,7 +70,7 @@ export async function getLocationTrack(
 }
 
 export async function getLocationTracksBySearchTerm(
-    searchTerm: string,
+    searchTerm: string | undefined,
     publishType: PublishType,
     limit: number,
 ): Promise<LayoutLocationTrack[]> {

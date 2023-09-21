@@ -28,6 +28,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
+import { LocalizationParams } from 'i18n/config';
 
 export enum InfraModelViewType {
     UPLOAD,
@@ -87,7 +88,7 @@ export type ErrorType =
     | 'VALIDATION_ERROR'
     | 'OBSERVATION_MAJOR'
     | 'OBSERVATION_MINOR';
-export interface CustomValidationError {
+export interface CustomValidationError extends LocalizationParams {
     localizationKey: LocalizationKey;
     errorType: ErrorType;
 }

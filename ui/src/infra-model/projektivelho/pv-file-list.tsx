@@ -271,14 +271,16 @@ const PVFileListRow = ({
                             item.assignment && onRejectByAssignment(item.assignment?.oid);
                             setShowConfirmAssignmentReject(false);
                         }}>
-                        {t('projektivelho.file-list.reject-confirm', [itemCounts.assignment])}
+                        {t('projektivelho.file-list.reject-confirm', {
+                            count: itemCounts.assignment,
+                        })}
                     </Button>
                 </React.Fragment>
             }>
             <Trans
                 i18nKey="projektivelho.file-list.reject-by-assignment-message"
-                values={[item.assignment?.name, itemCounts.assignment]}
-            />
+                assignment={item.assignment?.name}
+                assignmentCount={itemCounts.assignment}></Trans>
         </Dialog>
     );
     const confirmProjectRejectDialog = () => (
@@ -299,13 +301,14 @@ const PVFileListRow = ({
                             item.project && onRejectByProject(item.project?.oid);
                             setShowConfirmProjectReject(false);
                         }}>
-                        {t('projektivelho.file-list.reject-confirm', [itemCounts.project])}
+                        {t('projektivelho.file-list.reject-confirm', { count: itemCounts.project })}
                     </Button>
                 </React.Fragment>
             }>
             <Trans
                 i18nKey="projektivelho.file-list.reject-by-project-message"
-                values={[item.project?.name, itemCounts.project]}
+                projectName={item.project?.name}
+                projectCount={itemCounts.project}
             />
         </Dialog>
     );
@@ -327,13 +330,16 @@ const PVFileListRow = ({
                             item.projectGroup && onRejectByProjectGroup(item.projectGroup?.oid);
                             setShowConfirmProjectGroupReject(false);
                         }}>
-                        {t('projektivelho.file-list.reject-confirm', [itemCounts.projectGroup])}
+                        {t('projektivelho.file-list.reject-confirm', {
+                            count: itemCounts.projectGroup,
+                        })}
                     </Button>
                 </React.Fragment>
             }>
             <Trans
                 i18nKey="projektivelho.file-list.reject-by-project-group-message"
-                values={[item.projectGroup?.name, itemCounts.projectGroup]}
+                projectGroup={item.projectGroup?.name}
+                groupCount={itemCounts.projectGroup}
             />
         </Dialog>
     );
@@ -403,9 +409,11 @@ const PVFileListRow = ({
                                         setShowConfirmAssignmentReject(true);
                                         hideContextMenu();
                                     }}>
-                                    {t('projektivelho.file-list.reject-by-assignment', [
-                                        itemCounts.assignment ? itemCounts.assignment : '-',
-                                    ])}
+                                    {t('projektivelho.file-list.reject-by-assignment', {
+                                        assignmentCount: itemCounts.assignment
+                                            ? itemCounts.assignment
+                                            : '-',
+                                    })}
                                 </Item>
                                 <Item
                                     id="2"
@@ -414,9 +422,9 @@ const PVFileListRow = ({
                                         setShowConfirmProjectReject(true);
                                         hideContextMenu();
                                     }}>
-                                    {t('projektivelho.file-list.reject-by-project', [
-                                        itemCounts.project ? itemCounts.project : '-',
-                                    ])}
+                                    {t('projektivelho.file-list.reject-by-project', {
+                                        projectCount: itemCounts.project ? itemCounts.project : '-',
+                                    })}
                                 </Item>
                                 <Item
                                     id="3"
@@ -425,9 +433,11 @@ const PVFileListRow = ({
                                         setShowConfirmProjectGroupReject(true);
                                         hideContextMenu();
                                     }}>
-                                    {t('projektivelho.file-list.reject-by-project-group', [
-                                        itemCounts.projectGroup ? itemCounts.projectGroup : '-',
-                                    ])}
+                                    {t('projektivelho.file-list.reject-by-project-group', {
+                                        groupCount: itemCounts.projectGroup
+                                            ? itemCounts.projectGroup
+                                            : '-',
+                                    })}
                                 </Item>
                             </Menu>
                         </div>

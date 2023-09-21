@@ -92,12 +92,16 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                         {errorTexts.length > 0 && (
                             <span className={styles['preview-table-item__error-status']}>
-                                {t('preview-table.errors-status-text', [errorTexts.length])}
+                                {t('preview-table.errors-status-text', {
+                                    errors: errorTexts.length,
+                                })}
                             </span>
                         )}
                         {warningTexts.length > 0 && (
                             <span className={styles['preview-table-item__warning-status']}>
-                                {t('preview-table.warnings-status-text', [warningTexts.length])}
+                                {t('preview-table.warnings-status-text', {
+                                    warnings: warningTexts.length,
+                                })}
                             </span>
                         )}
                     </td>

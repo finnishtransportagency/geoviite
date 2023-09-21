@@ -49,7 +49,7 @@ const LocationTrackElementListingSearch = ({
 
     // Use memoized function to make debouncing functionality work when re-rendering
     const getLocationTracks = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
                 getLocationTrackDescriptions(
                     locationTracks.map((lt) => lt.id),
