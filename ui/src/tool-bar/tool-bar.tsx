@@ -71,7 +71,7 @@ type SwitchItemValue = {
 
 type SearchItemValue = LocationTrackItemValue | SwitchItemValue;
 
-function getOptions(
+async function getOptions(
     publishType: PublishType,
     searchTerm: string,
 ): Promise<Item<SearchItemValue>[]> {
@@ -83,23 +83,21 @@ function getOptions(
         searchTerm,
         publishType,
         10,
-    ).then((locationTracks) => {
-        return getLocationTrackDescriptions(
+    ).then(async (locationTracks) => {
+        const descriptions = await getLocationTrackDescriptions(
             locationTracks.map((lt) => lt.id),
             publishType,
-        ).then((descriptions) => {
-            return locationTracks.map((locationTrack) => ({
-                name: `${locationTrack.name}, ${
-                    (descriptions &&
-                        descriptions.find((d) => d.id == locationTrack.id)?.description) ??
-                    ''
-                }`,
-                value: {
-                    type: 'locationTrackSearchItem',
-                    locationTrack: locationTrack,
-                },
-            }));
-        });
+        );
+        return locationTracks.map((locationTrack) => ({
+            name: `${locationTrack.name}, ${
+                (descriptions && descriptions.find((d) => d.id == locationTrack.id)?.description) ??
+                ''
+            }`,
+            value: {
+                type: 'locationTrackSearchItem',
+                locationTrack: locationTrack,
+            },
+        }));
     });
     const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
         searchTerm,
@@ -114,9 +112,8 @@ function getOptions(
             },
         }));
     });
-    return Promise.all([locationTracks, switches]).then((result) => {
-        return [...result[0], ...result[1]];
-    });
+    const result = await Promise.all([locationTracks, switches]);
+    return [...result[0], ...result[1]];
 }
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
