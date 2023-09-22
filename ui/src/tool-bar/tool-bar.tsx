@@ -42,21 +42,23 @@ import { Menu } from 'vayla-design-lib/menu/menu';
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
+import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 
 export type ToolbarParams = {
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
     onSelectKmPost: (kmPostId: LayoutKmPostId) => void;
-    onMapLayerVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
-    layerMenuVisible: boolean;
     showArea: (area: BoundingBox) => void;
     publishType: PublishType;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
     disableNewMenu: boolean;
+    onMapLayerChange: (change: MapLayerMenuChange) => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
 };
 
 type LocationTrackItemValue = {
@@ -124,7 +126,6 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
-
     const menuRef = React.useRef(null);
 
     enum NewMenuItems {
@@ -249,12 +250,9 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     wideList
                     qa-id="search-box"
                 />
-                <Button
-                    variant={ButtonVariant.SECONDARY}
-                    icon={Icons.Layers}
-                    isPressed={props.layerMenuVisible}
-                    onClick={() => props.onMapLayerVisibilityChange(!props.layerMenuVisible)}
-                    qa-id="map-layers-button"
+                <MapLayerMenu
+                    onMenuChange={props.onMapLayerChange}
+                    mapLayerMenuGroups={props.mapLayerMenuGroups}
                 />
                 <div className={styles['tool-bar__new-menu-button']} ref={menuRef}>
                     <WriteAccessRequired>

@@ -19,7 +19,7 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
         logger.info("Open map layers")
         clickChild(byQaId("map-layers-button"))
 
-        waitUntilVisible(By.className("map-layer-menu"))
+        waitChildVisible(By.className("map-layer-menu"))
 
         E2EMapLayerPanel { getElementWhenVisible(By.className("map-layer-menu")) }
     }

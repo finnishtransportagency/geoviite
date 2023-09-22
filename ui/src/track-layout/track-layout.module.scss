@@ -76,15 +76,3 @@
         height: 100%;
     }
 }
-
-.track-layout__map-settings {
-    @include shadow-8dp;
-
-    position: absolute;
-    overflow-y: auto;
-    margin-top: 5px;
-    margin-left: 5px;
-    max-height: 100%;
-    border-radius: 6px;
-    z-index: $layer-popup;
-}

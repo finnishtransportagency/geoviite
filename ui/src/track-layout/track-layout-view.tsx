@@ -1,6 +1,6 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { MapLayerMenuGroups, MapLayerMenuChange } from 'map/map-model';
+import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 import { MapContext } from 'map/map-store';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
@@ -11,7 +11,6 @@ import { BoundingBox } from 'model/geometry';
 import { LayoutMode, PublishType } from 'common/common-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
-import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { MapViewContainer } from 'map/map-view-container';
@@ -50,7 +49,6 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
 
-    const [layerMenuVisible, setLayerMenuVisible] = React.useState(false);
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
 
@@ -61,9 +59,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                     linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
                     linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
                 }
-                layerMenuVisible={layerMenuVisible}
                 publishType={publishType}
-                onMapLayerVisibilityChange={setLayerMenuVisible}
                 showArea={showArea}
                 onSelectTrackNumber={(trackNumberId) =>
                     onSelect({
@@ -91,6 +87,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 onOpenPreview={() => onLayoutModeChange('PREVIEW')}
                 changeTimes={changeTimes}
                 onStopLinking={onStopLinking}
+                onMapLayerChange={onLayerMenuItemChange}
+                mapLayerMenuGroups={mapLayerMenuGroups}
             />
 
             <div className={styles['track-layout__main-view']}>
@@ -105,16 +103,6 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 )}
 
                 <div className={styles['track-layout__map']}>
-                    {layerMenuVisible && (
-                        <div className={styles['track-layout__map-settings']}>
-                            <MapLayerMenu
-                                onMenuChange={onLayerMenuItemChange}
-                                onClose={() => setLayerMenuVisible(false)}
-                                mapLayerMenuGroups={mapLayerMenuGroups}
-                            />
-                        </div>
-                    )}
-
                     <MapContext.Provider value="track-layout">
                         <MapViewContainer hoveredOverPlanSection={hoveredOverPlanSection} />
                     </MapContext.Provider>

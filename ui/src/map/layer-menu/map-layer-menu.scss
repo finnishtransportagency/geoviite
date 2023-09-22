@@ -1,11 +1,16 @@
 @import '../../vayla-design-lib/colors';
 @import '../../vayla-design-lib/shadows';
 @import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/layers';
 
 .map-layer-menu {
+    @include shadow-8dp;
+
     position: relative;
     padding: 16px;
     background: $color-white-dark;
+    z-index: $layer-popup;
+    border-radius: 6px;
 
     &__close-button {
         position: absolute;
