@@ -118,39 +118,29 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     </td>
                 )}
                 <td className={'preview-table-item preview-table-item__actions--cell'}>
-                    <div>
-                        <div>
+                    <Button
+                        qa-id={'stage-change-button'}
+                        variant={ButtonVariant.GHOST}
+                        onClick={() => {
+                            onPublishItemSelect && onPublishItemSelect();
+                        }}
+                        icon={publish ? Icons.Ascending : Icons.Descending}
+                    />
+                    <React.Fragment>
+                        {changesBeingReverted ? (
+                            <div className={'preview-table-item__revert-spinner'}>
+                                <Spinner />
+                            </div>
+                        ) : (
                             <Button
-                                qa-id={'stage-change-button'}
+                                ref={actionMenuRef}
+                                qa-id={'menu-button'}
                                 variant={ButtonVariant.GHOST}
-                                onClick={() => {
-                                    onPublishItemSelect && onPublishItemSelect();
-                                }}
-                                icon={publish ? Icons.Ascending : Icons.Descending}
+                                icon={Icons.More}
+                                onClick={() => setActionMenuVisible(!actionMenuVisible)}
                             />
-                        </div>
-                        <div ref={actionMenuRef}>
-                            {changesBeingReverted ? (
-                                <div className={'preview-table-item__revert-spinner'}>
-                                    <Spinner />
-                                </div>
-                            ) : (
-                                <Button
-                                    qa-id={'menu-button'}
-                                    variant={ButtonVariant.GHOST}
-                                    icon={Icons.More}
-                                    onClick={() => setActionMenuVisible(!actionMenuVisible)}
-                                />
-                            )}
-                            {actionMenuVisible && (
-                                <Menu
-                                    positionRef={actionMenuRef}
-                                    items={menuOptions}
-                                    onClickOutside={() => setActionMenuVisible(false)}
-                                />
-                            )}
-                        </div>
-                    </div>
+                        )}
+                    </React.Fragment>
                 </td>
             </tr>
             {isErrorRowExpanded && hasErrors && (
@@ -182,6 +172,14 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                     </td>
                 </tr>
+            )}
+
+            {actionMenuVisible && (
+                <Menu
+                    positionRef={actionMenuRef}
+                    items={menuOptions}
+                    onClickOutside={() => setActionMenuVisible(false)}
+                />
             )}
         </React.Fragment>
     );

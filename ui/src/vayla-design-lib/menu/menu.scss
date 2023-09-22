@@ -1,6 +1,7 @@
 @import '../colors';
 @import '../shadows';
 @import '../typography';
+@import '../layers';
 
 .menu {
     @include shadow-8dp;
@@ -8,7 +9,7 @@
     background: $color-white-default;
     border-radius: 4px;
     overflow: hidden;
-    z-index: 50;
+    z-index: $layer-popup;
 
     &__items {
         margin: 0;

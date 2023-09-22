@@ -41,18 +41,19 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
                         variant={ButtonVariant.SECONDARY}
                         icon={Icons.More}
                     />
-                    {fileMenuVisible && (
-                        <Menu
-                            positionRef={fileMenuRef}
-                            items={props.fileMenuItems}
-                            onSelect={(item) => {
-                                props.fileMenuItemSelected(item);
-                                setFileMenuVisible(false);
-                            }}
-                            onClickOutside={() => setFileMenuVisible(false)}
-                        />
-                    )}
                 </div>
+            )}
+
+            {fileMenuVisible && (
+                <Menu
+                    positionRef={fileMenuRef}
+                    items={props.fileMenuItems}
+                    onSelect={(item) => {
+                        props.fileMenuItemSelected(item);
+                        setFileMenuVisible(false);
+                    }}
+                    onClickOutside={() => setFileMenuVisible(false)}
+                />
             )}
         </div>
     );

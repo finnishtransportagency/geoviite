@@ -54,15 +54,12 @@ const LocationTrackElementListingSearch = ({
                 getLocationTrackDescriptions(
                     locationTracks.map((lt) => lt.id),
                     'OFFICIAL',
-                ).then(
-                    (descriptions) =>
-                        (descriptions &&
-                            getLocationTrackOptions(
-                                locationTracks,
-                                descriptions,
-                                state.searchParameters.locationTrack,
-                            )) ??
-                        [],
+                ).then((descriptions) =>
+                    getLocationTrackOptions(
+                        locationTracks,
+                        descriptions ?? [],
+                        state.searchParameters.locationTrack,
+                    ),
                 ),
             ),
         [state.searchParameters.locationTrack],

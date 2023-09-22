@@ -55,7 +55,7 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                                 ? t(`publication-details-table.remark.${change.remark.key}`, {
                                       value: change.remark.value,
                                   })
-                                : undefined}
+                                : ''}
                         </td>
                     </tr>
                 ))}

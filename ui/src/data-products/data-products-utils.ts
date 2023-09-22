@@ -7,7 +7,7 @@ import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-trac
 import { LayoutLocationTrack, LocationTrackDescription } from 'track-layout/track-layout-model';
 import { CoordinateSystem, Srid } from 'common/common-model';
 
-export const searchGeometryPlanHeaders = (
+export const searchGeometryPlanHeaders = async (
     source: PlanSource,
     searchTerm: string,
 ): Promise<GeometryPlanHeader[]> => {
@@ -15,14 +15,15 @@ export const searchGeometryPlanHeaders = (
         return Promise.resolve([]);
     }
 
-    return getGeometryPlanHeadersBySearchTerms(
+    const t = await getGeometryPlanHeadersBySearchTerms(
         10,
         undefined,
         undefined,
         [source],
         [],
         searchTerm,
-    ).then((t) => t.items);
+    );
+    return t.items;
 };
 
 export const getGeometryPlanOptions = (
@@ -45,7 +46,9 @@ export const getLocationTrackOptions = (
     tracks
         .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
         .map((lt) => ({
-            name: `${lt.name}, ${descriptions.find((desc) => desc.id == lt.id) ?? ''}`,
+            name: `${lt.name}, ${
+                descriptions.find((desc) => desc.id == lt.id)?.description ?? '-'
+            }`,
             value: lt,
         }));
 

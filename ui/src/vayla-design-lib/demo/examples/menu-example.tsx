@@ -24,17 +24,18 @@ export const MenuExample: React.FC = () => {
 
             <div ref={menuRef}>
                 <Button onClick={() => setShowMenu(true)}>Toggle menu</Button>
-                {showMenu && (
-                    <Menu
-                        positionRef={menuRef}
-                        items={items}
-                        onSelect={(item) => item && handleItemChange(item)}
-                        onClickOutside={() => {}}
-                    />
-                )}
             </div>
 
             <div>Chosen item: {chosenItem}</div>
+
+            {showMenu && (
+                <Menu
+                    positionRef={menuRef}
+                    items={items}
+                    onSelect={(item) => item && handleItemChange(item)}
+                    onClickOutside={() => {}}
+                />
+            )}
         </div>
     );
 };

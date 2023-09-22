@@ -265,14 +265,6 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                             onClick={() => setShowAddMenu(!showAddMenu)}
                         />
                     </WriteAccessRequired>
-                    {showAddMenu && (
-                        <Menu
-                            positionRef={menuRef}
-                            items={newMenuItems}
-                            onSelect={(item) => item && handleNewMenuItemChange(item)}
-                            onClickOutside={() => setShowAddMenu(false)}
-                        />
-                    )}
                 </div>
             </div>
 
@@ -306,6 +298,16 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     </React.Fragment>
                 )}
             </div>
+
+            {showAddMenu && (
+                <Menu
+                    positionRef={menuRef}
+                    items={newMenuItems}
+                    onSelect={(item) => item && handleNewMenuItemChange(item)}
+                    onClickOutside={() => setShowAddMenu(false)}
+                />
+            )}
+
             {showAddTrackNumberDialog && (
                 <TrackNumberEditDialogContainer
                     onClose={() => setShowAddTrackNumberDialog(false)}
