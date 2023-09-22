@@ -214,22 +214,27 @@ const LocationTrackElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <Button
-                    className={styles['element-list__download-button']}
-                    disabled={!state.elements || state.elements.length === 0}
-                    onClick={() => {
-                        if (state.searchParameters.locationTrack) {
-                            location.href = getLocationTrackElementsCsv(
-                                state.searchParameters.locationTrack?.id,
-                                selectedElementTypes(state.searchParameters.searchGeometries),
-                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-                            );
+                <a
+                    qa-id={'location-track-element-list-csv-download'}
+                    {...(state.searchParameters.locationTrack && {
+                        href: getLocationTrackElementsCsv(
+                            state.searchParameters.locationTrack?.id,
+                            selectedElementTypes(state.searchParameters.searchGeometries),
+                            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                        ),
+                    })}>
+                    <Button
+                        className={styles['element-list__download-button']}
+                        disabled={
+                            !state.elements ||
+                            state.elements.length === 0 ||
+                            state.searchParameters.locationTrack === undefined
                         }
-                    }}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

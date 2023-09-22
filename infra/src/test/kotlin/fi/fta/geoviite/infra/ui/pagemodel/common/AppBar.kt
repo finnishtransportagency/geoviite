@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EElementListPage
+import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EDataProductLayoutElementListPage
+import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EDataProductLayoutVerticalGeometryListPage
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
@@ -45,8 +46,13 @@ class E2EAppBar(by: By = By.className("app-bar")) : E2EViewFragment(by) {
         fetch(byQaId(link.qaId))().click()
     }
 
-    fun goToElementListPage(): E2EElementListPage {
+    fun goToElementListPage(): E2EDataProductLayoutElementListPage {
         goToDataProductPage(DataProductNavLink.ELEMENT_LIST)
-        return E2EElementListPage()
+        return E2EDataProductLayoutElementListPage()
+    }
+
+    fun goToVerticalGeometryListPage(): E2EDataProductLayoutVerticalGeometryListPage {
+        goToDataProductPage(DataProductNavLink.VERTICAL_GEOMETRY)
+        return E2EDataProductLayoutVerticalGeometryListPage()
     }
 }

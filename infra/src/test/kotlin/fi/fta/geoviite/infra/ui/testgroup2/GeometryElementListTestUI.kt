@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
@@ -14,22 +16,22 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.springframework.web.reactive.function.client.WebClient
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class GeometryElementListTestUI @Autowired constructor(
-    private val testGeometryPlanService: TestGeometryPlanService,
-    private val switchStructureDao: SwitchStructureDao,
-    private val switchDao: LayoutSwitchDao,
     private val geometryDao: GeometryDao,
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val kmPostDao: LayoutKmPostDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
 ) : SeleniumTest() {
 
-    @BeforeAll
+    @BeforeEach
     fun cleanup() {
         clearAllTestData()
     }
@@ -37,7 +39,68 @@ class GeometryElementListTestUI @Autowired constructor(
     @Test
     fun `List layout geometry`() {
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
-        val planVersion = geometryDao.insertPlan(
+        val planVersion = insertSomePlan(trackNumberId)
+        linkPlanToSomeLocationTrack(planVersion, trackNumberId)
+
+        startGeoviite()
+        val elementListPage = navigationBar.goToElementListPage()
+        elementListPage.selectLocationTrack("foo")
+
+        val results = elementListPage.resultList
+        results.waitUntilCount(5)
+        val firstRow = results.items[0]
+        assertEquals("foo test track", firstRow.locationTrack)
+        assertEquals("1.000", firstRow.locationStartE)
+
+        elementListPage.line.click()
+        results.waitUntilCount(3)
+        elementListPage.line.click()
+        elementListPage.clothoid.click()
+        elementListPage.curve.click()
+        elementListPage.missingGeometry.click()
+        results.waitUntilCount(2)
+        elementListPage.missingGeometry.click()
+        results.waitUntilCount(3)
+    }
+
+    @Test
+    fun `List plan geometry`() {
+        insertSomePlan(trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id)
+        startGeoviite()
+        val planListPage = navigationBar.goToElementListPage().planListPage()
+        planListPage.selectPlan("testfile")
+        val results = planListPage.resultList
+        results.waitUntilCount(4)
+        planListPage.clothoid.click()
+        results.waitUntilCount(3)
+        planListPage.clothoid.click()
+        planListPage.line.click()
+        results.waitUntilCount(2)
+        val resultItems = results.items
+        assertEquals("Siirtymäkaari", resultItems[0].elementType)
+        assertEquals("3.606", resultItems[0].length)
+        assertEquals("Kaari", resultItems[1].elementType)
+        assertEquals("4.263", resultItems[1].length)
+        val downloadUrl = planListPage.downloadUrl
+        val csv = WebClient.create().get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        assertTrue(csv.isNotEmpty())
+    }
+
+    @Test
+    fun `List whole network geometry`() {
+        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val planVersion = insertSomePlan(trackNumberId)
+        linkPlanToSomeLocationTrack(planVersion, trackNumberId)
+
+        startGeoviite()
+        val page = navigationBar.goToElementListPage().entireNetworkPage()
+        val downloadUrl = page.downloadUrl
+        val csv = WebClient.create().get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        assertTrue(csv.isNotEmpty())
+    }
+
+    private fun insertSomePlan(trackNumberId: IntId<TrackLayoutTrackNumber>): RowVersion<GeometryPlan> =
+        geometryDao.insertPlan(
             plan = plan(
                 trackNumberId = trackNumberId,
                 alignments = listOf(
@@ -58,6 +121,10 @@ class GeometryElementListTestUI @Autowired constructor(
             boundingBoxInLayoutCoordinates = null,
         )
 
+    private fun linkPlanToSomeLocationTrack(
+        planVersion: RowVersion<GeometryPlan>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ) {
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         val geoAlignmentA = geometryPlan.alignments[0]
         val locationTrackAlignment = alignmentDao.insert(
@@ -72,25 +139,5 @@ class GeometryElementListTestUI @Autowired constructor(
         locationTrackDao.insert(
             locationTrack(trackNumberId, name = "foo test track").copy(alignmentVersion = locationTrackAlignment)
         )
-
-        startGeoviite()
-        val elementListPage = navigationBar.goToElementListPage()
-        elementListPage.selectLocationTrack("foo")
-
-        val results = elementListPage.resultList
-        val firstRow = results.getItemWhenMatches { r -> r.length == "2.828" }
-        assertEquals("foo test track", firstRow.locationTrack)
-        assertEquals("1.000", firstRow.locationStartE)
-        assertEquals(5, results.items.size)
-
-        elementListPage.line.click()
-        results.waitUntilCount(3)
-        elementListPage.line.click()
-        elementListPage.clothoid.click()
-        elementListPage.curve.click()
-        elementListPage.missingGeometry.click()
-        results.waitUntilCount(2)
-        elementListPage.missingGeometry.click()
-        results.waitUntilCount(3)
     }
 }

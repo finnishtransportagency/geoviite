@@ -74,17 +74,19 @@ export type ElementHeading = {
     hasSeparator: boolean;
 };
 
-export const numericHeading = (name: string) => ({
-    name,
-    numeric: true,
-    hasSeparator: false,
-});
+export function numericHeading(
+    name: string,
+    qaId?: string,
+): { name: string; numeric: true; hasSeparator: false; qaId?: string } {
+    return { name, numeric: true, hasSeparator: false, qaId };
+}
 
-export const nonNumericHeading = (name: string) => ({
-    name,
-    numeric: false,
-    hasSeparator: false,
-});
+export function nonNumericHeading(
+    name: string,
+    qaId?: string,
+): { name: string; numeric: false; hasSeparator: false; qaId?: string } {
+    return { name, numeric: false, hasSeparator: false, qaId };
+}
 
 export const withSeparator = (heading: ElementHeading) => ({ ...heading, hasSeparator: true });
 

@@ -44,10 +44,12 @@ const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTab
     ];
 
     const tableHeadingsToShowInUI = showLocationTrackName
-        ? [nonNumericHeading('track-number'), nonNumericHeading('location-track')].concat(
-              commonTableHeadings,
-          )
-        : [nonNumericHeading('track-number')].concat(commonTableHeadings);
+        ? [
+              nonNumericHeading('track-number'),
+              nonNumericHeading('location-track'),
+              ...commonTableHeadings,
+          ]
+        : [nonNumericHeading('track-number'), ...commonTableHeadings];
 
     return (
         <React.Fragment>
