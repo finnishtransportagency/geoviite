@@ -58,7 +58,6 @@ private fun limitScale(meters: BigDecimal) =
     else meters
 
 private val maxMeter = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
-private val metersValidRange = -maxMeter..maxMeter
 private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
 
 interface ITrackMeter : Comparable<ITrackMeter> {
@@ -81,17 +80,27 @@ interface ITrackMeter : Comparable<ITrackMeter> {
     override operator fun compareTo(other: ITrackMeter): Int = compare(this, other)
 }
 
-data class TrackMeter @JsonCreator(mode = DISABLED) constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : ITrackMeter {
+data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
+    override val kmNumber: KmNumber,
+    override val meters: BigDecimal,
+) : ITrackMeter {
     private constructor(values: Pair<KmNumber, BigDecimal>) : this(values.first, values.second)
+
     @JsonCreator(mode = DELEGATING)
     constructor(value: String) : this(parseTrackMeterParts(value))
 
     companion object {
         val ZERO = TrackMeter(KmNumber.ZERO, BigDecimal.ZERO)
+
+        fun isMetersValid(v: BigDecimal): Boolean {
+            return -maxMeter <= v && v < maxMeter
+        }
+
+        fun isMetersValid(v: Double) = isMetersValid(BigDecimal.valueOf(v))
     }
 
     init {
-        require(meters in metersValidRange) {
+        require(isMetersValid(meters)) {
             "Track address meters outside valid range: km=$kmNumber value=$meters"
         }
         require(meters.scale() in metersDecimalsValidRange) {
@@ -111,7 +120,12 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(override val kmN
     constructor(kmNumber: Int, meters: String) : this(KmNumber(kmNumber), meters)
     constructor(kmNumber: Int, meters: BigDecimal) : this(KmNumber(kmNumber), meters)
     constructor(kmNumber: Int, extension: String, meters: Int) : this(KmNumber(kmNumber, extension), meters)
-    constructor(kmNumber: Int, extension: String, meters: Double, decimals: Int) : this(KmNumber(kmNumber, extension), meters, decimals)
+    constructor(kmNumber: Int, extension: String, meters: Double, decimals: Int) : this(
+        KmNumber(kmNumber, extension),
+        meters,
+        decimals
+    )
+
     constructor(kmNumber: Int, extension: String, meters: String) : this(KmNumber(kmNumber, extension), meters)
     constructor(kmNumber: Int, extension: String, meters: BigDecimal) : this(KmNumber(kmNumber, extension), meters)
 

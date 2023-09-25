@@ -6,17 +6,19 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.GeocodingFailureException
 import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.math.IntersectType.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
+import kotlin.math.abs
 
 data class AddressPoint(val point: LayoutPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
 }
+
 data class AlignmentAddresses(
     val startPoint: AddressPoint,
     val endPoint: AddressPoint,
@@ -70,16 +72,49 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
+typealias KmPostsWithRejectReason = List<Pair<TrackLayoutKmPost, KmPostRejectedReason>>
+
+data class GeocodingContextCreateResult(
+    val geocodingContext: GeocodingContext,
+    val rejectedKmPosts: KmPostsWithRejectReason,
+)
+
+enum class KmPostRejectedReason {
+    TOO_FAR_APART,
+    NO_LOCATION,
+    IS_BEFORE_START_ADDRESS,
+    INTERSECTS_BEFORE_REFERENCE_LINE,
+    INTERSECTS_AFTER_REFERENCE_LINE,
+}
+
 data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
     val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
     val kmPosts: List<TrackLayoutKmPost>,
     val referencePoints: List<GeocodingReferencePoint>,
-    val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
     val projectionLineMaxAngleDelta: Double = PROJECTION_LINE_MAX_ANGLE_DELTA,
 ) {
+
+    init {
+        require(referenceLineGeometry.segments.isNotEmpty()) {
+            "Cannot geocode with empty reference line geometry, trackNumber=${trackNumber.number}"
+        }
+
+        require(referencePoints.isNotEmpty()) {
+            "Cannot geocode without reference points, trackNumber=${trackNumber.number}"
+        }
+
+        require(
+            referencePoints
+                .zipWithNext { a, b -> abs(b.distance - a.distance) }
+                .all { TrackMeter.isMetersValid(it) }
+        ) {
+            "Reference points are too far apart from each other, trackNumber=${trackNumber.number}"
+        }
+    }
+
     private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
     val projectionLines: List<ProjectionLine> by lazy {
         require(isSame(polyLineEdges.last().end.m, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
@@ -132,21 +167,21 @@ data class GeocodingContext(
             startAddress: TrackMeter,
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
-        ): GeocodingContext {
-            val referencePoints = createReferencePoints(startAddress, kmPosts, referenceLineGeometry)
-            val (validKmPosts, rejectedKmPosts) = kmPosts.partition { post ->
-                referencePoints.any { reference ->
-                    reference.kmNumber == post.kmNumber && reference.meters == BigDecimal.ZERO
-                }
-            }
+        ): GeocodingContextCreateResult {
+            val (validKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
-            return GeocodingContext(
-                trackNumber = trackNumber,
-                startAddress = startAddress,
-                referenceLineGeometry = referenceLineGeometry,
-                referencePoints = referencePoints,
-                kmPosts = validKmPosts,
-                rejectedKmPosts = rejectedKmPosts
+            val referencePoints = createReferencePoints(startAddress, validKmPosts, referenceLineGeometry)
+            val (validReferencePoints, rejectedKmPosts) = validateReferencePoints(referencePoints, validKmPosts)
+
+            return GeocodingContextCreateResult(
+                geocodingContext = GeocodingContext(
+                    trackNumber = trackNumber,
+                    kmPosts = kmPosts,
+                    referenceLineGeometry = referenceLineGeometry,
+                    referencePoints = validReferencePoints,
+                    startAddress = startAddress
+                ),
+                rejectedKmPosts = rejectedKmPosts + invalidKmPosts
             )
         }
 
@@ -154,29 +189,82 @@ data class GeocodingContext(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
             referenceLineGeometry: IAlignment,
-        ) = listOf(GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)) +
-                kmPosts.mapNotNull { post ->
-                    if (post.location != null && TrackMeter(post.kmNumber,0) > startAddress) {
-                        toReferencePoint(post.location, post.kmNumber, referenceLineGeometry)
-                    } else null
+        ): List<GeocodingReferencePoint> {
+            val kpReferencePoints = kmPosts
+                .mapNotNull { post ->
+                    post.location?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
                 }
 
-        private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: IAlignment) =
-            referenceLineGeometry.getClosestPointM(location)
-                ?.let { (distance, intersectType) ->
-                    if (distance > 0.0 && intersectType == WITHIN) {
-                        val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtM(distance)) {
-                            "Couldn't resolve distance to point on reference line: not continuous?"
-                        }
-                        GeocodingReferencePoint(
-                            kmNumber = kmNumber,
-                            meters = BigDecimal.ZERO,
-                            distance = distance,
-                            kmPostOffset = lineLength(location, pointOnLine),
-                            intersectType = intersectType,
-                        )
-                    } else null
+            val firstPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
+
+            return listOf(firstPoint) + kpReferencePoints
+        }
+
+        private fun validateKmPosts(
+            kmPosts: List<TrackLayoutKmPost>,
+            startAddress: TrackMeter,
+        ): Pair<List<TrackLayoutKmPost>, KmPostsWithRejectReason> {
+            val (withoutLocations, withLocations) = kmPosts.partition { it.location == null }
+
+            val (invalidStartAddresses, validKmPosts) = withLocations.partition {
+                TrackMeter(it.kmNumber, BigDecimal.ZERO) <= startAddress
+            }
+
+            val rejectedKmPosts = withoutLocations.map { it to KmPostRejectedReason.NO_LOCATION } +
+                    invalidStartAddresses.map { it to KmPostRejectedReason.IS_BEFORE_START_ADDRESS }
+
+            return validKmPosts to rejectedKmPosts
+        }
+
+        private fun validateReferencePoints(
+            referencePoints: List<GeocodingReferencePoint>,
+            kmPosts: List<TrackLayoutKmPost>,
+        ): Pair<List<GeocodingReferencePoint>, KmPostsWithRejectReason> {
+            val (withinPoints, beforePoints, afterPoints) = referencePoints
+                .groupBy { it.intersectType }
+                .let { byIntersect ->
+                    Triple(
+                        byIntersect[WITHIN] ?: emptyList(),
+                        byIntersect[BEFORE]?.map { it to KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE }
+                            ?: emptyList(),
+                        byIntersect[AFTER]?.map { it to KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE }
+                            ?: emptyList()
+                    )
                 }
+
+            val invalidIndex = withinPoints
+                .zipWithNext { a, b -> abs(b.distance - a.distance) }
+                .let { distances -> distances.indexOfFirst { !TrackMeter.isMetersValid(it) } }
+
+            val (validPoints, invalidPoints) =
+                if (invalidIndex == -1) withinPoints to emptyList()
+                else {
+                    val idx = invalidIndex + 1
+                    withinPoints.take(idx) to listOf(withinPoints[idx] to KmPostRejectedReason.TOO_FAR_APART)
+                }
+
+            val rejectedKmPosts = (beforePoints + afterPoints + invalidPoints).map { (rp, reason) ->
+                val kp = kmPosts.first { k -> k.kmNumber == rp.kmNumber }
+                kp to reason
+            }
+
+            return validPoints.distinctBy { it.distance } to rejectedKmPosts
+        }
+
+        private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: IAlignment) =
+            referenceLineGeometry.getClosestPointM(location)?.let { (distance, intersectType) ->
+                val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtM(distance)) {
+                    "Couldn't resolve distance to point on reference line: not continuous?"
+                }
+
+                GeocodingReferencePoint(
+                    kmNumber = kmNumber,
+                    meters = BigDecimal.ZERO,
+                    distance = distance,
+                    kmPostOffset = lineLength(location, pointOnLine),
+                    intersectType = intersectType,
+                )
+            }
     }
 
     fun getM(coordinate: IPoint) = referenceLineGeometry.getClosestPointM(coordinate)
@@ -252,15 +340,19 @@ data class GeocodingContext(
     }
 
     fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
-        val locations = alignment.segments.flatMap { segment -> listOfNotNull(
-            segment.startJointNumber?.let { segment.points.first() },
-            segment.endJointNumber?.let { segment.points.last() },
-        ) }
+        val locations = alignment.segments.flatMap { segment ->
+            listOfNotNull(
+                segment.startJointNumber?.let { segment.points.first() },
+                segment.endJointNumber?.let { segment.points.last() },
+            )
+        }
         return locations.mapNotNull { location: LayoutPoint ->
-            getAddress(location, 3)?.let { (address) -> AddressPoint(
-                point = location,
-                address = address,
-            ) }
+            getAddress(location, 3)?.let { (address) ->
+                AddressPoint(
+                    point = location,
+                    address = address,
+                )
+            }
         }.distinctBy { addressPoint -> addressPoint.address }
     }
 
@@ -321,8 +413,8 @@ fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
     val start = things.binarySearch { t -> compare(t, range.start) }
     val end = things.binarySearch { t -> compare(t, range.endInclusive) }
     return things.subList(
-        if (start < 0) { -start-1 } else { start },
-        if (end < 0) { -end-1 } else { end + 1 }
+        if (start < 0) -start - 1 else start,
+        if (end < 0) -end - 1 else end + 1
     )
 }
 
@@ -356,16 +448,18 @@ fun getProjectedAddressPoints(
         val projection = projectionLines[projectionIndex]
         val intersection = intersection(edge, projection.projection)
         when (intersection.inSegment1) {
-            IntersectType.BEFORE -> {
+            BEFORE -> {
                 projectionIndex += 1
             }
+
             WITHIN -> {
                 addressPoints.add(
                     AddressPoint(edge.getPointAtPortion(intersection.segment1Portion), projection.address),
                 )
                 projectionIndex += 1
             }
-            IntersectType.AFTER -> {
+
+            AFTER -> {
                 edgeIndex += 1
             }
         }
@@ -441,8 +535,8 @@ fun getIntersection(projection: Line, edges: List<PolyLineEdge>): Pair<PolyLineE
     val collisionEdge = edges.getOrNull(edges.binarySearch { edge ->
         val edgeIntersection = intersection(edge, projection)
         when (edgeIntersection.inSegment1) {
-            IntersectType.BEFORE -> 1
-            IntersectType.AFTER -> -1
+            BEFORE -> 1
+            AFTER -> -1
             else -> {
                 intersection = edgeIntersection
                 0
@@ -457,11 +551,13 @@ fun getIntersection(projection: Line, edges: List<PolyLineEdge>): Pair<PolyLineE
 }
 
 private fun getPolyLineEdges(alignment: IAlignment): List<PolyLineEdge> {
-    return alignment.segments.flatMapIndexed { index: Int, segment: ISegment -> getPolyLineEdges(
-        segment,
-        alignment.segments.getOrNull(index-1)?.endDirection,
-        alignment.segments.getOrNull(index+1)?.startDirection,
-    ) }
+    return alignment.segments.flatMapIndexed { index, segment ->
+        getPolyLineEdges(
+            segment,
+            alignment.segments.getOrNull(index - 1)?.endDirection,
+            alignment.segments.getOrNull(index + 1)?.startDirection,
+        )
+    }
 }
 
 private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Double?): List<PolyLineEdge> {
@@ -471,11 +567,14 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
             val previous = segment.points[pointIndex - 1]
             // Direction for projection lines from the edge: 90 degrees turned from own direction
             val direction = PI / 2 +
-                if (segment.source != GeometrySource.GENERATED) directionBetweenPoints(previous, point)
-                // Generated connection segments can have a sideways offset, but the real line doesn't change direction
-                // To compensate, we want to project with the direction of previous/next segments
-                else if (prevDir == null || nextDir == null) prevDir ?: nextDir ?: directionBetweenPoints(previous, point)
-                else angleAvgRads(prevDir, nextDir)
+                    if (segment.source != GeometrySource.GENERATED) directionBetweenPoints(previous, point)
+                    // Generated connection segments can have a sideways offset, but the real line doesn't change direction
+                    // To compensate, we want to project with the direction of previous/next segments
+                    else if (prevDir == null || nextDir == null) prevDir ?: nextDir ?: directionBetweenPoints(
+                        previous,
+                        point
+                    )
+                    else angleAvgRads(prevDir, nextDir)
             PolyLineEdge(previous, point, segment.startM, direction)
         }
     }

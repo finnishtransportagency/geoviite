@@ -1159,6 +1159,7 @@
                 "not-continuous": "Sijaintiraiteen {{1}} osoitteet eivät ole jatkuvia, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
                 "start-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen alkua",
                 "end-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen loppua",
+                "km-post-too-long": "Tasakilometripiste {{1}} on liian kaukana seuraavasta",
                 "km-post-no-location": "Tasakilometripisteeltä ({{1}}) puuttuu sijainti",
                 "km-post-rejected": "Tasakilometripisteitä ({{1}}) ei voitu sijoittaa ratanumeron {{0}} pituusmittauslinjalle",
                 "km-post-outside-line-before": "Tasakilometripiste ({{1}}) sijaitsee ennen linjaa {{0}}",
