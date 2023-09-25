@@ -162,7 +162,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     variant={DialogVariant.LIGHT}
                     allowClose={!isPublishing}
                     onClose={() => setPublishConfirmVisible(false)}
-                    className={dialogStyles['dialog--wide']}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <React.Fragment>
                             <Button

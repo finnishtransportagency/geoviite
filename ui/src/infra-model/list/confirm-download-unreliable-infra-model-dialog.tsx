@@ -18,7 +18,7 @@ export const ConfirmDownloadUnreliableInfraModelDialog: React.FC<
     const { t } = useTranslation();
     return (
         <Dialog
-            className={dialogStyles['dialog--wide']}
+            className={dialogStyles['dialog--normal']}
             title={t(`infra-model-download.unreliable-plan`)}
             onClose={onClose}
             footerContent={

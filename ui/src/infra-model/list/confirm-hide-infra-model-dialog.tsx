@@ -19,7 +19,7 @@ export const ConfirmHideInfraModel: React.FC<ConfirmHideInfraModelProps> = ({
     const { t } = useTranslation();
     return (
         <Dialog
-            className={dialogStyles['dialog--wide']}
+            className={dialogStyles['dialog--normal']}
             title={t(`infra-model-hide.title`)}
             onClose={onClose}
             footerContent={

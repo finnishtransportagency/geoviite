@@ -55,7 +55,7 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
                 title={t('tool-panel.location-track.delete-dialog.delete-draft-confirm')}
                 variant={DialogVariant.DARK}
                 allowClose={false}
-                className={dialogStyles['dialog--narrow']}
+                className={dialogStyles['dialog--normal']}
                 footerContent={
                     <React.Fragment>
                         <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>

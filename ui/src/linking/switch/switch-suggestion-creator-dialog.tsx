@@ -184,7 +184,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
             title={t('switch-suggestion-creator-dialog.title')}
             onClose={onClose}
             variant={DialogVariant.DARK}
-            className={dialogStyles['dialog--wide']}
+            className={dialogStyles['dialog--normal']}
             scrollable={false}
             footerContent={
                 <React.Fragment>

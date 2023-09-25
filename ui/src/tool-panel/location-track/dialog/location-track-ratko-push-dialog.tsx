@@ -94,7 +94,7 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
             }
             variant={DialogVariant.DARK}
             allowClose={false}
-            className={dialogStyles['dialog--wide']}
+            className={dialogStyles['dialog--normal']}
             footerContent={
                 <React.Fragment>
                     {!pushDone && (
