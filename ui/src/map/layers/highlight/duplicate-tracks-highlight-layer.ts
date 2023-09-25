@@ -1,7 +1,10 @@
 import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
 import { MapTile } from 'map/map-model';
-import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    getLocationTrackMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
@@ -40,7 +43,7 @@ export function createDuplicateTracksHighlightLayer(
     let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
         inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
+        getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
             .then((locationTracks) => {
                 if (layerId === newestLayerId) {
                     const features = createHighlightFeatures(locationTracks);
@@ -49,7 +52,9 @@ export function createDuplicateTracksHighlightLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });
