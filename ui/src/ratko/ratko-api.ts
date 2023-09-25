@@ -1,4 +1,4 @@
-import { API_URI, getAdt, getIgnoreError, postAdt } from 'api/api-fetch';
+import { API_URI, getAdt, getIgnoreError, postAdt, postIgnoreError } from 'api/api-fetch';
 import { PublicationId } from 'publication/publication-model';
 import { RatkoPushError } from 'ratko/ratko-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
@@ -6,7 +6,7 @@ import { KmNumber } from 'common/common-model';
 
 const RATKO_URI = `${API_URI}/ratko`;
 
-export const pushToRatko = () => getIgnoreError(`${RATKO_URI}/push`);
+export const pushToRatko = () => postIgnoreError(`${RATKO_URI}/push`, undefined);
 
 export const getRatkoPushError = (publishId: PublicationId) =>
     getIgnoreError<RatkoPushError>(`${RATKO_URI}/errors/${publishId}`);
