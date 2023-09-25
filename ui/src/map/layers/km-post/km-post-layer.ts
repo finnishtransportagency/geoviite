@@ -83,8 +83,10 @@ export function createKmPostLayer(
                 updateShownKmPosts(kmPosts.map((k) => k.id));
             })
             .catch(() => {
-                clearFeatures(vectorSource);
-                updateShownKmPosts([]);
+                if (layerId === newestLayerId) {
+                    clearFeatures(vectorSource);
+                    updateShownKmPosts([]);
+                }
             })
             .finally(() => {
                 inFlight = false;

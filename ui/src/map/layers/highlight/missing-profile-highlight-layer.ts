@@ -3,8 +3,8 @@ import { LineString } from 'ol/geom';
 import { Stroke, Style } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import {
+    getLocationTrackMapAlignmentsByTiles,
     getLocationTrackSectionsWithoutProfileByTiles,
-    getMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
@@ -39,11 +39,10 @@ export function createMissingProfileHighlightLayer(
     let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
         inFlight = true;
-        const locationTracksPromise = getMapAlignmentsByTiles(
+        const locationTracksPromise = getLocationTrackMapAlignmentsByTiles(
             changeTimes,
             mapTiles,
             publishType,
-            'LOCATION_TRACKS',
         );
 
         const profilePromise = getLocationTrackSectionsWithoutProfileByTiles(
@@ -65,7 +64,9 @@ export function createMissingProfileHighlightLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });

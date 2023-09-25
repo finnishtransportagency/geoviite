@@ -28,7 +28,7 @@ export const HeightGraph: React.FC<HeightGraphProps> = ({ coordinates, kmHeights
     };
     for (const { trackMeterHeights } of kmHeights) {
         for (const { height, m } of trackMeterHeights) {
-            if (height == null) {
+            if (height == undefined) {
                 finishLineIfStarted();
             } else {
                 linePoints.push([mToX(coordinates, m), heightToY(coordinates, height)]);

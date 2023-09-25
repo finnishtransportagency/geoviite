@@ -58,7 +58,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
         searchParams: GeometryPlanSearchParams,
         values: TrackNumberOption[],
     ): GeometryPlanSearchParams {
-        const trackNumberIds = values.map((v) => v.value.id || null).filter(filterNotEmpty);
+        const trackNumberIds = values.map((v) => v.value.id).filter(filterNotEmpty);
         return {
             ...searchParams,
             freeText: '',
@@ -110,7 +110,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
                     dataKey={'id'}
                     textField={'label'}
                     placeholder={t('im-form.search')}
-                    selectIcon={null}
+                    selectIcon={undefined}
                     filter={(item, searchTerm) => trackNumberStartsWith(searchTerm, item)}
                 />
             </div>

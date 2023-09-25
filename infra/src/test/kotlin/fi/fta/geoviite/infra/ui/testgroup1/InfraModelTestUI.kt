@@ -142,7 +142,7 @@ class InfraModelTestUI @Autowired constructor(
         lokiJaLinkitystiedotFormGroup.setPlanTime("elokuu", "1999")
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 
-        uploadForm.save(false)
+        uploadForm.save(true)
         waitAndClearToast("infra-model-import-upload__success-toast")
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList

@@ -25,6 +25,7 @@ import {
     LocationTrackVerticalGeometrySearchState,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
+import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -47,7 +48,19 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     const getLocationTracks = React.useCallback(
         (searchTerm) =>
             debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
-                getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
+                getLocationTrackDescriptions(
+                    locationTracks.map((lt) => lt.id),
+                    'OFFICIAL',
+                ).then(
+                    (descriptions) =>
+                        (descriptions &&
+                            getLocationTrackOptions(
+                                locationTracks,
+                                descriptions,
+                                state.searchParameters.locationTrack,
+                            )) ??
+                        [],
+                ),
             ),
         [state.searchParameters.locationTrack],
     );
@@ -75,7 +88,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         }
 
         return debouncedTrackElementsFetch(
-            null,
+            undefined,
             'OFFICIAL',
             state.searchParameters.locationTrack.id,
             validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),

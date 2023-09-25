@@ -29,21 +29,21 @@ import i18n from 'i18next';
 
 export interface InsertResponse {
     message: string;
-    planId: number | null;
+    planId?: number;
 }
 
 export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
     validationErrors: [],
-    geometryPlan: null,
-    planLayout: null,
+    geometryPlan: undefined,
+    planLayout: undefined,
 };
 
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/projektivelho`;
 
-const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | null>();
+const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | undefined>();
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
-const pvRedirectUrlCache = asyncCache<string, string | null>();
+const pvRedirectUrlCache = asyncCache<string, string | undefined>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
@@ -94,7 +94,7 @@ export const saveInfraModelFile = async (
     file?: Blob,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
-): Promise<InsertResponse | null> => {
+): Promise<InsertResponse | undefined> => {
     const formData = createFormData(file, extraParameters, overrideParameters);
     const response = await postFormIgnoreError<InsertResponse>(INFRAMODEL_URI, formData);
     if (response) {
@@ -110,7 +110,7 @@ export async function updateGeometryPlan(
     planId: GeometryPlanId,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
-): Promise<GeometryPlan | null> {
+): Promise<GeometryPlan | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
     const response = await putFormIgnoreError<GeometryPlan>(
         `${INFRAMODEL_URI}/${planId}`,
@@ -122,7 +122,7 @@ export async function updateGeometryPlan(
     }
     return response;
 }
-export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | null> {
+export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | undefined> {
     return putIgnoreError<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
         (id) => {
             updatePlanChangeTime();
@@ -149,18 +149,18 @@ export const getPVRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
 export async function getPVDocument(
     changeTime: TimeStamp = getChangeTimes().pvDocument,
     id: PVDocumentId,
-): Promise<PVDocumentHeader | null> {
+): Promise<PVDocumentHeader | undefined> {
     return pvDocumentHeaderCache.get(changeTime, id, () =>
         getIgnoreError<PVDocumentHeader>(`${PROJEKTIVELHO_URI}/documents/${id}`),
     );
 }
 
-export async function getPVDocumentCount(): Promise<PVDocumentCount | null> {
+export async function getPVDocumentCount(): Promise<PVDocumentCount | undefined> {
     return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
 }
 
-export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<null> {
-    return putIgnoreError<PVDocumentStatus, null>(
+export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined> {
+    return putIgnoreError<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${ids}/status`,
         'REJECTED',
     ).then((ids) => {
@@ -169,8 +169,8 @@ export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<null> {
     });
 }
 
-export async function restorePVDocument(id: PVDocumentId): Promise<null> {
-    return putIgnoreError<PVDocumentStatus, null>(
+export async function restorePVDocument(id: PVDocumentId): Promise<undefined> {
+    return putIgnoreError<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
     ).then((id) => {
@@ -195,7 +195,7 @@ export async function importPVDocument(
     id: PVDocumentId,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
-): Promise<GeometryPlanId | null> {
+): Promise<GeometryPlanId | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
     const url = `${PROJEKTIVELHO_URI}/documents/${id}`;
     const response = await postFormIgnoreError<GeometryPlanId>(url, formData);

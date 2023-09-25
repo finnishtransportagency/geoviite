@@ -734,7 +734,7 @@ async function getLinkPointsWithAddresses<
             return originalPoint != undefined
                 ? // This is commented out for now to re-evaluate the linking tag feature
                   //getAddress(trackNumberId, originalPoint, 'DRAFT')
-                  Promise.resolve(null).then((address) => ({
+                  Promise.resolve(undefined).then((address) => ({
                       propertyName: propertyName,
                       address: address || undefined,
                   }))
@@ -814,7 +814,9 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource))
+                .catch(() => {
+                    if (layerId === newestLayerId) clearFeatures(vectorSource);
+                })
                 .finally(() => {
                     inFlight = false;
                 });
@@ -864,7 +866,9 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource))
+                .catch(() => {
+                    if (layerId === newestLayerId) clearFeatures(vectorSource);
+                })
                 .finally(() => {
                     inFlight = false;
                 });
@@ -938,7 +942,9 @@ export function createAlignmentLinkingLayer(
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
                 })
-                .catch(() => clearFeatures(vectorSource))
+                .catch(() => {
+                    if (layerId === newestLayerId) clearFeatures(vectorSource);
+                })
                 .finally(() => {
                     inFlight = false;
                 });

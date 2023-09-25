@@ -53,36 +53,43 @@ class GeocodingCacheService(
     private val planLayoutService: PlanLayoutService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    @Autowired @Lazy lateinit var geocodingCacheService: GeocodingCacheService
+
+    @Autowired
+    @Lazy
+    lateinit var geocodingCacheService: GeocodingCacheService
 
     fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? =
+        getGeocodingContextWithReasons(key)?.geocodingContext
+
+    fun getGeocodingContextWithReasons(key: GeocodingContextCacheKey): GeocodingContextCreateResult? =
         when (key) {
             is LayoutGeocodingContextCacheKey -> geocodingCacheService.getLayoutGeocodingContext(key)
             is GeometryGeocodingContextCacheKey -> geocodingCacheService.getGeometryGeocodingContext(key)
         }
 
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
-    fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContext? {
+    fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContextCreateResult? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
         val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
             ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
-        // If the tracknumber is deleted or reference line has no geometry, we cannot geocode.
+        // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
         val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
         return GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, kmPosts)
     }
 
     @Cacheable(CACHE_PLAN_GEOCODING_CONTEXTS, sync = true)
-    fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContext? {
+    fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContextCreateResult? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
-        val plan = planLayoutService.getLayoutPlan(key.planVersion).first ?: return null
-        val startAddress = plan.startAddress ?: return null
-        val referenceLine = getGeometryGeocodingContextReferenceLine(plan) ?: return null
+        val plan = planLayoutService.getLayoutPlan(key.planVersion).first
+        val startAddress = plan?.startAddress
+        val referenceLine = plan?.let(::getGeometryGeocodingContextReferenceLine)
 
-        return GeocodingContext.create(trackNumber, startAddress, referenceLine, plan.kmPosts)
+        return if (startAddress == null || referenceLine == null) null
+        else GeocodingContext.create(trackNumber, startAddress, referenceLine, plan.kmPosts)
     }
 
     private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): PlanLayoutAlignment? {

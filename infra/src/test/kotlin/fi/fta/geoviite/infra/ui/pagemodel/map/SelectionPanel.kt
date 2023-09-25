@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.fetch
-import getElementsWhenVisible
 import org.openqa.selenium.By
 import tryWait
 
@@ -32,7 +31,7 @@ class E2ESelectionPanel(
     }
 
     val geometryPlans: List<E2EGeometryPlanAccordion> by lazy {
-        getElementsWhenVisible(By.cssSelector(".geometry-plan-panel .accordion__header-title"))
+        childElements(By.cssSelector(".geometry-plan-panel .accordion__header-title"))
             .map { it.text }
             .map { E2EGeometryPlanAccordion(By.xpath("//div[@class='accordion' and parent::div[@class='geometry-plan-panel'] and h4/span[text() = '${it}']]")) }
     }

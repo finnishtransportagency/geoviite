@@ -47,6 +47,7 @@ module.exports = (env) => {
         },
         devServer: {
             port: 9000,
+            compress: false,
             proxy: {
                 '/api': {
                     target: 'http://localhost:8080',

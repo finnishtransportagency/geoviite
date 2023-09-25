@@ -11,7 +11,7 @@ import {
 } from 'infra-model/infra-model-api';
 
 export type InfraModelLoaderProps = {
-    setExistingInfraModel: (plan: GeometryPlan | null) => void;
+    setExistingInfraModel: (plan: GeometryPlan | undefined) => void;
     onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 } & InfraModelBaseProps;
@@ -19,7 +19,7 @@ export type InfraModelLoaderProps = {
 export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props }) => {
     const { id: planId } = useParams<{ id: string }>();
     const [isLoading, setIsLoading] = useState(true);
-    const [initializedPlanId, setInitializedPlanId] = useState<GeometryPlanId | null>(null);
+    const [initializedPlanId, setInitializedPlanId] = useState<GeometryPlanId>();
 
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
@@ -41,14 +41,14 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props
             props.setLoading(true);
             const response = await updateGeometryPlan(planId, extraParams, overrideParams);
             props.setLoading(false);
-            return response != null;
+            return !!response;
         } else return false;
     };
 
     useEffect(() => {
         if (planId) {
             setIsLoading(true);
-            getGeometryPlan(planId).then((plan: GeometryPlan | null) => {
+            getGeometryPlan(planId).then((plan: GeometryPlan | undefined) => {
                 props.setExistingInfraModel(plan);
                 setIsLoading(false);
                 setInitializedPlanId(planId);

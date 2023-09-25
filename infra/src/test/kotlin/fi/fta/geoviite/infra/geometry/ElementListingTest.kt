@@ -123,7 +123,8 @@ class ElementListingTest {
             )),
             startAddress = TrackMeter(KmNumber(1), 100),
         )
-        val geocodingContext = GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, listOf())
+        val geocodingContext =
+            GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, listOf()).geocodingContext
         val clothoid = minimalClothoid(
             start = Point(10.0, 10.0) + gk27CoordinateBase,
             end = Point(20.0, 20.0) + gk27CoordinateBase,

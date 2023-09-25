@@ -15,11 +15,11 @@ type HeightCacheItem = {
     resolved: TrackKmHeights[];
 };
 
-function timeClearedCache<O, T extends { changeTime: Date | null; clear: () => void; obj: O }>(
+function timeClearedCache<O, T extends { changeTime: Date | undefined; clear: () => void; obj: O }>(
     obj: T,
 ): (changeTime: Date) => O {
     return (changeTime) => {
-        if (obj.changeTime === null || changeTime > obj.changeTime) {
+        if (obj.changeTime === undefined || changeTime > obj.changeTime) {
             obj.changeTime = changeTime;
             obj.clear();
         }
@@ -29,13 +29,13 @@ function timeClearedCache<O, T extends { changeTime: Date | null; clear: () => v
 
 const geometryHeightsCache: (changeTime: Date) => Map<HeightCacheKey, HeightCacheItem> = (() => {
     const cache = new Map();
-    return timeClearedCache({ obj: cache, clear: () => cache.clear(), changeTime: null });
+    return timeClearedCache({ obj: cache, clear: () => cache.clear(), changeTime: undefined });
 })();
 
 const locationTrackHeightsCache: (changeTime: Date) => Map<HeightCacheKey, HeightCacheItem> =
     (() => {
         const cache = new Map();
-        return timeClearedCache({ obj: cache, clear: () => cache.clear(), changeTime: null });
+        return timeClearedCache({ obj: cache, clear: () => cache.clear(), changeTime: undefined });
     })();
 
 function heightCacheKey(
@@ -136,7 +136,7 @@ export function getMissingCoveringRange(
     ranges: [number, number][],
     queryStart: number,
     queryEnd: number,
-): null | [number, number] {
+): undefined | [number, number] {
     const leftStart = ranges.findIndex(([_, rangeEnd]) => rangeEnd >= queryStart);
     if (leftStart !== -1) {
         for (let i = 0; i < ranges.length; i++) {
@@ -157,14 +157,14 @@ export function getMissingCoveringRange(
             }
         }
     }
-    return queryStart >= queryEnd ? null : [queryStart, queryEnd];
+    return queryStart >= queryEnd ? undefined : [queryStart, queryEnd];
 }
 
 function getQueryableRange(
     resolved: TrackKmHeights[],
     startM: number,
     endM: number,
-): [number, number] | null {
+): [number, number] | undefined {
     return getMissingCoveringRange(
         resolved.map((r) => [r.trackMeterHeights[0].m, r.endM]),
         startM,
@@ -212,7 +212,7 @@ export function useAlignmentHeights(
 
         const cacheItem = alignmentId && getOrCreateCacheItem(changeTime, alignmentId, tickLength);
         const queryRange = cacheItem && getQueryableRange(cacheItem.resolved, startM, endM);
-        if (queryRange === null) {
+        if (queryRange === undefined) {
             updateLoadedHeights(startM, endM);
         } else if (alignmentId && queryRange) {
             throttledLoadAlignmentHeights(

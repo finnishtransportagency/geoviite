@@ -102,7 +102,7 @@ function createAlignmentFeature(
         feature.setStyle(styles);
 
         setAlignmentFeatureProperty(feature, {
-            trackNumber: null,
+            trackNumber: undefined,
             header: alignment.header,
             points: alignment.points,
             planId: planId,
@@ -199,7 +199,9 @@ export function createGeometryAlignmentLayer(
                 vectorSource.addFeatures(f.flat());
             }
         })
-        .catch(() => clearFeatures(vectorSource))
+        .catch(() => {
+            if (layerId === newestLayerId) clearFeatures(vectorSource);
+        })
         .finally(() => {
             inFlight = false;
         });

@@ -123,7 +123,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                         ascending: config.ascending,
                     };
                 } else {
-                    return null;
+                    return undefined;
                 }
             })
             .filter(filterNotEmpty);

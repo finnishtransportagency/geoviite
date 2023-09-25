@@ -39,7 +39,7 @@ export function sortPVTableColumns(
         case PVTableSortField.PROJECT_NAME:
             sortableDocumentHeaders.sort((a, b) => {
                 if (
-                    (a.project?.name && b.project === null) ||
+                    (a.project?.name && b.project === undefined) ||
                     (a.project?.name &&
                         b.project?.name &&
                         a.project.name.trim().toUpperCase() > b.project.name.trim().toUpperCase())
@@ -47,7 +47,7 @@ export function sortPVTableColumns(
                     return getSortDirection(sortInfo.direction, true);
                 }
                 if (
-                    (a.project === null && b.project?.name) ||
+                    (a.project === undefined && b.project?.name) ||
                     (a.project?.name &&
                         b.project?.name &&
                         a.project.name.trim().toUpperCase() < b.project.name.trim().toUpperCase())
@@ -71,7 +71,7 @@ export function sortPVTableColumns(
         case PVTableSortField.DOCUMENT_DESCRIPTION:
             sortableDocumentHeaders.sort((a, b) => {
                 if (
-                    (a.document.description && b.document.description === null) ||
+                    (a.document.description && b.document.description === undefined) ||
                     (a.document.description &&
                         b.document.description &&
                         a.document.description.trim().toUpperCase() >
@@ -80,7 +80,7 @@ export function sortPVTableColumns(
                     return getSortDirection(sortInfo.direction, true);
                 }
                 if (
-                    (a.document.description === null && b.document.description) ||
+                    (a.document.description === undefined && b.document.description) ||
                     (a.document.description &&
                         b.document.description &&
                         a.document.description.trim().toUpperCase() <

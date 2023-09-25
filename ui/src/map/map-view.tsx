@@ -345,6 +345,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             resolution,
+                            selection,
                         );
                     case 'location-track-badge-layer':
                         return createLocationTrackBadgeLayer(

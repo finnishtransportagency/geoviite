@@ -39,7 +39,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val alignmentVersion = alignmentDao.insert(alignment)
         val locationTrack = locationTrack(insertOfficialTrackNumber(), alignment).copy(
             name = AlignmentName("ORIG"),
-            description = FreeText("Oridinal location track"),
+            descriptionBase = FreeText("Oridinal location track"),
             type = MAIN,
             state = IN_USE,
             alignmentVersion = alignmentVersion,
@@ -54,7 +54,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
         val updatedTrack = fromDb.copy(
             name = AlignmentName("UPD"),
-            description = FreeText("Updated location track"),
+            descriptionBase = FreeText("Updated location track"),
             type = SIDE,
             state = NOT_IN_USE,
             topologicalConnectivity = TopologicalConnectivityType.END
@@ -290,10 +290,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
         val res = locationTrackDao.fetchOfficialVersions(
             listOf(
-                locationTrack1.id,
-                locationTrack2.id,
-                draftOnly.id,
-                entirelyMissing
+                locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing
             )
         )
         assertEquals(res.size, 2)
@@ -334,6 +331,6 @@ class LocationTrackDaoIT @Autowired constructor(
     private fun updateOfficial(originalVersion: RowVersion<LocationTrack>): DaoResponse<LocationTrack> {
         val original = locationTrackDao.fetch(originalVersion)
         assertNull(original.draft)
-        return locationTrackDao.update(original.copy(description = original.description + "_update"))
+        return locationTrackDao.update(original.copy(descriptionBase = original.descriptionBase + "_update"))
     }
 }

@@ -26,7 +26,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    const waitingAfterFail = publication.ratkoPushStatus === null && anyFailed;
+    const waitingAfterFail = !publication.ratkoPushStatus && anyFailed;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
@@ -53,6 +53,14 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
+                <div className={styles['publication-details__count-header']}>
+                    <span>
+                        {t('publication-table.count-header', {
+                            number: publicationItems?.length || 0,
+                            truncated: '',
+                        })}
+                    </span>
+                </div>
                 <PublicationTable isLoading={isLoading} items={publicationItems} />
             </div>
             {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import exists
-import getChildWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -9,8 +8,8 @@ val defaultDialogBy: By = By.className("dialog")
 
 open class E2EDialog(val by: By = defaultDialogBy) : E2EViewFragment(by) {
 
-    private val titleElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__title"))
-    private val contentElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__content"))
+    private val titleElement: WebElement get() = childElement(By.className("dialog__title"))
+    private val contentElement: WebElement get() = childElement(By.className("dialog__content"))
 
     val title: String get() = titleElement.text
     val content: E2EFormLayout get() = E2EFormLayout { contentElement }

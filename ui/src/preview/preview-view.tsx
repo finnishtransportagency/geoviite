@@ -345,7 +345,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 requestedRevertChange.type,
             ),
         ).then((changeIncludingDependencies) => {
-            if (changeIncludingDependencies != null) {
+            if (changeIncludingDependencies != undefined) {
                 setChangesBeingReverted({
                     requestedRevertChange,
                     changeIncludingDependencies,

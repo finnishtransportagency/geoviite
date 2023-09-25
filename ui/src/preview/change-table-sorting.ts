@@ -39,7 +39,7 @@ const errorListCompare = (
     const priorityBySeverity = errorSeverityPriority(b.errors) - errorSeverityPriority(a.errors);
     return priorityBySeverity !== 0 ? priorityBySeverity : b.errors.length - a.errors.length;
 };
-export const operationPriority = (operation: Operation | null) => {
+export const operationPriority = (operation: Operation | undefined) => {
     if (operation === 'CREATE') return 4;
     if (operation === 'MODIFY') return 3;
     if (operation === 'DELETE') return 2;

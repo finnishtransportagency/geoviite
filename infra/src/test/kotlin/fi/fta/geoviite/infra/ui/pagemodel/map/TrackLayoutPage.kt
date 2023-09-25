@@ -11,7 +11,7 @@ import javaScriptExecutor
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
-import waitUntilDoesNotExist
+import waitUntilNotExist
 import waitUntilValueIsNot
 import kotlin.math.roundToInt
 
@@ -61,7 +61,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
     companion object {
         fun finishLoading() {
-            waitUntilDoesNotExist(By.className(".map__loading-spinner"))
+            waitUntilNotExist(By.className(".map__loading-spinner"))
         }
     }
 
@@ -117,7 +117,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-out"))
         try {
-            waitUntilValueIsNot(webElement.findElement(By.className("ol-scale-line-inner")), currentScale)
+            waitUntilValueIsNot(childElement(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
             logger.warn("Zoom out failed")
         }
@@ -127,7 +127,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-in"))
         try {
-            waitUntilValueIsNot(webElement.findElement(By.className("ol-scale-line-inner")), currentScale)
+            waitUntilValueIsNot(childElement(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
             logger.warn("Zoom in failed")
         }

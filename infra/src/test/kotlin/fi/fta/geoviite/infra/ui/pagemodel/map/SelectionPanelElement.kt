@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.byLiTag
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
+import getChildElement
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -69,32 +70,32 @@ abstract class E2ESelectionList<T : E2ESelectionListItem>(
     private val getContent: (child: WebElement) -> T,
     itemsBy: By = byLiTag,
 ) : E2EList<T>(listFetch, itemsBy) {
-    override fun getItemContent(item: WebElement) = this.getContent(item)
+    override fun getItemContent(item: WebElement) = getContent(item)
 
     fun selectByName(name: String) = selectItemWhenMatches { it.name == name }
 }
 
 data class E2EKmPostSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
+    constructor(element: WebElement) : this(element.getChildElement(By.xpath("./div/span")).text)
 }
 
 data class E2ELocationTrackSelectionListItem(override val name: String, val type: String) : E2ESelectionListItem {
     constructor(element: WebElement) : this(
-        name = element.findElement(By.xpath("./div/span")).text,
-        type = element.findElement(By.tagName("span")).text,
+        name = element.getChildElement(By.xpath("./div/span")).text,
+        type = element.getChildElement(By.tagName("span")).text,
     )
 }
 
 data class E2ETrackNumberSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
+    constructor(element: WebElement) : this(element.getChildElement(By.xpath("./div/span")).text)
 }
 
 data class E2EReferenceLineSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.findElement(By.tagName("span")).text)
+    constructor(element: WebElement) : this(element.getChildElement(By.tagName("span")).text)
 }
 
 data class E2ESwitchSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.findElement(By.xpath("./span/span")).text)
+    constructor(element: WebElement) : this(element.getChildElement(By.xpath("./span/span")).text)
 }
 
 class E2EKmPostSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2EKmPostSelectionListItem>(
@@ -107,7 +108,7 @@ class E2ELocationTrackSelectionList(elementFetch: ElementFetch) : E2ESelectionLi
     getContent = { e -> E2ELocationTrackSelectionListItem(e) }
 ) {
     override fun isSelected(element: WebElement): Boolean =
-        element.findElement(By.xpath("./*[1]")).getAttribute("class").contains("selected")
+        element.getChildElement(By.xpath("./*[1]")).getAttribute("class").contains("selected")
 }
 
 class E2ETrackNumberSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2ETrackNumberSelectionListItem>(

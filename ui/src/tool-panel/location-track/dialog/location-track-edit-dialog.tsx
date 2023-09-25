@@ -1,5 +1,10 @@
 import React from 'react';
-import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    locationTrackDescription,
+    LocationTrackDescriptionSuffixMode,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
@@ -22,6 +27,7 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import {
+    descriptionSuffixModes,
     layoutStates,
     locationTrackTypes,
     topologicalConnectivityTypes,
@@ -43,6 +49,7 @@ import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -77,9 +84,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         React.useState<boolean>(state.locationTrack?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
+    const [locationTrackDescriptionSuffixMode, setLocationTrackDescriptionSuffixMode] =
+        React.useState<LocationTrackDescriptionSuffixMode>();
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
-    const startAndEndPoints = useLocationTrackStartAndEnd(
+    React.useEffect(() => {
+        setLocationTrackDescriptionSuffixMode(state.locationTrack?.descriptionSuffix);
+    }, [state.locationTrack]);
+    const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         state.existingLocationTrack?.id,
         props.publishType,
         props.locationTrackChangeTime,
@@ -225,10 +237,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 locationTracks
                     .filter((lt) => {
-                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === null;
+                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined;
                     })
                     .map((lt) => ({
-                        name: `${lt.name}, ${lt.description}`,
+                        name: `${lt.name}, ${locationTrackDescription(lt)}`,
                         value: {
                             type: 'locationTrackSearchItem',
                             locationTrack: lt,
@@ -239,9 +251,48 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     );
 
     function onDuplicateTrackSelected(duplicateTrack: LocationTrackItemValue | undefined) {
-        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id ?? null);
-        setSelectedDuplicateTrack(duplicateTrack?.locationTrack ?? undefined);
+        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id);
+        setSelectedDuplicateTrack(duplicateTrack?.locationTrack);
     }
+
+    const switchToSwitchDescriptionSuffix = () =>
+        `${shortenSwitchName(switchesAtEnds?.start?.name) ?? '???'} - ${
+            shortenSwitchName(switchesAtEnds?.end?.name) ?? '???'
+        }`;
+
+    const switchToBufferDescriptionSuffix = () =>
+        `${
+            shortenSwitchName(switchesAtEnds?.start?.name) ??
+            shortenSwitchName(switchesAtEnds?.end?.name) ??
+            '???'
+        } - ${t('location-track-dialog.buffer')}`;
+
+    const descriptionSuffix = (mode: LocationTrackDescriptionSuffixMode) => {
+        switch (mode) {
+            case 'NONE':
+                return undefined;
+            case 'SWITCH_TO_SWITCH':
+                return switchToSwitchDescriptionSuffix();
+            case 'SWITCH_TO_BUFFER':
+                return switchToBufferDescriptionSuffix();
+            default:
+                exhaustiveMatchingGuard(mode);
+        }
+    };
+
+    const fullDescription = () => {
+        const base = state.locationTrack?.descriptionBase ?? '';
+        const suffix = descriptionSuffix(locationTrackDescriptionSuffixMode ?? 'NONE');
+        return suffix ? `${base} ${suffix}` : base;
+    };
+
+    const shortenSwitchName = (name?: string) => {
+        const splits = (name && name.split(' ')) ?? '';
+        const last = splits.length ? splits[splits.length - 1] : '';
+        const numberPart = last[0] === 'V' ? last.substring(1) : '';
+        const number = parseInt(numberPart, 10);
+        return !isNaN(number) ? `V${number}`.padStart(3, '0') : undefined;
+    };
 
     return (
         <div>
@@ -366,17 +417,52 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         />
 
                         <FieldLayout
-                            label={`${t('location-track-dialog.description')} *`}
+                            label={`${t('location-track-dialog.description')}`}
                             value={
-                                <TextField
-                                    value={state.locationTrack?.description || ''}
-                                    onChange={(e) => updateProp('description', e.target.value)}
-                                    onBlur={() => stateActions.onCommitField('description')}
-                                    hasError={hasErrors('description')}
-                                    wide
-                                />
+                                <div className={styles['location-track-edit-dialog__description']}>
+                                    <FieldLayout
+                                        label={`Kuvauksen perusosa *`}
+                                        value={
+                                            <TextField
+                                                value={state.locationTrack?.descriptionBase || ''}
+                                                onChange={(e) =>
+                                                    updateProp('descriptionBase', e.target.value)
+                                                }
+                                                onBlur={() =>
+                                                    stateActions.onCommitField('descriptionBase')
+                                                }
+                                                hasError={hasErrors('descriptionBase')}
+                                                wide
+                                            />
+                                        }
+                                        errors={getVisibleErrorsByProp('descriptionBase')}
+                                    />
+                                    <FieldLayout
+                                        label={`Kuvauksen lisäosa *`}
+                                        value={
+                                            <Dropdown
+                                                options={descriptionSuffixModes}
+                                                value={locationTrackDescriptionSuffixMode}
+                                                onChange={(value) => {
+                                                    updateProp('descriptionSuffix', value);
+                                                    setLocationTrackDescriptionSuffixMode(value);
+                                                }}
+                                                onBlur={() =>
+                                                    stateActions.onCommitField('descriptionSuffix')
+                                                }
+                                                canUnselect={false}
+                                                wideList
+                                                wide
+                                            />
+                                        }
+                                        errors={getVisibleErrorsByProp('descriptionSuffix')}
+                                    />
+                                    <FieldLayout
+                                        label={`Valmis kuvaus`}
+                                        value={state.locationTrack && fullDescription()}
+                                    />
+                                </div>
                             }
-                            errors={getVisibleErrorsByProp('description')}
                         />
 
                         {props.duplicatesExist || (

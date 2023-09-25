@@ -50,7 +50,7 @@ const throwErrorHandler = (response: ApiErrorResponse) => {
     throw response;
 };
 
-const ignoreErrorHandler = defaultValueErrorHandler(null);
+const ignoreErrorHandler = defaultValueErrorHandler(undefined);
 
 function defaultValueErrorHandler<T>(defaultValue: T): ErrorHandler<T> {
     return (response: ApiErrorResponse): T => {
@@ -60,13 +60,15 @@ function defaultValueErrorHandler<T>(defaultValue: T): ErrorHandler<T> {
 }
 
 export function queryParams(params: Record<string, unknown>): string {
-    const nonNull = Object.keys(params)
+    const stringifiedParameters = Object.keys(params)
         .map((key) => {
             const value = params[key];
-            return value != null ? `${key}=${encodeURIComponent(value.toString())}` : null;
+            return value != undefined
+                ? `${key}=${encodeURIComponent(value.toString())}`
+                : undefined;
         })
-        .filter((p) => p != null);
-    return nonNull.length == 0 ? '' : `?${nonNull.join('&')}`;
+        .filter((p) => p != undefined);
+    return stringifiedParameters.length == 0 ? '' : `?${stringifiedParameters.join('&')}`;
 }
 
 // TODO: GVT-2014 unify these functions as described in the ticket
@@ -80,7 +82,7 @@ export async function getThrowError<Output>(path: string): Promise<Output> {
         undefined,
         throwErrorHandler,
         'GET',
-    ).then(verifyNonNull);
+    ).then(verifyExists);
 }
 
 export async function getWithDefault<Output>(path: string, defaultValue: Output): Promise<Output> {
@@ -89,29 +91,34 @@ export async function getWithDefault<Output>(path: string, defaultValue: Output)
         undefined,
         defaultValueErrorHandler(defaultValue),
         'GET',
-    ).then((val) => (val != null ? val : defaultValue));
+    ).then((val) => (val != undefined ? val : defaultValue));
 }
 
-export async function getIgnoreError<Output>(path: string): Promise<Output | null> {
-    return executeRequest<undefined, Output, null>(path, undefined, ignoreErrorHandler, 'GET');
+export async function getIgnoreError<Output>(path: string): Promise<Output | undefined> {
+    return executeRequest<undefined, Output, undefined>(path, undefined, ignoreErrorHandler, 'GET');
 }
 
 export async function postIgnoreError<Input, Output>(
     path: string,
     data: Input,
-): Promise<Output | null> {
-    return executeRequest<Input, Output, null>(path, data, ignoreErrorHandler, 'POST');
+): Promise<Output | undefined> {
+    return executeRequest<Input, Output, undefined>(path, data, ignoreErrorHandler, 'POST');
 }
 
 export async function putIgnoreError<Input, Output>(
     path: string,
     data: Input,
-): Promise<Output | null> {
-    return executeRequest<Input, Output, null>(path, data, ignoreErrorHandler, 'PUT');
+): Promise<Output | undefined> {
+    return executeRequest<Input, Output, undefined>(path, data, ignoreErrorHandler, 'PUT');
 }
 
-export async function deleteIgnoreError<Output>(path: string): Promise<Output | null> {
-    return executeRequest<undefined, Output, null>(path, undefined, ignoreErrorHandler, 'DELETE');
+export async function deleteIgnoreError<Output>(path: string): Promise<Output | undefined> {
+    return executeRequest<undefined, Output, undefined>(
+        path,
+        undefined,
+        ignoreErrorHandler,
+        'DELETE',
+    );
 }
 
 // Result object returning versions of HTTP methods (ADT)
@@ -124,7 +131,7 @@ export async function getAdt<Output>(
         undefined,
         'GET',
         showErrorMessage,
-    ).then(verifyNonNullAdt);
+    ).then(verifyExistsAdt);
 }
 
 export async function postAdt<Input, Output>(
@@ -133,7 +140,7 @@ export async function postAdt<Input, Output>(
     showErrorMessage = false,
 ): Promise<Result<Output, ApiErrorResponse>> {
     return await executeBodyRequestAdt<Input, Output>(path, data, 'POST', showErrorMessage).then(
-        verifyNonNullAdt,
+        verifyExistsAdt,
     );
 }
 
@@ -143,7 +150,7 @@ export async function putAdt<Input, Output>(
     showErrorMessage = false,
 ): Promise<Result<Output, ApiErrorResponse>> {
     return await executeBodyRequestAdt<Input, Output>(path, data, 'PUT', showErrorMessage).then(
-        verifyNonNullAdt,
+        verifyExistsAdt,
     );
 }
 
@@ -153,15 +160,15 @@ export async function deleteAdt<Input, Output>(
     showErrorMessage = false,
 ): Promise<Result<Output, ApiErrorResponse>> {
     return await executeBodyRequestAdt<Input, Output>(path, data, 'DELETE', showErrorMessage).then(
-        verifyNonNullAdt,
+        verifyExistsAdt,
     );
 }
 
 export async function postFormIgnoreError<Output>(
     path: string,
     data: FormData,
-): Promise<Output | null> {
-    return postFormWithError<Output, null>(path, data, ignoreErrorHandler);
+): Promise<Output | undefined> {
+    return postFormWithError<Output, undefined>(path, data, ignoreErrorHandler);
 }
 
 export async function postFormWithError<Output, ErrorOutput>(
@@ -169,7 +176,7 @@ export async function postFormWithError<Output, ErrorOutput>(
     data: FormData,
     errorHandler: ErrorHandler<ErrorOutput>,
 ): Promise<Output | ErrorOutput> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getFormResponse(path, data, 'POST'),
         true,
     );
@@ -182,8 +189,8 @@ export async function postFormWithError<Output, ErrorOutput>(
 export async function putFormIgnoreError<Output>(
     path: string,
     data: FormData,
-): Promise<Output | null> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+): Promise<Output | undefined> {
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getFormResponse(path, data, 'PUT'),
         true,
     );
@@ -197,8 +204,8 @@ async function executeRequest<Input, Output, ErrorOutput>(
     data: Input | undefined,
     errorHandler: (response: ApiErrorResponse) => ErrorOutput,
     method: HttpMethod,
-): Promise<Output | ErrorOutput | null> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+): Promise<Output | ErrorOutput | undefined> {
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getResponse(path, data, method),
         true,
     );
@@ -211,8 +218,8 @@ async function executeBodyRequestAdt<Input, Output>(
     data: Input | undefined,
     method: HttpMethod,
     showErrorMessage = false,
-): Promise<Result<Output | null, ApiErrorResponse>> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getResponse(path, data, method),
         true,
     );
@@ -226,11 +233,11 @@ async function executeBodyRequestAdt<Input, Output>(
 async function executeBodyRequestInternal<Output>(
     fetchFunction: () => Promise<Response>,
     retryOnTokenExpired: boolean,
-): Promise<Result<Output | null, ApiErrorResponse>> {
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
     const response = await fetchFunction();
 
     if (response.status === 204) {
-        return ok(null);
+        return ok(undefined);
     } else if (response.ok) {
         return ok(await response.json());
     } else {
@@ -279,14 +286,14 @@ async function getResponse<Input>(
     });
 }
 
-function verifyNonNullAdt<Output, ErrorOutput>(
-    result: Result<Output | null, ErrorOutput>,
+function verifyExistsAdt<Output, ErrorOutput>(
+    result: Result<Output | undefined, ErrorOutput>,
 ): Result<Output, ErrorOutput> {
-    return result.map(verifyNonNull);
+    return result.map(verifyExists);
 }
 
-function verifyNonNull<Output>(result: Output | null): Output {
-    if (result != null) return result;
+function verifyExists<Output>(result: Output | undefined): Output {
+    if (result != undefined) return result;
     else throw Error('Response contained no body');
 }
 

@@ -1,10 +1,11 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import childElementExists
+import childExists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByText
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getChildElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -35,7 +36,7 @@ class E2EChangePreviewTable(
     }
 
     override fun getRowContent(row: WebElement): E2EChangePreviewRow {
-        return E2EChangePreviewRow(row, row.findElements(By.tagName("td")), headerElements)
+        return E2EChangePreviewRow(row, row.getChildElements(By.tagName("td")), headerElements)
     }
 }
 
@@ -49,8 +50,8 @@ data class E2EChangePreviewRow(
     constructor(row: WebElement, columns: List<WebElement>, headers: List<WebElement>) : this(
         name = getColumnContentByText("Muutoskohde", columns, headers),
         trackNumber = getColumnContentByText("Ratanro", columns, headers),
-        state = if (row.childElementExists(By.className("preview-table-item__error-status"))) State.ERROR
-        else if (row.childElementExists(By.className("preview-table-item__warning-status"))) State.WARNING
+        state = if (row.childExists(By.className("preview-table-item__error-status"))) State.ERROR
+        else if (row.childExists(By.className("preview-table-item__warning-status"))) State.WARNING
         else State.OK
     )
 

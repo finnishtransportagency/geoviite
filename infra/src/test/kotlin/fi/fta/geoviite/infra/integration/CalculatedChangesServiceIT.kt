@@ -268,6 +268,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
     @Test
     fun addingNonPresentationPointTopologySwitchesShouldNotGenerateSwitchChanges() {
+        val sequence = System.currentTimeMillis().toString().takeLast(8)
+
         val testData = insertTestData(
             kmPostData = listOf(
                 KmNumber(0) to Point(0.0, 0.0),
@@ -287,13 +289,13 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     Point(100.0, 0.0),
                     locationTrackIndexA = 1,
                     locationTrackIndexB = 2,
-                    name = "switch-A",
+                    name = "switch-A $sequence",
                 ),
                 SwitchData(
                     Point(100.0, 0.0),
                     locationTrackIndexA = 1,
                     locationTrackIndexB = 2,
-                    name = "switch-B",
+                    name = "switch-B $sequence",
                 )
             )
         )

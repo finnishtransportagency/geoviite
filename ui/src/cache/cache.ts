@@ -5,7 +5,7 @@ import { initialChangeTime } from 'common/common-slice';
 import { chunk } from 'utils/array-utils';
 
 export type Cache<TKey, TVal> = {
-    get(key: TKey): TVal | null;
+    get(key: TKey): TVal | undefined;
     put: (key: TKey, val: TVal) => void;
     getOrCreate: (key: TKey, createNew: () => TVal) => TVal;
     remove: (key: TKey) => void;
@@ -30,10 +30,10 @@ export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
     let missCount = 0;
 
     const cache = {
-        get: (key: TKey) => items.get(key) || null,
+        get: (key: TKey) => items.get(key) || undefined,
         getOrCreate: (key: TKey, createNew: () => TVal) => {
             const val = cache.get(key);
-            if (val != null) {
+            if (val != undefined) {
                 hitCount++;
                 return val;
             }
@@ -78,13 +78,17 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         promise.catch(() => cache.del(key)); // Remove failed results from cache
         return promise;
     };
-    const getCached = (changeTime: TimeStamp | null, key: TKey, getter: () => Promise<TVal>) => {
+    const getCached = (
+        changeTime: TimeStamp | undefined,
+        key: TKey,
+        getter: () => Promise<TVal>,
+    ) => {
         setChangeTime(changeTime);
         // TODO: GVT-2014 some caches have null as a valid value -> should not cause re-fetch
         return cache.get(key) ?? put(key, getter());
     };
     function getMany<TId>(
-        changeTime: TimeStamp | null,
+        changeTime: TimeStamp | undefined,
         ids: TId[],
         cacheKey: (id: TId) => TKey,
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
@@ -107,8 +111,8 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         return Promise.all(ids.map((id) => cache.get(cacheKey(id))) as TVal[]);
     }
 
-    function setChangeTime(changeTime: TimeStamp | null) {
-        if (changeTime != null) {
+    function setChangeTime(changeTime: TimeStamp | undefined) {
+        if (changeTime != undefined) {
             const newChangeTime = toDate(changeTime);
             if (newChangeTime > ownChangeTime) {
                 ownChangeTime = newChangeTime;
@@ -118,7 +122,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
     }
 
     return {
-        getImmutable: (key: TKey, getter: () => Promise<TVal>) => getCached(null, key, getter),
+        getImmutable: (key: TKey, getter: () => Promise<TVal>) => getCached(undefined, key, getter),
         get: (changeTime: TimeStamp, key: TKey, getter: () => Promise<TVal>) =>
             getCached(changeTime, key, getter),
         remove: (key: TKey) => cache.del(key),

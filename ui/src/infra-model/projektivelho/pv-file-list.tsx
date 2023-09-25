@@ -196,17 +196,16 @@ export const PVFileList = ({
                             itemCounts={{
                                 assignment: documentHeaders.filter(
                                     (document) =>
-                                        document.assignment !== null &&
+                                        document.assignment &&
                                         isAssignment(document, item.assignment?.oid),
                                 ).length,
                                 project: documentHeaders.filter(
                                     (document) =>
-                                        document.project != null &&
-                                        isProject(document, item.project?.oid),
+                                        document.project && isProject(document, item.project?.oid),
                                 ).length,
                                 projectGroup: documentHeaders.filter(
                                     (document) =>
-                                        document.projectGroup !== null &&
+                                        document.projectGroup &&
                                         isProjectGroup(document, item.projectGroup?.oid),
                                 ).length,
                             }}
