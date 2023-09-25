@@ -62,6 +62,7 @@ export type AlignmentPolyLine = {
 const referenceLineHeaderCache = asyncCache<string, AlignmentHeader | null>();
 const locationTrackHeaderCache = asyncCache<string, AlignmentHeader | null>();
 const alignmentPolyLinesCache = asyncCache<string, AlignmentPolyLine[]>();
+const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefined>();
 
 const locationTrackSegmentMCache = asyncCache<string, number[]>();
 const referenceLineSegmentMCache = asyncCache<string, number[]>();
@@ -142,13 +143,21 @@ export async function getLocationTrackMapAlignmentsByTiles(
 ) {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
-            getPolyLines(tile, changeTimes.layoutLocationTrack, publishType, 'LOCATION_TRACKS'),
+            locationTrackId
+                ? getLocationTrackPolyline(
+                      locationTrackId,
+                      tile,
+                      changeTimes.layoutLocationTrack,
+                      publishType,
+                  ).then((r) => (r ? [r] : []))
+                : getPolyLines(
+                      tile,
+                      changeTimes.layoutLocationTrack,
+                      publishType,
+                      'LOCATION_TRACKS',
+                  ),
         ),
-    )
-        .then((lines) => lines.flat())
-        .then((lines) => {
-            return lines.filter((line) => (locationTrackId ? line.id === locationTrackId : true));
-        });
+    ).then((lines) => lines.flat());
 
     return getAlignmentDataHolder('LOCATION_TRACK', polyLines, publishType, changeTimes);
 }
@@ -375,6 +384,26 @@ async function getPolyLines(
         getWithDefault<AlignmentPolyLine[]>(
             `${mapUri(publishType)}/alignment-polylines${params}`,
             [],
+        ),
+    );
+}
+
+async function getLocationTrackPolyline(
+    locationTrackId: LocationTrackId,
+    mapTile: MapTile,
+    changeTime: TimeStamp,
+    publishType: PublishType,
+): Promise<AlignmentPolyLine | undefined> {
+    const tileKey = `${locationTrackId}_${mapTile.id}_${publishType}`;
+    const params = queryParams({
+        resolution: toMapAlignmentResolution(mapTile.resolution),
+        bbox: bboxString(mapTile.area),
+    });
+
+    return await locationTrackPolyLineCache.get(changeTime, tileKey, () =>
+        getWithDefault<AlignmentPolyLine | undefined>(
+            `${mapUri(publishType)}/location-track/${locationTrackId}/alignment-polyline${params}`,
+            undefined,
         ),
     );
 }

@@ -58,6 +58,17 @@ class MapAlignmentService(
         return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
     }
 
+    fun getAlignmentPolyline(
+        id: IntId<LocationTrack>,
+        publishType: PublishType,
+        bbox: BoundingBox,
+        resolution: Int,
+    ): AlignmentPolyLine<LocationTrack>? {
+        return locationTrackService.get(publishType, id)
+            ?.takeIf { t -> t.state != LayoutState.DELETED }
+            ?.let { toAlignmentPolyLine(it.id, LOCATION_TRACK, it.alignmentVersion, bbox, resolution) }
+    }
+
     fun getSectionsWithoutLinking(
         publishType: PublishType,
         bbox: BoundingBox,
@@ -175,8 +186,8 @@ class MapAlignmentService(
         }
     }
 
-    private fun toAlignmentPolyLine(
-        id: DomainId<*>,
+    private fun <T> toAlignmentPolyLine(
+        id: DomainId<T>,
         type: MapAlignmentType,
         alignmentVersion: RowVersion<LayoutAlignment>?,
         bbox: BoundingBox,

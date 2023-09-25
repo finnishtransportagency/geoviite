@@ -37,6 +37,25 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/location-track/{id}/alignment-polyline")
+    fun getLocationTrackPolyline(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
+        @RequestParam("bbox") bbox: BoundingBox,
+        @RequestParam("resolution") resolution: Int,
+    ): AlignmentPolyLine<LocationTrack>? {
+        logger.apiCall(
+            "getLocationTrackPolyline",
+            "publishType" to publishType,
+            "id" to locationTrackId,
+            "bbox" to bbox,
+            "resolution" to resolution
+        )
+
+        return mapAlignmentService.getAlignmentPolyline(locationTrackId, publishType, bbox, resolution)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/location-track/alignment-headers")
     fun getLocationTrackHeaders(
         @PathVariable("publishType") publishType: PublishType,
