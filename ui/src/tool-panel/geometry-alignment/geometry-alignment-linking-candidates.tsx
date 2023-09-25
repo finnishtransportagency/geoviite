@@ -183,25 +183,20 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
         const ref = referenceLineRefs.find((r) => r.id == line.id);
         const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
 
-        if (!ref || !trackNumber) {
-            return <React.Fragment key={line.id} />;
-        }
+        const trackNumberExists = ref && trackNumber;
+        const hasSearchInput = referenceLineSearchInput.length > 0;
+        const trackNumberMatchesSearchInput = trackNumber?.number
+            .toLowerCase()
+            .includes(referenceLineSearchInput);
 
-        if (
-            referenceLineSearchInput &&
-            !trackNumber?.number.toLowerCase().includes(referenceLineSearchInput)
-        ) {
-            // Skip displaying reference lines that do not match an active search.
-            return <React.Fragment key={line.id} />;
-        }
+        const trackNumberWithEmptyGeometryIsAlreadyPublished =
+            !line.foundWithBoundingBox && line.draftType === 'OFFICIAL';
 
-        if (
-            !referenceLineSearchInput &&
-            !line.foundWithBoundingBox &&
-            line.draftType === 'OFFICIAL'
-        ) {
-            // Skip displaying OFFICIAL reference lines (without geometry)
-            // when the user does not have an active search.
+        const displayTrackNumberOption =
+            (hasSearchInput && trackNumberMatchesSearchInput) ||
+            (!hasSearchInput && !trackNumberWithEmptyGeometryIsAlreadyPublished);
+
+        if (!trackNumberExists || (!isSelected && !displayTrackNumberOption)) {
             return <React.Fragment key={line.id} />;
         }
 
