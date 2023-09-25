@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.normalizeLinebreaksToUnixFormat
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -184,6 +185,9 @@ class InfraModelService @Autowired constructor(
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
 
+        val messageWithNormalizedLinebreaks = extraInfoParameters
+            ?.message?.let { normalizeLinebreaksToUnixFormat(extraInfoParameters.message) }
+
         // Nullable fields that do not contain a default parameter via the elvis-operator are considered to be assignable
         // to null even if they have non-null values stored in the database.
         return plan.copy(
@@ -201,7 +205,7 @@ class InfraModelService @Autowired constructor(
             decisionPhase = extraInfoParameters?.decisionPhase,
             measurementMethod = extraInfoParameters?.measurementMethod,
             elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
-            message = extraInfoParameters?.message ?: plan.message,
+            message = messageWithNormalizedLinebreaks ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,

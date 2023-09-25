@@ -1,17 +1,17 @@
 import { GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { debounceAsync } from 'utils/async-utils';
 import { ValidationError } from 'utils/validation-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LocationTrackDescription } from 'track-layout/track-layout-model';
 import { CoordinateSystem, Srid } from 'common/common-model';
 
 export const searchGeometryPlanHeaders = (
     source: PlanSource,
     searchTerm: string,
 ): Promise<GeometryPlanHeader[]> => {
-    if (isNullOrBlank(searchTerm)) {
+    if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
@@ -39,11 +39,15 @@ export const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm
 
 export const getLocationTrackOptions = (
     tracks: LayoutLocationTrack[],
+    descriptions: LocationTrackDescription[],
     selectedTrack: LayoutLocationTrack | undefined,
 ) =>
     tracks
         .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
-        .map((lt) => ({ name: `${lt.name}, ${lt.description}`, value: lt }));
+        .map((lt) => ({
+            name: `${lt.name}, ${descriptions.find((desc) => desc.id == lt.id) ?? ''}`,
+            value: lt,
+        }));
 
 export function getVisibleErrorsByProp<T>(
     committedFields: (keyof T)[],

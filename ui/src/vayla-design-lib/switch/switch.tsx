@@ -32,7 +32,7 @@ export const Switch: React.FC<SwitchProps> = ({
     const className = createClassName(
         styles.switch,
         disabled && styles['switch--disabled'],
-        props.children && styles['switch--has-label'],
+        !!props.children && styles['switch--has-label'],
         hover && styles['switch--hover'],
     );
 

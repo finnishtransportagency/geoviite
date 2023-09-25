@@ -440,8 +440,7 @@ class PublicationDao(
         """.trimIndent()
 
         return jdbcTemplate.query(
-            sql,
-            mapOf("publication_id" to publicationId.intValue, "comparison_time" to Timestamp.from(comparisonTime))
+            sql, mapOf("publication_id" to publicationId.intValue, "comparison_time" to Timestamp.from(comparisonTime))
         ) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
             id to TrackNumberChanges(
@@ -462,8 +461,10 @@ class PublicationDao(
               location_track_version,
               ltv.name,
               old_ltv.name as old_name,
-              ltv.description,
-              old_ltv.description as old_description,
+              ltv.description_base,
+              old_ltv.description_base as old_description_base,
+              ltv.description_suffix,
+              old_ltv.description_suffix as old_description_suffix,
               ltv.duplicate_of_location_track_id,
               old_ltv.duplicate_of_location_track_id as old_duplicate_of_location_track_id,
               ltv.state,
@@ -525,7 +526,12 @@ class PublicationDao(
                 id,
                 trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                 name = rs.getChange("name", { rs.getString(it)?.let(::AlignmentName) }),
-                description = rs.getChange("description", rs::getFreeTextOrNull),
+                descriptionBase = rs.getChange("description_base") {
+                    rs.getString(it)?.let(::FreeText)
+                },
+                descriptionSuffix = rs.getChange("description_suffix") {
+                    rs.getEnum<DescriptionSuffixType>(it)
+                },
                 endPoint = rs.getChangePoint("end_x", "end_y"),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
                 state = rs.getChange("state", { rs.getEnumOrNull<LayoutState>(it) }),
@@ -802,16 +808,16 @@ class PublicationDao(
                 where publication.id = :publication_id
             """.trimMargin(),
             mapOf(true to directChanges, false to indirectChanges).flatMap { (directChange, changes) ->
-                    changes.map { change ->
-                        mapOf(
-                            "publication_id" to publicationId.intValue,
-                            "track_number_id" to change.trackNumberId.intValue,
-                            "start_changed" to change.isStartChanged,
-                            "end_changed" to change.isEndChanged,
-                            "direct_change" to directChange
-                        )
-                    }
-                }.toTypedArray()
+                changes.map { change ->
+                    mapOf(
+                        "publication_id" to publicationId.intValue,
+                        "track_number_id" to change.trackNumberId.intValue,
+                        "start_changed" to change.isStartChanged,
+                        "end_changed" to change.isEndChanged,
+                        "direct_change" to directChange
+                    )
+                }
+            }.toTypedArray()
         )
 
         jdbcTemplate.batchUpdate(
@@ -892,16 +898,16 @@ class PublicationDao(
                 where publication.id = :publication_id
             """.trimMargin(),
             mapOf(true to directChanges, false to indirectChanges).flatMap { (directChange, changes) ->
-                    changes.map { change ->
-                        mapOf(
-                            "publication_id" to publicationId.intValue,
-                            "location_track_id" to change.locationTrackId.intValue,
-                            "start_changed" to change.isStartChanged,
-                            "end_changed" to change.isEndChanged,
-                            "direct_change" to directChange
-                        )
-                    }
-                }.toTypedArray()
+                changes.map { change ->
+                    mapOf(
+                        "publication_id" to publicationId.intValue,
+                        "location_track_id" to change.locationTrackId.intValue,
+                        "start_changed" to change.isStartChanged,
+                        "end_changed" to change.isEndChanged,
+                        "direct_change" to directChange
+                    )
+                }
+            }.toTypedArray()
         )
 
         jdbcTemplate.batchUpdate(
@@ -933,14 +939,14 @@ class PublicationDao(
                 where publication.id = :publication_id
             """.trimMargin(),
             mapOf(true to directChanges, false to indirectChanges).flatMap { (directChange, changes) ->
-                    changes.map { change ->
-                        mapOf(
-                            "publication_id" to publicationId.intValue,
-                            "switch_id" to change.switchId.intValue,
-                            "direct_change" to directChange
-                        )
-                    }
-                }.toTypedArray()
+                changes.map { change ->
+                    mapOf(
+                        "publication_id" to publicationId.intValue,
+                        "switch_id" to change.switchId.intValue,
+                        "direct_change" to directChange
+                    )
+                }
+            }.toTypedArray()
         )
 
         jdbcTemplate.batchUpdate(
@@ -1187,8 +1193,8 @@ class PublicationDao(
                 trackNumberExternalId = rs.getOidOrNull("track_number_external_id"),
             )
         }.groupBy { it.first }.map { (switchId, switchJoints) ->
-                switchId to switchJoints.map { it.second }
-            }
+            switchId to switchJoints.map { it.second }
+        }
     }
 
     fun fetchPublishedTrackNumbers(
@@ -1230,8 +1236,6 @@ class PublicationDao(
 
 private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =
     rows.partition { it.first }.let { (directChanges, indirectChanges) ->
-            PublishedItemListing(
-                directChanges = directChanges.map { it.second },
-            indirectChanges = indirectChanges.map { it.second }
-        )
+        PublishedItemListing(directChanges = directChanges.map { it.second },
+            indirectChanges = indirectChanges.map { it.second })
     }

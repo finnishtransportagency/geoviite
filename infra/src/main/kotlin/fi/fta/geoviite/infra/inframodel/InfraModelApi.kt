@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.XmlCharset
 import java.time.Instant
@@ -27,7 +27,7 @@ data class ExtraInfoParameters(
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
-    val message: FreeText?,
+    val message: FreeTextWithNewLines?,
 )
 
 data class OverrideParameters(

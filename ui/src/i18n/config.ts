@@ -16,4 +16,9 @@ i18n.use(initReactI18next)
         interpolation: {
             escapeValue: false,
         },
+        missingInterpolationHandler: (_key: string, _value: object) => {
+            // Uncomment if you want to debug missing values
+            //console.log(_key, _value);
+            return null;
+        },
     });

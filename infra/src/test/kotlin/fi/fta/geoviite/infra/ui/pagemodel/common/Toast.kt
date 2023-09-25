@@ -1,13 +1,15 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import browser
+import childExists
+import getChildElement
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import tryWait
 import waitAndClick
-import waitUntilDoesNotExist
+import waitUntilNotExist
 
 private val logger: Logger = LoggerFactory.getLogger(E2EToast::class.java)
 
@@ -30,9 +32,9 @@ data class E2EToast(
 ) {
 
     constructor(element: WebElement) : this(
-        header = element.findElement(headerBy).text,
-        content = element.findElements(contentBy).takeIf { it.isNotEmpty() }?.get(0)?.text,
-        qaId = element.findElement(qaIdBy).getAttribute("qa-id"),
+        header = element.getChildElement(headerBy).text,
+        content = if (element.childExists(contentBy)) element.getChildElement(contentBy).text else null,
+        qaId = element.getChildElement(qaIdBy).getAttribute("qa-id"),
         type = getToastType(element)
     )
 }
@@ -54,7 +56,7 @@ private fun getToasts(): List<Pair<E2EToast, WebElement>> {
 
 private fun clearToast(toast: WebElement) {
     toast.waitAndClick()
-    toast.waitUntilDoesNotExist()
+    toast.waitUntilNotExist()
 }
 
 fun waitAndClearToastByContent(content: String): E2EToast {

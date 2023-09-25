@@ -13,7 +13,7 @@ import {
     ValidationError,
     ValidationErrorType,
 } from 'utils/validation-utils';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { KmNumber } from 'common/common-model';
 
@@ -65,7 +65,7 @@ function validateLinkingKmPost(kmPost: KmPostSaveRequest): ValidationError<KmPos
     const errors = [
         ...['kmNumber', 'state', 'trackNumberId']
             .map((prop: keyof KmPostSaveRequest) => {
-                if (isNullOrBlank(kmPost[prop])) {
+                if (isNilOrBlank(kmPost[prop])) {
                     return {
                         field: prop,
                         reason: 'error-mandatory-field',

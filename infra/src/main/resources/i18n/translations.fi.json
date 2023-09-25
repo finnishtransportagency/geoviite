@@ -203,6 +203,11 @@
             "Yes": "Kyllä",
             "No": "Ei",
             "Unknown": "Ei tiedossa"
+        },
+        "location-track-description-suffix": {
+            "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",
+            "SWITCH_TO_BUFFER": "Vaihde - Puskin",
+            "NONE": "Ei lisäosaa"
         }
     },
     "environment": {
@@ -287,7 +292,7 @@
         "deleted-successfully": "Sijaintiraide poistettu",
         "delete-draft": "Poista luonnos",
         "mandatory-field": "Pakollinen kenttä",
-        "invalid-description": "Kuvauksen tulee olla 4-256 merkkiä pitkä",
+        "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
         "duplicate-of": "Duplikaatti raiteelle",
         "not-a-duplicate": "Ei duplikaatti",
@@ -295,7 +300,8 @@
         "topological-connectivity": "Topologinen kytkeytyminen",
         "start-switch": "Vaihde raiteen alussa",
         "end-switch": "Vaihde raiteen lopussa",
-        "no-start-or-end-switch": "Ei vaihdetta"
+        "no-start-or-end-switch": "Ei vaihdetta",
+        "buffer": "Puskin"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
@@ -547,7 +553,8 @@
             "topological-connectivity": "Topologinen kytkeytyminen",
             "start-switch": "Vaihde raiteen alussa",
             "end-switch": "Vaihde raiteen lopussa",
-            "no-start-or-end-switch": "Ei vaihdetta"
+            "no-start-or-end-switch": "Ei vaihdetta",
+            "unset": "Ei asetettu"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
@@ -728,6 +735,7 @@
         "file-name": "Nimi",
         "name-help": "Jos suunnitteluprojekti ei löydy listalta, luo uusi.",
         "observations-field": "Huomiot",
+        "observations-field-default": "",
         "observations-help": "Huomiot näkyvät info-symbolina listanäkymässä.",
         "location-formgroup-title": "Sijaintitiedot",
         "tracknumberfield": "Ratanumero",
@@ -1127,6 +1135,7 @@
                 "state-category": {
                     "FUTURE_EXISTING": "Vaihde on tilakategoriassa \"Tulevaksi kohteeksi\""
                 },
+                "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen poistamattomia raiteita: {{0}}",
                     "not-published": "Vaihteeseen liittyvä sijaintiraide ei ole mukana julkaisussa: {{0}}",
@@ -1136,7 +1145,13 @@
                     "unlinked": "Jotkut vaihteen linjoista ({{0}}) eivät ole kytkettynä mihinkään sijaintiraiteiseen"
                 },
                 "duplicate-name-official": "Vaihteen nimi {{0}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
-                "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{0}}"
+                "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{0}}",
+                "track-linkage": {
+                    "front-joint-not-connected":  "Vaihteen etujatkokselta ei jatku raidetta",
+                    "front-joint-only-duplicate-connected":  "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
+                    "switch-alignment-not-connected":  "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{0}}",
+                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{0}}"
+                }
             },
             "geocoding": {
                 "sharp-angle": "Sijaintiraiteen {{1}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
@@ -1144,6 +1159,7 @@
                 "not-continuous": "Sijaintiraiteen {{1}} osoitteet eivät ole jatkuvia, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
                 "start-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen alkua",
                 "end-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen loppua",
+                "km-post-too-long": "Tasakilometripiste {{1}} on liian kaukana seuraavasta",
                 "km-post-no-location": "Tasakilometripisteeltä ({{1}}) puuttuu sijainti",
                 "km-post-rejected": "Tasakilometripisteitä ({{1}}) ei voitu sijoittaa ratanumeron {{0}} pituusmittauslinjalle",
                 "km-post-outside-line-before": "Tasakilometripiste ({{1}}) sijaitsee ennen linjaa {{0}}",
@@ -1198,6 +1214,8 @@
             "km-post": "Tasakilometripiste",
             "reference-line": "Pituusmittauslinja",
             "description": "Kuvaus",
+            "description-base": "Kuvauksen perusosa",
+            "description-suffix": "Kuvauksen lisäosa",
             "topological-connectivity": "Topologinen yhteys",
             "location-track-type": "Sijaintiraidetyyppi",
             "duplicate-of": "Duplikaatti raiteelle",

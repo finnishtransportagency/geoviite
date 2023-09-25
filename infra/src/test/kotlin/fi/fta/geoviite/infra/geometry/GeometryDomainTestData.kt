@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
@@ -404,7 +405,7 @@ fun plan(
         decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
         measurementMethod = measurementMethod,
         elevationMeasurementMethod = elevationMeasurementMethod,
-        message = FreeText("test text description"),
+        message = FreeTextWithNewLines("test text \n description"),
         uploadTime = Instant.now(),
     )
 }
@@ -433,7 +434,7 @@ fun planHeader(
     planTime = Instant.EPOCH,
     trackNumberId = trackNumberId,
     linkedAsPlanId = null,
-    message = FreeText("test text description"),
+    message = FreeTextWithNewLines("test text \n description"),
     uploadTime = Instant.now(),
     source = source,
     hasCant = false,

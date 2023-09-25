@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.*
@@ -283,7 +284,7 @@ class PublicationValidationTest {
             hasError = true,
             switch = switch,
             tracks = broken,
-            error = "$VALIDATION_SWITCH.location-track.unlinked",
+            error = "$VALIDATION_SWITCH.track-linkage.switch-alignment-not-connected",
         )
     }
 
@@ -742,12 +743,6 @@ class PublicationValidationTest {
         error,
     )
 
-    private fun assertGeocodingContextError(
-        hasError: Boolean,
-        context: GeocodingContext,
-        error: String,
-    ) = assertContainsError(hasError, validateGeocodingContext(context), error)
-
     private fun assertSegmentSwitchError(
         hasError: Boolean,
         segmentAndSwitch: SegmentSwitch,
@@ -829,12 +824,12 @@ class PublicationValidationTest {
     }
 
     private fun simpleGeocodingContext(referenceLinePoints: List<LayoutPoint>): GeocodingContext =
-        geocodingContext(referenceLinePoints, listOf())
+        geocodingContext(referenceLinePoints, listOf()).geocodingContext
 
     private fun geocodingContext(
         referenceLinePoints: List<LayoutPoint>,
         kmPosts: List<TrackLayoutKmPost>,
-    ): GeocodingContext {
+    ): GeocodingContextCreateResult {
         val (referenceLine, alignment) = referenceLineAndAlignment(
             IntId(1),
             listOf(segment(referenceLinePoints)),

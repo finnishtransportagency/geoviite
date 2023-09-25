@@ -24,7 +24,7 @@ export interface SnappedPoint {
     yPositionPx: number;
     height: number;
     address: TrackMeter;
-    fileName: string | null;
+    fileName?: string;
 }
 
 function getSnapOverRuler(
@@ -33,22 +33,22 @@ function getSnapOverRuler(
     onScreen: (snappedM: number) => boolean,
     approximatedPoint: (
         maybeApproximateM: number,
-    ) => null | { address: TrackMeter | null; height: number | null },
+    ) => undefined | { address: TrackMeter | undefined; height: number | undefined },
 ): {
-    address: TrackMeter | null;
+    address: TrackMeter | undefined;
     m: number;
     snapTarget: SnapTarget;
-    height: number | null;
+    height: number | undefined;
     fileName?: string;
 } {
     const closest = closestRulerTickM(xCoordinateM, trackKmHeights);
-    if (closest == null || !onScreen(closest.m)) {
+    if (!closest || !onScreen(closest.m)) {
         const approximated = approximatedPoint(xCoordinateM);
         return {
             snapTarget: 'didNotSnap',
             m: xCoordinateM,
-            height: approximated?.height ?? null,
-            address: approximated?.address ?? null,
+            height: approximated?.height,
+            address: approximated?.address,
         };
     } else {
         const address = getTrackAddressAtSingleIndex(closest.index, trackKmHeights);
@@ -70,23 +70,23 @@ function getSnapOverChart(
     withinSnapDistance: (snappedM: number) => boolean,
     approximatedPoint: (
         maybeApproximateM: number,
-    ) => null | { address: TrackMeter | null; height: number | null },
+    ) => undefined | { address: TrackMeter | undefined; height: number | undefined },
     drawTangents: boolean,
 ): {
-    address: TrackMeter | null;
+    address: TrackMeter | undefined;
     m: number;
     snapTarget: SnapTarget;
-    height: number | null;
+    height: number | undefined;
     fileName?: string;
 } {
     const closest = closestGeometrySnapPoint(xCoordinateM, geometry, drawTangents);
-    if (closest == null || !withinSnapDistance(closest.m)) {
+    if (closest == undefined || !withinSnapDistance(closest.m)) {
         const approximated = approximatedPoint(xCoordinateM);
         return {
             snapTarget: 'didNotSnap',
             m: xCoordinateM,
-            height: approximated?.height ?? null,
-            address: approximated?.address ?? null,
+            height: approximated?.height,
+            address: approximated?.address,
         };
     }
 
@@ -109,9 +109,9 @@ export function getSnappedPoint(
     geometry: VerticalGeometryItem[],
     coordinates: Coordinates,
     drawTangentArrows: boolean,
-): SnappedPoint | null {
+): SnappedPoint | undefined {
     if (mousePositionInElement === undefined) {
-        return null;
+        return undefined;
     }
 
     const [mouseX, mouseY] = mousePositionInElement;
@@ -121,8 +121,8 @@ export function getSnappedPoint(
 
     const approximatedPoint = (maybeApproximateM: number) => {
         const kmIndex = findTrackMeterIndexContainingM(maybeApproximateM, trackKmHeights);
-        if (kmIndex == null) {
-            return null;
+        if (kmIndex == undefined) {
+            return undefined;
         }
         const height = approximateHeightAt(maybeApproximateM, kmIndex, trackKmHeights);
         const address = approximateTrackAddressAt(maybeApproximateM, kmIndex, trackKmHeights);
@@ -146,8 +146,8 @@ export function getSnappedPoint(
                   drawTangentArrows,
               );
 
-    if (height == null || address == null) {
-        return null;
+    if (height == undefined || address == undefined) {
+        return undefined;
     }
 
     const x = mToX(coordinates, m);
@@ -160,7 +160,7 @@ export function getSnappedPoint(
         yPositionPx: y,
         height,
         address,
-        fileName: fileName ?? null,
+        fileName: fileName,
     };
 }
 
@@ -169,8 +169,8 @@ function toGeometrySnapPoint(
     stationPoint: StationPoint,
     type: 'intersectionPoint' | 'endPoint',
 ) {
-    return stationPoint.address == null
-        ? null
+    return stationPoint.address == undefined
+        ? undefined
         : {
               m: stationPoint.station,
               height: stationPoint.height,
@@ -187,18 +187,18 @@ function closestGeometrySnapPoint(
     const allGeometryPoints = geometry.flatMap((geom) =>
         [
             toGeometrySnapPoint(geom.fileName, geom.point, 'intersectionPoint'),
-            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.start, 'endPoint') : null,
-            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.end, 'endPoint') : null,
+            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.start, 'endPoint') : undefined,
+            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.end, 'endPoint') : undefined,
         ].filter(filterNotEmpty),
     );
     const minIndex = minimumIndexBy(allGeometryPoints, (snapPoint) => Math.abs(m - snapPoint.m));
-    return minIndex == null ? null : allGeometryPoints[minIndex];
+    return minIndex == undefined ? undefined : allGeometryPoints[minIndex];
 }
 
 function closestRulerTickM(m: number, trackKmHeights: TrackKmHeights[]) {
     const index = findTrackMeterIndexContainingM(m, trackKmHeights);
-    if (index == null) {
-        return null;
+    if (!index) {
+        return undefined;
     }
     const [left, right] = getTrackMeterPairAroundIndex(index, trackKmHeights);
     return Math.abs(m - left.m) < Math.abs(m - right.m)
@@ -210,7 +210,7 @@ function approximateTrackAddressAt(
     m: number,
     index: TrackMeterIndex,
     kmHeights: TrackKmHeights[],
-): TrackMeter | null {
+): TrackMeter | undefined {
     const [leftMeter, rightMeter] = getTrackMeterPairAroundIndex(index, kmHeights);
     const leftKm = kmHeights[index.left.kmIndex];
     const proportion = (m - leftMeter.m) / (rightMeter.m - leftMeter.m);

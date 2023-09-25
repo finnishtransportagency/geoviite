@@ -61,3 +61,41 @@
     border-radius: 2px;
     padding: 4px 8px;
 }
+
+.vertical-geometry-diagram__text-stroke-narrow,
+.vertical-geometry-diagram__text-stroke-wide,
+.vertical-geometry-diagram__text-stroke-header {
+    stroke: $color-white-default;
+    paint-order: stroke;
+}
+
+.vertical-geometry-diagram__text-stroke-narrow {
+    stroke-width: 4;
+}
+
+.vertical-geometry-diagram__text-stroke-wide {
+    stroke-width: 6;
+}
+
+.vertical-geometry-diagram__text-stroke-header {
+    stroke-width: 12;
+}
+
+.vertical-geometry-diagram-displayed-position-guide {
+    &__background {
+        fill: $color-white-default;
+        fill-opacity: 0.85;
+    }
+
+    &__track {
+        stroke: $color-black-default;
+    }
+
+    &__divider {
+        stroke: $color-black-default;
+    }
+
+    &__guide {
+        fill: $color-black-default;
+    }
+}

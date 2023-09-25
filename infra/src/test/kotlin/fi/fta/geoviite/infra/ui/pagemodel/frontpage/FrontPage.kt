@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getChildElement
+import getChildElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
@@ -18,7 +20,7 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
     fun openNthPublication(index: Int): E2EPublicationDetailsPage {
         logger.info("Open publication index=$index")
-        publicationElements[index].findElement(By.tagName("a")).click()
+        publicationElements[index].getChildElement(By.tagName("a")).click()
 
         return E2EPublicationDetailsPage()
     }
@@ -47,7 +49,7 @@ class E2EPublicationDetailsPage(by: By = By.className("publication-details")) : 
             val headers = childElements(By.className("table__th-children"))
 
             return childElements(By.className("publication-table__row")).map { e ->
-                E2EPublicationDetailRow(e.findElements(By.tagName("td")), headers)
+                E2EPublicationDetailRow(e.getChildElements(By.tagName("td")), headers)
             }
         }
 }

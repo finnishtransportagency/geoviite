@@ -31,10 +31,10 @@ import { directionBetweenPoints } from 'utils/math-utils';
 import { ChangeTimes } from 'common/common-slice';
 
 export type AlignmentDataHolder = {
-    trackNumber: LayoutTrackNumber | null;
+    trackNumber?: LayoutTrackNumber;
     header: AlignmentHeader;
     points: LayoutPoint[];
-    planId: GeometryPlanId | null;
+    planId?: GeometryPlanId;
 };
 
 export type AlignmentHeader = {
@@ -47,10 +47,10 @@ export type AlignmentHeader = {
     state: LayoutState;
     alignmentSource: MapAlignmentSource;
     alignmentType: MapAlignmentType;
-    trackType: LocationTrackType | null;
+    trackType?: LocationTrackType;
 
     length: number;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
 };
 
 export type AlignmentPolyLine = {
@@ -59,8 +59,8 @@ export type AlignmentPolyLine = {
     points: LayoutPoint[];
 };
 
-const referenceLineHeaderCache = asyncCache<string, AlignmentHeader | null>();
-const locationTrackHeaderCache = asyncCache<string, AlignmentHeader | null>();
+const referenceLineHeaderCache = asyncCache<string, AlignmentHeader | undefined>();
+const locationTrackHeaderCache = asyncCache<string, AlignmentHeader | undefined>();
 const alignmentPolyLinesCache = asyncCache<string, AlignmentPolyLine[]>();
 const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefined>();
 
@@ -71,7 +71,7 @@ const locationTrackEndsCache = asyncCache<string, LayoutPoint[]>();
 const referenceLineEndsCache = asyncCache<string, LayoutPoint[]>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
-const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | null>();
+const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
@@ -193,8 +193,8 @@ function combine(
             return {
                 header: header,
                 points: combineLayoutPoints(polyLinePieces.map((p) => p.points)),
-                trackNumber: trackNumbers.find((tn) => tn.id === header.trackNumberId) || null,
-                planId: null,
+                trackNumber: trackNumbers.find((tn) => tn.id === header.trackNumberId),
+                planId: undefined,
             };
         })
         .filter(filterNotEmpty);
@@ -271,7 +271,7 @@ async function getAlignmentHeaders(
                     [],
                 ).then((headers) => {
                     const headerMap = indexIntoMap(headers);
-                    return (id) => headerMap.get(id) ?? null;
+                    return (id) => headerMap.get(id);
                 }),
         )
         .then((headers) => headers.filter(filterNotEmpty));
@@ -417,7 +417,7 @@ export async function getTrackMeter(
     publishType: PublishType,
     changeTime: TimeStamp,
     location: Point,
-): Promise<TrackMeter | null> {
+): Promise<TrackMeter | undefined> {
     const params = queryParams({ coordinate: pointString(location) });
 
     return trackNumberTrackMeterCache.get(

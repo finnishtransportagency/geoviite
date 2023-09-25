@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import childExists
 import fi.fta.geoviite.infra.ui.util.ElementFetch
-import getChildElementIfExists
+import getChildElement
+import getChildElements
 import org.openqa.selenium.By
 
 abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
@@ -15,8 +17,9 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
     protected fun getValueForField(fieldName: String): String {
         logger.info("Get field [$fieldName]")
         val fieldValueElement = getFieldValueElement(fieldName)
-        val fieldLayoutValueElement = fieldValueElement.getChildElementIfExists(By.className("field-layout__value"))
-        return if (fieldLayoutValueElement != null) {
+        val hasFieldLayoutValue = fieldValueElement.childExists(By.className("field-layout__value"))
+        return if (hasFieldLayoutValue) {
+            val fieldLayoutValueElement = fieldValueElement.getChildElement(By.className("field-layout__value"))
             logger.info("field [$fieldName]=[${fieldLayoutValueElement.text}]")
             fieldLayoutValueElement.text
         } else {
@@ -30,7 +33,7 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         clickEditIcon(label)
 
         values.forEachIndexed { index, value ->
-            E2EDropdown { getFieldValueElement(label).findElements(By.className("dropdown"))[index] }.select(value)
+            E2EDropdown { getFieldValueElement(label).getChildElements(By.className("dropdown"))[index] }.select(value)
         }
 
         clickEditIcon(label)
@@ -40,7 +43,7 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         logger.info("Add and change dropdown value field [$label] to [$values]")
         clickEditIcon(label)
 
-        E2EDropdown { getFieldValueElement(label).findElement(By.className("dropdown")) }
+        E2EDropdown { getFieldValueElement(label).getChildElement(By.className("dropdown")) }
             .open()
             .new()
 

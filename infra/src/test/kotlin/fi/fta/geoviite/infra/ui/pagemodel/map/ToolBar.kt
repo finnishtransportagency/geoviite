@@ -21,7 +21,6 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
 
         waitUntilVisible(By.className("map-layer-menu"))
 
-        //todo gvt-1947: layer menu is in a weird part of dom tree
         E2EMapLayerPanel { getElementWhenVisible(By.className("map-layer-menu")) }
     }
 

@@ -124,7 +124,7 @@ export type Map = {
     visibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
-    clickLocation: Point | null;
+    clickLocation?: Point;
     verticalGeometryDiagramState: VerticalGeometryDiagramState;
     loadingIndicatorVisible: boolean;
 };

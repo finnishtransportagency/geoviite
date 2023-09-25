@@ -9,9 +9,12 @@ const verticalTickLengthsMeter = [1.0, 2.0, 5.0, 10.0, 25.0];
 const heightLabelOffset = 2;
 const heightLabelsBackgroundWidthPx = 18;
 // essentially, the amount of room we give the plan linking label
-const heightLabelsBackgroundStartYPx = 20;
+const heightLabelsBackgroundStartYPx = 22;
 
-function chooseVerticalTickLength(bottomTickHeight: number, topTickHeight: number): number | null {
+function chooseVerticalTickLength(
+    bottomTickHeight: number,
+    topTickHeight: number,
+): number | undefined {
     // we want to find the tick height giving the maximum number of vertical ticks that's at most the max count
     const tickHeightIndexR = verticalTickLengthsMeter.findIndex((tickLength) => {
         // the indices that the lowest and highest ticks would have, if we were counting up from zero by tickLength
@@ -20,7 +23,7 @@ function chooseVerticalTickLength(bottomTickHeight: number, topTickHeight: numbe
         const maxMidTickIndex = Math.floor((topTickHeight - tickLength / 2) / tickLength);
         return maxMidTickIndex - minMidTickIndex < maxVerticalTickCount;
     });
-    return tickHeightIndexR == -1 ? null : verticalTickLengthsMeter[tickHeightIndexR];
+    return tickHeightIndexR == -1 ? undefined : verticalTickLengthsMeter[tickHeightIndexR];
 }
 
 function heightTicks(coordinates: Coordinates) {
@@ -31,7 +34,7 @@ function heightTicks(coordinates: Coordinates) {
         coordinates.bottomHeightTick,
         coordinates.topHeightTick,
     );
-    return tickLength == null
+    return tickLength == undefined
         ? [coordinates.bottomHeightTick, coordinates.topHeightTick]
         : (() => {
               const firstMidTick =

@@ -10,7 +10,7 @@ import {
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type InframodelValidationErrorListProps = {
-    validationResponse: ValidationResponse | null;
+    validationResponse?: ValidationResponse;
 };
 
 const getIcon = (errorType: ErrorType) => {

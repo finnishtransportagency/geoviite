@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import waitAndClick
-import waitUntilDoesNotExist
+import waitUntilNotExist
 
 class E2EButton(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     fun click(): E2EButton = apply {
@@ -16,6 +16,6 @@ class E2EButton(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
         click()
         logger.info("Wait until button is no longer visible '$name'")
 
-        element.waitUntilDoesNotExist()
+        element.waitUntilNotExist()
     }
 }

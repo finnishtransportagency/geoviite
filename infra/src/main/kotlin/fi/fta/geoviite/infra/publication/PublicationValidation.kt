@@ -1,21 +1,20 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.ClientException
-import fi.fta.geoviite.infra.geocoding.AddressPoint
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
-import fi.fta.geoviite.infra.math.IntersectType
+import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.WARNING
+import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivityType
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.switchConnectivityType
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.PI
 
@@ -72,11 +71,9 @@ fun validateTrackNumberReferences(
     },
 )
 
+//Location is validated by GeocodingContext
 fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidationError> =
-    listOfNotNull(
-        validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" },
-        validate(kmPost.location != null) { "$VALIDATION_KM_POST.no-location" },
-    )
+    listOfNotNull(validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" })
 
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
@@ -121,6 +118,12 @@ fun validateSwitchLocationTrackLinkReferences(
                 "$VALIDATION_SWITCH.location-track.reference-deleted" to listOf(existingNames)
             }
         }
+)
+
+fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationError> = listOfNotNull(
+    validate(switch.joints.isNotEmpty()) {
+        "$VALIDATION_SWITCH.no-location"
+    }
 )
 
 fun validateSwitchLocationTrackLinkStructure(
@@ -168,18 +171,107 @@ fun validateSwitchLocationTrackLinkStructure(
                     "$VALIDATION_SWITCH.location-track.wrong-joint-sequence" to listOf(errorTrackNames)
                 }
             },
-        structureJoints.filterNot { group ->
-            structureJointGroupFound(
-                group,
-                segmentJoints.map { (_, group) -> group })
-        }
-            .let { errorGroups ->
-                validateWithParams(errorGroups.isEmpty(), WARNING) {
-                    val errorJointLists = errorGroups.joinToString(", ") { group -> jointSequence(group) }
-                    "$VALIDATION_SWITCH.location-track.unlinked" to listOf(errorJointLists)
+    ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks) else listOf()
+}
+
+private fun validateSwitchTopologicalConnectivity(
+    switch: TrackLayoutSwitch,
+    structure: SwitchStructure,
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): List<PublishValidationError> {
+    val connectivityType = switchConnectivityType(structure)
+    val nonDuplicateTracks = locationTracks.filter { it.first.duplicateOf == null }
+
+    val tracksThroughJoint = structure.joints.map { it.number }
+        .associateWith { jointNumber ->
+            nonDuplicateTracks.filter { (_, alignment) ->
+                val jointLinkedIndexRange = alignment.segments.mapIndexedNotNull { i, segment ->
+                    if (segment.switchId == switch.id && (segment.startJointNumber == jointNumber || segment.endJointNumber == jointNumber)) i else null
                 }
-            },
-    ) else listOf()
+                jointLinkedIndexRange.isNotEmpty() && jointLinkedIndexRange.first() > 0 && jointLinkedIndexRange.last() < alignment.segments.lastIndex
+            }.map { (locationTrack, _) -> locationTrack }
+        }
+
+    return listOfNotNull(
+        validateFrontJointTopology(switch.id, tracksThroughJoint, connectivityType, locationTracks),
+        validateExcessTracksThroughJoint(connectivityType, tracksThroughJoint),
+        validateSwitchAlignmentTopology(switch.id, connectivityType, nonDuplicateTracks),
+    )
+}
+
+private fun validateFrontJointTopology(
+    switchId: DomainId<TrackLayoutSwitch>,
+    tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
+    connectivityType: SwitchConnectivityType,
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): PublishValidationError? {
+    val tracksThroughFrontJoint = if (connectivityType.frontJoint == null) {
+        listOf()
+    } else tracksThroughJoint.getOrDefault(connectivityType.frontJoint, listOf())
+
+    fun tracksHaveOkFrontJointLink(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
+        tracks.any { (locationTrack, _) ->
+            val topoStart =
+                locationTrack.topologyStartSwitch?.switchId == switchId && locationTrack.topologyStartSwitch.jointNumber == connectivityType.frontJoint
+            val topoEnd =
+                locationTrack.topologyEndSwitch?.switchId == switchId && locationTrack.topologyEndSwitch.jointNumber == connectivityType.frontJoint
+            topoStart || topoEnd || tracksThroughFrontJoint.isNotEmpty()
+        }
+
+    val okFrontJointLinkInDuplicates = tracksHaveOkFrontJointLink(locationTracks)
+    val okFrontJointLinkInNonDuplicates =
+        tracksHaveOkFrontJointLink(locationTracks.filter { it.first.duplicateOf == null })
+
+    return validateWithParams(
+        connectivityType.frontJoint == null || okFrontJointLinkInNonDuplicates, WARNING
+    ) {
+        (if (okFrontJointLinkInDuplicates) "$VALIDATION_SWITCH.track-linkage.front-joint-only-duplicate-connected"
+        else "$VALIDATION_SWITCH.track-linkage.front-joint-not-connected") to listOf()
+    }
+}
+
+private fun validateExcessTracksThroughJoint(
+    connectivityType: SwitchConnectivityType,
+    tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
+): PublishValidationError? {
+    val excesses =
+        tracksThroughJoint.filter { (joint, tracks) -> joint != connectivityType.sharedJoint && tracks.size > 1 }
+    return validateWithParams(excesses.isEmpty(), WARNING) {
+        "$VALIDATION_SWITCH.track-linkage.multiple-tracks-through-joint" to listOf(excesses.entries
+            .sortedBy { (jointNumber, _) -> jointNumber.intValue }
+            .joinToString { (jointNumber, tracks) ->
+                "${jointNumber.intValue} (${tracks.sortedBy { it.name }.joinToString { it.name }})"
+            })
+    }
+}
+
+private fun validateSwitchAlignmentTopology(
+    switchId: DomainId<TrackLayoutSwitch>,
+    connectivityType: SwitchConnectivityType,
+    nonDuplicateTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): PublishValidationError? {
+    val disconnectedAlignments = connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
+        nonDuplicateTracks.none { (_, alignment) ->
+            val hasStart = alignmentHasSwitchJointLink(alignment, switchId, switchAlignment.first())
+            val hasEnd = alignmentHasSwitchJointLink(alignment, switchId, switchAlignment.last())
+            hasStart && hasEnd
+        }
+    }
+    return validateWithParams(disconnectedAlignments.isEmpty(), WARNING) {
+        val alignmentsString =
+            disconnectedAlignments.joinToString { alignment -> alignment.joinToString("-") { joint -> joint.intValue.toString() } }
+        "$VALIDATION_SWITCH.track-linkage.switch-alignment-not-connected" to listOf(alignmentsString)
+    }
+}
+
+private fun alignmentHasSwitchJointLink(
+    alignment: LayoutAlignment,
+    switchId: DomainId<TrackLayoutSwitch>,
+    jointNumber: JointNumber,
+) = alignment.segments.any { segment ->
+    segment.switchId == switchId && jointNumber in listOfNotNull(
+        segment.startJointNumber, segment.endJointNumber
+    )
 }
 
 fun validateDuplicateOfState(
@@ -316,32 +408,11 @@ fun validateTopologicallyConnectedSwitchReferences(
 private fun jointSequence(joints: List<JointNumber>) =
     joints.joinToString("-") { jointNumber -> "${jointNumber.intValue}" }
 
-private fun getCauseForRejection(
-    kmPost: TrackLayoutKmPost,
-    geocodingContext: GeocodingContext,
-): PublishValidationError {
-
-    val params = listOf(geocodingContext.trackNumber.number.value, kmPost.kmNumber.toString())
-
-    return if (kmPost.location == null) {
-        PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", params)
-    } else if (TrackMeter(kmPost.kmNumber, 0) <= geocodingContext.startAddress) {
-        PublishValidationError(WARNING, "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start", params)
-    } else {
-        val intersectType = geocodingContext.referenceLineGeometry.getClosestPointM(kmPost.location)?.second
-        if (intersectType == IntersectType.BEFORE || intersectType == IntersectType.AFTER) {
-            val localizationKey = "$VALIDATION_GEOCODING.km-post-outside-line-${intersectType.name.lowercase()}"
-            PublishValidationError(WARNING, localizationKey, params)
-        } else {
-            PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-rejected", params)
-        }
-    }
-}
-
 fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
     PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", listOf())
 
-fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationError> {
+fun validateGeocodingContext(stuff: GeocodingContextCreateResult): List<PublishValidationError> {
+    val context = stuff.geocodingContext
     val kmPostsInWrongOrder = context.referencePoints
         .filter { point -> point.intersectType == WITHIN }
         .filterIndexed { index, point ->
@@ -356,6 +427,7 @@ fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationE
                 )
             }
         }
+
     val kmPostsFarFromLine = context.referencePoints
         .filter { point -> point.intersectType == WITHIN }
         .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
@@ -367,9 +439,43 @@ fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationE
                 )
             }
         }
-    val kmPostsRejected = context.rejectedKmPosts.map { kmPost ->
-        getCauseForRejection(kmPost, context)
+
+    val kmPostsRejected = stuff.rejectedKmPosts.map { (kmPost, reason) ->
+        val params = listOf(context.trackNumber.number.value, kmPost.kmNumber.toString())
+
+        when (reason) {
+            KmPostRejectedReason.TOO_FAR_APART -> PublishValidationError(
+                ERROR,
+                "$VALIDATION_GEOCODING.km-post-too-long",
+                params
+            )
+
+            KmPostRejectedReason.NO_LOCATION -> PublishValidationError(
+                ERROR,
+                "$VALIDATION_GEOCODING.km-post-no-location",
+                params
+            )
+
+            KmPostRejectedReason.IS_BEFORE_START_ADDRESS -> PublishValidationError(
+                WARNING,
+                "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start",
+                params
+            )
+
+            KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE -> PublishValidationError(
+                WARNING,
+                "$VALIDATION_GEOCODING.km-post-outside-line-before",
+                params
+            )
+
+            KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE -> PublishValidationError(
+                WARNING,
+                "$VALIDATION_GEOCODING.km-post-outside-line-after",
+                params
+            )
+        }
     }
+
     return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder)
 }
 
@@ -488,11 +594,6 @@ private fun alignmentJointGroupFound(
     alignmentJoints: List<JointNumber>,
     structureJointGroups: List<List<JointNumber>>,
 ) = structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
-
-private fun structureJointGroupFound(
-    structureJoints: List<JointNumber>,
-    alignmentJointGroups: List<List<JointNumber>>,
-) = alignmentJointGroups.any { alignmentJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
 private fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false

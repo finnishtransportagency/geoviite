@@ -34,7 +34,7 @@ export type CantTransitionType = 'LINEAR' | 'BIQUADRATIC_PARABOLA';
 export type Project = {
     id: ProjectId;
     name: string;
-    description: string | null;
+    description?: string;
 };
 
 export type ProjectId = string;
@@ -74,15 +74,15 @@ export type GeometryPlanHeader = {
     project: Project;
     fileName: string;
     source: PlanSource;
-    trackNumberId: LayoutTrackNumberId | undefined;
-    kmNumberRange: KmNumberRange | undefined;
+    trackNumberId?: LayoutTrackNumberId;
+    kmNumberRange?: KmNumberRange;
     measurementMethod: MeasurementMethod;
-    elevationMeasurementMethod: ElevationMeasurementMethod | null;
+    elevationMeasurementMethod?: ElevationMeasurementMethod;
     planPhase: PlanPhase;
     decisionPhase: DecisionPhase;
     planTime: TimeStamp;
-    message: string | null;
-    linkedAsPlanId: GeometryPlanId | null;
+    message?: string;
+    linkedAsPlanId?: GeometryPlanId;
     uploadTime: TimeStamp;
     units: GeometryUnits;
     author: string;
@@ -96,27 +96,27 @@ export type GeometryPlan = {
     dataType: DataType;
     project: Project;
     application: Application;
-    author: Author | null;
-    planTime: Date | undefined;
+    author?: Author;
+    planTime?: Date;
     fileName: string;
     units: GeometryUnits;
     source: PlanSource;
-    trackNumberId: LayoutTrackNumberId | undefined;
+    trackNumberId?: LayoutTrackNumberId;
     trackNumberDescription: string;
     alignments: GeometryAlignment[];
     switches: GeometrySwitch[];
     kmPosts: GeometryKmPost[];
-    pvDocumentId: PVDocumentId | null;
-    planPhase: PlanPhase | null;
-    decisionPhase: DecisionPhase | null;
-    measurementMethod: MeasurementMethod | null;
-    elevationMeasurementMethod: ElevationMeasurementMethod | null;
-    message: string | null;
-    uploadTime: Date | null;
+    pvDocumentId?: PVDocumentId;
+    planPhase?: PlanPhase;
+    decisionPhase?: DecisionPhase;
+    measurementMethod?: MeasurementMethod;
+    elevationMeasurementMethod?: ElevationMeasurementMethod;
+    message?: string;
+    uploadTime?: Date;
     isHidden: boolean;
 };
 
-export enum SortByValue {
+export enum GeometrySortBy {
     PROJECT_NAME,
     TRACK_NUMBER,
     KM_START,
@@ -131,7 +131,7 @@ export enum SortByValue {
     LINKED_BY,
 }
 
-export enum SortOrderValue {
+export enum GeometrySortOrder {
     ASCENDING,
     DESCENDING,
 }
@@ -140,28 +140,28 @@ export type GeometryPlanSearchParams = {
     freeText: string;
     trackNumberIds: LayoutTrackNumberId[];
     sources: PlanSource[];
-    sortBy: SortByValue;
-    sortOrder: SortOrderValue;
+    sortBy: GeometrySortBy;
+    sortOrder: GeometrySortOrder | undefined;
 };
 
 export type GeometryUnits = {
-    coordinateSystemSrid: Srid | null;
-    coordinateSystemName: string | null; // redundant if SRID is resolved
+    coordinateSystemSrid?: Srid;
+    coordinateSystemName?: string; // redundant if SRID is resolved
     linearUnit: LinearUnit;
     directionUnit: AngularUnit;
-    verticalCoordinateSystem: VerticalCoordinateSystem | null;
+    verticalCoordinateSystem?: VerticalCoordinateSystem;
 };
 
 export type GeometryAlignment = {
     id: GeometryAlignmentId;
     dataType: DataType;
     name: string;
-    description: string | null;
-    state: PlanState | null;
-    featureTypeCode: string | null;
+    description?: string;
+    state?: PlanState;
+    featureTypeCode?: string;
     elements: GeometryElement[];
-    profile: GeometryProfile | null;
-    cant: GeometryCant | null;
+    profile?: GeometryProfile;
+    cant?: GeometryCant;
     trackNumberId: GeometryTrackNumberId;
 };
 
@@ -176,8 +176,8 @@ export type GeometryVIBase = {
 };
 export type ViPoint = GeometryVIBase;
 export type ViCircularCurve = {
-    radius: number | null;
-    length: number | null;
+    radius?: number;
+    length?: number;
 } & GeometryVIBase;
 export type GeometryVerticalIntersection = ViPoint | ViCircularCurve;
 
@@ -197,10 +197,10 @@ export type CantPoint = {
 export type GeometryKmPost = {
     id: GeometryKmPostId;
     dataType: DataType;
-    kmNumber: KmNumber | null;
+    kmNumber?: KmNumber;
     description: string;
-    state: PlanState | null;
-    location: Point | null;
+    state?: PlanState;
+    location?: Point;
     trackNumberId: GeometryTrackNumberId;
 };
 
@@ -208,9 +208,9 @@ export type GeometrySwitch = {
     id: GeometrySwitchId;
     dataType: DataType;
     name: string;
-    switchStructureId: SwitchStructureId | null;
+    switchStructureId?: SwitchStructureId;
     switchTypeName: string;
-    state: PlanState | null;
+    state?: PlanState;
     joints: GeometrySwitchJoint[];
 };
 export type GeometrySwitchJoint = {
@@ -228,7 +228,7 @@ export const enum GeometryType {
 export type GeometryElementBase = {
     id: GeometryElementId;
     type: GeometryType;
-    name: string | null;
+    name?: string;
     start: Point;
     end: Point;
     calculatedLength: number;
@@ -245,8 +245,8 @@ export type GeometryCurve = {
 
 export type GeometrySpiral = {
     rotation: RotationDirection;
-    radiusStart: number | null;
-    radiusEnd: number | null;
+    radiusStart?: number;
+    radiusEnd?: number;
     pi: Point;
 } & GeometryElementBase;
 
@@ -275,24 +275,24 @@ export type ElementItem = {
     planId: GeometryPlanId;
     planSource: PlanSource;
     fileName: string;
-    coordinateSystemSrid: Srid | null;
+    coordinateSystemSrid?: Srid;
     trackNumberId: LayoutTrackNumberId;
     trackNumberDescription: string;
-    coordinateSystemName: string | null;
+    coordinateSystemName?: string;
     connectedSwitchName: string;
     isPartial: boolean;
 };
 
 type LinearSection = {
-    stationValueDistance: number | null;
-    linearSegmentLength: number | null;
+    stationValueDistance?: number;
+    linearSegmentLength?: number;
 };
 
 export type StationPoint = {
-    address: TrackMeter | null;
+    address?: TrackMeter;
     height: number;
     station: number;
-    location: Point | null;
+    location?: Point;
 };
 
 type CircularCurve = StationPoint & {
@@ -315,12 +315,12 @@ export type VerticalGeometryItem = {
     linearSectionForward: LinearSection;
     locationTrackName: string;
     overlapsAnother: boolean;
-    verticalCoordinateSystem: VerticalCoordinateSystem | null;
-    elevationMeasurementMethod: ElevationMeasurementMethod | null;
-    coordinateSystemSrid: Srid | null;
-    coordinateSystemName: string | null;
+    verticalCoordinateSystem?: VerticalCoordinateSystem;
+    elevationMeasurementMethod?: ElevationMeasurementMethod;
+    coordinateSystemSrid?: Srid;
+    coordinateSystemName?: string;
 
-    layoutStartStation: number | null;
-    layoutPointStation: number | null;
-    layoutEndStation: number | null;
+    layoutStartStation?: number;
+    layoutPointStation?: number;
+    layoutEndStation?: number;
 };

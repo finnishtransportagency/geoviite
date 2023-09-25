@@ -134,21 +134,15 @@ fun formatDistance(dist: Double) = if (dist >= 0.1) "${roundTo1Decimal(dist)}" e
 fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null): Comparator<PublicationTableItem> =
     if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
 
-//Nulls are "last", e.g., 0, 1, 2, null
-private fun <T : Comparable<T>> compareNullsLast(a: T?, b: T?) = if (a == null && b == null) 0
-else if (a == null) 1
-else if (b == null) -1
-else a.compareTo(b)
-
 private fun getComparator(sortBy: PublicationTableColumn): Comparator<PublicationTableItem> {
     return when (sortBy) {
         PublicationTableColumn.NAME -> Comparator.comparing { p -> p.name }
         PublicationTableColumn.TRACK_NUMBERS -> Comparator { a, b ->
-            compareNullsLast(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
+            nullsLastComparator(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
         }
 
         PublicationTableColumn.CHANGED_KM_NUMBERS -> Comparator { a, b ->
-            compareNullsLast(a.changedKmNumbers.firstOrNull()?.min, b.changedKmNumbers.firstOrNull()?.min)
+            nullsLastComparator(a.changedKmNumbers.firstOrNull()?.min, b.changedKmNumbers.firstOrNull()?.min)
         }
 
         PublicationTableColumn.OPERATION -> Comparator.comparing { p -> p.operation.priority }
@@ -156,11 +150,11 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         PublicationTableColumn.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
         PublicationTableColumn.MESSAGE -> Comparator.comparing { p -> p.message }
         PublicationTableColumn.RATKO_PUSH_TIME -> Comparator { a, b ->
-            compareNullsLast(a.ratkoPushTime, b.ratkoPushTime)
+            nullsLastComparator(a.ratkoPushTime, b.ratkoPushTime)
         }
 
         PublicationTableColumn.CHANGES -> Comparator { a, b ->
-            compareNullsLast(a.propChanges.firstOrNull()?.propKey?.key, b.propChanges.firstOrNull()?.propKey?.key)
+            nullsLastComparator(a.propChanges.firstOrNull()?.propKey?.key, b.propChanges.firstOrNull()?.propKey?.key)
         }
     }
 }

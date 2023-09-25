@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
+import kotlin.test.assertContains
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -14,6 +15,7 @@ import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
@@ -47,6 +49,7 @@ class PublicationServiceIT @Autowired constructor(
     val switchService: LayoutSwitchService,
     val calculatedChangesService: CalculatedChangesService,
     val localizationService: LocalizationService,
+    val switchStructureDao: SwitchStructureDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -548,7 +551,7 @@ class PublicationServiceIT @Autowired constructor(
             locationTrackDao,
             locationTrackService,
             { locationTrack(tnId) },
-            { orig -> draft(orig.copy(description = FreeText("${orig.description}_edit"))) },
+            { orig -> draft(orig.copy(descriptionBase = FreeText("${orig.descriptionBase}_edit"))) },
         )
     }
 
@@ -702,7 +705,7 @@ class PublicationServiceIT @Autowired constructor(
         val switchId = switchDao.insert(switch(123)).id
 
         val validation = publicationService.validateSwitch(switchId, OFFICIAL)
-        assertEquals(validation.errors.size, 2)
+        assertEquals(3, validation.errors.size)
     }
 
     @Test
@@ -1001,6 +1004,7 @@ class PublicationServiceIT @Autowired constructor(
                 LocationTrackSaveRequest(
                     AlignmentName("TEST duplicate"),
                     FreeText("Test"),
+                    DescriptionSuffixType.NONE,
                     LocationTrackType.MAIN,
                     LayoutState.IN_USE,
                     getUnusedTrackNumberId(),
@@ -1015,6 +1019,7 @@ class PublicationServiceIT @Autowired constructor(
                 LocationTrackSaveRequest(
                     AlignmentName("TEST duplicate 2"),
                     FreeText("Test"),
+                    DescriptionSuffixType.NONE,
                     LocationTrackType.MAIN,
                     LayoutState.IN_USE,
                     getUnusedTrackNumberId(),
@@ -1029,6 +1034,7 @@ class PublicationServiceIT @Autowired constructor(
                 LocationTrackSaveRequest(
                     AlignmentName("TEST"),
                     FreeText("Test"),
+                    DescriptionSuffixType.NONE,
                     LocationTrackType.MAIN,
                     LayoutState.IN_USE,
                     getUnusedTrackNumberId(),
@@ -1051,7 +1057,8 @@ class PublicationServiceIT @Autowired constructor(
             locationTrackService.update(
                 locationTrack.id as IntId, LocationTrackSaveRequest(
                     name = AlignmentName("TEST2"),
-                    description = FreeText("Test2"),
+                    descriptionBase = FreeText("Test2"),
+                    descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
                     type = LocationTrackType.SIDE,
                     state = LayoutState.NOT_IN_USE,
                     trackNumberId = locationTrack.trackNumberId,
@@ -1073,12 +1080,13 @@ class PublicationServiceIT @Autowired constructor(
             false,
             emptySet(),
             { a, b -> null })
-        assertEquals(5, diff.size)
+        assertEquals(6, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
         assertEquals("location-track-type", diff[2].propKey.key.toString())
-        assertEquals("description", diff[3].propKey.key.toString())
-        assertEquals("duplicate-of", diff[4].propKey.key.toString())
+        assertEquals("description-base", diff[3].propKey.key.toString())
+        assertEquals("description-suffix", diff[4].propKey.key.toString())
+        assertEquals("duplicate-of", diff[5].propKey.key.toString())
     }
 
     @Test
@@ -1086,6 +1094,7 @@ class PublicationServiceIT @Autowired constructor(
         val saveReq = LocationTrackSaveRequest(
             AlignmentName("TEST"),
             FreeText("Test"),
+            DescriptionSuffixType.NONE,
             LocationTrackType.MAIN,
             LayoutState.IN_USE,
             getUnusedTrackNumberId(),
@@ -1100,7 +1109,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val updatedLocationTrack = locationTrackService.get(
             locationTrackService.update(
-                locationTrack.id as IntId, saveReq.copy(description = FreeText("TEST2"))
+                locationTrack.id as IntId, saveReq.copy(descriptionBase = FreeText("TEST2"))
             ).rowVersion
         )
         publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
@@ -1117,9 +1126,9 @@ class PublicationServiceIT @Autowired constructor(
             emptySet(),
             { a, b -> null })
         assertEquals(1, diff.size)
-        assertEquals("description", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.description, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.description, diff[0].value.newValue)
+        assertEquals("description-base", diff[0].propKey.key.toString())
+        assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.descriptionBase, diff[0].value.newValue)
     }
 
     @Test
@@ -1363,10 +1372,8 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         assertEquals(
-            2,
-            publicationService.fetchPublicationDetailsBetweenInstants(
-                from = publication1.publicationTime,
-                to = publication2.publicationTime.plusMillis(1)
+            2, publicationService.fetchPublicationDetailsBetweenInstants(
+                from = publication1.publicationTime, to = publication2.publicationTime.plusMillis(1)
             ).size
         )
     }
@@ -1436,8 +1443,7 @@ class PublicationServiceIT @Autowired constructor(
 
 
         val rows1 = publicationService.fetchPublicationDetails(
-            sortBy = PublicationTableColumn.NAME,
-            translation = localizationService.getLocalization("fi")
+            sortBy = PublicationTableColumn.NAME, translation = localizationService.getLocalization("fi")
         )
 
         assertEquals(2, rows1.size)
@@ -1492,10 +1498,10 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val locationTrackIdsUnderTest = locationTracksUnderTest.map { locationTrack ->
-                locationTrack.copy(alignmentVersion = alignmentDao.insert(locationTrackAlignment))
-            }.map { locationTrack ->
-                locationTrackDao.insert(draft(locationTrack)).id to locationTrack
-            }
+            locationTrack.copy(alignmentVersion = alignmentDao.insert(locationTrackAlignment))
+        }.map { locationTrack ->
+            locationTrackDao.insert(draft(locationTrack)).id to locationTrack
+        }
 
         return TopologicalSwitchConnectionTestData(
             locationTracksUnderTest = locationTrackIdsUnderTest,
@@ -1517,9 +1523,8 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val validationResult = publicationService.validatePublishCandidates(
-                publicationService.collectPublishCandidates(),
-                publishRequestIds
-            )
+            publicationService.collectPublishCandidates(), publishRequestIds
+        )
 
         return validationResult.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == locationTrackId }
     }
@@ -1537,8 +1542,7 @@ class PublicationServiceIT @Autowired constructor(
 
             when {
                 lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
-                    expectedValidationErrors,
-                    validationErrorAmount
+                    expectedValidationErrors, validationErrorAmount
                 )
 
                 lt.topologyStartSwitch == null -> assertEquals(
@@ -1601,7 +1605,141 @@ class PublicationServiceIT @Autowired constructor(
             }
         }
     }
+
+    @Test
+    fun `Switch validation checks duplicate tracks through non-math joints`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val switchId = switchService.saveDraft(
+            switch(
+                123,
+                switchStructureDao.fetchSwitchStructures()
+                    .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!.id as IntId
+            ).copy(stateCategory = LayoutStateCategory.EXISTING)
+        ).id
+        val locationTrack1 = locationTrackService.saveDraft(
+            locationTrack(trackNumberId), alignment(
+                segment(Point(0.0, 0.0), Point(2.0, 2.0)),
+                segment(Point(2.0, 2.0), Point(5.0, 5.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)
+                ),
+                segment(Point(5.0, 5.0), Point(8.0, 8.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)
+                ),
+                segment(Point(8.0, 8.0), Point(10.0, 10.0)),
+            )
+        )
+
+        fun otherAlignment() = alignment(
+            segment(Point(10.0, 0.0), Point(8.0, 2.0)),
+            segment(Point(8.0, 2.0), Point(5.0, 5.0)).copy(
+                switchId = switchId, startJointNumber = JointNumber(4), endJointNumber = JointNumber(5)
+            ),
+            segment(Point(5.0, 5.0), Point(2.0, 8.0)).copy(
+                switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(3)
+            ),
+            segment(Point(2.0, 8.0), Point(0.0, 10.0)),
+        )
+
+        val locationTrack2 = locationTrack(trackNumberId)
+        val locationTrack3 = locationTrack(trackNumberId)
+        val locationTrack2Id = locationTrackService.saveDraft(locationTrack2, otherAlignment())
+        val locationTrack3Id = locationTrackService.saveDraft(locationTrack3, otherAlignment())
+
+        val validated = publicationService.validatePublishCandidates(
+            publicationService.collectPublishCandidates(), publishRequestIds(
+                locationTracks = listOf(locationTrack1.id, locationTrack2Id.id, locationTrack3Id.id),
+                switches = listOf(switchId),
+            )
+        )
+        val switchValidation = validated.validatedAsPublicationUnit.switches[0].errors
+        assertContains(
+            switchValidation, PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.switch.track-linkage.multiple-tracks-through-joint",
+                listOf("3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})")
+            )
+        )
+    }
+
+    @Test
+    fun `Switch validation requires a track to continue from the front joint`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val switchId = switchService.saveDraft(
+            switch(
+                123,
+                switchStructureYV60_300_1_9().id as IntId,
+            ).copy(stateCategory = LayoutStateCategory.EXISTING)
+        ).id
+        val trackOn152Alignment = locationTrackService.saveDraft(
+            locationTrack(trackNumberId), alignment(
+                segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)
+                ),
+                segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)
+                ),
+            )
+        ).id
+        val trackOn13Alignment = locationTrackService.saveDraft(
+            locationTrack(trackNumberId), alignment(
+                segment(Point(0.0, 0.0), Point(10.0, 2.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(3)
+                ),
+            )
+        ).id
+
+        fun errorsWhenValidatingSwitchWithTracks(vararg locationTracks: IntId<LocationTrack>) =
+            publicationService.validatePublishCandidates(
+                publicationService.collectPublishCandidates(), publishRequestIds(
+                    locationTracks = locationTracks.toList(),
+                    switches = listOf(switchId),
+                )
+            ).validatedAsPublicationUnit.switches[0].errors
+
+        assertContains(
+            errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment), PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.switch.track-linkage.front-joint-not-connected",
+                listOf()
+            )
+        )
+
+        val topoTrackMarkedAsDuplicate = locationTrackService.saveDraft(
+            locationTrack(
+                trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1))
+            ).copy(duplicateOf = trackOn13Alignment)
+        ).id
+
+        assertContains(
+            errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment, topoTrackMarkedAsDuplicate),
+            PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected",
+                listOf()
+            )
+        )
+
+        val goodTopoTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)))
+        ).id
+
+        assertFalse(errorsWhenValidatingSwitchWithTracks(
+            trackOn152Alignment, trackOn13Alignment, topoTrackMarkedAsDuplicate, goodTopoTrack
+        ).any { e ->
+            e.localizationKey.contains("validation.layout.switch.track-linkage.front-joint-not-connected") || e.localizationKey.contains(
+                "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected"
+            )
+        })
+    }
 }
+
+private fun publishRequestIds(
+    trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
+    locationTracks: List<IntId<LocationTrack>> = listOf(),
+    referenceLines: List<IntId<ReferenceLine>> = listOf(),
+    switches: List<IntId<TrackLayoutSwitch>> = listOf(),
+    kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
+): PublishRequestIds = PublishRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts)
 
 private fun assertEqualsCalculatedChanges(
     calculatedChanges: CalculatedChanges,
@@ -1777,17 +1915,13 @@ private fun getTopologicalSwitchConnectionTestCases(
 
 private fun createSwitchWithJoints(
     name: String,
-    jointPositions: List<Pair<JointNumber, Point>>
+    jointPositions: List<Pair<JointNumber, Point>>,
 ): TrackLayoutSwitch {
-    return switch(name=name).copy(
-        joints=jointPositions.map { (jointNumber, position) ->
-            TrackLayoutSwitchJoint(
-                number=jointNumber,
-                location=position,
-                locationAccuracy = null
-            )
-        }
-    )
+    return switch(name = name).copy(joints = jointPositions.map { (jointNumber, position) ->
+        TrackLayoutSwitchJoint(
+            number = jointNumber, location = position, locationAccuracy = null
+        )
+    })
 }
 
 private fun createTopologySwitch(

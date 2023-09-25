@@ -5,15 +5,21 @@ import { PublicationChange } from 'publication/publication-model';
 
 type PublicationTableDetailsProps = {
     id: string;
-    items: PublicationChange[];
+    changes: PublicationChange[];
 };
 
 const enumTranslationKey = (enumKey: string, value: string) => `enum.${enumKey}.${value}`;
 
-export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = ({ id, items }) => {
+export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = ({
+    id,
+    changes,
+}) => {
     const { t } = useTranslation();
 
-    function formatValue(value: string | boolean | null, enumKey: string | null): string | null {
+    function formatValue(
+        value: string | boolean | undefined,
+        enumKey: string | undefined,
+    ): string | undefined {
         if (typeof value === 'boolean') {
             return value ? t('yes') : t('no');
         } else if (enumKey && value) {
@@ -34,20 +40,20 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                 </tr>
             </thead>
             <tbody>
-                {items.map((item) => (
-                    <tr key={`${id}_${item.propKey.key}_${item.propKey.params}`}>
+                {changes.map((change) => (
+                    <tr key={`${id}_${change.propKey.key}_${change.propKey.params}`}>
                         <td>
                             {t(
-                                `publication-details-table.prop.${item.propKey.key}`,
-                                item.propKey.params,
+                                `publication-details-table.prop.${change.propKey.key}`,
+                                change.propKey.params,
                             )}
                         </td>
-                        <td>{formatValue(item.value.oldValue, item.value.localizationKey)}</td>
-                        <td>{formatValue(item.value.newValue, item.value.localizationKey)}</td>
+                        <td>{formatValue(change.value.oldValue, change.value.localizationKey)}</td>
+                        <td>{formatValue(change.value.newValue, change.value.localizationKey)}</td>
                         <td>
-                            {item.remark
-                                ? t(`publication-details-table.remark.${item.remark.key}`, [
-                                      item.remark.value,
+                            {change.remark
+                                ? t(`publication-details-table.remark.${change.remark.key}`, [
+                                      change.remark.value,
                                   ])
                                 : undefined}
                         </td>

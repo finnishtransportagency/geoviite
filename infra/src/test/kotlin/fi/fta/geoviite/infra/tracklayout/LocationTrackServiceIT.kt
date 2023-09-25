@@ -483,8 +483,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val publishedVersion = publish(draft.id as IntId)
         val (published, publishedAlignment) = locationTrackService.getWithAlignmentOrThrow(
-            OFFICIAL,
-            publishedVersion.id
+            OFFICIAL, publishedVersion.id
         )
         assertNull(published.draft)
         assertEquals(draft.id, published.id)
@@ -520,7 +519,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun assertMatches(saveRequest: LocationTrackSaveRequest, locationTrack: LocationTrack) {
         assertEquals(saveRequest.trackNumberId, locationTrack.trackNumberId)
         assertEquals(saveRequest.name, locationTrack.name)
-        assertEquals(saveRequest.description, locationTrack.description)
+        assertEquals(saveRequest.descriptionBase, locationTrack.descriptionBase)
         assertEquals(saveRequest.state, locationTrack.state)
         assertEquals(saveRequest.type, locationTrack.type)
         assertEquals(saveRequest.topologicalConnectivity, locationTrack.topologicalConnectivity)
@@ -531,7 +530,8 @@ class LocationTrackServiceIT @Autowired constructor(
         seed: Int,
     ) = LocationTrackSaveRequest(
         name = AlignmentName("TST-TRACK$seed"),
-        description = FreeText("Description - $seed"),
+        descriptionBase = FreeText("Description - $seed"),
+        descriptionSuffix = DescriptionSuffixType.NONE,
         type = getSomeValue(seed),
         state = getSomeValue(seed),
         trackNumberId = trackNumberId,

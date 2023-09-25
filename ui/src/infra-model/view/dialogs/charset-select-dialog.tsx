@@ -30,7 +30,7 @@ export const CharsetSelectDialog: React.FC<CharsetSelectDialogProps> = ({
     onCancel,
 }: CharsetSelectDialogProps) => {
     const { t } = useTranslation();
-    const [overrideCharset, setOverrideCharset] = React.useState<XmlCharset | null>(null);
+    const [overrideCharset, setOverrideCharset] = React.useState<XmlCharset>();
     return (
         <Dialog
             title={title}
@@ -44,7 +44,7 @@ export const CharsetSelectDialog: React.FC<CharsetSelectDialogProps> = ({
                     </Button>
                     <Button
                         onClick={() => {
-                            onSelect(overrideCharset || undefined);
+                            onSelect(overrideCharset);
                         }}>
                         {t('im-form.file-handling-failed.try-again')}
                     </Button>
