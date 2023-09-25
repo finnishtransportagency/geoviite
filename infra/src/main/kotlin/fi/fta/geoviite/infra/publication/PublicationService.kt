@@ -716,11 +716,11 @@ class PublicationService @Autowired constructor(
             if (stagedDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-draft",
-                listOf(locationTrack.name, trackNumberName)
+                listOf(locationTrack.name, trackNumberName ?: "")
             ) else null, if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-official",
-                listOf(locationTrack.name, trackNumberName)
+                listOf(locationTrack.name, trackNumberName ?: "")
             ) else null
         )
     }
