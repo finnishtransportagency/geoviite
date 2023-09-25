@@ -54,10 +54,8 @@ data class E2EInfraModelTableRow(
         planTime = localDateFromString(getColumnContent("im-form.created-at-header", columns, headers)),
         created = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
         linked = getColumnContent("im-form.linked-at-header", columns, headers)
-            .let { v ->
-                if (v.isNotBlank()) localDateTimeFromString(v)
-                else null
-            },
+            .takeIf(String::isNotBlank)
+            ?.let(::localDateFromString),
     )
 }
 
