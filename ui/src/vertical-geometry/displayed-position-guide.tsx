@@ -26,6 +26,10 @@ export const DisplayedPositionGuide: React.FC<DisplayedPositionGuideProps> = ({
     coordinates,
     maxMeters,
 }) => {
+    if (maxMeters <= 0) {
+        return <React.Fragment />;
+    }
+
     const displayedMetersAtLeftEdge = coordinates.startM;
     const displayedMetersAtRightEdge = coordinates.endM;
 
