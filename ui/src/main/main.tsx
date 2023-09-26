@@ -122,7 +122,7 @@ export const MainContainer: React.FC = () => {
             {versionStatus == 'reload' && (
                 <Dialog
                     allowClose={false}
-                    className={dialogStyles['dialog--wide']}
+                    className={dialogStyles['dialog--normal']}
                     title={t('version.geoviite-updated')}
                     footerContent={
                         <Button

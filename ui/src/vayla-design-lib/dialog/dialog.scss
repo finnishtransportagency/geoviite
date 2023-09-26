@@ -158,19 +158,14 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     }
 }
 
-.dialog--narrow {
-    min-width: 250px;
-    max-width: 250px;
-}
-
 .dialog--normal {
-    min-width: 300px;
-    max-width: 300px;
+    min-width: 380px;
+    max-width: 380px;
 }
 
 .dialog--wide {
-    min-width: 380px;
-    max-width: 380px;
+    min-width: 500px;
+    max-width: 500px;
 }
 
 .dialog--ultrawide {

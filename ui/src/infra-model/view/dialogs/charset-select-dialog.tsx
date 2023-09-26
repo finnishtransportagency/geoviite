@@ -35,7 +35,7 @@ export const CharsetSelectDialog: React.FC<CharsetSelectDialogProps> = ({
         <Dialog
             title={title}
             scrollable={false}
-            className={dialogStyles['dialog--wide']}
+            className={dialogStyles['dialog--normal']}
             onClose={onCancel}
             footerContent={
                 <React.Fragment>
