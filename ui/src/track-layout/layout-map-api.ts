@@ -13,7 +13,7 @@ import {
     MapAlignmentType,
     ReferenceLineId,
 } from './track-layout-model';
-import { API_URI, getIgnoreError, getWithDefault, queryParams } from 'api/api-fetch';
+import { API_URI, getNonNull, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
@@ -222,7 +222,7 @@ function getLocationTrackSectionsWithoutProfileByTile(
     const tileKey = `${mapTile.id}_${publishType}}`;
     const params = queryParams({ bbox: bboxString(mapTile.area) });
     return sectionsWithoutProfileCache.get(changeTime, tileKey, () =>
-        getWithDefault(`${mapUri(publishType)}/location-track/without-profile${params}`, []),
+        getNonNull(`${mapUri(publishType)}/location-track/without-profile${params}`),
     );
 }
 
@@ -250,7 +250,7 @@ async function getAlignmentSectionsWithoutLinkingByTile(
     const tileKey = `${mapTile.id}_${type}_${publishType}}`;
     const params = queryParams({ bbox: bboxString(mapTile.area), type: type });
     return sectionsWithoutLinkingCache.get(changeTime, tileKey, () =>
-        getWithDefault(`${mapUri(publishType)}/alignment/without-linking${params}`, []),
+        getNonNull(`${mapUri(publishType)}/alignment/without-linking${params}`),
     );
 }
 
@@ -266,9 +266,8 @@ async function getAlignmentHeaders(
             ids,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
-                getWithDefault<AlignmentHeader[]>(
+                getNonNull<AlignmentHeader[]>(
                     `${mapAlignmentUri(publishType, type, 'alignment-headers')}?ids=${fetchIds}`,
-                    [],
                 ).then((headers) => {
                     const headerMap = indexIntoMap(headers);
                     return (id) => headerMap.get(id);
@@ -286,7 +285,7 @@ export async function getSegmentEnds(
     return (
         type === 'LOCATION_TRACK' ? locationTrackSegmentMCache : referenceLineSegmentMCache
     ).get(changeTime, cacheKey(id, publishType), () =>
-        getWithDefault<number[]>(mapAlignmentUri(publishType, type, `${id}/segment-m`), []),
+        getNonNull<number[]>(mapAlignmentUri(publishType, type, `${id}/segment-m`)),
     );
 }
 
@@ -298,7 +297,7 @@ export async function getEndLinkPoints(
 ): Promise<LinkInterval> {
     return (type === 'LOCATION_TRACK' ? locationTrackEndsCache : referenceLineEndsCache)
         .get(changeTime, cacheKey(id, publishType), () =>
-            getWithDefault<LayoutPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`), []),
+            getNonNull<LayoutPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`)),
         )
         .then(([start, startPlusOne, endMinusOne, end]) => {
             const startDir = directionBetweenPoints(start, startPlusOne);
@@ -381,10 +380,7 @@ async function getPolyLines(
         type: fetchType.toUpperCase(),
     });
     return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
-        getWithDefault<AlignmentPolyLine[]>(
-            `${mapUri(publishType)}/alignment-polylines${params}`,
-            [],
-        ),
+        getNonNull<AlignmentPolyLine[]>(`${mapUri(publishType)}/alignment-polylines${params}`),
     );
 }
 
@@ -424,7 +420,7 @@ export async function getTrackMeter(
         changeTime,
         `${trackNumberId}_${publishType}_${pointString(location)}`,
         () => {
-            return getIgnoreError<TrackMeter>(
+            return getNonNull<TrackMeter>(
                 `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
             );
         },

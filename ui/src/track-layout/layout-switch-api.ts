@@ -7,9 +7,8 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     deleteIgnoreError,
-    getIgnoreError,
-    getThrowError,
-    getWithDefault,
+    getNonNull,
+    getNullable,
     postAdt,
     putAdt,
     queryParams,
@@ -24,7 +23,6 @@ import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/link
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 
-// TODO: GVT-2014 this should be a cache with nullable values as a switch might not exist in valid situations
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 
@@ -41,10 +39,7 @@ export async function getSwitchesByBoundingBox(
         comparisonPoint: comparisonPoint && pointString(comparisonPoint),
         includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
     });
-    return await getWithDefault<LayoutSwitch[]>(
-        `${layoutUri('switches', publishType)}${params}`,
-        [],
-    );
+    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
 export async function getSwitchesBySearchTerm(
@@ -56,10 +51,7 @@ export async function getSwitchesBySearchTerm(
         searchTerm: searchTerm,
         limit: limit,
     });
-    return await getWithDefault<LayoutSwitch[]>(
-        `${layoutUri('switches', publishType)}${params}`,
-        [],
-    );
+    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
 export async function getSwitchesByTile(
@@ -79,7 +71,7 @@ export async function getSwitch(
     changeTime: TimeStamp = getChangeTimes().layoutSwitch,
 ): Promise<LayoutSwitch | undefined> {
     return switchCache.get(changeTime, cacheKey(switchId, publishType), () =>
-        getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
+        getNullable<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
 }
 
@@ -94,7 +86,7 @@ export async function getSwitches(
             switchIds,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
-                getThrowError<LayoutSwitch[]>(
+                getNonNull<LayoutSwitch[]>(
                     `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
                 ).then((switches) => {
                     const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
@@ -108,9 +100,8 @@ export async function getSwitchJointConnections(
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<LayoutSwitchJointConnection[]> {
-    return getWithDefault<LayoutSwitchJointConnection[]>(
+    return getNonNull<LayoutSwitchJointConnection[]>(
         `${layoutUri('switches', publishType, id)}/joint-connections`,
-        [],
     );
 }
 
@@ -160,9 +151,9 @@ export async function getSwitchValidation(
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset> {
-    return getThrowError<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
+    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }
 
 export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | undefined> => {
-    return getIgnoreError<ChangeTimes>(changeTimeUri('switches', id));
+    return getNonNull<ChangeTimes>(changeTimeUri('switches', id));
 };

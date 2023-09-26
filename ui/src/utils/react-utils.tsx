@@ -62,12 +62,14 @@ export function useLoaderWithStatus<TEntity>(
         let cancel = false;
         if (result) {
             setLoaderStatus(LoaderStatus.Loading);
-            result.then((r) => {
-                if (!cancel) {
-                    setEntity(r);
-                    setLoaderStatus(LoaderStatus.Ready);
-                }
-            });
+            result
+                .then((r) => {
+                    if (!cancel) {
+                        setEntity(r);
+                        setLoaderStatus(LoaderStatus.Ready);
+                    }
+                })
+                .catch((e) => console.log('loader promise rejected', e));
         } else setEntity(undefined);
 
         return () => {
@@ -96,13 +98,15 @@ export function useTwoPartEffectWithStatus<TEntity>(
         if (promise) {
             setLoaderStatus(LoaderStatus.Loading);
 
-            promise.then((r) => {
-                if (!cancelled) {
-                    setLoaderStatus(LoaderStatus.Ready);
+            promise
+                .then((r) => {
+                    if (!cancelled) {
+                        setLoaderStatus(LoaderStatus.Ready);
 
-                    onceOnFulfilled(r);
-                }
-            });
+                        onceOnFulfilled(r);
+                    }
+                })
+                .catch((e) => console.log('loader promise rejected', e));
         }
 
         return () => {
@@ -126,9 +130,11 @@ export function useLoaderWithTimer<TEntity>(
         function fetchEntities() {
             const result = loadFunc();
             if (result) {
-                result.then((r) => {
-                    if (!cancel) setEntity(r);
-                });
+                result
+                    .then((r) => {
+                        if (!cancel) setEntity(r);
+                    })
+                    .catch((e) => console.log('loader promise rejected', e));
             }
         }
         fetchEntities();

@@ -1,8 +1,7 @@
 import {
     API_URI,
     ApiErrorResponse,
-    getIgnoreError,
-    getWithDefault,
+    getNonNull,
     postFormIgnoreError,
     postFormWithError,
     putFormIgnoreError,
@@ -137,13 +136,13 @@ export async function getPVDocuments(
 ): Promise<PVDocumentHeader[]> {
     const params = queryParams({ status: status });
     return pvDocumentHeadersByStateCache.get(changeTime, status, () =>
-        getWithDefault<PVDocumentHeader[]>(`${PROJEKTIVELHO_URI}/documents${params}`, []),
+        getNonNull<PVDocumentHeader[]>(`${PROJEKTIVELHO_URI}/documents${params}`),
     );
 }
 
 export const getPVRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
     pvRedirectUrlCache.get(changeTime, oid, () =>
-        getIgnoreError<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
+        getNonNull<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
     );
 
 export async function getPVDocument(
@@ -151,12 +150,12 @@ export async function getPVDocument(
     id: PVDocumentId,
 ): Promise<PVDocumentHeader | undefined> {
     return pvDocumentHeaderCache.get(changeTime, id, () =>
-        getIgnoreError<PVDocumentHeader>(`${PROJEKTIVELHO_URI}/documents/${id}`),
+        getNonNull<PVDocumentHeader>(`${PROJEKTIVELHO_URI}/documents/${id}`),
     );
 }
 
 export async function getPVDocumentCount(): Promise<PVDocumentCount | undefined> {
-    return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
+    return getNonNull<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
 }
 
 export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined> {

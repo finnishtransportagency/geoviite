@@ -14,7 +14,6 @@
         "@jest/globals": "^29.5.0",
         "@teamsupercell/typings-for-css-modules-loader": "^2.5.1",
         "@types/js-cookie": "^3.0.2",
-        "@types/memory-cache": "^0.2.2",
         "@types/node": "^16.18.2",
         "@types/ol": "^6.5.3",
         "@types/proj4": "^2.5.2",
