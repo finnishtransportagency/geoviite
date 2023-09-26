@@ -13,7 +13,7 @@ import {
     MapAlignmentType,
     ReferenceLineId,
 } from './track-layout-model';
-import { API_URI, getNonNull, queryParams } from 'api/api-fetch';
+import { API_URI, getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
@@ -397,9 +397,8 @@ async function getLocationTrackPolyline(
     });
 
     return await locationTrackPolyLineCache.get(changeTime, tileKey, () =>
-        getWithDefault<AlignmentPolyLine | undefined>(
+        getNullable<AlignmentPolyLine>(
             `${mapUri(publishType)}/location-track/${locationTrackId}/alignment-polyline${params}`,
-            undefined,
         ),
     );
 }
