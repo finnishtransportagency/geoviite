@@ -8,27 +8,74 @@ $dialog-padding-vertical: 16px;
 $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 
 .dialog {
-    margin: 0;
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
     right: 0;
+    margin: 0;
     background: rgba($color-black-lighter, 0.5);
     z-index: $layer-popup;
 }
 
 .dialog__popup {
     @include shadow-8dp;
+    position: relative;
     display: flex;
     flex-direction: column;
     border-radius: 4px;
     background: $color-white-default;
     min-height: 200px;
-    position: relative;
+    max-height: 100%;
 
     &--moving {
         user-select: none;
+    }
+
+    &--normal {
+        min-width: 380px;
+        max-width: 380px;
+    }
+
+    &--wide {
+        min-width: 500px;
+        max-width: 500px;
+    }
+
+    &--ultrawide {
+        min-width: 700px;
+        max-width: 700px;
+    }
+
+    &--dark {
+        background: $color-blue-darker;
+        color: $color-white-default;
+        fill: $color-white-default;
+
+        .dialog__content {
+            background: $color-blue-darker;
+        }
+
+        .dialog__footer {
+            border: none;
+        }
+
+        .dialog__close {
+            fill: $color-white-default;
+        }
+    }
+
+    &--light {
+        background: $color-white-default;
+        color: $color-black-default;
+
+        .dialog__content {
+            background: $color-white-default;
+        }
+
+        .dialog__footer {
+            border: none;
+        }
     }
 }
 
@@ -37,22 +84,23 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     align-items: center;
     padding: $dialog-padding;
     cursor: grab;
-}
 
-.dialog__close {
-    fill: $color-blue-dark;
-    cursor: pointer;
-    line-height: 0;
-}
+    .dialog__close {
+        fill: $color-blue-dark;
+        cursor: pointer;
+        line-height: 0;
+    }
 
-.dialog__title {
-    @include typography-heading-small;
-    flex: 1;
-    margin-right: 40px;
+    .dialog__title {
+        @include typography-heading-small;
+        flex: 1;
+        margin-right: 40px;
+    }
 }
 
 .dialog__content {
     flex: 1;
+    overflow-y: auto;
     background: $color-white-default;
     padding: 0 $dialog-padding-horizontal;
     min-height: 120px;
@@ -60,115 +108,42 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     .dialog__text {
         margin-bottom: 14px;
     }
+
+    &--spread {
+        margin: 0 (-$dialog-padding-horizontal);
+    }
 }
 
-.dialog__content-spread {
-    margin: 0 (-$dialog-padding-horizontal);
-}
-
-.dialog-footer--centered {
-    display: grid;
-    grid-auto-flow: column;
-    grid-gap: 8px;
-    align-items: center;
-    justify-content: center;
-    padding: $dialog-padding;
-    border-top: 1px solid $color-white-darker;
-}
-
-.dialog-footer {
-    display: grid;
-    grid-auto-flow: column;
-    grid-gap: 8px;
-    padding: $dialog-padding;
-    border-top: 1px solid $color-white-darker;
-}
-
-.dialog-footer__content-area {
+.dialog__footer {
     display: flex;
-    justify-content: space-between;
-}
+    padding: $dialog-padding;
+    border-top: 1px solid $color-white-darker;
 
-.dialog-footer__content {
-    &--shrink {
-        flex-grow: 0;
-    }
+    .dialog__footer-content {
+        @mixin footer-content {
+            display: grid;
+            grid-auto-flow: column;
+            column-gap: 8px;
+        }
 
-    &--grow {
-        flex-grow: 1;
-    }
+        &--left-aligned {
+            @include footer-content;
 
-    &--centered {
-        display: flex;
-        justify-content: center;
-    }
+            position: absolute;
+        }
 
-    &--padded {
-        > :not(:last-child) {
-            margin-right: 20px;
+        &--centered {
+            @include footer-content;
+
+            margin: auto;
+        }
+
+        &--right-aligned {
+            @include footer-content;
+
+            position: absolute;
+            right: 0;
+            padding-right: inherit;
         }
     }
-}
-
-.dialog--dark {
-    .dialog__popup {
-        background: $color-blue-darker;
-        color: $color-white-default;
-        fill: $color-white-default;
-    }
-
-    .dialog__content {
-        background: $color-blue-darker;
-    }
-
-    .dialog__footer {
-        border: none;
-    }
-
-    .dialog__close {
-        fill: $color-white-default;
-    }
-}
-
-.dialog--light {
-    .dialog__popup {
-        background: $color-white-default;
-        color: $color-black-default;
-    }
-
-    .dialog__content {
-        background: $color-white-default;
-    }
-
-    .dialog__footer {
-        border: none;
-    }
-}
-
-.dialog--scrollable {
-    .dialog__popup {
-        max-height: 80vh;
-
-        resize: both;
-        overflow: hidden;
-    }
-
-    .dialog__content {
-        overflow-y: auto;
-    }
-}
-
-.dialog--normal {
-    min-width: 380px;
-    max-width: 380px;
-}
-
-.dialog--wide {
-    min-width: 500px;
-    max-width: 500px;
-}
-
-.dialog--ultrawide {
-    min-width: 700px;
-    max-width: 700px;
 }

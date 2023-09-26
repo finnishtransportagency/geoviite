@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import {
     booleanToTrapPoint,
@@ -29,7 +29,6 @@ import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
-import { createClassName } from 'vayla-design-lib/utils';
 import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';
@@ -303,13 +302,11 @@ export const SwitchEditDialog = ({
                     isExistingSwitch ? t('switch-dialog.title-edit') : t('switch-dialog.title-new')
                 }
                 onClose={onClose}
-                className={dialogStyles['dialog--ultrawide']}
-                footerClassName={'dialog-footer'}
-                scrollable={false}
+                width={DialogWidth.ULTRA_WIDE}
                 footerContent={
-                    <div className={dialogStyles['dialog-footer__content-area']}>
+                    <React.Fragment>
                         {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
-                            <div className={dialogStyles['dialog-footer__content--shrink']}>
+                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
                                 <Button
                                     onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                     icon={Icons.Delete}
@@ -318,12 +315,7 @@ export const SwitchEditDialog = ({
                                 </Button>
                             </div>
                         )}
-                        <div
-                            className={createClassName(
-                                dialogStyles['dialog-footer__content--grow'],
-                                dialogStyles['dialog-footer__content--centered'],
-                                dialogStyles['dialog-footer__content--padded'],
-                            )}>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
                                 {t('button.return')}
                             </Button>
@@ -334,7 +326,7 @@ export const SwitchEditDialog = ({
                                 {t('button.save')}
                             </Button>
                         </div>
-                    </div>
+                    </React.Fragment>
                 }>
                 <FormLayout>
                     <FormLayoutColumn>
@@ -498,9 +490,8 @@ export const SwitchEditDialog = ({
                     title={t('switch-dialog.confirmation-title')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
-                    className={dialogStyles['dialog--normal']}
                     footerContent={
-                        <>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setShowStructureChangeConfirmationDialog(false)}
                                 variant={ButtonVariant.SECONDARY}
@@ -512,11 +503,10 @@ export const SwitchEditDialog = ({
                             ) : (
                                 <Button onClick={save}>{t('button.save')}</Button>
                             )}
-                        </>
+                        </div>
                     }>
                     <p>{t('switch-dialog.changed-switch-structure-warning')}</p>
                     <p>
-                        {' '}
                         <span className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />
                         </span>{' '}
@@ -530,9 +520,8 @@ export const SwitchEditDialog = ({
                     title={t('switch-dialog.confirmation-delete-title')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
-                    className={dialogStyles['dialog--normal']}
                     footerContent={
-                        <>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setShowDeleteOfficialConfirmDialog(false)}
                                 variant={ButtonVariant.SECONDARY}
@@ -546,11 +535,10 @@ export const SwitchEditDialog = ({
                                     {t('button.delete')}
                                 </Button>
                             )}
-                        </>
+                        </div>
                     }>
                     <p>{t('switch-dialog.deleted-state-warning')}</p>
                     <p>
-                        {' '}
                         <span className={styles['switch-edit-dialog__warning']}>
                             <Icons.StatusError color={IconColor.INHERIT} />
                         </span>{' '}

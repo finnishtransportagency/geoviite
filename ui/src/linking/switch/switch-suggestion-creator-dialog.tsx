@@ -184,17 +184,15 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
             title={t('switch-suggestion-creator-dialog.title')}
             onClose={onClose}
             variant={DialogVariant.DARK}
-            className={dialogStyles['dialog--normal']}
-            scrollable={false}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('button.cancel')}
                     </Button>
                     <Button disabled={!canSelectSuggestedSwitch} onClick={selectSuggestedSwitch}>
                         {t('switch-suggestion-creator-dialog.start-linking')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <div className={styles['switch-suggestion-creator']}>
                 <div className={styles['switch-suggestion-creator__sub-form']}>

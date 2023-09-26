@@ -48,23 +48,20 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
     };
 
     return (
-        <React.Fragment>
-            <Dialog
-                title={t('km-post-delete-draft-dialog.delete-draft-confirm')}
-                variant={DialogVariant.DARK}
-                allowClose={false}
-                className={dialogStyles['dialog--normal']}
-                footerContent={
-                    <React.Fragment>
-                        <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
-                            {t('button.cancel')}
-                        </Button>
-                        <Button onClick={() => deleteKmPost(id)}>{t('button.delete')}</Button>
-                    </React.Fragment>
-                }>
-                <div>{t('km-post-delete-draft-dialog.can-be-deleted')}</div>
-            </Dialog>
-        </React.Fragment>
+        <Dialog
+            title={t('km-post-delete-draft-dialog.delete-draft-confirm')}
+            variant={DialogVariant.DARK}
+            allowClose={false}
+            footerContent={
+                <div className={dialogStyles['dialog__footer-content--centered']}>
+                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button onClick={() => deleteKmPost(id)}>{t('button.delete')}</Button>
+                </div>
+            }>
+            <div>{t('km-post-delete-draft-dialog.can-be-deleted')}</div>
+        </Dialog>
     );
 };
 
