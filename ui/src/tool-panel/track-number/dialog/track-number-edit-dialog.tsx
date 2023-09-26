@@ -200,7 +200,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     </div>
                 </div>
             }>
-            <FormLayout isProcessing={saveInProgress}>
+            <FormLayout isProcessing={saveInProgress} doubleColumn>
                 <FormLayoutColumn>
                     <Heading size={HeadingSize.SUB}>
                         {t('track-number-edit.title.track-number')}

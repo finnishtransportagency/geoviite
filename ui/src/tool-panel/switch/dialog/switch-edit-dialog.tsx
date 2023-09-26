@@ -303,7 +303,7 @@ export const SwitchEditDialog = ({
                     isExistingSwitch ? t('switch-dialog.title-edit') : t('switch-dialog.title-new')
                 }
                 onClose={onClose}
-                className={dialogStyles['dialog--ultrawide']}
+                className={dialogStyles['dialog--wide']}
                 footerClassName={'dialog-footer'}
                 scrollable={false}
                 footerContent={
@@ -423,72 +423,6 @@ export const SwitchEditDialog = ({
                                 />
                             }
                             errors={getVisibleErrorsByProp('ownerId')}
-                        />
-                    </FormLayoutColumn>
-
-                    <FormLayoutColumn>
-                        <Heading size={HeadingSize.SUB}>
-                            {t('switch-dialog.info-from-linking')}
-                        </Heading>
-                        <FieldLayout
-                            label={t('switch-dialog.track-location')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('switch-dialog.track-location')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('switch-dialog.track-location')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('switch-dialog.coordinate-system')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('switch-dialog.coordinates')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
                         />
                     </FormLayoutColumn>
                 </FormLayout>
