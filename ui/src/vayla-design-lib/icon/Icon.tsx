@@ -33,7 +33,7 @@ import fullScreen from './glyphs/navigation/fullscreen.svg';
 import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
 import externalLink from './glyphs/navigation/external-link.svg';
 import styles from './icon.scss';
-import { createClassName } from 'vayla-design-lib/utils';
+import {createClassName} from 'vayla-design-lib/utils';
 
 /**
  *
@@ -159,8 +159,8 @@ const SvgIcon: SvgIconComponent = ({
     }
 
     const className = createClassName(
-        styles['icon'],
-        styles[size],
+        'icon',
+        size,
         props.rotation && styles[props.rotation],
         color && styles[color],
     );

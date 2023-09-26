@@ -17,10 +17,6 @@
     color: $color-red-dark;
 }
 
-.field-layout__value {
-    zoom: 1;
-}
-
 .field-layout__help {
     @include typography-caption;
     color: $color-black-light;
