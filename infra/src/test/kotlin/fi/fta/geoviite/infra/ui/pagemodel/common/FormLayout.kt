@@ -45,14 +45,14 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
         )
     )
 
-    fun dropdown(label: String) = E2EDropdown { getFieldValueElement(label).findElement(By.className("dropdown")) }
-    fun dropdownByQaId(qaId: String) = E2EDropdown { childElement(byQaId(qaId)) }
+    fun dropdown(qaId: String) = E2EDropdown { childElement(byQaId(qaId)) }
     fun textInput(label: String) =
         E2ETextInput { getFieldValueElement(label).findElement(By.cssSelector("input.text-field__input-element")) }
+    fun textInputByQaId(qaId: String) = E2ETextInput { childElement(byQaId(qaId)) }
 
     fun checkBox(label: String) = E2ECheckbox { getFieldValueElement(label).findElement(By.cssSelector("input.checkbox__input")) }
 
-    fun checkBoxByLabel(label: String) = E2ECheckbox { childElement(By.xpath(".//label/*[contains(text(), \"$label\")]")) }
+    fun checkBoxByQaId(qaId: String) = E2ECheckbox { childElement(byQaId(qaId)) }
 
     fun radio(label: String) = E2ERadio { getFieldValueElement(label) }
 

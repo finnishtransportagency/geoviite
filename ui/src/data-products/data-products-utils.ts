@@ -72,6 +72,7 @@ export type ElementHeading = {
     name: string;
     numeric: boolean;
     hasSeparator: boolean;
+    qaId?: string;
 };
 
 export function numericHeading(

@@ -80,6 +80,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                     label={t(`data-products.search.track-number`)}
                     value={
                         <Dropdown
+                            qaId="km-lengths-search-location-track"
                             value={state.trackNumber}
                             getName={(item: LayoutTrackNumber) => item.number}
                             placeholder={t('data-products.search.search')}
@@ -98,6 +99,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                     value={
                         <span className={styles['data-products__search--combined-field']}>
                             <Dropdown
+                                qaId="km-lengths-search-start-km"
                                 value={state.startKm}
                                 placeholder={t('data-products.search.search')}
                                 options={kmPosts}
@@ -108,6 +110,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                                 size={DropdownSize.SMALL}
                             />
                             <Dropdown
+                                qaId="km-lengths-search-end-km"
                                 value={state.endKm}
                                 placeholder={t('data-products.search.search')}
                                 options={kmPosts}
@@ -125,22 +128,23 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <Button
-                    className={styles['element-list__download-button']}
-                    disabled={!state.kmLengths || state.kmLengths.length === 0}
-                    onClick={() => {
-                        if (state.trackNumber) {
-                            location.href = getKmLengthsAsCsv(
-                                'OFFICIAL',
-                                state.trackNumber?.id,
-                                state.startKm,
-                                state.endKm,
-                            );
-                        }
-                    }}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                <a
+                    qa-id="km-lengths-csv-download"
+                    {...(state.trackNumber && {
+                        href: getKmLengthsAsCsv(
+                            'OFFICIAL',
+                            state.trackNumber?.id,
+                            state.startKm,
+                            state.endKm,
+                        ),
+                    })}>
+                    <Button
+                        className={styles['element-list__download-button']}
+                        disabled={!state.kmLengths || state.kmLengths.length === 0}
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

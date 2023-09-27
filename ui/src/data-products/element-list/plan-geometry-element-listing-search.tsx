@@ -126,6 +126,7 @@ const PlanGeometryElementListingSearch = ({
                         value={
                             <div className={styles['element-list__geometry-checkbox']}>
                                 <Checkbox
+                                    qaId="data-products.search.line"
                                     checked={state.searchGeometries.searchLines}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -136,6 +137,7 @@ const PlanGeometryElementListingSearch = ({
                                     {t(`data-products.search.line`)}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.curve"
                                     checked={state.searchGeometries.searchCurves}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -146,6 +148,7 @@ const PlanGeometryElementListingSearch = ({
                                     {t(`data-products.search.curve`)}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.clothoid"
                                     checked={state.searchGeometries.searchClothoids}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
