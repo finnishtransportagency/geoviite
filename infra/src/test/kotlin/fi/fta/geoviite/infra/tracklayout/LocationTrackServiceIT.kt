@@ -437,16 +437,16 @@ class LocationTrackServiceIT @Autowired constructor(
         )
         val draftCopy = locationTrackService.getDraft(draftCopyVersion.id)!!
         assertEquals(
-            listOf(asLocationtrackDuplicate(officialCopy.first)),
+            listOf(asLocationTrackDuplicate(officialCopy.first)),
             locationTrackService.getDuplicates(originalLocationTrackId, OFFICIAL)
         )
         assertEquals(
-            listOf(asLocationtrackDuplicate(draftCopy)),
+            listOf(asLocationTrackDuplicate(draftCopy)),
             locationTrackService.getDuplicates(originalLocationTrackId, DRAFT)
         )
     }
 
-    private fun asLocationtrackDuplicate(locationTrack: LocationTrack) =
+    private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =
         LocationTrackDuplicate(locationTrack.id as IntId, locationTrack.name, locationTrack.externalId)
 
     private fun insertAndFetch(switch: TrackLayoutSwitch) =

@@ -82,7 +82,7 @@ export function info(header: string, opts?: ToastOpts) {
     if (removeFunction && !blockToasts) {
         toast.warn(getToastBody(header, body, qaId), {
             onClose: removeFunction,
-            icon: Icons.Info,
+            icon: <Icons.Info />,
             ...toastOpts,
         });
     }
@@ -95,7 +95,7 @@ export function success(header: string, opts?: ToastOpts) {
     if (removeFunction && !blockToasts) {
         toast.success(getToastBody(header, body, qaId), {
             onClose: removeFunction,
-            icon: Icons.Selected,
+            icon: <Icons.Selected />,
             ...toastOpts,
         });
     }
@@ -111,7 +111,7 @@ export function error(header: string, opts?: ToastOpts) {
             closeOnClick: false,
             closeButton: CloseButton,
             onClose: removeFunction,
-            icon: Icons.StatusError,
+            icon: <Icons.StatusError />,
             ...toastOpts,
         });
     }
@@ -134,7 +134,7 @@ export function sessionExpired() {
                 autoClose: false,
                 closeButton: false,
                 closeOnClick: false,
-                icon: Icons.StatusError,
+                icon: <Icons.StatusError />,
             },
         );
     }

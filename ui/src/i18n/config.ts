@@ -3,6 +3,8 @@ import Backend from 'i18next-http-backend';
 import { initReactI18next } from 'react-i18next';
 import { API_URI } from 'api/api-fetch';
 
+export type LocalizationParams = { [key: string]: string };
+
 i18n.use(initReactI18next)
     .use(Backend)
     .init({

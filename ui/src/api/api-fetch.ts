@@ -4,6 +4,8 @@ import { err, ok, Result } from 'neverthrow';
 import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
 
+import { LocalizationParams } from 'i18n/config';
+
 export const API_URI = '/api';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -36,7 +38,7 @@ export type ApiErrorResponse = {
     correlationId: string;
     timestamp: string;
     localizedMessageKey?: string;
-    localizedMessageParams: string[];
+    localizedMessageParams: LocalizationParams;
     status: number;
 };
 
@@ -71,7 +73,7 @@ export function getNonNull<Output>(path: string, toastFailure = true): Promise<O
     return getNullable<Output>(path, toastFailure).then((requestResult) => {
         if (requestResult === undefined) {
             if (toastFailure) {
-                Snackbar.error(i18n.t('error.entity-not-found-on-path', [path]));
+                Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
             }
             const rv = Promise.reject(Error(`undefined return when querying ${path}`));
             rv.catch(() => {
@@ -99,7 +101,7 @@ export function getNullable<Output>(
         undefined,
         (error) => {
             if (toastFailure) {
-                Snackbar.error(i18n.t('error.request-failed', [path]));
+                Snackbar.error(i18n.t('error.request-failed', { path }));
             }
             return { [wrapApiErrorResponse]: error };
         },
@@ -118,7 +120,7 @@ export function getNonNullAdt<Output>(
 ): Promise<Result<Output, ApiErrorResponse>> {
     return getNullableAdt<Output | undefined>(path, toastFailure).then((requestResult) => {
         if (requestResult.isOk() && requestResult.value === undefined) {
-            Snackbar.error(i18n.t('error.entity-not-found-on-path', [path]));
+            Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
             return Promise.reject(Error(`undefined return when querying ${path}`));
         } else {
             return requestResult as Result<Output, ApiErrorResponse>;
@@ -140,7 +142,7 @@ export function getNullableAdt<Output>(
     ).then((r) => {
         if (isWrappedApiError(r)) {
             if (toastError) {
-                Snackbar.error(i18n.t('error.request-failed', [path]));
+                Snackbar.error(i18n.t('error.request-failed', { path }));
             }
             return err(r[wrapApiErrorResponse]);
         } else {

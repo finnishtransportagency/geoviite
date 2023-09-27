@@ -544,12 +544,12 @@ class PublicationService @Autowired constructor(
             if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "$VALIDATION_TRACK_NUMBER.duplicate-name-official",
-                listOf(trackNumber.number)
+                mapOf("trackNumber" to trackNumber.number)
             ) else null,
             if (stagedDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "$VALIDATION_TRACK_NUMBER.duplicate-name-draft",
-                listOf(trackNumber.number)
+                mapOf("trackNumber" to trackNumber.number)
             ) else null,
         )
     }
@@ -614,10 +614,14 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR, "$VALIDATION_SWITCH.duplicate-name-official", listOf(switch.name)
+                PublishValidationErrorType.ERROR,
+                "$VALIDATION_SWITCH.duplicate-name-official",
+                mapOf("switch" to switch.name)
             ) else null,
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR, "$VALIDATION_SWITCH.duplicate-name-draft", listOf(switch.name)
+                PublishValidationErrorType.ERROR,
+                "$VALIDATION_SWITCH.duplicate-name-draft",
+                mapOf("switch" to switch.name)
             ) else null,
         )
     }
@@ -716,11 +720,11 @@ class PublicationService @Autowired constructor(
             if (stagedDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-draft",
-                listOf(locationTrack.name, trackNumberName ?: "")
+                mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null, if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-official",
-                listOf(locationTrack.name, trackNumberName ?: "")
+                mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null
         )
     }
@@ -949,7 +953,8 @@ class PublicationService @Autowired constructor(
                     trackNumberChanges.startAddress.old, trackNumberChanges.startAddress.new
                 )
             ),
-            compareChange({ oldEndAddress != newEndAddress },
+            compareChange(
+                { oldEndAddress != newEndAddress },
                 oldEndAddress,
                 newEndAddress,
                 { it.toString() },
@@ -1015,7 +1020,8 @@ class PublicationService @Autowired constructor(
                 PropKey("description-suffix"),
                 enumLocalizationKey = "location-track-description-suffix"
             ),
-            compareChange({ oldAndTime.first != newAndTime.first },
+            compareChange(
+                { oldAndTime.first != newAndTime.first },
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
@@ -1150,8 +1156,8 @@ class PublicationService @Autowired constructor(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
             val jointPropKeyParams =
-                listOfNotNull(trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
-                    changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
+                mapOf("trackNumber" to trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
+                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(
                     joint.trackNumberId, oldTimestamp
@@ -1167,7 +1173,8 @@ class PublicationService @Autowired constructor(
                     PropKey("switch-joint-location", jointPropKeyParams),
                     getPointMovedRemarkOrNull(oldLocation, joint.point),
                     null
-                ), compareChange({ oldAddress != joint.address },
+                ), compareChange(
+                    { oldAddress != joint.address },
                     oldAddress,
                     joint.address,
                     { it.toString() },

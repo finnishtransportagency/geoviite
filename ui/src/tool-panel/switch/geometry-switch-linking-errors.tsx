@@ -32,10 +32,10 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
                     switchTypeMatch == SwitchTypeMatch.Invalid
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
-                    {t('tool-panel.switch.geometry.cannot-link-invalid-switch-type', [
-                        suggestedSwitch?.switchStructure.type,
-                        selectedLayoutSwitchStructure?.type,
-                    ])}
+                    {t('tool-panel.switch.geometry.cannot-link-invalid-switch-type', {
+                        suggestedType: suggestedSwitch?.switchStructure.type,
+                        selectedType: selectedLayoutSwitchStructure?.type,
+                    })}
                 </div>
             </MessageBox>
             <MessageBox
@@ -44,10 +44,10 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
                     switchTypeMatch == SwitchTypeMatch.Similar
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
-                    {t('tool-panel.switch.geometry.switch-type-differs-warning', [
-                        suggestedSwitch?.switchStructure.type,
-                        selectedLayoutSwitchStructure?.type,
-                    ])}
+                    {t('tool-panel.switch.geometry.switch-type-differs-warning', {
+                        suggestedType: suggestedSwitch?.switchStructure.type,
+                        selectedType: selectedLayoutSwitchStructure?.type,
+                    })}
                 </div>
                 <div className={styles['geometry-switch-infobox__switch-type-confirm']}>
                     <Checkbox

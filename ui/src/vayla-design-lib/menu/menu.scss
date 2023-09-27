@@ -1,52 +1,45 @@
 @import '../colors';
 @import '../shadows';
 @import '../typography';
-@import '../transitions';
+@import '../layers';
 
-.menu,
-.contexify {
-    @include typography-body;
+.menu {
     @include shadow-8dp;
+
     background: $color-white-default;
     border-radius: 4px;
     overflow: hidden;
+    z-index: $layer-popup;
 
-    > :not(:last-child) {
-        border-bottom: 0.5px solid $color-white-darker;
-    }
-}
-
-.menu__item,
-.contexify_item {
-    height: 36px;
-    color: $color-black-default;
-    fill: $color-white-default;
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-    box-sizing: border-box;
-    padding: 0 24px 0 12px;
-    cursor: pointer;
-    user-select: none;
-
-    &-disabled {
-        color: $color-black-lighter;
+    &__items {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
     }
 
-    &:hover:not(.contexify_item-disabled) {
-        background: $color-blue-lighter;
-    }
-}
-
-.contexify {
-    position: absolute;
-    margin-top: 5px;
-    z-index: 10;
-}
-
-.menu__item--selected {
-    .menu__item {
-        background: $color-blue-lighter;
+    &__item {
         color: $color-black-default;
+        fill: $color-white-default;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        box-sizing: border-box;
+        padding: 0 24px 0 12px;
+        cursor: pointer;
+        user-select: none;
+
+        &:not(:last-child) {
+            border-bottom: 1px solid $color-white-darker;
+        }
+
+        &--disabled {
+            color: $color-black-lighter;
+            cursor: default;
+        }
+
+        &:hover:not(.menu__item--disabled) {
+            background: $color-blue-lighter;
+        }
     }
 }

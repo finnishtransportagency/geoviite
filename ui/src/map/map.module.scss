@@ -168,7 +168,15 @@ $color-highlight-blue: #389bf6;
     .ol-zoom-out {
         margin: 2px 0;
         cursor: pointer;
+        color: $color-white-default;
         background-color: $color-blue-default;
+
+        &:focus,
+        &:hover {
+            text-decoration: unset;
+            outline: unset;
+            color: $color-white-default;
+        }
 
         &:focus {
             background-color: $color-blue-default;
@@ -187,7 +195,7 @@ $color-highlight-blue: #389bf6;
 
 .map__popup-item {
     @extend .menu__item;
-    background: $color-blue-darker;
+
     color: $color-white-default;
     border-bottom-color: $color-black-lighter;
 

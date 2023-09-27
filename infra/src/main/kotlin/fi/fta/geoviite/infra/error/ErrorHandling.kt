@@ -45,26 +45,29 @@ fun createResponse(exception: Exception, correlationId: String): ResponseEntity<
 fun createStatusOnlyErrorResponse(
     correlationId: String,
     status: HttpStatus,
-    localizedMessage: Pair<LocalizationKey, List<String>>? = null,
+    localizedMessage: Pair<LocalizationKey, LocalizationParams>? = null,
 ) = createResponse(listOf(status.reasonPhrase), status, correlationId, localizedMessage)
 
 fun createDescriptiveErrorResponse(
     correlationId: String,
     status: HttpStatus,
     causeChain: List<Exception>,
-    localizedMessage: Pair<LocalizationKey, List<String>>?,
+    localizedMessage: Pair<LocalizationKey, LocalizationParams>?,
 ) = createResponse(causeChain.mapNotNull(::describe), status, correlationId, localizedMessage)
 
 fun createResponse(
     messageRows: List<String>,
     status: HttpStatus,
     correlationId: String,
-    localizedMessage: Pair<LocalizationKey, List<String>>?
+    localizedMessage: Pair<LocalizationKey, LocalizationParams>?,
 ): ResponseEntity<ApiErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
-    return ResponseEntity(ApiErrorResponse(messageRows, correlationId, localizedMessage?.first,
-        localizedMessage?.second?: listOf()), headers, status)
+    return ResponseEntity(
+        ApiErrorResponse(
+            messageRows, correlationId, localizedMessage?.first, localizedMessage?.second ?: emptyMap()
+        ), headers, status
+    )
 }
 
 fun getCauseChain(exception: Exception): List<Exception> {
@@ -109,7 +112,7 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     else -> null
 }
 
-fun getLocalizationKey(exception: Exception): Pair<LocalizationKey, List<String>>? =
+fun getLocalizationKey(exception: Exception): Pair<LocalizationKey, LocalizationParams>? =
     if (exception is HasLocalizeMessageKey) exception.localizedMessageKey to exception.localizedMessageParams
     else null
 

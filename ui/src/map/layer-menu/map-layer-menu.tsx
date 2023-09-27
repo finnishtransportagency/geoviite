@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { MapLayerMenuGroups, MapLayerMenuChange, MapLayerMenuItem } from 'map/map-model';
+import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerMenuItem } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 
 type MapLayerMenuProps = {
     onMenuChange: (change: MapLayerMenuChange) => void;
@@ -94,40 +95,61 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMe
     );
 };
 
+//Aligns map layer menu with the map
+const layerOffset = 48;
+
 export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
-    onClose,
     mapLayerMenuGroups,
     onMenuChange,
 }: MapLayerMenuProps) => {
     const { t } = useTranslation();
+    const [showMapLayerMenu, setShowMapLayerMenu] = React.useState(false);
+
+    const buttonRef = React.useRef(null);
 
     return (
-        <div className={styles['map-layer-menu']}>
-            <span className={styles['map-layer-menu__close-button']}>
+        <React.Fragment>
+            <div ref={buttonRef}>
                 <Button
-                    variant={ButtonVariant.GHOST}
-                    icon={Icons.Close}
-                    onClick={() => onClose && onClose()}
+                    variant={ButtonVariant.SECONDARY}
+                    icon={Icons.Layers}
+                    onClick={() => setShowMapLayerMenu(!showMapLayerMenu)}
+                    qa-id="map-layers-button"
                 />
-            </span>
+            </div>
+            {showMapLayerMenu && (
+                <CloseableModal
+                    offsetY={layerOffset}
+                    className={styles['map-layer-menu']}
+                    positionRef={buttonRef}
+                    onClickOutside={() => undefined}>
+                    <span className={styles['map-layer-menu__close-button']}>
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Close}
+                            onClick={() => setShowMapLayerMenu(false)}
+                        />
+                    </span>
 
-            <MapLayerGroup
-                title={t('map-layer-menu.layout-title')}
-                visibilities={mapLayerMenuGroups.layout}
-                onMenuChange={onMenuChange}
-            />
-            <MapLayerGroup
-                title={t('map-layer-menu.geometry-title')}
-                visibilities={mapLayerMenuGroups.geometry}
-                onMenuChange={onMenuChange}
-            />
-            <EnvRestricted restrictTo="dev">
-                <MapLayerGroup
-                    title={t('map-layer-menu.debug-title')}
-                    visibilities={mapLayerMenuGroups.debug}
-                    onMenuChange={onMenuChange}
-                />
-            </EnvRestricted>
-        </div>
+                    <MapLayerGroup
+                        title={t('map-layer-menu.layout-title')}
+                        visibilities={mapLayerMenuGroups.layout}
+                        onMenuChange={onMenuChange}
+                    />
+                    <MapLayerGroup
+                        title={t('map-layer-menu.geometry-title')}
+                        visibilities={mapLayerMenuGroups.geometry}
+                        onMenuChange={onMenuChange}
+                    />
+                    <EnvRestricted restrictTo="dev">
+                        <MapLayerGroup
+                            title={t('map-layer-menu.debug-title')}
+                            visibilities={mapLayerMenuGroups.debug}
+                            onMenuChange={onMenuChange}
+                        />
+                    </EnvRestricted>
+                </CloseableModal>
+            )}
+        </React.Fragment>
     );
 };

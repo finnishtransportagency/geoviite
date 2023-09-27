@@ -233,7 +233,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     // Use memoized function to make debouncing functionality to work when re-rendering
     const getDuplicateTrackOptions = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 locationTracks
                     .filter((lt) => {
