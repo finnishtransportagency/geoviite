@@ -1,18 +1,16 @@
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/shadows';
-@import '../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 .tool-bar {
-    @include shadow-4dp;
+    @include vayla-design.shadow-4dp;
 
     padding: 0 6px;
     grid-column: 1 / -1;
     display: flex;
-    background: $color-white-dark;
+    background: vayla-design.$color-white-dark;
     margin-bottom: 1px;
 
     &--draft {
-        background: $color-blue-lighter;
+        background: vayla-design.$color-blue-lighter;
     }
 
     &__left-section,
@@ -33,8 +31,8 @@
     }
 
     &__middle-section {
-        @include typography-heading-small;
-        color: $color-blue-dark;
+        @include vayla-design.typography-heading-small;
+        color: vayla-design.$color-blue-dark;
         justify-content: center;
     }
 

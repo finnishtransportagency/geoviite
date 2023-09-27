@@ -1,8 +1,7 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .track-number-infobox__link-reference-line-guide {
-    @include typography-caption-strong;
+    @include vayla-design.typography-caption-strong;
 
     margin: 0;
     padding: 7px 0;
@@ -21,11 +20,11 @@
     }
 
     &__not-linked-text {
-        background-color: $color-red-lighter;
+        background-color: vayla-design.$color-red-lighter;
     }
 
     &__linked-text {
-        background-color: $color-green-lighter;
+        background-color: vayla-design.$color-green-lighter;
     }
 
     &__linking-container {
@@ -44,7 +43,7 @@
     }
 
     &__alignments-container {
-        border: 1px solid $color-white-darker;
+        border: 1px solid vayla-design.$color-white-darker;
         border-radius: 4px;
         padding: 10px 20px 10px 12px;
 
@@ -65,7 +64,7 @@
         }
 
         .icon {
-            fill: $color-black-light;
+            fill: vayla-design.$color-black-light;
         }
 
         & > *:not(:last-child) {
@@ -80,13 +79,13 @@
     &__zoom-warning {
         display: flex;
         align-items: center;
-        background-color: $color-lemon-light;
+        background-color: vayla-design.$color-lemon-light;
         padding: 10px 16px 10px 26px;
         margin: 0 -16px 0 -20px;
         font-size: 12px;
 
         .icon {
-            fill: $color-black-lighter;
+            fill: vayla-design.$color-black-lighter;
             margin-right: 12px;
         }
     }

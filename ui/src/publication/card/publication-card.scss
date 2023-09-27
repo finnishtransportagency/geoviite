@@ -1,15 +1,14 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .publication-card {
     padding-top: 0;
 
     &__title {
-        @include typography-heading;
+        @include vayla-design.typography-heading;
     }
 
     &__subsection-title {
-        @include typography-body-strong;
+        @include vayla-design.typography-body-strong;
         margin-bottom: 12px;
     }
 
@@ -18,13 +17,13 @@
     }
 
     &__title-errors {
-        @include typography-sub-heading;
+        @include vayla-design.typography-sub-heading;
         text-transform: none;
-        color: $color-red-dark;
+        color: vayla-design.$color-red-dark;
     }
 
     &__no-publications {
-        @include typography-sub-heading;
+        @include vayla-design.typography-sub-heading;
         text-transform: none;
         margin-bottom: 12px;
     }

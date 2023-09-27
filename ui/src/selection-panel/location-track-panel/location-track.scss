@@ -1,8 +1,8 @@
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .location-tracks-panel {
     &__subtitle {
-        color: $color-black-lighter;
+        color: vayla-design.$color-black-lighter;
         font-size: 14px;
     }
 
@@ -27,10 +27,10 @@
         > *:not(:last-child) {
             margin-right: 12px;
         }
-    }
 
-    &__location-track--can-select {
-        cursor: pointer;
+        &--can-select {
+            cursor: pointer;
+        }
     }
 
     &__show-more {

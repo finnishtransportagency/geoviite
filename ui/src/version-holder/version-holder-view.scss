@@ -1,11 +1,11 @@
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .version-holder-view {
-    color: $color-black-default;
+    color: vayla-design.$color-black-default;
     position: fixed;
     bottom: 0;
     right: 0;
-    background: $color-white-dark;
+    background: vayla-design.$color-white-dark;
     padding: 3px 6px;
     cursor: pointer;
     border-radius: 2px;

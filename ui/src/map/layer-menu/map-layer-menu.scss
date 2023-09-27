@@ -1,15 +1,12 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/shadows';
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/layers';
+@use 'vayla-design-lib' as vayla-design;
 
 .map-layer-menu {
-    @include shadow-8dp;
+    @include vayla-design.shadow-8dp;
 
     position: relative;
     padding: 16px;
-    background: $color-white-dark;
-    z-index: $layer-popup;
+    background: vayla-design.$color-white-dark;
+    z-index: vayla-design.$layer-popup;
     border-radius: 6px;
 
     &__close-button {
@@ -19,8 +16,8 @@
     }
 
     &__title {
-        @include typography-sub-heading;
-        color: $color-black-lighter;
+        @include vayla-design.typography-sub-heading;
+        color: vayla-design.$color-black-lighter;
         margin-bottom: 10px;
 
         &:not(:first-of-type) {

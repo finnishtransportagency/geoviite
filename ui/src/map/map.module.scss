@@ -1,156 +1,198 @@
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/shadows';
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/menu/menu';
-@import '../geoviite-design-lib/geoviite-colors';
-
-$font-family: 'Open Sans';
-
-$color-geometry-green-default: #4abc4a;
-$color-geometry-green-dark: #008e00;
-
-$color-geometry-red-default: #e07764;
-$color-geometry-red-dark: #ab1a00;
-
-$color-highlight-red: #e53e27;
-$color-highlight-blue: #389bf6;
+@use 'vayla-design-lib' as vayla-design;
+@use 'geoviite-design-lib' as geoviite-design;
 
 // Export colors to use e.g. in map canvas
 :export {
-    planAreaBorder: $color-red-default;
-    planAreaTextColor: $color-black-default;
-    fontFamily: $font-family;
+    planAreaBorder: vayla-design.$color-red-default;
+    planAreaTextColor: vayla-design.$color-black-default;
+    fontFamily: vayla-design.$font-family;
 }
 
 //Linking layer
 :export {
-    linkingPoint: $color-white-default;
-    unselectedAlignmentInterval: $color-white-darker;
-    selectedLayoutAlignmentInterval: $color-geoviite-blue;
-    selectedGeometryAlignmentInterval: $color-red-dark;
+    linkingPoint: vayla-design.$color-white-default;
+    unselectedAlignmentInterval: vayla-design.$color-white-darker;
+    selectedLayoutAlignmentInterval: geoviite-design.$color-geoviite-blue;
+    selectedGeometryAlignmentInterval: vayla-design.$color-red-dark;
 
-    clusterPointTextColor: $color-white-default;
-    clusterPointBorder: $color-white-default;
-    clusterPoint: $color-white-darker;
+    clusterPointTextColor: vayla-design.$color-white-default;
+    clusterPointBorder: vayla-design.$color-white-default;
+    clusterPoint: vayla-design.$color-white-darker;
 
-    locationTrackEndPoint: $color-red-default;
-    locationTrackEndPointBorder: $color-red-darker;
-    locationTrackEndPointCross: $color-white-default;
+    locationTrackEndPoint: vayla-design.$color-red-default;
+    locationTrackEndPointBorder: vayla-design.$color-red-darker;
+    locationTrackEndPointCross: vayla-design.$color-white-default;
 }
 
 // Alignment styling
 :export {
-    unlinkedGeometryAlignment: $color-geometry-red-default;
-    selectedUnlinkedGeometryAlignment: $color-geometry-red-dark;
+    unlinkedGeometryAlignment: geoviite-design.$color-geoviite-red-default;
+    selectedUnlinkedGeometryAlignment: geoviite-design.$color-geoviite-red-dark;
 
-    linkedGeometryAlignment: $color-geometry-green-default;
-    selectedLinkedGeometryAlignment: $color-geometry-green-dark;
+    linkedGeometryAlignment: geoviite-design.$color-geoviite-green-default;
+    selectedLinkedGeometryAlignment: geoviite-design.$color-geoviite-green-dark;
 
-    alignmentBackground: $color-white-default;
+    alignmentBackground: vayla-design.$color-white-default;
 
-    alignmentLine: rgba($color-black-default, 0.8);
-    selectedAlignmentLine: $color-geoviite-blue;
+    alignmentLine: rgba(vayla-design.$color-black-default, 0.8);
+    selectedAlignmentLine: geoviite-design.$color-geoviite-blue;
 
-    alignmentRedHighlight: rgba($color-highlight-red, 0.2);
-    alignmentBlueHighlight: rgba($color-highlight-blue, 0.2);
+    alignmentRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.2);
+    alignmentBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.2);
 }
 
 // Alignment badge styling
 :export {
     /* prettier-ignore */
     alignmentBadge: {
-        @include typography-body-strong;
+        @include vayla-design.typography-body-strong;
     }
-    alignmentBadge: $color-black-default;
-    alignmentBadgeWhite: $color-white-default;
-    alignmentBadgeBlue: $color-geoviite-blue;
-    alignmentBadgeBorder: $color-black-lighter;
+    alignmentBadge: vayla-design.$color-black-default;
+    alignmentBadgeWhite: vayla-design.$color-white-default;
+    alignmentBadgeBlue: geoviite-design.$color-geoviite-blue;
+    alignmentBadgeBorder: vayla-design.$color-black-lighter;
 
-    alignmentBadgeWhiteTextColor: $color-white-default;
-    alignmentBadgeTextColor: $color-black-default;
+    alignmentBadgeWhiteTextColor: vayla-design.$color-white-default;
+    alignmentBadgeTextColor: vayla-design.$color-black-default;
 }
 
 // Km post styling
 :export {
     /* prettier-ignore */
     kmPost: {
-        @include typography-body-strong;
+        @include vayla-design.typography-body-strong;
     }
 
-    kmPostTextColor: $color-black-default;
-    kmPostLabel: rgba($color-white-default, 0.6);
+    kmPostTextColor: vayla-design.$color-black-default;
+    kmPostLabel: rgba(vayla-design.$color-white-default, 0.6);
 
-    unlinkedKmPostLabel: rgba($color-red-lighter, 0.6);
-    linkedKmPostLabel: rgba($color-green-lighter, 0.6);
+    unlinkedKmPostLabel: rgba(vayla-design.$color-red-lighter, 0.6);
+    linkedKmPostLabel: rgba(vayla-design.$color-green-lighter, 0.6);
 
-    selectedKmPostLabel: $color-white-default;
-    selectedKmPostLabelBorder: rgba($color-black-default, 0.6);
+    selectedKmPostLabel: vayla-design.$color-white-default;
+    selectedKmPostLabelBorder: rgba(vayla-design.$color-black-default, 0.6);
 
-    selectedKmPostDot: $color-geoviite-blue;
-    selectedKmPostDotBorder: rgba($color-black-default, 0.2);
+    selectedKmPostDot: geoviite-design.$color-geoviite-blue;
+    selectedKmPostDotBorder: rgba(vayla-design.$color-black-default, 0.2);
 
-    selectedUnlinkedKmPostLabel: $color-red-lighter;
-    selectedLinkedKmPostLabel: $color-green-lighter;
+    selectedUnlinkedKmPostLabel: vayla-design.$color-red-lighter;
+    selectedLinkedKmPostLabel: vayla-design.$color-green-lighter;
 }
 
 // Switch styling
 :export {
-    switchTextColor: $color-black-default;
-    switchBackground: $color-black-lighter;
+    switchTextColor: vayla-design.$color-black-default;
+    switchBackground: vayla-design.$color-black-lighter;
 
-    switchLabel: $color-geoviite-cadmium-lighter;
-    switchLabelBorder: rgba($color-black-default, 0.5);
-    linkedSwitchLabel: $color-green-lighter;
-    unlinkedSwitchLabel: $color-red-lighter;
+    switchLabel: geoviite-design.$color-geoviite-cadmium-lighter;
+    switchLabelBorder: rgba(vayla-design.$color-black-default, 0.5);
+    linkedSwitchLabel: vayla-design.$color-green-lighter;
+    unlinkedSwitchLabel: vayla-design.$color-red-lighter;
 
-    switchJoint: $color-geoviite-cadmium;
-    switchJointBorder: rgba($color-black-default, 0.5);
-    switchJointTextColor: $color-black-default;
+    switchJoint: geoviite-design.$color-geoviite-cadmium;
+    switchJointBorder: rgba(vayla-design.$color-black-default, 0.5);
+    switchJointTextColor: vayla-design.$color-black-default;
 
-    switchMainJoint: $color-geoviite-blue;
-    switchMainJointBorder: scale-color($color-geoviite-blue, $lightness: -40%);
-    switchMainJointTextColor: $color-white-default;
+    switchMainJoint: geoviite-design.$color-geoviite-blue;
+    switchMainJointBorder: scale-color(geoviite-design.$color-geoviite-blue, $lightness: -40%);
+    switchMainJointTextColor: vayla-design.$color-white-default;
 
-    linkedSwitchJoint: $color-green-default;
-    linkedSwitchJointBorder: $color-green-dark;
-    unlinkedSwitchJoint: $color-red-default;
-    unlinkedSwitchJointBorder: $color-red-dark;
+    linkedSwitchJoint: vayla-design.$color-green-default;
+    linkedSwitchJointBorder: vayla-design.$color-green-dark;
+    unlinkedSwitchJoint: vayla-design.$color-red-default;
+    unlinkedSwitchJointBorder: vayla-design.$color-red-dark;
 }
 
 //Measure tooltip styling
 :export {
-    measurementTooltipLine: $color-black-lighter;
-    measurementTooltipCircle: $color-black-light;
+    measurementTooltipLine: vayla-design.$color-black-lighter;
+    measurementTooltipCircle: vayla-design.$color-black-light;
 }
 
 .map {
     position: relative;
-    color: $color-black-default;
+    color: vayla-design.$color-black-default;
     width: 100%;
     height: 100%;
     z-index: 1;
+
+    &__popup-menu {
+        @extend .menu;
+        background: vayla-design.$color-blue-darker;
+    }
+
+    &__ol-map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+    }
+
+    &__popup-item {
+        @extend .menu__item;
+
+        color: vayla-design.$color-white-default;
+        border-bottom-color: vayla-design.$color-black-lighter;
+
+        &:hover {
+            background: vayla-design.$color-blue-dark !important;
+        }
+    }
+
+    &__loading-spinner {
+        position: absolute;
+        top: 10px;
+        left: 40px;
+    }
+
+    &__map-tools {
+        position: absolute;
+        top: 5px;
+        right: 15px;
+        z-index: 20;
+        list-style: none;
+        margin: 0;
+        padding: 2px;
+        border-radius: 4px;
+
+        background-color: rgba(vayla-design.$color-white-default, 0.6);
+    }
+
+    &__map-tool {
+        cursor: pointer;
+        padding: 2px;
+        line-height: 0;
+
+        &:not(:last-child) {
+            margin-bottom: 6px;
+        }
+
+        .icon {
+            fill: vayla-design.$color-black-default;
+        }
+
+        &:hover,
+        &--active {
+            .icon {
+                fill: vayla-design.$color-blue-dark;
+            }
+        }
+    }
 }
 
-.map__ol-map {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-}
-
-.map .ol-scale-line {
+.ol-scale-line {
     left: auto;
     right: 18px;
-    background-color: rgba($color-white-default, 0.6);
+    background-color: rgba(vayla-design.$color-white-default, 0.6);
     padding: 4px 8px;
 
     .ol-scale-line-inner {
-        @include typography-body-strong;
+        @include vayla-design.typography-body-strong;
 
-        color: $color-black-default;
+        color: vayla-design.$color-black-default;
         margin: 0;
-        border: 2px solid $color-black-default;
+        border: 2px solid vayla-design.$color-black-default;
         border-top: none;
         border-bottom-left-radius: 2px;
         border-bottom-right-radius: 2px;
@@ -158,7 +200,7 @@ $color-highlight-blue: #389bf6;
 }
 
 .ol-zoom {
-    background-color: rgba($color-white-default, 0.6);
+    background-color: rgba(vayla-design.$color-white-default, 0.6);
     padding: 2px 4px;
     margin: 0;
     top: 5px;
@@ -168,87 +210,31 @@ $color-highlight-blue: #389bf6;
     .ol-zoom-out {
         margin: 2px 0;
         cursor: pointer;
-        color: $color-white-default;
-        background-color: $color-blue-default;
+        color: vayla-design.$color-white-default;
+        background-color: vayla-design.$color-blue-default;
 
         &:focus,
         &:hover {
             text-decoration: unset;
             outline: unset;
-            color: $color-white-default;
+            color: vayla-design.$color-white-default;
         }
 
         &:focus {
-            background-color: $color-blue-default;
+            background-color: vayla-design.$color-blue-default;
         }
 
         &:hover {
-            background-color: $color-blue-light;
-        }
-    }
-}
-
-.map__popup-menu {
-    @extend .menu;
-    background: $color-blue-darker;
-}
-
-.map__popup-item {
-    @extend .menu__item;
-
-    color: $color-white-default;
-    border-bottom-color: $color-black-lighter;
-
-    &:hover {
-        background: $color-blue-dark !important;
-    }
-}
-
-.map__map-tools {
-    position: absolute;
-    top: 5px;
-    right: 15px;
-    z-index: 20;
-    list-style: none;
-    margin: 0;
-    padding: 2px;
-    border-radius: 4px;
-
-    background-color: rgba($color-white-default, 0.6);
-}
-
-.map__map-tool {
-    cursor: pointer;
-    padding: 2px;
-    line-height: 0;
-
-    &:not(:last-child) {
-        margin-bottom: 6px;
-    }
-
-    .icon {
-        fill: $color-black-default;
-    }
-
-    &:hover,
-    &--active {
-        .icon {
-            fill: $color-blue-dark;
+            background-color: vayla-design.$color-blue-light;
         }
     }
 }
 
 .ol-tooltip-measure {
-    @include typography-caption;
+    @include vayla-design.typography-caption;
 
-    color: $color-white-default;
-    background-color: rgba($color-black-default, 0.6);
+    color: vayla-design.$color-white-default;
+    background-color: rgba(vayla-design.$color-black-default, 0.6);
     padding: 2px 6px;
     border-radius: 4px;
-}
-
-.map__loading-spinner {
-    position: absolute;
-    top: 10px;
-    left: 40px;
 }

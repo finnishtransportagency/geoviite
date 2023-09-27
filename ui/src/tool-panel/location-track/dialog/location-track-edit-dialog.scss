@@ -1,9 +1,11 @@
-@import '../../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
-.location-track-edit-dialog__warning {
-    fill: $color-red-default;
-}
+.location-track-edit-dialog {
+    &__description {
+        padding: 10px 0 0 16px;
+    }
 
-.location-track-edit-dialog__description {
-    padding: 10px 0 0 16px;
+    &__warning {
+        fill: vayla-design.$color-red-default;
+    }
 }

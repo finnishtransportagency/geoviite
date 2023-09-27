@@ -1,6 +1,4 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/shadows';
+@use 'vayla-design-lib' as vayla-design;
 
 .calculated-changes-view {
     display: flex;
@@ -13,11 +11,11 @@
     }
 
     &__title {
-        @include typography-heading-small;
+        @include vayla-design.typography-heading-small;
     }
 
     .accordion__header-title {
-        @include typography-sub-heading;
+        @include vayla-design.typography-sub-heading;
     }
 
     .accordion__body {
