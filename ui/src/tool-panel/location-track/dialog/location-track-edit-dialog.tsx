@@ -490,7 +490,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 }
                             />
                         )}
+                    </FormLayoutColumn>
 
+                    <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.extra-info-heading')}
                         </Heading>
@@ -529,81 +531,74 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 />
                             }
                         />
-                    </FormLayoutColumn>
 
-                    <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.track-metadata')}
                         </Heading>
                         <FieldLayout
                             label={t('location-track-dialog.start-location')}
                             value={
-                                <TextField
-                                    value={
-                                        startAndEndPoints?.start
-                                            ? formatTrackMeter(startAndEndPoints.start.address)
-                                            : '-'
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {startAndEndPoints?.start
+                                        ? formatTrackMeter(startAndEndPoints.start.address)
+                                        : '-'}
+                                </span>
                             }
                         />
                         <FieldLayout
                             label={t('location-track-dialog.end-location')}
                             value={
-                                <TextField
-                                    value={
-                                        startAndEndPoints?.end
-                                            ? formatTrackMeter(startAndEndPoints.end.address)
-                                            : '-'
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {startAndEndPoints?.end
+                                        ? formatTrackMeter(startAndEndPoints.end.address)
+                                        : '-'}
+                                </span>
                             }
                         />
                         <FieldLayout
                             label={t('location-track-dialog.true-length')}
                             value={
-                                <TextField
-                                    value={
-                                        state.existingLocationTrack
-                                            ? roundToPrecision(
-                                                  state.existingLocationTrack.length,
-                                                  Precision.alignmentLengthMeters,
-                                              )
-                                            : '-'
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {state.existingLocationTrack
+                                        ? roundToPrecision(
+                                              state.existingLocationTrack.length,
+                                              Precision.alignmentLengthMeters,
+                                          )
+                                        : '-'}
+                                </span>
                             }
                         />
                         <FieldLayout
                             label={t('location-track-dialog.start-switch')}
                             value={
-                                <TextField
-                                    value={
-                                        switchesAtEnds?.start?.name ??
-                                        t('location-track-dialog.no-start-or-end-switch')
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {switchesAtEnds?.start?.name ??
+                                        t('location-track-dialog.no-start-or-end-switch')}
+                                </span>
                             }
                         />
                         <FieldLayout
                             label={t('location-track-dialog.end-switch')}
                             value={
-                                <TextField
-                                    value={
-                                        switchesAtEnds?.end?.name ??
-                                        t('location-track-dialog.no-start-or-end-switch')
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {switchesAtEnds?.end?.name ??
+                                        t('location-track-dialog.no-start-or-end-switch')}
+                                </span>
                             }
                         />
                     </FormLayoutColumn>

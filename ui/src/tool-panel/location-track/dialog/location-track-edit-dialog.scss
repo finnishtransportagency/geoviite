@@ -1,9 +1,19 @@
 @import '../../../vayla-design-lib/colors';
+@import '../../../vayla-design-lib/typography';
 
-.location-track-edit-dialog__warning {
-    fill: $color-red-default;
-}
+.location-track-edit-dialog {
+    &__warning {
+        fill: $color-red-default;
+    }
 
-.location-track-edit-dialog__description {
-    padding: 10px 0 0 16px;
+    &__description {
+        padding: 10px 0 0 16px;
+    }
+
+    &__readonly-value {
+        @include typography-caption-strong;
+
+        display: inline-block;
+        padding: 6px 0 10px 0;
+    }
 }
