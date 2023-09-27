@@ -1,12 +1,17 @@
 import React from 'react';
 import styles from './dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
-import { Button } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 
 export enum DialogVariant {
-    DARK = 'dialog--dark',
-    LIGHT = 'dialog--light',
+    DARK = 'dialog__popup--dark',
+    LIGHT = 'dialog__popup--light',
+}
+
+export enum DialogWidth {
+    NORMAL = 'dialog__popup--normal',
+    WIDE = 'dialog__popup--wide',
+    ULTRA_WIDE = 'dialog__popup--ultrawide',
 }
 
 export type DialogProps = {
@@ -16,7 +21,7 @@ export type DialogProps = {
     footerClassName?: string;
     onClose?: () => void;
     variant?: DialogVariant;
-    scrollable?: boolean;
+    width?: DialogWidth;
     allowClose?: boolean;
     className?: string;
 } & Pick<React.HTMLProps<HTMLElement>, 'style'>;
@@ -25,17 +30,12 @@ type DragParams = {
     dragPointX: number;
     dragPointY: number;
 };
+
 export const Dialog: React.FC<DialogProps> = ({
-    scrollable = true,
     allowClose = true,
+    width = DialogWidth.NORMAL,
     ...props
 }: DialogProps) => {
-    const className = createClassName(
-        styles['dialog'],
-        props.variant && styles[props.variant],
-        scrollable && styles['dialog--scrollable'],
-    );
-
     const dialogHeaderRef = React.useRef<HTMLDivElement>(null);
     const [dialogDragParams, setDialogDragParams] = React.useState<DragParams>();
     const [moved, setMoved] = React.useState(false);
@@ -64,13 +64,15 @@ export const Dialog: React.FC<DialogProps> = ({
 
     return (
         <div
-            className={className}
+            className={styles['dialog']}
             onMouseUp={() => setDialogDragParams(undefined)}
             onMouseMove={(e) => moveDialog(e)}>
             <div
                 className={createClassName(
                     styles['dialog__popup'],
+                    styles[width],
                     props.className,
+                    props.variant && styles[props.variant],
                     dialogDragParams && styles['dialog__popup--moving'],
                 )}
                 style={{ left: dialogPositionX, top: dialogPositionY }}
@@ -94,14 +96,15 @@ export const Dialog: React.FC<DialogProps> = ({
                     )}
                 </div>
                 <div className={styles['dialog__content']}>{props.children}</div>
-                <div
-                    className={
-                        props.footerClassName
-                            ? props.footerClassName
-                            : styles['dialog-footer--centered']
-                    }>
-                    {props.footerContent || <Button onClick={() => close()}>OK</Button>}
-                </div>
+                {props.footerContent && (
+                    <div
+                        className={createClassName(
+                            styles['dialog__footer'],
+                            props.footerClassName,
+                        )}>
+                        {props.footerContent}
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -114,5 +117,5 @@ type DialogContentSpreadProps = {
 export const DialogContentSpread: React.FC<DialogContentSpreadProps> = ({
     ...props
 }: DialogContentSpreadProps) => {
-    return <div className={styles['dialog__content-spread']}>{props.children}</div>;
+    return <div className={styles['dialog__content--spread']}>{props.children}</div>;
 };

@@ -71,9 +71,8 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
         <Dialog
             title={t('im-form.new-author-dialog-title')}
             onClose={onClose}
-            className={dialogStyles['dialog--normal']}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button
                         variant={ButtonVariant.SECONDARY}
                         icon={Icons.Delete}
@@ -87,7 +86,7 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
                         onClick={saveAuthor}>
                         {t('im-form.dialog-create-button')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <FormLayoutColumn>
                 <FieldLayout

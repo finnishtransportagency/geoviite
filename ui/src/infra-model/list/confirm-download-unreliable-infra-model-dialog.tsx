@@ -18,11 +18,10 @@ export const ConfirmDownloadUnreliableInfraModelDialog: React.FC<
     const { t } = useTranslation();
     return (
         <Dialog
-            className={dialogStyles['dialog--normal']}
             title={t(`infra-model-download.unreliable-plan`)}
             onClose={onClose}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button variant={ButtonVariant.SECONDARY} icon={Icons.Delete} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
@@ -34,7 +33,7 @@ export const ConfirmDownloadUnreliableInfraModelDialog: React.FC<
                         icon={Icons.Download}>
                         {t('infra-model-download.download')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <p>
                 {t(`infra-model-download.warning-content`, {

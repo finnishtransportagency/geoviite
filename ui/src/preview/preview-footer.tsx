@@ -162,9 +162,8 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     variant={DialogVariant.LIGHT}
                     allowClose={!isPublishing}
                     onClose={() => setPublishConfirmVisible(false)}
-                    className={dialogStyles['dialog--normal']}
                     footerContent={
-                        <React.Fragment>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setPublishConfirmVisible(false)}
                                 disabled={emptyRequest || isPublishing}
@@ -180,7 +179,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                                     candidates: candidateCount,
                                 })}
                             </Button>
-                        </React.Fragment>
+                        </div>
                     }>
                     <div className={styles['preview-confirm__description']}>
                         {t('publish.publish-confirm.description')}

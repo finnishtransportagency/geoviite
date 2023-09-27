@@ -41,9 +41,8 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
                 <Dialog
                     title={t('publishing.publish-to-ratko')}
                     allowClose={false}
-                    className={dialogStyles['dialog--normal']}
                     footerContent={
-                        <React.Fragment>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setShowingConfirmation(false)}
                                 variant={ButtonVariant.SECONDARY}>
@@ -55,7 +54,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
                                 variant={ButtonVariant.PRIMARY}>
                                 {t('button.ok')}
                             </Button>
-                        </React.Fragment>
+                        </div>
                     }>
                     {t('publishing.publish-confirmation')}
                 </Dialog>

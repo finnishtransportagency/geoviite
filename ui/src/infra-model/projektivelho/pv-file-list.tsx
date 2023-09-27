@@ -32,6 +32,7 @@ import {
 } from 'infra-model/projektivelho/pv-file-list-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { Menu } from 'vayla-design-lib/menu/menu';
+import dialogStyles from '../../vayla-design-lib/dialog/dialog.scss';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -287,12 +288,11 @@ const PVFileListRow = ({
 
     const confirmAssignmentRejectDialog = () => (
         <Dialog
-            className={'dialog--normal'}
             variant={DialogVariant.LIGHT}
             title={t('projektivelho.file-list.reject-by-assignment-title')}
             onClose={() => setShowConfirmAssignmentReject(false)}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button
                         variant={ButtonVariant.SECONDARY}
                         onClick={() => setShowConfirmAssignmentReject(false)}>
@@ -307,7 +307,7 @@ const PVFileListRow = ({
                             count: itemCounts.assignment,
                         })}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <Trans
                 i18nKey="projektivelho.file-list.reject-by-assignment-message"
@@ -317,12 +317,11 @@ const PVFileListRow = ({
     );
     const confirmProjectRejectDialog = () => (
         <Dialog
-            className={'dialog--normal'}
             variant={DialogVariant.LIGHT}
             title={t('projektivelho.file-list.reject-by-project-title')}
             onClose={() => setShowConfirmProjectReject(false)}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button
                         variant={ButtonVariant.SECONDARY}
                         onClick={() => setShowConfirmProjectReject(false)}>
@@ -335,7 +334,7 @@ const PVFileListRow = ({
                         }}>
                         {t('projektivelho.file-list.reject-confirm', { count: itemCounts.project })}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <Trans
                 i18nKey="projektivelho.file-list.reject-by-project-message"
@@ -346,12 +345,11 @@ const PVFileListRow = ({
     );
     const confirmProjectGroupRejectDialog = () => (
         <Dialog
-            className={'dialog--normal'}
             variant={DialogVariant.LIGHT}
             title={t('projektivelho.file-list.reject-by-project-group-title')}
             onClose={() => setShowConfirmProjectGroupReject(false)}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button
                         variant={ButtonVariant.SECONDARY}
                         onClick={() => setShowConfirmProjectGroupReject(false)}>
@@ -366,7 +364,7 @@ const PVFileListRow = ({
                             count: itemCounts.projectGroup,
                         })}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <Trans
                 i18nKey="projektivelho.file-list.reject-by-project-group-message"
