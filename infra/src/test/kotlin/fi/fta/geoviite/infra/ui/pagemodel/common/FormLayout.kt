@@ -44,6 +44,14 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
         )
     )
 
+    fun dropdown(label: String) = E2EDropdown { getFieldValueElement(label).findElement(By.className("dropdown")) }
+    fun textInput(label: String) =
+        E2ETextInput { getFieldValueElement(label).findElement(By.cssSelector("input.text-field__input-element")) }
+
+    fun checkBox(label: String) = E2ECheckbox { getFieldValueElement(label).findElement(By.cssSelector("input.checkbox__input")) }
+
+    fun checkBoxByLabel(label: String) = E2ECheckbox { childElement(By.xpath(".//label/*[contains(text(), \"$label\")]")) }
+
     fun selectDropdownValue(label: String, value: String) = selectDropdownValues(label, listOf(value))
 
     fun selectDropdownValues(label: String, values: List<String>): E2EFormLayout = apply {

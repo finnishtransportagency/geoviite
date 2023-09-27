@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EElementListPage
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 
 class E2EAppBar(by: By = By.className("app-bar")) : E2EViewFragment(by) {
@@ -12,6 +14,7 @@ class E2EAppBar(by: By = By.className("app-bar")) : E2EViewFragment(by) {
         FRONT_PAGE("frontpage-link"),
         MAP("track-layout-link"),
         INFRA_MODEL("infra-model-link"),
+        DATA_PRODUCT("data-product-link"),
     }
 
     private fun goto(to: NavLink) = clickChild(byQaId(to.qaId))
@@ -29,5 +32,21 @@ class E2EAppBar(by: By = By.className("app-bar")) : E2EViewFragment(by) {
     fun goToFrontPage(): E2EFrontPage {
         goto(NavLink.FRONT_PAGE)
         return E2EFrontPage()
+    }
+
+    enum class DataProductNavLink(val qaId: String) {
+        ELEMENT_LIST("element-list-menu-link"),
+        VERTICAL_GEOMETRY("vertical-geometry-menu-link"),
+        KILOMETER_LENGTHS("kilometer-length-menu-link"),
+    }
+
+    private fun goToDataProductPage(link: DataProductNavLink) {
+        goto(NavLink.DATA_PRODUCT)
+        fetch(byQaId(link.qaId))().click()
+    }
+
+    fun goToElementListPage(): E2EElementListPage {
+        goToDataProductPage(DataProductNavLink.ELEMENT_LIST)
+        return E2EElementListPage()
     }
 }
