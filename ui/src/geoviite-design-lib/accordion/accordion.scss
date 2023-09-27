@@ -1,5 +1,4 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 .accordion {
     &__header {
@@ -12,7 +11,7 @@
         margin: 0;
 
         &--selected {
-            background-color: $color-blue-lighter;
+            background-color: vayla-design.$color-blue-lighter;
         }
 
         .accordion-toggle {

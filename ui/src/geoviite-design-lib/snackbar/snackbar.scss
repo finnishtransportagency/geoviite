@@ -1,90 +1,12 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/shadows';
+@use 'vayla-design-lib' as vayla-design;
 
 .Toastify {
     &--animate {
         animation-fill-mode: both;
     }
 
-    &__toast-container {
-        z-index: 9999;
-        position: fixed;
-        min-width: 320px;
-        max-width: 560px;
-        color: $color-black-default;
-
-        &--top-center {
-            top: 128px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-    }
-
-    &__toast {
-        @include shadow-16dp;
-
-        box-sizing: border-box;
-        margin-bottom: 16px;
-        padding: 14px 24px 14px 20px;
-        border-radius: 4px;
-        user-select: none;
-        overflow: hidden;
-        cursor: default;
-
-        .icon {
-            align-self: flex-start;
-        }
-
-        &--success {
-            cursor: pointer;
-            border: 1px solid $color-green-light;
-            background: $color-green-lighter;
-
-            .icon {
-                fill: $color-green-dark;
-            }
-        }
-
-        &--warning {
-            cursor: pointer;
-            border: 1px solid $color-lemon;
-            background-color: $color-lemon-light;
-
-            .icon {
-                fill: $color-black-light;
-            }
-        }
-
-        &--error {
-            border: 1px solid $color-red-light;
-            background: $color-red-lighter;
-            display: flex;
-            justify-content: space-between;
-
-            .icon {
-                fill: $color-red-dark;
-            }
-
-            .Toastify__toast-text {
-                max-width: 442px;
-            }
-        }
-    }
-
     &__toast-content {
         display: flex;
-    }
-
-    &__button {
-        align-self: flex-end;
-        line-height: 20px;
-        color: $color-blue-dark;
-        margin-left: 6px;
-        cursor: pointer;
-
-        &:hover {
-            text-decoration: underline;
-        }
     }
 
     &__toast-body {
@@ -110,27 +32,114 @@
         line-height: 20px;
     }
 
-    &__close-button {
-        align-self: flex-start;
-        margin-left: 16px;
+    &__toast-container {
+        z-index: 9999;
+        position: fixed;
+        min-width: 320px;
+        max-width: 560px;
+        color: vayla-design.$color-black-default;
 
-        padding: 0;
-        outline: none;
-        border: none;
+        &--top-center {
+            top: 128px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    }
+
+    &__button {
+        align-self: flex-end;
+        line-height: 20px;
+        color: vayla-design.$color-blue-dark;
+        margin-left: 6px;
         cursor: pointer;
-        background-color: unset;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    &__slide-enter--top-center {
+        animation-duration: 0.6s;
+        animation-name: Toastify__slideIn;
+    }
+
+    &__slide-exit--top-center {
+        animation-duration: 0.3s;
+        animation-name: Toastify__fadeOut;
+    }
+}
+
+.Toastify__toast {
+    @include vayla-design.shadow-16dp;
+
+    box-sizing: border-box;
+    margin-bottom: 16px;
+    padding: 14px 24px 14px 20px;
+    border-radius: 4px;
+    user-select: none;
+    overflow: hidden;
+    cursor: default;
+
+    .icon {
+        align-self: flex-start;
+    }
+
+    &--success {
+        cursor: pointer;
+        border: 1px solid vayla-design.$color-green-light;
+        background: vayla-design.$color-green-lighter;
 
         .icon {
-            fill: $color-black-light;
-            opacity: 0.6;
-            transition: 0.3s;
+            fill: vayla-design.$color-green-dark;
+        }
+    }
+
+    &--warning {
+        cursor: pointer;
+        border: 1px solid vayla-design.$color-lemon;
+        background-color: vayla-design.$color-lemon-light;
+
+        .icon {
+            fill: vayla-design.$color-black-light;
+        }
+    }
+
+    &--error {
+        border: 1px solid vayla-design.$color-red-light;
+        background: vayla-design.$color-red-lighter;
+        display: flex;
+        justify-content: space-between;
+
+        .icon {
+            fill: vayla-design.$color-red-dark;
         }
 
-        &:hover,
-        &:focus {
-            .icon {
-                opacity: 1;
-            }
+        .Toastify__toast-text {
+            max-width: 442px;
+        }
+    }
+}
+
+.Toastify__close-button {
+    align-self: flex-start;
+    margin-left: 16px;
+
+    padding: 0;
+    outline: none;
+    border: none;
+    cursor: pointer;
+    background-color: unset;
+
+    .icon {
+        fill: vayla-design.$color-black-light;
+        opacity: 0.6;
+        transition: 0.3s;
+    }
+
+    &:hover,
+    &:focus {
+        .icon {
+            opacity: 1;
         }
     }
 }
@@ -153,14 +162,4 @@
     to {
         opacity: 0;
     }
-}
-
-.Toastify__slide-enter--top-center {
-    animation-duration: 0.6s;
-    animation-name: Toastify__slideIn;
-}
-
-.Toastify__slide-exit--top-center {
-    animation-duration: 0.3s;
-    animation-name: Toastify__fadeOut;
 }
