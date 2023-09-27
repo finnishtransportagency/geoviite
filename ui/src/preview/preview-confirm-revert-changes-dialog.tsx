@@ -155,7 +155,7 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
             variant={DialogVariant.LIGHT}
             allowClose={!isReverting}
             onClose={cancelRevertChanges}
-            className={dialogStyles['dialog--wide']}
+            className={dialogStyles['dialog--normal']}
             footerContent={
                 <React.Fragment>
                     <Button

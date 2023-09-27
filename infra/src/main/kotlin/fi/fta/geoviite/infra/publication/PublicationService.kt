@@ -714,7 +714,7 @@ class PublicationService @Autowired constructor(
         val stagedDuplicateExists = drafts.any { (_, draft) ->
             draft.name == locationTrack.name && draft.id != locationTrack.id && draft.state != LayoutState.DELETED
         }
-        val trackNumberName = locationTrack.trackNumberId.let { trackNumberService.get(DRAFT, it)?.number } ?: ""
+        val trackNumberName = locationTrack.trackNumberId.let { trackNumberService.get(DRAFT, it)?.number }
 
         return listOfNotNull(
             if (stagedDuplicateExists) PublishValidationError(
@@ -1217,7 +1217,8 @@ class PublicationService @Autowired constructor(
         ).also { geocodingContext -> geocodingContext?.let { caches[timestamp]?.put(trackNumberId, geocodingContext) } }
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
-        cacheKey?.let(geocodingCacheService::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
+        cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)
+            ?.let { context -> validateGeocodingContext(context) }
             ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(

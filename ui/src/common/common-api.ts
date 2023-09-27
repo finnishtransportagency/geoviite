@@ -1,4 +1,4 @@
-import { API_URI, getThrowError } from 'api/api-fetch';
+import { API_URI, getNonNull } from 'api/api-fetch';
 import {
     CoordinateSystem,
     Srid,
@@ -26,19 +26,19 @@ export function pointString(point: Point): string {
 
 export async function getCoordinateSystem(srid: Srid): Promise<CoordinateSystem> {
     return coordinateSystemCache.getImmutable(srid, () =>
-        getThrowError<CoordinateSystem>(`${GEOGRAPHY_URI}/coordinate-systems/${srid}`),
+        getNonNull<CoordinateSystem>(`${GEOGRAPHY_URI}/coordinate-systems/${srid}`),
     );
 }
 
 export async function getSridList(): Promise<CoordinateSystem[]> {
     return sridModelCache.getImmutable(undefined, () =>
-        getThrowError<CoordinateSystem[]>(`${GEOGRAPHY_URI}/coordinate-systems`),
+        getNonNull<CoordinateSystem[]>(`${GEOGRAPHY_URI}/coordinate-systems`),
     );
 }
 
 export async function getSwitchStructures(): Promise<SwitchStructure[]> {
     return switchStructureCache.getImmutable(undefined, () =>
-        getThrowError<SwitchStructure[]>(`${SWITCH_LIBRARY_URI}/switch-structures`).then(
+        getNonNull<SwitchStructure[]>(`${SWITCH_LIBRARY_URI}/switch-structures`).then(
             (switchStructures) => switchStructures.sort((s1, s2) => s1.type.localeCompare(s2.type)),
         ),
     );
@@ -46,7 +46,7 @@ export async function getSwitchStructures(): Promise<SwitchStructure[]> {
 
 export async function getSwitchOwners(): Promise<SwitchOwner[]> {
     return switchOwnerCache.getImmutable(undefined, () =>
-        getThrowError<SwitchOwner[]>(`${SWITCH_LIBRARY_URI}/switch-owners`).catch(() =>
+        getNonNull<SwitchOwner[]>(`${SWITCH_LIBRARY_URI}/switch-owners`).catch(() =>
             Promise.reject('failed to fetch switch owners'),
         ),
     );

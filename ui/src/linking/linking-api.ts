@@ -7,8 +7,8 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     API_URI,
-    getIgnoreError,
-    getThrowError,
+    getNonNull,
+    getNullable,
     postIgnoreError,
     putIgnoreError,
     queryParams,
@@ -66,7 +66,7 @@ export const getSuggestedContinuousLocationTracks = async (
         bbox: bboxString(bbox),
     });
     const uri = linkingUri('location-tracks', 'suggested');
-    return getThrowError<LayoutLocationTrack[]>(`${uri}${params}`);
+    return getNonNull<LayoutLocationTrack[]>(`${uri}${params}`);
 };
 
 export const linkGeometryWithReferenceLine = async (
@@ -159,7 +159,7 @@ export async function getPlanLinkStatus(
     );
 
     return geometryElementsLinkedStatusCache.get(maxChangeTime, `${publishType}_${planId}`, () =>
-        getThrowError(`${LINKING_URI}/${publishType}/plans/${planId}/status`),
+        getNonNull(`${LINKING_URI}/${publishType}/plans/${planId}/status`),
     );
 }
 
@@ -176,7 +176,7 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
                     getChangeTimes().layoutSwitch,
                 ),
                 key,
-                () => getThrowError(`${linkingUri('switches', 'suggested')}${params}`),
+                () => getNonNull(`${linkingUri('switches', 'suggested')}${params}`),
             )
             // IDs are needed to separate different suggested switches from each other.
             // If suggested switch is generated from geometry switch, geom switch id
@@ -202,7 +202,7 @@ export async function getSuggestedSwitchByPoint(
         switchStructureId: switchStructureId,
     });
     const uri = linkingUri('switches', 'suggested');
-    return getIgnoreError<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
+    return getNullable<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
         return (suggestedSwitches || []).map((suggestedSwitch) => {
             return {
                 ...suggestedSwitch,

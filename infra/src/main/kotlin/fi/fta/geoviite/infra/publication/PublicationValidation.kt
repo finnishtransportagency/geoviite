@@ -6,11 +6,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.error.LocalizationParams
-import fi.fta.geoviite.infra.geocoding.AddressPoint
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
-import fi.fta.geoviite.infra.math.IntersectType
+import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
@@ -415,35 +411,11 @@ fun validateTopologicallyConnectedSwitchReferences(
 private fun jointSequence(joints: List<JointNumber>) =
     joints.joinToString("-") { jointNumber -> "${jointNumber.intValue}" }
 
-private fun getCauseForRejection(
-    kmPost: TrackLayoutKmPost,
-    geocodingContext: GeocodingContext,
-): PublishValidationError {
-
-    val params = mapOf(
-        "trackNumber" to geocodingContext.trackNumber.number.value,
-        "kmNumber" to kmPost.kmNumber.toString()
-    )
-
-    return if (kmPost.location == null) {
-        PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", params)
-    } else if (TrackMeter(kmPost.kmNumber, 0) <= geocodingContext.startAddress) {
-        PublishValidationError(WARNING, "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start", params)
-    } else {
-        val intersectType = geocodingContext.referenceLineGeometry.getClosestPointM(kmPost.location)?.second
-        if (intersectType == IntersectType.BEFORE || intersectType == IntersectType.AFTER) {
-            val localizationKey = "$VALIDATION_GEOCODING.km-post-outside-line-${intersectType.name.lowercase()}"
-            PublishValidationError(WARNING, localizationKey, params)
-        } else {
-            PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-rejected", params)
-        }
-    }
-}
-
 fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
     PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap())
 
-fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationError> {
+fun validateGeocodingContext(stuff: GeocodingContextCreateResult): List<PublishValidationError> {
+    val context = stuff.geocodingContext
     val kmPostsInWrongOrder = context.referencePoints
         .filter { point -> point.intersectType == WITHIN }
         .filterIndexed { index, point ->
@@ -458,6 +430,7 @@ fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationE
                 )
             }
         }
+
     val kmPostsFarFromLine = context.referencePoints
         .filter { point -> point.intersectType == WITHIN }
         .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
@@ -469,9 +442,43 @@ fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationE
                 )
             }
         }
-    val kmPostsRejected = context.rejectedKmPosts.map { kmPost ->
-        getCauseForRejection(kmPost, context)
+
+    val kmPostsRejected = stuff.rejectedKmPosts.map { (kmPost, reason) ->
+        val params = mapOf("trackNumber" to context.trackNumber.number.value, "kmNumber" to kmPost.kmNumber.toString())
+
+        when (reason) {
+            KmPostRejectedReason.TOO_FAR_APART -> PublishValidationError(
+                ERROR,
+                "$VALIDATION_GEOCODING.km-post-too-long",
+                params
+            )
+
+            KmPostRejectedReason.NO_LOCATION -> PublishValidationError(
+                ERROR,
+                "$VALIDATION_GEOCODING.km-post-no-location",
+                params
+            )
+
+            KmPostRejectedReason.IS_BEFORE_START_ADDRESS -> PublishValidationError(
+                WARNING,
+                "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start",
+                params
+            )
+
+            KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE -> PublishValidationError(
+                WARNING,
+                "$VALIDATION_GEOCODING.km-post-outside-line-before",
+                params
+            )
+
+            KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE -> PublishValidationError(
+                WARNING,
+                "$VALIDATION_GEOCODING.km-post-outside-line-after",
+                params
+            )
+        }
     }
+
     return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder)
 }
 

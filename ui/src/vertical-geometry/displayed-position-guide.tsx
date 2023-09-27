@@ -1,7 +1,5 @@
 import React from 'react';
-import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
 import { Coordinates } from 'vertical-geometry/coordinates';
-import { last } from 'utils/array-utils';
 import { Translate } from 'vertical-geometry/translate';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 
@@ -21,23 +19,22 @@ const guideRectangleMinWidthPx = 1;
 
 export interface DisplayedPositionGuideProps {
     coordinates: Coordinates;
-    planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
+    maxMeters: number;
 }
 
 export const DisplayedPositionGuide: React.FC<DisplayedPositionGuideProps> = ({
-    planLinkingSummary,
     coordinates,
+    maxMeters,
 }) => {
-    if (!planLinkingSummary || planLinkingSummary.length === 0) return <React.Fragment />;
-
-    const maxDisplayedMeters = last(planLinkingSummary).endM;
+    if (maxMeters <= 0) {
+        return <React.Fragment />;
+    }
 
     const displayedMetersAtLeftEdge = coordinates.startM;
     const displayedMetersAtRightEdge = coordinates.endM;
 
     const metersCurrentlyDisplayed = displayedMetersAtRightEdge - displayedMetersAtLeftEdge;
-    const ratioOfCurrentlyDisplayedMetersToFullDiagram =
-        metersCurrentlyDisplayed / maxDisplayedMeters;
+    const ratioOfCurrentlyDisplayedMetersToFullDiagram = metersCurrentlyDisplayed / maxMeters;
 
     const guideWidthPx = 0.15 * coordinates.diagramWidthPx;
 
@@ -49,7 +46,7 @@ export const DisplayedPositionGuide: React.FC<DisplayedPositionGuideProps> = ({
         guideRectangleMinWidthPx,
     );
     const guideRectangleStartPx =
-        guideStartPx + guideWidthPx * (displayedMetersAtLeftEdge / maxDisplayedMeters);
+        guideStartPx + guideWidthPx * (displayedMetersAtLeftEdge / maxMeters);
 
     return (
         <Translate x={coordinates.diagramWidthPx - guideWidthPx - 40} y={0}>

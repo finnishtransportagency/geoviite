@@ -241,10 +241,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                         planLinkingSummary={linkingSummary}
                         planLinkingOnSelect={onSelect}
                     />
-                    <DisplayedPositionGuide
-                        coordinates={coordinates}
-                        planLinkingSummary={linkingSummary}
-                    />
+                    <DisplayedPositionGuide coordinates={coordinates} maxMeters={endM} />
                     <Translate x={0} y={240}>
                         <TrackAddressRuler
                             kmHeights={kmHeights}

@@ -1,6 +1,6 @@
 import { LineString } from 'ol/geom';
 import { MapTile } from 'map/map-model';
-import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -23,7 +23,7 @@ export function createReferenceLineBackgroundLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     let inFlight = true;
-    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
+    getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
         .then((referenceLines) => {
             if (layerId === newestLayerId) {
                 const features = createAlignmentBackgroundFeatures(referenceLines);
@@ -32,7 +32,9 @@ export function createReferenceLineBackgroundLayer(
                 vectorSource.addFeatures(features);
             }
         })
-        .catch(() => clearFeatures(vectorSource))
+        .catch(() => {
+            if (layerId === newestLayerId) clearFeatures(vectorSource);
+        })
         .finally(() => {
             inFlight = false;
         });

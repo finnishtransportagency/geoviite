@@ -48,10 +48,6 @@ export type Page<T> = {
     start: number;
 };
 
-const throwErrorHandler = (response: ApiErrorResponse) => {
-    throw response;
-};
-
 const ignoreErrorHandler = defaultValueErrorHandler(undefined);
 
 function defaultValueErrorHandler<T>(defaultValue: T): ErrorHandler<T> {
@@ -73,31 +69,86 @@ export function queryParams(params: Record<string, unknown>): string {
     return stringifiedParameters.length == 0 ? '' : `?${stringifiedParameters.join('&')}`;
 }
 
-// TODO: GVT-2014 unify these functions as described in the ticket
-
-/**
- * @deprecated Throwing loses type information. If you need to handle the error in your use-place, use getAdt instead, fetching a result object with output or error
- */
-export async function getThrowError<Output>(path: string): Promise<Output> {
-    return executeRequest<undefined, Output, Output>(
-        path,
-        undefined,
-        throwErrorHandler,
-        'GET',
-    ).then(verifyExists);
+export function getNonNull<Output>(path: string, toastFailure = true): Promise<Output> {
+    return getNullable<Output>(path, toastFailure).then((requestResult) => {
+        if (requestResult === undefined) {
+            if (toastFailure) {
+                Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
+            }
+            const rv = Promise.reject(Error(`undefined return when querying ${path}`));
+            rv.catch(() => {
+                console.error('request returned undefined', path);
+            });
+            return rv;
+        } else {
+            return requestResult;
+        }
+    });
 }
 
-export async function getWithDefault<Output>(path: string, defaultValue: Output): Promise<Output> {
-    return executeRequest<undefined, Output, Output>(
-        path,
-        undefined,
-        defaultValueErrorHandler(defaultValue),
-        'GET',
-    ).then((val) => (val != undefined ? val : defaultValue));
+const wrapApiErrorResponse = Symbol('wrap api error response');
+type WrappedApiErrorResponse = { [k in typeof wrapApiErrorResponse]: ApiErrorResponse };
+function isWrappedApiError(x: unknown): x is WrappedApiErrorResponse {
+    return typeof x === 'object' && x !== null && wrapApiErrorResponse in x;
 }
 
-export async function getIgnoreError<Output>(path: string): Promise<Output | undefined> {
-    return executeRequest<undefined, Output, undefined>(path, undefined, ignoreErrorHandler, 'GET');
+export function getNullable<Output>(
+    path: string,
+    toastFailure = true,
+): Promise<Output | undefined> {
+    const rv = executeRequest<undefined, Output, WrappedApiErrorResponse>(
+        path,
+        undefined,
+        (error) => {
+            if (toastFailure) {
+                Snackbar.error(i18n.t('error.request-failed', { path }));
+            }
+            return { [wrapApiErrorResponse]: error };
+        },
+        'GET',
+    ).then((requestResult) =>
+        isWrappedApiError(requestResult)
+            ? Promise.reject(requestResult[wrapApiErrorResponse])
+            : requestResult,
+    );
+    return rv as Promise<Output | undefined>;
+}
+
+export function getNonNullAdt<Output>(
+    path: string,
+    toastFailure = true,
+): Promise<Result<Output, ApiErrorResponse>> {
+    return getNullableAdt<Output | undefined>(path, toastFailure).then((requestResult) => {
+        if (requestResult.isOk() && requestResult.value === undefined) {
+            Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
+            return Promise.reject(Error(`undefined return when querying ${path}`));
+        } else {
+            return requestResult as Result<Output, ApiErrorResponse>;
+        }
+    });
+}
+
+export function getNullableAdt<Output>(
+    path: string,
+    toastError = true,
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
+    return executeRequest<undefined, Output, WrappedApiErrorResponse>(
+        path,
+        undefined,
+        (e) => ({
+            [wrapApiErrorResponse]: e,
+        }),
+        'GET',
+    ).then((r) => {
+        if (isWrappedApiError(r)) {
+            if (toastError) {
+                Snackbar.error(i18n.t('error.request-failed', { path }));
+            }
+            return err(r[wrapApiErrorResponse]);
+        } else {
+            return ok(r);
+        }
+    });
 }
 
 export async function postIgnoreError<Input, Output>(
@@ -121,19 +172,6 @@ export async function deleteIgnoreError<Output>(path: string): Promise<Output | 
         ignoreErrorHandler,
         'DELETE',
     );
-}
-
-// Result object returning versions of HTTP methods (ADT)
-export async function getAdt<Output>(
-    path: string,
-    showErrorMessage = false,
-): Promise<Result<Output, ApiErrorResponse>> {
-    return await executeBodyRequestAdt<undefined, Output>(
-        path,
-        undefined,
-        'GET',
-        showErrorMessage,
-    ).then(verifyExistsAdt);
 }
 
 export async function postAdt<Input, Output>(

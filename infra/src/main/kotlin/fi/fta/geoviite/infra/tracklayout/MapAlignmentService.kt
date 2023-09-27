@@ -43,14 +43,12 @@ class MapAlignmentService(
         bbox: BoundingBox,
         resolution: Int,
         type: AlignmentFetchType,
-        selectedId: IntId<LocationTrack>?,
     ): List<AlignmentPolyLine<*>> {
         logger.serviceCall("getAlignmentPolyLines",
             "publishType" to publishType,
             "bbox" to bbox,
             "resolution" to resolution,
             "type" to type,
-            "selectedId" to selectedId,
         )
         val referenceLines =
             if (type == AlignmentFetchType.LOCATION_TRACKS) listOf()
@@ -58,13 +56,19 @@ class MapAlignmentService(
         val locationTracks =
             if (type == AlignmentFetchType.REFERENCE_LINES) listOf()
             else getLocationTrackPolyLines(publishType, bbox, resolution)
-        val selected = selectedId?.let { id ->
-            if (locationTracks.any { t -> t.id == selectedId }) null
-            else locationTrackService.get(publishType, id)
-                ?.takeIf { t -> t.state != LayoutState.DELETED }
-                ?.let { toAlignmentPolyLine(it.id, LOCATION_TRACK, it.alignmentVersion, bbox, resolution) }
-        }
-        return (referenceLines + locationTracks + listOfNotNull(selected)).filter { pl -> pl.points.isNotEmpty() }
+
+        return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
+    }
+
+    fun getAlignmentPolyline(
+        id: IntId<LocationTrack>,
+        publishType: PublishType,
+        bbox: BoundingBox,
+        resolution: Int,
+    ): AlignmentPolyLine<LocationTrack>? {
+        return locationTrackService.get(publishType, id)
+            ?.takeIf { t -> t.state != LayoutState.DELETED }
+            ?.let { toAlignmentPolyLine(it.id, LOCATION_TRACK, it.alignmentVersion, bbox, resolution) }
     }
 
     fun getSectionsWithoutLinking(
@@ -184,8 +188,8 @@ class MapAlignmentService(
         }
     }
 
-    private fun toAlignmentPolyLine(
-        id: DomainId<*>,
+    private fun <T> toAlignmentPolyLine(
+        id: DomainId<T>,
         type: MapAlignmentType,
         alignmentVersion: RowVersion<LayoutAlignment>?,
         bbox: BoundingBox,

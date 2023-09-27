@@ -166,7 +166,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 <Dialog
                     title={t('im-form.critical-warnings-dialog.title')}
                     onClose={() => setShowCriticalWarning(false)}
-                    className={dialogStyles['dialog--wide']}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <React.Fragment>
                             <Button

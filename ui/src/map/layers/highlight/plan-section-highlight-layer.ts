@@ -67,7 +67,7 @@ export function createPlanSectionHighlightLayer(
     let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW) {
         inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL')
+        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
             .then((alignments) => {
                 if (layerId === newestLayerId) {
                     const features = createFeatures(alignments, hoveredOverItem);
@@ -76,7 +76,9 @@ export function createPlanSectionHighlightLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });

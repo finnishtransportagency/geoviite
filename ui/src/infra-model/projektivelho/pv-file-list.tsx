@@ -287,7 +287,7 @@ const PVFileListRow = ({
 
     const confirmAssignmentRejectDialog = () => (
         <Dialog
-            className={'dialog--wide'}
+            className={'dialog--normal'}
             variant={DialogVariant.LIGHT}
             title={t('projektivelho.file-list.reject-by-assignment-title')}
             onClose={() => setShowConfirmAssignmentReject(false)}
@@ -317,7 +317,7 @@ const PVFileListRow = ({
     );
     const confirmProjectRejectDialog = () => (
         <Dialog
-            className={'dialog--wide'}
+            className={'dialog--normal'}
             variant={DialogVariant.LIGHT}
             title={t('projektivelho.file-list.reject-by-project-title')}
             onClose={() => setShowConfirmProjectReject(false)}
@@ -346,7 +346,7 @@ const PVFileListRow = ({
     );
     const confirmProjectGroupRejectDialog = () => (
         <Dialog
-            className={'dialog--wide'}
+            className={'dialog--normal'}
             variant={DialogVariant.LIGHT}
             title={t('projektivelho.file-list.reject-by-project-group-title')}
             onClose={() => setShowConfirmProjectGroupReject(false)}
