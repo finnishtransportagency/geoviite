@@ -41,7 +41,7 @@ class E2EDataProductPlanElementListPage : E2EElementListPage() {
     }
 
     fun selectPlan(searchString: String) {
-        plan.inputValue(searchString).select(searchString)
+        plan.selectFromDynamicByName(searchString)
     }
 }
 
@@ -60,7 +60,7 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     val resultList: E2EDataProductLayoutElementList get() = E2EDataProductLayoutElementList()
 
     fun selectLocationTrack(searchString: String) {
-        locationTrack.inputValue(searchString).select(searchString)
+        locationTrack.selectFromDynamicByName(searchString)
     }
 }
 

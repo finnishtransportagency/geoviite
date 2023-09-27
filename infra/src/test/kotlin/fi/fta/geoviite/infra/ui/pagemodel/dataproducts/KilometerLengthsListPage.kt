@@ -28,7 +28,7 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
 
     val resultList: LocationTrackKilometerLengthsList get() = LocationTrackKilometerLengthsList()
     fun selectLocationTrack(searchString: String) {
-        locationTrack.inputValue(searchString).select(searchString)
+        locationTrack.selectFromDynamicByName(searchString)
     }
 
     val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")

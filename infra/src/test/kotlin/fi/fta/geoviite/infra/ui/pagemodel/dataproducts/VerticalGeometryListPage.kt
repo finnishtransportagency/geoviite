@@ -40,7 +40,7 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
     }
 
     fun selectPlan(searchString: String) {
-        plan.inputValue(searchString).select(searchString)
+        plan.selectFromDynamicByName(searchString)
     }
 }
 
@@ -55,8 +55,7 @@ class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeome
     val downloadUrl: String get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
 
     fun selectLocationTrack(searchString: String) {
-        locationTrack.inputValue(searchString)
-        locationTrack.select(searchString)
+        locationTrack.selectFromDynamicByName(searchString)
     }
 }
 
