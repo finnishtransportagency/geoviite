@@ -1,4 +1,4 @@
-@use "@fontsource/open-sans/scss/mixins";
+@use '@fontsource/open-sans/scss/mixins';
 
 $font-family: 'Open Sans';
 
@@ -26,20 +26,19 @@ $font-family: 'Open Sans';
     line-height: 20px;
 }
 
-@mixin typography-sub-heading {
+@mixin typography-sub-heading($text-transform: uppercase) {
     font-family: $font-family;
     font-weight: 600;
     font-size: 12px;
     line-height: 20px;
-    text-transform: uppercase;
+    text-transform: $text-transform;
 }
 
 @mixin typography-table-heading {
-    @include typography-sub-heading;
-    text-transform: none;
+    @include typography-sub-heading(none);
 }
 
-@mixin typography-body {
+@mixin typography-body($font-weight: 400) {
     font-family: $font-family;
     font-weight: 400;
     font-size: 14px;
@@ -47,21 +46,19 @@ $font-family: 'Open Sans';
 }
 
 @mixin typography-body-strong {
-    @include typography-body;
-    font-weight: 600;
+    @include typography-body(600);
 }
 
-@mixin typography-caption {
+@mixin typography-caption($font-weight: 400) {
     font-family: $font-family;
     font-size: 12px;
     font-style: normal;
-    font-weight: 400;
+    font-weight: $font-weight;
     line-height: 16px;
 }
 
 @mixin typography-caption-strong {
-    @include typography-caption;
-    font-weight: 600;
+    @include typography-caption(600);
 }
 
 @mixin typography-input {

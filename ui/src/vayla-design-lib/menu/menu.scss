@@ -1,15 +1,15 @@
-@import '../colors';
-@import '../shadows';
-@import '../typography';
-@import '../layers';
+@use '../colors';
+@use '../shadows';
+@use '../typography';
+@use '../layers';
 
 .menu {
-    @include shadow-8dp;
+    @include shadows.shadow-8dp;
 
-    background: $color-white-default;
+    background: colors.$color-white-default;
     border-radius: 4px;
     overflow: hidden;
-    z-index: $layer-popup;
+    z-index: layers.$layer-popup;
 
     &__items {
         margin: 0;
@@ -18,8 +18,8 @@
     }
 
     &__item {
-        color: $color-black-default;
-        fill: $color-white-default;
+        color: colors.$color-black-default;
+        fill: colors.$color-white-default;
         height: 36px;
         display: flex;
         align-items: center;
@@ -30,16 +30,16 @@
         user-select: none;
 
         &:not(:last-child) {
-            border-bottom: 1px solid $color-white-darker;
+            border-bottom: 1px solid colors.$color-white-darker;
         }
 
         &--disabled {
-            color: $color-black-lighter;
+            color: colors.$color-black-lighter;
             cursor: default;
         }
 
         &:hover:not(.menu__item--disabled) {
-            background: $color-blue-lighter;
+            background: colors.$color-blue-lighter;
         }
     }
 }
