@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ifc
 
+import fi.fta.geoviite.infra.util.formatForLog
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -44,14 +45,14 @@ fun parseIfc(lines: Sequence<IfcContentPart>): Ifc {
 
 fun parseIfcContent(
     lines: Iterator<IfcContentPart>,
-    startTag: IfcEntityName,
-    endTag: IfcEntityName,
+    startTag: IfcName,
+    endTag: IfcName,
 ): List<IfcContentPart> {
     val content = mutableListOf<IfcContentPart>()
     while (lines.hasNext()) {
         when (val line = lines.next()) {
             endTag -> return content
-            is IfcEntityName -> content.add(IfcSection(line, parseIfcContent(lines, line, IfcSection.endTag)))
+            is IfcName -> content.add(IfcSection(line, parseIfcContent(lines, line, IfcSection.endTag)))
             else -> content.add(line)
         }
     }
@@ -63,11 +64,17 @@ fun toContentLine(rawLine: String): IfcContentPart? =
         try {
             if (line.startsWith(IfcEntityId.PREFIX)) IfcDataEntity(line)
             else if (line.contains(IfcEntityList.START_MARKER)) IfcEntity(line)
-            else IfcEntityName.valueOf(line)
+            else IfcName.valueOf(line)
         } catch (e: Exception) {
             throw IllegalArgumentException("Failed to parse IFC line: $line", e)
         }
     }
+
+fun dropSuffix(line: String): String = line.also {
+    require(line.endsWith(IFC_LINE_SUFFIX)) {
+        "IFC lines should end with '$IFC_LINE_SUFFIX': line=${formatForLog(line)}"
+    }
+}.dropLast(IFC_LINE_SUFFIX.length).trim()
 
 fun parseAttributes(content: String): IfcEntityList {
     val iterator = content.iterator()
@@ -119,7 +126,7 @@ private fun takeEntity(iterator: Iterator<Char>, firstChar: Char): Pair<Char?, I
         if (next.isWhitespace()) continue
         else if (next == IfcEntityList.START_MARKER) {
             val (lastChar, attributes) = takeList(iterator)
-            return lastChar to IfcEntity(IfcEntityName.valueOf(nameBuilder.toString()), attributes)
+            return lastChar to IfcEntity(IfcName.valueOf(nameBuilder.toString()), attributes)
         } else nameBuilder.append(next)
     }
     throw IllegalArgumentException("Entity ended before the parameter list")
@@ -131,7 +138,7 @@ private fun takeMissingValue(iterator: Iterator<Char>, marker: Char): Pair<Char?
     val next = takeNonBlank(iterator)
     if (isItemEnd(next)) return next to value
     else throw IllegalArgumentException(
-        "Unset value ($IFC_UNSET_MARK) parsing failed: the item continues after marker: found='$next'"
+        "Unset value ($marker) parsing failed: the item continues after marker: found='$next'"
     )
 }
 

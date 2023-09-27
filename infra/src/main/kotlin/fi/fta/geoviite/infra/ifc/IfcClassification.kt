@@ -10,7 +10,7 @@ data class IfcCode(private val value: String) : CharSequence by value {
     }
 
     init {
-        assertSanitized<IfcEntityName>(value, regex, allowedLength, allowBlank = false)
+        assertSanitized<IfcName>(value, regex, allowedLength, allowBlank = false)
     }
 
     override fun toString(): String = value
@@ -23,7 +23,7 @@ data class IfcClassificationName(private val value: String) : CharSequence by va
     }
 
     init {
-        assertSanitized<IfcEntityName>(value, regex, allowedLength, allowBlank = false)
+        assertSanitized<IfcName>(value, regex, allowedLength, allowBlank = false)
     }
 
     override fun toString(): String = value
@@ -36,7 +36,7 @@ data class IfcPropertySetName(private val value: String) : CharSequence by value
     }
 
     init {
-        assertSanitized<IfcEntityName>(value, regex, allowedLength, allowBlank = false)
+        assertSanitized<IfcName>(value, regex, allowedLength, allowBlank = false)
     }
 
     override fun toString(): String = value
@@ -54,7 +54,11 @@ data class IfcClassification(
     val code: IfcCode,
     val parentCode: IfcCode?,
     val propertySets: List<IfcPropertySet>,
-)
+) {
+    fun getPropertyIndices(props: List<String>): List<Int> {
+        TODO("Resolve props to indices via the classification")
+    }
+}
 
 data class IfcPropertySet(
     val name: IfcPropertySetName,

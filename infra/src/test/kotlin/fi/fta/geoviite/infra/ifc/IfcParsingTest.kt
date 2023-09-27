@@ -28,6 +28,7 @@ class IfcParsingTest {
             println(
                 "Done parsing: duration=${duration} dataLines=${parsed.data.linesById.size} header=${parsed.header.contentLines}"
             )
+            println("Projects: ${parsed.getDereferenced(IfcName.valueOf("IFCPROJECT"))}")
         }
     }
 }
