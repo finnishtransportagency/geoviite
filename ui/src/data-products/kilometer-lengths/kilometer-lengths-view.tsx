@@ -4,7 +4,7 @@ import styles from 'data-products/data-product-view.scss';
 import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-lengths-search';
-import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
+import KilometerLengthsTable from 'data-products/kilometer-lengths/kilometer-lengths-table';
 import { KmNumber } from 'common/common-model';
 import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
 import { dataProductsActions, SelectedKmLengthsSearch } from 'data-products/data-products-slice';
@@ -25,7 +25,10 @@ export const KilometerLengthsView = () => {
     const endIndex = state.endKm
         ? findIndex(state.endKm, state.kmLengths) + 1
         : state.kmLengths.length;
-    const kmLengths = state.kmLengths.slice(startIndex, endIndex);
+    const kmLengths =
+        startIndex === 0 && endIndex == state.kmLengths.length
+            ? state.kmLengths
+            : state.kmLengths.slice(startIndex, endIndex);
 
     return (
         <div className={styles['data-product-view']}>

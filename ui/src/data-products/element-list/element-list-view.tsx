@@ -5,7 +5,7 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import LocationTrackElementListingSearch from 'data-products/element-list/location-track-element-listing-search';
 import { createDelegates } from 'store/store-utils';
 import PlanGeometryElementListingSearch from 'data-products/element-list/plan-geometry-element-listing-search';
-import { ElementTable } from 'data-products/element-list/element-table';
+import ElementTable from 'data-products/element-list/element-table';
 import { useDataProductsAppSelector } from 'store/hooks';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkElementListing } from 'data-products/element-list/entire-rail-network-element-listing';
