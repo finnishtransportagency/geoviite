@@ -1,6 +1,5 @@
 @use 'vayla-design-lib' as vayla-design;
 
 .geometry-segment__no-data-text {
-    @include vayla-design.typography-body;
     color: vayla-design.$color-black-light;
 }
