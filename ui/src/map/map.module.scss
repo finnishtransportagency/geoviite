@@ -1,5 +1,6 @@
 @use 'vayla-design-lib' as vayla-design;
 @use 'geoviite-design-lib' as geoviite-design;
+@use 'vayla-design-lib/menu/menu';
 
 // Export colors to use e.g. in map canvas
 :export {
