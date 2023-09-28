@@ -1,4 +1,4 @@
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .alignment-plan-section-infobox__plan-name {
     overflow: hidden;
@@ -7,7 +7,7 @@
 }
 
 .alignment-plan-section-infobox__no-plan-icon {
-    fill: $color-red-dark;
+    fill: vayla-design.$color-red-dark;
 }
 
 .alignment-plan-section-infobox__meters {

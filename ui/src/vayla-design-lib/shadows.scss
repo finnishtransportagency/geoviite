@@ -1,19 +1,25 @@
-@import './colors';
+@use 'colors';
 
 @mixin shadow-4dp {
-    box-shadow: 0 1px 1px rgba($color-black-default, 0.2), 0 1px 1px rgba($color-black-default, 0.2);
+    box-shadow:
+        0 1px 1px rgba(colors.$color-black-default, 0.2),
+        0 1px 1px rgba(colors.$color-black-default, 0.2);
 }
 
 @mixin shadow-8dp {
-    box-shadow: 0 2px 1px rgba($color-black-default, 0.2), 0 2px 6px rgba($color-black-default, 0.2);
+    box-shadow:
+        0 2px 1px rgba(colors.$color-black-default, 0.2),
+        0 2px 6px rgba(colors.$color-black-default, 0.2);
 }
 
 @mixin shadow-16dp {
-    box-shadow: 0 3px 3px rgba($color-black-default, 0.15),
-        0 4px 12px rgba($color-black-default, 0.25);
+    box-shadow:
+        0 3px 3px rgba(colors.$color-black-default, 0.15),
+        0 4px 12px rgba(colors.$color-black-default, 0.25);
 }
 
 @mixin shadow-32dp {
-    box-shadow: 0 6px 6px rgba($color-black-default, 0.1),
-        0 8px 24px rgba($color-black-default, 0.3);
+    box-shadow:
+        0 6px 6px rgba(colors.$color-black-default, 0.1),
+        0 8px 24px rgba(colors.$color-black-default, 0.3);
 }

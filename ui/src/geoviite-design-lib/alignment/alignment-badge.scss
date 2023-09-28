@@ -1,13 +1,12 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
-@import '../../geoviite-design-lib/geoviite-colors';
+@use 'vayla-design-lib' as vayla-design;
+@use 'geoviite-design-lib' as geoviite-design;
 
 .alignment-badge {
-    @include typography-body-strong;
+    @include vayla-design.typography-body-strong;
     font-size: 10px;
     line-height: 10px;
-    color: $color-white-default;
-    background-color: $color-black-light;
+    color: vayla-design.$color-white-default;
+    background-color: vayla-design.$color-black-light;
 
     display: inline-block;
     padding: 5px 6px;
@@ -15,23 +14,23 @@
     user-select: none;
 
     &--reference {
-        background-color: $color-black-lighter;
+        background-color: vayla-design.$color-black-lighter;
     }
 
     &--linked {
-        background-color: $color-green-default;
+        background-color: vayla-design.$color-green-default;
     }
 
     &--unlinked {
-        background-color: $color-red-default;
+        background-color: vayla-design.$color-red-default;
     }
 
     &--selected {
-        background-color: $color-geoviite-blue;
+        background-color: geoviite-design.$color-geoviite-blue;
     }
 
     &--disabled {
-        background-color: $color-white-darker;
+        background-color: vayla-design.$color-white-darker;
     }
 
     &--clickable {

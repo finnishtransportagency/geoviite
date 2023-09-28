@@ -1,6 +1,4 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
-@import 'react-widgets/styles.css';
+@use 'vayla-design-lib' as vayla-design;
 
 .infra-model-list {
     display: flex;
@@ -37,8 +35,8 @@
 
     &:hover {
         > td,
-        .table__td {
-            background-color: $color-blue-lighter;
+        > .table__td {
+            background-color: vayla-design.$color-blue-lighter;
         }
     }
 }
@@ -82,15 +80,15 @@
 }
 
 .infra-model-list-search-result__plan-paikannuspalvelu {
-    @include typography-caption;
-    color: $color-red-darker;
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-red-darker;
 }
 
 .tag {
     display: inline-block;
     margin: 2px;
     border-radius: 4px;
-    background: $color-white-darker;
+    background: vayla-design.$color-white-darker;
     padding: 4px;
     height: 15px;
     font-size: 10px;

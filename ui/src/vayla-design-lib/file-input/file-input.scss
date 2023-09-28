@@ -1,7 +1,7 @@
-@import '../typography';
+@use '../typography';
 
 .file-input {
-    @include typography-body;
+    @include typography.typography-body;
     display: inline-block;
     position: relative;
     cursor: pointer;

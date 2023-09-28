@@ -1,7 +1,7 @@
-@import '../colors';
-@import '../typography';
-@import '../shadows';
-@import '../layers';
+@use '../colors';
+@use '../typography';
+@use '../shadows';
+@use '../layers';
 
 $dialog-padding-horizontal: 24px;
 $dialog-padding-vertical: 16px;
@@ -14,17 +14,17 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     bottom: 0;
     right: 0;
     margin: 0;
-    background: rgba($color-black-lighter, 0.5);
-    z-index: $layer-popup;
+    background: rgba(colors.$color-black-lighter, 0.5);
+    z-index: layers.$layer-popup;
 }
 
 .dialog__popup {
-    @include shadow-8dp;
+    @include shadows.shadow-8dp;
     position: relative;
     display: flex;
     flex-direction: column;
     border-radius: 4px;
-    background: $color-white-default;
+    background: colors.$color-white-default;
     min-height: 200px;
     max-height: 100%;
 
@@ -48,12 +48,12 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     }
 
     &--dark {
-        background: $color-blue-darker;
-        color: $color-white-default;
-        fill: $color-white-default;
+        background: colors.$color-blue-darker;
+        color: colors.$color-white-default;
+        fill: colors.$color-white-default;
 
         .dialog__content {
-            background: $color-blue-darker;
+            background: colors.$color-blue-darker;
         }
 
         .dialog__footer {
@@ -61,16 +61,16 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
         }
 
         .dialog__close {
-            fill: $color-white-default;
+            fill: colors.$color-white-default;
         }
     }
 
     &--light {
-        background: $color-white-default;
-        color: $color-black-default;
+        background: colors.$color-white-default;
+        color: colors.$color-black-default;
 
         .dialog__content {
-            background: $color-white-default;
+            background: colors.$color-white-default;
         }
 
         .dialog__footer {
@@ -86,13 +86,13 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     cursor: grab;
 
     .dialog__close {
-        fill: $color-blue-dark;
+        fill: colors.$color-blue-dark;
         cursor: pointer;
         line-height: 0;
     }
 
     .dialog__title {
-        @include typography-heading-small;
+        @include typography.typography-heading-small;
         flex: 1;
         margin-right: 40px;
     }
@@ -101,7 +101,7 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 .dialog__content {
     flex: 1;
     overflow-y: auto;
-    background: $color-white-default;
+    background: colors.$color-white-default;
     padding: 0 $dialog-padding-horizontal;
     min-height: 120px;
 
@@ -117,7 +117,7 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 .dialog__footer {
     display: flex;
     padding: $dialog-padding;
-    border-top: 1px solid $color-white-darker;
+    border-top: 1px solid colors.$color-white-darker;
 
     .dialog__footer-content {
         @mixin footer-content {

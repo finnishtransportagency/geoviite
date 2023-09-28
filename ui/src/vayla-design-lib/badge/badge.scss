@@ -1,8 +1,8 @@
-@import "../typography";
-@import '../colors';
+@use '../typography';
+@use '../colors';
 
 .badge {
-    @include typography-body-strong;
+    @include typography.typography-body-strong;
 
     position: static;
     width: 42px;
@@ -13,7 +13,7 @@
     display: flex;
     align-items: center;
 
-    color: $color-black-light;
+    color: colors.$color-black-light;
 
     /* Inside Auto Layout */
 
