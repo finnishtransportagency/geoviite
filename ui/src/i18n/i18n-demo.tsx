@@ -12,9 +12,7 @@ export const I18nDemo: React.FC = () => {
 
     return (
         <div>
-            <select
-                className="custom-select"
-                onChange={changeLanguageHandler}>
+            <select className="custom-select" onChange={changeLanguageHandler}>
                 <option value="en">English</option>
                 <option value="fi">Finnish</option>
             </select>
@@ -23,9 +21,9 @@ export const I18nDemo: React.FC = () => {
             <p>{t('test.description.part1')}</p>
             <p>{t('test.description.part2')}</p>
             <p>some other text {t('test.text')}</p>
-            <FieldLayout label={`concatenation example: ${t('test.text')} *`}>
-                value={'test.text'}
-            </FieldLayout>
+            <FieldLayout
+                label={`concatenation example: ${t('test.text')} *`}
+                value={'test.text'}></FieldLayout>
         </div>
     );
 };

@@ -1,5 +1,13 @@
-@import 'vayla-design-lib/typography.scss';
+@use 'vayla-design-lib' as vayla-design;
 
 body {
-    @include typography-body;
+    @include vayla-design.typography-body;
+
+    overflow: hidden;
+}
+
+body,
+html {
+    margin: 0;
+    padding: 0;
 }

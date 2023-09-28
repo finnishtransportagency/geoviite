@@ -47,8 +47,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
             it.trackNumbers.sorted().joinToString(", ")
         },
         "publication-table.km-number" to {
-            it.changedKmNumbers.map { range -> "${range.min}${if (range.min != range.max) "-${range.max}" else ""}" }
-                .joinToString(", ")
+            it.changedKmNumbers.joinToString(", ") { range -> "${range.min}${if (range.min != range.max) "-${range.max}" else ""}" }
         },
         "publication-table.operation" to { formatOperation(translation, it.operation) },
         "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
@@ -68,7 +67,8 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
                 }: ${formatChangeValue(translation, change.value)}${
                     if (change.remark != null) " (${
                         translation.t(
-                            "publication-details-table.remark.${change.remark.key}", listOf(change.remark.value)
+                            "publication-details-table.remark.${change.remark.key}",
+                            mapOf("value" to change.remark.value)
                         )
                     })" else ""
                 }"
@@ -83,18 +83,20 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
 private fun enumTranslationKey(enumName: LocalizationKey, value: String) = "enum.${enumName}.${value}"
 
 private fun <T> formatChangeValue(translation: Translation, value: ChangeValue<T>): String {
-    val oldValue = if (value.localizationKey != null && value.oldValue != null) translation.t(
-        enumTranslationKey(
-            value.localizationKey, value.oldValue.toString()
-        )
-    ) else if (value.oldValue == null) null else value.oldValue.toString()
-    val newValue = if (value.localizationKey != null && value.newValue != null) translation.t(
-        enumTranslationKey(
-            value.localizationKey, value.newValue.toString()
-        )
-    ) else if (value.newValue == null) null else value.newValue.toString()
 
-    return "${if (oldValue != null) oldValue else ""} -> ${if (newValue != null) newValue else ""}"
+    return "${
+        (if (value.localizationKey != null && value.oldValue != null) translation.t(
+            enumTranslationKey(
+                value.localizationKey, value.oldValue.toString()
+            )
+        ) else if (value.oldValue == null) null else value.oldValue.toString()) ?: ""
+    } -> ${
+        (if (value.localizationKey != null && value.newValue != null) translation.t(
+            enumTranslationKey(
+                value.localizationKey, value.newValue.toString()
+            )
+        ) else if (value.newValue == null) null else value.newValue.toString()) ?: ""
+    }"
 }
 
 
@@ -102,12 +104,12 @@ private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
-    Operation.CREATE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), emptyList())
-    Operation.MODIFY -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), emptyList())
-    Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyList())
-    Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyList())
+    Operation.CREATE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), emptyMap())
+    Operation.MODIFY -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), emptyMap())
+    Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyMap())
+    Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyMap())
     Operation.CALCULATED -> translation.t(
-        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"), emptyList()
+        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"), emptyMap()
     )
 }
 
@@ -126,8 +128,7 @@ fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
     }.map { Range(it.first(), it.last()) }
 
 fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
-    groupChangedKmNumbers(kmNumbers).map { if (it.min == it.max) "${it.min}" else "${it.min}-${it.max}" }
-        .joinToString(", ")
+    groupChangedKmNumbers(kmNumbers).joinToString(", ") { if (it.min == it.max) "${it.min}" else "${it.min}-${it.max}" }
 
 fun formatDistance(dist: Double) = if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
 
@@ -165,7 +166,7 @@ fun formatLocation(location: Point) = "${roundTo3Decimals(location.x)} E, ${
     )
 } N"
 
-val DISTANCE_CHANGE_THRESHOLD = 0.0005
+const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
 fun lengthDifference(len1: Double, len2: Double) = abs(abs(len1) - abs(len2))
 fun lengthDifference(len1: BigDecimal, len2: BigDecimal) = abs(abs(len1.toDouble()) - abs(len2.toDouble()))

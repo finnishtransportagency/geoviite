@@ -18,11 +18,12 @@ import {
 } from 'track-layout/track-layout-model';
 import { RatkoPushStatus } from 'ratko/ratko-model';
 import { BoundingBox, Point } from 'model/geometry';
+import { LocalizationParams } from 'i18n/config';
 
 export type PublishValidationError = {
     type: 'ERROR' | 'WARNING';
     localizationKey: string;
-    params: string[];
+    params: LocalizationParams;
 };
 
 export enum DraftChangeType {
@@ -170,7 +171,7 @@ export type PublishRequestIds = {
 
 export type PropKey = {
     key: string;
-    params: string[];
+    params: LocalizationParams;
 };
 
 export type ChangeValue = {

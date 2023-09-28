@@ -1,4 +1,4 @@
-@import '../../vayla-design-lib/layers';
+@use 'vayla-design-lib' as vayla-design;
 
 .form-layout {
     position: relative;
@@ -19,7 +19,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    z-index: $layer-glass;
+    z-index: vayla-design.$layer-glass;
 }
 
 .form-layout--is-processing .form-layout__glass {

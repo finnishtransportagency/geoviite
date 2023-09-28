@@ -1,9 +1,7 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/shadows';
+@use 'vayla-design-lib' as vayla-design;
 
 .frontpage {
-    background: $color-white-dark;
+    background: vayla-design.$color-white-dark;
     overflow: hidden auto;
     padding: 8px 16px 16px 16px;
     min-width: 494px;
@@ -15,7 +13,7 @@
 
     &__photo {
         flex: 1;
-        background-image: url('../geoviite-design-lib/frontpage-background.jpeg');
+        background-image: url('geoviite-design-lib/frontpage-background.jpeg');
         background-size: cover;
         background-position: right center;
     }

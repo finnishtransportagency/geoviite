@@ -116,7 +116,7 @@ export enum IconSize {
     MEDIUM = 'icon--size-medium',
     MEDIUM_SMALL = 'icon--size-medium-small',
     LARGE = 'icon--size-large',
-    ORIGINAL = 'icon--size-original',
+    ORIGINAL = '',
 }
 
 export enum IconRotation {
@@ -160,7 +160,7 @@ const SvgIcon: SvgIconComponent = ({
 
     const className = createClassName(
         'icon',
-        size,
+        size && styles[size],
         props.rotation && styles[props.rotation],
         color && styles[color],
     );

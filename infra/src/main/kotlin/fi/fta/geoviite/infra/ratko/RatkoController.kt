@@ -30,10 +30,12 @@ class RatkoController(
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
-    @GetMapping("/push")
-    fun pushChangesToRatko() {
+    @PostMapping("/push")
+    fun pushChangesToRatko(): HttpStatus {
         logger.apiCall("pushChangesToRatko")
         ratkoService.pushChangesToRatko()
+
+        return HttpStatus.NO_CONTENT;
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

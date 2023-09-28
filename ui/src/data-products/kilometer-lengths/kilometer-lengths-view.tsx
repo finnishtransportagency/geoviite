@@ -7,13 +7,19 @@ import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-le
 import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
 import { KmNumber } from 'common/common-model';
 import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
-import { dataProductsActions } from 'data-products/data-products-slice';
+import { dataProductsActions, SelectedKmLengthsSearch } from 'data-products/data-products-slice';
+import { Radio } from 'vayla-design-lib/radio/radio';
+import { EntireRailNetworkKmLengthsListing } from 'data-products/kilometer-lengths/entire-rail-network-km-lengths-listing';
 
 export const KilometerLengthsView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
     const state = useDataProductsAppSelector((state) => state.kmLenghts);
     const { t } = useTranslation();
     const [loading, setLoading] = React.useState(false);
+
+    const handleRadioClick = (selected: SelectedKmLengthsSearch) => {
+        dataProductsDelegates.setSelectedKmLengthsSearch(selected);
+    };
 
     const startIndex = state.startKm ? findIndex(state.startKm, state.kmLengths) : 0;
     const endIndex = state.endKm
@@ -25,17 +31,35 @@ export const KilometerLengthsView = () => {
         <div className={styles['data-product-view']}>
             <div className={styles['data-product-view__header-container']}>
                 <h2>{t('data-products.km-lengths.title')}</h2>
-                <p className={styles['data-product__search-legend']}>
-                    {t('data-products.km-lengths.legend')}
-                </p>
-                <KilometerLengthsSearch
-                    setLengths={dataProductsDelegates.onSetKmLengths}
-                    state={state}
-                    onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
-                    setLoading={setLoading}
-                />
+                <div>
+                    <span className={styles['data-product-view__radio-layout']}>
+                        <Radio
+                            onChange={() => handleRadioClick('TRACK_NUMBER')}
+                            checked={state.selectedSearch === 'TRACK_NUMBER'}>
+                            {t('data-products.km-lengths.track-number-km-lengths')}
+                        </Radio>
+                        <Radio
+                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                            {t('data-products.km-lengths.entire-rail-network-km-lengths')}
+                        </Radio>
+                    </span>
+                </div>
+                {state.selectedSearch === 'TRACK_NUMBER' && (
+                    <KilometerLengthsSearch
+                        setLengths={dataProductsDelegates.onSetKmLengths}
+                        state={state}
+                        onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
+                        setLoading={setLoading}
+                    />
+                )}
+                {state.selectedSearch === 'ENTIRE_RAIL_NETWORK' && (
+                    <EntireRailNetworkKmLengthsListing />
+                )}
             </div>
-            <KilometerLengthsTable kmLengths={kmLengths} isLoading={loading} />
+            {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
+                <KilometerLengthsTable kmLengths={kmLengths} isLoading={loading} />
+            )}
         </div>
     );
 };

@@ -1,4 +1,4 @@
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .breadcrumb {
     display: inline-flex;
@@ -7,11 +7,11 @@
 }
 
 .breadcrumb__item {
-    color: $color-black-light;
+    color: vayla-design.$color-black-light;
 }
 
 .breadcrumb__item--has-action {
-    color: $color-blue-dark;
+    color: vayla-design.$color-blue-dark;
     cursor: pointer;
 }
 

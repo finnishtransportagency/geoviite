@@ -40,7 +40,7 @@ const PlanGeometryElementListingSearch = ({
     const { t } = useTranslation();
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedGetGeometryPlanHeaders(state.source, searchTerm).then((planHeaders) =>
                 getGeometryPlanOptions(planHeaders, state.plan),
             ),

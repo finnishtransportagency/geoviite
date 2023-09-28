@@ -19,11 +19,10 @@ export const ConfirmHideInfraModel: React.FC<ConfirmHideInfraModelProps> = ({
     const { t } = useTranslation();
     return (
         <Dialog
-            className={dialogStyles['dialog--wide']}
             title={t(`infra-model-hide.title`)}
             onClose={onClose}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
@@ -34,7 +33,7 @@ export const ConfirmHideInfraModel: React.FC<ConfirmHideInfraModelProps> = ({
                         icon={Icons.Delete}>
                         {t('infra-model-hide.hide')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <p>
                 {t(`infra-model-hide.content`, {

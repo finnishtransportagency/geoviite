@@ -6,7 +6,8 @@ import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordina
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from '../data-product-table.scss';
-import { TFunction, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { findCoordinateSystem } from 'data-products/data-products-utils';
 import { useLoader } from 'utils/react-utils';
 import { getSridList } from 'common/common-api';

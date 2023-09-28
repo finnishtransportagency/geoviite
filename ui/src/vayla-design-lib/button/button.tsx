@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './button.scss';
-import { IconColor, IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
-import { createClassName } from 'vayla-design-lib/utils';
+import {IconColor, IconComponent, IconSize} from 'vayla-design-lib/icon/Icon';
+import {createClassName} from 'vayla-design-lib/utils';
 
 /**
  * Buttons in Figma:
@@ -35,19 +35,22 @@ export type ButtonProps = {
     className?: string;
 } & Pick<React.HTMLProps<HTMLButtonElement>, 'disabled' | 'onClick' | 'title'>;
 
-export const Button: React.FC<ButtonProps> = ({
-    id,
-    variant = ButtonVariant.PRIMARY,
-    icon: Icon,
-    size,
-    isProcessing = false,
-    isPressed = false,
-    attachLeft,
-    attachRight,
-    wide,
-    className,
-    ...props
-}: ButtonProps) => {
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+    {
+        id,
+        variant = ButtonVariant.PRIMARY,
+        icon: Icon,
+        size,
+        isProcessing = false,
+        isPressed = false,
+        attachLeft,
+        attachRight,
+        wide,
+        className,
+        ...props
+    }: ButtonProps,
+    ref,
+) {
     const classes = createClassName(
         styles.button,
         styles[variant],
@@ -63,7 +66,7 @@ export const Button: React.FC<ButtonProps> = ({
     );
 
     return (
-        <button id={id} className={classes} {...props}>
+        <button id={id} className={classes} ref={ref} {...props}>
             <span className={styles['button__icon-and-animation']}>
                 {isProcessing && <div className={styles['button__animation']} />}
                 {Icon && (
@@ -75,4 +78,4 @@ export const Button: React.FC<ButtonProps> = ({
             {props.children && <span className={styles.button__label}>{props.children}</span>}
         </button>
     );
-};
+});

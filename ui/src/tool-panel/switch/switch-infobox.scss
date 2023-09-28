@@ -1,5 +1,4 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .geometry-switch-infobox {
     &__linked-status .infobox__field-label {
@@ -12,11 +11,11 @@
     }
 
     &__not-linked-text {
-        background-color: $color-red-lighter;
+        background-color: vayla-design.$color-red-lighter;
     }
 
     &__linked-text {
-        background-color: $color-green-lighter;
+        background-color: vayla-design.$color-green-lighter;
     }
 
     &__linking-container {
@@ -24,7 +23,7 @@
     }
 
     &__info-text {
-        @include typography-caption;
+        @include vayla-design.typography-caption;
 
         padding: 10px 0;
     }
@@ -40,7 +39,7 @@
     }
 
     &__switches-container {
-        border: 1px solid $color-white-darker;
+        border: 1px solid vayla-design.$color-white-darker;
         border-radius: 4px;
         padding: 10px 20px 10px 12px;
 
@@ -61,46 +60,36 @@
         }
 
         .icon {
-            fill: $color-black-light;
+            fill: vayla-design.$color-black-light;
         }
     }
 
     &__zoom-warning {
         display: flex;
         align-items: center;
-        background-color: $color-lemon-light;
+        background-color: vayla-design.$color-lemon-light;
         padding: 10px 16px 10px 26px;
         margin: 0 -16px 0 -20px;
         font-size: 12px;
 
         .icon {
-            fill: $color-black-lighter;
+            fill: vayla-design.$color-black-lighter;
             margin-right: 12px;
         }
     }
 
     &__no-matches {
-        @include typography-caption;
-        color: $color-black-lighter;
+        @include vayla-design.typography-caption;
+        color: vayla-design.$color-black-lighter;
     }
-}
 
-.geometry-switch-infobox__switch-type-warning-msg {
-    white-space: pre-line;
-}
+    &__switch-type-warning-msg {
+        white-space: pre-line;
+    }
 
-.geometry-switch-infobox__switch-type-confirm {
-    margin-top: 20px;
-}
-
-.switch-edit-dialog__delete-button {
-    position: absolute;
-}
-
-.switch-edit-dialog__confirmation-list {
-    margin: 0;
-    padding: 0;
-    list-style: inside;
+    &__switch-type-confirm {
+        margin-top: 20px;
+    }
 }
 
 .switch-infobox-track-meters {
@@ -115,8 +104,8 @@
     }
 
     &__joint-number {
-        @include typography-caption;
-        color: $color-black-light;
+        @include vayla-design.typography-caption;
+        color: vayla-design.$color-black-light;
 
         display: inline-block;
         margin: 6px 0 2px 0;
@@ -139,15 +128,15 @@
     }
 
     &__joint-title {
-        @include typography-caption-strong;
+        @include vayla-design.typography-caption-strong;
 
-        color: $color-black-light;
+        color: vayla-design.$color-black-light;
         padding: 4px 0;
     }
 
     &__joint-alignments-title,
     &__joint-points-title {
-        @include typography-caption;
+        @include vayla-design.typography-caption;
         padding: 6px 0;
         line-height: 20px;
     }
@@ -157,8 +146,8 @@
         grid-template-columns: 1fr 1fr;
         grid-column-gap: 4px;
         grid-row-gap: 4px;
-
         padding: 6px 0;
+
         .alignment-badge {
             margin: 0 4px 4px 0;
         }

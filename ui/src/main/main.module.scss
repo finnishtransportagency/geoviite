@@ -1,40 +1,35 @@
-@import '../vayla-design-lib/colors';
-
-body,
-html {
-    margin: 0;
-    padding: 0;
-}
-
-.main__env-banner {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background-color: $pitaya-default;
-    text-transform: uppercase;
-    color: $color-white-default;
-    text-align: center;
-    font-size: 10px;
-    line-height: 10px;
-    user-select: none;
-    z-index: 3;
-}
+@use 'vayla-design-lib' as vayla-design;
+@use 'vayla-design-lib/menu/menu';
 
 .main {
-    background-color: $color-white-dark;
+    background-color: vayla-design.$color-white-dark;
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: auto;
-}
 
-.main__content {
-    background-color: $color-white-default;
-    flex: 1;
+    &__content {
+        background-color: vayla-design.$color-white-default;
+        flex: 1;
 
-    display: flex;
-    align-items: stretch;
-    justify-content: stretch;
-    overflow: auto;
+        display: flex;
+        align-items: stretch;
+        justify-content: stretch;
+        overflow: auto;
+    }
+
+    &__env-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: vayla-design.$pitaya-default;
+        text-transform: uppercase;
+        color: vayla-design.$color-white-default;
+        text-align: center;
+        font-size: 10px;
+        line-height: 10px;
+        user-select: none;
+        z-index: 3;
+    }
 }

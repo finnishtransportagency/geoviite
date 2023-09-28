@@ -1,10 +1,10 @@
-@import '../animation';
-@import "../colors";
+@use '../animation';
+@use '../colors';
 
 .spinner {
-  @include spinner-animation;
-  box-sizing: border-box;
-  width: 20px;
-  height: 20px;
-  color: $color-black-light;
+    @include animation.spinner-animation;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    color: colors.$color-black-light;
 }

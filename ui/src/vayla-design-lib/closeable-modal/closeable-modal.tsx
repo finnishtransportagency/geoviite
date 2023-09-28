@@ -5,17 +5,19 @@ import useResizeObserver from 'use-resize-observer';
 type CloseableModalProps = {
     positionRef: React.MutableRefObject<HTMLElement | null>;
     onClickOutside: () => void;
-    offsetX: number;
-    offsetY: number;
+    offsetX?: number;
+    offsetY?: number;
     children: React.ReactNode;
+    className?: string;
 };
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({
     positionRef,
     onClickOutside,
-    offsetX,
-    offsetY,
+    offsetX = 0,
+    offsetY = 0,
     children,
+    className,
 }: CloseableModalProps) => {
     const [x, setX] = React.useState<number>();
     const [y, setY] = React.useState<number>();
@@ -58,6 +60,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
                 left: x + offsetX,
                 position: 'absolute',
             }}
+            className={className}
             onClick={(e) => e.stopPropagation()}>
             {children}
         </div>,

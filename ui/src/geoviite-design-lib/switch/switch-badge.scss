@@ -1,44 +1,43 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
-@import '../geoviite-colors';
+@use 'vayla-design-lib' as vayla-design;
+@use 'geoviite-design-lib' as geoviite-design;
 
 .switch-badge {
-    @include typography-body-strong;
+    @include vayla-design.typography-body-strong;
     font-size: 10px;
     line-height: 10px;
 
-    color: $color-black-default;
-    background-color: $color-geoviite-cadmium-lighter;
+    color: vayla-design.$color-black-default;
+    background-color: geoviite-design.$color-geoviite-cadmium-lighter;
     display: inline-flex;
     align-items: center;
 
     padding: 3px 6px;
-    border: 1px solid rgba($color-black-default, 0.5);
+    border: 1px solid rgba(vayla-design.$color-black-default, 0.5);
     border-radius: 2px;
     user-select: none;
 
     &--linked {
-        background-color: $color-green-lighter;
-        border-color: rgba($color-black-default, 0.5);
+        background-color: vayla-design.$color-green-lighter;
+        border-color: rgba(vayla-design.$color-black-default, 0.5);
     }
 
     &--unlinked {
-        background-color: $color-red-lighter;
-        border-color: rgba($color-black-default, 0.5);
+        background-color: vayla-design.$color-red-lighter;
+        border-color: rgba(vayla-design.$color-black-default, 0.5);
     }
 
     &--selected {
-        border-color: $color-geoviite-blue;
-        fill: $color-geoviite-blue;
-        color: $color-geoviite-blue;
-        background-color: $color-white-default;
+        border-color: geoviite-design.$color-geoviite-blue;
+        fill: geoviite-design.$color-geoviite-blue;
+        color: geoviite-design.$color-geoviite-blue;
+        background-color: vayla-design.$color-white-default;
     }
 
     &--disabled {
-        background-color: $color-white-dark;
-        border-color: rgba($color-black-default, 0.3);
-        fill: $color-black-light;
-        color: $color-black-light;
+        background-color: vayla-design.$color-white-dark;
+        border-color: rgba(vayla-design.$color-black-default, 0.3);
+        fill: vayla-design.$color-black-light;
+        color: vayla-design.$color-black-light;
     }
 
     &--clickable {

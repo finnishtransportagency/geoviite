@@ -33,14 +33,13 @@ const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({
             title={t('switch-delete-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={false}
-            className={dialogStyles['dialog--normal']}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
                         {t('button.cancel')}
                     </Button>
                     <Button onClick={deleteSwitch}>{t('button.delete')}</Button>
-                </React.Fragment>
+                </div>
             }>
             <p>{t('switch-delete-dialog.guide')}</p>
         </Dialog>

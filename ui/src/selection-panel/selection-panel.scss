@@ -1,5 +1,4 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .selection-panel {
     overflow: hidden auto;
@@ -9,12 +8,12 @@
     }
 
     &__title {
-        @include typography-sub-heading;
-        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+        @include vayla-design.typography-sub-heading;
+        box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
 
         padding: 12px 20px 8px 20px;
-        background-color: $color-white-dark;
-        color: $color-black-default;
+        background-color: vayla-design.$color-white-dark;
+        color: vayla-design.$color-black-default;
         margin: 0 0 12px 0;
 
         display: flex;
@@ -26,7 +25,7 @@
     }
 
     &__subtitle {
-        color: $color-black-lighter;
+        color: vayla-design.$color-black-lighter;
         font-size: 14px;
         margin: 0 0 0 15px;
     }

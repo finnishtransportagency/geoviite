@@ -160,6 +160,7 @@ const clusterPointStyle = new Style({
     text: new Text({
         text: '?',
         scale: 1.2,
+        offsetY: 1,
         fill: new Fill({ color: mapStyles.clusterPointTextColor }),
     }),
     image: new Circle({
@@ -173,7 +174,8 @@ const clusterPointStyle = new Style({
 const clusterPointBothSelectedStyle = new Style({
     text: new Text({
         text: '2',
-        scale: 1.3,
+        scale: 1.2,
+        offsetY: 1,
         fill: new Fill({ color: mapStyles.clusterPointTextColor }),
     }),
     image: new Circle({

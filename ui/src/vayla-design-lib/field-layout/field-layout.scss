@@ -1,5 +1,5 @@
-@import '../colors';
-@import '../typography';
+@use '../colors';
+@use '../typography';
 
 .field-layout {
     display: flex;
@@ -8,26 +8,27 @@
 }
 
 .field-layout__label {
-    @include typography-caption-strong;
-    color: $color-black-light;
+    @include typography.typography-caption-strong;
+    color: colors.$color-black-light;
     padding: 3px 0;
 }
 
 .field-layout--has-error .field-layout__label {
-    color: $color-red-dark;
+    color: colors.$color-red-dark;
 }
 
 .field-layout__help {
-    @include typography-caption;
-    color: $color-black-light;
+    @include typography.typography-caption;
+    color: colors.$color-black-light;
     padding: 3px 0;
 }
+
 .field-layout__errors {
     display: flex;
     flex-direction: column;
 }
 
 .field-layout__error {
-    @include typography-caption;
-    color: $color-red-dark;
+    @include typography.typography-caption;
+    color: colors.$color-red-dark;
 }

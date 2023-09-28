@@ -1,11 +1,11 @@
-@import '../colors';
-@import '../transitions';
-@import '../typography';
-@import '../size';
-@import '../animation';
+@use '../colors';
+@use '../transitions';
+@use '../typography';
+@use '../size';
+@use '../animation';
 
 $button-border-radius: 4px;
-$button-border-focus: 1px dashed $color-white-default;
+$button-border-focus: 1px dashed colors.$color-white-default;
 $button-animation-size: 20px;
 $button-animation-size-small: 12px;
 
@@ -15,17 +15,17 @@ $button-animation-size-small: 12px;
 }
 
 .button {
-    @include typography-body-strong;
+    @include typography.typography-body-strong;
     position: relative;
     vertical-align: middle;
-    height: $input-height;
+    height: size.$input-height;
     display: inline-flex;
     align-items: center;
     padding: 8px 16px;
     border-radius: $button-border-radius;
     outline: none; // disable default focus indicator
     cursor: pointer;
-    transition: all $transitions-speed-fast;
+    transition: all transitions.$transitions-speed-fast;
     white-space: nowrap;
 }
 
@@ -54,158 +54,158 @@ $button-animation-size-small: 12px;
 }
 
 .button--primary {
-    @include button-text-color($color-blue-lighter);
-    background: $color-blue-default;
-    border: 1px solid $color-blue-default;
+    @include button-text-color(colors.$color-blue-lighter);
+    background: colors.$color-blue-default;
+    border: 1px solid colors.$color-blue-default;
 
     &:hover {
-        @include button-text-color($color-white-default);
-        background: $color-blue-light;
-        border-color: $color-blue-light;
+        @include button-text-color(colors.$color-white-default);
+        background: colors.$color-blue-light;
+        border-color: colors.$color-blue-light;
     }
 
     &:focus {
-        @include button-text-color($color-white-default);
-        background: $color-blue-default;
+        @include button-text-color(colors.$color-white-default);
+        background: colors.$color-blue-default;
         border: $button-border-focus;
     }
 
     // pressed state
     &:active {
-        @include button-text-color($color-white-default);
-        background: $color-blue-light;
-        border-color: $color-blue-light;
+        @include button-text-color(colors.$color-white-default);
+        background: colors.$color-blue-light;
+        border-color: colors.$color-blue-light;
     }
 
     &[disabled],
     &.button--disabled {
-        @include button-text-color($color-black-lighter);
-        background: $color-white-darker;
-        border-color: $color-white-darker;
+        @include button-text-color(colors.$color-black-lighter);
+        background: colors.$color-white-darker;
+        border-color: colors.$color-white-darker;
         cursor: default;
     }
 }
 
 .button--secondary {
-    @include button-text-color($color-blue-dark);
-    background: $color-white-default;
-    border: 1px solid $color-blue-dark;
+    @include button-text-color(colors.$color-blue-dark);
+    background: colors.$color-white-default;
+    border: 1px solid colors.$color-blue-dark;
 
     &.button--attach-left,
     &.button--attach-right {
-        border-color: $color-black-lighter;
+        border-color: colors.$color-black-lighter;
     }
 
     &:hover {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
     }
 
     &:focus {
-        border: 1px dashed $color-blue-dark;
+        border: 1px dashed colors.$color-blue-dark;
     }
 
     // pressed state
     &:active,
     &.button--pressed {
-        @include button-text-color($color-blue-dark);
-        background: $color-blue-lighter;
-        border-color: $color-blue-dark;
+        @include button-text-color(colors.$color-blue-dark);
+        background: colors.$color-blue-lighter;
+        border-color: colors.$color-blue-dark;
     }
 
     &[disabled],
     &.button--disabled {
-        @include button-text-color($color-black-lighter);
-        background: $color-white-darker;
-        border: $color-white-darker;
+        @include button-text-color(colors.$color-black-lighter);
+        background: colors.$color-white-darker;
+        border: colors.$color-white-darker;
         cursor: default;
     }
 }
 
 .button--warning {
-    @include button-text-color($color-red-dark);
-    background: $color-white-default;
-    border: 1px solid $color-red-dark;
+    @include button-text-color(colors.$color-red-dark);
+    background: colors.$color-white-default;
+    border: 1px solid colors.$color-red-dark;
 
     &:hover {
-        background: $color-red-lighter;
+        background: colors.$color-red-lighter;
     }
 
     &:focus {
-        border: 1px dashed $color-red-dark;
+        border: 1px dashed colors.$color-red-dark;
     }
 
     // pressed state
     &:active {
-        @include button-text-color($color-red-dark);
-        background: $color-red-lighter;
-        border-color: $color-red-dark;
+        @include button-text-color(colors.$color-red-dark);
+        background: colors.$color-red-lighter;
+        border-color: colors.$color-red-dark;
     }
 
     &[disabled],
     &.button--disabled {
-        @include button-text-color($color-black-lighter);
-        background: $color-white-darker;
-        border: $color-white-darker;
+        @include button-text-color(colors.$color-black-lighter);
+        background: colors.$color-white-darker;
+        border: colors.$color-white-darker;
         cursor: default;
     }
 }
 
 .button--primary-warning {
-    @include button-text-color($color-red-lighter);
-    background: $color-red-default;
-    border: 1px solid $color-red-default;
+    @include button-text-color(colors.$color-red-lighter);
+    background: colors.$color-red-default;
+    border: 1px solid colors.$color-red-default;
 
     &:hover {
-        @include button-text-color($color-white-default);
-        background: $color-red-light;
-        border-color: $color-red-light;
+        @include button-text-color(colors.$color-white-default);
+        background: colors.$color-red-light;
+        border-color: colors.$color-red-light;
     }
 
     &:focus {
-        @include button-text-color($color-white-default);
-        background: $color-red-default;
+        @include button-text-color(colors.$color-white-default);
+        background: colors.$color-red-default;
         border: $button-border-focus;
     }
 
     // pressed state
     &:active {
-        @include button-text-color($color-white-default);
-        background: $color-red-light;
-        border-color: $color-red-light;
+        @include button-text-color(colors.$color-white-default);
+        background: colors.$color-red-light;
+        border-color: colors.$color-red-light;
     }
 
     &[disabled],
     &.button--disabled {
-        @include button-text-color($color-black-lighter);
-        background: $color-white-darker;
-        border-color: $color-white-darker;
+        @include button-text-color(colors.$color-black-lighter);
+        background: colors.$color-white-darker;
+        border-color: colors.$color-white-darker;
         cursor: default;
     }
 }
 
 .button--ghost {
-    @include button-text-color($color-blue-dark);
+    @include button-text-color(colors.$color-blue-dark);
     background: transparent;
     border: 1px solid transparent;
 
     &:hover {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
     }
 
     &:focus {
-        border: 1px dashed $color-blue-dark;
+        border: 1px dashed colors.$color-blue-dark;
     }
 
     // pressed state
     &:active {
-        @include button-text-color($color-blue-dark);
-        background: $color-blue-lighter;
-        border-color: $color-blue-dark;
+        @include button-text-color(colors.$color-blue-dark);
+        background: colors.$color-blue-lighter;
+        border-color: colors.$color-blue-dark;
     }
 
     &[disabled],
     &.button--disabled {
-        @include button-text-color($color-black-lighter);
+        @include button-text-color(colors.$color-black-lighter);
         background: transparent;
         cursor: default;
     }
@@ -214,7 +214,7 @@ $button-animation-size-small: 12px;
 .button__icon-and-animation {
     position: relative;
     width: 0;
-    transition: all $transitions-speed-fast;
+    transition: all transitions.$transitions-speed-fast;
 }
 
 .button--has-icon {
@@ -232,7 +232,7 @@ $button-animation-size-small: 12px;
 
 .button__icon {
     // button__icon contains an icon
-    transition: all $transitions-speed-fast;
+    transition: all transitions.$transitions-speed-fast;
 }
 
 .button--has-animation:not(.button--has-icon) {
@@ -270,7 +270,7 @@ $button-animation-size-small: 12px;
 }
 
 .button__animation {
-    @include spinner-animation;
+    @include animation.spinner-animation;
     position: absolute;
     width: $button-animation-size;
     height: $button-animation-size;

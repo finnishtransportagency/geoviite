@@ -1,6 +1,6 @@
 import { appStore } from 'store/store';
 
-import { API_URI, getIgnoreError, getWithDefault } from 'api/api-fetch';
+import { API_URI, getNonNull, getNullable } from 'api/api-fetch';
 import { createDelegates } from 'store/store-utils';
 import { TimeStamp } from 'common/common-model';
 import { ChangeTimes, commonActionCreators } from 'common/common-slice';
@@ -18,7 +18,7 @@ export function getChangeTimes(): ChangeTimes {
 }
 
 export function updateAllChangeTimes(): Promise<ChangeTimes> {
-    return getIgnoreError<ChangeTimes>(`${CHANGES_API}/collected`).then((newTimes) => {
+    return getNullable<ChangeTimes>(`${CHANGES_API}/collected`).then((newTimes) => {
         if (newTimes) {
             delegates.setChangeTimes(newTimes);
             return newTimes;
@@ -105,8 +105,14 @@ function updateChangeTime(
     storeUpdate: (ts: TimeStamp) => void,
     defaultValue: TimeStamp,
 ): Promise<TimeStamp> {
-    return getWithDefault<TimeStamp>(url, defaultValue).then((ts) => {
-        storeUpdate(ts);
-        return ts;
-    });
+    return getNonNull<TimeStamp>(url).then(
+        (ts) => {
+            storeUpdate(ts);
+            return ts;
+        },
+        () => {
+            storeUpdate(defaultValue);
+            return defaultValue;
+        },
+    );
 }

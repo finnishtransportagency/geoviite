@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.publication
 
-import kotlin.test.assertContains
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -765,7 +764,7 @@ class PublicationServiceIT @Autowired constructor(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "validation.layout.location-track.duplicate-name-official",
-                    listOf("LT", "TN")
+                    mapOf("locationTrack" to "LT", "trackNumber" to "TN")
                 )
             ), validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.errors
         )
@@ -774,7 +773,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.location-track.duplicate-name-draft",
-                listOf("NLT", "TN")
+                mapOf("locationTrack" to "NLT", "trackNumber" to "TN")
             )
         },
             validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
@@ -782,14 +781,18 @@ class PublicationServiceIT @Autowired constructor(
 
         assertEquals(listOf(
             PublishValidationError(
-                PublishValidationErrorType.ERROR, "validation.layout.switch.duplicate-name-official", listOf("SW")
+                PublishValidationErrorType.ERROR,
+                "validation.layout.switch.duplicate-name-official",
+                mapOf("switch" to "SW")
             )
         ),
             validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name-official" })
 
         assertEquals(List(2) {
             PublishValidationError(
-                PublishValidationErrorType.ERROR, "validation.layout.switch.duplicate-name-draft", listOf("NSW")
+                PublishValidationErrorType.ERROR,
+                "validation.layout.switch.duplicate-name-draft",
+                mapOf("switch" to "NSW")
             )
         },
             validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }
@@ -801,7 +804,7 @@ class PublicationServiceIT @Autowired constructor(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "validation.layout.track-number.duplicate-name-official",
-                    listOf("TN")
+                    mapOf("trackNumber" to "TN")
                 )
             ), validation.validatedAsPublicationUnit.trackNumbers[0].errors
         )
@@ -820,7 +823,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         }
         assertEquals("error.publication.duplicate-name-on.track-number", exception.localizedMessageKey.toString())
-        assertEquals(listOf("TN"), exception.localizedMessageParams)
+        assertEquals(mapOf("name" to "TN"), exception.localizedMessageParams)
     }
 
     @Test
@@ -836,7 +839,7 @@ class PublicationServiceIT @Autowired constructor(
             publish(publicationService, locationTracks = listOf(draftLocationTrackId))
         }
         assertEquals("error.publication.duplicate-name-on.location-track", exception.localizedMessageKey.toString())
-        assertEquals(listOf("LT", "TN"), exception.localizedMessageParams)
+        assertEquals(mapOf("locationTrack" to "LT", "trackNumber" to "TN"), exception.localizedMessageParams)
     }
 
     @Test
@@ -866,7 +869,7 @@ class PublicationServiceIT @Autowired constructor(
             publish(publicationService, switches = listOf(draftSwitchId))
         }
         assertEquals("error.publication.duplicate-name-on.switch", exception.localizedMessageKey.toString())
-        assertEquals(listOf("SW123"), exception.localizedMessageParams)
+        assertEquals(mapOf("name" to "SW123"), exception.localizedMessageParams)
     }
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
@@ -927,7 +930,7 @@ class PublicationServiceIT @Autowired constructor(
                 trackNumbers = listOf(trackNumber.id as IntId), referenceLines = listOf(rl.id as IntId)
             )
         )
-        val id = trackNumberService.update(
+        trackNumberService.update(
             trackNumber.id as IntId, TrackNumberSaveRequest(
                 number = TrackNumber(trackNumber.number.value + " T"),
                 description = trackNumber.description + "_TEST",
@@ -935,17 +938,17 @@ class PublicationServiceIT @Autowired constructor(
                 state = LayoutState.NOT_IN_USE,
             )
         )
-        val updatedTrackNumber = trackNumberService.getDraft(id)
         publishAndVerify(publishRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(2)
         val changes = publicationDao.fetchPublicationTrackNumberChanges(
             thisAndPreviousPublication.first().id, thisAndPreviousPublication.last().publicationTime
         )
 
-        val diff = publicationService.diffTrackNumber(changes.getValue(trackNumber.id as IntId),
+        val diff = publicationService.diffTrackNumber(
+            changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
-            thisAndPreviousPublication.last().publicationTime,
-            { a, b -> null })
+            thisAndPreviousPublication.last().publicationTime
+        ) { _, _ -> null }
         assertEquals(3, diff.size)
         assertEquals("track-number", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -987,10 +990,11 @@ class PublicationServiceIT @Autowired constructor(
         )
         val updatedTrackNumber = trackNumberService.getOrThrow(OFFICIAL, idOfUpdated)
 
-        val diff = publicationService.diffTrackNumber(changes.getValue(trackNumber.id as IntId),
+        val diff = publicationService.diffTrackNumber(
+            changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
-            thisAndPreviousPublication.last().publicationTime,
-            { a, b -> null })
+            thisAndPreviousPublication.last().publicationTime
+        ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
         assertEquals(trackNumber.description, diff[0].value.oldValue)
@@ -1073,13 +1077,14 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(changes.getValue(locationTrack.id as IntId<LocationTrack>),
+        val diff = publicationService.diffLocationTrack(
+            changes.getValue(locationTrack.id as IntId<LocationTrack>),
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
             false,
-            emptySet(),
-            { a, b -> null })
+            emptySet()
+        ) { _, _ -> null }
         assertEquals(6, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -1118,13 +1123,14 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(changes.getValue(locationTrack.id as IntId<LocationTrack>),
+        val diff = publicationService.diffLocationTrack(
+            changes.getValue(locationTrack.id as IntId<LocationTrack>),
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
             false,
-            emptySet(),
-            { a, b -> null })
+            emptySet()
+        ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
         assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
@@ -1270,13 +1276,14 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(localizationService.getLocalization("fi"),
+        val diff = publicationService.diffSwitch(
+            localizationService.getLocalization("fi"),
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,
-            trackNumberDao.fetchTrackNumberNames(),
-            { a, b -> null })
+            trackNumberDao.fetchTrackNumberNames()
+        ) { _, _ -> null }
         assertEquals(5, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals("state-category", diff[1].propKey.key.toString())
@@ -1311,13 +1318,14 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(localizationService.getLocalization("fi"),
+        val diff = publicationService.diffSwitch(
+            localizationService.getLocalization("fi"),
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,
-            trackNumberDao.fetchTrackNumberNames(),
-            { a, b -> null })
+            trackNumberDao.fetchTrackNumberNames()
+        ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals(switch.name, diff[0].value.oldValue)
@@ -1532,13 +1540,13 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Location track validation should fail for unofficial and unstaged topologically linked switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val expectedValidationErrors = 1; // Unverified, but expected geocoding error.
+        val expectedValidationErrors = 1 // Unverified, but expected geocoding error.
 
-        val singleTopologicallyConnectedSwitchValidationErrors = 1;
-        val doubleTopologicallyConnectedSwitchValidationErrors = 2;
+        val singleTopologicallyConnectedSwitchValidationErrors = 1
+        val doubleTopologicallyConnectedSwitchValidationErrors = 2
 
         topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
-            val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size;
+            val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size
 
             when {
                 lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
@@ -1563,13 +1571,13 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Location track validation should succeed for unofficial, but staged topologically linked switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val expectedValidationErrors = 1; // Unverified, but expected geocoding error.
+        val expectedValidationErrors = 1 // Unverified, but expected geocoding error.
 
         topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
             val validationErrorAmount = getLocationTrackValidationResult(
                 locationTrackId,
                 topologyTestData.switchIdsUnderTest,
-            )?.errors?.size;
+            )?.errors?.size
 
             when {
                 lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
@@ -1586,12 +1594,12 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Location track validation should succeed for topologically linked official switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val expectedValidationErrors = 1; // Unverified, but expected geocoding error.
+        val expectedValidationErrors = 1 // Unverified, but expected geocoding error.
 
         publish(publicationService, switches = topologyTestData.switchIdsUnderTest)
 
         topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
-            val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size;
+            val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size
 
             when {
                 lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
@@ -1656,7 +1664,7 @@ class PublicationServiceIT @Autowired constructor(
             switchValidation, PublishValidationError(
                 PublishValidationErrorType.WARNING,
                 "validation.layout.switch.track-linkage.multiple-tracks-through-joint",
-                listOf("3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})")
+                mapOf("locationTracks" to "3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})")
             )
         )
     }
@@ -1700,7 +1708,7 @@ class PublicationServiceIT @Autowired constructor(
             errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment), PublishValidationError(
                 PublishValidationErrorType.WARNING,
                 "validation.layout.switch.track-linkage.front-joint-not-connected",
-                listOf()
+                emptyMap()
             )
         )
 
@@ -1715,7 +1723,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.WARNING,
                 "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected",
-                listOf()
+                emptyMap()
             )
         )
 

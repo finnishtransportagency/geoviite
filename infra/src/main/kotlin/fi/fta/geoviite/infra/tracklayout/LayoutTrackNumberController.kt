@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -18,12 +19,16 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RestController
 @RequestMapping("/track-layout/track-numbers")
 class LayoutTrackNumberController(
     private val trackNumberService: LayoutTrackNumberService,
     private val publicationService: PublicationService,
+    private val localizationService: LocalizationService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -109,7 +114,7 @@ class LayoutTrackNumberController(
             "id" to id
         )
 
-        return trackNumberService.getKmLengths(publishType, id)
+        return trackNumberService.getKmLengths(publishType, id) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -139,5 +144,28 @@ class LayoutTrackNumberController(
 
         val fileName = FileName("ratakilometrien-pituudet_${trackNumber.number}.csv")
         return getCsvResponseEntity(csv, fileName)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/rail-network/km-lengths/file")
+    fun getEntireRailNetworkKmLengthsAsCsv(
+        @RequestParam(name = "lang", defaultValue = "fi") lang: String,
+    ): ResponseEntity<ByteArray> {
+        logger.apiCall("getEntireRailNetworkTrackNumberKmLengthsAsCsv", "lang" to lang)
+
+        val csv = trackNumberService.getAllKmLengthsAsCsv(
+            publishType = PublishType.OFFICIAL,
+            trackNumberIds = trackNumberService.listOfficial().map {
+                tn -> tn.id as IntId
+            }
+        )
+
+        val localization = localizationService.getLocalization(lang)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+
+        val fileDescription = localization.t("data-products.km-lengths.entire-rail-network-km-lengths-file-name-without-date")
+        val fileDate = dateFormatter.format(Instant.now())
+
+        return getCsvResponseEntity(csv, FileName("$fileDescription $fileDate.csv"))
     }
 }

@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 @Service
 class LayoutTrackNumberService(
@@ -105,14 +106,14 @@ class LayoutTrackNumberService(
     fun getKmLengths(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmLengthDetails> {
+    ): List<TrackLayoutKmLengthDetails>? {
         logger.serviceCall(
             "getKmLengths",
             "trackNumberId" to trackNumberId,
             "publishType" to publishType,
         )
 
-        val kmLengths = geocodingService.getGeocodingContext(publishType, trackNumberId)?.let { context ->
+        return geocodingService.getGeocodingContext(publishType, trackNumberId)?.let { context ->
             val distances = getKmPostDistances(context)
             val referenceLineLength = context.referenceLineGeometry.length
             val trackNumber = context.trackNumber
@@ -141,10 +142,6 @@ class LayoutTrackNumberService(
                 )
             }
         }
-
-        return checkNotNull(kmLengths) {
-            "No geocoding context for track number, trackNumberId=$trackNumberId publishType=$publishType"
-        }
     }
 
     fun getKmLengthsAsCsv(
@@ -161,7 +158,8 @@ class LayoutTrackNumberService(
             "endKmNumber" to endKmNumber,
         )
 
-        val kmLengths = getKmLengths(publishType, trackNumberId)
+        val kmLengths = getKmLengths(publishType, trackNumberId) ?: emptyList()
+
         val filteredKmLengths = kmLengths.filter { kmPost ->
             val start = startKmNumber ?: kmLengths.first().kmNumber
             val end = endKmNumber ?: kmLengths.last().kmNumber
@@ -170,6 +168,21 @@ class LayoutTrackNumberService(
         }
 
         return asCsvFile(filteredKmLengths)
+    }
+
+    fun getAllKmLengthsAsCsv(
+        publishType: PublishType,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    ): String {
+        val kmLengths = trackNumberIds
+            .parallelStream()
+            .flatMap { trackNumberId ->
+                (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream()
+            }
+            .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
+            .collect(Collectors.toList())
+
+        return asCsvFile(kmLengths)
     }
 
     private fun getKmPostDistances(context: GeocodingContext) = context.kmPosts.map { kmPost ->

@@ -1,7 +1,7 @@
 import {
     API_URI,
     deleteAdt,
-    getIgnoreError,
+    getNonNull,
     Page,
     postAdt,
     postIgnoreError,
@@ -25,7 +25,7 @@ import { SortDirection } from 'utils/table-utils';
 const PUBLICATION_URL = `${API_URI}/publications`;
 
 export const getPublishCandidates = () =>
-    getIgnoreError<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
+    getNonNull<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequestIds) =>
     postIgnoreError<PublishRequestIds, ValidatedPublishCandidates>(
@@ -45,11 +45,11 @@ export const getLatestPublications = (count: number) => {
         count,
     });
 
-    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
 };
 
 export const getPublicationAsTableItems = (id: PublicationId) =>
-    getIgnoreError<PublicationTableItem[]>(
+    getNonNull<PublicationTableItem[]>(
         `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
     );
 
@@ -69,7 +69,7 @@ export const getPublicationsAsTableItems = (
         lang: i18next.language,
     });
 
-    return getIgnoreError<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
+    return getNonNull<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
 };
 
 export const getPublicationsCsvUri = (

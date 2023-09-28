@@ -122,17 +122,18 @@ export const MainContainer: React.FC = () => {
             {versionStatus == 'reload' && (
                 <Dialog
                     allowClose={false}
-                    className={dialogStyles['dialog--wide']}
                     title={t('version.geoviite-updated')}
                     footerContent={
-                        <Button
-                            onClick={() => {
-                                navigate('/');
-                                localStorage.clear();
-                                location.reload();
-                            }}>
-                            {t('version.clear-cache')}
-                        </Button>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={() => {
+                                    navigate('/');
+                                    localStorage.clear();
+                                    location.reload();
+                                }}>
+                                {t('version.clear-cache')}
+                            </Button>
+                        </div>
                     }>
                     {t('version.cache-needs-clearing')}
                 </Dialog>

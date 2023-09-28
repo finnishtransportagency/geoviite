@@ -23,14 +23,14 @@ type PublishListProps = {
 const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
     return (
         <span>
-            {i18n.t(`error-in-ratko-connection.${errorType}`, [ratkoStatusCode])}
+            {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
             <br />
             {i18n.t(`error-in-ratko-connection.${contact}`)}
         </span>
     );
 };
 
-const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
+const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
     if (ratkoStatus.statusCode >= 500) {
         return ratkoStatus.statusCode === 503
             ? parseRatkoConnectionError(
@@ -79,7 +79,8 @@ const PublicationCard: React.FC<PublishListProps> = ({
         .filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
         .slice(0, MAX_LISTED_PUBLICATIONS);
 
-    const ratkoConnectionError = ratkoStatus && ratkoStatus.statusCode >= 300;
+    const ratkoConnectionError =
+        ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
 
     return (
         <Card
@@ -96,7 +97,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             </h3>
                             {ratkoConnectionError && (
                                 <p className={styles['publication-card__title-errors']}>
-                                    {parseRatkoStatus(ratkoStatus)}
+                                    {parseRatkoOfflineStatus(ratkoStatus)}
                                 </p>
                             )}
                             {failures.length > 0 && (

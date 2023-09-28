@@ -1,10 +1,8 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/shadows';
+@use 'vayla-design-lib' as vayla-design;
 
-$color-ok: $color-green-dark;
-$color-error: $color-red-dark;
-$color-warning: $color-lemon-dark;
+$-color-ok: vayla-design.$color-green-dark;
+$-color-error: vayla-design.$color-red-dark;
+$-color-warning: vayla-design.$color-lemon-dark;
 
 .preview-view {
     flex: 1;
@@ -12,20 +10,20 @@ $color-warning: $color-lemon-dark;
     grid-template-columns: auto 40%;
     grid-template-rows: 50px calc(100% - 50px - 70px) 70px;
     column-gap: 0;
-    background: $color-white-default;
+    background: vayla-design.$color-white-default;
 }
 
 .preview-tool-bar {
-    @include shadow-4dp;
+    @include vayla-design.shadow-4dp;
 
     padding-left: 24px;
     grid-column: 1 / -1;
     display: flex;
-    background: $color-white-dark;
+    background: vayla-design.$color-white-dark;
     z-index: 1;
 
     &__title {
-        @include typography-sub-heading;
+        @include vayla-design.typography-sub-heading;
         flex: 1;
         display: flex;
         align-items: center;
@@ -49,11 +47,11 @@ $color-warning: $color-lemon-dark;
         display: flex;
 
         h3 {
-            @include typography-heading-small;
+            @include vayla-design.typography-heading-small;
         }
 
         h4 {
-            @include typography-caption;
+            @include vayla-design.typography-caption;
         }
     }
 }
@@ -69,7 +67,7 @@ $color-warning: $color-lemon-dark;
 }
 
 .preview-footer {
-    @include shadow-8dp;
+    @include vayla-design.shadow-8dp;
     grid-column: 1/-1;
     display: grid;
     grid-template-columns: auto 33%;
@@ -92,7 +90,7 @@ $color-warning: $color-lemon-dark;
 
 .preview-table__container {
     overflow-y: auto;
-    border-bottom: 1px solid $color-white-dark;
+    border-bottom: 1px solid vayla-design.$color-white-dark;
 }
 
 .preview-table__container table tr:last-child td {
@@ -111,7 +109,7 @@ $color-warning: $color-lemon-dark;
     }
 
     &__error-icon {
-        fill: $color-error;
+        fill: $-color-error;
     }
 
     &__accordion {
@@ -135,18 +133,18 @@ $color-warning: $color-lemon-dark;
 }
 
 .preview-table-item__ok-status {
-    color: $color-ok;
-    fill: $color-ok;
+    color: $-color-ok;
+    fill: $-color-ok;
 }
 
 .preview-table-item__error-status {
-    color: $color-error;
-    fill: $color-error;
+    color: $-color-error;
+    fill: $-color-error;
 }
 
 .preview-table-item__warning-status {
-    color: $color-warning;
-    fill: $color-warning;
+    color: $-color-warning;
+    fill: $-color-warning;
 }
 
 .preview-table-item__status-cell--expandable {
@@ -154,8 +152,7 @@ $color-warning: $color-lemon-dark;
 }
 
 .preview-table-item__actions--cell {
-    display: contents;
-
+    padding: 2px 8px 0 8px;
     > div {
         display: inline-flex;
     }
@@ -175,16 +172,16 @@ $color-warning: $color-lemon-dark;
 }
 
 .preview-table-item__group-title {
-    @include typography-sub-heading;
+    @include vayla-design.typography-sub-heading;
     text-transform: none;
 }
 
 .preview-table-item__msg-group--errors .preview-table-item__group-title {
-    color: $color-error;
+    color: $-color-error;
 }
 
 .preview-table-item__msg-group--warnings .preview-table-item__group-title {
-    color: $color-warning;
+    color: $-color-warning;
 }
 
 .preview-table-item__msg {
