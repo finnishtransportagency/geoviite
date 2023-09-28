@@ -28,8 +28,6 @@
     }
 
     &__title {
-        @include vayla-design.typography-body;
-
         color: vayla-design.$color-black-lighter;
         background-color: vayla-design.$color-white-dark;
         box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
