@@ -72,6 +72,11 @@ interface IfcEntityAttributeContainer : IfcEntityAttribute {
     fun getListField(indices: List<Int>): IfcEntityList
     fun getNullableListField(vararg indices: Int): IfcEntityList? = getNullableListField(indices.toList())
     fun getNullableListField(indices: List<Int>): IfcEntityList?
+
+    fun getEntityField(vararg indices: Int): IfcEntity = getEntityField(indices.toList())
+    fun getEntityField(indices: List<Int>): IfcEntity
+    fun getNullableEntityField(vararg indices: Int): IfcEntity? = getNullableEntityField(indices.toList())
+    fun getNullableEntityField(indices: List<Int>): IfcEntity?
 }
 
 
@@ -132,6 +137,9 @@ data class IfcEntityList(val items: List<IfcEntityAttribute>) : IfcEntityAttribu
 
     override fun getListField(indices: List<Int>): IfcEntityList = getTypedValue(indices)
     override fun getNullableListField(indices: List<Int>): IfcEntityList? = getNullableTypedValue(indices)
+
+    override fun getEntityField(indices: List<Int>): IfcEntity = getTypedValue(indices)
+    override fun getNullableEntityField(indices: List<Int>): IfcEntity? = getNullableTypedValue(indices)
 }
 
 data class IfcEntityString(val value: String) : IfcEntityAttribute {
