@@ -87,7 +87,6 @@ class IfcParsingTest {
         )
         assertEquals(ifcString("string with parenthesis ()"), row5.getStringField(0, 0))
         assertEquals(ifcString("string with quotes '"), row5.getStringField(0, 1))
-        assertEquals(ifcString("string with quotes '"), row5.getStringField(0, 1))
 
         // Dereferenced sub-entities
         val dereferencedRows = parsed.getDereferenced(ifcName("IFCTESTENTITY1"))

@@ -77,7 +77,6 @@ fun dropSuffix(line: String): String = line.also {
 }.dropLast(IFC_LINE_SUFFIX.length).trim()
 
 fun parseAttributes(content: String): IfcEntityList {
-//    println("Parse attributes: $content")
     val iterator = content.iterator()
     val firstChar = iterator.next()
     require(firstChar == IfcEntityList.START_MARKER) {
@@ -92,11 +91,8 @@ private fun takeList(iterator: Iterator<Char>): Pair<Char?, IfcEntityList> {
     var lastChar: Char? = null
     // Due to nested lists, we can't just split the list string by comma: Instead we pick item by item and handle nested lists recursively
     while (iterator.hasNext() && lastChar != IfcEntityList.END_MARKER) {
-//        println("Picking next item: lastChar=$lastChar")
         val (last, item) = takeNextItem(iterator)
-//        println("Picked: item=$item lastChar=$last")
         item?.let(items::add)
-//        println("Parsed: $item")
         lastChar = last
     }
     val following = takeNonBlank(iterator)
