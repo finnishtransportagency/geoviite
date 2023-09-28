@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.ifc
 
 import fi.fta.geoviite.infra.ifc.IfcDataTransformType.JSON_LIST
+import fi.fta.geoviite.infra.ifc.IfcEntityMissingValue.UNSET
 import fi.fta.geoviite.infra.ifc.IfcTransformTemplate.Companion.propertyTemplate
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
 import kotlin.test.assertEquals
 
 class IfcTransformTest {
@@ -43,75 +43,53 @@ class IfcTransformTest {
 
     @Test
     fun `JSON template is filled from IFC via indices`() {
-        val entity1 = IfcDataEntity(
-            IfcEntityId("#1"), IfcEntity(
-                name = IfcName.valueOf("TEST_ENTITY"), content = IfcEntityList(
-                    IfcEntityEnum.valueOf("TEST_ENUM"),
-                    IfcEntityNumber(BigDecimal.ONE),
-                    IfcEntityList(IfcEntityNumber(BigDecimal.TEN), IfcEntityString("Inner string value")),
-                    IfcEntityString("Outer string value"),
-                )
-            )
-        )
-        val entity2 = IfcDataEntity(
-            IfcEntityId("#2"), IfcEntity(
-                name = IfcName.valueOf("TEST_ENTITY"), content = IfcEntityList(
-                    IfcEntityEnum.valueOf("TEST_ENUM_2"),
-                    IfcEntityNumber(BigDecimal.ZERO),
-                    IfcEntityList(IfcEntityMissingValue.UNSET, IfcEntityMissingValue.UNSET),
-                    IfcEntityString("Outer string value 2"),
-                )
-            )
-        )
+        val name = "TEST_ENTITY"
 
-        val differentEntity = IfcDataEntity(
-            IfcEntityId("#3"), IfcEntity(
-                name = IfcName.valueOf("TEST_ENTITY_2"), content = IfcEntityList(
-                    IfcEntityEnum.valueOf("TEST_ENUM"),
-                    IfcEntityNumber(BigDecimal.ZERO),
-                )
-            )
+        val entity1 = ifcDataEntity(
+            id = 1,
+            name = name,
+            ifcEnum("TEST_ENUM"),
+            ifcNumber(1),
+            IfcEntityList(ifcNumber(10), ifcString("Inner value 1")),
+            ifcString("Outer value 1"),
+            ifcId(4), // Reference to referencedEntity
+        )
+        val entity2 = ifcDataEntity(
+            id = 2,
+            name = name,
+            ifcEnum("TEST_ENUM_2"),
+            ifcNumber(2),
+            IfcEntityList(UNSET, UNSET),
+            ifcString("Outer value 2"),
+            ifcId(4),
         )
 
-        val ifc = Ifc(header = IfcHeader(), data = IfcData(entity1, entity2, differentEntity))
+        val differentEntity = ifcDataEntity(
+            id = 3,
+            name = "OTHER_NAME",
+            ifcEnum("OTHER_ENUM"),
+        )
+        val referencedEntity = ifcDataEntity(
+            id = 4,
+            name = "REFERENCED",
+            ifcString("Value from ref"),
+        )
 
+        val ifc = ifc(entity1, entity2, differentEntity, referencedEntity)
+        val template = """
+            {
+              "type": "${propertyTemplate("0")}",
+              "number": "${propertyTemplate("1")}",
+              "outer": "${propertyTemplate("3")}",
+              "inner": "${propertyTemplate("2.1")}",
+              "referenced": "${propertyTemplate("4.0")}"
+            }
+        """.trimIndent()
+        val expectedJson1 =
+            "{\"type\":\"TEST_ENUM\",\"number\":1,\"outer\":\"Outer value 1\",\"inner\":\"Inner value 1\",\"referenced\":\"Value from ref\"}"
+        val expectedJson2 =
+            "{\"type\":\"TEST_ENUM_2\",\"number\":2,\"outer\":\"Outer value 2\",\"inner\":null,\"referenced\":\"Value from ref\"}"
+        val transformed = transform(ifc, ifcName(name), template, null)
+        assertEquals(listOf(expectedJson1, expectedJson2), transformed)
     }
-
-//    @Test
-//    fun `Transforms are found from JSON string`() {
-////        println(transformRegexString)
-//        val props = listOf(
-//            listOf("asdf") to listOf(0),
-//            listOf("asdf", "asd", "f") to listOf(0, 0, 1),
-//            listOf("a", "b", "c") to listOf(1, 2, 3),
-//            listOf("d", "e", "f") to listOf(4, 5, 6),
-//            listOf("x", "y", "z") to listOf(21, 22, 23),
-//        )
-//        val json = """
-//        {
-//          "title": "${propertyTemplate(props[0].first)}",
-//          "name": "${propertyTemplate(props[1].first)}",
-//          "description": "NO_OP:${propertyTemplate(props[2].first)},${propertyTemplate(props[3].first)}",
-//          "inner-obj": {
-//            "inner-field": "${propertyTemplate(props[4].first)}"
-//          }
-//        }
-//        """.trimIndent()
-//        println(json)
-//        val template = IfcTransformTemplate(json) { chain ->
-//            props.find { p -> p.first == chain }?.second
-//                ?: throw IllegalArgumentException("Unknown property chain requested: $props")
-//        }
-//        println(template.transforms)
-//        println(
-//            template.toJson(
-//                mapOf(
-//                    "${propertyTemplate(props[0].first)}" to "ASDF",
-//                    "${propertyTemplate("asdf.asd.f")}" to "ASDF->ASD->F",
-//                    "${propertyTemplate("NO_OP:a.b.c,d.e.f")}" to "ABCDEF",
-//                    "${propertyTemplate("x.y.z")}" to "INNER XYZ",
-//                )
-//            )
-//        )
-//    }
 }

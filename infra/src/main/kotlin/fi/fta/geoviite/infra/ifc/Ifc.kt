@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ifc
 
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.assertSanitized
 import java.util.concurrent.ConcurrentHashMap
 
@@ -22,11 +23,15 @@ data class Ifc(
 
     fun getDereferenced(name: IfcName) =
         data.linesById.values.filter { v -> v.name == name }.map { e -> e.content.dereference(this) }
+
 }
 
 // https://standards.buildingsmart.org/documents/Implementation/ImplementationGuide_IFCHeaderData_Version_1.0.2.pdf
 data class IfcHeader(val contentLines: List<IfcEntity>) {
     companion object {
+        val fileNameHeader = IfcName.valueOf("FILE_NAME")
+        val fileDescription = IfcName.valueOf("FILE_DESCRIPTION")
+        val fileSchema = IfcName.valueOf("FILE_SCHEMA")
         val sectionName = IfcName.valueOf("HEADER")
     }
 
@@ -34,7 +39,9 @@ data class IfcHeader(val contentLines: List<IfcEntity>) {
 
     constructor(section: IfcSection) : this(section.typedContent<IfcEntity>())
 
-    fun getContent(header: IfcName) = contentLines.find { c -> c.name == header }?.content
+    fun getElement(header: IfcName) = contentLines.find { c -> c.name == header }
+
+    val fileName by lazy { getElement(fileNameHeader)?.getStringField(listOf(0))?.value?.let(::FileName) }
 }
 
 data class IfcData(val linesById: Map<IfcEntityId, IfcDataEntity>) {
@@ -82,10 +89,7 @@ data class IfcSection(
 
     override val name: IfcName get() = startTag
 
-    inline fun <reified T> typedContent(): List<T> = content.map { c ->
-        require(c is T) { "Expected content to be of type ${T::class.simpleName}" }
-        c
-    }
+    inline fun <reified T> typedContent(): List<T> = content.map { c -> coerce<T>(c) }
 }
 
 
@@ -107,4 +111,10 @@ data class IfcName private constructor(private val value: String) : IfcContentPa
     override fun toString(): String = value
 
     override val name = this
+}
+
+inline fun <reified T> coerce(value: Any): T = if (value is T) {
+    value
+} else {
+    throw IllegalArgumentException("Unexpected value type: expected=${T::class.simpleName} actual=${value::class.simpleName}")
 }

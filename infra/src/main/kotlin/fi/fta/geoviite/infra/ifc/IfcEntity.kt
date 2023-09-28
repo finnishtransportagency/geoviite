@@ -25,6 +25,7 @@ data class IfcEntity(
     override fun toString() = "$name$content"
 
     override fun dereference(ifc: Ifc): IfcEntity = copy(content = content.dereference(ifc))
+
 }
 
 interface IfcEntityAttribute {
@@ -40,12 +41,37 @@ interface IfcEntityAttributeContainer : IfcEntityAttribute {
             current = when (current) {
                 is IfcEntityAttributeContainer -> current[index]
                 else -> throw IllegalArgumentException(
-                    "Cannot fetch sub-item with index from type ${this::class.simpleName}"
+                    "Cannot fetch sub-item with index from type ${current::class.simpleName}"
                 )
             }
         }
         return current
     }
+
+    fun getStringField(vararg indices: Int): IfcEntityString = getStringField(indices.toList())
+    fun getStringField(indices: List<Int>): IfcEntityString
+    fun getNullableStringField(vararg indices: Int): IfcEntityString? = getNullableStringField(indices.toList())
+    fun getNullableStringField(indices: List<Int>): IfcEntityString?
+
+    fun getNumberField(vararg indices: Int): IfcEntityNumber = getNumberField(indices.toList())
+    fun getNumberField(indices: List<Int>): IfcEntityNumber
+    fun getNullableNumberField(vararg indices: Int): IfcEntityNumber? = getNullableNumberField(indices.toList())
+    fun getNullableNumberField(indices: List<Int>): IfcEntityNumber?
+
+    fun getEnumField(vararg indices: Int): IfcEntityEnum = getEnumField(indices.toList())
+    fun getEnumField(indices: List<Int>): IfcEntityEnum
+    fun getNullableEnumField(vararg indices: Int): IfcEntityEnum? = getEnumField(indices.toList())
+    fun getNullableEnumField(indices: List<Int>): IfcEntityEnum?
+
+    fun getIdField(vararg indices: Int): IfcEntityId = getIdField(indices.toList())
+    fun getIdField(indices: List<Int>): IfcEntityId
+    fun getNullableIdField(vararg indices: Int): IfcEntityId? = getNullableIdField(indices.toList())
+    fun getNullableIdField(indices: List<Int>): IfcEntityId?
+
+    fun getListField(vararg indices: Int): IfcEntityList = getListField(indices.toList())
+    fun getListField(indices: List<Int>): IfcEntityList
+    fun getNullableListField(vararg indices: Int): IfcEntityList? = getNullableListField(indices.toList())
+    fun getNullableListField(indices: List<Int>): IfcEntityList?
 }
 
 
@@ -82,6 +108,30 @@ data class IfcEntityList(val items: List<IfcEntityAttribute>) : IfcEntityAttribu
     override fun toString(): String = "$START_MARKER${items.joinToString("$IFC_ATTRIBUTE_SEPARATOR")}$END_MARKER"
     override fun dereference(ifc: Ifc): IfcEntityList = copy(items = items.map { a -> a.dereference(ifc) })
     override operator fun get(index: Int) = items[index]
+
+    inline fun <reified T : IfcEntityAttribute> getTyped(index: Int): T = coerce<T>(get(index))
+
+    inline fun <reified T : IfcEntityAttribute> getNullableTyped(index: Int): T? = coerceNullable<T>(get(index))
+
+    inline fun <reified T : IfcEntityAttribute> getTypedValue(indices: List<Int>): T = coerce<T>(getValue(indices))
+
+    inline fun <reified T : IfcEntityAttribute> getNullableTypedValue(indices: List<Int>): T? =
+        coerceNullable<T>(getValue(indices))
+
+    override fun getStringField(indices: List<Int>): IfcEntityString = getTypedValue(indices)
+    override fun getNullableStringField(indices: List<Int>): IfcEntityString? = getNullableTypedValue(indices)
+
+    override fun getNumberField(indices: List<Int>): IfcEntityNumber = getTypedValue(indices)
+    override fun getNullableNumberField(indices: List<Int>): IfcEntityNumber? = getNullableTypedValue(indices)
+
+    override fun getEnumField(indices: List<Int>): IfcEntityEnum = getTypedValue(indices)
+    override fun getNullableEnumField(indices: List<Int>): IfcEntityEnum? = getNullableTypedValue(indices)
+
+    override fun getIdField(indices: List<Int>): IfcEntityId = getTypedValue(indices)
+    override fun getNullableIdField(indices: List<Int>): IfcEntityId? = getNullableTypedValue(indices)
+
+    override fun getListField(indices: List<Int>): IfcEntityList = getTypedValue(indices)
+    override fun getNullableListField(indices: List<Int>): IfcEntityList? = getNullableTypedValue(indices)
 }
 
 data class IfcEntityString(val value: String) : IfcEntityAttribute {
@@ -89,7 +139,9 @@ data class IfcEntityString(val value: String) : IfcEntityAttribute {
         const val MARKER = '\''
     }
 
-    override fun toString() = "$MARKER$value$MARKER"
+    override fun toString() = "$MARKER${escapeQuotes(value)}$MARKER"
+
+    private fun escapeQuotes(value: String): String = value.replace("$MARKER", "$MARKER$MARKER")
 }
 
 @Suppress("DataClassPrivateConstructor")
@@ -120,3 +172,7 @@ enum class IfcEntityMissingValue(val marker: Char) : IfcEntityAttribute {
 
     override fun toString() = "$marker"
 }
+
+inline fun <reified T : IfcEntityAttribute> coerceNullable(value: IfcEntityAttribute): T? =
+    if (value is IfcEntityMissingValue) null
+    else coerce<T>(value)

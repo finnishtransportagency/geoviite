@@ -77,15 +77,13 @@ fun dropSuffix(line: String): String = line.also {
 }.dropLast(IFC_LINE_SUFFIX.length).trim()
 
 fun parseAttributes(content: String): IfcEntityList {
+//    println("Parse attributes: $content")
     val iterator = content.iterator()
     val firstChar = iterator.next()
     require(firstChar == IfcEntityList.START_MARKER) {
         "List should start with '${IfcEntityList.START_MARKER}': found=$firstChar"
     }
-    val (lastChar, list) = takeList(iterator)
-    require(lastChar == IfcEntityList.END_MARKER) {
-        "List should end with '${IfcEntityList.END_MARKER}': found=$lastChar"
-    }
+    val (_, list) = takeList(iterator)
     return list
 }
 
@@ -94,12 +92,18 @@ private fun takeList(iterator: Iterator<Char>): Pair<Char?, IfcEntityList> {
     var lastChar: Char? = null
     // Due to nested lists, we can't just split the list string by comma: Instead we pick item by item and handle nested lists recursively
     while (iterator.hasNext() && lastChar != IfcEntityList.END_MARKER) {
+//        println("Picking next item: lastChar=$lastChar")
         val (last, item) = takeNextItem(iterator)
+//        println("Picked: item=$item lastChar=$last")
         item?.let(items::add)
 //        println("Parsed: $item")
         lastChar = last
     }
-    return lastChar to IfcEntityList(items)
+    val following = takeNonBlank(iterator)
+    if (isItemEnd(following)) return following to IfcEntityList(items)
+    else throw IllegalArgumentException(
+        "List parsing failed: the attribute continues after closing parenthesis: found='$following'"
+    )
 }
 
 private fun takeNextItem(iterator: Iterator<Char>): Pair<Char?, IfcEntityAttribute?> {
@@ -143,9 +147,9 @@ private fun takeMissingValue(iterator: Iterator<Char>, marker: Char): Pair<Char?
 }
 
 private fun takeNonBlank(iterator: Iterator<Char>): Char? {
-    var next = iterator.next()
-    while (iterator.hasNext() && next.isWhitespace()) next = iterator.next()
-    return next.takeUnless { n -> n.isWhitespace() }
+    var next = if (iterator.hasNext()) iterator.next() else null
+    while (iterator.hasNext() && next != null && next.isWhitespace()) next = iterator.next()
+    return next?.takeUnless { n -> n.isWhitespace() }
 }
 
 private fun takeString(iterator: Iterator<Char>): Pair<Char?, IfcEntityString> {
