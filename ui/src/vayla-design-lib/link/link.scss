@@ -1,6 +1,6 @@
-@import '../colors';
+@use '../colors';
 
 .link {
     cursor: pointer;
-    color: $color-blue-dark;
+    color: colors.$color-blue-dark;
 }

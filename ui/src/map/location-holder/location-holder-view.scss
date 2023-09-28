@@ -1,11 +1,11 @@
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .location-holder-view {
-    color: $color-black-default;
+    color: vayla-design.$color-black-default;
     position: absolute;
     bottom: 8px;
     left: 8px;
-    background: rgba($color-white-default, 0.6);
+    background: rgba(vayla-design.$color-white-default, 0.6);
     padding: 4px 6px;
     border-radius: 4px;
 }

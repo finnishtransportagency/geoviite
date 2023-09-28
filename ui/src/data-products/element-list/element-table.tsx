@@ -60,6 +60,7 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
                         <tr>
                             {tableHeadingsToShowInUI.map((heading) => (
                                 <Th
+                                    qa-id={`data-products.element-list.element-list-table.${heading.name}`}
                                     key={heading.name}
                                     className={
                                         heading.numeric

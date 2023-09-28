@@ -1,14 +1,13 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 .exclamation-point {
     height: 15px;
     width: 15px;
-    background-color: $color-red-default;
+    background-color: vayla-design.$color-red-default;
     border-radius: 50%;
     display: inline-block;
     font-size: 10px;
-    color: $color-white-default;
+    color: vayla-design.$color-white-default;
     font-weight: bold;
     line-height: 1.5;
     text-align: center;

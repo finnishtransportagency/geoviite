@@ -1,7 +1,7 @@
-@import '../colors';
-@import '../utils';
-@import '../transitions';
-@import '../typography';
+@use '../colors';
+@use '../utils';
+@use '../transitions';
+@use '../typography';
 
 $switch-width: 40px;
 $switch-height: 20px;
@@ -11,12 +11,12 @@ $switch-border-width: 1px;
 $switch-thumb-clearance: ($switch-height - $switch-thumb-size) * 0.5 - $switch-border-width;
 $switch-thumb-movement: $switch-width - $switch-thumb-size - $switch-border-width * 2 -
     $switch-thumb-clearance * 2;
-$switch-transition-speed: $transitions-speed-fast;
+$switch-transition-speed: transitions.$transitions-speed-fast;
 $switch-thumb-pressed-width: 20px;
 
 .switch {
-    @include component-base;
-    @include no-visuals;
+    @include utils.component-base;
+    @include utils.no-visuals;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
@@ -36,8 +36,8 @@ $switch-thumb-pressed-width: 20px;
     width: $switch-width;
     height: $switch-height;
     border-radius: $switch-height;
-    border: $switch-border-width solid $color-blue-default;
-    background: $color-white-default;
+    border: $switch-border-width solid colors.$color-blue-default;
+    background: colors.$color-white-default;
     transition: all $switch-transition-speed;
 }
 
@@ -45,34 +45,34 @@ $switch-thumb-pressed-width: 20px;
     display: inline-block;
     width: $switch-thumb-size;
     height: $switch-thumb-size;
-    background: $color-blue-default;
+    background: colors.$color-blue-default;
     border-radius: $switch-thumb-size * 0.5;
     transition: all $switch-transition-speed;
 }
 
 @mixin switch-track--checked {
-    background: $color-blue-default;
+    background: colors.$color-blue-default;
 
     .switch__thumb {
-        background: $color-white-default;
+        background: colors.$color-white-default;
         transform: translateX($switch-thumb-movement);
     }
 }
 
 @mixin switch-track--hover($checked: false) {
     @if ($checked) {
-        background: $color-blue-light;
+        background: colors.$color-blue-light;
     } @else {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
     }
 }
 
 @mixin switch-track--focused($checked: false) {
     border-style: dashed;
     @if ($checked) {
-        background: $color-blue-light;
+        background: colors.$color-blue-light;
     } @else {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
     }
 }
 
@@ -90,28 +90,28 @@ $switch-thumb-pressed-width: 20px;
 
 @mixin switch-track--disabled($checked: false) {
     @if ($checked) {
-        background: $color-white-darker;
-        border-color: $color-white-darker;
+        background: colors.$color-white-darker;
+        border-color: colors.$color-white-darker;
 
         .switch__thumb {
-            background: $color-white-default;
+            background: colors.$color-white-default;
         }
     } @else {
-        background: $color-white-default;
-        border-color: $color-white-darker;
+        background: colors.$color-white-default;
+        border-color: colors.$color-white-darker;
 
         .switch__thumb {
-            background: $color-white-darker;
+            background: colors.$color-white-darker;
         }
     }
 }
 
 .switch__checkbox:checked + .switch__track {
-    @include switch-track--checked();
+    @include switch-track--checked;
 }
 
 .switch:hover:not(.switch--disabled) .switch__track {
-    @include switch-track--hover();
+    @include switch-track--hover;
 }
 
 .switch--hover:not(.switch--disabled),
@@ -123,7 +123,7 @@ $switch-thumb-pressed-width: 20px;
 
 .switch:not(.switch--disabled) {
     .switch__checkbox:focus + .switch__track {
-        @include switch-track--focused();
+        @include switch-track--focused;
     }
 
     .switch__checkbox:focus.switch__checkbox:checked + .switch__track {
@@ -131,7 +131,7 @@ $switch-thumb-pressed-width: 20px;
     }
 
     .switch__checkbox:active + .switch__track {
-        @include switch-track--pressed();
+        @include switch-track--pressed;
     }
 
     .switch__checkbox:active.switch__checkbox:checked + .switch__track {
@@ -144,7 +144,7 @@ $switch-thumb-pressed-width: 20px;
 }
 
 .switch--disabled .switch__track {
-    @include switch-track--disabled();
+    @include switch-track--disabled;
 }
 
 .switch--disabled .switch__checkbox:checked + .switch__track {
@@ -154,7 +154,7 @@ $switch-thumb-pressed-width: 20px;
 // Embedding label content into switch might be unrecommended way to layout
 // labels, but as it could be handy in some situations, let it live for now.
 .switch--has-label .switch__label {
+    @include typography.typography-body;
     display: inline-block;
     margin-left: 10px;
-    @include typography-body;
 }

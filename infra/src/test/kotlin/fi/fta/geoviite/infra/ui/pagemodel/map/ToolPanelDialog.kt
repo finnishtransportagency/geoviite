@@ -58,7 +58,7 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
             if (isDeleted) {
                 clickChild(
-                    By.xpath("div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
+                    By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
                 )
             }
         }
@@ -92,7 +92,7 @@ class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
         if (isDeleted) {
             clickChild(
-                By.xpath("div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
+                By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
             )
         }
     }

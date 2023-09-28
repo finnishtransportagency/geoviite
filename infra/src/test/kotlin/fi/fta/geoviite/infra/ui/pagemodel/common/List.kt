@@ -35,6 +35,10 @@ abstract class E2EList<T>(listFetch: ElementFetch, val itemsBy: By) : E2EViewFra
         getItemWhenMatches(check)
     }
 
+    fun waitUntilCount(count: Int): E2EList<T> = apply {
+        tryWait({ childElements(itemsBy).size == count }, { "Count did not become $count. Items: $itemElements" })
+    }
+
     private fun getElementWhenMatches(check: (T) -> Boolean): WebElement =
         tryWait<WebElement>(
             { itemElements.firstOrNull { check(it.second) }?.first },

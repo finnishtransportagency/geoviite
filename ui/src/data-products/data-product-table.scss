@@ -1,4 +1,4 @@
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .data-product-table {
     &__table-container {
@@ -13,7 +13,7 @@
     }
 
     &__overlaps-another {
-        fill: $color-lemon-dark;
+        fill: vayla-design.$color-lemon-dark;
     }
 
     &__table-heading {
@@ -31,7 +31,7 @@
         &--separator {
             border-left-width: 1px;
             border-left-style: solid;
-            border-left-color: $color-white-darker;
+            border-left-color: vayla-design.$color-white-darker;
         }
     }
 

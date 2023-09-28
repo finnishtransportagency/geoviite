@@ -1,14 +1,13 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/menu/menu';
+@use 'vayla-design-lib' as vayla-design;
+@use 'vayla-design-lib/menu/menu';
 
 $appbar-height: 48px;
 
 .app-bar {
     display: flex;
-    color: $color-white-default;
+    color: vayla-design.$color-white-default;
     align-items: center;
-    background-color: $color-blue-darker;
+    background-color: vayla-design.$color-blue-darker;
     max-height: $appbar-height;
     justify-content: space-between;
     padding-left: 16px;
@@ -26,7 +25,7 @@ $appbar-height: 48px;
     }
 
     &__title {
-        @include typography-heading;
+        @include vayla-design.typography-heading;
 
         font-weight: 400;
         display: flex;
@@ -42,69 +41,70 @@ $appbar-height: 48px;
         margin: 0 24px;
     }
 
-    &__link {
-        @include typography-body-strong;
-
-        white-space: nowrap;
-        display: inline-block;
-        line-height: $appbar-height;
-        height: $appbar-height - 4px;
-        padding: 0 12px;
-        cursor: pointer;
-        text-decoration: none;
-        color: inherit;
-        transition: border-bottom-color 160ms cubic-bezier(0.61, 1, 0.88, 1);
-        border-bottom: 4px solid transparent;
-
-        &:hover {
-            color: $color-blue-light;
-        }
-
-        &--infra-model-with-exclamation-point {
-            padding: 0 20px;
-        }
-
-        &--active {
-            color: $color-blue-light;
-            border-bottom-color: $color-blue-light;
-        }
-
-        &--container {
-            position: relative;
-        }
-        &--exclamation-point {
-            position: absolute;
-            right: -20px;
-            bottom: -9px;
-        }
-    }
-
     &__data-menu-button {
         user-select: none;
 
         &--active {
             user-select: none;
-            color: $color-blue-light;
-            border-bottom-color: $color-blue-light;
+            color: vayla-design.$color-blue-light;
+            border-bottom-color: vayla-design.$color-blue-light;
         }
     }
 
     &__data-menu {
         @extend .menu;
-        background: $color-blue-darker;
+        background: vayla-design.$color-blue-darker;
+    }
 
-        &-item {
-            @extend .menu__item;
+    &__data-menu-item {
+        @extend .menu__item;
 
-            > a {
-                color: $color-white-default;
-                text-decoration: none;
-            }
-
-            &:hover:not(.menu__item--disabled) {
-                background: $color-blue-dark;
-                text-decoration: underline $color-blue-dark;
-            }
+        > a {
+            color: vayla-design.$color-white-default;
+            text-decoration: none;
         }
+
+        &:hover:not(.menu__item--disabled) {
+            background: vayla-design.$color-blue-dark;
+            text-decoration: underline vayla-design.$color-blue-dark;
+        }
+    }
+}
+
+.app-bar__link {
+    @include vayla-design.typography-body-strong;
+
+    white-space: nowrap;
+    display: inline-block;
+    line-height: $appbar-height;
+    height: $appbar-height - 4px;
+    padding: 0 12px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: border-bottom-color 160ms cubic-bezier(0.61, 1, 0.88, 1);
+    border-bottom: 4px solid transparent;
+
+    &:hover {
+        color: vayla-design.$color-blue-light;
+    }
+
+    &--infra-model-with-exclamation-point {
+        padding: 0 20px;
+    }
+
+    &--active {
+        color: vayla-design.$color-blue-light;
+        border-bottom-color: vayla-design.$color-blue-light;
+    }
+
+    &--container {
+        position: relative;
+    }
+
+    &--exclamation-point {
+        position: absolute;
+        right: -20px;
+        bottom: -9px;
     }
 }

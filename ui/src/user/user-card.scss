@@ -1,13 +1,12 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .user-card {
     padding-top: 12px;
 
     &__username-title {
-        @include typography-sub-heading;
+        @include vayla-design.typography-sub-heading;
 
-        color: $color-black-lighter;
+        color: vayla-design.$color-black-lighter;
     }
 
     &__show-more {
@@ -16,13 +15,13 @@
 
     &__role-title,
     &__permissions-title {
-        @include typography-sub-heading;
+        @include vayla-design.typography-sub-heading;
 
-        color: $color-black-lighter;
+        color: vayla-design.$color-black-lighter;
         margin-bottom: 2px;
     }
 
     &__username {
-        @include typography-heading-small;
+        @include vayla-design.typography-heading-small;
     }
 }

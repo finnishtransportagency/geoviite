@@ -76,7 +76,7 @@ DatePickerInput.displayName = 'DatePickerInput';
 
 export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...props }) => {
     return (
-        <div className={styles['datepicker']}>
+        <div className={'datepicker'}>
             <ReactDatePicker
                 renderCustomHeader={getHeaderElement}
                 dateFormat="dd.MM.yyyy"

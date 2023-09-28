@@ -155,9 +155,8 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
             variant={DialogVariant.LIGHT}
             allowClose={!isReverting}
             onClose={cancelRevertChanges}
-            className={dialogStyles['dialog--normal']}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button
                         onClick={cancelRevertChanges}
                         disabled={isReverting}
@@ -175,7 +174,7 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
                         }}>
                         {t('publish.revert-confirm.confirm')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             <div>{`${t('publish.revert-confirm.description')} ${t(
                 `publish.revert-confirm.revert-target.${typeTranslationKey(

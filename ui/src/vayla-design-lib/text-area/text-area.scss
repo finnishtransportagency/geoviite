@@ -1,7 +1,7 @@
-@import '../typography';
-@import '../utils';
-@import '../colors';
-@import '../size';
+@use '../typography';
+@use '../utils';
+@use '../colors';
+@use '../size';
 
 $text-area-input-height: 6em;
 $text-area-input-padding-side: 12px;
@@ -23,7 +23,7 @@ $text-area-input-border-thick: 2px;
 }
 
 .text-area {
-    @include component-base;
+    @include utils.component-base;
     position: relative;
     display: inline-flex;
 }
@@ -39,20 +39,20 @@ $text-area-input-border-thick: 2px;
     justify-content: end;
     right: 12px;
     top: 12px;
-    fill: $color-black-light;
+    fill: colors.$color-black-light;
 }
 
 .text-area__input-element {
-    @include typography-input;
+    @include typography.typography-input;
 
     height: $text-area-input-height;
 
-    color: $color-black-default;
-    background: $color-white-default;
+    color: colors.$color-black-default;
+    background: colors.$color-white-default;
 
     outline: none;
     @include text-area-border(
-        $color: $color-black-lighter,
+        $color: colors.$color-black-lighter,
         $width: $text-area-input-border-default,
         $has-icon: false
     );
@@ -81,7 +81,7 @@ $text-area-input-border-thick: 2px;
 .text-area:hover:not(.text-area--disabled) {
     .text-area__input-element {
         @include text-area-border(
-            $color: $color-black-lighter,
+            $color: colors.$color-black-lighter,
             $width: $text-area-input-border-thick,
             $has-icon: false
         );
@@ -89,7 +89,7 @@ $text-area-input-border-thick: 2px;
 
     &.text-area--with-icon .text-area__input-element {
         @include text-area-border(
-            $color: $color-black-lighter,
+            $color: colors.$color-black-lighter,
             $width: $text-area-input-border-thick,
             $has-icon: true
         );
@@ -101,7 +101,7 @@ $text-area-input-border-thick: 2px;
 .text-area--focus {
     .text-area__input-element {
         @include text-area-border(
-            $color: $color-blue-dark,
+            $color: colors.$color-blue-dark,
             $width: $text-area-input-border-thick,
             $has-icon: false
         );
@@ -109,7 +109,7 @@ $text-area-input-border-thick: 2px;
 
     &.text-area--with-icon .text-area__input-element {
         @include text-area-border(
-            $color: $color-blue-dark,
+            $color: colors.$color-blue-dark,
             $width: $text-area-input-border-thick,
             $has-icon: true
         );
@@ -121,7 +121,7 @@ $text-area-input-border-thick: 2px;
 .text-area--has-error {
     .text-area__input-element {
         @include text-area-border(
-            $color: $color-red-dark,
+            $color: colors.$color-red-dark,
             $width: $text-area-input-border-thick,
             $has-icon: false
         );
@@ -129,14 +129,14 @@ $text-area-input-border-thick: 2px;
 
     &.text-area--with-icon .text-area__input-element {
         @include text-area-border(
-            $color: $color-red-dark,
+            $color: colors.$color-red-dark,
             $width: $text-area-input-border-thick,
             $has-icon: true
         );
     }
 
     .text-area__icon {
-        fill: $color-red-dark;
+        fill: colors.$color-red-dark;
     }
 }
 
@@ -144,21 +144,21 @@ $text-area-input-border-thick: 2px;
 
 .text-area--disabled {
     .text-area__icon {
-        fill: $color-black-lighter;
+        fill: colors.$color-black-lighter;
     }
 
     .text-area__input-element {
         @include text-area-border(
-            $color: $color-white-darker,
+            $color: colors.$color-white-darker,
             $width: $text-area-input-border-default,
             $has-icon: false
         );
-        color: $color-black-lighter;
+        color: colors.$color-black-lighter;
     }
 
     &.text-area--with-icon .text-area__input-element {
         @include text-area-border(
-            $color: $color-white-darker,
+            $color: colors.$color-white-darker,
             $width: $text-area-input-border-default,
             $has-icon: true
         );

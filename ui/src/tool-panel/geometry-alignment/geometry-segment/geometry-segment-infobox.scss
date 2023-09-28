@@ -1,7 +1,6 @@
-@import '../../../vayla-design-lib/typography';
-@import '../../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .geometry-segment__no-data-text {
-    @include typography-body;
-    color: $color-black-light;
+    @include vayla-design.typography-body;
+    color: vayla-design.$color-black-light;
 }
