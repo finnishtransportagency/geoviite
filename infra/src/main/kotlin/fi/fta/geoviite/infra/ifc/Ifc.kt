@@ -62,7 +62,7 @@ data class IfcDataEntity(val id: IfcEntityId, val content: IfcEntity) : IfcConte
     override val name: IfcName get() = content.name
 
     private constructor(idAndContent: Pair<String, String>) : this(
-        id = IfcEntityId(idAndContent.first),
+        id = IfcEntityId.valueOf(idAndContent.first),
         content = IfcEntity(idAndContent.second),
     )
 
@@ -101,6 +101,7 @@ data class IfcName private constructor(private val value: String) : IfcContentPa
 
         // TypeNames come from a limited dictionary: Cache them so that the object is only created once per string
         private val typeNameCache: MutableMap<String, IfcName> = ConcurrentHashMap()
+        val cacheSize: Int get() = typeNameCache.size
         fun valueOf(value: String) = typeNameCache.computeIfAbsent(value, ::IfcName)
     }
 

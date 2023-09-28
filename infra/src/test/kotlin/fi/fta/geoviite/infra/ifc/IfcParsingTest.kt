@@ -12,30 +12,6 @@ import kotlin.test.assertEquals
 
 class IfcParsingTest {
 
-    @Disabled
-    @Test
-    fun testParsing() {
-        for (file in listOf(
-            "Hierarkiasilta.ifc",
-            "Case 1 validoitu 10102018.ifc",
-            "Case 2 validoitu 11102018.ifc",
-            "Case 2 validoitu 20190408.ifc",
-            "Case 2 validoitu 20200115.ifc",
-            "Case 3 validoitu 10102018.ifc",
-        )) {
-            val filePath = "../../IFC-mallit/$file"
-            val attributes = Files.readAttributes(Path(filePath), BasicFileAttributes::class.java)
-            println("Parsing IFC: path=$filePath ${attributes.size()}")
-            val startTime = Instant.now()
-            val parsed = parseIfcFromPath(filePath)
-            val duration = Duration.between(startTime, Instant.now())
-            println(
-                "Done parsing: duration=${duration} dataLines=${parsed.data.linesById.size} header=${parsed.header.contentLines}"
-            )
-            println("Projects: ${parsed.getDereferenced(IfcName.valueOf("IFCPROJECT"))}")
-        }
-    }
-
     @Test
     fun `Basic IFC parsing works`() {
         val ifcString = """
@@ -98,5 +74,57 @@ class IfcParsingTest {
             assertEquals(row3, dereferenced.getEntityField(3))
             assertEquals(ifcString("Sub entity value 3"), dereferenced.getStringField(3, 1))
         }
+    }
+
+    @Disabled
+    @Test
+    fun `Test parsing local files`() {
+        for (file in listOf(
+            "Hierarkiasilta.ifc",
+            "Case 1 validoitu 10102018.ifc",
+            "Case 2 validoitu 11102018.ifc",
+            "Case 2 validoitu 20190408.ifc",
+            "Case 2 validoitu 20200115.ifc",
+            "Case 3 validoitu 10102018.ifc",
+        )) {
+            val filePath = "../../IFC-mallit/$file"
+            val attributes = Files.readAttributes(Path(filePath), BasicFileAttributes::class.java)
+            println("Parsing IFC: path=$filePath ${attributes.size()}")
+            val startTime = Instant.now()
+            val parsed = parseIfcFromPath(filePath)
+            val duration = Duration.between(startTime, Instant.now())
+            println(
+                "Done parsing: duration=${duration} dataLines=${parsed.data.linesById.size} header=${parsed.header.contentLines}"
+            )
+            println("Projects: ${parsed.getDereferenced(IfcName.valueOf("IFCPROJECT"))}")
+            println(countData(parsed.data.linesById.map { (_, v) -> v.content }))
+            println("Cache counts: id=${IfcEntityId.cacheSize} enum=${IfcEntityEnum.cacheSize} name=${IfcName.cacheSize}")
+        }
+    }
+
+    private fun countData(values: List<IfcEntityAttribute>): Map<String, Int> {
+        val counts = mutableMapOf<String, Int>()
+        val plusOne = { _: String, c: Int? -> (c ?: 0) + 1 }
+        values.forEach { v ->
+            when (v) {
+                is IfcEntity -> {
+                    counts.compute("ENTITY", plusOne)
+                    countData(v.content.items).forEach { (k, v) -> counts.compute(k) { _, c -> (c ?: 0) + v } }
+                }
+
+                is IfcEntityList -> {
+                    counts.compute("LIST", plusOne)
+                    countData(v.items).forEach { (k, v) -> counts.compute(k) { _, c -> (c ?: 0) + v } }
+                }
+
+                is IfcEntityId -> counts.compute("ID", plusOne)
+                is IfcEntityNumber -> counts.compute("NUMBER", plusOne)
+                is IfcEntityString -> counts.compute("STRING", plusOne)
+                is IfcEntityEnum -> counts.compute("ENUM", plusOne)
+                is IfcEntityMissingValue -> counts.compute("NULL", plusOne)
+                else -> counts.compute("OTHER", plusOne)
+            }
+        }
+        return counts
     }
 }

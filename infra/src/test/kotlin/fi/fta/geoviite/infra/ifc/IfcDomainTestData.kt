@@ -8,7 +8,7 @@ fun ifc(vararg dataLines: IfcDataEntity) = Ifc(
 fun ifcDataEntity(id: Int, name: String, vararg content: IfcEntityAttribute) =
     IfcDataEntity(ifcId(id), IfcEntity(ifcName(name), IfcEntityList(content.toList())))
 
-fun ifcId(idNumber: Int) = IfcEntityId("${IfcEntityId.PREFIX}$idNumber")
+fun ifcId(idNumber: Int) = IfcEntityId.valueOf(idNumber)
 
 fun ifcName(value: String) = IfcName.valueOf(value)
 

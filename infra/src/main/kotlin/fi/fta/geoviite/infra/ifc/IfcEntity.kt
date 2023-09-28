@@ -86,20 +86,20 @@ data class IfcEntityId private constructor(val number: Int) : IfcEntityAttribute
     companion object {
         const val PREFIX = '#'
         private val entityIdCache: MutableMap<Int, IfcEntityId> = ConcurrentHashMap()
-        fun valueOf(number: Int) = entityIdCache.computeIfAbsent(number, ::IfcEntityId)
-    }
+        val cacheSize: Int get() = entityIdCache.size
 
-    constructor(stringFormat: String) : this(stringFormat.let { string ->
-        require(string.startsWith(PREFIX)) { "Data line ID should start with $PREFIX" }
-        val numberPart = string.drop(1)
-        require(numberPart.all(Char::isDigit)) { "Data line ID should be numeric" }
-        numberPart.toInt()
-    })
+        fun valueOf(number: Int) = entityIdCache.computeIfAbsent(number, ::IfcEntityId)
+        fun valueOf(stringFormat: String): IfcEntityId {
+            require(stringFormat.startsWith(PREFIX)) { "Data line ID should start with $PREFIX" }
+            val numberPart = stringFormat.drop(1)
+            require(numberPart.all(Char::isDigit)) { "Data line ID should be numeric" }
+            return valueOf(numberPart.toInt())
+        }
+    }
 
     override fun toString() = "$PREFIX$number"
 
-    override fun dereference(ifc: Ifc): IfcEntity =
-        ifc.get(this).dereference(ifc).also { println("Dereferenced ${it.name}") }
+    override fun dereference(ifc: Ifc): IfcEntity = ifc.get(this).dereference(ifc)
 }
 
 data class IfcEntityList(val items: List<IfcEntityAttribute>) : IfcEntityAttribute, IfcEntityAttributeContainer {
@@ -159,6 +159,7 @@ data class IfcEntityEnum private constructor(val value: String) : IfcEntityAttri
 
         // Enum values come from a limited dictionary: Cache them so that the object is only created once per string
         private val entityEnumCache: MutableMap<String, IfcEntityEnum> = ConcurrentHashMap()
+        val cacheSize: Int get() = entityEnumCache.size
         fun valueOf(value: String) = entityEnumCache.computeIfAbsent(value, ::IfcEntityEnum)
     }
 
