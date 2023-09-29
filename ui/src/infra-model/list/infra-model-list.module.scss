@@ -1,5 +1,9 @@
 @use 'vayla-design-lib' as vayla-design;
-@use 'react-widgets/styles';
+@use 'react-widgets/scss/styles' with (
+    $components: (
+        'Multiselect',
+    )
+);
 
 .infra-model-list {
     display: flex;
