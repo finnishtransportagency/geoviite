@@ -324,3 +324,12 @@ export type VerticalGeometryItem = {
     layoutPointStation?: number;
     layoutEndStation?: number;
 };
+
+export type VerticalGeometryDiagramDisplayItem = Omit<
+    VerticalGeometryItem,
+    'layoutStartStation' | 'layoutPointStation' | 'layoutEndStation' | 'start' | 'point' | 'end'
+> & {
+    start: CircularCurve | undefined;
+    point: StationPoint | undefined;
+    end: CircularCurve | undefined;
+};
