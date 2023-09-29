@@ -176,45 +176,30 @@ export function sumPaddings(p1: string, p2: string) {
     return parseFloat(p1) + parseFloat(p2);
 }
 
-function isLayoutGeometryItem(verticalGeometryItem: VerticalGeometryItem): boolean {
-    const layoutGeometryKeys: Array<keyof VerticalGeometryItem> = [
-        'layoutStartStation',
-        'layoutPointStation',
-        'layoutEndStation',
-    ];
-
-    return layoutGeometryKeys.some((layoutKey) => verticalGeometryItem[layoutKey] !== undefined);
-}
-
 export function substituteLayoutStationsForGeometryStations(
     geometryItem: VerticalGeometryItem,
 ): VerticalGeometryDiagramDisplayItem {
-    const [start, point, end] = isLayoutGeometryItem(geometryItem)
-        ? [
-              geometryItem.layoutStartStation,
-              geometryItem.layoutPointStation,
-              geometryItem.layoutEndStation,
-          ]
-        : [geometryItem.start.station, geometryItem.point.station, geometryItem.end.station];
-
     return {
         ...geometryItem,
-        start: start
+
+        start: geometryItem.layoutStartStation
             ? {
                   ...geometryItem.start,
-                  station: start,
+                  station: geometryItem.layoutStartStation,
               }
             : undefined,
-        point: point
+
+        point: geometryItem.layoutPointStation
             ? {
                   ...geometryItem.point,
-                  station: point,
+                  station: geometryItem.layoutPointStation,
               }
             : undefined,
-        end: end
+
+        end: geometryItem.layoutEndStation
             ? {
                   ...geometryItem.end,
-                  station: end,
+                  station: geometryItem.layoutEndStation,
               }
             : undefined,
     };
