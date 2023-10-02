@@ -32,6 +32,12 @@ class RatkoClientConfiguration @Autowired constructor(
     @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
 ) {
 
+    init {
+        require(ratkoBaseUrl.isNotBlank()) { "RatkoClientConfiguration requires ratkoBaseUrl" }
+        require(basicAuthUsername.isNotBlank()) { "RatkoClientConfiguration requires basicAuthUsername" }
+        require(basicAuthPassword.isNotBlank()) { "RatkoClientConfiguration requires basicAuthPassword" }
+    }
+
     private val logger: Logger = LoggerFactory.getLogger(RatkoClient::class.java)
 
     @Bean

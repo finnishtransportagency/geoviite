@@ -38,6 +38,13 @@ class PVClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.secret_key:}") private val projektiVelhoPassword: String,
 ) {
 
+    init {
+        require(projektiVelhoBaseUrl.isNotBlank()) { "PVClientConfiguration requires projektiVelhoBaseUrl" }
+        require(projektiVelhoAuthUrl.isNotBlank()) { "PVClientConfiguration requires projektiVelhoAuthUrl" }
+        require(projektiVelhoUsername.isNotBlank()) { "PVClientConfiguration requires projektiVelhoUsername" }
+        require(projektiVelhoPassword.isNotBlank()) { "PVClientConfiguration requires projektiVelhoPassword" }
+    }
+
     private val logger: Logger = LoggerFactory.getLogger(PVClient::class.java)
 
     @Bean
