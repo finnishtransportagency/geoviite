@@ -2,15 +2,14 @@
 
 .form-layout {
     position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-gap: 24px;
     min-height: 400px;
     padding-bottom: 60px;
-}
 
-.form-layout__column {
-    zoom: 1;
+    &--double-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 24px;
+    }
 }
 
 .form-layout__glass {

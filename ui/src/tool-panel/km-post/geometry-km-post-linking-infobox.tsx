@@ -124,7 +124,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
             <Infobox
                 contentVisible={contentVisible}
                 onContentVisibilityChange={onContentVisibilityChange}
-                className={styles['geometry-km-post-linking-infobox']}
+                className="geometry-km-post-linking-infobox"
                 title={t('tool-panel.km-post.geometry.linking.title')}
                 qa-id="geometry-km-post-linking-infobox">
                 <InfoboxContent>

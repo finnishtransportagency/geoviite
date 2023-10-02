@@ -89,15 +89,20 @@ fun toElementListing(
     val lengthOfSegmentsConnectedToSameElement = linkedElementIds.groupBy { it.second }.map {
         it.key to it.value.sumOf { (segment, _) -> segment.length }
     }
-    val distinctLinkedElementIds = linkedElementIds.distinctBy { (segment, elementId) -> elementId ?: segment.id }
-    val linkedAlignmentIds = distinctLinkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
+    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
     val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
-    return distinctLinkedElementIds.mapNotNull { (segment, elementId) ->
+
+    return linkedElementIds.mapNotNull { (segment, elementId) ->
         if (elementId == null) {
-            if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment, track, getSwitchName)
+            if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(
+                context,
+                track.trackNumberId,
+                segment,
+                track,
+                getSwitchName
+            )
             else null
-        }
-        else {
+        } else {
             val (planHeader, alignment) = headersAndAlignments[getAlignmentId(elementId)]
                 ?: throw IllegalStateException("Failed to fetch geometry alignment for element: element=$elementId")
             val element = alignment.elements.find { e -> e.id == elementId } ?: throw IllegalStateException(
@@ -148,7 +153,7 @@ private fun toMissingElementListing(
     locationTrack: LocationTrack,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
 ) = ElementListing(
-    id = StringId("EL_${segment.id.stringFormat()}"),
+    id = StringId("MEL_${segment.id.stringFormat()}"),
     planId = null,
     planSource = null,
     fileName = null,

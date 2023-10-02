@@ -76,9 +76,8 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
                     </thead>
                     <tbody>
                         {elements.map((item) => (
-                            <React.Fragment key={`${item.id}`}>
+                            <React.Fragment key={item.id}>
                                 <ElementTableItem
-                                    id={item.alignmentId}
                                     trackNumber={
                                         trackNumbers?.find((tn) => tn.id === item.trackNumberId)
                                             ?.number
