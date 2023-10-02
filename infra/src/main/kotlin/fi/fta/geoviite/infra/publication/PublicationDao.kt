@@ -530,7 +530,7 @@ class PublicationDao(
                     rs.getString(it)?.let(::FreeText)
                 },
                 descriptionSuffix = rs.getChange("description_suffix") {
-                    rs.getEnum<DescriptionSuffixType>(it)
+                    rs.getEnumOrNull<DescriptionSuffixType>(it)
                 },
                 endPoint = rs.getChangePoint("end_x", "end_y"),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
