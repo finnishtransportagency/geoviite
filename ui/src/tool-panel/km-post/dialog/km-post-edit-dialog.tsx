@@ -315,47 +315,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             }
                         />
                     </FormLayoutColumn>
-                    <FormLayoutColumn>
-                        <Heading size={HeadingSize.SUB}>
-                            {t('km-post-dialog.info-from-linking')}
-                        </Heading>
-                        <FieldLayout
-                            label={t('km-post-dialog.location')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('km-post-dialog.coordinate-system')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('km-post-dialog.coordinates')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                    </FormLayoutColumn>
                 </FormLayout>
             </Dialog>
             {nonDraftDeleteConfirmationVisible && (

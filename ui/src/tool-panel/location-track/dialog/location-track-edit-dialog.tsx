@@ -340,7 +340,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         </div>
                     </React.Fragment>
                 }>
-                <FormLayout isProcessing={isProcessing(state)}>
+                <FormLayout isProcessing={isProcessing(state)} doubleColumn>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.basic-info-heading')}
