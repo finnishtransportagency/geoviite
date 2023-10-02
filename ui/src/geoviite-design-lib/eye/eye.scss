@@ -1,14 +1,13 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 .eye {
     cursor: pointer;
     margin-left: auto;
     transition: fill 150ms;
-    fill: $color-white-darker;
+    fill: vayla-design.$color-white-darker;
     padding-left: 4px;
 
     &--visible {
-        fill: $color-blue-default;
+        fill: vayla-design.$color-blue-default;
     }
 }

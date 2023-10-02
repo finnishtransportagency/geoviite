@@ -1,7 +1,6 @@
 import { Point as OlPoint } from 'ol/geom';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
@@ -14,6 +13,7 @@ import {
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
+import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 
 let newestLayerId = 0;
 
@@ -36,7 +36,7 @@ export function createLocationTrackBadgeLayer(
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
         inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
+        getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
             .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
 
@@ -50,7 +50,9 @@ export function createLocationTrackBadgeLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });

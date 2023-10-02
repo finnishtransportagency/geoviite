@@ -2,7 +2,7 @@ import { Point as OlPoint } from 'ol/geom';
 import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
     AlignmentDataHolder,
-    getMapAlignmentsByTiles,
+    getReferenceLineMapAlignmentsByTiles,
     getTrackMeter,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
@@ -200,7 +200,7 @@ export function createTrackNumberEndPointAddressesLayer(
     let inFlight = false;
     if (resolution <= Limits.ALL_ALIGNMENTS) {
         inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
+        getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
             .then((referenceLines) => {
                 const showAll = Object.values(layerSettings).every((s) => !s.selected);
                 const filteredReferenceLines = showAll
@@ -228,7 +228,9 @@ export function createTrackNumberEndPointAddressesLayer(
                     vectorSource.addFeatures(features);
                 }
             })
-            .catch(() => clearFeatures(vectorSource))
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
             .finally(() => {
                 inFlight = false;
             });

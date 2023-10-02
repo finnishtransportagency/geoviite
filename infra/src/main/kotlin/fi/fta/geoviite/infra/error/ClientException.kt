@@ -7,9 +7,11 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.*
 import kotlin.reflect.KClass
 
+typealias LocalizationParams = Map<String, String?>
+
 interface HasLocalizeMessageKey {
     val localizedMessageKey: LocalizationKey
-    val localizedMessageParams: List<String>
+    val localizedMessageParams: LocalizationParams
 }
 
 sealed class ClientException(
@@ -17,14 +19,14 @@ sealed class ClientException(
     message: String,
     cause: Throwable? = null,
     override val localizedMessageKey: LocalizationKey,
-    override val localizedMessageParams: List<String> = listOf(),
+    override val localizedMessageParams: LocalizationParams = emptyMap(),
 ) : RuntimeException(message, cause), HasLocalizeMessageKey {
     constructor(
         status: HttpStatus,
         message: String,
         cause: Throwable?,
         localizedMessageKey: String,
-        localizedMessageParams: List<String> = listOf(),
+        localizedMessageParams: LocalizationParams = emptyMap(),
     ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
 }
 
@@ -74,7 +76,7 @@ class InframodelParsingException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = INFRAMODEL_PARSING_KEY_GENERIC,
-    localizedMessageParams: List<String> = listOf(),
+    localizedMessageParams: LocalizationParams = emptyMap(),
 ) : ClientException(
     BAD_REQUEST, "InfraModel could not be parsed: $message", cause, localizedMessageKey, localizedMessageParams
 )
@@ -100,7 +102,7 @@ class DuplicateNameInPublicationException(
     "Duplicate $type in publication: $duplicatedName",
     cause,
     localizedMessageKey = "error.publication.duplicate-name-on.${if (type == DuplicateNameInPublication.SWITCH) "switch" else "track-number"}",
-    localizedMessageParams = listOf(duplicatedName),
+    localizedMessageParams = mapOf("name" to duplicatedName),
 )
 
 class DuplicateLocationTrackNameInPublicationException(
@@ -112,7 +114,7 @@ class DuplicateLocationTrackNameInPublicationException(
     "Duplicate location track $alignmentName in $trackNumber",
     cause,
     localizedMessageKey = "error.publication.duplicate-name-on.location-track",
-    localizedMessageParams = listOf(alignmentName.toString(), trackNumber.value)
+    localizedMessageParams = mapOf("locationTrack" to alignmentName.toString(), "trackNumber" to trackNumber.value)
 )
 
 

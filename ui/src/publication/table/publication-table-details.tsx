@@ -52,10 +52,10 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                         <td>{formatValue(change.value.newValue, change.value.localizationKey)}</td>
                         <td>
                             {change.remark
-                                ? t(`publication-details-table.remark.${change.remark.key}`, [
-                                      change.remark.value,
-                                  ])
-                                : undefined}
+                                ? t(`publication-details-table.remark.${change.remark.key}`, {
+                                      value: change.remark.value,
+                                  })
+                                : ''}
                         </td>
                     </tr>
                 ))}

@@ -1,14 +1,14 @@
-@import '../colors';
-@import '../shadows';
-@import '../typography';
-@import '../layers';
+@use '../colors';
+@use '../shadows';
+@use '../typography';
+@use '../layers';
 
 .datepicker {
     &__current-month {
-        @include typography-sub-heading;
+        @include typography.typography-sub-heading;
 
         line-height: 24px;
-        color: $color-blue-dark;
+        color: colors.$color-blue-dark;
     }
 
     &__navigation {
@@ -31,70 +31,82 @@
             transform: rotate(0);
         }
     }
+}
 
-    .react-datepicker-popper {
-        z-index: $layer-popup;
+.react-datepicker-popper {
+    z-index: layers.$layer-popup;
+}
+
+.react-datepicker {
+    @include shadows.shadow-16dp;
+    @include typography.typography-caption;
+
+    user-select: none;
+    padding: 12px;
+    background-color: colors.$color-white-default;
+    border-radius: 8px;
+
+    &__week-number {
+        border-right: 1px solid colors.$color-white-darker;
     }
 
-    .react-datepicker {
-        @include shadow-16dp;
-        @include typography-caption;
+    &__day,
+    &__day-names,
+    &__week-number {
+        text-align: center;
+        line-height: 24px;
+    }
 
-        user-select: none;
-        padding: 12px;
-        background-color: $color-white-default;
-        border-radius: 8px;
+    &__day-names {
+        color: colors.$color-black-light;
+        margin-bottom: 2px;
+    }
 
-        &__day {
-            cursor: pointer;
-            border-radius: 50%;
-            transition: background-color 50ms;
+    &__day-names,
+    &__week {
+        display: grid;
+        grid-template-columns: repeat(8, 24px);
+        grid-template-rows: 24px;
+        grid-column-gap: 4px;
+    }
 
-            &--today {
-                color: $color-blue-default;
-            }
+    &__aria-live {
+        position: absolute;
+        clip-path: circle(0);
+        border: 0;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        width: 1px;
+        white-space: nowrap;
+    }
 
-            &--outside-month {
-                color: $color-black-lighter;
-            }
+    &__day {
+        cursor: pointer;
+        border-radius: 50%;
+        transition: background-color 50ms;
 
-            &--selected {
-                background-color: $color-blue-default;
-                color: $color-white-default;
-            }
-
-            &:hover:not(&--selected) {
-                background-color: $color-blue-lighter;
-            }
-
-            &:focus,
-            &:focus-visible {
-                outline: 1px solid $color-blue-default;
-            }
+        &--today {
+            color: colors.$color-blue-default;
         }
 
-        &__week-number {
-            border-right: 1px solid $color-white-darker;
+        &--outside-month {
+            color: colors.$color-black-lighter;
         }
 
-        &__day,
-        &__day-names,
-        &__week-number {
-            text-align: center;
-            line-height: 24px;
+        &--selected {
+            background-color: colors.$color-blue-default;
+            color: colors.$color-white-default;
         }
 
-        &__day-names {
-            color: $color-black-light;
-            margin-bottom: 2px;
+        &:hover:not(&--selected) {
+            background-color: colors.$color-blue-lighter;
         }
 
-        &__day-names,
-        &__week {
-            display: grid;
-            grid-template-columns: repeat(8, 24px);
-            grid-template-rows: 24px;
-            grid-column-gap: 4px;
+        &:focus,
+        &:focus-visible {
+            outline: 1px solid colors.$color-blue-default;
         }
     }
 }

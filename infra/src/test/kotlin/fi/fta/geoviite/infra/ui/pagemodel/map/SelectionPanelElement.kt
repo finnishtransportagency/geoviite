@@ -70,7 +70,7 @@ abstract class E2ESelectionList<T : E2ESelectionListItem>(
     private val getContent: (child: WebElement) -> T,
     itemsBy: By = byLiTag,
 ) : E2EList<T>(listFetch, itemsBy) {
-    override fun getItemContent(item: WebElement) = this.getContent(item)
+    override fun getItemContent(item: WebElement) = getContent(item)
 
     fun selectByName(name: String) = selectItemWhenMatches { it.name == name }
 }

@@ -1,39 +1,38 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
-@import '../geoviite-colors';
+@use 'vayla-design-lib' as vayla-design;
+@use 'geoviite-design-lib' as geoviite-design;
 
 .km-post-badge {
-    @include typography-body-strong;
+    @include vayla-design.typography-body-strong;
     font-size: 10px;
 
     display: inline-flex;
     align-items: center;
-    background-color: $color-white-default;
-    border: 1px solid rgba($color-black-default, 0.6);
+    background-color: vayla-design.$color-white-default;
+    border: 1px solid rgba(vayla-design.$color-black-default, 0.6);
     border-radius: 2px;
     user-select: none;
     padding: 3px 6px;
     height: 16px;
 
     &--linked {
-        background-color: $color-green-lighter;
-        border-color: rgba($color-black-default, 0.5);
+        background-color: vayla-design.$color-green-lighter;
+        border-color: rgba(vayla-design.$color-black-default, 0.5);
     }
 
     &--unlinked {
-        background-color: $color-red-lighter;
-        border-color: rgba($color-black-default, 0.5);
+        background-color: vayla-design.$color-red-lighter;
+        border-color: rgba(vayla-design.$color-black-default, 0.5);
     }
 
     &--selected {
-        border-color: $color-geoviite-blue;
-        color: $color-geoviite-blue;
+        border-color: geoviite-design.$color-geoviite-blue;
+        color: geoviite-design.$color-geoviite-blue;
     }
 
     &--disabled {
-        background-color: $color-white-dark;
-        border-color: rgba($color-black-default, 0.3);
-        color: $color-black-light;
+        background-color: vayla-design.$color-white-dark;
+        border-color: rgba(vayla-design.$color-black-default, 0.3);
+        color: vayla-design.$color-black-light;
     }
 
     &--clickable {

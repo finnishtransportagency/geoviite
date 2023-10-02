@@ -13,7 +13,7 @@ import { getSnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates, xToM } from 'vertical-geometry/coordinates';
 import { getBottomAndTopTicks, sumPaddings, zeroSafeDivision } from 'vertical-geometry/util';
 import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
-import { VerticalGeometryItem } from 'geometry/geometry-model';
+import { VerticalGeometryDiagramDisplayItem } from 'geometry/geometry-model';
 import {
     findTrackMeterIndexContainingM,
     getTrackMeterPairAroundIndex,
@@ -31,7 +31,7 @@ const minimumPixelWidthToDrawTangentArrows = 0.05;
 
 type VerticalGeometryDiagramProps = {
     kmHeights: TrackKmHeights[];
-    geometry: VerticalGeometryItem[];
+    geometry: VerticalGeometryDiagramDisplayItem[];
     visibleStartM: number;
     visibleEndM: number;
     startM: number;
@@ -241,10 +241,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                         planLinkingSummary={linkingSummary}
                         planLinkingOnSelect={onSelect}
                     />
-                    <DisplayedPositionGuide
-                        coordinates={coordinates}
-                        planLinkingSummary={linkingSummary}
-                    />
+                    <DisplayedPositionGuide coordinates={coordinates} maxMeters={endM} />
                     <Translate x={0} y={240}>
                         <TrackAddressRuler
                             kmHeights={kmHeights}

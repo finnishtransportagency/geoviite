@@ -1,14 +1,14 @@
-@import '../typography';
+@use '../typography';
 
 .heading {
-    @include typography-heading;
+    @include typography.typography-heading;
     margin: 5px 0 10px;
 }
 
 .heading--small {
-    @include typography-heading-small;
+    @include typography.typography-heading-small;
 }
 
 .heading--sub {
-    @include typography-sub-heading;
+    @include typography.typography-sub-heading;
 }

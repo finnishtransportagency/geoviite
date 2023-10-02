@@ -52,25 +52,22 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
     };
 
     return (
-        <React.Fragment>
-            <Dialog
-                title={t('tool-panel.track-number.delete-dialog.delete-draft-confirm')}
-                variant={DialogVariant.DARK}
-                allowClose={false}
-                className={dialogStyles['dialog--narrow']}
-                footerContent={
-                    <React.Fragment>
-                        <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
-                            {t('button.cancel')}
-                        </Button>
-                        <Button onClick={() => deleteDraftLocationTrack(id)}>
-                            {t('button.delete')}
-                        </Button>
-                    </React.Fragment>
-                }>
-                <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>
-            </Dialog>
-        </React.Fragment>
+        <Dialog
+            title={t('tool-panel.track-number.delete-dialog.delete-draft-confirm')}
+            variant={DialogVariant.DARK}
+            allowClose={false}
+            footerContent={
+                <div className={dialogStyles['dialog__footer-content--centered']}>
+                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button onClick={() => deleteDraftLocationTrack(id)}>
+                        {t('button.delete')}
+                    </Button>
+                </div>
+            }>
+            <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>
+        </Dialog>
     );
 };
 

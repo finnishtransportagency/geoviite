@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import childExists
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenu
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenuItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByText
 import fi.fta.geoviite.infra.ui.util.ElementFetch
@@ -26,13 +28,13 @@ class E2EChangePreviewTable(
 
     fun revertChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
         openMenu(change)
-
-        clickChild(By.xpath("//div[text() = 'Hylkää muutos']"))
+            .select(E2EMenuItem("Hylkää muutos"))
         E2EPreviewChangesSaveOrDiscardDialog().reject()
     }
 
-    fun openMenu(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+    fun openMenu(change: E2EChangePreviewRow): E2EMenu {
         selectBy(change, byQaId("menu-button"))
+        return E2EMenu()
     }
 
     override fun getRowContent(row: WebElement): E2EChangePreviewRow {

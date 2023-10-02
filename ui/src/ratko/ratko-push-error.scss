@@ -1,9 +1,8 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .ratko-push-error {
-    @include typography-sub-heading;
+    @include vayla-design.typography-sub-heading;
     text-transform: none;
-    color: $color-red-dark;
+    color: vayla-design.$color-red-dark;
     margin-bottom: 12px;
 }

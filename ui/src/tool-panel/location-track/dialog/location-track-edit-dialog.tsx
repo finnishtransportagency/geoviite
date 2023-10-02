@@ -5,7 +5,7 @@ import {
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -44,7 +44,6 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PublishType, TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import { createClassName } from 'vayla-design-lib/utils';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
@@ -233,7 +232,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     // Use memoized function to make debouncing functionality to work when re-rendering
     const getDuplicateTrackOptions = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 locationTracks
                     .filter((lt) => {
@@ -295,7 +294,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     };
 
     return (
-        <div>
+        <React.Fragment>
             <Dialog
                 title={
                     state.isNewLocationTrack
@@ -303,47 +302,41 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         : t('location-track-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                className={dialogStyles['dialog--ultrawide']}
-                scrollable={false}
-                footerClassName={'dialog-footer'}
+                width={DialogWidth.ULTRA_WIDE}
                 footerContent={
                     <React.Fragment>
-                        <div className={dialogStyles['dialog-footer__content-area']}>
-                            <div className={dialogStyles['dialog-footer__content--shrink']}>
-                                {state.existingLocationTrack?.draftType === 'NEW_DRAFT' &&
-                                    !state.isNewLocationTrack && (
-                                        <Button
-                                            onClick={() =>
-                                                state.existingLocationTrack &&
-                                                confirmNonDraftDelete()
-                                            }
-                                            icon={Icons.Delete}
-                                            variant={ButtonVariant.WARNING}>
-                                            {t('location-track-dialog.delete-draft')}
-                                        </Button>
-                                    )}
-                            </div>
-                            <div
-                                className={createClassName(
-                                    dialogStyles['dialog-footer__content--grow'],
-                                    dialogStyles['dialog-footer__content--centered'],
-                                    dialogStyles['dialog-footer__content--padded'],
-                                )}>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={state.isSaving}
-                                    onClick={() => cancelSave()}>
-                                    {t('button.return')}
-                                </Button>
-                                <span onClick={() => stateActions.validate()}>
+                        {state.existingLocationTrack?.draftType === 'NEW_DRAFT' &&
+                            !state.isNewLocationTrack && (
+                                <div
+                                    className={
+                                        dialogStyles['dialog__footer-content--left-aligned']
+                                    }>
                                     <Button
-                                        disabled={!canSaveLocationTrack(state)}
-                                        isProcessing={state.isSaving}
-                                        onClick={() => saveOrConfirm()}>
-                                        {t('button.save')}
+                                        onClick={() =>
+                                            state.existingLocationTrack && confirmNonDraftDelete()
+                                        }
+                                        icon={Icons.Delete}
+                                        variant={ButtonVariant.WARNING}>
+                                        {t('location-track-dialog.delete-draft')}
                                     </Button>
-                                </span>
-                            </div>
+                                </div>
+                            )}
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={state.isSaving}
+                                onClick={() => cancelSave()}>
+                                {t('button.return')}
+                            </Button>
+                            <Button
+                                disabled={!canSaveLocationTrack(state)}
+                                isProcessing={state.isSaving}
+                                onClick={() => {
+                                    stateActions.validate();
+                                    saveOrConfirm();
+                                }}>
+                                {t('button.save')}
+                            </Button>
                         </div>
                     </React.Fragment>
                 }>
@@ -608,46 +601,45 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         />
                     </FormLayoutColumn>
                 </FormLayout>
-                {nonDraftDeleteConfirmationVisible && (
-                    <Dialog
-                        title={t('location-track-delete-dialog.title')}
-                        variant={DialogVariant.DARK}
-                        allowClose={false}
-                        className={dialogStyles['dialog--normal']}
-                        footerContent={
-                            <React.Fragment>
-                                <Button
-                                    onClick={closeNonDraftDeleteConfirmation}
-                                    variant={ButtonVariant.SECONDARY}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
-                                    {t('button.delete')}
-                                </Button>
-                            </React.Fragment>
-                        }>
-                        <div className={'dialog__text'}>
-                            {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
-                        </div>
-                        <div className={'dialog__text'}>
-                            <span className={styles['location-track-edit-dialog__warning']}>
-                                <Icons.StatusError color={IconColor.INHERIT} />
-                            </span>{' '}
-                            {t('location-track-delete-dialog.deleted-location-track-warning')}
-                        </div>
-                        <div className={'dialog__text'}>
-                            {t('location-track-delete-dialog.confirm-location-track-delete')}
-                        </div>
-                    </Dialog>
-                )}
-                {state.existingLocationTrack && draftDeleteConfirmationVisible && (
-                    <LocationTrackDeleteConfirmationDialog
-                        id={state.existingLocationTrack?.id}
-                        onCancel={closeDraftDeleteConfirmation}
-                        onClose={onLocationTrackDeleted}
-                    />
-                )}
             </Dialog>
-        </div>
+            {nonDraftDeleteConfirmationVisible && (
+                <Dialog
+                    title={t('location-track-delete-dialog.title')}
+                    variant={DialogVariant.DARK}
+                    allowClose={false}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={closeNonDraftDeleteConfirmation}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                                {t('button.delete')}
+                            </Button>
+                        </div>
+                    }>
+                    <div className={'dialog__text'}>
+                        {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
+                    </div>
+                    <div className={'dialog__text'}>
+                        <span className={styles['location-track-edit-dialog__warning']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />
+                        </span>{' '}
+                        {t('location-track-delete-dialog.deleted-location-track-warning')}
+                    </div>
+                    <div className={'dialog__text'}>
+                        {t('location-track-delete-dialog.confirm-location-track-delete')}
+                    </div>
+                </Dialog>
+            )}
+            {state.existingLocationTrack && draftDeleteConfirmationVisible && (
+                <LocationTrackDeleteConfirmationDialog
+                    id={state.existingLocationTrack?.id}
+                    onCancel={closeDraftDeleteConfirmation}
+                    onClose={onLocationTrackDeleted}
+                />
+            )}
+        </React.Fragment>
     );
 };

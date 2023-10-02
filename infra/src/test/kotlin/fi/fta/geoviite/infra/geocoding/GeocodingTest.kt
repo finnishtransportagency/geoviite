@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
@@ -254,7 +255,7 @@ class GeocodingTest {
             startAddress = startAddress,
             referenceLineGeometry = alignment(startSegment, connectSegment, endSegment),
             kmPosts = listOf(),
-        )
+        ).geocodingContext
 
         val addressPoints = ctx.getAddressPoints(alignment(segment(
             Point(7.0, -2.0),
@@ -557,7 +558,7 @@ class GeocodingTest {
             startAddress = referenceLine.startAddress,
             referenceLineGeometry = referenceLineAlignment,
             kmPosts = listOf(),
-        )
+        ).geocodingContext
 
         val result = testContext.getSwitchPoints(alignment(
             segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),
@@ -599,6 +600,154 @@ class GeocodingTest {
             }
         }
     }
+
+    @Test
+    fun `should throw an exception with empty reference line geometry`() {
+        val startAlignment = LayoutAlignment(segments = emptyList())
+
+        assertThrows<IllegalArgumentException>("Geocoding context was created with empty reference line") {
+            GeocodingContext(
+                trackNumber = trackNumber(TrackNumber("T001")),
+                startAddress = TrackMeter(KmNumber(10), 100),
+                referenceLineGeometry = startAlignment,
+                referencePoints = emptyList(),
+                kmPosts = emptyList(),
+            )
+        }
+    }
+
+    @Test
+    fun `should throw an exception when there are no reference points`() {
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        )
+
+        assertThrows<IllegalArgumentException>("Geocoding context was created without reference points") {
+            GeocodingContext(
+                trackNumber = trackNumber(TrackNumber("T001")),
+                startAddress = TrackMeter(KmNumber(10), 100),
+                referenceLineGeometry = startAlignment,
+                referencePoints = emptyList(),
+                kmPosts = emptyList(),
+            )
+        }
+    }
+
+    @Test
+    fun `should reject km posts without location`() {
+        val trackNumber = trackNumber(TrackNumber("T001"))
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        )
+
+        val kmPost = kmPost(IntId(1), KmNumber(11), null)
+
+        val result = GeocodingContext.create(
+            trackNumber = trackNumber,
+            startAddress = TrackMeter(KmNumber(10), 100),
+            referenceLineGeometry = startAlignment,
+            kmPosts = listOf(kmPost),
+        )
+
+        assertTrue("Km post without location was not rejected") {
+            result.rejectedKmPosts.all { kp ->
+                kp.first == kmPost && kp.second == KmPostRejectedReason.NO_LOCATION
+            }
+        }
+    }
+
+    @Test
+    fun `should reject km posts that are before start address`() {
+        val trackNumber = trackNumber(TrackNumber("T001"))
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        )
+
+        val kmPost = kmPost(IntId(1), KmNumber(10), Point(5.0, 0.0))
+
+        val result = GeocodingContext.create(
+            trackNumber = trackNumber,
+            startAddress = TrackMeter(KmNumber(10), 100),
+            referenceLineGeometry = startAlignment,
+            kmPosts = listOf(kmPost),
+        )
+
+        assertTrue("Km post with too small km number was not rejected") {
+            result.rejectedKmPosts.all { kp ->
+                kp.first == kmPost && kp.second == KmPostRejectedReason.IS_BEFORE_START_ADDRESS
+            }
+        }
+    }
+
+    @Test
+    fun `should reject km posts that intersects before reference line`() {
+        val trackNumber = trackNumber(TrackNumber("T001"))
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        )
+
+        val kmPost = kmPost(IntId(1), KmNumber(11), Point(-5.0, 0.0))
+
+        val result = GeocodingContext.create(
+            trackNumber = trackNumber,
+            startAddress = TrackMeter(KmNumber(10), 100),
+            referenceLineGeometry = startAlignment,
+            kmPosts = listOf(kmPost),
+        )
+
+        assertTrue("Km post that intersected before reference line was not rejected") {
+            result.rejectedKmPosts.all { kp ->
+                kp.first == kmPost && kp.second == KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE
+            }
+        }
+    }
+
+    @Test
+    fun `should reject km posts that intersects after reference line`() {
+        val trackNumber = trackNumber(TrackNumber("T001"))
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        )
+
+        val kmPost = kmPost(IntId(1), KmNumber(11), Point(50.0, 0.0))
+
+        val result = GeocodingContext.create(
+            trackNumber = trackNumber,
+            startAddress = TrackMeter(KmNumber(10), 100),
+            referenceLineGeometry = startAlignment,
+            kmPosts = listOf(kmPost),
+        )
+
+        assertTrue("Km post that intersected after reference line was not rejected") {
+            result.rejectedKmPosts.all { kp ->
+                kp.first == kmPost && kp.second == KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE
+            }
+        }
+    }
+
+    @Test
+    fun `should reject km posts that are too far apart`() {
+        val trackNumber = trackNumber(TrackNumber("T001"))
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(40000.0, 0.0)))
+        )
+
+        val kmPost = kmPost(IntId(1), KmNumber(11), Point(20000.0, 0.0))
+
+        val result = GeocodingContext.create(
+            trackNumber = trackNumber,
+            startAddress = TrackMeter(KmNumber(10), 100),
+            referenceLineGeometry = startAlignment,
+            kmPosts = listOf(kmPost),
+        )
+
+        assertTrue("Km post that had over 10000 m in distance was not rejected") {
+            result.rejectedKmPosts.all { kp ->
+                kp.first == kmPost && kp.second == KmPostRejectedReason.TOO_FAR_APART
+            }
+        }
+    }
+
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
         assertEquals(expected.size, result.size,

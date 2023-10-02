@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.error.LocalizationParams
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -63,9 +64,9 @@ data class PublicationChange<T>(
 
 data class PropKey(
     val key: LocalizationKey,
-    val params: List<String> = emptyList(),
+    val params: LocalizationParams = emptyMap(),
 ) {
-    constructor(key: String, params: List<String> = emptyList()) : this(LocalizationKey(key), params)
+    constructor(key: String, params: LocalizationParams = emptyMap()) : this(LocalizationKey(key), params)
 }
 
 data class PublicationChangeRemark(
@@ -251,15 +252,13 @@ enum class PublishValidationErrorType { ERROR, WARNING }
 data class PublishValidationError(
     val type: PublishValidationErrorType,
     val localizationKey: LocalizationKey,
-    val params: List<String> = listOf(),
+    val params: LocalizationParams = emptyMap(),
 ) {
     constructor(
         type: PublishValidationErrorType,
-        localizationKey: String,
-        params: List<CharSequence> = listOf(),
-    ) : this(
-        type, LocalizationKey(localizationKey), params.map(CharSequence::toString)
-    )
+        key: String,
+        params: Map<String, CharSequence?> = emptyMap(),
+    ) : this(type, LocalizationKey(key), params.mapValues { (_, v) -> v.toString() })
 }
 
 interface PublishCandidate<T> {

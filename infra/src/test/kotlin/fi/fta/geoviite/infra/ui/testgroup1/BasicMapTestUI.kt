@@ -125,7 +125,6 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(nameColumnValue, changedAlignment.name)
         assertEquals(HKI_TRACK_NUMBER_2, changedAlignment.trackNumber)
 
-        changePreviewTable.openMenu(changedAlignment)
         previewChangesPage.revertChange(nameColumnValue)
         previewChangesPage.goToTrackLayout()
         trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)

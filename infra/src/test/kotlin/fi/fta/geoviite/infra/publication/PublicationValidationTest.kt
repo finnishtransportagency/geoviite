@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.*
@@ -384,16 +385,24 @@ class PublicationValidationTest {
         )
         assertSegmentSwitchError(
             true,
-            editSegment(segmentSwitch) { segment -> segment.copy(geometry = segment.geometry.withPoints(
-                points = toTrackLayoutPoints(segment.points.first(), segment.points.last() + Point(0.0, 1.0)),
-            )) },
+            editSegment(segmentSwitch) { segment ->
+                segment.copy(
+                    geometry = segment.geometry.withPoints(
+                        points = toTrackLayoutPoints(segment.points.first(), segment.points.last() + Point(0.0, 1.0)),
+                    )
+                )
+            },
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
         )
         assertSegmentSwitchError(
             true,
-            editSegment(segmentSwitch) { segment -> segment.copy(geometry = segment.geometry.withPoints(
-                points = toTrackLayoutPoints(segment.points.first() + Point(0.0, 1.0), segment.points.last()),
-            )) },
+            editSegment(segmentSwitch) { segment ->
+                segment.copy(
+                    geometry = segment.geometry.withPoints(
+                        points = toTrackLayoutPoints(segment.points.first() + Point(0.0, 1.0), segment.points.last()),
+                    )
+                )
+            },
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
         )
     }
@@ -468,8 +477,10 @@ class PublicationValidationTest {
                 ).copy(id = IntId(2))
             )
         }
-        assertSingleAddressPointErrorRangeDescription(geocode,
-            "0000+0000..0000+0050, 0000+0060..0000+0110")
+        assertSingleAddressPointErrorRangeDescription(
+            geocode,
+            "0000+0000..0000+0050, 0000+0060..0000+0110"
+        )
     }
 
     @Test
@@ -608,7 +619,8 @@ class PublicationValidationTest {
         val rightPlaceSwitch =
             switch(seed = 124, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null)))
                 .copy(id = IntId(2))
-        val unlinkedTrack = locationTrackAndAlignment(IntId(0),
+        val unlinkedTrack = locationTrackAndAlignment(
+            IntId(0),
             segment(Point(150.0, 150.0), Point(200.0, 200.0))
         )
         val lt = unlinkedTrack.first
@@ -623,7 +635,8 @@ class PublicationValidationTest {
         )
 
         assertContainsError(
-            false, validateSwitchLocationTrackLinkStructure(rightPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
+            false,
+            validateSwitchLocationTrackLinkStructure(rightPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
             "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
         )
     }
@@ -742,12 +755,6 @@ class PublicationValidationTest {
         error,
     )
 
-    private fun assertGeocodingContextError(
-        hasError: Boolean,
-        context: GeocodingContext,
-        error: String,
-    ) = assertContainsError(hasError, validateGeocodingContext(context), error)
-
     private fun assertSegmentSwitchError(
         hasError: Boolean,
         segmentAndSwitch: SegmentSwitch,
@@ -770,7 +777,7 @@ class PublicationValidationTest {
         alignment: LocationTrack,
         error: String,
         includeTracksInPublish: Boolean = false,
-    ) = assertSwitchSegmentError(hasError, switch, listOf(alignment), error, includeTracksInPublish);
+    ) = assertSwitchSegmentError(hasError, switch, listOf(alignment), error, includeTracksInPublish)
 
     private fun assertSwitchSegmentError(
         hasError: Boolean,
@@ -818,9 +825,12 @@ class PublicationValidationTest {
         )
     }
 
-    private fun assertSingleAddressPointErrorRangeDescription(geocode: () -> AlignmentAddresses?, errorRangeDescription: String) {
+    private fun assertSingleAddressPointErrorRangeDescription(
+        geocode: () -> AlignmentAddresses?,
+        errorRangeDescription: String,
+    ) {
         val errors = validateAddressPoints(trackNumber(), locationTrack(IntId(1)), "", geocode)
-        assertEquals(errorRangeDescription, errors[0].params[2])
+        assertEquals(errorRangeDescription, errors[0].params["kmNumbers"])
     }
 
     private fun assertContainsError(contains: Boolean, errors: List<PublishValidationError>, error: String) {
@@ -829,12 +839,12 @@ class PublicationValidationTest {
     }
 
     private fun simpleGeocodingContext(referenceLinePoints: List<LayoutPoint>): GeocodingContext =
-        geocodingContext(referenceLinePoints, listOf())
+        geocodingContext(referenceLinePoints, listOf()).geocodingContext
 
     private fun geocodingContext(
         referenceLinePoints: List<LayoutPoint>,
         kmPosts: List<TrackLayoutKmPost>,
-    ): GeocodingContext {
+    ): GeocodingContextCreateResult {
         val (referenceLine, alignment) = referenceLineAndAlignment(
             IntId(1),
             listOf(segment(referenceLinePoints)),

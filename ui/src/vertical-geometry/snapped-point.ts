@@ -5,7 +5,7 @@ import {
     getTrackMeterPairAroundIndex,
     TrackMeterIndex,
 } from 'vertical-geometry/track-meter-index';
-import { StationPoint, VerticalGeometryItem } from 'geometry/geometry-model';
+import { StationPoint, VerticalGeometryDiagramDisplayItem } from 'geometry/geometry-model';
 import { filterNotEmpty, minimumIndexBy } from 'utils/array-utils';
 import { Coordinates, heightToY, mToX, xToM } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
@@ -66,7 +66,7 @@ function getSnapOverRuler(
 
 function getSnapOverChart(
     xCoordinateM: number,
-    geometry: VerticalGeometryItem[],
+    geometry: VerticalGeometryDiagramDisplayItem[],
     withinSnapDistance: (snappedM: number) => boolean,
     approximatedPoint: (
         maybeApproximateM: number,
@@ -106,7 +106,7 @@ function getSnapOverChart(
 export function getSnappedPoint(
     mousePositionInElement: [number, number] | undefined,
     trackKmHeights: TrackKmHeights[],
-    geometry: VerticalGeometryItem[],
+    geometry: VerticalGeometryDiagramDisplayItem[],
     coordinates: Coordinates,
     drawTangentArrows: boolean,
 ): SnappedPoint | undefined {
@@ -181,14 +181,20 @@ function toGeometrySnapPoint(
 }
 function closestGeometrySnapPoint(
     m: number,
-    geometry: VerticalGeometryItem[],
+    geometry: VerticalGeometryDiagramDisplayItem[],
     drawTangents: boolean,
 ) {
     const allGeometryPoints = geometry.flatMap((geom) =>
         [
-            toGeometrySnapPoint(geom.fileName, geom.point, 'intersectionPoint'),
-            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.start, 'endPoint') : undefined,
-            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.end, 'endPoint') : undefined,
+            geom.point
+                ? toGeometrySnapPoint(geom.fileName, geom.point, 'intersectionPoint')
+                : undefined,
+            drawTangents && geom.start
+                ? toGeometrySnapPoint(geom.fileName, geom.start, 'endPoint')
+                : undefined,
+            drawTangents && geom.end
+                ? toGeometrySnapPoint(geom.fileName, geom.end, 'endPoint')
+                : undefined,
         ].filter(filterNotEmpty),
     );
     const minIndex = minimumIndexBy(allGeometryPoints, (snapPoint) => Math.abs(m - snapPoint.m));

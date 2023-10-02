@@ -91,7 +91,7 @@ export function createGeometrySwitchLayer(
                 vectorSource.addFeatures(features);
             })
             .catch(() => {
-                clearFeatures(vectorSource);
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
             })
             .finally(() => {
                 inFlight = false;

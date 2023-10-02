@@ -1,6 +1,6 @@
-@import '../colors';
+@use '../colors';
 
-$design-lib-table-border-color: $color-white-darker;
+$design-lib-table-border-color: colors.$color-white-darker;
 
 .design-demo {
     margin-bottom: 10em;

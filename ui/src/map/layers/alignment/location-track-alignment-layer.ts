@@ -2,10 +2,10 @@ import { LineString, Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -17,6 +17,7 @@ import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 
 let shownLocationTracksCompare = '';
 let newestLayerId = 0;
@@ -47,38 +48,45 @@ export function createLocationTrackAlignmentLayer(
         }
     }
 
-    let inFlight = false;
-    if (resolution <= Limits.ALL_ALIGNMENTS) {
-        const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
+    let inFlight = true;
+    const selectedTrack = selection.selectedItems.locationTracks[0];
+    const alignmentPromise =
+        resolution <= ALL_ALIGNMENTS || selectedTrack
+            ? getLocationTrackMapAlignmentsByTiles(
+                  changeTimes,
+                  mapTiles,
+                  publishType,
+                  resolution <= ALL_ALIGNMENTS ? undefined : selectedTrack,
+              )
+            : Promise.resolve([]);
 
-        inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
-            .then((locationTracks) => {
-                if (layerId !== newestLayerId) return;
+    alignmentPromise
+        .then((locationTracks) => {
+            if (layerId !== newestLayerId) return;
 
-                const features = createAlignmentFeatures(
-                    locationTracks,
-                    selection,
-                    linkingState,
-                    showEndPointTicks,
-                );
+            const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
+            const features = createAlignmentFeatures(
+                locationTracks,
+                selection,
+                linkingState,
+                showEndPointTicks,
+            );
 
-                updateShownLocationTracks(locationTracks.map(({ header }) => header.id));
-            })
-            .catch(() => {
+            clearFeatures(vectorSource);
+            vectorSource.addFeatures(features);
+
+            updateShownLocationTracks(locationTracks.map(({ header }) => header.id));
+        })
+        .catch(() => {
+            if (layerId === newestLayerId) {
                 clearFeatures(vectorSource);
                 updateShownLocationTracks([]);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-        updateShownLocationTracks([]);
-    }
+            }
+        })
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'location-track-alignment-layer',

@@ -1,9 +1,8 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 .track-number-panel {
     &__subtitle {
-        color: $color-black-lighter;
+        color: vayla-design.$color-black-lighter;
     }
 
     &__track-numbers {
@@ -13,7 +12,7 @@
     }
 
     &__track-number {
-        @include typography-caption;
+        @include vayla-design.typography-caption;
 
         font-weight: normal;
         margin: 8px 0;

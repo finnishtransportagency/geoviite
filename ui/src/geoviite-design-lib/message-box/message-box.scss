@@ -1,29 +1,28 @@
-@import '../../vayla-design-lib/typography';
-@import "../geoviite-colors";
+@use 'vayla-design-lib' as vayla-design;
 
 .message-box {
-  @include typography-caption;
-  background-color: $color-lemon-light;
-  color: $color-black-default;
-  overflow: hidden;
+    @include vayla-design.typography-caption;
+    background-color: vayla-design.$color-lemon-light;
+    color: vayla-design.$color-black-default;
+    overflow: hidden;
 }
 
 .message-box__inner {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px 10px 26px;
-  transition: all 1s;
+    display: flex;
+    align-items: center;
+    padding: 10px 16px 10px 26px;
+    transition: all 1s;
 }
 
 .message-box--poppable .message-box__inner {
-  margin-bottom: -200px;
+    margin-bottom: -200px;
 }
 
 .message-box--poppable.message-box--popped .message-box__inner {
-  margin-bottom: 0px;
+    margin-bottom: 0;
 }
 
 .message-box__icon {
-  fill: $color-black-lighter;
-  margin-right: 12px;
+    fill: vayla-design.$color-black-lighter;
+    margin-right: 12px;
 }

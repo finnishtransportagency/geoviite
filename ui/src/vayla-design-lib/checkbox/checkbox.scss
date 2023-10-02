@@ -1,6 +1,6 @@
-@import '../colors';
-@import '../typography';
-@import '../transitions';
+@use '../colors';
+@use '../typography';
+@use '../transitions';
 
 .checkbox {
     cursor: pointer;
@@ -19,11 +19,11 @@
 
     width: 20px;
     height: 20px;
-    background: $color-white-default;
-    border: 1px solid $color-blue-default;
+    background: colors.$color-white-default;
+    border: 1px solid colors.$color-blue-default;
     border-radius: 4px;
 
-    transition: all $transitions-speed-fast;
+    transition: all transitions.$transitions-speed-fast;
 }
 
 .checkbox__checked-icon {
@@ -31,16 +31,16 @@
 }
 
 .checkbox__input:checked + .checkbox__visualization {
-    background: $color-blue-default;
+    background: colors.$color-blue-default;
 
     .checkbox__checked-icon {
         opacity: 1;
-        fill: $color-white-default;
+        fill: colors.$color-white-default;
     }
 }
 
 .checkbox--touched .checkbox__input:checked + .checkbox__visualization .checkbox__checked-icon {
-    animation: pop $transitions-speed-fast;
+    animation: pop transitions.$transitions-speed-fast;
 }
 
 @keyframes pop {
@@ -58,7 +58,7 @@
 }
 
 .checkbox__label-text {
-    @include typography-body;
+    @include typography.typography-body;
     margin-left: 8px;
 }
 
@@ -67,16 +67,16 @@
 .checkbox:hover,
 .checkbox--hover {
     .checkbox__visualization {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
     }
 
     .checkbox__input:checked + .checkbox__visualization {
-        background: $color-blue-light;
-        border-color: $color-blue-light;
+        background: colors.$color-blue-light;
+        border-color: colors.$color-blue-light;
 
         .checkbox__checked-icon {
             opacity: 1;
-            fill: $color-white-default;
+            fill: colors.$color-white-default;
         }
     }
 }
@@ -86,20 +86,22 @@
 .checkbox--focus,
 .checkbox__input:focus + {
     .checkbox__visualization {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
         border-style: dashed;
     }
 }
 
-.checkbox--focus .checkbox__input:checked + .checkbox__visualization,
-.checkbox__input:focus.checkbox__input:checked + .checkbox__visualization {
-    border-style: dashed;
-    background: $color-blue-light;
-    border-color: $color-blue-default;
+.checkbox--focus .checkbox__input:checked,
+.checkbox__input:focus.checkbox__input:checked {
+    + .checkbox__visualization {
+        border-style: dashed;
+        background: colors.$color-blue-light;
+        border-color: colors.$color-blue-default;
 
-    .checkbox__checked-icon {
-        opacity: 1;
-        fill: $color-white-default;
+        .checkbox__checked-icon {
+            opacity: 1;
+            fill: colors.$color-white-default;
+        }
     }
 }
 
@@ -111,20 +113,20 @@
 
 .checkbox--disabled,
 .checkbox__input:disabled {
-    & + .checkbox__visualization {
-        border: 1px solid $color-white-darker;
-        background: $color-white-default;
+    + .checkbox__visualization {
+        border: 1px solid colors.$color-white-darker;
+        background: colors.$color-white-default;
     }
 }
 
 .checkbox--disabled .checkbox__input:checked,
 .checkbox__input:disabled.checkbox__input:checked {
-    & + .checkbox__visualization {
-        border: 1px solid $color-white-darker;
-        background: $color-white-darker;
+    + .checkbox__visualization {
+        border: 1px solid colors.$color-white-darker;
+        background: colors.$color-white-darker;
 
         .checkbox__checked-icon {
-            fill: $color-white-default;
+            fill: colors.$color-white-default;
         }
     }
 }

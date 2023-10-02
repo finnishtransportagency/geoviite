@@ -34,11 +34,9 @@ export const CharsetSelectDialog: React.FC<CharsetSelectDialogProps> = ({
     return (
         <Dialog
             title={title}
-            scrollable={false}
-            className={dialogStyles['dialog--wide']}
             onClose={onCancel}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button variant={ButtonVariant.SECONDARY} onClick={onCancel}>
                         {t('button.cancel')}
                     </Button>
@@ -48,7 +46,7 @@ export const CharsetSelectDialog: React.FC<CharsetSelectDialogProps> = ({
                         }}>
                         {t('im-form.file-handling-failed.try-again')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             {children}
             <div className={styles['infra-model-upload-failed__encode-container']}>

@@ -1,12 +1,10 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.TestGeometryPlanService
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.rotateAroundOrigin
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
@@ -14,7 +12,10 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.E2EKmPostEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELayoutSwitchEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
-import fi.fta.geoviite.infra.ui.testdata.*
+import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
+import fi.fta.geoviite.infra.ui.testdata.locationTrack
+import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
+import fi.fta.geoviite.infra.ui.testdata.referenceLine
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -36,9 +37,8 @@ const val LINKING_TEST_PLAN_NAME = "Linking test plan"
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class LinkingTestUI @Autowired constructor(
-    private val switchStructureDao: SwitchStructureDao,
+    private val testGeometryPlanService: TestGeometryPlanService,
     private val switchDao: LayoutSwitchDao,
-    private val geometryDao: GeometryDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
@@ -59,7 +59,7 @@ class LinkingTestUI @Autowired constructor(
     fun `Create a new location track and link geometry`() {
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
         createAndInsertCommonReferenceLine(trackNumberId)
-        val geometryPlan = buildPlan(trackNumberId).alignment(
+        val geometryPlan = testGeometryPlanService.buildPlan(trackNumberId).alignment(
             "geo-alignment-a", Point(50.0, 25.0),
             // points after the first one should preferably be Pythagorean pairs, so meter points line up nicely
             Point(20.0, 21.0), Point(40.0, 9.0)
@@ -108,7 +108,7 @@ class LinkingTestUI @Autowired constructor(
             )
         )
 
-        val plan = buildPlan(trackNumberId).alignment(
+        val plan = testGeometryPlanService.buildPlan(trackNumberId).alignment(
             "replacement alignment", Point(10.0, 30.0), Point(3.0, 4.0), Point(9.0, 40.0)
         ).alignment("some other alignment", Point(20.0, 15.0), Point(3.0, 4.0), Point(9.0, 40.0)).save()
 
@@ -249,7 +249,7 @@ class LinkingTestUI @Autowired constructor(
         kmPostDao.insert(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0)))
         kmPostDao.insert(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0)))
 
-        buildPlan(trackNumberId).alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+        testGeometryPlanService.buildPlan(trackNumberId).alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
             .kmPost("0123G", Point(4.0, 4.0))
             .kmPost("0124G", Point(14.0, 14.0))
             .kmPost("0125G", Point(24.0, 21.0))
@@ -284,7 +284,8 @@ class LinkingTestUI @Autowired constructor(
     fun `Link geometry KM-post to new KM-post`() {
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
         val lastKmPostLocation = Point(34.0, 30.0)
-        buildPlan(trackNumberId).alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+
+        testGeometryPlanService.buildPlan(trackNumberId).alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
             .kmPost("0123", Point(4.0, 4.0))
             .kmPost("0124", Point(14.0, 14.0))
             .kmPost("0125", Point(24.0, 21.0))
@@ -323,7 +324,7 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Link geometry switch to new location tracks and layout switch`() {
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
-        val plan = buildPlan(trackNumberId).switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))
+        val plan = testGeometryPlanService.buildPlan(trackNumberId).switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))
             .switch("unrelated switch", "YV54-200N-1:9-O", Point(15.0, 15.0))
             // switch to link is at (5, 5); the switch's alignment on the through track lies flat on the X axis from
             // 0 to 28.3, with the math point at 11.077, while the branching track goes down to (28.195, -1.902)
@@ -397,7 +398,7 @@ class LinkingTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan =
-            buildPlan(trackNumberId).alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
+            testGeometryPlanService.buildPlan(trackNumberId).alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
                 .alignment("unrelated track", Point(0.0, 10.0), Point(10.0, 3.0), Point(10.0, 1.0))
                 .save()
 
@@ -465,7 +466,7 @@ class LinkingTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan =
-            buildPlan(trackNumberId).alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
+            testGeometryPlanService.buildPlan(trackNumberId).alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
                 .alignment("unrelated track", Point(0.0, 10.0), Point(10.0, 3.0), Point(10.0, 1.0))
                 .save()
 
@@ -544,7 +545,7 @@ class LinkingTestUI @Autowired constructor(
             )
         )
 
-        val plan = buildPlan(trackNumberId).alignment(
+        val plan = testGeometryPlanService.buildPlan(trackNumberId).alignment(
             "replacement alignment", Point(10.0, 30.0), Point(3.0, 4.0), Point(9.0, 40.0)
         ).alignment("some other alignment", Point(20.0, 15.0), Point(3.0, 4.0), Point(9.0, 40.0)).save()
 
@@ -752,95 +753,6 @@ class LinkingTestUI @Autowired constructor(
         val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
         return locationTrack to alignment
     }
-
-    fun saveAndRefetchGeometryPlan(plan: GeometryPlan, boundingBox: List<Point>): GeometryPlan {
-        return geometryDao.fetchPlan(
-            geometryDao.insertPlan(
-                plan,
-                testFile(),
-                boundingBox,
-            )
-        )
-    }
-
-    class BuildGeometryAlignment(val name: String, val firstPoint: Point, val incrementPoints: List<Point>) {
-        val switchData: MutableList<SwitchData> = mutableListOf()
-    }
-
-    inner class BuildGeometryPlan(val trackNumberId: IntId<TrackLayoutTrackNumber>) {
-        val alignments: MutableList<BuildGeometryAlignment> = mutableListOf()
-        val kmPosts: MutableList<GeometryKmPost> = mutableListOf()
-        val switches: MutableList<GeometrySwitch> = mutableListOf()
-
-        fun alignment(name: String, firstPoint: Point, vararg incrementPoints: Point): BuildGeometryPlan {
-            alignments.add(BuildGeometryAlignment(name, firstPoint, incrementPoints.asList()))
-            return this
-        }
-
-        fun switchData(switchName: String, startJointNumber: Int?, endJointNumber: Int?): BuildGeometryPlan {
-            alignments.last().switchData.add(
-                SwitchData(
-                    StringId(switchName),
-                    startJointNumber?.let(::JointNumber),
-                    endJointNumber?.let(::JointNumber),
-                )
-            )
-            return this
-        }
-
-
-        fun kmPost(name: String, location: Point): BuildGeometryPlan {
-            kmPosts.add(createGeometryKmPost(trackNumberId, DEFAULT_BASE_POINT + location, name))
-            return this
-        }
-
-        fun switch(name: String, typeName: String, location: Point, rotationRad: Double = 0.0): BuildGeometryPlan {
-            val switchStructure =
-                switchStructureDao.fetchSwitchStructures().first { structure -> structure.type.typeName == typeName }
-
-            switches.add(
-                GeometrySwitch(id = StringId(name),
-                    name = SwitchName(name),
-                    typeName = GeometrySwitchTypeName(typeName),
-                    switchStructureId = switchStructure.id as IntId<SwitchStructure>,
-                    state = PlanState.EXISTING,
-                    joints = switchStructure.joints.map { ssj ->
-                        GeometrySwitchJoint(
-                            ssj.number,
-                            DEFAULT_BASE_POINT + location + rotateAroundOrigin(rotationRad, ssj.location),
-                        )
-                    })
-            )
-            return this
-        }
-
-        fun save(): GeometryPlan {
-            val builtAlignments = alignments.map { build ->
-                createGeometryAlignment(
-                    alignmentName = build.name,
-                    trackNumberId = trackNumberId,
-                    basePoint = DEFAULT_BASE_POINT + build.firstPoint,
-                    incrementPoints = build.incrementPoints,
-                    switchData = build.switchData,
-                )
-            }
-            return saveAndRefetchGeometryPlan(plan(
-                trackNumberId,
-                alignments = builtAlignments,
-                kmPosts = kmPosts,
-                switches = switches,
-                project = project(LINKING_TEST_PLAN_NAME),
-                srid = LAYOUT_SRID,
-                units = tmi35GeometryUnit(),
-            ),
-                boundingPolygonPointsByConvexHull(builtAlignments.flatMap { alignment -> alignment.elements.flatMap { element -> element.bounds } } + kmPosts.mapNotNull { kmPost -> kmPost.location },
-                    LAYOUT_CRS
-                )
-            )
-        }
-    }
-
-    fun buildPlan(trackNumberId: IntId<TrackLayoutTrackNumber>) = BuildGeometryPlan(trackNumberId)
 
     private fun saveLocationTrackWithAlignment(locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>): RowVersion<LocationTrack> {
         return locationTrackDao.insert(

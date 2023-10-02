@@ -225,7 +225,7 @@ class InfraModelService @Autowired constructor(
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
                 localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                localizedMessageParams = listOf(duplicate.fileName.toString()),
+                localizedMessageParams = mapOf("fileName" to duplicate.fileName.toString()),
             )
         }
     }

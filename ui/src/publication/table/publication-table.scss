@@ -1,4 +1,4 @@
-@import 'vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .publication-table {
     position: relative;
@@ -28,6 +28,7 @@
 
     &__message-icon {
         float: right;
+
         .icon {
             transition: transform 150ms;
         }
@@ -41,18 +42,18 @@
         &--borderless > td {
             border: none;
         }
+    }
 
-        &-left-bar {
-            &-container {
-                position: relative;
-            }
+    &__row-details-left-bar-container {
+        position: relative;
+    }
 
-            position: absolute;
-            width: 4px;
-            top: 0;
-            left: 24px;
-            height: 100%;
-            background-color: $color-blue-default;
-        }
+    &__row-details-left-bar {
+        position: absolute;
+        width: 4px;
+        top: 0;
+        left: 24px;
+        height: 100%;
+        background-color: vayla-design.$color-blue-default;
     }
 }

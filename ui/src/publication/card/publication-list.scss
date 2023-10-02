@@ -1,12 +1,11 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .publication-list__header {
     margin-bottom: 12px;
 }
 
 .publication-list-item {
-    @include typography-body-strong;
+    @include vayla-design.typography-body-strong;
     margin-bottom: 12px;
     display: flex;
 
@@ -24,13 +23,13 @@
 
         &--waiting {
             @extend .publication-list-item__status;
-            background: $color-lemon;
+            background: vayla-design.$color-lemon;
         }
 
         &--in-progress {
             @extend .publication-list-item__status;
 
-            background: $color-blue-default;
+            background: vayla-design.$color-blue-default;
         }
     }
 
@@ -57,11 +56,11 @@
         white-space: pre;
 
         &--info {
-            fill: $color-black-lighter;
+            fill: vayla-design.$color-black-lighter;
         }
 
         &--error {
-            fill: $color-red-default;
+            fill: vayla-design.$color-red-default;
         }
     }
 }

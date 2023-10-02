@@ -29,6 +29,7 @@ const acceptedLicenses = [
     'Zlib',
     'EPL-1.0',
     '(MIT AND Zlib)',
+    'OFL-1.1',
 ];
 const licenseOverrides = {};
 

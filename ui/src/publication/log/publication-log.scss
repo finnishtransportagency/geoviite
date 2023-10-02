@@ -1,5 +1,4 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 .publication-log {
     width: 100%;
@@ -29,11 +28,9 @@
     }
 
     &__title {
-        @include typography-body;
-
-        color: $color-black-lighter;
-        background-color: $color-white-dark;
-        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+        color: vayla-design.$color-black-lighter;
+        background-color: vayla-design.$color-white-dark;
+        box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
         margin-bottom: 8px;
         padding: 12px 0 8px 20px;
     }

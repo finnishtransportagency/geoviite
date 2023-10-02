@@ -1,11 +1,11 @@
-@import '../../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .location-track-ratko-push-dialog {
     margin-bottom: 40px;
 }
 
 .location-track-ratko-push-dialog .field-layout__label {
-    color: $color-white-darker;
+    color: vayla-design.$color-white-darker;
 }
 
 .location-track-ratko-push-dialog__warning-msg {
@@ -14,7 +14,7 @@
 }
 
 .location-track-ratko-push-dialog__warning-icon {
-    fill: $color-red-default;
+    fill: vayla-design.$color-red-default;
     margin: 4px 16px 0 0;
 }
 
@@ -25,5 +25,5 @@
 .location-track-ratko-push-dialog__done {
     display: flex;
     justify-content: center;
-    fill: $color-green-default;
+    fill: vayla-design.$color-green-default;
 }

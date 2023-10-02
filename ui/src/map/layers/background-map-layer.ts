@@ -11,12 +11,15 @@ const MMLTileSourcePromise = fetch(
     '/location-map/wmts/maasto?service=WMTS&request=GetCapabilities&version=1.0.0',
 ).then(async (response) => {
     const body = await response.text();
-    const options = optionsFromCapabilities(parser.read(body), {
-        layer: 'taustakartta',
-        matrixSet: 'ETRS-TM35FIN',
-        projection: LAYOUT_SRID,
-        requestEncoding: 'REST',
-    });
+    const parse = parser.read(body);
+    const options =
+        parse['Contents'] !== undefined &&
+        optionsFromCapabilities(parse, {
+            layer: 'taustakartta',
+            matrixSet: 'ETRS-TM35FIN',
+            projection: LAYOUT_SRID,
+            requestEncoding: 'REST',
+        });
 
     if (options) {
         options.urls = [

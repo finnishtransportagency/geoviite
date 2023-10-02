@@ -166,9 +166,8 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 <Dialog
                     title={t('im-form.critical-warnings-dialog.title')}
                     onClose={() => setShowCriticalWarning(false)}
-                    className={dialogStyles['dialog--wide']}
                     footerContent={
-                        <React.Fragment>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={props.isLoading}
@@ -182,7 +181,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 isProcessing={props.isLoading}>
                                 {t('button.save')}
                             </Button>
-                        </React.Fragment>
+                        </div>
                     }>
                     <span>{t('im-form.critical-warnings-dialog.sub-title')}</span>
                     <ul>

@@ -1,12 +1,10 @@
-@import '../../../vayla-design-lib/shadows';
-@import '../../../vayla-design-lib/colors';
-@import '../../../vayla-design-lib/layers';
+@use 'vayla-design-lib' as vayla-design;
 
 .color-selector-menu {
-    @include shadow-8dp;
+    @include vayla-design.shadow-8dp;
 
     position: absolute;
-    z-index: $layer-popup;
+    z-index: vayla-design.$layer-popup;
     border-radius: 4px;
     background-color: white;
 
@@ -29,13 +27,13 @@
     &--transparent {
         position: relative;
         box-sizing: border-box;
-        border: 1px solid $color-white-darker;
-        background-color: $color-white-default;
+        border: 1px solid vayla-design.$color-white-darker;
+        background-color: vayla-design.$color-white-default;
 
         &:after {
             content: '';
             position: absolute;
-            border-top: 1px solid $color-white-darker;
+            border-top: 1px solid vayla-design.$color-white-darker;
             width: 26px;
             transform: rotate(-45deg);
             transform-origin: 22px 10px;

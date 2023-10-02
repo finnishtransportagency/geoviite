@@ -40,7 +40,7 @@ import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
-import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
+import TopologicalConnectivityLabel from 'tool-panel/location-track/topological-connectivity-label';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
