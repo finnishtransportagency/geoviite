@@ -13,7 +13,6 @@ import { useLoader } from 'utils/react-utils';
 import { getSridList } from 'common/common-api';
 
 export type ElementTableItemProps = {
-    id: string;
     trackNumber: string | undefined;
     geometryAlignmentName: string;
     type: string;
