@@ -28,18 +28,3 @@ private fun getStartAddress(segment: LayoutSegment, context: GeocodingContext) =
 
 private fun getEndAddress(segment: LayoutSegment, context: GeocodingContext) =
     context.getAddress(segment.points.last())?.first
-
-fun getGeometryTranslation(key: String?) = geometryTranslations[key] ?: ""
-
-private val geometryTranslations = mapOf(
-    "APPROVED_PLAN" to "Suunniteltu",
-    "UNDER_CONSTRUCTION" to "Toteutuksessa",
-    "IN_USE" to "Valmis",
-    "RAILWAY_PLAN" to "Ratasuunnitelma",
-    "RAILWAY_CONSTRUCTION_PLAN" to "Rakentamissuunnitelma",
-    "RENOVATION_PLAN" to "Peruskorjaus",
-    "ENHANCED_RENOVATION_PLAN" to "Perusparannus / rakenteen parantaminen",
-    "MAINTENANCE" to "Kunnossapitovaihe",
-    "NEW_INVESTMENT" to "Uusinvestointi",
-    "REMOVED_FROM_USE" to "Poistettu"
-)
