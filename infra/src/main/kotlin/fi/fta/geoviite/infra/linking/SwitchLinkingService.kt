@@ -23,6 +23,8 @@ private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 private const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
 private const val TOLERANCE_JOINT_LOCATION_SAME_POINT = 0.001
 
+private const val MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS = 5.0
+
 fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
@@ -1072,16 +1074,124 @@ class SwitchLinkingService @Autowired constructor(
 
         switchJointsByLocationTrack.forEach { (locationTrackId, switchJoints) ->
             val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+
+            val switchJointsWithSlightlyOverlappingSegmentsSnapped = switchJoints.map { switchLinkingJoint ->
+                switchLinkingJoint.copy(
+                    segments = switchLinkingJoint.segments.map { switchLinkingSegment ->
+                        val referencedLayoutSegment = alignment.segments[switchLinkingSegment.segmentIndex]
+
+                        val layoutSegmentHasExistingSwitch = referencedLayoutSegment.switchId != null
+                        val layoutSegmentSwitchReferencesDifferentSwitch =
+                            layoutSegmentHasExistingSwitch && referencedLayoutSegment.switchId != linkingParameters.layoutSwitchId
+
+                        if (layoutSegmentSwitchReferencesDifferentSwitch) {
+                            tryToSnapOverlappingSwitchSegmentToNearbySegment(alignment, switchLinkingSegment)
+                        } else {
+                            switchLinkingSegment
+                        }
+                    }
+                )
+            }
+
             val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
                 alignment = alignment,
                 layoutSwitchId = linkingParameters.layoutSwitchId,
-                matchingJoints = switchJoints,
+                matchingJoints = switchJointsWithSlightlyOverlappingSegmentsSnapped,
             )
             val updatedLocationTrack = locationTrackService.updateTopology(locationTrack, updatedAlignment)
             locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
         }
     }
 
+    private fun findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
+        existingSwitchId: IntId<TrackLayoutSwitch>,
+        layoutSegments: List<LayoutSegment>,
+        searchIndexRange: IntProgression,
+    ): IndexedValue<LayoutSegment>? {
+
+        if (searchIndexRange.any { index -> index !in layoutSegments.indices }) {
+            logger.info("Invalid searchIndexRange: $searchIndexRange contains indices outside of layoutSegments (${layoutSegments.indices})")
+            return null
+        }
+
+        if (searchIndexRange.any { index -> index + searchIndexRange.step !in layoutSegments.indices }) {
+            logger.info("Invalid searchIndexRange: $searchIndexRange contains adjacent indices 'index + (${searchIndexRange.step})' outside of layoutSegments (${layoutSegments.indices})")
+            return null
+        }
+
+        for (i in searchIndexRange) {
+            val segment = layoutSegments[i];
+            if (segment.switchId != existingSwitchId) {
+                logger.info("Invalid segment switch id: expected to find $existingSwitchId, but found ${segment.switchId}")
+                return null
+            }
+
+            val adjacentSegmentHasNoSwitch = layoutSegments[i + searchIndexRange.step].switchId == null
+            if (adjacentSegmentHasNoSwitch) {
+                return IndexedValue(i, segment)
+            }
+        }
+
+        logger.info("Could not find the edge segment for the switch=${existingSwitchId} with a free adjacent segment, searchIndexRange was $searchIndexRange")
+        return null
+    }
+
+    fun tryToSnapOverlappingSwitchSegmentToNearbySegment(
+        layoutAlignment: LayoutAlignment,
+        switchLinkingSegment: SwitchLinkingSegment
+    ): SwitchLinkingSegment {
+        val referencedLayoutSegment = layoutAlignment.segments[switchLinkingSegment.segmentIndex]
+
+        val segmentIsSwitchFree = referencedLayoutSegment.switchId == null
+        if (segmentIsSwitchFree) {
+            return switchLinkingSegment
+        }
+
+        // Towards the start of the location track.
+        val negativeSearchIndexDirection = IntProgression.fromClosedRange(
+            switchLinkingSegment.segmentIndex, 1, -1
+        )
+
+        findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
+            referencedLayoutSegment.switchId as IntId,
+            layoutAlignment.segments,
+            searchIndexRange = negativeSearchIndexDirection,
+        )?.let { indexedExistingSwitchStartSegment ->
+            val distanceToPreviousSwitchLineStart = switchLinkingSegment.m - indexedExistingSwitchStartSegment.value.startM
+            val hasAdjacentLayoutSegment = indexedExistingSwitchStartSegment.index > 0
+
+            if (hasAdjacentLayoutSegment && distanceToPreviousSwitchLineStart <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS) {
+                return switchLinkingSegment.copy(
+                    m = switchLinkingSegment.m - distanceToPreviousSwitchLineStart,
+                    segmentIndex = indexedExistingSwitchStartSegment.index - 1
+                )
+            }
+        }
+
+        // Towards the end of the location track.
+        val positiveSearchIndexDirection = IntProgression.fromClosedRange(
+            switchLinkingSegment.segmentIndex, layoutAlignment.segments.size - 2, 1
+        )
+
+        findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
+            referencedLayoutSegment.switchId as IntId,
+            layoutAlignment.segments,
+            searchIndexRange = positiveSearchIndexDirection,
+        )?.let { indexedExistingSwitchEndSegment ->
+            val distanceToPreviousSwitchLineEnd = indexedExistingSwitchEndSegment.value.endM - switchLinkingSegment.m
+            val hasAdjacentLayoutSegment = indexedExistingSwitchEndSegment.index < layoutAlignment.segments.size - 1
+
+            if (hasAdjacentLayoutSegment && distanceToPreviousSwitchLineEnd <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS) {
+                return switchLinkingSegment.copy(
+                    m = switchLinkingSegment.m + distanceToPreviousSwitchLineEnd,
+                    segmentIndex = indexedExistingSwitchEndSegment.index + 1
+                )
+            }
+        }
+
+        // Couldn't snap, possibly due to too much overlap or adjacent switch segment(s) already contained another switch.
+        return switchLinkingSegment
+    }
 
     private fun getMeasurementMethod(id: IntId<GeometrySwitch>): MeasurementMethod? =
         geometryDao.getMeasurementMethodForSwitch(id)

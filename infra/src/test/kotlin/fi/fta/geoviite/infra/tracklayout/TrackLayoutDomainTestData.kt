@@ -630,11 +630,12 @@ fun switch(
     joints: List<TrackLayoutSwitchJoint> = joints(seed),
     name: String = "TV$seed",
     externalId: String? = null,
+    stateCategory: LayoutStateCategory = getSomeValue(seed),
 ) = TrackLayoutSwitch(
     externalId = if (externalId != null) Oid(externalId) else null,
     sourceId = null,
     name = SwitchName(name),
-    stateCategory = getSomeValue(seed),
+    stateCategory = stateCategory,
     joints = joints,
     switchStructureId = structureId,
     trapPoint = false,

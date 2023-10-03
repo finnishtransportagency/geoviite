@@ -46,7 +46,12 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 ?: throw IllegalStateException("Invalid switch structure")
     }
 
-    @Test
+    @BeforeEach
+    fun cleanup() {
+        deleteFromTables("layout", "switch_joint", "switch", "location_track")
+    }
+
+    @Test()
     fun getSuggestedSwitchesWorks() {
         switchLinkingService.getSuggestedSwitches(
             BoundingBox(
@@ -243,6 +248,581 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertTrue(alignment.segments.none {
             it.endJointNumber == JointNumber(5) || it.startJointNumber == JointNumber(5)
         })
+    }
+
+    private fun createAndLinkSwitch(
+        seed: Int = 123768,
+        linkedJoints: List<SwitchLinkingJoint>,
+    ): TrackLayoutSwitch {
+        return switch(
+            seed = seed,
+            joints = listOf(),
+            stateCategory = LayoutStateCategory.EXISTING,
+        )
+            .let { switch -> switchDao.insert(switch).rowVersion }
+            .let { switchRowVersion -> switchDao.fetch(switchRowVersion) }
+            .let { storedSwitch ->
+                switchLinkingService.saveSwitchLinking(SwitchLinkingParameters(
+                    layoutSwitchId = storedSwitch.id as IntId,
+                    joints = linkedJoints,
+                    geometrySwitchId = null,
+                    switchStructureId = storedSwitch.switchStructureId,
+                ))
+            }
+            .let { switchDaoResponse -> switchDao.fetch(switchDaoResponse.rowVersion) }
+    }
+
+    private data class LocationTracksWithLinkedSwitch (
+        val straightTrack: LocationTrack,
+        val straightTrackAlignment: LayoutAlignment,
+
+        val divertingTrack: LocationTrack,
+        val divertingTrackAlignment: LayoutAlignment,
+
+        val linkedSwitch: TrackLayoutSwitch,
+    )
+
+    private fun createLocationTracksWithLinkedSwitch(
+        seed: Int = 12345,
+    ): LocationTracksWithLinkedSwitch {
+        val (straightTrack, straightAlignment) = createDraftLocationTrackFromLayoutSegments(
+            listOf(
+                segment(Point(0.0, 0.0), Point(20.0, 0.0)),  // Example: Beginning of the track
+                segment(Point(20.0, 0.0), Point(40.0, 0.0)), // Example: first switch start joint (1) -> joint (5)
+                segment(Point(40.0, 0.0), Point(60.0, 0.0)), // Example: first switch joint (5) -> end joint (2), will be split when linking the overlapping switch
+                segment(Point(60.0, 0.0), Point(80.0, 0.0)), // Example: second switch joint (1) WITHOUT OVERLAP -> joint (5)
+                segment(Point(80.0, 0.0), Point(100.0, 0.0)), // Example: joint (5) -> end joint (2)
+                segment(Point(100.0, 0.0), Point(120.0, 0.0)), // Example:  Rest of the track
+            )
+        )
+
+        val (divertingTrack, divertingAlignment) = createDraftLocationTrackFromLayoutSegments(
+            listOf(segment(Point(20.0, 0.0), Point(60.0, 60.0)))
+        )
+
+        val switchJoints = listOf(
+
+            // Continuing track
+            SwitchLinkingJoint(
+                JointNumber(1),
+                Point(20.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtStart(straightTrack.id, straightAlignment, 1),
+                    switchLinkingAtStart(divertingTrack.id, divertingAlignment, 0),
+                ),
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(5),
+                Point(40.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtStart(straightTrack.id, straightAlignment, 2),
+                ),
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(2),
+                Point(60.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtEnd(straightTrack.id, straightAlignment, 2),
+                ),
+            ),
+
+            // Diverting track
+            SwitchLinkingJoint(
+                JointNumber(3),
+                Point(100.0, 60.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtEnd(divertingTrack.id, divertingAlignment, 0),
+                ),
+            ),
+        )
+
+        val linkedSwitch = createAndLinkSwitch(
+            seed = seed,
+            linkedJoints = switchJoints,
+        )
+
+        val (linkedStraightTrack, linkedStraightTrackAlignment)
+                = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, straightTrack.id as IntId)
+
+        val (linkedDivertingTrack, linkedDivertingTrackAlignment)
+            = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, divertingTrack.id as IntId)
+
+        // No segment splits are excepted to have happened.
+        assertEquals(straightAlignment.segments.size, linkedStraightTrackAlignment.segments.size)
+
+        assertEquals(null, linkedStraightTrackAlignment.segments[0].switchId)
+        assertEquals(null, linkedStraightTrackAlignment.segments[0].startJointNumber)
+        assertEquals(null, linkedStraightTrackAlignment.segments[0].endJointNumber)
+
+        assertEquals(linkedSwitch.id, linkedStraightTrackAlignment.segments[1].switchId)
+        assertEquals(switchJoints[0].jointNumber, linkedStraightTrackAlignment.segments[1].startJointNumber)
+        assertEquals(switchJoints[1].jointNumber, linkedStraightTrackAlignment.segments[1].endJointNumber)
+
+        assertEquals(linkedSwitch.id, linkedStraightTrackAlignment.segments[2].switchId)
+        assertEquals(switchJoints[1].jointNumber, linkedStraightTrackAlignment.segments[2].startJointNumber)
+        assertEquals(switchJoints[2].jointNumber, linkedStraightTrackAlignment.segments[2].endJointNumber)
+
+        assertEquals(null, linkedStraightTrackAlignment.segments[3].switchId)
+        assertEquals(null, linkedStraightTrackAlignment.segments[3].startJointNumber)
+        assertEquals(null, linkedStraightTrackAlignment.segments[3].endJointNumber)
+
+        // The diverting track segments should not have been split either.
+        assertEquals(1, linkedDivertingTrackAlignment.segments.size)
+        assertEquals(linkedSwitch.id, linkedDivertingTrackAlignment.segments[0].switchId)
+        assertEquals(switchJoints[0].jointNumber, linkedDivertingTrackAlignment.segments[0].startJointNumber)
+        assertEquals(switchJoints[3].jointNumber, linkedDivertingTrackAlignment.segments[0].endJointNumber)
+
+        return LocationTracksWithLinkedSwitch(
+            straightTrack = linkedStraightTrack,
+            straightTrackAlignment = linkedStraightTrackAlignment,
+
+            divertingTrack = linkedDivertingTrack,
+            divertingTrackAlignment = linkedDivertingTrackAlignment,
+
+            linkedSwitch = linkedSwitch,
+        )
+    }
+
+    @Test
+    fun `Overlapping switch linking should not remove previous switch from overlapping layout segment (specific case)`() {
+        val switchOverlapAmount = 4.99
+        val testLocation = createLocationTracksWithLinkedSwitch()
+
+        val (secondDiversionTrack, secondDiversionAlignment) = createDraftLocationTrackFromLayoutSegments(
+            // The second diversion track's starting point and the related switch is purposefully built to overlap the first switch.
+            listOf(segment(Point(60.0 - switchOverlapAmount, 0.0), Point(100.0, 100.0)))
+        )
+
+        val overlappingSwitchJoints = listOf(
+            // Continuing track
+            SwitchLinkingJoint(
+                JointNumber(1),
+                Point(60.0 - switchOverlapAmount, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    SwitchLinkingSegment(
+                        locationTrackId = testLocation.straightTrack.id as IntId,
+                        segmentIndex = 2,
+                        m = testLocation.straightTrackAlignment.segments[2].endM - switchOverlapAmount,
+                    ),
+
+                    switchLinkingAtStart(secondDiversionTrack.id, secondDiversionAlignment, 0),
+                ),
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(5),
+                Point(80.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtStart(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4),
+                ),
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(2),
+                Point(100.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtEnd(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4),
+                ),
+            ),
+
+            // Diverting track
+            SwitchLinkingJoint(
+                JointNumber(3),
+                Point(100.0, 100.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(
+                    switchLinkingAtEnd(testLocation.divertingTrack.id, testLocation.divertingTrackAlignment, 0),
+                ),
+            ),
+        )
+
+        val newSwitch = createAndLinkSwitch(
+            seed = 98765,
+            linkedJoints = overlappingSwitchJoints,
+        )
+
+        val (_, overlapLinkedStraightAlignment)
+            = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocation.straightTrack.id as IntId)
+
+        // The overlapping segment has not been split, the next segment is used.
+        assertEquals(testLocation.straightTrackAlignment.segments.size, overlapLinkedStraightAlignment.segments.size)
+
+        assertEquals(null, overlapLinkedStraightAlignment.segments[0].switchId)
+        assertEquals(null, overlapLinkedStraightAlignment.segments[0].startJointNumber)
+        assertEquals(null, overlapLinkedStraightAlignment.segments[0].endJointNumber)
+
+        // Previously existing switch segments should stay the same.
+        assertEquals(testLocation.linkedSwitch.id, overlapLinkedStraightAlignment.segments[1].switchId)
+        assertEquals(testLocation.straightTrackAlignment.segments[1].startJointNumber, overlapLinkedStraightAlignment.segments[1].startJointNumber)
+        assertEquals(testLocation.straightTrackAlignment.segments[1].endJointNumber, overlapLinkedStraightAlignment.segments[1].endJointNumber)
+
+        assertEquals(testLocation.linkedSwitch.id, overlapLinkedStraightAlignment.segments[2].switchId)
+        assertEquals(testLocation.straightTrackAlignment.segments[2].startJointNumber, overlapLinkedStraightAlignment.segments[2].startJointNumber)
+        assertEquals(testLocation.straightTrackAlignment.segments[2].endJointNumber, overlapLinkedStraightAlignment.segments[2].endJointNumber)
+
+        // New switch
+        assertEquals(newSwitch.id, overlapLinkedStraightAlignment.segments[3].switchId)
+        assertEquals(overlappingSwitchJoints[0].jointNumber, overlapLinkedStraightAlignment.segments[3].startJointNumber)
+        assertEquals(overlappingSwitchJoints[1].jointNumber, overlapLinkedStraightAlignment.segments[3].endJointNumber)
+
+        assertEquals(newSwitch.id, overlapLinkedStraightAlignment.segments[4].switchId)
+        assertEquals(overlappingSwitchJoints[1].jointNumber, overlapLinkedStraightAlignment.segments[4].startJointNumber)
+        assertEquals(overlappingSwitchJoints[2].jointNumber, overlapLinkedStraightAlignment.segments[4].endJointNumber)
+
+        assertEquals(null, overlapLinkedStraightAlignment.segments[5].switchId)
+        assertEquals(null, overlapLinkedStraightAlignment.segments[5].startJointNumber)
+        assertEquals(null, overlapLinkedStraightAlignment.segments[5].endJointNumber)
+    }
+
+    @Test
+    fun `Switch linking slight overlap correction should work with multiple overlapping segments`() {
+        val (testLocationTrack, testAlignment) = createDraftLocationTrackFromLayoutSegments(
+            listOf(
+                segment(Point(0.0, 0.0), Point(10.0, 0.0)),
+                segment(Point(10.0, 0.0), Point(20.0, 0.0)),
+                segment(Point(20.0, 0.0), Point(21.0, 0.0)),
+                segment(Point(21.0, 0.0), Point(22.0, 0.0)),
+                segment(Point(22.0, 0.0), Point(23.0, 0.0)),
+                segment(Point(23.0, 0.0), Point(24.0, 0.0)),
+                segment(Point(24.0, 0.0), Point(25.0, 0.0)),
+                segment(Point(25.0, 0.0), Point(40.0, 0.0)),
+                segment(Point(40.0, 0.0), Point(60.0, 0.0)),
+                segment(Point(60.0, 0.0), Point(80.0, 0.0)),
+                segment(Point(80.0, 0.0), Point(90.0, 0.0)),
+            )
+        )
+
+        val existingSwitchJoints = listOf(
+            SwitchLinkingJoint(
+                JointNumber(1),
+                Point(21.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 3))
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(5),
+                Point(40.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 8))
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(2),
+                Point(60.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 9))
+            ),
+        )
+
+        val existingSwitch = createAndLinkSwitch(
+            seed = 98765_1,
+            linkedJoints = existingSwitchJoints
+        )
+
+        val overlappingSwitchJoints = listOf(
+            SwitchLinkingJoint(
+                JointNumber(1),
+                Point(0.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 0))
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(5),
+                Point(10.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(2),
+                Point(25.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 7))
+            ),
+        )
+
+        val linkedSwitchWithOverlap = createAndLinkSwitch(
+            seed = 98765_2,
+            linkedJoints = overlappingSwitchJoints
+        )
+
+        val (_, linkedTestAlignment)
+                = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+
+        assertEquals(testAlignment.segments.size, linkedTestAlignment.segments.size)
+
+        assertEquals(existingSwitchJoints[0].jointNumber, linkedTestAlignment.segments[0].startJointNumber)
+        assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[0].endJointNumber)
+
+        assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[1].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[1].endJointNumber)
+
+        assertEquals(null, linkedTestAlignment.segments[2].startJointNumber)
+        assertEquals(existingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[2].endJointNumber)
+
+        (0..2).forEach { segmentIndex ->
+            assertEquals(linkedSwitchWithOverlap.id, linkedTestAlignment.segments[segmentIndex].switchId)
+        }
+
+        (3..9).forEach { segmentIndex ->
+            assertEquals(existingSwitch.id, linkedTestAlignment.segments[segmentIndex].switchId)
+        }
+
+        (4..7).forEach { segmentIndex ->
+            assertEquals(null, linkedTestAlignment.segments[segmentIndex].startJointNumber)
+            assertEquals(null, linkedTestAlignment.segments[segmentIndex].endJointNumber)
+        }
+
+        assertEquals(overlappingSwitchJoints[0].jointNumber, linkedTestAlignment.segments[3].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[3].endJointNumber)
+
+        assertEquals(overlappingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[8].startJointNumber)
+        assertEquals(overlappingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[8].endJointNumber)
+
+        assertEquals(overlappingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[9].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[9].endJointNumber)
+
+        assertEquals(null, linkedTestAlignment.segments[10].switchId)
+        assertEquals(null, linkedTestAlignment.segments[10].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[10].endJointNumber)
+    }
+
+    @Test
+    fun `Switch linking slight overlap correction should work regardless of the joint number order`() {
+        val overlapAmount = 4.99
+
+        listOf(
+            Triple(JointNumber(1), JointNumber(5), JointNumber(2)),
+            Triple(JointNumber(2), JointNumber(5), JointNumber(1)),
+        ).forEachIndexed { index, (firstJointNumber, secondJointNumber, thirdJointNumber) ->
+
+            val (testLocationTrack, testAlignment) = createDraftLocationTrackFromLayoutSegments(
+                listOf(
+                    segment(Point(0.0, 0.0), Point(20.0, 0.0)),
+                    segment(Point(20.0, 0.0), Point(40.0, 0.0)),
+                    segment(Point(40.0, 0.0), Point(60.0, 0.0)),
+                    segment(Point(60.0, 0.0), Point(80.0, 0.0)),
+                    segment(Point(80.0, 0.0), Point(100.0, 0.0)),
+                    segment(Point(100.0, 0.0), Point(120.0, 0.0)),
+                )
+            )
+
+            val existingSwitchJoints = listOf(
+                SwitchLinkingJoint(
+                    JointNumber(1),
+                    Point(20.0, 0.0),
+                    LocationAccuracy.DESIGNED_GEOLOCATION,
+                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
+                ),
+
+                SwitchLinkingJoint(
+                    JointNumber(5),
+                    Point(40.0, 0.0),
+                    LocationAccuracy.DESIGNED_GEOLOCATION,
+                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2))
+                ),
+
+                SwitchLinkingJoint(
+                    JointNumber(2),
+                    Point(60.0, 0.0),
+                    LocationAccuracy.DESIGNED_GEOLOCATION,
+                    segments = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2))
+                )
+            )
+
+            val existingLayoutSwitch = createAndLinkSwitch(
+                seed = index,
+                linkedJoints = existingSwitchJoints,
+            )
+
+            val linkedSwitchWithOverlap = createAndLinkSwitch(
+                seed = 1000 + index,
+                linkedJoints = listOf(
+                    SwitchLinkingJoint(
+                        firstJointNumber,
+                        Point(60.0 - overlapAmount, 0.0),
+                        LocationAccuracy.DESIGNED_GEOLOCATION,
+                        segments = listOf(SwitchLinkingSegment(
+                            locationTrackId = testLocationTrack.id as IntId,
+                            segmentIndex = 2,
+                            m = testAlignment.segments[2].endM - overlapAmount,
+                        )),
+                    ),
+
+                    SwitchLinkingJoint(
+                        secondJointNumber,
+                        Point(80.0, 0.0),
+                        LocationAccuracy.DESIGNED_GEOLOCATION,
+                        segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4))
+                    ),
+
+                    SwitchLinkingJoint(
+                        thirdJointNumber,
+                        Point(100.0, 0.0),
+                        LocationAccuracy.DESIGNED_GEOLOCATION,
+                        segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5))
+                    ),
+                )
+            )
+
+            val (_, linkedTestAlignment)
+                    = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+
+            assertEquals(null, linkedTestAlignment.segments[0].switchId)
+            assertEquals(null, linkedTestAlignment.segments[0].startJointNumber)
+            assertEquals(null, linkedTestAlignment.segments[0].endJointNumber)
+
+            (1..2).forEach { segmentIndex ->
+                assertEquals(existingLayoutSwitch.id, linkedTestAlignment.segments[segmentIndex].switchId)
+            }
+
+            assertEquals(existingSwitchJoints[0].jointNumber, linkedTestAlignment.segments[1].startJointNumber)
+            assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[1].endJointNumber)
+
+            assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[2].startJointNumber)
+            assertEquals(existingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[2].endJointNumber)
+
+            (3..5).forEach { segmentIndex ->
+                assertEquals(linkedSwitchWithOverlap.id, linkedTestAlignment.segments[segmentIndex].switchId)
+            }
+
+            assertEquals(firstJointNumber, linkedTestAlignment.segments[3].startJointNumber)
+            assertEquals(secondJointNumber, linkedTestAlignment.segments[3].endJointNumber)
+
+            assertEquals(secondJointNumber, linkedTestAlignment.segments[4].startJointNumber)
+            assertEquals(thirdJointNumber, linkedTestAlignment.segments[4].endJointNumber)
+
+            assertEquals(thirdJointNumber, linkedTestAlignment.segments[5].startJointNumber)
+            assertEquals(null, linkedTestAlignment.segments[5].endJointNumber)
+        }
+    }
+
+    @Test
+    fun `Switch linking slight overlap correction should override the original switch when the overlap correction limit is exceeded`() {
+        val moreThanAllowedOverlap = 5.01
+
+        val (testLocationTrack, testAlignment) = createDraftLocationTrackFromLayoutSegments(
+            listOf(
+                segment(Point(0.0, 0.0), Point(20.0, 0.0)),
+                segment(Point(20.0, 0.0), Point(40.0, 0.0)),
+                segment(Point(40.0, 0.0), Point(60.0, 0.0)),
+                segment(Point(60.0, 0.0), Point(80.0, 0.0)),
+                segment(Point(80.0, 0.0), Point(100.0, 0.0)),
+                segment(Point(100.0, 0.0), Point(120.0, 0.0)),
+            )
+        )
+
+        val linkedSwitch = createAndLinkSwitch(
+            seed = 98765_1,
+            linkedJoints = listOf(
+                SwitchLinkingJoint(
+                    JointNumber(1),
+                    Point(20.0, 0.0),
+                    LocationAccuracy.DESIGNED_GEOLOCATION,
+                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
+                ),
+
+                SwitchLinkingJoint(
+                    JointNumber(5),
+                    Point(40.0, 0.0),
+                    LocationAccuracy.DESIGNED_GEOLOCATION,
+                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2))
+                ),
+
+                SwitchLinkingJoint(
+                    JointNumber(2),
+                    Point(60.0, 0.0),
+                    LocationAccuracy.DESIGNED_GEOLOCATION,
+                    segments = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2))
+                ),
+            )
+        )
+
+        val (_, linkedTestAlignmentBeforeTryingOverlap)
+                = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+
+        (1..2).forEach { segmentIndex ->
+            assertEquals(linkedSwitch.id, linkedTestAlignmentBeforeTryingOverlap.segments[segmentIndex].switchId)
+        }
+
+        val jointsForSwitchWithTooMuchOverlap = listOf(
+            SwitchLinkingJoint(
+                JointNumber(1),
+                Point(60.0 - moreThanAllowedOverlap, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(SwitchLinkingSegment(
+                    locationTrackId = testLocationTrack.id as IntId,
+                    segmentIndex = 2,
+                    m = testAlignment.segments[2].endM - moreThanAllowedOverlap,
+                )),
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(5),
+                Point(80.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4))
+            ),
+
+            SwitchLinkingJoint(
+                JointNumber(2),
+                Point(100.0, 0.0),
+                LocationAccuracy.DESIGNED_GEOLOCATION,
+                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5))
+            ),
+        )
+
+        val linkedSwitchWithTooMuchOverlap = createAndLinkSwitch(
+            seed = 98765_2,
+            linkedJoints = jointsForSwitchWithTooMuchOverlap,
+        )
+
+        val (_, linkedTestAlignment)
+                = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+
+        // The original alignment is expected to have been split at the desired starting point of the new switch,
+        // as it was not possible to snap it to a nearby segment without overlap.
+        assertEquals(testAlignment.segments.size + 1, linkedTestAlignment.segments.size)
+
+        (1..2).forEach { segmentIndex ->
+            assertEquals(null, linkedTestAlignment.segments[segmentIndex].switchId)
+        }
+
+        (3..6).forEach { segmentIndex ->
+            assertEquals(linkedSwitchWithTooMuchOverlap.id, linkedTestAlignment.segments[segmentIndex].switchId)
+        }
+
+        assertEquals(jointsForSwitchWithTooMuchOverlap[0].jointNumber, linkedTestAlignment.segments[3].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[4].endJointNumber)
+
+        assertEquals(null, linkedTestAlignment.segments[4].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[4].endJointNumber)
+
+        assertEquals(jointsForSwitchWithTooMuchOverlap[1].jointNumber, linkedTestAlignment.segments[5].startJointNumber)
+        assertEquals(jointsForSwitchWithTooMuchOverlap[2].jointNumber, linkedTestAlignment.segments[5].endJointNumber)
+
+        assertEquals(jointsForSwitchWithTooMuchOverlap[2].jointNumber, linkedTestAlignment.segments[6].startJointNumber)
+        assertEquals(null, linkedTestAlignment.segments[6].endJointNumber)
+    }
+
+    private fun createDraftLocationTrackFromLayoutSegments(layoutSegments: List<LayoutSegment>): Pair<LocationTrack, LayoutAlignment> {
+        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+
+        val (locationTrack, alignment) = locationTrackAndAlignment(trackNumberId, layoutSegments)
+        val locationTrackId = locationTrackService.saveDraft(locationTrack, alignment).id
+
+        return locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId)
     }
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
