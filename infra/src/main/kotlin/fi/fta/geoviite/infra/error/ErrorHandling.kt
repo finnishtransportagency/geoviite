@@ -59,12 +59,15 @@ fun createResponse(
     messageRows: List<String>,
     status: HttpStatus,
     correlationId: String,
-    localizedMessage: Pair<LocalizationKey, List<String>>?
+    localizedMessage: Pair<LocalizationKey, List<String>>?,
 ): ResponseEntity<ApiErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
-    return ResponseEntity(ApiErrorResponse(messageRows, correlationId, localizedMessage?.first,
-        localizedMessage?.second?: listOf()), headers, status)
+    return ResponseEntity(
+        ApiErrorResponse(
+            messageRows, correlationId, localizedMessage?.first, localizedMessage?.second ?: listOf()
+        ), headers, status
+    )
 }
 
 fun getCauseChain(exception: Exception): List<Exception> {
@@ -73,7 +76,10 @@ fun getCauseChain(exception: Exception): List<Exception> {
     while (current != null) {
         when (current) {
             is Exception -> chain.add(current)
-            is Error -> throw IllegalStateException("Errors are not meant to be caught! Tried to handle $current")
+            is Error -> throw IllegalStateException(
+                "Errors are not meant to be caught! Tried to handle $current",
+                current,
+            )
         }
         current = current.cause
     }
