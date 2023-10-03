@@ -15,7 +15,7 @@ type KilometerLengthsTableProps = {
     isLoading: boolean;
 };
 
-export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
+const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
     const { t } = useTranslation();
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
@@ -72,3 +72,5 @@ export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengths
         </React.Fragment>
     );
 };
+
+export default React.memo(KilometerLengthsTable);
