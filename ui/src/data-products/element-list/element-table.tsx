@@ -17,7 +17,7 @@ type ElementTableProps = {
     isLoading: boolean;
 };
 
-export const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
+const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
@@ -116,3 +116,5 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
         </React.Fragment>
     );
 };
+
+export default React.memo(ElementTable);

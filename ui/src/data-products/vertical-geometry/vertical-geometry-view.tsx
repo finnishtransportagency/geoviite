@@ -6,7 +6,7 @@ import PlanVerticalGeometrySearch from 'data-products/vertical-geometry/plan-ver
 import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry/location-track-vertical-geometry-search';
 import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-geometry-table';
+import VerticalGeometryTable from 'data-products/vertical-geometry/vertical-geometry-table';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkVerticalGeometryListing } from 'data-products/vertical-geometry/entire-rail-network-vertical-geometry-listing';
 

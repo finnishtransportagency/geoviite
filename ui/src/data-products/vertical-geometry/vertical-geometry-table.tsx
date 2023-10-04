@@ -50,7 +50,7 @@ const COMMON_HEADINGS = [
     nonNumericHeading('remarks'),
 ];
 
-export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
+const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
     verticalGeometry,
     showLocationTrack,
     isLoading,
@@ -175,3 +175,5 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
         </React.Fragment>
     );
 };
+
+export default React.memo(VerticalGeometryTable);
