@@ -27,13 +27,6 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     const [y, setY] = React.useState<number>();
     const [width, setWidth] = React.useState<number | undefined>();
 
-    const boundingRect = positionRef.current?.getBoundingClientRect();
-
-    React.useEffect(() => {
-        setX(boundingRect?.x);
-        setY(boundingRect?.y);
-    }, [boundingRect?.x, boundingRect?.y]);
-
     React.useEffect(() => {
         function clickHandler(event: MouseEvent) {
             if (positionRef.current && !positionRef.current.contains(event.target as HTMLElement)) {
@@ -51,11 +44,13 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     useResizeObserver({
         ref: document.body,
         onResize: () => {
-            setX(boundingRect?.x);
-            setY(boundingRect?.y);
+            const br = positionRef.current?.getBoundingClientRect();
+
+            setX(br?.x);
+            setY(br?.y);
 
             if (useRefWidth) {
-                setWidth(boundingRect?.width ? boundingRect?.width + offsetWidth : undefined);
+                setWidth(br?.width ? br?.width + offsetWidth : undefined);
             }
         },
     });
