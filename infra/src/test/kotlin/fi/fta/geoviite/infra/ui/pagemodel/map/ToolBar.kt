@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
 import getElementWhenVisible
 import org.openqa.selenium.By
+import waitUntilNotVisible
 import waitUntilVisible
 
 class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch, By.className("tool-bar"))) {
@@ -27,8 +28,8 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
     fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
         if (clear) searchDropdown.clearInput()
         searchDropdown.inputValue(value)
-        waitChildVisible(By.className("dropdown__loading-indicator"))
-        waitChildNotVisible(By.className("dropdown__loading-indicator"))
+        waitUntilVisible(By.className("dropdown__loading-indicator"))
+        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
     }
 
     val searchResults: List<E2ETextListItem> get() = searchDropdown.options
