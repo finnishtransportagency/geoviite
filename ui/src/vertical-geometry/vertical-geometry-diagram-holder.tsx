@@ -2,7 +2,7 @@ import * as React from 'react';
 import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
 import { useAlignmentHeights } from 'vertical-geometry/km-heights-fetch';
 import { ChangeTimes } from 'common/common-slice';
-import { VerticalGeometryItem } from 'geometry/geometry-model';
+import { VerticalGeometryDiagramDisplayItem, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
     getLocationTrackLinkingSummary,
@@ -50,10 +50,17 @@ type AlignmentAndExtents = {
 };
 
 // we don't really need the station values in the plan geometry for anything in this entire diagram
-async function getStartAndEnd(alignmentId: VerticalGeometryDiagramAlignmentId) {
+async function getStartAndEnd(
+    changeTimes: ChangeTimes,
+    alignmentId: VerticalGeometryDiagramAlignmentId,
+) {
     return 'planId' in alignmentId
         ? getPlanAlignmentStartAndEnd(alignmentId.planId, alignmentId.alignmentId)
-        : getLocationTrackStartAndEnd(alignmentId.locationTrackId, alignmentId.publishType);
+        : getLocationTrackStartAndEnd(
+              alignmentId.locationTrackId,
+              alignmentId.publishType,
+              changeTimes.layoutLocationTrack,
+          );
 }
 
 async function getVerticalGeometry(
@@ -88,7 +95,8 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     const [diagramHeight, setDiagramHeight] = React.useState<number>();
     const [diagramWidth, setDiagramWidth] = React.useState<number>();
     const [linkingSummary, setLinkingSummary] = React.useState<PlanLinkingSummaryItem[]>();
-    const [processedGeometry, setProcessedGeometry] = React.useState<VerticalGeometryItem[]>();
+    const [processedGeometry, setProcessedGeometry] =
+        React.useState<VerticalGeometryDiagramDisplayItem[]>();
     const [alignmentAndExtents, setAlignmentAndExtents] = React.useState<AlignmentAndExtents>();
     const { t } = useTranslation();
 
@@ -137,7 +145,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                   );
 
         const geometryPromise = getVerticalGeometry(changeTimes, alignmentId);
-        const startEndPromise = getStartAndEnd(alignmentId);
+        const startEndPromise = getStartAndEnd(changeTimes, alignmentId);
 
         Promise.all([linkingSummaryPromise, geometryPromise, startEndPromise]).then(
             async ([linkingSummary, geometry, startEnd]) => {
@@ -151,7 +159,9 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                         (linkingSummary
                             ? processLayoutGeometries(geometry, linkingSummary)
                             : geometry
-                        ).sort((a, b) => a.point.station - b.point.station),
+                        ).sort((a, b) =>
+                            !a.point || !b.point ? 0 : a.point.station - b.point.station,
+                        ),
                     );
 
                     setStartM(start);

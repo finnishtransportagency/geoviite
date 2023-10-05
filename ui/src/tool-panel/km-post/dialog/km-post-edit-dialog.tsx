@@ -206,7 +206,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         : t('km-post-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                width={DialogWidth.ULTRA_WIDE}
+                width={DialogWidth.WIDE}
                 footerContent={
                     <React.Fragment>
                         <div className={dialogStyles['dialog__footer-content--left-aligned']}>
@@ -307,47 +307,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                                 <Dropdown
                                     value={undefined}
                                     options={[]}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                    </FormLayoutColumn>
-                    <FormLayoutColumn>
-                        <Heading size={HeadingSize.SUB}>
-                            {t('km-post-dialog.info-from-linking')}
-                        </Heading>
-                        <FieldLayout
-                            label={t('km-post-dialog.location')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('km-post-dialog.coordinate-system')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('km-post-dialog.coordinates')}
-                            value={
-                                <TextField
-                                    value={'-'}
                                     onChange={(_value) => undefined}
                                     onBlur={() => undefined}
                                     wide

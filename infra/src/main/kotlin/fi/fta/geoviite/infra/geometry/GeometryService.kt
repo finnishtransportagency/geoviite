@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
@@ -54,9 +55,11 @@ class GeometryService @Autowired constructor(
     private val elementListingFileDao: ElementListingFileDao,
     private val verticalGeometryListingFileDao: VerticalGeometryListingFileDao,
     private val lockDao: LockDao,
+    private val localizationService: LocalizationService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val localization = localizationService.getLocalization("fi")
 
     private fun runElementListGeneration(op: () -> Unit) {
         MDC.put(USER_HEADER, ELEMENT_LISTING_GENERATION_USER)
@@ -451,8 +454,8 @@ class GeometryService @Autowired constructor(
                 )
             }
 
-            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> h.planPhase?.name }
-            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> h.decisionPhase?.name }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> localization.t("enum.plan-phase.${h.planPhase?.name}") }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> localization.t("enum.plan-decision.${h.decisionPhase?.name}") }
             GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }

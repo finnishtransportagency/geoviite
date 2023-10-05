@@ -4,14 +4,20 @@ import {
     getTrackMeterPairAroundIndex,
     TrackMeterIndex,
 } from 'vertical-geometry/track-meter-index';
-import { VerticalGeometryItem } from 'geometry/geometry-model';
+import { VerticalGeometryDiagramDisplayItem, VerticalGeometryItem } from 'geometry/geometry-model';
 import { filterNotEmpty, findLastIndex } from 'utils/array-utils';
-import { linearFunctionFromPoints } from 'utils/math-utils';
+import { linearFunction, slopeFromPoints } from 'utils/math-utils';
+import { Point } from 'model/geometry';
 
 type HeightValue = number;
 type LowerHeightBound = number;
 type UpperHeightBound = number;
 type HeightBounds = [LowerHeightBound, UpperHeightBound];
+
+type AdjacentVerticalGeometryItems = [
+    VerticalGeometryDiagramDisplayItem | undefined,
+    VerticalGeometryDiagramDisplayItem | undefined,
+];
 
 export function approximateHeightAtM(m: number, kmHeights: TrackKmHeights[]): number | undefined {
     const index = findTrackMeterIndexContainingM(m, kmHeights);
@@ -45,7 +51,7 @@ export function polylinePoints(points: readonly (readonly [number, number])[]): 
 
 export function getBottomAndTopTicks(
     kmHeights: TrackKmHeights[],
-    geometry: VerticalGeometryItem[],
+    geometry: VerticalGeometryDiagramDisplayItem[],
     visibleStartM: number,
     visibleEndM: number,
 ): [number, number] {
@@ -72,31 +78,21 @@ export function getBottomAndTopTicks(
     // diagram. This was unwanted behavior as the vertical geometry diagram's height should scale correctly even with
     // large changes between values, which is what the following condition should account for.
     if (heightBoundsFromTrackKm) {
-        const approximateHeightAtLeftEdge = approximateHeightAtVerticalGeometryDiagramLeftEdge(
-            heightBoundsFromTrackKm,
-            geometry,
-            visibleStartM,
-        );
-
-        const approximateHeightAtRightEdge = approximateHeightAtVerticalGeometryDiagramRightEdge(
-            heightBoundsFromTrackKm,
-            geometry,
-            visibleEndM,
-        );
-
         heightBoundsFromTrackKm = heightsToBounds(
             [
                 ...heightBoundsFromTrackKm,
-                approximateHeightAtLeftEdge,
-                approximateHeightAtRightEdge,
-            ].filter((height): height is number => height !== undefined),
+                approximateHeightAtLeftEdge(heightBoundsFromTrackKm, geometry, visibleStartM),
+                approximateHeightAtRightEdge(heightBoundsFromTrackKm, geometry, visibleEndM),
+            ].filter(filterNotEmpty),
         );
     }
 
     return (
         heightBoundsFromTrackKm ??
         heightsToBounds(
-            geometry.flatMap((p) => [p.start.height, p.point.height, p.end.height]),
+            geometry
+                .flatMap((p) => [p.start?.height, p.point?.height, p.end?.height])
+                .filter(filterNotEmpty),
         ) ?? [0, 100]
     );
 }
@@ -105,79 +101,71 @@ function heightIsOutOfBounds(heightBounds: HeightBounds, height: HeightValue) {
     return height && (height < heightBounds[0] || height > heightBounds[1]);
 }
 
-function approximateHeightAtVerticalGeometryDiagramLeftEdge(
-    heightBounds: HeightBounds,
-    geometry: VerticalGeometryItem[],
+function approximateHeightAtLeftEdge(
+    previousHeightBounds: HeightBounds,
+    geometry: VerticalGeometryDiagramDisplayItem[],
     visibleStartM: number,
 ): number | undefined {
-    const indexOfFirstVisibleGeometryItem = geometry.findIndex((geometryItem) => {
-        return geometryItem.start.station > visibleStartM;
-    });
+    const firstVisibleItemIndex = geometry.findIndex((item) =>
+        item.start ? item.start.station > visibleStartM : false,
+    );
 
-    if (indexOfFirstVisibleGeometryItem > 0) {
-        const lastNotVisibleGeometryItem = geometry[indexOfFirstVisibleGeometryItem - 1];
-        const firstVisibleGeometryItem = geometry[indexOfFirstVisibleGeometryItem];
-
-        if (heightIsOutOfBounds(heightBounds, lastNotVisibleGeometryItem.end.height)) {
-            const linearFunctionFromLastKnownHeightToNextKnownHeight = linearFunctionFromPoints(
-                {
-                    x: lastNotVisibleGeometryItem.end.station,
-                    y: lastNotVisibleGeometryItem.end.height,
-                },
-                {
-                    x: firstVisibleGeometryItem.start.station,
-                    y: firstVisibleGeometryItem.start.height,
-                },
-                lastNotVisibleGeometryItem.end.height,
-            );
-
-            // Approximate height at the left edge of the vertical geometry diagram.
-            return linearFunctionFromLastKnownHeightToNextKnownHeight(
-                visibleStartM - lastNotVisibleGeometryItem.end.station,
-            );
-        }
-    }
-
-    return undefined;
+    return approximateHeight(
+        previousHeightBounds,
+        [geometry[firstVisibleItemIndex - 1], geometry[firstVisibleItemIndex]],
+        visibleStartM,
+    );
 }
 
-function approximateHeightAtVerticalGeometryDiagramRightEdge(
-    heightBounds: HeightBounds,
-    geometry: VerticalGeometryItem[],
+function approximateHeightAtRightEdge(
+    previousHeightBounds: HeightBounds,
+    geometry: VerticalGeometryDiagramDisplayItem[],
     visibleEndM: number,
 ): number | undefined {
-    const indexOfLastVisibleGeometryItem = findLastIndex(geometry, (geometryItem) => {
-        return geometryItem.end.station < visibleEndM;
-    });
+    const lastVisibleItemIndex = findLastIndex(geometry, (item) =>
+        item.end ? item.end.station < visibleEndM : false,
+    );
 
-    if (
-        indexOfLastVisibleGeometryItem >= 0 &&
-        indexOfLastVisibleGeometryItem + 1 < geometry.length
-    ) {
-        const lastVisibleGeometryItem = geometry[indexOfLastVisibleGeometryItem];
-        const firstNotVisibleGeometryItem = geometry[indexOfLastVisibleGeometryItem + 1];
+    return approximateHeight(
+        previousHeightBounds,
+        [geometry[lastVisibleItemIndex], geometry[lastVisibleItemIndex + 1]],
+        visibleEndM,
+    );
+}
 
-        if (heightIsOutOfBounds(heightBounds, firstNotVisibleGeometryItem.start.height)) {
-            const linearFunctionFromLastKnownHeightToNextKnownHeight = linearFunctionFromPoints(
-                {
-                    x: lastVisibleGeometryItem.end.station,
-                    y: lastVisibleGeometryItem.end.height,
-                },
-                {
-                    x: firstNotVisibleGeometryItem.start.station,
-                    y: firstNotVisibleGeometryItem.start.height,
-                },
-                lastVisibleGeometryItem.end.height,
-            );
-
-            // Approximate height at the right edge of the vertical geometry diagram.
-            return linearFunctionFromLastKnownHeightToNextKnownHeight(
-                visibleEndM - lastVisibleGeometryItem.end.station,
-            );
-        }
+function approximateHeight(
+    previousHeightBounds: HeightBounds,
+    adjacentVerticalGeometryItems: AdjacentVerticalGeometryItems,
+    evaluateHeightAtX: number,
+): number | undefined {
+    if (!adjacentVerticalGeometryItems[0]?.end || !adjacentVerticalGeometryItems[1]?.start) {
+        return undefined;
     }
 
-    return undefined;
+    const [previousPoint, nextPoint]: [Point, Point] = [
+        {
+            x: adjacentVerticalGeometryItems[0].end.station,
+            y: adjacentVerticalGeometryItems[0].end.height,
+        },
+        {
+            x: adjacentVerticalGeometryItems[1].start.station,
+            y: adjacentVerticalGeometryItems[1].start.height,
+        },
+    ];
+
+    if (
+        !heightIsOutOfBounds(previousHeightBounds, previousPoint.y) &&
+        !heightIsOutOfBounds(previousHeightBounds, nextPoint.y)
+    ) {
+        // Optimization: Neither of the points is out of bounds in the y-axis,
+        // meaning that a straight line between them is not going to be either.
+        return undefined;
+    }
+
+    return linearFunction(
+        slopeFromPoints(previousPoint, nextPoint),
+        previousPoint.y,
+    )(evaluateHeightAtX - previousPoint.x);
 }
 
 export function zeroSafeDivision(a: number, b: number): number {
@@ -190,21 +178,30 @@ export function sumPaddings(p1: string, p2: string) {
 
 export function substituteLayoutStationsForGeometryStations(
     geometryItem: VerticalGeometryItem,
-): VerticalGeometryItem {
+): VerticalGeometryDiagramDisplayItem {
     return {
         ...geometryItem,
-        start: {
-            ...geometryItem.start,
-            station: geometryItem.layoutStartStation ?? geometryItem.start.station,
-        },
-        point: {
-            ...geometryItem.point,
-            station: geometryItem.layoutPointStation ?? geometryItem.point.station,
-        },
-        end: {
-            ...geometryItem.end,
-            station: geometryItem.layoutEndStation ?? geometryItem.end.station,
-        },
+
+        start: geometryItem.layoutStartStation
+            ? {
+                  ...geometryItem.start,
+                  station: geometryItem.layoutStartStation,
+              }
+            : undefined,
+
+        point: geometryItem.layoutPointStation
+            ? {
+                  ...geometryItem.point,
+                  station: geometryItem.layoutPointStation,
+              }
+            : undefined,
+
+        end: geometryItem.layoutEndStation
+            ? {
+                  ...geometryItem.end,
+                  station: geometryItem.layoutEndStation,
+              }
+            : undefined,
     };
 }
 
@@ -214,12 +211,14 @@ export function processLayoutGeometries(
 ) {
     const linkedAreaSourceFile = (layoutM: number) =>
         linkingSummary.find((linkingSummaryItem) => linkingSummaryItem.endM >= layoutM)?.filename;
+
     return geometry
         .map(substituteLayoutStationsForGeometryStations)
         .filter(
             (geom) =>
-                geom.fileName === linkedAreaSourceFile(geom.start.station) ||
-                geom.fileName === linkedAreaSourceFile(geom.end.station) ||
-                geom.fileName === linkedAreaSourceFile(geom.point.station),
+                (geom.start?.station &&
+                    geom.fileName === linkedAreaSourceFile(geom.start.station)) ||
+                (geom.end?.station && geom.fileName === linkedAreaSourceFile(geom.end.station)) ||
+                (geom.point?.station && geom.fileName === linkedAreaSourceFile(geom.point.station)),
         );
 }

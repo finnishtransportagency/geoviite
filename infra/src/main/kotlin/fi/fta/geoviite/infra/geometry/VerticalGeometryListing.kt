@@ -156,7 +156,7 @@ fun toVerticalGeometryListing(
         geocodingContext,
         startAddress,
         endAddress
-    ).distinctBy { (segment, elementId) -> elementId ?: segment.id }.mapNotNull { it.second }
+    ).mapNotNull { it.second }
     val headersAndAlignments = linkedElementIds
         .map(::getAlignmentId)
         .distinct()

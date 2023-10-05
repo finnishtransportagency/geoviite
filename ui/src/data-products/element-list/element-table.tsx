@@ -17,7 +17,7 @@ type ElementTableProps = {
     isLoading: boolean;
 };
 
-export const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
+const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
@@ -76,9 +76,8 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
                     </thead>
                     <tbody>
                         {elements.map((item) => (
-                            <React.Fragment key={`${item.id}`}>
+                            <React.Fragment key={item.id}>
                                 <ElementTableItem
-                                    id={item.alignmentId}
                                     trackNumber={
                                         trackNumbers?.find((tn) => tn.id === item.trackNumberId)
                                             ?.number
@@ -117,3 +116,5 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
         </React.Fragment>
     );
 };
+
+export default React.memo(ElementTable);

@@ -15,14 +15,16 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
-        <React.Suspense fallback={<React.Fragment />}>
-            <Provider store={appStore}>
-                <PersistGate loading={null} persistor={persistor}>
-                    <HashRouter>
-                        <MainContainer />
-                    </HashRouter>
-                </PersistGate>
-            </Provider>
-        </React.Suspense>,
+        <React.StrictMode>
+            <React.Suspense fallback={<React.Fragment />}>
+                <Provider store={appStore}>
+                    <PersistGate loading={null} persistor={persistor}>
+                        <HashRouter>
+                            <MainContainer />
+                        </HashRouter>
+                    </PersistGate>
+                </Provider>
+            </React.Suspense>
+        </React.StrictMode>,
     );
 }

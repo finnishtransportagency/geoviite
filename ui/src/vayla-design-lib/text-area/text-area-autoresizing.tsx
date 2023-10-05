@@ -51,7 +51,7 @@ export const TextAreaAutoResizing: React.FC<TextAreaProps> = ({
 
     return (
         <div className={className}>
-            <div className={styles['text-area__input']}>
+            <div className="text-area__input">
                 {Icon && (
                     <div className={styles['text-area__icon']}>
                         <Icon size={IconSize.SMALL} color={IconColor.INHERIT} />

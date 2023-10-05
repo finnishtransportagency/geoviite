@@ -195,27 +195,33 @@ const MapView: React.FC<MapViewProps> = ({
     // renders we just want to update OpenLayers layers. In this way map
     // works smoothly.
     React.useEffect(() => {
-        const controls = defaultControls();
-        controls.extend([defaultScaleLine]);
-        const interactions = defaultInteractions();
-        //Mouse middle click pan
-        interactions.push(new DragPan({ condition: (event) => event.originalEvent.which == 2 }));
+        if (olMapContainer.current) {
+            olMapContainer.current.innerHTML = '';
 
-        // use in the browser window.map.getPixelFromCoordinate([x,y])
-        window.map = new OlMap({
-            controls: controls,
-            interactions: interactions,
-            target: olMapContainer.current as HTMLElement,
-            view: getOlViewByDomainViewport(map.viewport),
-        });
+            const controls = defaultControls();
+            controls.extend([defaultScaleLine]);
+            const interactions = defaultInteractions();
+            //Mouse middle click pan
+            interactions.push(
+                new DragPan({ condition: (event) => event.originalEvent.which == 2 }),
+            );
 
-        window.map.on('rendercomplete', () => {
-            if (!visibleLayers.current.some((l) => l.requestInFlight())) {
-                onDoneLoading();
-            }
-        });
+            // use in the browser window.map.getPixelFromCoordinate([x,y])
+            window.map = new OlMap({
+                controls: controls,
+                interactions: interactions,
+                target: olMapContainer.current as HTMLElement,
+                view: getOlViewByDomainViewport(map.viewport),
+            });
 
-        setOlMap(window.map);
+            window.map.on('rendercomplete', () => {
+                if (!visibleLayers.current.some((l) => l.requestInFlight())) {
+                    onDoneLoading();
+                }
+            });
+
+            setOlMap(window.map);
+        }
     }, []);
 
     // Track map view port changes
@@ -275,9 +281,8 @@ const MapView: React.FC<MapViewProps> = ({
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = visibleLayers.current.find(
-                    (l) => l.name === layerName,
-                )?.layer;
+                const existingOlLayer = visibleLayers.current.find((l) => l.name === layerName)
+                    ?.layer;
 
                 switch (layerName) {
                     case 'background-map-layer':

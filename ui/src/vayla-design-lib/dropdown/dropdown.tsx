@@ -414,7 +414,7 @@ export const Dropdown = function <TItemValue>({
                         )}
                     </ul>
                     {props.onAddClick && (
-                        <div className={styles['dropdown__add-new-container']}>
+                        <div className="dropdown__add-new-container">
                             <Button
                                 variant={ButtonVariant.GHOST}
                                 icon={Icons.Append}
