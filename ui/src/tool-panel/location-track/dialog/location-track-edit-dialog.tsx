@@ -37,8 +37,8 @@ import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/fo
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
+    useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
-    useLocationTrackSwitchesAtEnds,
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -69,11 +69,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 ) => {
     const { t } = useTranslation();
 
-    const switchesAtEnds = useLocationTrackSwitchesAtEnds(
-        props.locationTrack,
-        props.publishType,
-        props.locationTrackChangeTime,
-    );
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -95,6 +90,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.publishType,
         props.locationTrackChangeTime,
     );
+
+    const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, props.publishType);
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
@@ -255,14 +252,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }
 
     const switchToSwitchDescriptionSuffix = () =>
-        `${shortenSwitchName(switchesAtEnds?.start?.name) ?? '???'} - ${
-            shortenSwitchName(switchesAtEnds?.end?.name) ?? '???'
+        `${shortenSwitchName(extraInfo?.switchAtStart?.name) ?? '???'} - ${
+            shortenSwitchName(extraInfo?.switchAtEnd?.name) ?? '???'
         }`;
 
     const switchToBufferDescriptionSuffix = () =>
         `${
-            shortenSwitchName(switchesAtEnds?.start?.name) ??
-            shortenSwitchName(switchesAtEnds?.end?.name) ??
+            shortenSwitchName(extraInfo?.switchAtStart?.name) ??
+            shortenSwitchName(extraInfo?.switchAtEnd?.name) ??
             '???'
         } - ${t('location-track-dialog.buffer')}`;
 
@@ -577,7 +574,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {switchesAtEnds?.start?.name ??
+                                    {extraInfo?.switchAtStart?.name ??
                                         t('location-track-dialog.no-start-or-end-switch')}
                                 </span>
                             }
@@ -589,7 +586,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {switchesAtEnds?.end?.name ??
+                                    {extraInfo?.switchAtEnd?.name ??
                                         t('location-track-dialog.no-start-or-end-switch')}
                                 </span>
                             }
