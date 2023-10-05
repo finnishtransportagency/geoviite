@@ -1,10 +1,12 @@
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+
 export enum Precision {
     distanceKilometers,
     distanceMeters,
     distanceEvenMeters,
     cantMillimeters,
     radiusMeters,
-    TM35FIN,
+    coordinateMeters,
     profileMeters,
     alignmentLengthMeters,
     measurementMeterDistance,
@@ -26,7 +28,7 @@ export function roundToPrecision(n: number, precision: Precision): string {
             return n.toFixed(3);
         case Precision.radiusMeters:
             return n.toFixed(3);
-        case Precision.TM35FIN:
+        case Precision.coordinateMeters:
             return n.toFixed(3);
         case Precision.profileMeters:
             return n.toFixed(3);
@@ -42,5 +44,7 @@ export function roundToPrecision(n: number, precision: Precision): string {
             return n.toFixed(3);
         case Precision.profileRadiusMeters:
             return n.toFixed(0);
+        default:
+            return exhaustiveMatchingGuard(precision);
     }
 }

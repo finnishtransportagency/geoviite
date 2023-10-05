@@ -6,6 +6,13 @@ import fi.fta.geoviite.infra.error.InputValidationException
 val lineBreakRegex = Regex("[\n\r\t]")
 const val UNSAFE_LOG_CHARACTERS = "[^A-Za-zäöÄÖåÅ0-9_-+!?.:;', �/]"
 
+const val UNIX_LINEBREAK = "\n"
+const val LEGACY_LINEBREAK = "\r" // Possibly used in older files were text may be copied and pasted from.
+const val WINDOWS_LINEBREAK = "\r\n"
+
+// Order matters due to both Windows style & legacy linebreaks containing the same special character.
+val linebreakNormalizationRegex = Regex("$WINDOWS_LINEBREAK|$LEGACY_LINEBREAK")
+
 const val UNSAFE_REPLACEMENT = "�"
 const val LINE_BREAK_REPLACEMENT = "^"
 
@@ -38,6 +45,9 @@ fun removeLogUnsafe(input: String) = input.replace(UNSAFE_LOG_CHARACTERS, UNSAFE
 
 fun removeLinebreaks(input: String) = input.replace(lineBreakRegex, LINE_BREAK_REPLACEMENT)
 
+fun normalizeLinebreaksToUnixFormat(input: String) = input.replace(linebreakNormalizationRegex, UNIX_LINEBREAK)
+fun normalizeLinebreaksToUnixFormat(input: FreeTextWithNewLines) = FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(input.toString()))
+
 fun isSanitized(
     stringValue: String,
     regex: Regex,
@@ -53,9 +63,7 @@ inline fun <reified T> assertSanitized(
     length: ClosedRange<Int>? = null,
     allowBlank: Boolean = true,
 ) {
-    assertInput<T>(length == null || stringValue.length in length) {
-        "Invalid length for ${T::class.simpleName} ${stringValue.length} not in [${length?.start}..${length?.endInclusive}]"
-    }
+    length?.let { l -> assertLength<T>(stringValue, l) }
     assertInput<T>(allowBlank || stringValue.isNotBlank()) {
         "Invalid (blank) value for ${T::class.simpleName}: ${formatForException(stringValue)}"
     }
@@ -63,6 +71,11 @@ inline fun <reified T> assertSanitized(
         "Invalid characters in ${T::class.simpleName}: ${formatForException(stringValue)}"
     }
 }
+
+inline fun <reified T> assertLength(value: String, length: ClosedRange<Int>) =
+    assertInput<T>(value.length in length) {
+        "Invalid length for ${T::class.simpleName} ${value.length} not in [${length.start}..${length.endInclusive}]"
+    }
 
 inline fun <reified T> assertInput(condition: Boolean, lazyMessage: () -> String) {
     if (!condition) throw InputValidationException(message = lazyMessage(), type = T::class)

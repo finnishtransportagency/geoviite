@@ -8,25 +8,23 @@ import mapStyles from '../map.module.scss';
 import CircleStyle from 'ol/style/Circle';
 import { LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
-import { getPlanarDistanceUnwrapped, SegmentDataHolder } from 'map/layers/layer-utils';
+import { getPlanarDistanceUnwrapped, pointToCoords } from 'map/layers/utils/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
-import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
+import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
+import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 
-function formatMeasurement(distance: number) {
-    let content;
+function formatMeasurement(distance: number): string {
     if (distance < 1) {
-        content = Math.round(distance * 1000) + ' mm';
+        return Math.round(distance * 1000) + ' mm';
     } else if (distance > 10000) {
-        content = roundToPrecision(distance / 1000, Precision.measurementKmDistance) + ' km';
+        return roundToPrecision(distance / 1000, Precision.measurementKmDistance) + ' km';
     } else {
-        content = roundToPrecision(distance, Precision.measurementMeterDistance) + ' m';
+        return roundToPrecision(distance, Precision.measurementMeterDistance) + ' m';
     }
-
-    return content;
 }
 
-function getClosestPoints(
+function findClosestPoints(
     points: LayoutPoint[],
     targetCoordinate: number[],
     maxPoints: number,
@@ -55,7 +53,7 @@ function getClosestPoints(
                 ? points.slice(0, middleIndex)
                 : points.slice(middleIndex);
 
-        return getClosestPoints(newPoints, targetCoordinate, maxPoints);
+        return findClosestPoints(newPoints, targetCoordinate, maxPoints);
     }
 }
 
@@ -79,16 +77,15 @@ export const measurementTool: MapTool = {
             type: 'LineString',
             maxPoints: 2,
             style: new Style({
-                zIndex: 20,
                 stroke: new Stroke({
-                    color: mapStyles.measureTooltipStroke,
+                    color: mapStyles.measurementTooltipLine,
                     lineDash: [8],
                     width: 2,
                 }),
                 image: new CircleStyle({
                     radius: 6,
                     stroke: new Stroke({
-                        color: mapStyles.measureTooltipCircleStroke,
+                        color: mapStyles.measurementTooltipCircle,
                     }),
                 }),
             }),
@@ -97,17 +94,17 @@ export const measurementTool: MapTool = {
                 const cursorPixel = map.getPixelFromCoordinate(cursorCoordinate);
                 const nearbyFeatures = map.getFeaturesAtPixel(cursorPixel, { hitTolerance });
 
-                const nearbyPoints = nearbyFeatures
-                    .map((f) => f.get(FEATURE_PROPERTY_SEGMENT_DATA))
+                const nearbyAlignmentPoints = nearbyFeatures
+                    .map((f) => f.get(ALIGNMENT_FEATURE_DATA_PROPERTY))
                     .filter(filterNotEmpty)
-                    .flatMap((f: SegmentDataHolder) =>
-                        getClosestPoints(f.segment.points, cursorCoordinate, 8),
+                    .flatMap(({ points }: AlignmentDataHolder) =>
+                        findClosestPoints(points, cursorCoordinate, 8),
                     );
 
-                let closestPoint;
-                for (let i = 0; i < nearbyPoints.length; i++) {
-                    const nearbyPoint = nearbyPoints[i];
-                    const pixelPoint = map.getPixelFromCoordinate([nearbyPoint.x, nearbyPoint.y]);
+                let closestPoint: { distance: number; point: LayoutPoint } | undefined;
+                for (let i = 0; i < nearbyAlignmentPoints.length; i++) {
+                    const nearbyPoint = nearbyAlignmentPoints[i];
+                    const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint));
 
                     const distance = Math.hypot(
                         cursorPixel[0] - pixelPoint[0],
@@ -124,7 +121,7 @@ export const measurementTool: MapTool = {
 
                 const newCoordinates =
                     closestPoint && closestPoint.distance < hitTolerance
-                        ? [closestPoint.point.x, closestPoint.point.y]
+                        ? pointToCoords(closestPoint.point)
                         : cursorCoordinate;
 
                 if (existingGeom) {

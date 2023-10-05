@@ -7,9 +7,8 @@ import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLoader } from 'utils/react-utils';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 
@@ -20,8 +19,7 @@ type ReferenceLineNamesProps = {
 };
 
 function createSelectAction() {
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
+    const delegates = createDelegates(TrackLayoutActions);
     return (trackNumberId: LayoutTrackNumberId) =>
         delegates.onSelect({
             ...createEmptyItemCollections(),
@@ -41,14 +39,14 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
     );
 
     const referenceLineName =
-        linkedReferenceLines && linkedReferenceLines.length > 1
+        linkedReferenceLines.length > 1
             ? t('tool-panel.reference-line.reference-line-plural')
             : t('tool-panel.reference-line.reference-line-singular');
 
     const clickAction = createSelectAction();
 
     const referenceLineTrackNumberPair = new Map(
-        linkedReferenceLines?.map((a) => [a, getTrackNumber(a)]),
+        linkedReferenceLines.map((a) => [a, getTrackNumber(a)]),
     );
 
     const sortedReferenceLineTrackNumberPairs = new Map(
@@ -71,7 +69,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
         <InfoboxField
             label={referenceLineName}
             value={
-                <React.Fragment>
+                <div className={styles['linked-items-list']}>
                     {referenceLinesWithoutTrackNumbers?.map((referenceLine) => {
                         const trackNumber = trackNumbers?.find(
                             (t) => t.id === referenceLine.trackNumberId,
@@ -83,15 +81,13 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
                                     key={referenceLine.id}>
                                     <ReferenceLineBadge
                                         trackNumber={trackNumber}
-                                        onClick={() =>
-                                            trackNumber && clickAction(trackNumber.id)
-                                        }
+                                        onClick={() => trackNumber && clickAction(trackNumber.id)}
                                     />
                                 </div>
                             )
                         );
                     })}
-                </React.Fragment>
+                </div>
             }
         />
     );

@@ -1,6 +1,6 @@
-@import '../colors';
-@import '../typography';
-@import '../transitions';
+@use '../colors';
+@use '../typography';
+@use '../transitions';
 
 .radio {
     cursor: pointer;
@@ -19,18 +19,18 @@
 
     width: 20px;
     height: 20px;
-    background: $color-white-default;
-    border: 1px solid $color-blue-default;
+    background: colors.$color-white-default;
+    border: 1px solid colors.$color-blue-default;
     border-radius: 50%;
 
-    transition: all $transitions-speed-fast;
+    transition: all transitions.$transitions-speed-fast;
 }
 
 .radio__checked-marker {
     opacity: 0;
     width: 12px;
     height: 12px;
-    background: $color-blue-default;
+    background: colors.$color-blue-default;
     border-radius: 50%;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .radio--touched .radio__input:checked + .radio__visualization .radio__checked-marker {
-    animation: pop $transitions-speed-fast;
+    animation: pop transitions.$transitions-speed-fast;
 }
 
 @keyframes pop {
@@ -59,7 +59,7 @@
 }
 
 .radio__label-text {
-    @include typography-body;
+    @include typography.typography-body;
     margin-left: 8px;
 }
 
@@ -68,12 +68,12 @@
 .radio:hover,
 .radio--hover {
     .radio__visualization {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
     }
 
     .radio__input:checked + .radio__visualization {
-        background: $color-blue-lighter;
-        border-color: $color-blue-default;
+        background: colors.$color-blue-lighter;
+        border-color: colors.$color-blue-default;
 
         .radio__checked-marker {
             opacity: 1;
@@ -86,20 +86,22 @@
 .radio--focus,
 .radio__input:focus + {
     .radio__visualization {
-        background: $color-blue-lighter;
+        background: colors.$color-blue-lighter;
         border-style: dashed;
     }
 }
 
 .radio--focus .radio__input:checked,
 .radio__input:focus.radio__input:checked {
-    & + .radio__visualization {
-        border-style: dashed;
-        background: $color-blue-lighter;
-        border-color: $color-blue-default;
+    + {
+        .radio__visualization {
+            border-style: dashed;
+            background: colors.$color-blue-lighter;
+            border-color: colors.$color-blue-default;
 
-        .radio__checked-marker {
-            opacity: 1;
+            .radio__checked-marker {
+                opacity: 1;
+            }
         }
     }
 }
@@ -112,20 +114,24 @@
 
 .radio--disabled,
 .radio__input:disabled {
-    & + .radio__visualization {
-        border: 1px solid $color-white-darker;
-        background: $color-white-default;
+    + {
+        .radio__visualization {
+            border: 1px solid colors.$color-white-darker;
+            background: colors.$color-white-default;
+        }
     }
 }
 
 .radio--disabled .radio__input:checked,
 .radio__input:disabled.radio__input:checked {
-    & + .radio__visualization {
-        border: 1px solid $color-white-darker;
-        background: $color-white-default;
+    + {
+        .radio__visualization {
+            border: 1px solid colors.$color-white-darker;
+            background: colors.$color-white-default;
 
-        .radio__checked-marker {
-            background: $color-white-darker;
+            .radio__checked-marker {
+                background: colors.$color-white-darker;
+            }
         }
     }
 }

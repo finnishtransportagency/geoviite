@@ -1,9 +1,10 @@
 package fi.fta.geoviite.infra.linking
 
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
+import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
+import fi.fta.geoviite.infra.geography.TriangulationDirection
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -12,7 +13,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAligments
+import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -31,8 +32,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
     private val switchStructureDao: SwitchStructureDao,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
-    ) : ITTestBase() {
+    private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao
+    ) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
     lateinit var switchAlignment_1_5_2: SwitchAlignment
@@ -119,7 +120,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 0.0
+                        m = segments[1].startM,
                     )
                 ),
             ),
@@ -131,7 +132,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -143,7 +144,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -194,7 +195,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 0.0
+                        m = segments[1].startM,
                     )
                 ),
             ),
@@ -206,7 +207,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -218,7 +219,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -246,7 +247,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
         val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
-        val (switch, switchAlignments) = createSwitchAndAligments(
+        val (switch, switchAlignments) = createSwitchAndAlignments(
             "fooSwitch",
             switchStructure,
             0.01, // avoid plan1's bounding box becoming degenerate by slightly rotating the main track
@@ -270,7 +271,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
                     trackNumberId,
                     a,
-                    kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
+                    kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
+                    kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ)
+                )
                 locationTrackService.saveDraft(locationTrack, alignment)
             }
         val mainLocationTrackId = trackNumberIds[0].id

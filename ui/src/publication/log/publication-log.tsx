@@ -24,8 +24,8 @@ export type PublicationLogProps = {
 const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     const { t } = useTranslation();
 
-    const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
-    const [endDate, setEndDate] = React.useState<Date>(currentDay);
+    const [startDate, setStartDate] = React.useState<Date | undefined>(subMonths(currentDay, 1));
+    const [endDate, setEndDate] = React.useState<Date | undefined>(currentDay);
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -35,8 +35,8 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
         setIsLoading(true);
 
         getPublicationsAsTableItems(
-            startOfDay(startDate),
-            endOfDay(endDate),
+            startDate && startOfDay(startDate),
+            endDate && endOfDay(endDate),
             sortInfo.propName,
             sortInfo.direction,
         ).then((r) => {
@@ -46,7 +46,11 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     }, [startDate, endDate, sortInfo]);
 
     const endDateErrors =
-        endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
+        startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
+
+    const truncated =
+        pagedPublications !== undefined &&
+        pagedPublications.totalCount !== pagedPublications.items.length;
 
     return (
         <div className={styles['publication-log']}>
@@ -56,42 +60,59 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                     {' > ' + t('publication-log.breadcrumbs-text')}
                 </span>
             </div>
-            <div className={styles['publication-log__actions']}>
-                <FieldLayout
-                    label={t('publication-log.start-date')}
-                    value={
-                        <DatePicker
-                            value={startDate}
-                            onChange={(startDate) => setStartDate(startDate)}
-                        />
-                    }
-                />
-                <FieldLayout
-                    label={t('publication-log.end-date')}
-                    value={
-                        <DatePicker value={endDate} onChange={(endDate) => setEndDate(endDate)} />
-                    }
-                    errors={endDateErrors}
-                />
-                <div className={styles['publication-log__export_button']}>
-                    <Button
-                        icon={Icons.Download}
-                        onClick={() =>
-                            (location.href = getPublicationsCsvUri(
-                                startDate,
-                                endOfDay(endDate),
-                                sortInfo?.propName,
-                                sortInfo?.direction,
-                            ))
-                        }>
-                        {t('publication-log.export-csv')}
-                    </Button>
+            <div className={styles['publication-log__content']}>
+                <div className={styles['publication-log__actions']}>
+                    <FieldLayout
+                        label={t('publication-log.start-date')}
+                        value={
+                            <DatePicker
+                                value={startDate}
+                                onChange={(startDate) => setStartDate(startDate)}
+                            />
+                        }
+                    />
+                    <FieldLayout
+                        label={t('publication-log.end-date')}
+                        value={
+                            <DatePicker
+                                value={endDate}
+                                onChange={(endDate) => setEndDate(endDate)}
+                            />
+                        }
+                        errors={endDateErrors}
+                    />
+                    <div className={styles['publication-log__export_button']}>
+                        <Button
+                            icon={Icons.Download}
+                            onClick={() =>
+                                (location.href = getPublicationsCsvUri(
+                                    startDate,
+                                    endDate && endOfDay(endDate),
+                                    sortInfo?.propName,
+                                    sortInfo?.direction,
+                                ))
+                            }>
+                            {t('publication-log.export-csv')}
+                        </Button>
+                    </div>
                 </div>
-            </div>
-            <div className={styles['publication-log__table']}>
+                <div className={styles['publication-log__count-header']}>
+                    <span
+                        title={
+                            truncated
+                                ? t('publication-table.truncated', {
+                                      number: pagedPublications?.items?.length || 0,
+                                  })
+                                : ''
+                        }>
+                        {t('publication-table.count-header', {
+                            number: pagedPublications?.items?.length || 0,
+                            truncated: truncated ? '+' : '',
+                        })}
+                    </span>
+                </div>
                 <PublicationTable
                     isLoading={isLoading}
-                    truncated={pagedPublications?.totalCount != pagedPublications?.items.length}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}

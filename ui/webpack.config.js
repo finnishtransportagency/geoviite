@@ -29,13 +29,14 @@ const acceptedLicenses = [
     'Zlib',
     'EPL-1.0',
     '(MIT AND Zlib)',
+    'OFL-1.1',
 ];
-const licenseOverrides = {
-    // In package.json this is "(EDL-1.0 OR EPL-1.0)". For automation, choose EPL
-    'turf-jsts@1.2.3': 'EPL-1.0',
-};
+const licenseOverrides = {};
 
-const glyphLocations = [/geoviite-design-lib\/glyphs/, /vayla-design-lib\/icon/]
+const glyphLocations = [
+    path.resolve(__dirname, 'src/geoviite-design-lib/glyphs'),
+    path.resolve(__dirname, 'src/vayla-design-lib/icon'),
+];
 
 module.exports = (env) => {
     return {
@@ -43,10 +44,11 @@ module.exports = (env) => {
         devtool: 'source-map',
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss'],
-            modules: [path.resolve('./node_modules'), path.resolve('./src')],
+            modules: [path.resolve('./node_modules'), path.resolve(__dirname + '/src')],
         },
         devServer: {
             port: 9000,
+            compress: false,
             proxy: {
                 '/api': {
                     target: 'http://localhost:8080',

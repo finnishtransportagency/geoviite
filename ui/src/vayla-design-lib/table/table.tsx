@@ -5,6 +5,7 @@ import { IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 
 export type TableProps = {
     wide?: boolean;
+    isLoading?: boolean;
 } & React.HTMLProps<HTMLTableElement>;
 
 export const Table: React.FC<TableProps> = (props: TableProps) => {
@@ -13,7 +14,16 @@ export const Table: React.FC<TableProps> = (props: TableProps) => {
         styles.table,
         props.wide && styles['table--wide'],
     );
-    return <table className={className}>{props.children}</table>;
+
+    const containerClassName = createClassName(
+        props.isLoading && styles['table__container--loading'],
+    );
+    return (
+        <div className={containerClassName}>
+            <table className={className}>{props.children}</table>
+            {props.isLoading && <div className={styles['table--loading']} />}
+        </div>
+    );
 };
 
 export enum TdVariant {
@@ -55,12 +65,14 @@ export type ThProps = {
     variant?: ThVariant;
     narrow?: boolean;
     icon?: IconComponent;
+    transparent?: boolean;
 } & React.HTMLProps<HTMLTableCellElement>;
 
 export const Th: React.FC<ThProps> = ({
     narrow,
     icon,
     variant = ThVariant.SINGLE_LINE,
+    transparent = false,
     ...props
 }: ThProps) => {
     const Icon = icon;
@@ -70,6 +82,7 @@ export const Th: React.FC<ThProps> = ({
         props.onClick && styles['table__th--clickable'],
         styles['table__th--align-left'],
         props.className,
+        transparent ? undefined : styles['table__th--has-background'],
         variant === ThVariant.SINGLE_LINE && styles['table__th--regular'],
         variant === ThVariant.MULTILINE_BOTTOM && styles['table__th--multiline-bottom'],
         variant === ThVariant.MULTILINE_TOP && styles['table__th--multiline-top'],

@@ -1,0 +1,99 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.vertical-geometry-diagram {
+    width: 100%;
+    cursor: grab;
+
+    &--panning {
+        cursor: grabbing;
+    }
+}
+
+.vertical-geometry-diagram-holder__backdrop {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(vayla-design.$color-white-default, 0.67);
+}
+
+.vertical-geometry-diagram-holder__close-icon {
+    cursor: pointer;
+    position: absolute;
+    z-index: 2;
+    right: 8px;
+    top: 8px;
+    height: 16px;
+    padding: 2px;
+    background: rgba(vayla-design.$color-white-default, 0.85);
+}
+
+.vertical-geometry-diagram-holder {
+    display: flex;
+    height: 100%;
+    flex: 1;
+    position: relative;
+
+    .vertical-geometry-diagram {
+        padding: 8px;
+    }
+}
+
+.vertical-geometry-diagram-holder__no-diagram,
+.vertical-geometry-diagram-holder__not-alignment {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.vertical-geometry-diagram__plan-link {
+    cursor: pointer;
+}
+
+.vertical-geometry-diagram__tooltip {
+    background: vayla-design.$color-white-darker;
+    color: vayla-design.$color-black-default;
+    border-radius: 2px;
+    padding: 4px 8px;
+}
+
+.vertical-geometry-diagram__text-stroke-narrow,
+.vertical-geometry-diagram__text-stroke-wide,
+.vertical-geometry-diagram__text-stroke-header {
+    stroke: vayla-design.$color-white-default;
+    paint-order: stroke;
+}
+
+.vertical-geometry-diagram__text-stroke-narrow {
+    stroke-width: 4;
+}
+
+.vertical-geometry-diagram__text-stroke-wide {
+    stroke-width: 6;
+}
+
+.vertical-geometry-diagram__text-stroke-header {
+    stroke-width: 12;
+}
+
+.vertical-geometry-diagram-displayed-position-guide {
+    &__background {
+        fill: vayla-design.$color-white-default;
+        fill-opacity: 0.85;
+    }
+
+    &__track {
+        stroke: vayla-design.$color-black-default;
+    }
+
+    &__divider {
+        stroke: vayla-design.$color-black-default;
+    }
+
+    &__guide {
+        fill: vayla-design.$color-black-default;
+    }
+}

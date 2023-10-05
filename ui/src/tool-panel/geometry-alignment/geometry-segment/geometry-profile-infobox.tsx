@@ -1,22 +1,18 @@
 import * as React from 'react';
-import { MapSegment } from 'track-layout/track-layout-model';
 import { GeometryProfileRange } from 'tool-panel/geometry-alignment/geometry-segment/geometry-profile-range';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 
 type VerticalGeometryInfoBoxProps = {
-    chosenSegment: MapSegment;
+    points: LayoutPoint[];
     planHeader: GeometryPlanHeader;
 };
 
 const GeometryProfileInfobox: React.FC<VerticalGeometryInfoBoxProps> = ({
-    chosenSegment,
+    points,
     planHeader,
 }: VerticalGeometryInfoBoxProps) => {
-    return (
-        <React.Fragment>
-            <GeometryProfileRange chosenSegment={chosenSegment} planHeader={planHeader} />
-        </React.Fragment>
-    );
+    return <GeometryProfileRange points={points} planHeader={planHeader} />;
 };
 
 export default GeometryProfileInfobox;

@@ -1,6 +1,6 @@
-@import '../colors';
-@import '../typography';
-@import '../transitions';
+@use '../colors';
+@use '../typography';
+@use '../transitions';
 
 $table-cell-padding: 10px 16px;
 
@@ -15,17 +15,19 @@ $table-cell-padding: 10px 16px;
         > th,
         > .table__th {
             // Heading cell
-            @include typography-table-heading;
-            background: $color-white-dark;
+            @include typography.typography-table-heading;
             white-space: break-spaces;
 
             &.table__th--clickable {
                 cursor: pointer;
-                transition: all $transitions-speed-fast;
+                transition: all transitions.$transitions-speed-fast;
 
                 &:hover {
-                    background: $color-white-darker;
+                    background: colors.$color-white-darker;
                 }
+            }
+            &--has-background {
+                background: colors.$color-white-dark;
             }
         }
 
@@ -40,39 +42,58 @@ $table-cell-padding: 10px 16px;
         > .table__th--multiline-bottom {
             padding: 5px 16px 10px;
         }
+
+        > .table__th--unpadded {
+            padding: 0;
+        }
     }
 
     > tbody > tr,
     > .table__tbody > .table__tr {
         // Body row
-
-        > td,
-        > .table__td {
-            // Body cell
-            @include typography-body;
-            padding: $table-cell-padding;
-            background: $color-white-default;
-            vertical-align: top;
-            border-bottom: 1px solid $color-white-dark;
-
-            &.table__td--number {
-                text-align: right;
-            }
-
-            &.table__td--narrow {
-                padding-left: 4px;
-                padding-right: 4px;
-            }
-
-            &.table__td--nowrap {
-                white-space: nowrap;
-            }
-
-            &.table__td--has-stretched-container {
-                position: relative;
-            }
-        }
     }
+
+    &--loading {
+        position: absolute;
+        z-index: 1;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(colors.$color-white-default, 0.67);
+    }
+}
+
+td,
+.table__td {
+    // Body cell
+    @include typography.typography-body;
+    padding: $table-cell-padding;
+    background: colors.$color-white-default;
+    vertical-align: top;
+    border-bottom: 1px solid colors.$color-white-dark;
+
+    &.table__td--number {
+        text-align: right;
+    }
+
+    &.table__td--narrow {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    &.table__td--nowrap {
+        white-space: nowrap;
+    }
+
+    &.table__td--has-stretched-container {
+        position: relative;
+    }
+}
+
+.table__container--loading {
+    // For showing the backdrop when loading
+    position: relative;
 }
 
 .table--wide {
@@ -89,7 +110,6 @@ $table-cell-padding: 10px 16px;
 }
 
 .table__th-children {
-    zoom: 1;
     width: 100%;
 }
 

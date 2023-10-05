@@ -12,7 +12,7 @@ import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { getSwitch } from 'track-layout/layout-switch-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { SWITCH_SHOW } from 'map/layers/layer-visibility-limits';
+import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { getSuggestedSwitchesByTile, linkSwitch } from 'linking/linking-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import GeometrySwitchLinkingSuggestedInfobox from 'tool-panel/switch/geometry-switch-linking-suggested-infobox';
@@ -27,6 +27,7 @@ import { GeometrySwitchLinkingCandidates } from 'tool-panel/switch/geometry-swit
 import { SwitchJointInfoboxContainer } from 'tool-panel/switch/switch-joint-infobox-container';
 import { GeometrySwitchLinkingErrors } from 'tool-panel/switch/geometry-switch-linking-errors';
 import { SwitchTypeMatch } from 'linking/linking-utils';
+import { GeometrySwitchLinkingInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -43,6 +44,8 @@ type GeometrySwitchLinkingInfoboxProps = {
     onSuggestedSwitchChange?: (suggestedSwitch: SuggestedSwitch) => void;
     planId?: GeometryPlanId;
     publishType: PublishType;
+    visibilities: GeometrySwitchLinkingInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometrySwitchLinkingInfoboxVisibilities) => void;
 };
 
 const isLinkingStarted = (linkingState: LinkingState) =>
@@ -63,6 +66,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     onSuggestedSwitchChange,
     planId,
     publishType,
+    visibilities,
+    onVisibilityChange,
 }) => {
     const { t } = useTranslation();
     const geometrySwitch = useLoader(
@@ -86,11 +91,10 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                 area: boundingBox,
                 resolution: 0,
             };
-            return getSuggestedSwitchesByTile(fakeMapTile).then(
-                (suggestedSwitches) =>
-                    suggestedSwitches.find(
-                        (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitch.id,
-                    ) || null,
+            return getSuggestedSwitchesByTile(fakeMapTile).then((suggestedSwitches) =>
+                suggestedSwitches.find(
+                    (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitch.id,
+                ),
             );
         }
         return undefined;
@@ -136,7 +140,9 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     }
 
     function handleSwitchInsert(id: LayoutSwitchId) {
-        getSwitch(id, 'DRAFT').then((s) => onSwitchSelect(s));
+        getSwitch(id, 'DRAFT').then((s) => {
+            if (s) onSwitchSelect(s);
+        });
         setShowAddSwitchDialog(false);
     }
 
@@ -144,6 +150,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         if (linkingState?.suggestedSwitch && linkingState.layoutSwitchId) {
             const params = {
                 switchStructureId: linkingState.suggestedSwitch.switchStructure.id,
+                geometryPlanId: planId,
                 geometrySwitchId: linkingState.suggestedSwitch.geometrySwitchId,
                 layoutSwitchId: linkingState.layoutSwitchId,
                 joints: linkingState.suggestedSwitch.joints.map((joint) => {
@@ -170,12 +177,26 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         <React.Fragment>
             {selectedSuggestedSwitch?.alignmentEndPoint && onSuggestedSwitchChange && (
                 <GeometrySwitchLinkingSuggestedInfobox
+                    contentVisible={visibilities.suggestedSwitch}
+                    onContentVisibilityChange={() =>
+                        onVisibilityChange({
+                            ...visibilities,
+                            suggestedSwitch: !visibilities.suggestedSwitch,
+                        })
+                    }
                     suggestedSwitch={selectedSuggestedSwitch}
                     alignmentEndPoint={selectedSuggestedSwitch.alignmentEndPoint}
                     onSuggestedSwitchChange={onSuggestedSwitchChange}
                 />
             )}
             <Infobox
+                contentVisible={visibilities.linking}
+                onContentVisibilityChange={() =>
+                    onVisibilityChange({
+                        ...visibilities,
+                        linking: !visibilities.linking,
+                    })
+                }
                 title={t('tool-panel.switch.geometry.linking-header')}
                 qa-id="geometry-switch-linking-infobox">
                 <InfoboxContent>
@@ -191,7 +212,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                             {suggestedSwitchFetchStatus === LoaderStatus.Ready ? (
                                 <GeometrySwitchLinkingInitiation
                                     onStartLinking={startLinking}
-                                    hasSuggestedSwitch={suggestedSwitch !== null}
+                                    hasSuggestedSwitch={!!suggestedSwitch}
                                     linkingState={linkingState}
                                 />
                             ) : (

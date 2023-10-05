@@ -1,6 +1,11 @@
 import React from 'react';
-import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import {
+    LayoutLocationTrack,
+    locationTrackDescription,
+    LocationTrackDescriptionSuffixMode,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
+import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -19,9 +24,10 @@ import {
     isProcessing,
     reducer,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import {
+    descriptionSuffixModes,
     layoutStates,
     locationTrackTypes,
     topologicalConnectivityTypes,
@@ -30,16 +36,19 @@ import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
-import { useLocationTrackStartAndEnd } from 'track-layout/track-layout-react-utils';
+import {
+    useLocationTrackStartAndEnd,
+    useLocationTrackSwitchesAtEnds,
+} from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PublishType, TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import { createClassName } from 'vayla-design-lib/utils';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -59,13 +68,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     props: LocationTrackDialogProps,
 ) => {
     const { t } = useTranslation();
-    const startAndEndPoints =
-        props.locationTrack &&
-        useLocationTrackStartAndEnd(
-            props.locationTrack.id,
-            props.publishType,
-            props.locationTrackChangeTime,
-        );
+
+    const switchesAtEnds = useLocationTrackSwitchesAtEnds(
+        props.locationTrack,
+        props.publishType,
+        props.locationTrackChangeTime,
+    );
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -75,7 +83,18 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         React.useState<boolean>(state.locationTrack?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
-    const stateActions = createDelegates(dispatcher, actions);
+    const [locationTrackDescriptionSuffixMode, setLocationTrackDescriptionSuffixMode] =
+        React.useState<LocationTrackDescriptionSuffixMode>();
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
+
+    React.useEffect(() => {
+        setLocationTrackDescriptionSuffixMode(state.locationTrack?.descriptionSuffix);
+    }, [state.locationTrack]);
+    const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
+        state.existingLocationTrack?.id,
+        props.publishType,
+        props.locationTrackChangeTime,
+    );
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
@@ -96,7 +115,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const onLocationTrackDeleted = () => {
         closeNonDraftDeleteConfirmation();
         props.onClose && props.onClose();
-        props.locationTrack && props.onUnselect && props.onUnselect();
+        state.existingLocationTrack && props.onUnselect && props.onUnselect();
     };
 
     // Load track numbers once
@@ -124,7 +143,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             stateActions.initWithNewLocationTrack();
             firstInputRef.current?.focus();
         }
-    }, [props.locationTrack]);
+    }, [props.locationTrack?.id]);
 
     function cancelSave() {
         props.onClose && props.onClose();
@@ -197,8 +216,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationErrors
-                .filter((error) => error.field == prop)
-                .map((error) => t(`location-track-dialog.${error.reason}`))
+                  .filter((error) => error.field == prop)
+                  .map((error) => t(`location-track-dialog.${error.reason}`))
             : [];
     }
 
@@ -213,14 +232,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     // Use memoized function to make debouncing functionality to work when re-rendering
     const getDuplicateTrackOptions = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 locationTracks
                     .filter((lt) => {
-                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === null;
+                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined;
                     })
                     .map((lt) => ({
-                        name: `${lt.name}, ${lt.description}`,
+                        name: `${lt.name}, ${locationTrackDescription(lt)}`,
                         value: {
                             type: 'locationTrackSearchItem',
                             locationTrack: lt,
@@ -231,12 +250,51 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     );
 
     function onDuplicateTrackSelected(duplicateTrack: LocationTrackItemValue | undefined) {
-        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id ?? null);
-        setSelectedDuplicateTrack(duplicateTrack?.locationTrack ?? undefined);
+        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id);
+        setSelectedDuplicateTrack(duplicateTrack?.locationTrack);
     }
 
+    const switchToSwitchDescriptionSuffix = () =>
+        `${shortenSwitchName(switchesAtEnds?.start?.name) ?? '???'} - ${
+            shortenSwitchName(switchesAtEnds?.end?.name) ?? '???'
+        }`;
+
+    const switchToBufferDescriptionSuffix = () =>
+        `${
+            shortenSwitchName(switchesAtEnds?.start?.name) ??
+            shortenSwitchName(switchesAtEnds?.end?.name) ??
+            '???'
+        } - ${t('location-track-dialog.buffer')}`;
+
+    const descriptionSuffix = (mode: LocationTrackDescriptionSuffixMode) => {
+        switch (mode) {
+            case 'NONE':
+                return undefined;
+            case 'SWITCH_TO_SWITCH':
+                return switchToSwitchDescriptionSuffix();
+            case 'SWITCH_TO_BUFFER':
+                return switchToBufferDescriptionSuffix();
+            default:
+                exhaustiveMatchingGuard(mode);
+        }
+    };
+
+    const fullDescription = () => {
+        const base = state.locationTrack?.descriptionBase ?? '';
+        const suffix = descriptionSuffix(locationTrackDescriptionSuffixMode ?? 'NONE');
+        return suffix ? `${base} ${suffix}` : base;
+    };
+
+    const shortenSwitchName = (name?: string) => {
+        const splits = (name && name.split(' ')) ?? '';
+        const last = splits.length ? splits[splits.length - 1] : '';
+        const numberPart = last[0] === 'V' ? last.substring(1) : '';
+        const number = parseInt(numberPart, 10);
+        return !isNaN(number) ? `V${number}`.padStart(3, '0') : undefined;
+    };
+
     return (
-        <div>
+        <React.Fragment>
             <Dialog
                 title={
                     state.isNewLocationTrack
@@ -244,50 +302,45 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         : t('location-track-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                className={dialogStyles['dialog--ultrawide']}
-                scrollable={false}
-                footerClassName={'dialog-footer'}
+                width={DialogWidth.ULTRA_WIDE}
                 footerContent={
                     <React.Fragment>
-                        <div className={dialogStyles['dialog-footer__content-area']}>
-                            <div className={dialogStyles['dialog-footer__content--shrink']}>
-                                {props.locationTrack?.draftType === 'NEW_DRAFT' &&
-                                    !state.isNewLocationTrack && (
-                                        <Button
-                                            onClick={() =>
-                                                props.locationTrack && confirmNonDraftDelete()
-                                            }
-                                            icon={Icons.Delete}
-                                            variant={ButtonVariant.WARNING}>
-                                            {t('location-track-dialog.delete-draft')}
-                                        </Button>
-                                    )}
-                            </div>
-                            <div
-                                className={createClassName(
-                                    dialogStyles['dialog-footer__content--grow'],
-                                    dialogStyles['dialog-footer__content--centered'],
-                                    dialogStyles['dialog-footer__content--padded'],
-                                )}>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={state.isSaving}
-                                    onClick={() => cancelSave()}>
-                                    {t('button.return')}
-                                </Button>
-                                <span onClick={() => stateActions.validate()}>
+                        {state.existingLocationTrack?.draftType === 'NEW_DRAFT' &&
+                            !state.isNewLocationTrack && (
+                                <div
+                                    className={
+                                        dialogStyles['dialog__footer-content--left-aligned']
+                                    }>
                                     <Button
-                                        disabled={!canSaveLocationTrack(state)}
-                                        isProcessing={state.isSaving}
-                                        onClick={() => saveOrConfirm()}>
-                                        {t('button.save')}
+                                        onClick={() =>
+                                            state.existingLocationTrack && confirmNonDraftDelete()
+                                        }
+                                        icon={Icons.Delete}
+                                        variant={ButtonVariant.WARNING}>
+                                        {t('location-track-dialog.delete-draft')}
                                     </Button>
-                                </span>
-                            </div>
+                                </div>
+                            )}
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={state.isSaving}
+                                onClick={() => cancelSave()}>
+                                {t('button.return')}
+                            </Button>
+                            <Button
+                                disabled={!canSaveLocationTrack(state)}
+                                isProcessing={state.isSaving}
+                                onClick={() => {
+                                    stateActions.validate();
+                                    saveOrConfirm();
+                                }}>
+                                {t('button.save')}
+                            </Button>
                         </div>
                     </React.Fragment>
                 }>
-                <FormLayout isProcessing={isProcessing(state)}>
+                <FormLayout isProcessing={isProcessing(state)} doubleColumn>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.basic-info-heading')}
@@ -357,17 +410,52 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         />
 
                         <FieldLayout
-                            label={`${t('location-track-dialog.description')} *`}
+                            label={`${t('location-track-dialog.description')}`}
                             value={
-                                <TextField
-                                    value={state.locationTrack?.description || ''}
-                                    onChange={(e) => updateProp('description', e.target.value)}
-                                    onBlur={() => stateActions.onCommitField('description')}
-                                    hasError={hasErrors('description')}
-                                    wide
-                                />
+                                <div className={styles['location-track-edit-dialog__description']}>
+                                    <FieldLayout
+                                        label={`Kuvauksen perusosa *`}
+                                        value={
+                                            <TextField
+                                                value={state.locationTrack?.descriptionBase || ''}
+                                                onChange={(e) =>
+                                                    updateProp('descriptionBase', e.target.value)
+                                                }
+                                                onBlur={() =>
+                                                    stateActions.onCommitField('descriptionBase')
+                                                }
+                                                hasError={hasErrors('descriptionBase')}
+                                                wide
+                                            />
+                                        }
+                                        errors={getVisibleErrorsByProp('descriptionBase')}
+                                    />
+                                    <FieldLayout
+                                        label={`Kuvauksen lisäosa *`}
+                                        value={
+                                            <Dropdown
+                                                options={descriptionSuffixModes}
+                                                value={locationTrackDescriptionSuffixMode}
+                                                onChange={(value) => {
+                                                    updateProp('descriptionSuffix', value);
+                                                    setLocationTrackDescriptionSuffixMode(value);
+                                                }}
+                                                onBlur={() =>
+                                                    stateActions.onCommitField('descriptionSuffix')
+                                                }
+                                                canUnselect={false}
+                                                wideList
+                                                wide
+                                            />
+                                        }
+                                        errors={getVisibleErrorsByProp('descriptionSuffix')}
+                                    />
+                                    <FieldLayout
+                                        label={`Valmis kuvaus`}
+                                        value={state.locationTrack && fullDescription()}
+                                    />
+                                </div>
                             }
-                            errors={getVisibleErrorsByProp('description')}
                         />
 
                         {props.duplicatesExist || (
@@ -395,7 +483,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 }
                             />
                         )}
+                    </FormLayoutColumn>
 
+                    <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.extra-info-heading')}
                         </Heading>
@@ -434,99 +524,117 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 />
                             }
                         />
-                    </FormLayoutColumn>
 
-                    <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.track-metadata')}
                         </Heading>
                         <FieldLayout
                             label={t('location-track-dialog.start-location')}
                             value={
-                                <TextField
-                                    value={
-                                        startAndEndPoints?.start
-                                            ? formatTrackMeter(startAndEndPoints.start.address)
-                                            : '-'
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {startAndEndPoints?.start
+                                        ? formatTrackMeter(startAndEndPoints.start.address)
+                                        : '-'}
+                                </span>
                             }
                         />
                         <FieldLayout
                             label={t('location-track-dialog.end-location')}
                             value={
-                                <TextField
-                                    value={
-                                        startAndEndPoints?.end
-                                            ? formatTrackMeter(startAndEndPoints.end.address)
-                                            : '-'
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {startAndEndPoints?.end
+                                        ? formatTrackMeter(startAndEndPoints.end.address)
+                                        : '-'}
+                                </span>
                             }
                         />
                         <FieldLayout
                             label={t('location-track-dialog.true-length')}
                             value={
-                                <TextField
-                                    value={
-                                        props.locationTrack
-                                            ? roundToPrecision(
-                                                props.locationTrack.length,
-                                                Precision.alignmentLengthMeters,
-                                            )
-                                            : '-'
-                                    }
-                                    wide
-                                    disabled
-                                />
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {state.existingLocationTrack
+                                        ? roundToPrecision(
+                                              state.existingLocationTrack.length,
+                                              Precision.alignmentLengthMeters,
+                                          )
+                                        : '-'}
+                                </span>
+                            }
+                        />
+                        <FieldLayout
+                            label={t('location-track-dialog.start-switch')}
+                            value={
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {switchesAtEnds?.start?.name ??
+                                        t('location-track-dialog.no-start-or-end-switch')}
+                                </span>
+                            }
+                        />
+                        <FieldLayout
+                            label={t('location-track-dialog.end-switch')}
+                            value={
+                                <span
+                                    className={
+                                        styles['location-track-edit-dialog__readonly-value']
+                                    }>
+                                    {switchesAtEnds?.end?.name ??
+                                        t('location-track-dialog.no-start-or-end-switch')}
+                                </span>
                             }
                         />
                     </FormLayoutColumn>
                 </FormLayout>
-                {nonDraftDeleteConfirmationVisible && (
-                    <Dialog
-                        title={t('location-track-delete-dialog.title')}
-                        variant={DialogVariant.DARK}
-                        allowClose={false}
-                        className={dialogStyles['dialog--normal']}
-                        footerContent={
-                            <React.Fragment>
-                                <Button
-                                    onClick={closeNonDraftDeleteConfirmation}
-                                    variant={ButtonVariant.SECONDARY}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
-                                    {t('button.delete')}
-                                </Button>
-                            </React.Fragment>
-                        }>
-                        <div className={'dialog__text'}>
-                            {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
-                        </div>
-                        <div className={'dialog__text'}>
-                            <span className={styles['location-track-edit-dialog__warning']}>
-                                <Icons.StatusError color={IconColor.INHERIT} />
-                            </span>{' '}
-                            {t('location-track-delete-dialog.deleted-location-track-warning')}
-                        </div>
-                        <div className={'dialog__text'}>
-                            {t('location-track-delete-dialog.confirm-location-track-delete')}
-                        </div>
-                    </Dialog>
-                )}
-                {props.locationTrack && draftDeleteConfirmationVisible && (
-                    <LocationTrackDeleteConfirmationDialog
-                        id={props.locationTrack?.id}
-                        onCancel={closeDraftDeleteConfirmation}
-                        onClose={onLocationTrackDeleted}
-                    />
-                )}
             </Dialog>
-        </div>
+            {nonDraftDeleteConfirmationVisible && (
+                <Dialog
+                    title={t('location-track-delete-dialog.title')}
+                    variant={DialogVariant.DARK}
+                    allowClose={false}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={closeNonDraftDeleteConfirmation}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                                {t('button.delete')}
+                            </Button>
+                        </div>
+                    }>
+                    <div className={'dialog__text'}>
+                        {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
+                    </div>
+                    <div className={'dialog__text'}>
+                        <span className={styles['location-track-edit-dialog__warning']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />
+                        </span>{' '}
+                        {t('location-track-delete-dialog.deleted-location-track-warning')}
+                    </div>
+                    <div className={'dialog__text'}>
+                        {t('location-track-delete-dialog.confirm-location-track-delete')}
+                    </div>
+                </Dialog>
+            )}
+            {state.existingLocationTrack && draftDeleteConfirmationVisible && (
+                <LocationTrackDeleteConfirmationDialog
+                    id={state.existingLocationTrack?.id}
+                    onCancel={closeDraftDeleteConfirmation}
+                    onClose={onLocationTrackDeleted}
+                />
+            )}
+        </React.Fragment>
     );
 };

@@ -14,15 +14,17 @@ import { TimeStamp } from 'common/common-model';
 type FrontPageProps = {
     selectedPublication: PublicationId | undefined;
     onSelectedPublicationChanged: (item: PublicationId | undefined) => void;
-    changeTime: TimeStamp;
+    publicationChangeTime: TimeStamp;
+    ratkoPushChangeTime: TimeStamp;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
-    changeTime,
+    publicationChangeTime,
+    ratkoPushChangeTime,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
+    const [publications, setPublications] = React.useState<PublicationDetails[] | undefined>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
@@ -32,7 +34,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
             getLatestPublications(MAX_LISTED_PUBLICATIONS).then((result) =>
                 setPublications(result?.items),
             ),
-        [changeTime],
+        [publicationChangeTime, ratkoPushChangeTime],
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
@@ -63,7 +65,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
             )}
             {publication && (
                 <PublicationDetailsView
-                    changeTime={changeTime}
+                    changeTime={publicationChangeTime}
                     publication={publication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}
                     anyFailed={anyFailed}

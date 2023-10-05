@@ -24,6 +24,16 @@ class LayoutSwitchService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
+    @Transactional(readOnly=true)
+    fun pageSwitchesByFilter(
+        publishType: PublishType,
+        filter: (TrackLayoutSwitch) -> Boolean,
+        offset: Int?,
+        limit: Int?,
+        comparisonPoint: Point?,
+    ): List<TrackLayoutSwitch> =
+        pageSwitches(list(publishType, filter), offset ?: 0, limit, comparisonPoint)
+
     @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("insertSwitch", "request" to request)
@@ -45,7 +55,7 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        val layoutSwitch = getDraft(id);
+        val layoutSwitch = getInternalOrThrow(DRAFT, id)
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
@@ -89,9 +99,7 @@ class LayoutSwitchService @Autowired constructor(
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSegmentSwitchJointConnections",
-            "publishType" to publishType,
-            "switchId" to switchId
+            "getSegmentSwitchJointConnections", "publishType" to publishType, "switchId" to switchId
         )
         return dao.fetchSegmentSwitchJointConnections(publishType, switchId)
     }
@@ -107,17 +115,15 @@ class LayoutSwitchService @Autowired constructor(
     }
 
     fun list(publishType: PublishType, searchTerm: FreeText, limit: Int?): List<TrackLayoutSwitch> {
-        logger.serviceCall("list",
-            "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit)
-        return searchTerm
-            .toString()
-            .trim()
-            .takeIf(String::isNotEmpty)
-            ?.let { term ->
-                listInternal(publishType, true)
-                    .filter { switch -> idMatches(term, switch) || contentMatches(term, switch) }
-                    .sortedBy(TrackLayoutSwitch::name)
-                    .let { list -> if (limit != null) list.take(limit) else list }
+        logger.serviceCall(
+            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+        )
+        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
+            listInternal(publishType, true).filter { switch ->
+                idMatches(term, switch) || contentMatches(
+                    term, switch
+                )
+            }.sortedBy(TrackLayoutSwitch::name).let { list -> if (limit != null) list.take(limit) else list }
         } ?: listOf()
     }
 
@@ -132,15 +138,13 @@ class LayoutSwitchService @Autowired constructor(
         offset: Int,
         limit: Int?,
         comparisonPoint: Point?,
-    ): List<TrackLayoutSwitch> =
-        if (comparisonPoint != null) {
-            val switchesWithDistance: List<Pair<TrackLayoutSwitch, Double?>> = switches
-                .map { associateByDistance(it, comparisonPoint) { s -> getPresentationJoint(s)?.location } }
-            pageToList(switchesWithDistance, offset, limit, ::compareByDistanceNullsFirst)
-                .map { (switch, _) -> switch }
-        } else {
-            pageToList(switches, offset, limit, Comparator.comparing(TrackLayoutSwitch::name))
-        }
+    ): List<TrackLayoutSwitch> = if (comparisonPoint != null) {
+        val switchesWithDistance: List<Pair<TrackLayoutSwitch, Double?>> =
+            switches.map { associateByDistance(it, comparisonPoint) { s -> getPresentationJoint(s)?.location } }
+        pageToList(switchesWithDistance, offset, limit, ::compareByDistanceNullsFirst).map { (switch, _) -> switch }
+    } else {
+        pageToList(switches, offset, limit, Comparator.comparing(TrackLayoutSwitch::name))
+    }
 
     fun switchFilter(
         name: String? = null,
@@ -148,9 +152,9 @@ class LayoutSwitchService @Autowired constructor(
         bbox: BoundingBox? = null,
         includeSwitchesWithNoJoints: Boolean = false,
     ) = { switch: TrackLayoutSwitch ->
-        switchMatchesName(switch, name)
-                && switchMatchesType(switch, switchType)
-                && switchMatchesBbox(switch, bbox, includeSwitchesWithNoJoints)
+        switchMatchesName(switch, name) && switchMatchesType(switch, switchType) && switchMatchesBbox(
+            switch, bbox, includeSwitchesWithNoJoints
+        )
     }
 
     @Transactional
@@ -159,21 +163,23 @@ class LayoutSwitchService @Autowired constructor(
         oid: Oid<TrackLayoutSwitch>,
     ): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
-        val original = getDraft(id)
+        val original = getInternalOrThrow(DRAFT, id)
         return saveDraft(original.copy(externalId = oid))
     }
 
     private fun switchMatchesName(switch: TrackLayoutSwitch, name: String?) =
         name?.let { n -> switch.name.contains(n, ignoreCase = true) } ?: true
 
-    private fun switchMatchesType(switch: TrackLayoutSwitch, switchType: String?) =
-        switchType?.let { t ->
-            switchLibraryService.getSwitchType(switch.switchStructureId).typeName.contains(t, ignoreCase = true)
-        } ?: true
+    private fun switchMatchesType(switch: TrackLayoutSwitch, switchType: String?) = switchType?.let { t ->
+        switchLibraryService.getSwitchType(switch.switchStructureId).typeName.contains(t, ignoreCase = true)
+    } ?: true
 
     private fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
-        (includeSwitchesWithNoJoints && switch.joints.isEmpty()) ||
-                (bbox?.let { bb -> (switch.joints.any { joint -> bb.contains(joint.location) }) } ?: true)
+        (includeSwitchesWithNoJoints && switch.joints.isEmpty()) || (bbox?.let { bb ->
+            (switch.joints.any { joint ->
+                bb.contains(joint.location)
+            })
+        } ?: true)
 
     override fun createDraft(item: TrackLayoutSwitch) = draft(item)
 
@@ -182,25 +188,26 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getSwitchJointConnections(
         publishType: PublishType,
-        switchId: IntId<TrackLayoutSwitch>
+        switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSwitchJointConnections",
-            "publishType" to publishType,
-            "switchId" to switchId
+            "getSwitchJointConnections", "publishType" to publishType, "switchId" to switchId
         )
         val segment = getSegmentSwitchJointConnections(publishType, switchId)
         val topological = getTopologySwitchJointConnections(publishType, switchId)
-        return (segment + topological)
-            .groupBy { joint -> joint.number }
-            .values.map { jointConnections ->
-                jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
-            }
+        return (segment + topological).groupBy { joint -> joint.number }.values.map { jointConnections ->
+            jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
+        }
+    }
+
+    fun duplicateNameExistsForPublicationCandidate(switchId: IntId<TrackLayoutSwitch>): Boolean {
+        logger.serviceCall("duplicateNameExistsForPublicationCandidate", "switchId" to switchId)
+        return dao.duplicateNameExistsForPublicationCandidate(switchId)
     }
 
     private fun getTopologySwitchJointConnections(
         publicationState: PublishType,
-        layoutSwitchId: IntId<TrackLayoutSwitch>
+        layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val layoutSwitch = get(publicationState, layoutSwitchId) ?: return listOf()
         val linkedTracks = getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
@@ -219,7 +226,7 @@ class LayoutSwitchService @Autowired constructor(
 
     private fun getLocationTracksLinkedToSwitch(
         publicationState: PublishType,
-        layoutSwitchId: IntId<TrackLayoutSwitch>
+        layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         return dao.findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
             .map { ids -> locationTrackService.getWithAlignment(ids.rowVersion) }
@@ -255,15 +262,8 @@ fun clearSwitchInformationFromSegments(
     layoutSwitchId: IntId<TrackLayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> {
     val newSegments = alignment.segments.map { segment ->
-        if (segment.switchId == layoutSwitchId) {
-            segment.copy(
-                switchId = null,
-                endJointNumber = null,
-                startJointNumber = null
-            )
-        } else {
-            segment
-        }
+        if (segment.switchId == layoutSwitchId) segment.withoutSwitch()
+        else segment
     }
     val newAlignment = alignment.withSegments(newSegments)
     val newLocationTrack = locationTrack.copy(

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Selection } from 'selection/selection-model';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
 import { getKmPost } from 'track-layout/layout-km-post-api';
 import {
     getLocationTrack,
+    getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import {
@@ -18,7 +18,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import {
     BoundingBox,
     boundingBoxAroundPoints,
@@ -29,7 +29,6 @@ import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
 import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import {
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
@@ -40,21 +39,26 @@ import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
+import { ChangeTimes } from 'common/common-slice';
+import { WriteAccessRequired } from 'user/write-access-required';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
+import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 
 export type ToolbarParams = {
-    selection: Selection;
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
     onSelectKmPost: (kmPostId: LayoutKmPostId) => void;
-    onMapSettingsVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
-    settingsVisible: boolean;
     showArea: (area: BoundingBox) => void;
     publishType: PublishType;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
+    disableNewMenu: boolean;
+    onMapLayerChange: (change: MapLayerMenuChange) => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
 };
 
 type LocationTrackItemValue = {
@@ -69,11 +73,11 @@ type SwitchItemValue = {
 
 type SearchItemValue = LocationTrackItemValue | SwitchItemValue;
 
-function getOptions(
+async function getOptions(
     publishType: PublishType,
     searchTerm: string,
 ): Promise<Item<SearchItemValue>[]> {
-    if (isNullOrBlank(searchTerm)) {
+    if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
@@ -81,9 +85,16 @@ function getOptions(
         searchTerm,
         publishType,
         10,
-    ).then((locationTracks) => {
+    ).then(async (locationTracks) => {
+        const descriptions = await getLocationTrackDescriptions(
+            locationTracks.map((lt) => lt.id),
+            publishType,
+        );
         return locationTracks.map((locationTrack) => ({
-            name: `${locationTrack.name}, ${locationTrack.description}`,
+            name: `${locationTrack.name}, ${
+                (descriptions && descriptions.find((d) => d.id == locationTrack.id)?.description) ??
+                ''
+            }`,
             value: {
                 type: 'locationTrackSearchItem',
                 locationTrack: locationTrack,
@@ -103,19 +114,19 @@ function getOptions(
             },
         }));
     });
-    return Promise.all([locationTracks, switches]).then((result) => {
-        const allItems: Item<SearchItemValue>[] = [...result[0], ...result[1]];
-        return allItems;
-    });
+    const result = await Promise.all([locationTracks, switches]);
+    return [...result[0], ...result[1]];
 }
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const { t } = useTranslation();
+
     const [showAddMenu, setShowAddMenu] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+    const menuRef = React.useRef(null);
 
     enum NewMenuItems {
         'trackNumber' = 1,
@@ -174,6 +185,9 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 break;
             case NewMenuItems.kmPost:
                 setShowAddKmPostDialog(true);
+                break;
+            default:
+                return exhaustiveMatchingGuard(dialog);
         }
 
         setShowAddMenu(false);
@@ -197,7 +211,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
 
     function handleSwitchInsert(switchId: LayoutSwitchId) {
         getSwitch(switchId, 'DRAFT').then((s) => {
-            props.onSelectSwitch(s.id);
+            if (s) props.onSelectSwitch(s.id);
         });
 
         setShowAddSwitchDialog(false);
@@ -234,30 +248,21 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     onChange={onItemSelected}
                     size={DropdownSize.STRETCH}
                     wideList
-                    qaId="search-box"
+                    qa-id="search-box"
                 />
-                <Button
-                    variant={ButtonVariant.SECONDARY}
-                    icon={Icons.Layers}
-                    isPressed={props.settingsVisible}
-                    onClick={() => props.onMapSettingsVisibilityChange(!props.settingsVisible)}
-                    qa-id="map-layers-button"
+                <MapLayerMenu
+                    onMenuChange={props.onMapLayerChange}
+                    mapLayerMenuGroups={props.mapLayerMenuGroups}
                 />
-                <div className={styles['tool-bar__new-menu-button']}>
-                    <Button
-                        variant={ButtonVariant.SECONDARY}
-                        icon={Icons.Append}
-                        disabled={props.publishType !== 'DRAFT'}
-                        onClick={() => setShowAddMenu(!showAddMenu)}
-                    />
-                    {showAddMenu && (
-                        <div className={styles['tool-bar__new-menu']}>
-                            <Menu
-                                items={newMenuItems}
-                                onChange={(item) => item && handleNewMenuItemChange(item)}
-                            />
-                        </div>
-                    )}
+                <div className={styles['tool-bar__new-menu-button']} ref={menuRef}>
+                    <WriteAccessRequired>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            icon={Icons.Append}
+                            disabled={props.publishType !== 'DRAFT' || props.disableNewMenu}
+                            onClick={() => setShowAddMenu(!showAddMenu)}
+                        />
+                    </WriteAccessRequired>
                 </div>
             </div>
 
@@ -267,11 +272,13 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
 
             <div className={styles['tool-bar__right-section']}>
                 {props.publishType === 'OFFICIAL' && (
-                    <Button
-                        variant={ButtonVariant.PRIMARY}
-                        onClick={() => props.onPublishTypeChange('DRAFT')}>
-                        {t('tool-bar.draft-mode.enable')}
-                    </Button>
+                    <WriteAccessRequired>
+                        <Button
+                            variant={ButtonVariant.PRIMARY}
+                            onClick={() => props.onPublishTypeChange('DRAFT')}>
+                            {t('tool-bar.draft-mode.enable')}
+                        </Button>
+                    </WriteAccessRequired>
                 )}
                 {props.publishType === 'DRAFT' && (
                     <React.Fragment>
@@ -289,6 +296,16 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     </React.Fragment>
                 )}
             </div>
+
+            {showAddMenu && (
+                <Menu
+                    positionRef={menuRef}
+                    items={newMenuItems}
+                    onSelect={(item) => item && handleNewMenuItemChange(item)}
+                    onClickOutside={() => setShowAddMenu(false)}
+                />
+            )}
+
             {showAddTrackNumberDialog && (
                 <TrackNumberEditDialogContainer
                     onClose={() => setShowAddTrackNumberDialog(false)}

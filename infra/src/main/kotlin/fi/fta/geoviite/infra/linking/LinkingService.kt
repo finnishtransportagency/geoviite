@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -9,14 +8,16 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import kotlin.math.PI
 
 
 fun isAlignmentConnected(
@@ -36,32 +37,6 @@ fun isAlignmentConnected(
     }
 }
 
-fun getReversedTrackPointUpdateType(trackPointUpdateType: LocationTrackPointUpdateType): LocationTrackPointUpdateType =
-    if (trackPointUpdateType == LocationTrackPointUpdateType.END_POINT) LocationTrackPointUpdateType.START_POINT
-    else LocationTrackPointUpdateType.END_POINT
-
-
-fun removeLinkingToSwitchFromSegments(
-    switchId: DomainId<TrackLayoutSwitch>,
-    segments: List<LayoutSegment>,
-): List<LayoutSegment> {
-    return segments.map { segment ->
-        if (segment.switchId == switchId) segment.copy(
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null
-        )
-        else segment
-    }
-}
-
-fun getSwitchId(
-    segments: List<LayoutSegment>,
-    trackPointUpdateType: LocationTrackPointUpdateType,
-): DomainId<TrackLayoutSwitch>? {
-    return if (trackPointUpdateType == LocationTrackPointUpdateType.START_POINT) segments.first().switchId else segments.last().switchId
-}
-
 @Service
 class LinkingService @Autowired constructor(
     private val geometryService: GeometryService,
@@ -70,7 +45,7 @@ class LinkingService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
-    private val coordinateTransformationService: CoordinateTransformationService
+    private val coordinateTransformationService: CoordinateTransformationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -87,48 +62,43 @@ class LinkingService @Autowired constructor(
     }
 
     @Transactional
-    fun saveReferenceLineLinking(linkingParameters: LinkingParameters<ReferenceLine>): IntId<ReferenceLine> {
-        val referenceLineId = linkingParameters.layoutInterval.alignmentId
+    fun saveReferenceLineLinking(parameters: LinkingParameters<ReferenceLine>): IntId<ReferenceLine> {
+        verifyPlanNotHidden(parameters.geometryPlanId)
+
+        val referenceLineId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
-            "Save ReferenceLine linking: " +
-                    "geometryAlignmentId=${linkingParameters.geometryInterval.alignmentId} " +
-                    "referenceLineId=$referenceLineId"
+            "Save ReferenceLine linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "referenceLineId=$referenceLineId"
         )
 
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
 
-        val segments = createLinkedSegments(
-            linkingParameters.geometryPlanId,
-            linkingParameters.geometryInterval,
-            layoutAlignment,
-            linkingParameters.layoutInterval,
-        )
-        val alignment = tryCreateLinkedAlignment(layoutAlignment, segments)
-        return referenceLineService.saveDraft(referenceLine, alignment).id
+        val newAlignment = linkGeometry(layoutAlignment, parameters)
+        return referenceLineService.saveDraft(referenceLine, newAlignment).id
     }
 
     @Transactional
-    fun saveLocationTrackLinking(linkingParameters: LinkingParameters<LocationTrack>): IntId<LocationTrack> {
-        val locationTrackId = linkingParameters.layoutInterval.alignmentId
+    fun saveLocationTrackLinking(parameters: LinkingParameters<LocationTrack>): IntId<LocationTrack> {
+        verifyPlanNotHidden(parameters.geometryPlanId)
 
+        val locationTrackId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
-            "Save LocationTrack linking: " +
-                    "geometryAlignmentId=${linkingParameters.geometryInterval.alignmentId} " +
-                    "locationTrackId=$locationTrackId"
+            "Save LocationTrack linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "locationTrackId=$locationTrackId"
         )
 
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
 
-        val segments = createLinkedSegments(
-            linkingParameters.geometryPlanId,
-            linkingParameters.geometryInterval,
-            layoutAlignment,
-            linkingParameters.layoutInterval,
-        )
-        val newAlignment = tryCreateLinkedAlignment(layoutAlignment, segments)
+        val newAlignment = linkGeometry(layoutAlignment, parameters)
         val newLocationTrack = updateTopology(locationTrack, layoutAlignment, newAlignment)
 
         return locationTrackService.saveDraft(newLocationTrack, newAlignment).id
+    }
+
+    private fun <T> linkGeometry(layoutAlignment: LayoutAlignment, parameters: LinkingParameters<T>): LayoutAlignment {
+        val geometryInterval = parameters.geometryInterval
+        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
+        val layoutRange = parameters.layoutInterval.mRange
+        val geometryRange = parameters.geometryInterval.mRange
+        return linkLayoutGeometrySection(layoutAlignment, layoutRange, geometryAlignment, geometryRange)
     }
 
     private fun updateTopology(
@@ -157,100 +127,47 @@ class LinkingService @Autowired constructor(
 
     @Transactional
     fun saveReferenceLineLinking(parameters: EmptyAlignmentLinkingParameters<ReferenceLine>): IntId<ReferenceLine> {
+        verifyPlanNotHidden(parameters.geometryPlanId)
+
         val referenceLineId = parameters.layoutAlignmentId
+        val geometryInterval = parameters.geometryInterval
 
         logger.serviceCall(
-            "Save empty ReferenceLine linking: " +
-                    "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " +
-                    "referenceLineId=$referenceLineId"
+            "Save empty ReferenceLine linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "referenceLineId=$referenceLineId"
         )
 
-        val geometrySegments = createLinkedSegments(parameters.geometryPlanId, parameters.geometryInterval)
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
+        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val alignment = tryCreateLinkedAlignment(layoutAlignment, geometrySegments)
-        return referenceLineService.saveDraft(referenceLine, alignment).id
+        val newAlignment = replaceLayoutGeometry(layoutAlignment, geometryAlignment, geometryInterval.mRange)
+
+        return referenceLineService.saveDraft(referenceLine, newAlignment).id
     }
 
     @Transactional
     fun saveLocationTrackLinking(parameters: EmptyAlignmentLinkingParameters<LocationTrack>): IntId<LocationTrack> {
+        verifyPlanNotHidden(parameters.geometryPlanId)
+
         val locationTrackId = parameters.layoutAlignmentId
+        val geometryInterval = parameters.geometryInterval
 
         logger.serviceCall(
-            "Save empty LocationTrack linking: " +
-                    "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " +
-                    "locationTrackId=$locationTrackId"
+            "Save empty LocationTrack linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "locationTrackId=$locationTrackId"
         )
 
-        val geometrySegments = createLinkedSegments(parameters.geometryPlanId, parameters.geometryInterval)
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
-        val newAlignment = tryCreateLinkedAlignment(layoutAlignment, geometrySegments)
+        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
+
+        val newAlignment = replaceLayoutGeometry(layoutAlignment, geometryAlignment, geometryInterval.mRange)
         val newLocationTrack = updateTopology(locationTrack, layoutAlignment, newAlignment)
 
         return locationTrackService.saveDraft(newLocationTrack, newAlignment).id
     }
 
-    private fun <T> createLinkedSegments(
-        planId: IntId<GeometryPlan>,
-        geometryInterval: GeometryInterval,
-        layoutAlignment: LayoutAlignment,
-        layoutInterval: LayoutInterval<T>,
-    ): List<LayoutSegment> {
-        val geometryAlignment = getAlignmentLayout(planId, geometryInterval.alignmentId)
-
-        val segments = if (layoutInterval.start.point == layoutInterval.end.point) {
-            extendAlignmentWithGeometry(
-                layoutAlignment,
-                geometryAlignment,
-                layoutInterval.start.point,
-                geometryInterval,
-            )
-        } else {
-            replaceTrackLayoutGeometry(
-                geometryAlignment,
-                layoutAlignment,
-                layoutInterval,
-                geometryInterval,
-            )
-        }
-        segments.forEachIndexed { index, segment ->
-            segments.getOrNull(index - 1)?.let { previous ->
-                val diff = angleDiffRads(previous.endDirection, segment.startDirection)
-                if (diff > PI / 2) throw LinkingFailureException(
-                    message = "Linked geometry has over 90 degree angles between segments: " +
-                            "segment=${segment.id} angle=${radsToDegrees(diff)}",
-                    localizedMessageKey = "segments-sharp-angle",
-                )
-            }
-        }
-        return segments
-    }
-
-    private fun createLinkedSegments(
-        planId: IntId<GeometryPlan>,
-        geometryInterval: GeometryInterval,
-    ): List<LayoutSegment> {
-        val geometryAlignment = getAlignmentLayout(planId, geometryInterval.alignmentId)
-
-        val fromGeometryPoint = geometryInterval.start.point
-        val toGeometryPoint = geometryInterval.end.point
-
-        val geometryIndexRange = getSegmentIndexRange(geometryAlignment, geometryInterval)
-
-        return getSegmentsBetweenPoints(
-            geometryIndexRange.start,
-            geometryIndexRange.endInclusive,
-            transformGeometryToLayoutSegments(geometryAlignment.segments),
-            fromGeometryPoint,
-            toGeometryPoint,
-            0.0,
-        )
-    }
-
     private fun getAlignmentLayout(
         planId: IntId<GeometryPlan>,
         alignmentId: IntId<GeometryAlignment>,
-    ): MapAlignment<GeometryAlignment> {
+    ): PlanLayoutAlignment {
         val (geometryPlan, transformationError) = planLayoutService.getLayoutPlan(planId)
         if (geometryPlan == null) {
             throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")
@@ -262,15 +179,14 @@ class LinkingService @Autowired constructor(
     @Transactional
     fun updateReferenceLineGeometry(
         referenceLineId: IntId<ReferenceLine>,
-        interval: LayoutInterval<ReferenceLine>,
+        mRange: Range<Double>,
     ): IntId<ReferenceLine> {
         logger.serviceCall(
-            "updateReferenceLineGeometry",
-            "referenceLineId" to referenceLineId, "interval" to interval
+            "updateReferenceLineGeometry", "referenceLineId" to referenceLineId, "mRange" to mRange
         )
 
         val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
-        val updatedAlignment = cutAlignment(alignment, interval.start, interval.end)
+        val updatedAlignment = cutLayoutGeometry(alignment, mRange)
 
         return referenceLineService.saveDraft(referenceLine, updatedAlignment).id
     }
@@ -278,76 +194,49 @@ class LinkingService @Autowired constructor(
     @Transactional
     fun updateLocationTrackGeometry(
         locationTrackId: IntId<LocationTrack>,
-        interval: LayoutInterval<LocationTrack>,
+        mRange: Range<Double>,
     ): IntId<LocationTrack> {
         logger.serviceCall(
-            "updateLocationTrackGeometry",
-            "locationTrackId" to locationTrackId, "interval" to interval
+            "updateLocationTrackGeometry", "locationTrackId" to locationTrackId, "mRange" to mRange
         )
 
         val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
-        val updatedAlignment = cutAlignment(alignment, interval.start, interval.end)
+        val updatedAlignment = cutLayoutGeometry(alignment, mRange)
         val updatedLocationTrack = updateTopology(locationTrack, alignment, updatedAlignment)
 
         return locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment).id
     }
 
-    private fun cutAlignment(alignment: LayoutAlignment, from: IntervalLayoutPoint, to: IntervalLayoutPoint) =
-        alignment.withSegments(
-            getSegmentsBetweenPoints(
-                alignment.getSegmentIndex(from.segmentId)
-                    ?: throw LinkingFailureException("Segment (from) not found: alignment=${alignment.id} segment=${from.segmentId}"),
-                alignment.getSegmentIndex(to.segmentId)
-                    ?: throw LinkingFailureException("Segment (to) not found: alignment=${alignment.id} segment=${to.segmentId}"),
-                alignment.segments,
-                from.point,
-                to.point,
-                0.0,
-            )
-        )
-
     fun getGeometryPlanLinkStatus(planId: IntId<GeometryPlan>, publishType: PublishType): GeometryPlanLinkStatus {
         logger.serviceCall(
-            "getGeometryPlanLinkStatus",
-            "planId" to planId,
-            "publishType" to publishType
+            "getGeometryPlanLinkStatus", "planId" to planId, "publishType" to publishType
         )
         return linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType)
     }
 
     @Transactional
-    fun saveKmPostLinking(kmPostLinkingParameters: KmPostLinkingParameters): DaoResponse<TrackLayoutKmPost> {
-        val geometryKmPost = geometryService.getKmPost(kmPostLinkingParameters.geometryKmPostId)
-        val kmPostSrid = geometryService.getKmPostSrid(kmPostLinkingParameters.geometryKmPostId)
+    fun saveKmPostLinking(parameters: KmPostLinkingParameters): DaoResponse<TrackLayoutKmPost> {
+        verifyPlanNotHidden(parameters.geometryPlanId)
+
+        val geometryKmPost = geometryService.getKmPost(parameters.geometryKmPostId)
+        val kmPostSrid = geometryService.getKmPostSrid(parameters.geometryKmPostId)
             ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
         requireNotNull(geometryKmPost.location) { "Cannot link a geometry km post without a location!" }
 
-        val layoutKmPost = layoutKmPostService.getDraft(kmPostLinkingParameters.layoutKmPostId)
+        val layoutKmPost = layoutKmPostService.getOrThrow(DRAFT, parameters.layoutKmPostId)
 
         val newLocationInLayoutSpace =
             coordinateTransformationService.transformCoordinate(kmPostSrid, LAYOUT_SRID, geometryKmPost.location)
         val modifiedLayoutKmPost = layoutKmPost.copy(
-            location = newLocationInLayoutSpace,
-            sourceId = geometryKmPost.id
+            location = newLocationInLayoutSpace, sourceId = geometryKmPost.id
         )
 
         return layoutKmPostService.saveDraft(modifiedLayoutKmPost)
     }
 
-    private fun tryCreateLinkedAlignment(
-        original: LayoutAlignment,
-        newSegments: List<LayoutSegment>,
-    ): LayoutAlignment {
-        return try {
-            original.withSegments(newSegments)
-        } catch (e: IllegalArgumentException) {
-            logger.warn("Linking selection produces invalid alignment: ${e.message}")
-            throw LinkingFailureException(
-                message = "Linking selection produces invalid alignment",
-                cause = e,
-                localizedMessageKey = "alignment-geometry"
-            )
-        }
+    fun verifyPlanNotHidden(id: IntId<GeometryPlan>) {
+        if (geometryService.getPlanHeader(id).isHidden) throw LinkingFailureException(
+            message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
+        )
     }
-
 }

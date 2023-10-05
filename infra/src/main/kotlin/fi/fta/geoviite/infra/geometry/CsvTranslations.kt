@@ -1,7 +1,15 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.SwitchName
+
 const val ELEMENT_LISTING = "Elementtilistaus"
+const val ELEMENT_LISTING_ENTIRE_RAIL_NETWORK = "$ELEMENT_LISTING (koko rataverkko)"
 const val VERTICAL_GEOMETRY = "Pystygeometria"
+const val VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK = "$VERTICAL_GEOMETRY (koko rataverkko)"
+const val VERTICAL_SECTIONS_OVERLAP = "Kaltevuusjakso on limittäin toisen jakson kanssa"
+const val IS_PARTIAL = "Raide sisältää vain osan geometriaelementistä"
+val connectedToSwitch = { switchName: SwitchName -> "Vaihteen $switchName elementti" }
 
 enum class ElementListingHeader {
     TRACK_NUMBER,
@@ -23,7 +31,8 @@ enum class ElementListingHeader {
     DIRECTION_END,
     PLAN_NAME,
     PLAN_SOURCE,
-    CRS
+    CRS,
+    REMARKS
 }
 
 fun translateElementListingHeader(header: ElementListingHeader) =
@@ -48,6 +57,7 @@ fun translateElementListingHeader(header: ElementListingHeader) =
         ElementListingHeader.PLAN_NAME -> "Suunnitelma"
         ElementListingHeader.PLAN_SOURCE -> "Lähde"
         ElementListingHeader.CRS -> "Koordinaatisto"
+        ElementListingHeader.REMARKS -> "Huomiot"
     }
 
 
@@ -61,30 +71,43 @@ fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
     }
 
 enum class VerticalGeometryListingHeader {
+    TRACK_NUMBER,
     PLAN_NAME,
     LOCATION_TRACK,
+    CREATION_DATE,
+    CRS,
     PLAN_TRACK,
     TRACK_ADDRESS_START,
     HEIGHT_START,
     ANGLE_START,
     STATION_START,
+    LOCATION_E_START,
+    LOCATION_N_START,
     TRACK_ADDRESS_END,
     HEIGHT_END,
     ANGLE_END,
     STATION_END,
+    LOCATION_E_END,
+    LOCATION_N_END,
     TRACK_ADDRESS_POINT,
     HEIGHT_POINT,
     STATION_POINT,
+    LOCATION_E_POINT,
+    LOCATION_N_POINT,
     RADIUS,
     TANGENT,
     LINEAR_SECTION_FORWARD_LENGTH,
     LINEAR_SECTION_FORWARD_LINEAR_SECTION,
     LINEAR_SECTION_BACKWARD_LENGTH,
     LINEAR_SECTION_BACKWARD_LINEAR_SECTION,
+    VERTICAL_COORDINATE_SYSTEM,
+    ELEVATION_MEASUREMENT_METHOD,
+    REMARKS,
 }
 
 fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader) =
     when (header) {
+        VerticalGeometryListingHeader.TRACK_NUMBER -> "Ratanumero"
         VerticalGeometryListingHeader.PLAN_NAME -> "Suunnitelma"
         VerticalGeometryListingHeader.LOCATION_TRACK -> "Sijaintiraide"
         VerticalGeometryListingHeader.PLAN_TRACK -> "Suunnitelman raide"
@@ -105,4 +128,22 @@ fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader
         VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LINEAR_SECTION -> "Kaltevuusjakson eteenpäin suora osa"
         VerticalGeometryListingHeader.RADIUS -> "Pyöristyssäde"
         VerticalGeometryListingHeader.TANGENT -> "Tangentti"
+        VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM -> "Korkeusjärjestelmä"
+        VerticalGeometryListingHeader.ELEVATION_MEASUREMENT_METHOD -> "Korkeusasema"
+        VerticalGeometryListingHeader.REMARKS -> "Huomiot"
+        VerticalGeometryListingHeader.CRS -> "Koordinaattijärjestelmä"
+        VerticalGeometryListingHeader.CREATION_DATE -> "Luotu"
+        VerticalGeometryListingHeader.LOCATION_E_START -> "Pyöristyksen alkupisteen sijainti E"
+        VerticalGeometryListingHeader.LOCATION_N_START -> "Pyöristyksen alkupisteen sijainti N"
+        VerticalGeometryListingHeader.LOCATION_E_END -> "Pyöristyksen loppupisteen sijainti E"
+        VerticalGeometryListingHeader.LOCATION_N_END -> "Pyöristyksen loppupisteen sijainti N"
+        VerticalGeometryListingHeader.LOCATION_E_POINT -> "Taitepisteen sijainti E"
+        VerticalGeometryListingHeader.LOCATION_N_POINT -> "Taitepisteen sijainti N"
+    }
+
+fun translateElevationMeasurementMethod(elevationMeasurementMethod: ElevationMeasurementMethod?) =
+    when (elevationMeasurementMethod) {
+        ElevationMeasurementMethod.TOP_OF_SLEEPER -> "Korkeusviiva"
+        ElevationMeasurementMethod.TOP_OF_RAIL -> "Kiskon selkä"
+        null -> "Ei tiedossa"
     }

@@ -2,206 +2,196 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.openGeoviite
-import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
+import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
+
 @ActiveProfiles("dev", "test", "e2e")
 @EnableAutoConfiguration
 @EnableConfigurationProperties(E2EProperties::class)
 @SpringBootTest
 class InfraModelTestUI @Autowired constructor(
-    jdbcTemplate: NamedParameterJdbcTemplate,
-    @Value("\${geoviite.data.im-path:}") private val infraModelPath: String,
-    val properties: E2EProperties) : SeleniumTest(jdbcTemplate) {
-
-    lateinit var infraModelPage: InfraModelPage
-
+    val properties: E2EProperties,
+) : SeleniumTest() {
     val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
-    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
+    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
+        "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
 
     @BeforeAll
     fun clearDb() {
         clearAllTestData()
     }
 
-    @BeforeEach
-    fun setup() {
-        openBrowser()
-        infraModelPage = openGeoviite(properties.url).navigationBar().inframodel()
-    }
-
-    @AfterEach
-    fun closeBrowser() {
-        if(!DEV_DEBUG) PageModel.browser().quit()
+    fun startGeoviiteAndGoToWork(): E2EInfraModelPage {
+        startGeoviite()
+        return goToInfraModelPage()
     }
 
     @Test
     fun `Import and edit testfile_simple_xml`() {
         val file = File(TESTFILE_SIMPLE_PATH)
-        infraModelPage.lataaUusi(file.absolutePath).tallenna()
+        val infraModelPage = startGeoviiteAndGoToWork()
+
+        infraModelPage.upload(file.absolutePath).saveAsNew()
         val infraModelEditPage = infraModelPage.openInfraModel("testfile_simple.xml")
 
         val newProjectName = "Test"
-        val projektinTiedot = infraModelEditPage.projektinTiedot()
-        projektinTiedot.addNimi(newProjectName)
+        val projektinTiedot = infraModelEditPage.metaFormGroup
+        projektinTiedot.selectNewProject(newProjectName)
 
-        infraModelEditPage.tallennaMuutokset()
+        infraModelEditPage.save(true)
+        waitAndClearToastByContent("InfraModel-tiedosto tallennettu")
 
-        val uploadedPlanRow = infraModelPage.infraModelList().infraModelRows().find { row -> row.projektinNimi().equals(newProjectName) }
+        val uploadedPlanRow = infraModelPage.infraModelsList.getRow(projectName = newProjectName)
         assertNotNull(uploadedPlanRow)
     }
 
     @Test
     fun `Import testfile_clothoid_and_parabola_xml`() {
-        val infraModelRows = infraModelPage.infraModelList().infraModelRows()
-
         val file = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
+        val infraModelPage = startGeoviiteAndGoToWork()
+        val uploadForm = infraModelPage.upload(file.absolutePath)
+        val projektinTiedot = uploadForm.metaFormGroup
 
-        val uploadForm = infraModelPage.lataaUusi(file.absolutePath)
-        val projektinTiedot = uploadForm.projektinTiedot()
+        assertEquals("TEST_Clothoid_and_parabola", projektinTiedot.projectName)
+        assertEquals("Geoviite", projektinTiedot.author)
 
-        assertEquals("TEST_Clothoid_and_parabola", projektinTiedot.nimi())
-        assertEquals("Ei tiedossa", projektinTiedot.oid())
-        assertEquals("Geoviite", projektinTiedot.suunnitteluYritys())
+        val sijaintitiedot = uploadForm.locationFormGroup
+        assertEquals("", sijaintitiedot.trackNumber)
+        assertEquals("", sijaintitiedot.kmNumberRange)
+        assertEquals("KKJ2 EPSG:2392", sijaintitiedot.coordinateSystem)
+        assertEquals("Ei tiedossa", sijaintitiedot.verticalCoordinateSystem)
 
-        val sijaintitiedot = uploadForm.sijaintitiedot()
-        assertEquals("", sijaintitiedot.ratanumero())
-        assertEquals("", sijaintitiedot.kilometrivali())
-        assertEquals("KKJ2 EPSG:2392", sijaintitiedot.koordinaattijarjestelma())
-        assertEquals("Ei tiedossa", sijaintitiedot.korkeusjarjestelma())
-
-        val tilanneJaLaatutiedot = uploadForm.tilanneJaLaatutiedot()
-        assertEquals("Ei tiedossa", tilanneJaLaatutiedot.suunnitteluvaihe())
-        assertEquals("Ei tiedossa", tilanneJaLaatutiedot.vaiheenTarkennus())
-        assertEquals("Ei tiedossa", tilanneJaLaatutiedot.laatu())
+        val tilanneJaLaatutiedot = uploadForm.qualityFormGroup
+        assertEquals("Ei tiedossa", tilanneJaLaatutiedot.planPhase)
+        assertEquals("Ei tiedossa", tilanneJaLaatutiedot.decisionPhase)
+        assertEquals("Ei tiedossa", tilanneJaLaatutiedot.measurementMethod)
 
         //FIXME: disabled until we can se timezone to Helsinki/Finland in AWS
         //val lokiJaLinkitystiedot = uploadForm.lokiJaLinkitystiedot()
         //assertEquals("11.02.2021", lokiJaLinkitystiedot.laadittu())
 
-        uploadForm.tallenna()
-        val infraModelPageAfterUpload = InfraModelPage()
-        val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList().infraModelRows()
-        assertEquals(infraModelRows.size + 1, infraModelRowsAfterUpload.size)
+        uploadForm.saveAsNew()
+        val infraModelPageAfterUpload = E2EInfraModelPage()
+        val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 
-        val uploadedPlanRow =
-            infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals("TEST_Clothoid_and_parabola") }
+        val uploadedPlanRow = infraModelRowsAfterUpload.getRow(projectName = "TEST_Clothoid_and_parabola")
         assertNotNull(uploadedPlanRow)
-        assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.tiedostonimi())
+        assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.fileName)
 
-        logger.info("Local date time: ${LocalDateTime.now()} and upload time is ${uploadedPlanRow.ladattu()}")
+        logger.info("Local date time: ${LocalDateTime.now()} and upload time is ${uploadedPlanRow.created}")
 
-        assertThat(uploadedPlanRow.ladattu()).isBefore(LocalDateTime.now())
+        assertThat(uploadedPlanRow.created).isBefore(LocalDateTime.now())
     }
 
     @Test
     fun `Edit and import testfile_clothoid_and_parabola_2_xml`() {
-        val infraModelRowsBefore = infraModelPage.infraModelList().infraModelRows()
-
         val file = File(TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH)
 
-        val uploadForm = infraModelPage.lataaUusi(file.absolutePath)
+        val infraModelPage = startGeoviiteAndGoToWork()
+        val uploadForm = infraModelPage.upload(file.absolutePath)
 
         //Projektin tiedot
-        val projektinTiedot = uploadForm.projektinTiedot()
+        val projektinTiedot = uploadForm.metaFormGroup
 
         val projektinNimi = "E2E IM upload and edit project"
-        projektinTiedot.addNimi(projektinNimi)
-        assertEquals(projektinNimi, projektinTiedot.nimi())
-
-        val oid = "100.200.30"
-        projektinTiedot.addOid(oid)
-        assertEquals(oid, projektinTiedot.oid())
+        projektinTiedot.selectNewProject(projektinNimi)
+        assertEquals(projektinNimi, projektinTiedot.projectName)
 
         val suunnitteluyritys = "Rane ja rautatiet"
-        projektinTiedot.addNewSuunnitteluyritys(suunnitteluyritys)
-        assertEquals(suunnitteluyritys, projektinTiedot.suunnitteluYritys())
+        projektinTiedot.selectNewAuthor(suunnitteluyritys)
+        assertEquals(suunnitteluyritys, projektinTiedot.author)
 
         //Sijaintitiedot
-        val sijaintitiedot = uploadForm.sijaintitiedot()
+        val sijaintitiedot = uploadForm.locationFormGroup
         val ratanumero = "123E2E"
-        sijaintitiedot.addRatanumero(ratanumero, "kaunis kuvaus")
-        assertEquals(ratanumero, sijaintitiedot.ratanumero())
+        sijaintitiedot.selectNewTrackNumber(ratanumero, "kaunis kuvaus")
+        assertEquals(ratanumero, sijaintitiedot.trackNumber)
 
         //Tilanne ja laatutiedot
-        val tilanneJaLaatutiedot = uploadForm.tilanneJaLaatutiedot()
+        val tilanneJaLaatutiedot = uploadForm.qualityFormGroup
         val suunnitteluvaihe = "Peruskorjaus"
-        tilanneJaLaatutiedot.editSuunnitteluvaihe(suunnitteluvaihe)
-        assertEquals(suunnitteluvaihe, tilanneJaLaatutiedot.suunnitteluvaihe())
+        tilanneJaLaatutiedot.selectPlanPhase(suunnitteluvaihe)
+        assertEquals(suunnitteluvaihe, tilanneJaLaatutiedot.planPhase)
         val vaiheenTarkennus = "Valmis"
-        tilanneJaLaatutiedot.editVaiheenTarkennus(vaiheenTarkennus)
-        assertEquals(vaiheenTarkennus, tilanneJaLaatutiedot.vaiheenTarkennus())
+        tilanneJaLaatutiedot.selectDecisionPhase(vaiheenTarkennus)
+        assertEquals(vaiheenTarkennus, tilanneJaLaatutiedot.decisionPhase)
         val laatu = "Digitoitu ilmakuvasta"
-        tilanneJaLaatutiedot.editLaatu(laatu)
-        assertEquals(laatu, tilanneJaLaatutiedot.laatu())
+        tilanneJaLaatutiedot.selectMeasurementMethod(laatu)
+        assertEquals(laatu, tilanneJaLaatutiedot.measurementMethod)
+        val korkeusasema = "Kiskon selkä"
+        tilanneJaLaatutiedot.selectElevationMeasurementMethod(korkeusasema)
+        assertEquals(korkeusasema, tilanneJaLaatutiedot.elevationMeasurementMethod)
 
         //Loki- ja linkitysdata
-        val lokiJaLinkitystiedotFormGroup = uploadForm.lokiJaLinkitystiedot()
-        lokiJaLinkitystiedotFormGroup.editLaadittu("elokuu", "1999")
-        assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.laadittu())
+        val lokiJaLinkitystiedotFormGroup = uploadForm.logFormGroup
+        lokiJaLinkitystiedotFormGroup.setPlanTime("elokuu", "1999")
+        assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 
-        uploadForm.tallenna()
-        val infraModelPageAfterUpload = InfraModelPage()
-        val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelList().infraModelRows()
-        assertEquals(infraModelRowsBefore.size + 1, infraModelRowsAfterUpload.size)
+        uploadForm.save(true)
+        waitAndClearToast("infra-model-import-upload__success-toast")
+        val infraModelPageAfterUpload = E2EInfraModelPage()
+        val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 
-        val uploadedPlanRow = infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals(projektinNimi) }
+        val uploadedPlanRow = infraModelRowsAfterUpload.getRow(projectName = projektinNimi)
         assertNotNull(uploadedPlanRow)
-        assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.tiedostonimi())
+        assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.fileName)
 
     }
 
     @Test
-    @Disabled
     fun `Search and sort Infra Model files`() {
         clearAllTestData()
 
-        val infraModelFiles = File(infraModelPath).walk()
-            .filter { it.name.endsWith(".xml") }
-            .sortedBy { it.name }
-        logger.info("Found ${infraModelFiles.count()} infra model files:")
-        infraModelFiles.forEach { logger.info(it.name) }
+        val file1 = File(TESTFILE_SIMPLE_PATH)
+        val file2 = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
+        val file3 = File(TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH)
 
-        infraModelFiles.forEach { infraModelFile -> infraModelPage.lataaUusi(infraModelFile.absolutePath).tallenna() }
-        logger.info("All files imported")
+        val infraModelPage = startGeoviiteAndGoToWork()
 
-        val table = infraModelPage.infraModelList()
-        var rows = table.infraModelRows()
-        assertEquals(infraModelFiles.first().name, rows.first().tiedostonimi())
-        assertEquals(infraModelFiles.last().name, rows.last().tiedostonimi())
+        val uploadForm1 = infraModelPage.upload(file1.absolutePath)
+        uploadForm1.saveAsNew()
 
+        val uploadForm2 = infraModelPage.upload(file2.absolutePath)
+        uploadForm2.saveAsNew()
+
+        val uploadForm3 = infraModelPage.upload(file3.absolutePath)
+        uploadForm3.saveAsNew()
+
+        val table = infraModelPage.infraModelsList
+
+        //sorting
         table.sortBy("Laadittu")
-        rows = table.infraModelRows()
-        assertThat(rows[0].laadittu()).isBefore(rows[1].laadittu())
+        var rows = table.rows
+        assertThat(rows[0].planTime).isBefore(rows[1].planTime)
 
         table.sortBy("Nimi")
-        rows = table.infraModelRows()
-        assertThat(rows[0].tiedostonimi()).isLessThan(rows[1].tiedostonimi())
+        rows = table.rows
+        assertThat(rows[0].fileName).isLessThan(rows[1].fileName)
 
-        val randomFile1 = infraModelFiles.shuffled().first().name
-        infraModelPage.search(randomFile1)
-        rows = table.infraModelRows()
-        assertThat(rows.first().tiedostonimi()).isEqualTo(randomFile1)
+        //searching
+        val files: List<File> = listOf(file1, file2, file3)
+        val randomIndex = (files.indices).random()
+        val randomFile = files[randomIndex]
 
+        infraModelPage.search(randomFile.name)
+        rows = table.rows
+        assertThat(rows.first().fileName).isEqualTo(randomFile.name)
+
+        clearAllTestData()
     }
-
 }

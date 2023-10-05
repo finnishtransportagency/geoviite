@@ -1,4 +1,8 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 5
   security:
     filter:
       # Set security filter to be after our own request filter that sets authorization
@@ -28,7 +32,7 @@ spring:
     url: "${spring.datasource.url}"
     user: "${spring.datasource.username}"
     password: "${spring.datasource.password}"
-    schemas: flyway,postgis,common,geometry,layout,publication,integrations
+    schemas: flyway,postgis,common,geometry,layout,publication,integrations,projektivelho
     lock-retry-count: 900
 
 geoviite:
@@ -53,3 +57,23 @@ geoviite:
     url: "${RATKO_URL:}"
     username: "${RATKO_USERNAME:}"
     password: "${RATKO_PASSWORD:}"
+  projektivelho:
+    enabled: "${PROJEKTIVELHO_ENABLED:false}"
+    url: "${PROJEKTIVELHO_URL:}"
+    auth_url: "${PROJEKTIVELHO_AUTH_URL:}"
+    client_id: "${PROJEKTIVELHO_CLIENT_ID:}"
+    secret_key: "${PROJEKTIVELHO_SECRET_KEY:}"
+    search-poll:
+      initial: PT1H
+      rate: PT4H
+    result-poll:
+      initial: PT5M
+      rate: PT15M
+  rail-network-export:
+    schedule: "0 0 3 * * *"
+    vertical-geometry-schedule: "0 0 4 * * *"
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain,text/csv
+    min-response-size: 1KB

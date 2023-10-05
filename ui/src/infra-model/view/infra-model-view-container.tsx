@@ -1,69 +1,62 @@
-import { connect } from 'react-redux';
-import { InfraModelRootState, TrackLayoutAppDispatch } from 'store/store';
-import { actionCreators, InfraModelViewType } from '../infra-model-store';
+import { infraModelActionCreators, InfraModelViewType } from '../infra-model-slice';
 import { createDelegates } from 'store/store-utils';
-import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
-import {
-    GeometryElement,
-    GeometryElementId,
-    GeometrySwitch,
-    GeometrySwitchId,
-} from 'geometry/geometry-model';
-import { getGeometryElementFromPlan, getGeometrySwitchFromPlan } from 'geometry/geometry-utils';
 import React from 'react';
-import {
-    InfraModelEditLoader,
-    InfraModelLoaderProps,
-} from 'infra-model/view/infra-model-edit-loader';
+import { InfraModelEditLoader } from 'infra-model/view/infra-model-edit-loader';
+import { useCommonDataAppSelector, useInfraModelAppSelector } from 'store/hooks';
+import { useAppNavigate } from 'common/navigate';
+import { InfraModelImportLoader } from 'infra-model/view/infra-model-import-loader';
+import { InfraModelUploadLoader } from 'infra-model/view/infra-model-upload-loader';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
-function mapStateToProps({ infraModel }: InfraModelRootState) {
-    return {
-        ...infraModel,
-        getGeometryElement: async (
-            geomElemId: GeometryElementId,
-        ): Promise<GeometryElement | null> => {
-            return infraModel.plan ? getGeometryElementFromPlan(infraModel.plan, geomElemId) : null;
-        },
-        getGeometrySwitch: async (
-            geometrySwitchId: GeometrySwitchId,
-        ): Promise<GeometrySwitch | null> => {
-            return infraModel.plan
-                ? getGeometrySwitchFromPlan(infraModel.plan, geometrySwitchId)
-                : null;
-        },
-    };
-}
-
-function mapDispatchToProps(dispatch: TrackLayoutAppDispatch) {
-    const delegates = createDelegates(dispatch, actionCreators);
-
-    return {
-        onInfraModelExtraParametersChange: delegates.onInfraModelExtraParametersChange,
-        onInfraModelOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
-        onPlanUpdate: delegates.onPlanUpdate,
-        onPlanFetchReady: delegates.onPlanFetchReady,
-        onSelect: delegates.onSelect,
-        onHighlightItems: delegates.onHighlightItems,
-        onHoverLocation: delegates.onHoverLocation,
-        onClickLocation: delegates.onClickLocation,
-        onViewportChange: delegates.onViewportChange,
-        onCommitField: delegates.onCommitField,
-        showArea: delegates.showArea,
-        setExistingInfraModel: delegates.setExistingInfraModel,
-    };
-}
-
-const InfraModelLoadingInfraModelView: React.FC<InfraModelViewProps> = (
-    props: InfraModelLoaderProps,
-) => {
-    return props.viewType == InfraModelViewType.UPLOAD ? (
-        <InfraModelView {...props} />
-    ) : (
-        <InfraModelEditLoader {...props} />
-    );
+type InfraModelViewContainerProps = {
+    viewType: InfraModelViewType;
 };
 
-export const InfraModelViewContainer = connect(
-    mapStateToProps,
-    mapDispatchToProps,
-)(InfraModelLoadingInfraModelView);
+export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = ({
+    viewType,
+}: InfraModelViewContainerProps) => {
+    const navigate = useAppNavigate();
+    const infraModelState = useInfraModelAppSelector((state) => state);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+
+    const delegates = React.useMemo(() => createDelegates(infraModelActionCreators), []);
+
+    const [isLoading, setLoading] = React.useState(false);
+
+    const generalProps = {
+        ...infraModelState,
+        onExtraParametersChange: delegates.onInfraModelExtraParametersChange,
+        onOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
+        onSelect: delegates.onSelect,
+        changeTimes: changeTimes,
+        isLoading: isLoading,
+        onClose: () => navigate('inframodel-list'),
+    };
+
+    const loaderProps = {
+        ...generalProps,
+        setLoading: setLoading,
+        onValidation: delegates.onPlanValidated,
+    };
+
+    switch (viewType) {
+        case InfraModelViewType.EDIT:
+            return (
+                <InfraModelEditLoader
+                    {...loaderProps}
+                    setExistingInfraModel={delegates.setExistingInfraModel}
+                />
+            );
+        case InfraModelViewType.IMPORT:
+            return (
+                <InfraModelImportLoader
+                    {...loaderProps}
+                    setExistingInfraModel={delegates.setExistingInfraModel}
+                />
+            );
+        case InfraModelViewType.UPLOAD:
+            return <InfraModelUploadLoader {...loaderProps} />;
+        default:
+            return exhaustiveMatchingGuard(viewType);
+    }
+};

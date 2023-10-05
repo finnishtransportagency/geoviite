@@ -5,50 +5,60 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { AlignmentPlanSection, getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
+import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
-import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
+import {
+    AlignmentPlanSectionInfoboxContent,
+    HighlightedAlignment,
+} from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
-import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
     locationTrackId: LocationTrackId;
     viewport: MapViewport;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
     publishType,
     locationTrackId,
     viewport,
+    contentVisible,
+    onContentVisibilityChange,
+    onHighlightItem,
 }) => {
     const { t } = useTranslation();
-    const [useBoungingBox, setUseBoundingBox] = React.useState(true);
-    const viewportDep = useBoungingBox && viewport;
+    const [useBoundingBox, setUseBoundingBox] = React.useState(true);
+    const viewportDep = useBoundingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getLocationTrackSectionsByPlan(
                 publishType,
                 locationTrackId,
-                useBoungingBox ? viewport.area : undefined,
+                useBoundingBox ? viewport.area : undefined,
             ),
         [locationTrackId, publishType, viewportDep],
     );
 
-    function highlightSection(locationTrackId:LocationTrackId, section: AlignmentPlanSection) {
-        // TODO
-        console.log('highlight section', locationTrackId, section);
-    }
-
     return (
-        <Infobox title={t('tool-panel.alignment-plan-sections.location-track-geometries')}>
+        <Infobox
+            title={t('tool-panel.alignment-plan-sections.location-track-geometries')}
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}>
             <InfoboxContent>
                 <InfoboxField
                     label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
                     value={
                         <Checkbox
-                            checked={useBoungingBox}
+                            checked={useBoundingBox}
                             onChange={(e) => setUseBoundingBox(e.target.checked)}
                         />
                     }
@@ -65,8 +75,10 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                         </p>
                     ) : (
                         <AlignmentPlanSectionInfoboxContent
+                            id={locationTrackId}
                             sections={sections || []}
-                            highlightSection={(section) => highlightSection(locationTrackId, section)}
+                            onHighlightItem={onHighlightItem}
+                            type={'LOCATION_TRACK'}
                         />
                     )}
                 </ProgressIndicatorWrapper>

@@ -9,19 +9,17 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
 import kotlin.math.PI
 
-fun lineFromOrigin(dirStartGrads: Double) =
-    line(Point(0.0, 0.0), pointInDirection(50.0, gradsToRads(dirStartGrads)))
+fun lineFromOrigin(dirStartGrads: Double) = line(Point(0.0, 0.0), pointInDirection(50.0, gradsToRads(dirStartGrads)))
 
-fun lineToOrigin(dirEndGrads: Double) =
-    line(pointInDirection(50.0, gradsToRads(dirEndGrads - 200)), Point(0.0, 0.0))
+fun lineToOrigin(dirEndGrads: Double) = line(pointInDirection(50.0, gradsToRads(dirEndGrads - 200)), Point(0.0, 0.0))
 
 fun curveFromOrigin(rotation: RotationDirection, dirStartGrads: Double): GeometryCurve {
     // For simple math, make it a 90-degree turn: chord = radius & end-point is in a 45-degree angle
@@ -62,7 +60,7 @@ fun clothoidToOrigin(rotation: RotationDirection, dirEndGrads: Double) = clothoi
     end = Point(0.0, 0.0),
     // Start point doesn't matter as the spiral is flattening (calculated from the end)
     dirStartGrads = 0.0, start = Point(1.0, 1.0),
-    pi = Point(0.0,0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
+    pi = Point(0.0, 0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
 )
 
 fun biquadraticParabolaFromOrigin(rotation: RotationDirection, dirStartGrads: Double) = biquadraticParabola(
@@ -84,7 +82,7 @@ fun biquadraticParabolaToOrigin(rotation: RotationDirection, dirEndGrads: Double
     end = Point(0.0, 0.0),
     // Start point doesn't matter as the spiral is flattening (calculated from the end)
     dirStartGrads = 0.0, start = Point(1.0, 1.0),
-    pi = Point(0.0,0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
+    pi = Point(0.0, 0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
 )
 
 fun line(
@@ -369,7 +367,7 @@ fun infraModelFile(name: String = "test_file.xml") = InfraModelFile(
 fun plan(
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
     srid: Srid = Srid(3879),
-    vararg alignments: GeometryAlignment = arrayOf(geometryAlignment(trackNumberId))
+    vararg alignments: GeometryAlignment = arrayOf(geometryAlignment(trackNumberId)),
 ): GeometryPlan = plan(trackNumberId, srid, alignments.toList())
 
 fun plan(
@@ -378,29 +376,36 @@ fun plan(
     alignments: List<GeometryAlignment> = listOf(geometryAlignment(trackNumberId)),
     switches: List<GeometrySwitch> = listOf(),
     measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
     coordinateSystemName: CoordinateSystemName? = null,
+    verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
+    planTime: Instant = Instant.EPOCH,
+    kmPosts: List<GeometryKmPost> = kmPosts(trackNumberId),
+    project: Project = project(),
+    units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
-        project = project(),
+        project = project,
         application = application(),
         author = author("TEST Company"),
-        planTime = Instant.EPOCH,
-        units = geometryUnits(srid, coordinateSystemName),
+        planTime = planTime,
+        units = units,
         trackNumberId = trackNumberId,
         trackNumberDescription = trackNumberDesc,
         alignments = alignments,
         switches = switches,
-        kmPosts = kmPosts(trackNumberId),
+        kmPosts = kmPosts,
         fileName = fileName,
-        oid = someOid(),
+        pvDocumentId = null,
         planPhase = PlanPhase.RAILWAY_PLAN,
         decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
         measurementMethod = measurementMethod,
-        message = FreeText("test text description"),
+        elevationMeasurementMethod = elevationMeasurementMethod,
+        message = FreeTextWithNewLines("test text \n description"),
         uploadTime = Instant.now(),
     )
 }
@@ -409,28 +414,33 @@ fun planHeader(
     id: IntId<GeometryPlan> = IntId(1),
     fileName: FileName = FileName("test_file.xml"),
     measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
 ) = GeometryPlanHeader(
     id = id,
+    version = RowVersion(id, 1),
     fileName = fileName,
     project = project(),
-    units = geometryUnits(srid, coordinateSystemName),
+    units = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
     planPhase = PlanPhase.RAILWAY_PLAN,
     decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
     measurementMethod = measurementMethod,
+    elevationMeasurementMethod = elevationMeasurementMethod,
     kmNumberRange = null,
     planTime = Instant.EPOCH,
     trackNumberId = trackNumberId,
     linkedAsPlanId = null,
-    message = FreeText("test text description"),
+    message = FreeTextWithNewLines("test text \n description"),
     uploadTime = Instant.now(),
     source = source,
     hasCant = false,
     hasProfile = false,
     author = "Test Company",
+    isHidden = false,
 )
 
 fun minimalPlan(
@@ -463,8 +473,9 @@ fun minimalPlan(
     switches = listOf(),
     alignments = listOf(),
     kmPosts = listOf(),
-    oid = null,
+    pvDocumentId = null,
     measurementMethod = null,
+    elevationMeasurementMethod = null,
     trackNumberId = null,
     uploadTime = null,
 )
@@ -487,9 +498,7 @@ fun geometryLine(
         length = length,
     ),
     switchData = elementSwitchData ?: SwitchData(
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null
+        switchId = null, startJointNumber = null, endJointNumber = null
     ),
 )
 
@@ -520,7 +529,7 @@ fun geometryAlignment(
     cant: GeometryCant? = null,
     name: String = "001",
     id: DomainId<GeometryAlignment> = StringId(),
-    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111")
+    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111"),
 ) = GeometryAlignment(
     id = id,
     name = AlignmentName(name),
@@ -550,6 +559,7 @@ fun linearCant(startDistance: Double, endDistance: Double, startValue: Double, e
     )
     return geometryCant(points = listOf(point1, point2))
 }
+
 fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
     name = PlanElementName("TST Cant"),
     description = PlanElementName("Test alignment cant"),
@@ -568,8 +578,7 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
         state = PlanState.PROPOSED,
         location = null,
         trackNumberId = trackNumberId,
-    ),
-    GeometryKmPost(
+    ), GeometryKmPost(
         staBack = BigDecimal("1003.440894"),
         staAhead = BigDecimal("854.711894"),
         staInternal = BigDecimal("854.711894"),
@@ -581,25 +590,35 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
     )
 )
 
-fun geometryUnits(srid: Srid, coordinateSystemName: CoordinateSystemName? = null) =
-    GeometryUnits(
-        coordinateSystemSrid = srid,
-        coordinateSystemName = coordinateSystemName,
-        verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
-        directionUnit = AngularUnit.GRADS,
-        linearUnit = LinearUnit.METER,
-    )
+fun geometryUnits(
+    srid: Srid,
+    coordinateSystemName: CoordinateSystemName? = null,
+    verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000,
+) = GeometryUnits(
+    coordinateSystemSrid = srid,
+    coordinateSystemName = coordinateSystemName,
+    verticalCoordinateSystem = verticalCoordinateSystem,
+    directionUnit = AngularUnit.GRADS,
+    linearUnit = LinearUnit.METER,
+)
 
 fun project(name: String = "TEST Project", description: String? = null) =
     Project(ProjectName(name), description?.let(::FreeText))
 
-fun author(companyName: String = "TEST Company") =
-    Author(MetaDataName(companyName))
+fun author(companyName: String = "TEST Company") = Author(MetaDataName(companyName))
 
 fun application(
     name: String = "TEST Application",
     manufacturer: String = "Solita Ab/Oy",
-    version: String = "04.02.21.14.02.21.1"
+    version: String = "04.02.21.14.02.21.1",
 ) = Application(MetaDataName(name), MetaDataName(manufacturer), MetaDataName(version))
 
 fun testFile() = InfraModelFile(FileName("testfile_empty_xml.xml"), "<a></a>")
+
+fun someBoundingPolygon() = listOf(
+    Point(494585.0, 6710975.0),
+    Point(494791.0, 6711265.0),
+    Point(495074.0, 6711718.0),
+    Point(494786.0, 6711281.0),
+    Point(494585.0, 6710975.0),
+)

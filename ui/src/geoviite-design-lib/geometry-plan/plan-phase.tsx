@@ -1,12 +1,13 @@
 import React from 'react';
 import { PlanPhase as PlanPhaseModel } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type PlanPhaseProps = {
-    phase: PlanPhaseModel | null;
+    phase: PlanPhaseModel | undefined;
 };
 
-function getTranslationKey(phase: PlanPhaseModel | null) {
+function getTranslationKey(phase: PlanPhaseModel | undefined) {
     switch (phase) {
         case 'RAILWAY_PLAN':
         case 'RAILWAY_CONSTRUCTION_PLAN':
@@ -16,8 +17,10 @@ function getTranslationKey(phase: PlanPhaseModel | null) {
         case 'NEW_INVESTMENT':
         case 'REMOVED_FROM_USE':
             return phase;
-        default:
+        case undefined:
             return 'UNKNOWN';
+        default:
+            return exhaustiveMatchingGuard(phase);
     }
 }
 

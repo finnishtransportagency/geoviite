@@ -14,7 +14,6 @@ class SpringContextUtility : ApplicationContextAware {
         var applicationContext: ApplicationContext? = null
 
         inline fun <reified T> getBean(): T = getContext().getBean(T::class.java)
-            ?: throw IllegalStateException("No such bean: ${T::class.qualifiedName}")
 
         inline fun <reified T> getProperty(key: String): T = getContext().environment.getProperty(key, T::class.java)
             ?: throw IllegalStateException("No such property: $key")

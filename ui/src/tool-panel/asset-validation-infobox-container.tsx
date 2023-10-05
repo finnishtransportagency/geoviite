@@ -6,14 +6,17 @@ import { getLocationTrackValidation } from 'track-layout/layout-location-track-a
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
 import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
-type AssetType = 'TRACK_NUMBER' | 'REFERENCE_LINE' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
+type AssetType = 'TRACK_NUMBER' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
 
 type AssetValidationInfoboxProps = {
     id: AssetId;
     type: AssetType;
     publishType: PublishType;
     changeTime: TimeStamp;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxProps> = ({
@@ -21,6 +24,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
     type,
     publishType,
     changeTime,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const [validation, validationLoaderStatus] = useLoaderWithStatus(() => {
         switch (type) {
@@ -33,7 +38,7 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
             case 'SWITCH':
                 return getSwitchValidation(publishType, id);
             default:
-                return Promise.resolve(undefined);
+                return exhaustiveMatchingGuard(type);
         }
     }, [id, type, publishType, changeTime]);
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
@@ -41,6 +46,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
 
     return (
         <AssetValidationInfobox
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}
             type={type}
             errors={errors}
             warnings={warnings}

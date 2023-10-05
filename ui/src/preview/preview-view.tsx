@@ -12,16 +12,8 @@ import {
 
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
-import MapView from 'map/map-view';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
-import {
-    OnClickLocationFunction,
-    OnHighlightItemsFunction,
-    OnHoverLocationFunction,
-    OnSelectFunction,
-    Selection,
-} from 'selection/selection-model';
-import { ChangeTimes, SelectedPublishChange } from 'track-layout/track-layout-store';
+import { OnSelectFunction } from 'selection/selection-model';
+import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { AssetId, PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -43,6 +35,11 @@ import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-rever
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
+import { ChangeTimes } from 'common/common-slice';
+import { debounceAsync } from 'utils/async-utils';
+import { BoundingBox } from 'model/geometry';
+import { MapContext } from 'map/map-store';
+import { MapViewContainer } from 'map/map-view-container';
 
 type Candidate = {
     id: AssetId;
@@ -67,21 +64,15 @@ export type ChangesBeingReverted = {
     changeIncludingDependencies: PublishRequestIds;
 };
 
-type PreviewProps = {
-    map: Map;
-    selection: Selection;
+export type PreviewProps = {
     changeTimes: ChangeTimes;
     selectedPublishCandidateIds: PublishRequestIds;
-    onViewportChange: (viewport: MapViewport) => void;
     onSelect: OnSelectFunction;
-    onHighlightItems: OnHighlightItemsFunction;
-    onHoverLocation: OnHoverLocationFunction;
-    onClickLocation: OnClickLocationFunction;
-    onShownItemsChange: (shownItems: OptionalShownItems) => void;
     onPublish: () => void;
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
     onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequestIds) => void;
+    onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 const publishCandidateIds = (candidates: PublishCandidates): PublishRequestIds => ({
@@ -265,6 +256,15 @@ const previewCandidatesByUser = (
     kmPosts: filterPreviewCandidateArrayByUser(user, publishCandidates.kmPosts),
 });
 
+const validateDebounced = debounceAsync(
+    (request: PublishRequestIds) => validatePublishCandidates(request),
+    1000,
+);
+const getCalculatedChangesDebounced = debounceAsync(
+    (request: PublishRequestIds) => getCalculatedChanges(request),
+    1000,
+);
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
@@ -283,7 +283,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const validatedChangeset = useLoader(
         () =>
-            validatePublishCandidates(props.selectedPublishCandidateIds).then(
+            validateDebounced(props.selectedPublishCandidateIds).then(
                 (validatedPublishCandidates) => {
                     updateChangeTables();
                     return validatedPublishCandidates;
@@ -332,7 +332,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
 
     const calculatedChanges = useLoader(
-        () => getCalculatedChanges(props.selectedPublishCandidateIds),
+        () => getCalculatedChangesDebounced(props.selectedPublishCandidateIds),
         [props.selectedPublishCandidateIds],
     );
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
@@ -345,7 +345,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 requestedRevertChange.type,
             ),
         ).then((changeIncludingDependencies) => {
-            if (changeIncludingDependencies != null) {
+            if (changeIncludingDependencies != undefined) {
                 setChangesBeingReverted({
                     requestedRevertChange,
                     changeIncludingDependencies,
@@ -410,6 +410,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
+                                    onShowOnMap={props.onShowOnMap}
                                 />
                             </section>
 
@@ -423,6 +424,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
+                                    onShowOnMap={props.onShowOnMap}
                                 />
                             </section>
 
@@ -439,19 +441,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         </div>
                     )}
                 </div>
-
-                <MapView
-                    map={props.map}
-                    onViewportUpdate={props.onViewportChange}
-                    selection={props.selection}
-                    publishType={mapMode}
-                    changeTimes={props.changeTimes}
-                    onSelect={props.onSelect}
-                    onHighlightItems={props.onHighlightItems}
-                    onHoverLocation={props.onHoverLocation}
-                    onClickLocation={props.onClickLocation}
-                    onShownLayerItemsChange={props.onShownItemsChange}
-                />
+                <MapContext.Provider value="track-layout">
+                    <MapViewContainer publishType={mapMode} />
+                </MapContext.Provider>
 
                 <PreviewFooter
                     onSelect={props.onSelect}

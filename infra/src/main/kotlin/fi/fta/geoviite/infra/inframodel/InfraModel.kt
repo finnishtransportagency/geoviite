@@ -13,6 +13,7 @@ interface InfraModel {
 
 interface InfraModelFeatureDictionary {
     val name: String
+    val version: String?
 }
 
 interface InfraModelUnits {
@@ -30,6 +31,7 @@ interface InfraModelMetric {
 interface InfraModelProject {
     val name: String
     val desc: String?
+    val feature: InfraModelFeature?
 }
 
 interface InfraModelApplication{

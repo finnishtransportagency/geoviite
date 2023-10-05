@@ -6,9 +6,8 @@ import {
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 
@@ -17,8 +16,7 @@ type LocationTrackNamesProps = {
 };
 
 function createSelectAction() {
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
+    const delegates = createDelegates(TrackLayoutActions);
     return (locationTrackId: LocationTrackId) =>
         delegates.onSelect({
             ...createEmptyItemCollections(),
@@ -29,10 +27,10 @@ function createSelectAction() {
 const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationTracks }) => {
     const { t } = useTranslation();
 
-    const sortedLocationTracks = linkedLocationTracks?.sort((a, b) => a.name.localeCompare(b.name));
+    const sortedLocationTracks = linkedLocationTracks.sort((a, b) => a.name.localeCompare(b.name));
 
     const trackName =
-        sortedLocationTracks && sortedLocationTracks.length > 1
+        sortedLocationTracks.length > 1
             ? t('tool-panel.location-track.track-name-short-plural')
             : t('tool-panel.location-track.track-name-short-singular');
 
@@ -42,8 +40,8 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
         <InfoboxField
             label={trackName}
             value={
-                <React.Fragment>
-                    {sortedLocationTracks?.map((locationTrack) => {
+                <div className={styles['linked-items-list']}>
+                    {sortedLocationTracks.map((locationTrack) => {
                         return (
                             <div
                                 className={styles['linked-items-list__list-item']}
@@ -57,7 +55,7 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
                             </div>
                         );
                     })}
-                </React.Fragment>
+                </div>
             }
         />
     );

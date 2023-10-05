@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -18,7 +18,7 @@ import kotlin.test.assertNull
 @SpringBootTest
 internal class InfraModelControllerIT @Autowired constructor(
     val infraModelService: InfraModelService
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun shouldFailIfFileIsEmpty() {
@@ -32,7 +32,7 @@ internal class InfraModelControllerIT @Autowired constructor(
         assertNull(result.geometryPlan)
         assertEquals(1, result.validationErrors.size)
         assertEquals(
-            LocalizationKey("$INFRAMODEL_PARSING_KEY_PARENT.empty"),
+            LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY),
             result.validationErrors[0].localizationKey,
         )
     }

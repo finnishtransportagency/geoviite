@@ -6,41 +6,64 @@ import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
-import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
-import { GeometryPlanId } from 'geometry/geometry-model';
-import { getTrackLayoutPlan } from 'geometry/geometry-api';
-import { boundingBoxAroundPoints } from 'model/geometry';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { getChangeTimes } from 'common/change-time-api';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+
+type HighlightedItemBase = {
+    startM: number;
+    endM: number;
+};
+
+type HighlightedLocationTrack = {
+    type: 'LOCATION_TRACK';
+    id: LocationTrackId;
+} & HighlightedItemBase;
+
+type HighlightedReferenceLine = {
+    type: 'REFERENCE_LINE';
+    id: LayoutTrackNumberId;
+} & HighlightedItemBase;
+
+export type HighlightedAlignment = HighlightedLocationTrack | HighlightedReferenceLine;
 
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentPlanSection[];
-    highlightSection: (section: AlignmentPlanSection) => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    id: LocationTrackId | LayoutTrackNumberId;
+    type: 'LOCATION_TRACK' | 'REFERENCE_LINE';
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections, highlightSection }) => {
+> = ({ sections, type, id, onHighlightItem }) => {
     const { t } = useTranslation();
 
-    const store = useTrackLayoutAppSelector((state) => state.trackLayout);
-    const visiblePlans = store.selection.planLayouts;
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
+    const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
+    const _changeTimes = getChangeTimes();
 
     function isVisible(planId: GeometryPlanId) {
-        return visiblePlans.some((plan) => plan.planId == planId);
+        return visiblePlans.some((plan) => plan.id == planId);
     }
 
-    function togglePlanVisibility(planId: GeometryPlanId) {
-        getTrackLayoutPlan(planId, store.changeTimes.geometryPlan, false).then((planLayout) => {
-            delegates.togglePlanVisibility(planLayout);
+    function togglePlanVisibility(
+        planId: GeometryPlanId,
+        alignmentId: GeometryAlignmentId | undefined,
+    ) {
+        delegates.togglePlanVisibility({
+            id: planId,
+            switches: [],
+            kmPosts: [],
+            alignments: alignmentId ? [alignmentId] : [],
         });
     }
 
     function locateOnMap(section: AlignmentPlanSection) {
-        if (section.startPoint && section.endPoint) {
-            delegates.showArea(boundingBoxAroundPoints([section.startPoint, section.endPoint]))
+        if (section.start && section.end) {
+            //            delegates.showArea(boundingBoxAroundPoints([section.start, section.end));
         }
     }
 
@@ -56,7 +79,22 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         <React.Fragment>
             <div className="infobox__list">
                 {sections.map((section) => (
-                    <div className="infobox__list-row" key={section.id}>
+                    <div
+                        className="infobox__list-row"
+                        key={section.id}
+                        onMouseOver={() => {
+                            section.start &&
+                                section.end &&
+                                onHighlightItem({
+                                    id,
+                                    type,
+                                    startM: section.start?.m,
+                                    endM: section.end?.m,
+                                });
+                        }}
+                        onMouseOut={() => {
+                            onHighlightItem(undefined);
+                        }}>
                         {section.planName && !section.isLinked && (
                             <div className="infobox__list-cell">{errorFragment()}</div>
                         )}
@@ -71,14 +109,15 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                         delegates.onSelect({
                                                             geometryPlans: [section.planId],
                                                         });
-                                                        delegates.setToolPanelTab(
-                                                            toolPanelPlanTabId(section.planId),
-                                                        );
+                                                        delegates.setToolPanelTab({
+                                                            id: section.planId,
+                                                            type: 'GEOMETRY_PLAN',
+                                                        });
                                                     }
                                                 }}
                                                 title={t(
                                                     'tool-panel.alignment-plan-sections.plan-tooltip',
-                                                    [section.planName, section.alignmentName],
+                                                    // [section.planName, section.alignmentName],
                                                 )}>
                                                 <span
                                                     className={
@@ -94,7 +133,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                         <span
                                             title={t(
                                                 'tool-panel.alignment-plan-sections.plan-tooltip',
-                                                [section.planName, section.alignmentName],
+                                                // [section.planName, section.alignmentName],
                                             )}>
                                             {section.planName}
                                         </span>
@@ -108,7 +147,8 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             {section.planId && section.isLinked && (
                                 <div
                                     onClick={() =>
-                                        section.planId && togglePlanVisibility(section.planId)
+                                        section.planId &&
+                                        togglePlanVisibility(section.planId, section.alignmentId)
                                     }
                                     className="alignment-plan-section-infobox__show-plan-icon">
                                     {isVisible(section.planId) ? (
@@ -120,12 +160,12 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             )}
                         </div>
                         <div className="infobox__list-cell">
-                            <div className={styles['alignment-plan-section-infobox__meters']}
-                                 onMouseEnter={() => highlightSection(section)}
+                            <div
+                                className={styles['alignment-plan-section-infobox__meters']}
                                 onClick={() => locateOnMap(section)}>
                                 <span>
-                                    {section.startAddress
-                                        ? formatTrackMeterWithoutMeters(section.startAddress)
+                                    {section.start
+                                        ? formatTrackMeterWithoutMeters(section.start.address)
                                         : errorFragment(
                                               t(
                                                   'tool-panel.alignment-plan-sections.geocoding-failed',
@@ -133,8 +173,8 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                           )}
                                 </span>{' '}
                                 <span>
-                                    {section.endAddress
-                                        ? formatTrackMeterWithoutMeters(section.endAddress)
+                                    {section.end
+                                        ? formatTrackMeterWithoutMeters(section.end.address)
                                         : errorFragment(
                                               t(
                                                   'tool-panel.alignment-plan-sections.geocoding-failed',

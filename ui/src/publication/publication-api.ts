@@ -1,7 +1,7 @@
 import {
     API_URI,
     deleteAdt,
-    getIgnoreError,
+    getNonNull,
     Page,
     postAdt,
     postIgnoreError,
@@ -18,15 +18,14 @@ import {
     PublishResult,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
-import {
-    PublicationDetailsTableSortField,
-    SortDirection,
-} from 'publication/table/publication-table-utils';
+import i18next from 'i18next';
+import { PublicationDetailsTableSortField } from 'publication/table/publication-table-utils';
+import { SortDirection } from 'utils/table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
 export const getPublishCandidates = () =>
-    getIgnoreError<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
+    getNonNull<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequestIds) =>
     postIgnoreError<PublishRequestIds, ValidatedPublishCandidates>(
@@ -41,25 +40,18 @@ export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
-    const params = queryParams({
-        from: fromDate ? fromDate.toISOString() : '',
-        to: toDate ? toDate.toISOString() : '',
-    });
-
-    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
-};
-
 export const getLatestPublications = (count: number) => {
     const params = queryParams({
         count,
     });
 
-    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
 };
 
 export const getPublicationAsTableItems = (id: PublicationId) =>
-    getIgnoreError<PublicationTableItem[]>(`${PUBLICATION_URL}/${id}/table-rows`);
+    getNonNull<PublicationTableItem[]>(
+        `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
+    );
 
 export const getPublicationsAsTableItems = (
     from?: Date,
@@ -74,9 +66,10 @@ export const getPublicationsAsTableItems = (
         to: to ? to.toISOString() : undefined,
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
+        lang: i18next.language,
     });
 
-    return getIgnoreError<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
+    return getNonNull<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
 };
 
 export const getPublicationsCsvUri = (
@@ -93,6 +86,7 @@ export const getPublicationsCsvUri = (
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        lang: i18next.language,
     });
 
     return `${PUBLICATION_URL}/csv${params}`;

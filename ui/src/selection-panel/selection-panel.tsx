@@ -1,25 +1,33 @@
 import * as React from 'react';
 import styles from './selection-panel.scss';
 import {
-    GeometryPlanLayout,
     LayoutKmPost,
     LayoutLocationTrack,
     LayoutReferenceLine,
     LayoutSwitch,
+    LayoutSwitchId,
     LayoutTrackNumber,
     LayoutTrackNumberId,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import {
     OnSelectOptions,
-    OpenedPlanLayout,
+    OpenPlanLayout,
     OptionalItemCollections,
     SelectableItemType,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { MapViewport } from 'map/map-model';
+import {
+    MapLayerMenuChange,
+    MapLayerMenuItem,
+    MapLayerSettingChange,
+    MapLayerSettings,
+    MapViewport,
+} from 'map/map-model';
 import {
     createEmptyItemCollections,
     ToggleAccordionOpenPayload,
@@ -28,18 +36,21 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { PublishType } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
+import { ChangeTimes } from 'common/common-slice';
+import { Eye } from 'geoviite-design-lib/eye/eye';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
-    selectedItems?: OptionalItemCollections;
-    selectedPlanLayouts?: GeometryPlanLayout[];
+    selectedItems: OptionalItemCollections;
+    openPlans: OpenPlanLayout[];
+    visiblePlans: VisiblePlanLayout[];
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
@@ -47,22 +58,26 @@ type SelectionPanelProps = {
     viewport: MapViewport;
     onSelect: (options: OnSelectOptions) => void;
     selectableItemTypes: SelectableItemType[];
-    onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
+    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
-    openedPlanLayouts: OpenedPlanLayout[];
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
+    onMapLayerSettingChange: (change: MapLayerSettingChange) => void;
+    mapLayerSettings: MapLayerSettings;
+    onMapLayerMenuItemChange: (change: MapLayerMenuChange) => void;
+    mapLayoutMenu: MapLayerMenuItem[];
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
     changeTimes,
     selectedItems,
-    selectedPlanLayouts,
+    openPlans,
+    visiblePlans,
     kmPosts,
     referenceLines,
     locationTracks,
@@ -75,55 +90,78 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     onSelect,
     selectableItemTypes,
     togglePlanOpen,
-    openedPlanLayouts,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
+    onMapLayerSettingChange,
+    mapLayerSettings,
+    onMapLayerMenuItemChange,
+    mapLayoutMenu,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
-    const [trackNumberFilter, setTrackNumberFilter] = React.useState<LayoutTrackNumber[]>([]);
 
-    const toggleTrackNumberFilter = React.useCallback(
-        (tn: LayoutTrackNumber) => {
-            if (trackNumberFilter.includes(tn)) {
-                setTrackNumberFilter([]);
-            } else {
-                setTrackNumberFilter([tn]);
-            }
-        },
-        [trackNumberFilter],
-    );
+    const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
+    const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
 
-    const onToggleSwitchSelection = React.useCallback(
-        (layoutSwitch: LayoutSwitch) =>
-            onSelect({
-                ...createEmptyItemCollections(),
-                switches: [layoutSwitch.id],
-                isToggle: true,
-            }),
-        [],
-    );
+    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayerSettings)
+        .filter(([_, setting]) => setting.selected)
+        .map(([id]) => id);
 
-    const onToggleReferenceLineSelection = React.useCallback(
-        (trackNumber: string) =>
-            onSelect({
-                ...createEmptyItemCollections(),
-                trackNumbers: [trackNumber],
-                isToggle: true,
-            }),
-        [],
-    );
+    const onTrackNumberSelection = (trackNumber: LayoutTrackNumber) => {
+        onMapLayerSettingChange({
+            name: 'track-number-diagram-layer',
+            settings: {
+                ...diagramLayerSettings,
+                [trackNumber.id]: {
+                    ...diagramLayerSettings[trackNumber.id],
+                    selected: !diagramLayerSettings[trackNumber.id]?.selected,
+                },
+            },
+        });
+    };
 
-    const onToggleLocationTrackSelection = React.useCallback(
-        (locationTrack: string) =>
-            onSelect({
-                ...createEmptyItemCollections(),
-                locationTracks: [locationTrack],
-                isToggle: true,
-            }),
-        [],
-    );
+    const onTrackNumberColorSelection = (
+        trackNumberId: LayoutTrackNumberId,
+        color: TrackNumberColorKey,
+    ) => {
+        onMapLayerMenuItemChange({ name: 'track-number-diagram', visible: true });
+
+        onMapLayerSettingChange({
+            name: 'track-number-diagram-layer',
+            settings: {
+                ...diagramLayerSettings,
+                [trackNumberId]: {
+                    ...diagramLayerSettings[trackNumberId],
+                    color,
+                },
+            },
+        });
+    };
+
+    const onToggleSwitchSelection = (layoutSwitchId: LayoutSwitchId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            switches: [layoutSwitchId],
+            isToggle: true,
+        });
+    };
+
+    const onToggleReferenceLineSelection = (trackNumberId: LayoutTrackNumberId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            trackNumbers: [trackNumberId],
+            isToggle: true,
+        });
+    };
+
+    const onToggleLocationTrackSelection = (locationTrackId: LocationTrackId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            locationTracks: [locationTrackId],
+            isToggle: true,
+        });
+    };
 
     const visibleTrackNumberIds = [
         ...new Set([
@@ -132,41 +170,57 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             ...kmPosts.map((p) => p.trackNumberId),
         ]),
     ].sort();
+
     React.useEffect(() => {
         getTrackNumbers(publishType, changeTimes.layoutTrackNumber)
             .then((tns) =>
                 tns.filter((tn) => {
                     return (
                         visibleTrackNumberIds.includes(tn.id) ||
-                        trackNumberFilter.some((f) => f.id == tn.id)
+                        selectedTrackNumberIds.some((s) => s === tn.id)
                     );
                 }),
             )
             .then((visible) => setVisibleTrackNumbers(visible));
-    }, [changeTimes.layoutTrackNumber, JSON.stringify(visibleTrackNumberIds)]);
+    }, [changeTimes.layoutTrackNumber, visibleTrackNumberIds.join()]);
 
     const filterByTrackNumberId = (tn: LayoutTrackNumberId) =>
-        trackNumberFilter.length == 0 || trackNumberFilter.some((f) => f.id === tn);
+        selectedTrackNumberIds.length == 0 || selectedTrackNumberIds.some((s) => s === tn);
 
     const filteredLocationTracks = locationTracks.filter((a) =>
         filterByTrackNumberId(a.trackNumberId),
     );
-    const filteredReferenceLines = React.useMemo(() => {
-        return referenceLines.filter((l) => filterByTrackNumberId(l.trackNumberId));
-    }, [referenceLines, trackNumberFilter]);
+
+    const filteredReferenceLines = referenceLines.filter((l) =>
+        filterByTrackNumberId(l.trackNumberId),
+    );
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
+
     return (
         <div className={styles['selection-panel']}>
             <section>
-                <h3 className={styles['selection-panel__title']}>{`${t(
-                    'selection-panel.track-numbers-title',
-                )} (${visibleTrackNumbers.length})`}</h3>
+                <h3 className={styles['selection-panel__title']}>
+                    {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
+                    <Eye
+                        onVisibilityToggle={() => {
+                            if (diagramLayerMenuItem) {
+                                onMapLayerMenuItemChange({
+                                    name: 'track-number-diagram',
+                                    visible: !diagramLayerMenuItem.visible,
+                                });
+                            }
+                        }}
+                        visibility={diagramLayerMenuItem?.visible ?? false}
+                    />
+                </h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
+                        settings={diagramLayerSettings}
                         trackNumbers={visibleTrackNumbers}
-                        selectedTrackNumbers={trackNumberFilter}
-                        onSelectTrackNumber={toggleTrackNumberFilter}
+                        selectedTrackNumbers={selectedTrackNumberIds}
+                        onSelectTrackNumber={onTrackNumberSelection}
+                        onSelectColor={onTrackNumberColorSelection}
                     />
                 </div>
             </section>
@@ -174,17 +228,17 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 publishType={publishType}
                 changeTimes={changeTimes}
                 selectedItems={selectedItems}
-                selectedPlanLayouts={selectedPlanLayouts}
+                visiblePlans={visiblePlans}
                 viewport={viewport}
                 onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                 onToggleKmPostVisibility={onToggleKmPostVisibility}
                 onTogglePlanVisibility={onTogglePlanVisibility}
                 onToggleSwitchVisibility={onToggleSwitchVisibility}
-                openedPlanLayouts={openedPlanLayouts}
+                openPlans={openPlans}
                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                trackNumberFilter={trackNumberFilter}
+                selectedTrackNumbers={selectedTrackNumberIds}
                 togglePlanOpen={togglePlanOpen}
                 onSelect={onSelect}
             />
@@ -196,7 +250,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <KmPostsPanel
                         kmPosts={filteredKmPosts}
-                        selectedKmPosts={selectedItems?.kmPosts}
+                        selectedKmPosts={selectedItems.kmPosts}
                         onToggleKmPostSelection={(kmPost) =>
                             onSelect({
                                 ...createEmptyItemCollections(),
@@ -217,7 +271,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         publishType={publishType}
                         referenceLines={filteredReferenceLines}
                         trackNumberChangeTime={changeTimes.layoutTrackNumber}
-                        selectedTrackNumbers={selectedItems?.trackNumbers}
+                        selectedTrackNumbers={selectedItems.trackNumbers}
                         canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
                     />
@@ -231,7 +285,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <LocationTracksPanel
                         locationTracks={filteredLocationTracks}
-                        selectedLocationTracks={selectedItems?.locationTracks}
+                        selectedLocationTracks={selectedItems.locationTracks}
                         canSelectLocationTrack={selectableItemTypes.includes('locationTracks')}
                         onToggleLocationTrackSelection={onToggleLocationTrackSelection}
                     />
@@ -244,7 +298,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <SwitchPanel
                         switches={switches}
-                        selectedSwitches={selectedItems?.switches}
+                        selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
                     />
                 </div>

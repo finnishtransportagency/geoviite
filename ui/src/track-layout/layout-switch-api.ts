@@ -1,5 +1,5 @@
 import { BoundingBox, Point } from 'model/geometry';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
 import {
     LayoutSwitch,
     LayoutSwitchId,
@@ -7,23 +7,23 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     deleteIgnoreError,
-    getThrowError,
-    getWithDefault,
+    getNonNull,
+    getNullable,
     postAdt,
     putAdt,
     queryParams,
 } from 'api/api-fetch';
-import { layoutUri } from 'track-layout/track-layout-api';
+import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
-import { indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 
-const switchCache = asyncCache<string, LayoutSwitch>();
+const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
@@ -39,10 +39,7 @@ export async function getSwitchesByBoundingBox(
         comparisonPoint: comparisonPoint && pointString(comparisonPoint),
         includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
     });
-    return await getWithDefault<LayoutSwitch[]>(
-        `${layoutUri('switches', publishType)}${params}`,
-        [],
-    );
+    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
 export async function getSwitchesBySearchTerm(
@@ -54,10 +51,7 @@ export async function getSwitchesBySearchTerm(
         searchTerm: searchTerm,
         limit: limit,
     });
-    return await getWithDefault<LayoutSwitch[]>(
-        `${layoutUri('switches', publishType)}${params}`,
-        [],
-    );
+    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
 export async function getSwitchesByTile(
@@ -75,9 +69,9 @@ export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutSwitch,
-): Promise<LayoutSwitch> {
+): Promise<LayoutSwitch | undefined> {
     return switchCache.get(changeTime, cacheKey(switchId, publishType), () =>
-        getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
+        getNullable<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
 }
 
@@ -86,33 +80,28 @@ export async function getSwitches(
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutSwitch,
 ): Promise<LayoutSwitch[]> {
-    return switchCache.getMany(
-        changeTime,
-        switchIds,
-        (id) => cacheKey(id, publishType),
-        (fetchIds) =>
-            getThrowError<LayoutSwitch[]>(
-                `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
-            ).then((switches) => {
-                const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
-                return (id) => {
-                    const sw = switchMap.get(id);
-                    if (sw == undefined) {
-                        throw Error(`Couldn't find switch ${id}`);
-                    }
-                    return sw;
-                };
-            }),
-    );
+    return switchCache
+        .getMany(
+            changeTime,
+            switchIds,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getNonNull<LayoutSwitch[]>(
+                    `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
+                ).then((switches) => {
+                    const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
+                    return (id) => switchMap.get(id);
+                }),
+        )
+        .then((switches) => switches.filter(filterNotEmpty));
 }
 
 export async function getSwitchJointConnections(
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<LayoutSwitchJointConnection[]> {
-    return getWithDefault<LayoutSwitchJointConnection[]>(
+    return getNonNull<LayoutSwitchJointConnection[]>(
         `${layoutUri('switches', publishType, id)}/joint-connections`,
-        [],
     );
 }
 
@@ -147,7 +136,9 @@ export async function updateSwitch(
     }));
 }
 
-export async function deleteDraftSwitch(switchId: LayoutSwitchId): Promise<LayoutSwitchId | null> {
+export async function deleteDraftSwitch(
+    switchId: LayoutSwitchId,
+): Promise<LayoutSwitchId | undefined> {
     return await deleteIgnoreError<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then(
         (r) => {
             updateSwitchChangeTime();
@@ -160,5 +151,9 @@ export async function getSwitchValidation(
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset> {
-    return getThrowError<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
+    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }
+
+export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | undefined> => {
+    return getNonNull<ChangeTimes>(changeTimeUri('switches', id));
+};

@@ -55,7 +55,7 @@ export const TextField = React.forwardRef(
 
         return (
             <div className={className}>
-                <div className={styles['text-field__input']}>
+                <div className="text-field__input">
                     {Icon && (
                         <div className={styles['text-field__icon']}>
                             <Icon size={IconSize.SMALL} color={IconColor.INHERIT} />

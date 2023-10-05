@@ -19,7 +19,7 @@ export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps)
     return (
         <div className={className}>
             <div className={styles['field-layout__label']}>{props.label}</div>
-            <div className={styles['field-layout__value']}>{props.value}</div>
+            <div className="field-layout__value">{props.value}</div>
             <div className={styles['field-layout__help']}>{props.help}</div>
             {props.errors && (
                 <div className={styles['field-layout__errors']}>

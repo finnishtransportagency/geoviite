@@ -7,55 +7,58 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
-import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
+import {
+    AlignmentPlanSectionInfoboxContent,
+    HighlightedAlignment,
+} from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
-import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 
 type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
     trackNumberId: LayoutTrackNumberId;
     viewport: MapViewport;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
     publishType,
     trackNumberId,
     viewport,
+    contentVisible,
+    onContentVisibilityChange,
+    onHighlightItem,
 }) => {
     const { t } = useTranslation();
-    const [useBoungingBox, setUseBoundingBox] = React.useState(true);
-    const viewportDep = useBoungingBox && viewport;
+    const [useBoundingBox, setUseBoundingBox] = React.useState(true);
+    const viewportDep = useBoundingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getTrackNumberReferenceLineSectionsByPlan(
                 publishType,
                 trackNumberId,
-                useBoungingBox ? viewport.area : undefined,
+                useBoundingBox ? viewport.area : undefined,
             ),
         [trackNumberId, publishType, viewportDep],
     );
 
-    function highlightReferenceLineSection(
-        trackNumberId: LayoutTrackNumberId,
-        section: AlignmentPlanSection,
-    ) {
-        // TODO
-        console.log('highlight reference line section', trackNumberId, section);
-    }
-
     return (
-        <Infobox title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}>
+        <Infobox
+            title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}>
             <InfoboxContent>
                 <InfoboxField
                     label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
                     value={
                         <Checkbox
-                            checked={useBoungingBox}
+                            checked={useBoundingBox}
                             onChange={(e) => setUseBoundingBox(e.target.checked)}
                         />
                     }
@@ -72,10 +75,10 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                         </p>
                     ) : (
                         <AlignmentPlanSectionInfoboxContent
+                            id={trackNumberId}
                             sections={sections || []}
-                            highlightSection={(section) =>
-                                highlightReferenceLineSection(trackNumberId, section)
-                            }
+                            onHighlightItem={onHighlightItem}
+                            type={'REFERENCE_LINE'}
                         />
                     )}
                 </ProgressIndicatorWrapper>

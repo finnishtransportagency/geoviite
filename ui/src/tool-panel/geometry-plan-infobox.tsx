@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
 import PlanDecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
-import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
+import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -21,10 +21,14 @@ import { useLoader } from 'utils/react-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { TimeStamp } from 'common/common-model';
-import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
+import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { ConfirmDownloadUnreliableInfraModelDialog } from 'infra-model/list/confirm-download-unreliable-infra-model-dialog';
+import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
+    visibilities: GeometryPlanInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometryPlanInfoboxVisibilities) => void;
 };
 
 interface AgeProps {
@@ -50,6 +54,8 @@ const Age: React.FC<AgeProps> = ({ timeStamp }) => {
 
 const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     planHeader,
+    visibilities,
+    onVisibilityChange,
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -66,7 +72,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     const generalInfobox = (
         <Infobox
             title={t('tool-panel.geometry-plan.general-title')}
-            qa-id="geometry-plan-general-infobox">
+            qa-id="geometry-plan-general-infobox"
+            contentVisible={visibilities.plan}
+            onContentVisibilityChange={() =>
+                onVisibilityChange({ ...visibilities, plan: !visibilities.plan })
+            }>
             <InfoboxContent>
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.message')}
@@ -98,10 +108,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     label={t('tool-panel.geometry-plan.track-number')}
                     value={
                         planHeader.trackNumberId && (
-                            <TrackNumberLink
-                                publishType={'DRAFT'}
-                                trackNumberId={planHeader.trackNumberId}
-                            />
+                            <TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />
                         )
                     }
                 />
@@ -121,7 +128,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
         <React.Fragment>
             <Infobox
                 title={t('tool-panel.geometry-plan.quality-title')}
-                qa-id="geometry-plan-quality-infobox">
+                qa-id="geometry-plan-quality-infobox"
+                contentVisible={visibilities.planQuality}
+                onContentVisibilityChange={() =>
+                    onVisibilityChange({ ...visibilities, planQuality: !visibilities.planQuality })
+                }>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.geometry-plan.source')}
@@ -157,6 +168,14 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                         label={t('tool-panel.geometry-plan.vertical-coordinate-system')}
                         value={planHeader.units.verticalCoordinateSystem}
                     />
+                    <InfoboxField
+                        label={t('tool-panel.geometry-plan.elevation-measurement-method')}
+                        value={
+                            <ElevationMeasurementMethod
+                                method={planHeader.elevationMeasurementMethod}
+                            />
+                        }
+                    />
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
@@ -182,7 +201,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {downloadConfirmPlan && (
-                <UnreliableInfraModelDownloadConfirmDialog
+                <ConfirmDownloadUnreliableInfraModelDialog
                     onClose={() => setDownloadConfirmPlan(undefined)}
                     plan={downloadConfirmPlan}
                 />

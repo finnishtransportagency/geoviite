@@ -8,58 +8,81 @@ import {
     GeometryPlan,
     GeometryPlanHeader,
     GeometryPlanId,
+    GeometrySortBy,
+    GeometrySortOrder,
     GeometrySwitch,
     GeometrySwitchId,
     PlanSource,
     Project,
-    SortByValue,
-    SortOrderValue,
     ProjectId,
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
+    AlignmentStartAndEnd,
     GeometryPlanLayout,
     LayoutSwitch,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
     PlanArea,
 } from 'track-layout/track-layout-model';
 import {
     API_URI,
-    getIgnoreError,
-    getThrowError,
-    getWithDefault,
+    getNonNull,
+    getNullable,
     Page,
     postAdt,
     postIgnoreError,
     queryParams,
 } from 'api/api-fetch';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
-import { TimeStamp } from 'common/common-model';
+import {
+    ElevationMeasurementMethod,
+    KmNumber,
+    PublishType,
+    TimeStamp,
+    VerticalCoordinateSystem,
+} from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryTypeIncludingMissing } from 'data-products/data-products-store';
+import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
-const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | null>();
-const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | null>();
+const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | undefined>();
+const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | undefined>();
 const geometryPlanAreaCache = asyncCache<GeometryPlanId, PlanArea[]>();
+
+const projectCache = asyncCache<undefined, Project[]>();
+
+type PlanVerticalGeometryKey = GeometryPlanId;
+const planVerticalGeometryCache = asyncCache<
+    PlanVerticalGeometryKey,
+    VerticalGeometryItem[] | undefined
+>;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublishType}`;
+const locationTrackVerticalGeometryCache = asyncCache<
+    LocationTrackVerticalGeometryKey,
+    VerticalGeometryItem[] | undefined
+>();
 
 export async function getPlanAreasByTile(
     mapTile: MapTile,
     changeTime: TimeStamp,
 ): Promise<PlanArea[]> {
-    return geometryPlanAreaCache.get(changeTime, mapTile.id, () => getPlanAreas(mapTile.area));
+    return (
+        (await geometryPlanAreaCache.get(changeTime, mapTile.id, () =>
+            getPlanAreas(mapTile.area),
+        )) || []
+    );
 }
 
 async function getPlanAreas(bbox: BoundingBox): Promise<PlanArea[]> {
     const params = queryParams({ bbox: bboxString(bbox) });
     const path = `${GEOMETRY_URI}/plans/areas${params}`;
-    return (await getIgnoreError<PlanArea[]>(path)) || [];
+    return getNonNull<PlanArea[]>(path);
 }
 
 export async function getGeometryPlanHeadersBySearchTerms(
@@ -69,8 +92,8 @@ export async function getGeometryPlanHeadersBySearchTerms(
     sources?: PlanSource[],
     trackNumberIds?: LayoutTrackNumberId[],
     freeText?: string,
-    sortField?: SortByValue,
-    sortOrder?: SortOrderValue,
+    sortField?: GeometrySortBy,
+    sortOrder?: GeometrySortOrder,
 ): Promise<Page<GeometryPlanHeader>> {
     const params = queryParams({
         bbox: bbox ? bboxString(bbox) : undefined,
@@ -80,39 +103,38 @@ export async function getGeometryPlanHeadersBySearchTerms(
         freeText: freeText,
         trackNumberIds: trackNumberIds,
         sortField:
-            !sortField || sortField === SortByValue.NO_SORTING ? undefined : SortByValue[sortField],
-        sortOrder:
-            !sortOrder || sortField === SortByValue.NO_SORTING
+            sortField === undefined || sortField === GeometrySortBy.NO_SORTING
                 ? undefined
-                : SortOrderValue[sortOrder],
+                : GeometrySortBy[sortField],
+        sortOrder:
+            typeof sortOrder === 'undefined' || sortField === GeometrySortBy.NO_SORTING
+                ? undefined
+                : GeometrySortOrder[sortOrder],
     });
-    return getWithDefault<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`, {
-        totalCount: 0,
-        items: [],
-        start: 0,
-    });
+
+    return getNonNull<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`);
 }
 
 export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<GeometryPlanHeader> {
-    return getThrowError<GeometryPlanHeader>(`${GEOMETRY_URI}/plan-headers/${planId}`);
+    return getNonNull<GeometryPlanHeader>(`${GEOMETRY_URI}/plan-headers/${planId}`);
 }
 
 export async function getGeometryPlanHeaders(
     planIds: GeometryPlanId[],
 ): Promise<GeometryPlanHeader[]> {
     return planIds.length > 0
-        ? getThrowError<GeometryPlanHeader[]>(`${GEOMETRY_URI}/plan-headers?planIds=${planIds}`)
+        ? getNonNull<GeometryPlanHeader[]>(`${GEOMETRY_URI}/plan-headers?planIds=${planIds}`)
         : Promise.resolve([]);
 }
 
 export async function getGeometryPlanElements(
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-): Promise<ElementItem[] | null> {
+): Promise<ElementItem[] | undefined> {
     const params = queryParams({
         elementTypes,
     });
-    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/element-listing${params}`);
+    return getNullable(`${GEOMETRY_URI}/plans/${planId}/element-listing${params}`);
 }
 
 export const getGeometryPlanElementsCsv = (
@@ -120,39 +142,54 @@ export const getGeometryPlanElementsCsv = (
     elementTypes: GeometryTypeIncludingMissing[],
 ) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
 
+export const getEntireRailNetworkElementsCsvUrl = () =>
+    `${GEOMETRY_URI}/rail-network/element-listing/file`;
+
 export async function getLocationTrackElements(
     id: LocationTrackId,
     elementTypes: GeometryTypeIncludingMissing[],
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<ElementItem[] | null> {
+): Promise<ElementItem[] | undefined> {
     const params = queryParams({
         elementTypes: elementTypes,
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
+    return getNonNull(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
 
 export async function getLocationTrackVerticalGeometry(
+    changeTime: TimeStamp | undefined,
+    publicationType: PublishType,
     id: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<VerticalGeometryItem[] | null> {
+): Promise<VerticalGeometryItem[] | undefined> {
     const params = queryParams({
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return getIgnoreError(
-        `${GEOMETRY_URI}/layout/location-tracks/${id}/vertical-geometry${params}`,
-    );
+    const fetch: () => Promise<VerticalGeometryItem[] | undefined> = () =>
+        getNonNull(
+            `${GEOMETRY_URI}/layout/${publicationType}/location-tracks/${id}/vertical-geometry${params}`,
+        );
+    return changeTime === undefined
+        ? fetch()
+        : locationTrackVerticalGeometryCache.get(changeTime, `${id}_${publicationType}`, fetch);
 }
 
 export async function getGeometryPlanVerticalGeometry(
+    changeTime: TimeStamp | undefined,
     planId: GeometryPlanId,
-): Promise<VerticalGeometryItem[] | null> {
-    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+): Promise<VerticalGeometryItem[] | undefined> {
+    const fetch: () => Promise<VerticalGeometryItem[]> = () =>
+        getNonNull(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+    return changeTime === undefined
+        ? fetch()
+        : planVerticalGeometryCache().get(changeTime, planId, fetch);
 }
+
 export const getLocationTrackVerticalGeometryCsv = (
     trackId: LocationTrackId,
     startAddress: string | undefined,
@@ -167,6 +204,9 @@ export const getLocationTrackVerticalGeometryCsv = (
 
 export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>
     `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file`;
+
+export const getEntireRailNetworkVerticalGeometryCsvUrl = () =>
+    `${GEOMETRY_URI}/rail-network/vertical-geometry/file`;
 
 export const getLocationTrackElementsCsv = (
     locationTrackId: LocationTrackId,
@@ -185,9 +225,9 @@ export const getLocationTrackElementsCsv = (
 export async function getGeometryPlan(
     planId: GeometryPlanId,
     changeTime: TimeStamp = getChangeTimes().geometryPlan,
-): Promise<GeometryPlan | null> {
+): Promise<GeometryPlan | undefined> {
     return geometryPlanCache.get(changeTime, planId, () =>
-        getIgnoreError(`${GEOMETRY_URI}/plans/${planId}`),
+        getNullable(`${GEOMETRY_URI}/plans/${planId}`),
     );
 }
 
@@ -199,28 +239,38 @@ export async function getGeometryPlansByIds(planIds: GeometryPlanId[]): Promise<
 
 export async function getGeometryElement(
     elementId: GeometryElementId,
-): Promise<GeometryElement | null> {
-    return await getIgnoreError<GeometryElement>(`${GEOMETRY_URI}/plans/elements/${elementId}`);
+): Promise<GeometryElement | undefined> {
+    return await getNullable<GeometryElement>(`${GEOMETRY_URI}/plans/elements/${elementId}`);
 }
 
 export async function getGeometrySwitch(switchId: GeometrySwitchId): Promise<GeometrySwitch> {
-    return await getThrowError<GeometrySwitch>(`${GEOMETRY_URI}/switches/${switchId}`);
+    return await getNonNull<GeometrySwitch>(`${GEOMETRY_URI}/switches/${switchId}`);
 }
 
 export async function getGeometrySwitchLayout(
     switchId: GeometrySwitchId,
-): Promise<LayoutSwitch | null> {
-    return await getIgnoreError<LayoutSwitch | null>(`${GEOMETRY_URI}/switches/${switchId}/layout`);
+): Promise<LayoutSwitch | undefined> {
+    return await getNullable<LayoutSwitch>(`${GEOMETRY_URI}/switches/${switchId}/layout`);
+}
+
+export async function getTrackLayoutPlansByIds(
+    planIds: GeometryPlanId[],
+    changeTime: TimeStamp,
+    includeGeometryData = true,
+): Promise<GeometryPlanLayout[]> {
+    return Promise.all(
+        planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
+    ).then((plans) => plans.filter(filterNotEmpty));
 }
 
 export async function getTrackLayoutPlan(
     planId: GeometryPlanId,
     changeTime: TimeStamp,
     includeGeometryData = true,
-): Promise<GeometryPlanLayout | null> {
+): Promise<GeometryPlanLayout | undefined> {
     const url = `${GEOMETRY_URI}/plans/${planId}/layout?includeGeometryData=${includeGeometryData}`;
     const key = `${planId}-${includeGeometryData}`;
-    return trackLayoutPlanCache.get(changeTime, key, () => getIgnoreError(url));
+    return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
 }
 
 export async function getTrackLayoutPlans(
@@ -233,47 +283,131 @@ export async function getTrackLayoutPlans(
     ).then((plans) => plans.filter(filterNotEmpty));
 }
 
-export async function getGeometryAlignmentLayout(
-    planId: GeometryPlanId,
-    geometryAlignmentId: GeometryAlignmentId,
-    includeGeometryData = true,
-    changeTime: TimeStamp = getChangeTimes().geometryPlan,
-): Promise<MapAlignment | undefined> {
-    return getTrackLayoutPlan(planId, changeTime, includeGeometryData).then((plan) => {
-        return plan?.alignments.find((alignment) => alignment.id === geometryAlignmentId);
-    });
-}
-
-export async function fetchProjects(): Promise<Project[]> {
-    return await getThrowError<Project[]>(`${GEOMETRY_URI}/projects`);
+export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
+    return projectCache.get(changeTime, undefined, () =>
+        getNonNull<Project[]>(`${GEOMETRY_URI}/projects`),
+    );
 }
 
 export async function getProject(id: ProjectId): Promise<Project> {
-    return await getThrowError<Project>(`${GEOMETRY_URI}/projects/${id}`);
+    return getProjects().then((projects) => {
+        const project = projects.find((project) => project.id === id);
+        if (!project) {
+            throw new Error(`Couldn't find project ${id}`);
+        }
+        return project;
+    });
 }
 
-export async function createProject(project: Project): Promise<Project | null> {
+export async function createProject(project: Project): Promise<Project | undefined> {
     return await postIgnoreError<Project, Project>(`${GEOMETRY_URI}/projects`, project);
 }
 
 export async function fetchAuthors(): Promise<Author[]> {
-    return await getThrowError<Author[]>(`${GEOMETRY_URI}/authors`);
+    return await getNonNull<Author[]>(`${GEOMETRY_URI}/authors`);
 }
 
-export async function createAuthor(author: Author): Promise<Author | null> {
+export async function createAuthor(author: Author): Promise<Author | undefined> {
     return await postIgnoreError<Author, Author>(`${GEOMETRY_URI}/authors`, author);
 }
 
 export interface GeometryPlanLinkingSummary {
-    linkedAt: Date;
-    linkedByUsers: string;
+    linkedAt?: Date;
+    linkedByUsers: string[];
+    currentlyLinked: boolean;
 }
+
 export async function getGeometryPlanLinkingSummaries(
     planIds: GeometryPlanId[],
-): Promise<{ [key: GeometryPlanId]: GeometryPlanLinkingSummary } | null> {
+): Promise<{ [key: GeometryPlanId]: GeometryPlanLinkingSummary } | undefined> {
     const r = await postAdt<
         GeometryPlanId[],
         { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
     >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
-    return r.isOk() ? r.value : null;
+    return r.isOk() ? r.value : undefined;
+}
+
+export interface AlignmentHeights {
+    kmHeights: TrackKmHeights[];
+    alignmentStartM: number;
+    alignmentEndM: number;
+}
+
+export interface TrackMeterHeight {
+    /** m-value in entire alignment */
+    m: number;
+    meter: number;
+    height?: number;
+    point: Point;
+}
+
+export interface PlanLinkingSummaryItem {
+    startM: number;
+    endM: number;
+    filename?: string;
+    alignmentHeader?: AlignmentHeader;
+    planId?: GeometryPlanId;
+    verticalCoordinateSystem?: VerticalCoordinateSystem;
+    elevationMeasurementMethod?: ElevationMeasurementMethod;
+}
+
+export interface TrackKmHeights {
+    kmNumber: KmNumber;
+    trackMeterHeights: TrackMeterHeight[];
+    endM: number;
+}
+
+export async function getPlanAlignmentHeights(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<TrackKmHeights[]> {
+    return getNonNull(
+        `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getPlanAlignmentStartAndEnd(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getNullable<AlignmentStartAndEnd>(
+        `${GEOMETRY_URI}/plans/${planId}/start-and-end/${alignmentId}`,
+    );
+}
+
+export async function getLocationTrackHeights(
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<TrackKmHeights[]> {
+    return getNonNull(
+        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    ).catch(() => []) as Promise<TrackKmHeights[]>;
+}
+
+const locationTrackLinkingSummaryCache = asyncCache<
+    `${LocationTrackId}_${PublishType}`,
+    PlanLinkingSummaryItem[]
+>();
+
+export async function getLocationTrackLinkingSummary(
+    changeTime: TimeStamp,
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+): Promise<PlanLinkingSummaryItem[]> {
+    return locationTrackLinkingSummaryCache.get(
+        changeTime,
+        `${locationTrackId}_${publishType}`,
+        () =>
+            getNonNull(
+                `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/linking-summary`,
+            ),
+    );
 }

@@ -1,13 +1,10 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/shadows';
-@import '../../vayla-design-lib/layers';
+@use 'vayla-design-lib' as vayla-design;
 
 .card {
-    @include shadow-4dp;
+    @include vayla-design.shadow-4dp;
 
     padding: 24px 20px;
-    border: 1px solid $color-white-dark;
+    border: 1px solid vayla-design.$color-white-dark;
     border-radius: 4px;
-    background: $color-white-default;
+    background: vayla-design.$color-white-default;
 }

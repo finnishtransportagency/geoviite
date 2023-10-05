@@ -33,10 +33,13 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
 
     GEOMETRY_PLAN("geometry", "plan"),
+    GEOMETRY_PLAN_PROJECT("geometry", "plan_project"),
     GEOMETRY_ALIGNMENT("geometry", "alignment"),
     GEOMETRY_SWITCH("geometry", "switch"),
     GEOMETRY_KM_POST("geometry", "km_post", listOf("track_number_id", "km_number")),
-    GEOMETRY_TRACK_NUMBER("geometry", "track_number");
+    GEOMETRY_TRACK_NUMBER("geometry", "track_number"),
+
+    PROJEKTIVELHO_DOCUMENT("projektivelho", "document");
 
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
@@ -49,7 +52,7 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     /**
-     * The template from DI is nullable so that we can configure to run without DB when needed (ie. unit tests)
+     * The template from DI is nullable so that we can configure to run without DB when needed (i.e. unit tests)
      * For actual code, use this non-null variable. It will throw on first use if DB-initialization is not done.
      */
     protected val jdbcTemplate: NamedParameterJdbcTemplate by lazy {
@@ -84,7 +87,7 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
         val sql = "select max(change_time) change_time from ${table.versionTable}"
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
             .firstOrNull()
-            ?: Instant.ofEpochSecond(0)
+            ?: Instant.EPOCH
     }
 
     protected fun <T> createListString(items: List<T>, mapping: (t: T) -> Double?) = when {

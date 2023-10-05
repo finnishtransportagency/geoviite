@@ -22,6 +22,7 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { updateKmPostChangeTime } from 'common/change-time-api';
 import { filterNotEmpty } from 'utils/array-utils';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -33,6 +34,8 @@ type GeometryKmPostLinkingInfoboxProps = {
     stopLinking: () => void;
     onKmPostSelect: (kmPost: LayoutKmPost) => void;
     publishType: PublishType;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> = ({
@@ -45,6 +48,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     stopLinking,
     onKmPostSelect,
     publishType,
+    contentVisible,
+    onContentVisibilityChange,
 }: GeometryKmPostLinkingInfoboxProps) => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -88,7 +93,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
         try {
             if (linkingState && geometryKmPost && geometryKmPost.sourceId && layoutKmPost) {
-                await linkKmPost(geometryKmPost.sourceId, layoutKmPost.id);
+                await linkKmPost({
+                    geometryPlanId: planId,
+                    geometryKmPostId: geometryKmPost.sourceId,
+                    layoutKmPostId: layoutKmPost.id,
+                });
                 Snackbar.success(t('tool-panel.km-post.geometry.linking.linking-succeed-msg'));
                 stopLinking();
             }
@@ -113,7 +122,9 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     return (
         <React.Fragment>
             <Infobox
-                className={styles['geometry-km-post-linking-infobox']}
+                contentVisible={contentVisible}
+                onContentVisibilityChange={onContentVisibilityChange}
+                className="geometry-km-post-linking-infobox"
                 title={t('tool-panel.km-post.geometry.linking.title')}
                 qa-id="geometry-km-post-linking-infobox">
                 <InfoboxContent>
@@ -139,13 +150,15 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         }
                     />
                     {!linkingState && (
-                        <InfoboxButtons>
-                            <Button
-                                size={ButtonSize.SMALL}
-                                onClick={() => startLinking(geometryKmPost.id)}>
-                                {t('tool-panel.km-post.geometry.linking.start-linking-command')}
-                            </Button>
-                        </InfoboxButtons>
+                        <WriteAccessRequired>
+                            <InfoboxButtons>
+                                <Button
+                                    size={ButtonSize.SMALL}
+                                    onClick={() => startLinking(geometryKmPost.id)}>
+                                    {t('tool-panel.km-post.geometry.linking.start-linking-command')}
+                                </Button>
+                            </InfoboxButtons>
+                        </WriteAccessRequired>
                     )}
 
                     {linkingState && (

@@ -10,63 +10,57 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.ZoneId
 
-fun mapToRatkoLocationTrackState(layoutState: LayoutState) =
-    when (layoutState) {
-        LayoutState.DELETED -> RatkoLocationTrackState.DELETED
-        LayoutState.NOT_IN_USE -> RatkoLocationTrackState.NOT_IN_USE
-        LayoutState.PLANNED -> RatkoLocationTrackState.PLANNED
-        LayoutState.IN_USE -> RatkoLocationTrackState.IN_USE
-    }
+fun mapToRatkoLocationTrackState(layoutState: LayoutState) = when (layoutState) {
+    LayoutState.DELETED -> RatkoLocationTrackState.DELETED
+    LayoutState.NOT_IN_USE -> RatkoLocationTrackState.NOT_IN_USE
+    LayoutState.PLANNED -> RatkoLocationTrackState.PLANNED
+    LayoutState.IN_USE -> RatkoLocationTrackState.IN_USE
+}
 
-fun mapToRatkoRouteNumberState(layoutState: LayoutState) =
-    when (layoutState) {
-        LayoutState.NOT_IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_IN_USE)
-        LayoutState.PLANNED -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
-        LayoutState.IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
-        // There is no DELETED or corresponding state in Ratko, so it will be NOT_VALID
-        LayoutState.DELETED -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_VALID)
-    }
+fun mapToRatkoRouteNumberState(layoutState: LayoutState) = when (layoutState) {
+    LayoutState.NOT_IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_IN_USE)
+    LayoutState.PLANNED -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
+    LayoutState.IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
+    // There is no DELETED or corresponding state in Ratko, so it will be NOT_VALID
+    LayoutState.DELETED -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_VALID)
+}
 
-fun mapToRatkoLocationTrackType(trackType: LocationTrackType?) =
-    when (trackType) {
-        LocationTrackType.MAIN -> RatkoLocationTrackType.MAIN
-        LocationTrackType.TRAP -> RatkoLocationTrackType.TRAP
-        LocationTrackType.CHORD -> RatkoLocationTrackType.CHORD
-        LocationTrackType.SIDE -> RatkoLocationTrackType.SIDE
-        null -> RatkoLocationTrackType.NULL
-    }
+fun mapToRatkoLocationTrackType(trackType: LocationTrackType?) = when (trackType) {
+    LocationTrackType.MAIN -> RatkoLocationTrackType.MAIN
+    LocationTrackType.TRAP -> RatkoLocationTrackType.TRAP
+    LocationTrackType.CHORD -> RatkoLocationTrackType.CHORD
+    LocationTrackType.SIDE -> RatkoLocationTrackType.SIDE
+    null -> RatkoLocationTrackType.NULL
+}
 
-fun mapToRatkoTopologicalConnectivityType(type: TopologicalConnectivityType) =
-    when (type) {
-        TopologicalConnectivityType.NONE -> RatkoTopologicalConnectivityType.NONE
-        TopologicalConnectivityType.START -> RatkoTopologicalConnectivityType.START
-        TopologicalConnectivityType.END -> RatkoTopologicalConnectivityType.END
-        TopologicalConnectivityType.START_AND_END -> RatkoTopologicalConnectivityType.START_AND_END
-    }
+fun mapToRatkoTopologicalConnectivityType(type: TopologicalConnectivityType) = when (type) {
+    TopologicalConnectivityType.NONE -> RatkoTopologicalConnectivityType.NONE
+    TopologicalConnectivityType.START -> RatkoTopologicalConnectivityType.START
+    TopologicalConnectivityType.END -> RatkoTopologicalConnectivityType.END
+    TopologicalConnectivityType.START_AND_END -> RatkoTopologicalConnectivityType.START_AND_END
+}
 
-fun mapToRatkoMeasurementMethod(layoutMeasurementMethod: MeasurementMethod?) =
-    when (layoutMeasurementMethod) {
-        MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY -> RatkoMeasurementMethod.VERIFIED_DESIGNED_GEOMETRY
-        MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
-        MeasurementMethod.TRACK_INSPECTION -> RatkoMeasurementMethod.TRACK_INSPECTION
-        MeasurementMethod.DIGITIZED_AERIAL_IMAGE -> RatkoMeasurementMethod.DIGITALIZED_AERIAL_IMAGE
-        MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> RatkoMeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY
-        null -> RatkoMeasurementMethod.UNKNOWN
-    }
+fun mapToRatkoMeasurementMethod(layoutMeasurementMethod: MeasurementMethod?) = when (layoutMeasurementMethod) {
+    MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY -> RatkoMeasurementMethod.VERIFIED_DESIGNED_GEOMETRY
+    MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
+    MeasurementMethod.TRACK_INSPECTION -> RatkoMeasurementMethod.TRACK_INSPECTION
+    MeasurementMethod.DIGITIZED_AERIAL_IMAGE -> RatkoMeasurementMethod.DIGITALIZED_AERIAL_IMAGE
+    MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> RatkoMeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY
+    null -> RatkoMeasurementMethod.UNKNOWN
+}
 
 fun mapToRatkoSwitchState(
     layoutStateCategory: LayoutStateCategory,
     ratkoSwitchState: RatkoAssetState?,
-) =
-    if (ratkoSwitchState == null || layoutStateCategory != ratkoSwitchState.category)
-        when (layoutStateCategory) {
-            LayoutStateCategory.FUTURE_EXISTING -> RatkoAssetState.PLANNED
-            LayoutStateCategory.EXISTING -> RatkoAssetState.IN_USE
-            LayoutStateCategory.NOT_EXISTING -> RatkoAssetState.DELETED
-        }
-    else ratkoSwitchState
+) = if (ratkoSwitchState == null || layoutStateCategory != ratkoSwitchState.category) when (layoutStateCategory) {
+    LayoutStateCategory.FUTURE_EXISTING -> RatkoAssetState.PLANNED
+    LayoutStateCategory.EXISTING -> RatkoAssetState.IN_USE
+    LayoutStateCategory.NOT_EXISTING -> RatkoAssetState.DELETED
+}
+else ratkoSwitchState
 
 fun convertToRatkoAssetGeometries(
     joints: Collection<TrackLayoutSwitchJoint>,
@@ -79,24 +73,22 @@ fun convertToRatkoAssetGeometries(
     )
 }
 
-fun mapLocationAccuracyToRatkoLocationAccuracy(locationAccuracy: LocationAccuracy?) =
-    when (locationAccuracy) {
-        LocationAccuracy.DESIGNED_GEOLOCATION -> RatkoAssetGeomAccuracyType.DESIGNED_GEOLOCATION
-        LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY -> RatkoAssetGeomAccuracyType.OFFICIALLY_MEASURED_GEODETICALLY
-        LocationAccuracy.MEASURED_GEODETICALLY -> RatkoAssetGeomAccuracyType.MEASURED_GEODETICALLY
-        LocationAccuracy.DIGITIZED_AERIAL_IMAGE -> RatkoAssetGeomAccuracyType.DIGITALIZED_AERIAL_IMAGE
-        LocationAccuracy.GEOMETRY_CALCULATED -> RatkoAssetGeomAccuracyType.GEOMETRY_CALCULATED
-        else -> RatkoAssetGeomAccuracyType.UNKNOWN
-    }
+fun mapLocationAccuracyToRatkoLocationAccuracy(locationAccuracy: LocationAccuracy?) = when (locationAccuracy) {
+    LocationAccuracy.DESIGNED_GEOLOCATION -> RatkoAssetGeomAccuracyType.DESIGNED_GEOLOCATION
+    LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY -> RatkoAssetGeomAccuracyType.OFFICIALLY_MEASURED_GEODETICALLY
+    LocationAccuracy.MEASURED_GEODETICALLY -> RatkoAssetGeomAccuracyType.MEASURED_GEODETICALLY
+    LocationAccuracy.DIGITIZED_AERIAL_IMAGE -> RatkoAssetGeomAccuracyType.DIGITALIZED_AERIAL_IMAGE
+    LocationAccuracy.GEOMETRY_CALCULATED -> RatkoAssetGeomAccuracyType.GEOMETRY_CALCULATED
+    else -> RatkoAssetGeomAccuracyType.UNKNOWN
+}
 
-fun mapGeometryTypeToNodeType(geometryType: RatkoAssetGeometryType) =
-    when (geometryType) {
-        RatkoAssetGeometryType.JOINT_A -> RatkoNodeType.JOINT_A
-        RatkoAssetGeometryType.JOINT_B -> RatkoNodeType.JOINT_B
-        RatkoAssetGeometryType.JOINT_C -> RatkoNodeType.JOINT_C
-        RatkoAssetGeometryType.JOINT_D -> RatkoNodeType.JOINT_D
-        else -> null
-    }
+fun mapGeometryTypeToNodeType(geometryType: RatkoAssetGeometryType) = when (geometryType) {
+    RatkoAssetGeometryType.JOINT_A -> RatkoNodeType.JOINT_A
+    RatkoAssetGeometryType.JOINT_B -> RatkoNodeType.JOINT_B
+    RatkoAssetGeometryType.JOINT_C -> RatkoNodeType.JOINT_C
+    RatkoAssetGeometryType.JOINT_D -> RatkoNodeType.JOINT_D
+    else -> null
+}
 
 fun mapJointNumberToGeometryType(
     number: JointNumber,
@@ -165,11 +157,12 @@ fun convertToRatkoLocationTrack(
     trackNumberOid: Oid<TrackLayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
+    descriptionGetter: (LocationTrack) -> String,
 ) = RatkoLocationTrack(
     id = locationTrack.externalId?.toString(),
     name = locationTrack.name.toString(),
     routenumber = trackNumberOid?.let(::RatkoOid),
-    description = locationTrack.description.toString(),
+    description = descriptionGetter(locationTrack),
     state = mapToRatkoLocationTrackState(locationTrack.state),
     type = mapToRatkoLocationTrackType(locationTrack.type),
     nodecollection = nodeCollection,
@@ -209,7 +202,7 @@ fun convertToRatkoNodeCollection(nodes: Collection<RatkoNode>) = RatkoNodes(node
 fun convertToRatkoNode(
     addressPoint: AddressPoint,
     nodeType: RatkoNodeType,
-    state: RatkoPointStates = RatkoPointStates.VALID
+    state: RatkoPointStates = RatkoPointStates.VALID,
 ) = RatkoNode(nodeType, convertToRatkoPoint(addressPoint, state))
 
 fun convertToRatkoMetadataAsset(
@@ -221,31 +214,25 @@ fun convertToRatkoMetadataAsset(
 ) = RatkoMetadataAsset(
     properties = listOf(
         RatkoAssetProperty(
-            name = "filename",
-            stringValue = segmentMetadata.fileName?.toString() ?: ""
+            name = "filename", stringValue = segmentMetadata.fileName?.toString() ?: ""
         ),
         RatkoAssetProperty(
             name = "measurement_method",
             enumValue = mapToRatkoMeasurementMethod(segmentMetadata.measurementMethod).value,
         ),
         RatkoAssetProperty(
-            name = "created_year",
-            integerValue = segmentMetadata.planTime?.atZone(ZoneId.systemDefault())?.year ?: 0
+            name = "created_year", integerValue = segmentMetadata.planTime?.atZone(ZoneId.systemDefault())?.year ?: 0
         ),
         RatkoAssetProperty(
-            name = "original_crs",
-            stringValue = segmentMetadata.originalSrid?.toString() ?: ""
+            name = "original_crs", stringValue = segmentMetadata.originalSrid?.toString() ?: ""
         ),
         RatkoAssetProperty(
-            name = "alignment",
-            stringValue = segmentMetadata.alignmentName?.toString() ?: ""
+            name = "alignment", stringValue = segmentMetadata.alignmentName?.toString() ?: ""
         ),
     ),
     locations = listOf(
         RatkoAssetLocation(
-            priority = 1,
-            accuracyType = RatkoAccuracyType.GEOMETRY_CALCULATED,
-            nodecollection = RatkoNodes(
+            priority = 1, accuracyType = RatkoAccuracyType.GEOMETRY_CALCULATED, nodecollection = RatkoNodes(
                 type = RatkoNodesType.START_AND_END,
                 nodes = listOf(
                     RatkoNode(
@@ -284,37 +271,25 @@ fun convertToRatkoSwitch(
 ) = RatkoSwitchAsset(
     id = layoutSwitch.externalId?.toString(),
     state = mapToRatkoSwitchState(layoutSwitch.stateCategory, existingRatkoSwitch?.state),
-    properties = listOf(
-        RatkoAssetProperty(
-            name = "name",
-            stringValue = layoutSwitch.name.toString(),
-        ),
-        RatkoAssetProperty(
-            name = "turnout_id",
-            stringValue = layoutSwitch.name.toString(),
-        ),
-        RatkoAssetProperty(
-            name = "turnout_type",
-            enumValue = asSwitchTypeString(switchStructure.type),
-        ),
-        RatkoAssetProperty(
-            name = "safety_turnout",
-            enumValue = layoutSwitch.trapPoint?.let { if (it) "Kyllä" else "Ei" } ?: "Ei tiedossa"
-        ),
-        RatkoAssetProperty(
-            name = "owner",
-            enumValue = switchOwner?.name?.toString() ?: "Ei tiedossa"
-        ),
-        RatkoAssetProperty(
-            name = "handedness",
-            enumValue = switchStructure.hand.let { hand ->
-                when (hand) {
-                    SwitchHand.LEFT -> "Vasenkätinen"
-                    SwitchHand.RIGHT -> "Oikeakätinen"
-                    else -> "Ei kätisyyttä"
-                }
-            }
-        )
+    properties = listOf(RatkoAssetProperty(
+        name = "name",
+        stringValue = layoutSwitch.name.toString(),
+    ), RatkoAssetProperty(
+        name = "turnout_id",
+        stringValue = layoutSwitch.name.toString(),
+    ), RatkoAssetProperty(
+        name = "turnout_type",
+        enumValue = asSwitchTypeString(switchStructure.type),
+    ), RatkoAssetProperty(name = "safety_turnout",
+        enumValue = layoutSwitch.trapPoint?.let { if (it) "Kyllä" else "Ei" } ?: "Ei tiedossa"), RatkoAssetProperty(
+        name = "owner", enumValue = switchOwner?.name?.toString() ?: "Ei tiedossa"
+    ), RatkoAssetProperty(name = "handedness", enumValue = switchStructure.hand.let { hand ->
+        when (hand) {
+            SwitchHand.LEFT -> "Vasenkätinen"
+            SwitchHand.RIGHT -> "Oikeakätinen"
+            else -> "Ei kätisyyttä"
+        }
+    })
     ),
     locations = null,
     assetGeoms = null,
@@ -324,45 +299,37 @@ fun convertToRatkoAssetLocations(
     jointChanges: List<SwitchJointChange>,
     switchType: SwitchBaseType,
 ): List<RatkoAssetLocation> {
-    var priority = 0
-
-    return jointChanges
-        .groupBy { it.locationTrackId }
-        .map { (_, value) ->
-            val locationTrackJoints = value.mapNotNull { jointChange ->
-                val nodeType = mapGeometryTypeToNodeType(
-                    mapJointNumberToGeometryType(jointChange.number, switchType)
-                )
-
-                checkNotNull(jointChange.locationTrackExternalId) {
-                    "Cannot push switch changes with missing location track oid $jointChange"
-                }
-
-                checkNotNull(jointChange.trackNumberExternalId) {
-                    "Cannot push switch changes with missing route number oid $jointChange"
-                }
-
-                nodeType?.let {
-                    RatkoNode(
-                        nodeType = nodeType,
-                        point = RatkoPoint(
-                            state = RatkoPointState(RatkoPointStates.VALID),
-                            locationtrack = RatkoOid(jointChange.locationTrackExternalId),
-                            routenumber = RatkoOid(jointChange.trackNumberExternalId),
-                            kmM = RatkoTrackMeter(jointChange.address),
-                            geometry = RatkoGeometry(jointChange.point),
-                        )
-                    )
-                }
-            }
-
-            RatkoAssetLocation(
-                nodecollection = RatkoNodes(
-                    type = RatkoNodesType.JOINTS,
-                    nodes = locationTrackJoints
-                ),
-                priority = ++priority,
-                accuracyType = RatkoAccuracyType.GEOMETRY_CALCULATED
+    return jointChanges.groupBy { it.locationTrackId }.map { (_, jointChange) ->
+        jointChange.mapNotNull { change ->
+            val nodeType = mapGeometryTypeToNodeType(
+                mapJointNumberToGeometryType(change.number, switchType)
             )
+
+            nodeType?.let {
+                checkNotNull(change.locationTrackExternalId) {
+                    "Cannot push switch changes with missing location track oid $change"
+                }
+
+                checkNotNull(change.trackNumberExternalId) {
+                    "Cannot push switch changes with missing route number oid $change"
+                }
+
+                RatkoNode(
+                    nodeType = nodeType, point = RatkoPoint(
+                        state = RatkoPointState(RatkoPointStates.VALID),
+                        locationtrack = RatkoOid(change.locationTrackExternalId),
+                        routenumber = RatkoOid(change.trackNumberExternalId),
+                        kmM = RatkoTrackMeter(change.address),
+                        geometry = RatkoGeometry(change.point),
+                    )
+                )
+            }
         }
+    }.filter { it.isNotEmpty() }.mapIndexed { index, locationNodes ->
+        RatkoAssetLocation(
+            nodecollection = RatkoNodes(
+                type = RatkoNodesType.JOINTS, nodes = locationNodes
+            ), priority = index + 1, accuracyType = RatkoAccuracyType.GEOMETRY_CALCULATED
+        )
+    }
 }

@@ -1,136 +1,114 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { ChangeTimes, TrackLayoutState } from 'track-layout/track-layout-store';
+import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 import { MapContext } from 'map/map-store';
-import { MapViewport, OptionalShownItems } from 'map/map-model';
-import MapView from 'map/map-view';
-import { MapLayersSettings } from 'map/settings/map-layer-settings';
-import {
-    OnClickLocationFunction,
-    OnHighlightItemsFunction,
-    OnHoverLocationFunction,
-    OnSelectFunction,
-} from 'selection/selection-model';
+import { OnSelectFunction } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
 import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { BoundingBox } from 'model/geometry';
-import { PublishType } from 'common/common-model';
-import { LinkPoint } from 'linking/linking-model';
+import { LayoutMode, PublishType } from 'common/common-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
+import { ChangeTimes } from 'common/common-slice';
+import { createClassName } from 'vayla-design-lib/utils';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { MapViewContainer } from 'map/map-view-container';
+import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geometry-diagram-container';
 
 // For now use whole state and some extras as params
-export type TrackLayoutParams = TrackLayoutState & {
-    onViewportChange: (viewport: MapViewport) => void;
+export type TrackLayoutViewProps = {
+    publishType: PublishType;
+    linkingState: LinkingState | undefined;
     onSelect: OnSelectFunction;
-    onHighlightItems: OnHighlightItemsFunction;
-    onHoverLocation: OnHoverLocationFunction;
-    onClickLocation: OnClickLocationFunction;
-    onMapSettingsVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
-    onOpenPreview: () => void;
-    onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
-    onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
-    onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
-    onMissingLinkingVisibilityChange: (layerId: string, visible: boolean) => void;
-    onDuplicateTracksVisibilityChange: (layerId: string, visible: boolean) => void;
-    onShownItemsChange: (shownItems: OptionalShownItems) => void;
+    onLayoutModeChange: (mode: LayoutMode) => void;
     showArea: (area: BoundingBox) => void;
-    onSetLayoutClusterLinkPoint: (linkPoint: LinkPoint) => void;
-    onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
-    onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
-    onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
+    onLayerMenuItemChange: (change: MapLayerMenuChange) => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
+    showVerticalGeometryDiagram: boolean;
 };
 
-export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutParams) => {
+export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
+    publishType,
+    linkingState,
+    onSelect,
+    onPublishTypeChange,
+    onLayoutModeChange,
+    showArea,
+    onLayerMenuItemChange,
+    mapLayerMenuGroups,
+    changeTimes,
+    onStopLinking,
+    showVerticalGeometryDiagram,
+}) => {
+    const className = createClassName(
+        styles['track-layout'],
+        showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
+    );
+
+    const [hoveredOverPlanSection, setHoveredOverPlanSection] =
+        React.useState<HighlightedAlignment>();
+
     return (
-        <div className={styles['track-layout']} qa-id="track-layout-content">
+        <div className={className} qa-id="track-layout-content">
             <ToolBar
-                settingsVisible={props.map.settingsVisible}
-                publishType={props.publishType}
-                onMapSettingsVisibilityChange={props.onMapSettingsVisibilityChange}
-                selection={props.selection}
-                showArea={props.showArea}
+                disableNewMenu={
+                    linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+                    linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+                }
+                publishType={publishType}
+                showArea={showArea}
                 onSelectTrackNumber={(trackNumberId) =>
-                    props.onSelect({
+                    onSelect({
                         trackNumbers: [trackNumberId],
                     })
                 }
                 onSelectLocationTrack={(locationTrackId) =>
-                    props.onSelect({
+                    onSelect({
                         locationTracks: [locationTrackId],
                     })
                 }
                 onSelectSwitch={(switchId) =>
-                    props.onSelect({
+                    onSelect({
                         switches: [switchId],
                     })
                 }
                 onSelectKmPost={(kmPostId) =>
-                    props.onSelect({
+                    onSelect({
                         kmPosts: [kmPostId],
                     })
                 }
                 onPublishTypeChange={(publishType: PublishType) => {
-                    props.onPublishTypeChange(publishType);
+                    onPublishTypeChange(publishType);
                 }}
-                onOpenPreview={props.onOpenPreview}
-                changeTimes={props.changeTimes}
-                onStopLinking={props.onStopLinking}
+                onOpenPreview={() => onLayoutModeChange('PREVIEW')}
+                changeTimes={changeTimes}
+                onStopLinking={onStopLinking}
+                onMapLayerChange={onLayerMenuItemChange}
+                mapLayerMenuGroups={mapLayerMenuGroups}
             />
 
             <div className={styles['track-layout__main-view']}>
                 <div className={styles['track-layout__navi']}>
-                    <MapContext.Provider value="trackLayout">
-                        <SelectionPanelContainer />
-                    </MapContext.Provider>
+                    <SelectionPanelContainer />
                 </div>
+
+                {showVerticalGeometryDiagram && (
+                    <div className={styles['track-layout__diagram']}>
+                        <VerticalGeometryDiagramContainer />
+                    </div>
+                )}
 
                 <div className={styles['track-layout__map']}>
-                    {props.map.settingsVisible && (
-                        <div className={styles['track-layout__map-settings']}>
-                            <MapLayersSettings
-                                map={props.map}
-                                onTrackNumberVisibilityChange={props.onTrackNumberVisibilityChange}
-                                onReferenceLineVisibilityChange={
-                                    props.onReferenceLineVisibilityChange
-                                }
-                                onMissingLinkingVisibilityChange={
-                                    props.onMissingLinkingVisibilityChange
-                                }
-                                onDuplicateTrackVisibilityChange={
-                                    props.onDuplicateTracksVisibilityChange
-                                }
-                                onLayerVisibilityChange={props.onLayerVisibilityChange}
-                                onClose={() => props.onMapSettingsVisibilityChange(false)}
-                            />
-                        </div>
-                    )}
-
-                    <MapView
-                        map={props.map}
-                        onViewportUpdate={props.onViewportChange}
-                        selection={props.selection}
-                        publishType={props.publishType}
-                        linkingState={props.linkingState}
-                        changeTimes={props.changeTimes}
-                        onSelect={props.onSelect}
-                        onHighlightItems={props.onHighlightItems}
-                        onHoverLocation={props.onHoverLocation}
-                        onClickLocation={props.onClickLocation}
-                        onShownLayerItemsChange={props.onShownItemsChange}
-                        onSetLayoutClusterLinkPoint={props.onSetLayoutClusterLinkPoint}
-                        onSetGeometryClusterLinkPoint={props.onSetGeometryClusterLinkPoint}
-                        onRemoveGeometryLinkPoint={props.onRemoveGeometryLinkPoint}
-                        onRemoveLayoutLinkPoint={props.onRemoveLayoutLinkPoint}
-                    />
+                    <MapContext.Provider value="track-layout">
+                        <MapViewContainer hoveredOverPlanSection={hoveredOverPlanSection} />
+                    </MapContext.Provider>
                 </div>
                 <div className={styles['track-layout__tool-panel']}>
-                    <MapContext.Provider value="trackLayout">
-                        <ToolPanelContainer />
-                    </MapContext.Provider>
+                    <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
                 </div>
             </div>
 

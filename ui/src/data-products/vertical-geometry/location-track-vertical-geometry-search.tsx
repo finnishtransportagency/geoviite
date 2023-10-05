@@ -5,17 +5,12 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { debounceAsync } from 'utils/async-utils';
-import {
-    LocationTrackVerticalGeometrySearchParameters,
-    LocationTrackVerticalGeometrySearchState,
-    validTrackMeterOrUndefined,
-} from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import {
     getLocationTrackVerticalGeometry,
     getLocationTrackVerticalGeometryCsv,
 } from 'geometry/geometry-api';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
@@ -25,6 +20,12 @@ import {
     hasErrors,
 } from 'data-products/data-products-utils';
 import { VerticalGeometryItem } from 'geometry/geometry-model';
+import {
+    LocationTrackVerticalGeometrySearchParameters,
+    LocationTrackVerticalGeometrySearchState,
+    validTrackMeterOrUndefined,
+} from 'data-products/data-products-slice';
+import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -35,18 +36,28 @@ type LocationTrackVerticalGeometrySearchProps = {
         key: TKey,
     ) => void;
     setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
+    setLoading: (loading: boolean) => void;
 };
 
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackVerticalGeometry, 250);
 
 export const LocationTrackVerticalGeometrySearch: React.FC<
     LocationTrackVerticalGeometrySearchProps
-> = ({ state, onCommitField, onUpdateProp, setVerticalGeometry }) => {
+> = ({ state, onCommitField, onUpdateProp, setVerticalGeometry, setLoading }) => {
     const { t } = useTranslation();
     const getLocationTracks = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
-                getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
+                getLocationTrackDescriptions(
+                    locationTracks.map((lt) => lt.id),
+                    'OFFICIAL',
+                ).then((descriptions) =>
+                    getLocationTrackOptions(
+                        locationTracks,
+                        descriptions ?? [],
+                        state.searchParameters.locationTrack,
+                    ),
+                ),
             ),
         [state.searchParameters.locationTrack],
     );
@@ -62,7 +73,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         });
     }
 
-    const verticalGeometries = useLoader(() => {
+    const [verticalGeometries, fetchStatus] = useLoaderWithStatus(() => {
         if (!state.searchParameters.locationTrack) {
             return Promise.resolve([]);
         }
@@ -74,12 +85,15 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         }
 
         return debouncedTrackElementsFetch(
+            undefined,
+            'OFFICIAL',
             state.searchParameters.locationTrack.id,
             validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
             validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
         );
     }, [state.searchParameters]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>
@@ -98,7 +112,6 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}
                             onBlur={() => onCommitField('locationTrack')}
-                            canUnselect={true}
                             unselectText={t('data-products.search.not-selected')}
                             wideList
                             wide

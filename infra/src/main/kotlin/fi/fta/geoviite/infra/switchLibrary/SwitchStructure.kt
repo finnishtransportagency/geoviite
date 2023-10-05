@@ -238,18 +238,19 @@ data class SwitchStructure(
             alignments = alignments.map { alignment ->
                 alignment.copy(
                     elements = alignment.elements.map { element ->
-                        if (element is SwitchElementLine) {
-                            element.copy(
-                                start = element.start * multiplier,
-                                end = element.end * multiplier
-                            )
-                        } else if (element is SwitchElementCurve) {
-                            element.copy(
-                                start = element.start * multiplier,
-                                end = element.end * multiplier
-                            )
-                        } else {
-                            element
+                        when (element) {
+                            is SwitchElementLine -> {
+                                element.copy(
+                                    start = element.start * multiplier,
+                                    end = element.end * multiplier
+                                )
+                            }
+                            is SwitchElementCurve -> {
+                                element.copy(
+                                    start = element.start * multiplier,
+                                    end = element.end * multiplier
+                                )
+                            }
                         }
                     }
                 )
@@ -329,4 +330,23 @@ fun transformSwitchPoint(transformation: SwitchPositionTransformation, point: Po
         transformation.rotation.rads,
         point
     ) + transformation.translation
+}
+
+data class SwitchConnectivityType(
+    val trackLinkedAlignmentsJoints: List<List<JointNumber>>,
+    val frontJoint: JointNumber?,
+    val sharedJoint: JointNumber?,
+)
+
+fun switchConnectivityType(structure: SwitchStructure) = when (structure.baseType) {
+    SwitchBaseType.YV, SwitchBaseType.TYV, SwitchBaseType.YRV, SwitchBaseType.SKV, SwitchBaseType.UKV, SwitchBaseType.KV -> SwitchConnectivityType(
+        structure.alignments.map { it.jointNumbers }, JointNumber(1), null
+    )
+
+    SwitchBaseType.KRV, SwitchBaseType.RR, SwitchBaseType.SRR -> SwitchConnectivityType(structure.alignments.filter { it.jointNumbers.size == 3 }
+        .flatMap { alignment ->
+            val joints = alignment.jointNumbers
+            listOf(listOf(joints[0], joints[1]), listOf(joints[1], joints[2]))
+        }, null, JointNumber(5),
+    )
 }

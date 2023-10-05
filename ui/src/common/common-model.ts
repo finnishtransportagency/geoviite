@@ -32,6 +32,8 @@ export type MeasurementMethod =
     | 'DIGITIZED_AERIAL_IMAGE'
     | 'UNVERIFIED_DESIGNED_GEOMETRY';
 
+export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL';
+
 export type TrackNumber = string;
 
 export type KmNumber = string;
@@ -83,10 +85,10 @@ export type AddressPoint = {
 
 export type ElementLocation = {
     coordinate: Point;
-    address: TrackMeter | null;
+    address?: TrackMeter;
     directionGrads: number;
-    radiusMeters: number | undefined;
-    cant: number | null;
+    radiusMeters?: number;
+    cant?: number;
 };
 
 export type ChangeTimes = {
@@ -173,3 +175,8 @@ export enum LayoutEndPoint {
 }
 
 export type TimeStamp = string;
+
+export type Range<T> = {
+    min: T;
+    max: T;
+};

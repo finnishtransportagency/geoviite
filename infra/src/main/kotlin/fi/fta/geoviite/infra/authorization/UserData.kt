@@ -28,6 +28,14 @@ data class Privilege(val code: Code, val name: AuthName, val description: FreeTe
 }
 
 fun getCurrentUserName() = MDC.get(USER_HEADER)?.let(::UserName) ?: throw IllegalStateException("No user in context")
+fun <T> withUser(user: UserName, op: () -> T): T {
+    MDC.put(USER_HEADER, user.toString())
+    return try {
+        op()
+    } finally {
+        MDC.remove(USER_HEADER)
+    }
+}
 
 val userNameLength = 3..20
 val userNameRegex = Regex("^[A-Za-z0-9_]+\$")

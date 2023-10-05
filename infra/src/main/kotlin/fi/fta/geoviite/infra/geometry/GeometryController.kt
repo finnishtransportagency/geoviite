@@ -4,7 +4,9 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -13,10 +15,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -175,7 +179,7 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -203,9 +207,22 @@ class GeometryController @Autowired constructor(
         log.apiCall("getPlanElementListCsv",
             "id" to id, "elementTypes" to elementTypes, "startAddress" to startAddress,
             "endAddress" to endAddress)
-        val (filename, content) = geometryService
-            .getElementListingCsv(id, elementTypes, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content)
+        val (filename, content) = geometryService.getElementListingCsv(id, elementTypes, startAddress, endAddress)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/rail-network/element-listing/file")
+    fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
+        log.apiCall("getPlanElementListCsv")
+        val elementListingFile = geometryService.getElementListingCsv()
+        return elementListingFile?.let {
+            toFileDownloadResponse(
+                elementListingFile.name.withSuffix(CSV),
+                elementListingFile.content.toByteArray(Charsets.UTF_8)
+            )
+        }
+            ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -224,19 +241,20 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/layout/location-tracks/{id}/vertical-geometry")
+    @GetMapping("/layout/{publicationType}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
+        @PathVariable("publicationType") publicationType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        log.apiCall("getTrackVerticalGeometryListing", "id" to id,
+        log.apiCall("getTrackVerticalGeometryListing", "publicationType" to publicationType, "id" to id,
             "startAddress" to startAddress, "endAddress" to endAddress)
-        return geometryService.getVerticalGeometryListing(id, startAddress, endAddress)
+        return geometryService.getVerticalGeometryListing(publicationType, id, startAddress, endAddress)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -249,8 +267,82 @@ class GeometryController @Autowired constructor(
         log.apiCall("getTrackVerticalGeometryListingCsv",
             "id" to id, "startAddress" to startAddress,
             "endAddress" to endAddress)
-        val (filename, content) = geometryService
-            .getVerticalGeometryListingCsv(id, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content)
+        val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, startAddress, endAddress)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
-}
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/rail-network/vertical-geometry/file")
+    fun getEntireNetworkVerticalGeometryListingCSV(): ResponseEntity<ByteArray> {
+        log.apiCall("getEntireNetworkVerticalGeometryListingCSV")
+        val verticalGeometryListingFile = geometryService.getEntireVerticalGeometryListingCsv()
+        return verticalGeometryListingFile?.let {
+            toFileDownloadResponse(
+                verticalGeometryListingFile.name.withSuffix(CSV),
+                verticalGeometryListingFile.content.toByteArray(Charsets.UTF_8)
+            )
+        }
+            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{planId}/start-and-end/{planAlignmentId}")
+    fun getPlanAlignmentStartAndEnd(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
+    ): ResponseEntity<AlignmentStartAndEnd> {
+        logger.apiCall("getPlanAlignmentStartAndEnd", "planId" to planId, "planAlignmentId" to planAlignmentId)
+        return toResponse(geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId))
+
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{planId}/plan-alignment-heights/{planAlignmentId}")
+    fun getPlanAlignmentHeights(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
+        @RequestParam("startDistance") startDistance: Double,
+        @RequestParam("endDistance") endDistance: Double,
+        @RequestParam("tickLength") tickLength: Int,
+    ): List<KmHeights> {
+        logger.apiCall(
+            "getPlanAlignmentHeights",
+            "planId" to planId,
+            "planAlignmentId" to planAlignmentId,
+            "startDistance" to startDistance,
+            "endDistance" to endDistance,
+            "tickLength" to tickLength
+        )
+        return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
+            ?: emptyList()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/layout/location-tracks/{id}/linking-summary")
+    fun getLocationTrackLinkingSummary(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<PlanLinkingSummaryItem>? {
+        logger.apiCall("getLocationTrackLinkingSummary", "publishType" to publishType, "id" to id)
+        return geometryService.getLocationTrackGeometryLinkingSummary(id, publishType)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/layout/location-tracks/{id}/alignment-heights")
+    fun getLayoutAlignmentHeights(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("startDistance") startDistance: Double,
+        @RequestParam("endDistance") endDistance: Double,
+        @RequestParam("tickLength") tickLength: Int,
+    ): List<KmHeights>? {
+        logger.apiCall(
+            "getLayoutAlignmentHeights",
+            "publishType" to publishType,
+            "id" to id,
+            "startDistance" to startDistance,
+            "endDistance" to endDistance,
+            "tickLength" to tickLength
+        )
+        return geometryService.getLocationTrackHeights(id, publishType, startDistance, endDistance, tickLength)
+    }}

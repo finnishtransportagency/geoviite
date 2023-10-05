@@ -1,24 +1,24 @@
-import { trackLayoutStore } from 'store/store';
+import { appStore } from 'store/store';
 
-import { API_URI, getIgnoreError, getWithDefault } from 'api/api-fetch';
-import { actionCreators, ChangeTimes } from 'track-layout/track-layout-store';
+import { API_URI, getNonNull, getNullable } from 'api/api-fetch';
 import { createDelegates } from 'store/store-utils';
 import { TimeStamp } from 'common/common-model';
+import { ChangeTimes, commonActionCreators } from 'common/common-slice';
 
 const CHANGES_API = `${API_URI}/change-times`;
 
-const delegates = createDelegates(trackLayoutStore.dispatch, actionCreators);
+const delegates = createDelegates(commonActionCreators);
 
 const _intervalHandle = window.setInterval(() => {
     updateAllChangeTimes();
 }, 15000);
 
 export function getChangeTimes(): ChangeTimes {
-    return trackLayoutStore.getState().trackLayout.changeTimes;
+    return appStore.getState().common.changeTimes;
 }
 
 export function updateAllChangeTimes(): Promise<ChangeTimes> {
-    return getIgnoreError<ChangeTimes>(`${CHANGES_API}/collected`).then((newTimes) => {
+    return getNullable<ChangeTimes>(`${CHANGES_API}/collected`).then((newTimes) => {
         if (newTimes) {
             delegates.setChangeTimes(newTimes);
             return newTimes;
@@ -76,6 +76,14 @@ export function updatePlanChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updateProjectChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/projects`,
+        delegates.setProjectChangeTime,
+        getChangeTimes().project,
+    );
+}
+
 export function updatePublicationChangeTime(): Promise<TimeStamp> {
     return updateChangeTime(
         `${CHANGES_API}/publications`,
@@ -84,13 +92,27 @@ export function updatePublicationChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updatePVDocumentsChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/projektivelho-documents`,
+        delegates.setPVDocumentChangeTime,
+        getChangeTimes().pvDocument,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,
     defaultValue: TimeStamp,
 ): Promise<TimeStamp> {
-    return getWithDefault<TimeStamp>(url, defaultValue).then((ts) => {
-        storeUpdate(ts);
-        return ts;
-    });
+    return getNonNull<TimeStamp>(url).then(
+        (ts) => {
+            storeUpdate(ts);
+            return ts;
+        },
+        () => {
+            storeUpdate(defaultValue);
+            return defaultValue;
+        },
+    );
 }

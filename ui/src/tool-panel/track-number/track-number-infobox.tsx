@@ -5,7 +5,6 @@ import {
     LAYOUT_SRID,
     LayoutReferenceLine,
     LayoutTrackNumber,
-    MapAlignment,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -20,12 +19,7 @@ import {
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
-import {
-    LinkingAlignment,
-    LinkingState,
-    LinkingType,
-    toIntervalRequest,
-} from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
@@ -36,10 +30,13 @@ import { formatDateShort } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
-import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { WriteAccessRequired } from 'user/write-access-required';
+import { getEndLinkPoints } from 'track-layout/layout-map-api';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -48,10 +45,13 @@ type TrackNumberInfoboxProps = {
     linkingState?: LinkingState;
     showArea: (area: BoundingBox) => void;
     onUnselect: () => void;
-    onStartReferenceLineGeometryChange: (alignment: MapAlignment) => void;
+    onStartReferenceLineGeometryChange: (alignment: LinkInterval) => void;
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
     referenceLineChangeTime: TimeStamp;
+    visibilities: TrackNumberInfoboxVisibilities;
+    onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -64,9 +64,16 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onEndReferenceLineGeometryChange,
     viewport,
     referenceLineChangeTime,
+    visibilities,
+    onVisibilityChange,
+    onHighlightItem,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
-    const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
+    const startAndEndPoints = useReferenceLineStartAndEnd(
+        referenceLine?.id,
+        publishType,
+        referenceLineChangeTime,
+    );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const changeTimes = useReferenceLineChangeTimes(referenceLine?.id);
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -91,9 +98,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         if (canUpdate && state.layoutAlignmentInterval.start && state.layoutAlignmentInterval.end) {
             setUpdatingLength(true);
             updateReferenceLineGeometry(state.layoutAlignmentId, {
-                alignmentId: state.layoutAlignmentId,
-                start: toIntervalRequest(state.layoutAlignmentInterval.start),
-                end: toIntervalRequest(state.layoutAlignmentInterval.end),
+                min: state.layoutAlignmentInterval.start.m,
+                max: state.layoutAlignmentInterval.end.m,
             })
                 .then(() => {
                     Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
@@ -115,9 +121,15 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         closeLocationTrackDeleteConfirmation();
     };
 
+    const visibilityChange = (key: keyof TrackNumberInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
             <Infobox
+                contentVisible={visibilities.basic}
+                onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.track-number.general-title')}
                 qa-id="track-number-infobox">
                 <InfoboxContent>
@@ -147,6 +159,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             </Infobox>
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
+                    contentVisible={visibilities.referenceLine}
+                    onContentVisibilityChange={() => visibilityChange('referenceLine')}
                     title={t('tool-panel.reference-line.basic-info-heading')}
                     qa-id="reference-line-location-infobox">
                     <InfoboxContent>
@@ -161,19 +175,23 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
                         {linkingState === undefined && referenceLine && (
-                            <InfoboxButtons>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    onClick={() => {
-                                        getReferenceLineSegmentEnds(
-                                            referenceLine.id,
-                                            publishType,
-                                        ).then(onStartReferenceLineGeometryChange);
-                                    }}>
-                                    {t('tool-panel.location-track.modify-start-or-end')}
-                                </Button>
-                            </InfoboxButtons>
+                            <WriteAccessRequired>
+                                <InfoboxButtons>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        onClick={() => {
+                                            getEndLinkPoints(
+                                                referenceLine.id,
+                                                publishType,
+                                                'REFERENCE_LINE',
+                                                referenceLineChangeTime,
+                                            ).then(onStartReferenceLineGeometryChange);
+                                        }}>
+                                        {t('tool-panel.location-track.modify-start-or-end')}
+                                    </Button>
+                                </InfoboxButtons>
+                            </WriteAccessRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>
@@ -249,13 +267,18 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             )}
             {referenceLine && (
                 <TrackNumberGeometryInfobox
+                    contentVisible={visibilities.geometry}
+                    onContentVisibilityChange={() => visibilityChange('geometry')}
                     trackNumberId={trackNumber.id}
                     publishType={publishType}
                     viewport={viewport}
+                    onHighlightItem={onHighlightItem}
                 />
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
+                    contentVisible={visibilities.validation}
+                    onContentVisibilityChange={() => visibilityChange('validation')}
                     id={trackNumber.id}
                     type={'TRACK_NUMBER'}
                     publishType={publishType}
@@ -264,15 +287,17 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             )}
             {changeTimes && (
                 <Infobox
+                    contentVisible={visibilities.log}
+                    onContentVisibilityChange={() => visibilityChange('log')}
                     title={t('tool-panel.reference-line.change-info-heading')}
                     qa-id="track-number-log-infobox">
                     <InfoboxContent>
                         <InfoboxField
-                            label={t('tool-panel.reference-line.created')}
+                            label={t('tool-panel.created')}
                             value={formatDateShort(changeTimes.created)}
                         />
                         <InfoboxField
-                            label={t('tool-panel.reference-line.changed')}
+                            label={t('tool-panel.changed')}
                             value={formatDateShort(changeTimes.changed)}
                         />
                         {isDeletable && (

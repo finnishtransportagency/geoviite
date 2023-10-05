@@ -65,7 +65,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const allPublishErrors =
         props.previewChanges &&
         publishErrors(props.previewChanges).filter((error) => error.type == 'ERROR');
-    const describeResult = (result: PublishResult | null): string => {
+    const describeResult = (result: PublishResult | undefined): string => {
         return [
             describe(t('publish.track-numbers'), result?.trackNumbers),
             describe(t('publish.km-posts'), result?.kmPosts),
@@ -79,7 +79,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const publishPreviewChanges = previewChangesCanBePublished(props.previewChanges);
 
-    const updateChangeTimes = (result: PublishResult | null) => {
+    const updateChangeTimes = (result: PublishResult | undefined) => {
         if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();
         if (result?.kmPosts || 0 > 0) updateKmPostChangeTime();
         if (result?.referenceLines || 0 > 0) updateReferenceLineChangeTime();
@@ -112,8 +112,10 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         publishCandidates({ content: props.request, message })
             .then((r) => {
                 if (r.isOk()) {
-                    const result = r.unwrapOr(null);
-                    Snackbar.success(t('publish.publish-success'), describeResult(result));
+                    const result = r.unwrapOr(undefined);
+                    Snackbar.success(t('publish.publish-success'), {
+                        body: describeResult(result),
+                    });
                     updateChangeTimes(result);
                     props.onPublish();
                 }
@@ -160,9 +162,8 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     variant={DialogVariant.LIGHT}
                     allowClose={!isPublishing}
                     onClose={() => setPublishConfirmVisible(false)}
-                    className={dialogStyles['dialog--wide']}
                     footerContent={
-                        <React.Fragment>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setPublishConfirmVisible(false)}
                                 disabled={emptyRequest || isPublishing}
@@ -178,7 +179,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                                     candidates: candidateCount,
                                 })}
                             </Button>
-                        </React.Fragment>
+                        </div>
                     }>
                     <div className={styles['preview-confirm__description']}>
                         {t('publish.publish-confirm.description')}

@@ -3,12 +3,19 @@ package fi.fta.geoviite.infra.publication
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.error.LocalizationParams
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
@@ -22,19 +29,51 @@ enum class PublicationTableColumn {
     PUBLICATION_USER,
     MESSAGE,
     RATKO_PUSH_TIME,
+    CHANGES,
 }
 
 data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
-    val changedKmNumbers: List<KmNumber>? = null,
+    val changedKmNumbers: List<Range<KmNumber>>,
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
     val message: String,
     val ratkoPushTime: Instant?,
+    val propChanges: List<PublicationChange<*>>,
 ) {
     val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
+}
+
+data class ChangeValue<T>(
+    val oldValue: T?,
+    val newValue: T?,
+    val localizationKey: LocalizationKey? = null,
+) {
+    constructor(oldValue: T?, newValue: T?, localizationKey: String?) : this(
+        oldValue, newValue, localizationKey?.let(::LocalizationKey)
+    )
+}
+
+data class PublicationChange<T>(
+    val propKey: PropKey,
+    val value: ChangeValue<T>,
+    val remark: PublicationChangeRemark?,
+)
+
+data class PropKey(
+    val key: LocalizationKey,
+    val params: LocalizationParams = emptyMap(),
+) {
+    constructor(key: String, params: LocalizationParams = emptyMap()) : this(LocalizationKey(key), params)
+}
+
+data class PublicationChangeRemark(
+    val key: LocalizationKey,
+    val value: String,
+) {
+    constructor(key: String, value: String) : this(LocalizationKey(key), value)
 }
 
 open class Publication(
@@ -117,10 +156,7 @@ enum class DraftChangeType {
 }
 
 enum class Operation(val priority: Int) {
-    CREATE(0),
-    MODIFY(1),
-    DELETE(2),
-    RESTORE(3),
+    CREATE(0), MODIFY(1), DELETE(2), RESTORE(3), CALCULATED(4),
 }
 
 data class ValidatedPublishCandidates(
@@ -130,7 +166,7 @@ data class ValidatedPublishCandidates(
 
 data class ValidatedAsset<T>(
     val errors: List<PublishValidationError>,
-    val id: IntId<T>
+    val id: IntId<T>,
 )
 
 data class PublishCandidates(
@@ -177,6 +213,7 @@ data class ValidationVersions(
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
+    fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
 }
 
 data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
@@ -215,13 +252,13 @@ enum class PublishValidationErrorType { ERROR, WARNING }
 data class PublishValidationError(
     val type: PublishValidationErrorType,
     val localizationKey: LocalizationKey,
-    val params: List<String> = listOf(),
+    val params: LocalizationParams = emptyMap(),
 ) {
-    constructor(type: PublishValidationErrorType, localizationKey: String, params: List<String> = listOf()) : this(
-        type,
-        LocalizationKey(localizationKey),
-        params
-    )
+    constructor(
+        type: PublishValidationErrorType,
+        key: String,
+        params: Map<String, CharSequence?> = emptyMap(),
+    ) : this(type, LocalizationKey(key), params.mapValues { (_, v) -> v.toString() })
 }
 
 interface PublishCandidate<T> {
@@ -244,6 +281,7 @@ data class TrackNumberPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val boundingBox: BoundingBox?,
 ) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
 }
@@ -257,6 +295,7 @@ data class ReferenceLinePublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation?,
+    val boundingBox: BoundingBox?,
 ) : PublishCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }
@@ -271,6 +310,7 @@ data class LocationTrackPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val boundingBox: BoundingBox?,
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }
@@ -284,6 +324,7 @@ data class SwitchPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val location: Point?,
 ) : PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
 }
@@ -297,6 +338,7 @@ data class KmPostPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val location: Point?,
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }
@@ -305,4 +347,85 @@ data class RemovedTrackNumberReferenceIds(
     val kmPostIds: List<IntId<GeometryKmPost>>,
     val alignmentIds: List<IntId<GeometryAlignment>>,
     val planIds: List<IntId<GeometryPlan>>,
+)
+
+data class SwitchLocationTrack(val name: AlignmentName, val trackNumberId: IntId<TrackLayoutTrackNumber>)
+
+data class Change<T>(
+    val old: T?,
+    val new: T?,
+)
+
+data class LocationTrackChanges(
+    val id: IntId<LocationTrack>,
+    val name: Change<AlignmentName>,
+    val descriptionBase: Change<FreeText>,
+    val descriptionSuffix: Change<DescriptionSuffixType>,
+    val state: Change<LayoutState>,
+    val duplicateOf: Change<IntId<LocationTrack>>,
+    val type: Change<LocationTrackType>,
+    val length: Change<Double>,
+    val startPoint: Change<Point>,
+    val endPoint: Change<Point>,
+    val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+)
+
+// Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
+enum class TrapPoint {
+    Yes, No, Unknown
+}
+
+data class SwitchChanges(
+    val id: IntId<TrackLayoutSwitch>,
+    val name: Change<SwitchName>,
+    val state: Change<LayoutStateCategory>,
+    val trapPoint: Change<TrapPoint>,
+    val type: Change<SwitchType>,
+    val owner: Change<MetaDataName>,
+    val measurementMethod: Change<MeasurementMethod>,
+    val joints: List<PublicationDao.PublicationSwitchJoint>,
+    val locationTracks: List<SwitchLocationTrack>,
+)
+
+data class ReferenceLineChanges(
+    val id: IntId<ReferenceLine>,
+    val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+    val length: Change<Double>,
+    val startPoint: Change<Point>,
+    val endPoint: Change<Point>,
+)
+
+data class TrackNumberChanges(
+    val id: IntId<TrackLayoutTrackNumber>,
+    val trackNumber: Change<TrackNumber>,
+    val description: Change<FreeText>,
+    val state: Change<LayoutState>,
+    val startAddress: Change<TrackMeter>,
+    val endPoint: Change<Point>,
+)
+
+data class KmPostChanges(
+    val id: IntId<TrackLayoutKmPost>,
+    val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+    val kmNumber: Change<KmNumber>,
+    val state: Change<LayoutState>,
+    val location: Change<Point>,
+)
+
+fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
+    officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
+)
+
+fun toValidationVersions(
+    trackNumbers: List<TrackLayoutTrackNumber> = emptyList(),
+    referenceLines: List<ReferenceLine> = emptyList(),
+    kmPosts: List<TrackLayoutKmPost> = emptyList(),
+    locationTracks: List<LocationTrack> = emptyList(),
+    switches: List<TrackLayoutSwitch> = emptyList(),
+) = ValidationVersions(
+    trackNumbers = trackNumbers.map(::toValidationVersion),
+    referenceLines = referenceLines.map(::toValidationVersion),
+    kmPosts = kmPosts.map(::toValidationVersion),
+    locationTracks = locationTracks.map(::toValidationVersion),
+    switches = switches.map(::toValidationVersion)
 )

@@ -1,0 +1,15 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.switch-edit-dialog__warning {
+    fill: vayla-design.$color-red-default;
+}
+
+.switch-edit-dialog__delete-button {
+    position: absolute;
+}
+
+.switch-edit-dialog__confirmation-list {
+    margin: 0;
+    padding: 0;
+    list-style: inside;
+}

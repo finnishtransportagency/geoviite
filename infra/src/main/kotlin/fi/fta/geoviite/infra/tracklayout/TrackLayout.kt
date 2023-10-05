@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
 import java.time.Instant
 
 val LAYOUT_SRID = Srid(3067)
@@ -28,9 +29,7 @@ enum class LayoutState(val category: LayoutStateCategory) {
 }
 
 enum class LayoutStateCategory {
-    FUTURE_EXISTING,
-    EXISTING,
-    NOT_EXISTING;
+    FUTURE_EXISTING, EXISTING, NOT_EXISTING;
 
     fun isPublishable() = this != FUTURE_EXISTING
     fun isLinkable() = this == EXISTING
@@ -38,16 +37,18 @@ enum class LayoutStateCategory {
 }
 
 enum class TopologicalConnectivityType {
-    NONE,
-    START,
-    END,
-    START_AND_END;
+    NONE, START, END, START_AND_END;
 }
 
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val name: AlignmentName,
     val externalId: Oid<LocationTrack>?,
+)
+
+data class LocationTrackDescription(
+    val id: IntId<LocationTrack>,
+    val description: FreeText,
 )
 
 data class TrackLayoutTrackNumber(
@@ -96,8 +97,8 @@ data class ReferenceLine(
         }
     }
 
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> = alignmentVersion
-        ?: throw IllegalStateException("ReferenceLine has no an alignment")
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
+        alignmentVersion ?: throw IllegalStateException("ReferenceLine has no an alignment")
 }
 
 data class TopologyLocationTrackSwitch(
@@ -105,9 +106,16 @@ data class TopologyLocationTrackSwitch(
     val jointNumber: JointNumber,
 )
 
+val locationTrackDescriptionLength = 4..256
+
+enum class DescriptionSuffixType {
+    NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER
+}
+
 data class LocationTrack(
     val name: AlignmentName,
-    val description: FreeText,
+    val descriptionBase: FreeText,
+    val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
     val state: LayoutState,
     val externalId: Oid<LocationTrack>?,
@@ -131,16 +139,21 @@ data class LocationTrack(
     val exists = !state.isRemoved()
 
     init {
-        require(description.length in 4..256) {
-            "LocationTrack description length ${description.length} not in range 4-256"
+        require(descriptionBase.length in locationTrackDescriptionLength) {
+            "LocationTrack descriptionBase length invalid  not in range 4-256: " + "id=$id " + "length=${descriptionBase.length} " + "allowed=$locationTrackDescriptionLength"
         }
         require(dataType == DataType.TEMP || alignmentVersion != null) {
-            "LocationTrack in DB must have an alignment"
+            "LocationTrack in DB must have an alignment: id=$id"
+        }
+        require(
+            topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId
+        ) {
+            "LocationTrack cannot topologically connect to the same switch at both ends: " + "trackId=$id " + "switchId=${topologyStartSwitch?.switchId} " + "startJoint=${topologyStartSwitch?.jointNumber} " + "endJoint=${topologyEndSwitch?.jointNumber}"
         }
     }
 
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> = alignmentVersion
-        ?: throw IllegalStateException("LocationTrack has no alignment")
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
+        alignmentVersion ?: throw IllegalStateException("LocationTrack has no alignment")
 }
 
 
@@ -161,6 +174,11 @@ data class TrackLayoutSwitch(
 ) : Draftable<TrackLayoutSwitch> {
     @JsonIgnore
     val exists = !stateCategory.isRemoved()
+    val shortName = name.split(" ").lastOrNull()?.let { last ->
+        if (last.startsWith("V")) {
+            last.substring(1).toIntOrNull(10)?.toString()?.padStart(3, '0')?.let { switchNumber -> "V$switchNumber" }
+        } else null
+    }
 
     fun getJoint(location: LayoutPoint, delta: Double): TrackLayoutSwitchJoint? =
         getJoint(Point(location.x, location.y), delta)
@@ -168,8 +186,7 @@ data class TrackLayoutSwitch(
     fun getJoint(location: Point, delta: Double): TrackLayoutSwitchJoint? =
         joints.find { j -> j.location.isSame(location, delta) }
 
-    fun getJoint(number: JointNumber): TrackLayoutSwitchJoint? =
-        joints.find { j -> j.number == number }
+    fun getJoint(number: JointNumber): TrackLayoutSwitchJoint? = joints.find { j -> j.number == number }
 }
 
 data class TrackLayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
@@ -189,6 +206,30 @@ data class TrackLayoutKmPost(
     val exists = !state.isRemoved()
 }
 
+enum class TrackLayoutKmPostTableColumn {
+    TRACK_NUMBER, KILOMETER, START_M, END_M, LENGTH, LOCATION_E, LOCATION_N, WARNING
+}
+
+data class TrackLayoutKmLengthDetails(
+    val trackNumber: TrackNumber,
+    val kmNumber: KmNumber,
+    val startM: BigDecimal,
+    val endM: BigDecimal,
+    val locationSource: GeometrySource,
+    val location: Point?,
+) {
+    val length = endM - startM
+
+    init {
+        require(endM >= startM) {
+            "Km post is wrong way around (endM is smaller than startM), trackNumber=$trackNumber kmNumber=$kmNumber startM=$startM endM=$endM"
+        }
+        require(length >= BigDecimal.ZERO) {
+            "Km post cannot have negative length, trackNumber=$trackNumber kmNumber=$kmNumber length=$length"
+        }
+    }
+}
+
 data class TrackLayoutSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,
     val location: Point,
@@ -197,7 +238,7 @@ data class TrackLayoutSwitchJointMatch(
 data class TrackLayoutSwitchJointConnection(
     val number: JointNumber,
     val accurateMatches: List<TrackLayoutSwitchJointMatch>,
-    val locationAccuracy: LocationAccuracy?
+    val locationAccuracy: LocationAccuracy?,
 ) {
     val matches by lazy {
         accurateMatches.map { accurateMatch ->
@@ -224,4 +265,30 @@ data class ChangeTimes(
     val changed: Instant,
     val officialChanged: Instant?,
     val draftChanged: Instant?,
+)
+
+data class TrackNumberAndChangeTime(
+    val id: IntId<TrackLayoutTrackNumber>,
+    val number: TrackNumber,
+    val changeTime: Instant,
+)
+
+data class SwitchesAtEnds(
+    val start: IntId<TrackLayoutSwitch>?,
+    val end: IntId<TrackLayoutSwitch>?,
+)
+
+fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""
+
+private val kmLengthTranslations = mapOf(
+    "projected-location-warning" to "Sijainti on raiteen keskilinjalle projisoitu sijainti.",
+    "start-address-location-warning" to "Sijainti on pituusmittauslinjan alun sijainti.",
+    "TRACK_NUMBER-header" to "Ratanumero",
+    "KILOMETER-header" to "Ratakilometri",
+    "START_M-header" to "Alkupaalu",
+    "END_M-header" to "Loppupaalu",
+    "LENGTH-header" to "Pituus (m)",
+    "LOCATION_E-header" to "Koordinaatti E",
+    "LOCATION_N-header" to "Koordinaatti N",
+    "WARNING-header" to "Huomiot"
 )

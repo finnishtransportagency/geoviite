@@ -54,7 +54,7 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
         props.locationTrackChangeTime,
     );
 
-    const startAndEndPoints = useLocationTrackStartAndEnd(
+    const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         'OFFICIAL',
         props.locationTrackChangeTime,
@@ -72,13 +72,13 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
                 setPushing(true);
                 const kms = getKmsInRange(Number.parseInt(startKm), Number.parseInt(endKm));
 
-                await pushLocationTracksToRatko([
+                const result = await pushLocationTracksToRatko([
                     {
                         locationTrackId: locationTrack.id,
                         changedKmNumbers: kms,
                     },
                 ]);
-                setPushDone(true);
+                if (result.isOk()) setPushDone(true);
             } finally {
                 setPushing(false);
             }
@@ -94,11 +94,10 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
             }
             variant={DialogVariant.DARK}
             allowClose={false}
-            className={dialogStyles['dialog--wide']}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     {!pushDone && (
-                        <React.Fragment>
+                        <>
                             <Button onClick={props.onClose} variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
@@ -108,12 +107,11 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
                                 isProcessing={pushing}>
                                 {t('tool-panel.location-track.ratko-push-dialog.push')}
                             </Button>
-                        </React.Fragment>
+                        </>
                     )}
                     {pushDone && <Button onClick={props.onClose}>{t('button.ok')}</Button>}
-                </React.Fragment>
-            }
-            scrollable={false}>
+                </div>
+            }>
             <div className={styles['location-track-ratko-push-dialog']}>
                 {!pushDone && (
                     <React.Fragment>

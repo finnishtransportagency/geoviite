@@ -1,18 +1,30 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/shadows';
+@use 'vayla-design-lib' as vayla-design;
 
 .infobox {
     display: flex;
     flex-direction: column;
 
     &__title {
-        @include typography-sub-heading;
-        color: $color-black-default;
-        background-color: $color-white-dark;
-        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+        @include vayla-design.typography-sub-heading;
+        display: flex;
+        align-items: center;
+
+        color: vayla-design.$color-black-default;
+        background-color: vayla-design.$color-white-dark;
+        box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
         margin-bottom: 8px;
         padding: 12px 0 8px 20px;
+        user-select: none;
+        cursor: pointer;
+
+        .icon {
+            margin-right: 12px;
+            transition: transform 254ms;
+        }
+
+        &--visible .icon {
+            transform: rotate(90deg);
+        }
     }
 
     &__content {
@@ -31,8 +43,8 @@
     }
 
     &__field-label {
-        @include typography-caption;
-        color: $color-black-light;
+        @include vayla-design.typography-caption;
+        color: vayla-design.$color-black-light;
         display: flex;
         align-items: start;
         width: 50%;
@@ -40,7 +52,7 @@
     }
 
     &__field-value {
-        @include typography-caption-strong;
+        @include vayla-design.typography-caption-strong;
         display: flex;
         align-items: start;
         margin-left: 24px;
@@ -53,9 +65,9 @@
     }
 
     &__text {
-        @include typography-caption;
+        @include vayla-design.typography-caption;
 
-        color: $color-black-light;
+        color: vayla-design.$color-black-light;
     }
 
     &__buttons {
@@ -65,14 +77,14 @@
             margin-right: 12px;
         }
     }
-}
 
-.infobox--blue {
-    border-left: 2px solid $color-blue-light;
-    padding-left: 20px;
+    &--blue {
+        border-left: 2px solid vayla-design.$color-blue-light;
+        padding-left: 20px;
 
-    .infobox__title {
-        color: $color-blue-light;
+        .infobox__title {
+            color: vayla-design.$color-blue-light;
+        }
     }
 }
 
@@ -88,7 +100,7 @@
 }
 
 .infobox__list-cell {
-    @include typography-caption-strong;
+    @include vayla-design.typography-caption-strong;
 
     &:not(:last-child) {
         margin-right: 8px;
@@ -97,8 +109,8 @@
 
 .infobox__list-cell--label {
     font-weight: 400;
-    @include typography-caption;
-    color: $color-black-light;
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-black-light;
 }
 
 .infobox__list-cell--stretch {
@@ -107,5 +119,5 @@
 
 .infobox-tabs {
     top: 0;
-    background: $color-white-default;
+    background: vayla-design.$color-white-default;
 }

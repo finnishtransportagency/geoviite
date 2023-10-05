@@ -1,53 +1,46 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
-import java.time.Duration
 
-class InfraModelPage: PageModel(By.xpath("//div[@qa-id='main-content-container']")) {
+class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
-    private val SAVE_BUTTON = By.xpath("//button[span[contains(text(),'Tallenna')]]")
-    private val LIST_STATUS = By.xpath("//div[@class='infra-model-list__search-result']/div")
+    val infraModelsList: E2EInfraModelTable by lazy {
+        childComponent(
+            By.className("infra-model-list-search-result__table"), ::E2EInfraModelTable
+        )
+    }
 
-    fun lataaUusi(file: String): InfraModelUploadAndEditForm {
+    fun upload(file: String): E2EInfraModelForm {
         logger.info("Upload IM file $file")
-        getElementWhenExists(By.className("file-input__file-input"))
-        .sendKeys(file)
+        childElement(By.className("file-input__file-input")).sendKeys(file)
 
-        WebDriverWait(browser(), Duration.ofSeconds(15))
-            .until(ExpectedConditions.visibilityOfElementLocated(SAVE_BUTTON))
-        WebDriverWait(browser(), Duration.ofSeconds(20))
-            .until(ExpectedConditions.elementToBeClickable(SAVE_BUTTON))
-
-        return InfraModelUploadAndEditForm()
+        return waitForInfraModelForm()
     }
 
-    fun infraModelList(): InfraModelTable {
-        return InfraModelTable(By.className("infra-model-list-search-result__table"))
+    fun openInfraModel(fileName: String): E2EInfraModelForm {
+        infraModelsList.selectItemWhenMatches { it.fileName == fileName }
+
+        return waitForInfraModelForm()
     }
 
-    fun openInfraModel(infraModelFileName: String): InfraModelUploadAndEditForm {
-        WebDriverWait(browser(), Duration.ofSeconds(5))
-            .until(ExpectedConditions.numberOfElementsToBeMoreThan(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr") , 0))
-
-        val rows =  infraModelList().infraModelRows()
-        try {
-            rows.first { it.tiedostonimi() == infraModelFileName }.clickRow()
-        } catch (ex: java.util.NoSuchElementException) {
-            logger.warn("Cannot find IM file $infraModelFileName! Available files are ${rows.map { it.tiedostonimi() }}")
-        }
-
-        return  InfraModelUploadAndEditForm()
-    }
-
-    fun search(query: String) {
+    fun search(query: String): E2EInfraModelPage = apply {
         logger.info("Search '$query'")
-        getChildElementStaleSafe(By.className("infra-model-list-search-result__table"))
-        val searchField = getElementWhenVisible(By.xpath("//div[@class='infra-model-search-form__auto-complete']//input"))
-        clearInput(searchField)
-        searchField.sendKeys(query)
+        waitChildVisible(By.className("infra-model-list-search-result__table"))
+        childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).clear().inputValue(query)
+    }
+
+    fun openVelhoWaitingForApprovalList(): E2EProjektiVelhoPage {
+        clickButton(byQaId("infra-model-nav-tab-waiting"))
+
+        waitChildVisible(By.className("projektivelho-file-list"))
+        return E2EProjektiVelhoPage()
+    }
+
+    private fun waitForInfraModelForm(): E2EInfraModelForm {
+        waitChildVisible(By.className("infra-model-upload__form-column"))
+        return E2EInfraModelForm()
     }
 
 }

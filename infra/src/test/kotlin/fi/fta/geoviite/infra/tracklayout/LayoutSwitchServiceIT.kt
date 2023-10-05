@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -12,11 +12,13 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 import kotlin.random.Random
 
 
@@ -27,7 +29,15 @@ class LayoutSwitchServiceIT @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
-): ITTestBase() {
+    private val alignmentDao: LayoutAlignmentDao,
+    private val locationTrackDao: LocationTrackDao,
+) : DBTestBase() {
+
+    @BeforeEach
+    fun cleanup() {
+        deleteFromTables("layout", "switch_joint", "switch", "location_track")
+    }
+
     @Test
     fun switchOwnerIsReturned() {
         val dummyOwner = SwitchOwner(id = IntId(4), name = MetaDataName("Cinia"))
@@ -139,8 +149,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         assertEquals(0, switchService.pageSwitches(switches, 0, 0, null).size)
         assertEquals(1, switchService.pageSwitches(switches, 0, 1, null).size)
         assertEquals(
-            switches.size,
-            switchService.pageSwitches(switches, 0, switches.lastIndex + 10, null).size
+            switches.size, switchService.pageSwitches(switches, 0, switches.lastIndex + 10, null).size
         )
     }
 
@@ -170,8 +179,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
                         JointNumber(1),
                         location = Point(422222.2, 7222222.2),
                         locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED
-                    ),
-                    TrackLayoutSwitchJoint(
+                    ), TrackLayoutSwitchJoint(
                         JointNumber(5),
                         location = Point(428305.33617941965, 7210146.458099049),
                         locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED
@@ -232,20 +240,26 @@ class LayoutSwitchServiceIT @Autowired constructor(
     fun switchConnectedLocationTracksFound() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.getDraft(switchService.saveDraft(switch(1)).id)
-        val (_, withStartLink) = insert(locationTrack(tnId, externalId = someOid()).copy(
-            topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
-        ), alignment(someSegment()))
-        val (_, withEndLink) = insert(locationTrack(tnId, externalId = null).copy(
-            topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
-        ), alignment(someSegment()))
+        val switch = switchService.getDraft(switchService.saveDraft(switch(1)).id)!!
+        val (_, withStartLink) = insert(
+            locationTrack(tnId, externalId = someOid()).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
+            ), alignment(someSegment())
+        )
+        val (_, withEndLink) = insert(
+            locationTrack(tnId, externalId = null).copy(
+                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
+            ), alignment(someSegment())
+        )
         val (_, withSegmentLink) = insert(
             locationTrack(tnId, externalId = someOid()),
-            alignment(someSegment().copy(
-                switchId = switch.id as IntId,
-                startJointNumber = JointNumber(1),
-                endJointNumber = JointNumber(2),
-            )),
+            alignment(
+                someSegment().copy(
+                    switchId = switch.id as IntId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2),
+                )
+            ),
         )
         assertEquals(
             listOf<LocationTrackIdentifiers>(),
@@ -259,14 +273,99 @@ class LayoutSwitchServiceIT @Autowired constructor(
     }
 
     @Test
+    fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
+        val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
+        val trackNumberId = trackNumber.id as IntId
+        val switch = switchDao.fetch(switchDao.insert(switch(1)).rowVersion)
+
+        val locationTrack1Oid = someOid<LocationTrack>()
+        val alignment1Version = alignmentDao.insert(alignment(someSegment()))
+        val locationTrack1 = locationTrackDao.insert(
+            locationTrack(
+                alignment = alignmentDao.fetch(alignment1Version),
+                trackNumberId = trackNumberId,
+                externalId = locationTrack1Oid,
+                alignmentVersion = alignment1Version,
+                name = "LT 1",
+            ).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
+            )
+        )
+
+        val alignment2Version = alignmentDao.insert(alignment(someSegment()))
+        val locationTrack2 = locationTrackDao.insert(
+            locationTrack(
+                alignment = alignmentDao.fetch(alignment2Version),
+                trackNumberId = trackNumberId,
+                alignmentVersion = alignment2Version,
+                name = "LT 2",
+            ).copy(
+                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
+            )
+        )
+
+        val alignment3Version = alignmentDao.insert(
+            alignment(
+                someSegment().copy(
+                    switchId = switch.id as IntId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2),
+                )
+            )
+        )
+
+        val locationTrack3Oid = someOid<LocationTrack>()
+        val locationTrack3 = locationTrackDao.insert(
+            locationTrack(
+                alignment = alignmentDao.fetch(alignment3Version),
+                trackNumberId = trackNumberId,
+                externalId = locationTrack3Oid,
+                alignmentVersion = alignment3Version,
+                name = "LT 3",
+            ).copy(
+                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
+            )
+        )
+
+        val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
+            switch.id as IntId, JointNumber(1), Instant.now()
+        )
+        assertEquals(2, linkedLocationTracks.size)
+
+        assertTrue(
+            linkedLocationTracks.contains(
+                LocationTrackIdentifiers(
+                    rowVersion = locationTrack1.rowVersion, externalId = locationTrack1Oid
+                )
+            )
+        )
+
+        assertTrue(
+            linkedLocationTracks.contains(
+                LocationTrackIdentifiers(
+                    rowVersion = locationTrack3.rowVersion, externalId = locationTrack3Oid
+                )
+            )
+        )
+
+        assertTrue(linkedLocationTracks.none { lt ->
+            lt.rowVersion == locationTrack2.rowVersion
+        })
+    }
+
+    @Test
     fun getSwitchLinksTopologicalConnections() {
         val switch = switch(123, IntId(1))
         val switchVersion = switchDao.insert(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
-        val (locationTrack, alignment) =
-            locationTrackAndAlignment(getUnusedTrackNumberId(), segment(joint1Point - 1.0, joint1Point))
-        val locationTrackVersion = locationTrackService.saveDraft(locationTrack
-            .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))), alignment)
+        val (locationTrack, alignment) = locationTrackAndAlignment(
+            getUnusedTrackNumberId(),
+            segment(joint1Point - 1.0, joint1Point)
+        )
+        val locationTrackVersion = locationTrackService.saveDraft(
+            locationTrack.copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))),
+            alignment
+        )
         val connections = switchService.getSwitchJointConnections(PublishType.DRAFT, switchVersion.id)
 
         assertEquals(
@@ -285,7 +384,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
             trapPoint = null,
         )
         val switchId = switchService.insertSwitch(switch)
-        val fetchedSwitch = switchService.getDraft(switchId)
+        val fetchedSwitch = switchService.getDraft(switchId)!!
         assertNull(switchService.getOfficial(switchId))
 
         assertEquals(DataType.STORED, fetchedSwitch.dataType)
@@ -299,7 +398,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         alignment: LayoutAlignment,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
         val (id, version) = locationTrackService.saveDraft(locationTrack, alignment)
-        return locationTrackService.getDraft(id) to LocationTrackIdentifiers(version, locationTrack.externalId)
+        return locationTrackService.getDraft(id)!! to LocationTrackIdentifiers(version, locationTrack.externalId)
     }
 
     private fun generateDummyExternalId(): String {
@@ -310,9 +409,10 @@ class LayoutSwitchServiceIT @Autowired constructor(
         return "$first.$second.$third"
     }
 
+    private var dummySwitchNameSequence = 0
     private fun generateDummySwitch(): TrackLayoutSwitch {
         return TrackLayoutSwitch(
-            name = SwitchName("ABC123"),
+            name = SwitchName("ABC123 ${dummySwitchNameSequence++}"),
             switchStructureId = switchStructureYV60_300_1_9().id as IntId,
             stateCategory = LayoutStateCategory.EXISTING,
             joints = listOf(
@@ -320,8 +420,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
                     number = JointNumber(1),
                     location = Point(428423.66891764296, 7210292.096537605),
                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED
-                ),
-                TrackLayoutSwitchJoint(
+                ), TrackLayoutSwitchJoint(
                     number = JointNumber(5),
                     location = Point(428412.6499928745, 7210278.867815434),
                     locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED

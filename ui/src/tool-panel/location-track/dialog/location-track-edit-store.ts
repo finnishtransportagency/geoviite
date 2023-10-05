@@ -5,7 +5,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     isPropEditFieldCommitted,
@@ -23,7 +23,7 @@ export type LocationTrackEditState = {
     };
     isSaving: boolean;
     trackNumbers: LayoutTrackNumber[];
-    locationTrack?: LocationTrackSaveRequest;
+    locationTrack: LocationTrackSaveRequest;
     validationErrors: ValidationError<LocationTrackSaveRequest>[];
     committedFields: (keyof LocationTrackSaveRequest)[];
     allFieldsCommitted: boolean;
@@ -38,7 +38,14 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
     },
     isSaving: false,
     trackNumbers: [],
-    locationTrack: undefined,
+    locationTrack: {
+        name: '',
+        trackNumberId: undefined,
+        state: undefined,
+        type: undefined,
+        descriptionBase: '',
+        duplicateOf: undefined,
+    },
     validationErrors: [],
     committedFields: [],
     allFieldsCommitted: false,
@@ -51,12 +58,12 @@ const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
 function newLinkingLocationTrack(): LocationTrackSaveRequest {
     return {
         name: '',
-        description: '',
+        descriptionBase: '',
         type: undefined,
         state: undefined,
         trackNumberId: undefined,
-        duplicateOf: null,
         topologicalConnectivity: undefined,
+        duplicateOf: undefined,
     };
 }
 
@@ -67,9 +74,17 @@ function validateLinkingLocationTrack(
 
     errors = [
         ...errors,
-        ...['name', 'trackNumberId', 'type', 'state', 'description', 'topologicalConnectivity']
+        ...[
+            'name',
+            'trackNumberId',
+            'type',
+            'state',
+            'descriptionBase',
+            'descriptionSuffix',
+            'topologicalConnectivity',
+        ]
             .map((prop: keyof LocationTrackSaveRequest) => {
-                if (isNullOrBlank(saveRequest[prop])) {
+                if (isNilOrBlank(saveRequest[prop])) {
                     return {
                         field: prop,
                         reason: 'mandatory-field',
@@ -87,13 +102,13 @@ function validateLinkingLocationTrack(
                           reason: `invalid-name`,
                           type: ValidationErrorType.ERROR,
                       }
-                    : null;
+                    : undefined;
             })
             .filter(filterNotEmpty),
     ];
     if (
-        saveRequest.description &&
-        (saveRequest.description.length < 4 || saveRequest.description.length > 256)
+        saveRequest.descriptionBase &&
+        (saveRequest.descriptionBase.length < 4 || saveRequest.descriptionBase.length > 256)
     ) {
         return [...errors, ...getErrorForInvalidDescription()];
     }
@@ -104,7 +119,7 @@ function validateLinkingLocationTrack(
 function getErrorForInvalidDescription(): ValidationError<LocationTrackSaveRequest>[] {
     return [
         {
-            field: 'description',
+            field: 'descriptionBase',
             reason: 'invalid-description',
             type: ValidationErrorType.ERROR,
         },

@@ -1,10 +1,5 @@
 import * as React from 'react';
-import {
-    LayoutLocationTrack,
-    LayoutReferenceLine,
-    MapAlignment,
-    MapSegment,
-} from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LayoutReferenceLine } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import { useTranslation } from 'react-i18next';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -20,21 +15,21 @@ import {
     LinkingState,
     LinkingType,
 } from 'linking/linking-model';
-import GeometrySegmentInfobox from 'tool-panel/geometry-alignment/geometry-segment/geometry-segment-infobox';
 import { OnSelectOptions } from 'selection/selection-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
-import InfoboxText from 'tool-panel/infobox/infobox-text';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { GeometryAlignmentVerticalGeometryInfobox } from 'tool-panel/geometry-alignment/geometry-alignment-vertical-geometry-infobox';
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
-    geometryAlignment: MapAlignment;
-    layoutLocationTrack?: LayoutLocationTrack;
-    layoutReferenceLine?: LayoutReferenceLine;
-    segment?: MapSegment;
+    geometryAlignment: AlignmentHeader;
+    selectedLayoutLocationTrack?: LayoutLocationTrack;
+    selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
-    alignmentChangeTime: TimeStamp;
+    locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?: LinkingState;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
@@ -43,16 +38,19 @@ type GeometryAlignmentInfoboxProps = {
     resolution: number;
     publishType: PublishType;
     showArea: (area: BoundingBox) => void;
+    visibilities: GeometryAlignmentInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometryAlignmentInfoboxVisibilities) => void;
+    onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     onSelect,
     geometryAlignment,
-    layoutLocationTrack,
-    layoutReferenceLine,
-    segment,
+    selectedLayoutLocationTrack,
+    selectedLayoutReferenceLine,
     planId,
-    alignmentChangeTime,
+    locationTrackChangeTime,
     trackNumberChangeTime,
     linkingState,
     onLinkingStart,
@@ -61,13 +59,23 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     resolution,
     publishType,
     showArea,
+    visibilities,
+    onVisibilityChange,
+    onVerticalGeometryDiagramVisibilityChange,
+    verticalGeometryDiagramVisible,
 }: GeometryAlignmentInfoboxProps) => {
     const { t } = useTranslation();
     const planHeader = usePlanHeader(planId);
 
+    const visibilityChange = (key: keyof GeometryAlignmentInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
             <Infobox
+                contentVisible={visibilities.basic}
+                onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.alignment.geometry.title')}
                 qa-id="geometry-alignment-infobox">
                 <InfoboxContent>
@@ -99,12 +107,14 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                 linkingState.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
                 linkingState.type === LinkingType.LinkingGeometryWithAlignment) && (
                 <GeometryAlignmentLinkingInfobox
+                    contentVisible={visibilities.linking}
+                    onContentVisibilityChange={() => visibilityChange('linking')}
                     onSelect={onSelect}
                     geometryAlignment={geometryAlignment}
-                    layoutLocationTrack={layoutLocationTrack}
-                    layoutReferenceLine={layoutReferenceLine}
+                    selectedLayoutLocationTrack={selectedLayoutLocationTrack}
+                    selectedLayoutReferenceLine={selectedLayoutReferenceLine}
                     planId={planId}
-                    alignmentChangeTime={alignmentChangeTime}
+                    locationTrackChangeTime={locationTrackChangeTime}
                     trackNumberChangeTime={trackNumberChangeTime}
                     linkingState={linkingState}
                     onLinkingStart={onLinkingStart}
@@ -115,21 +125,26 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                 />
             )}
 
-            {planHeader && <GeometryPlanInfobox planHeader={planHeader} />}
-            {planHeader &&
-                (segment ? (
-                    <GeometrySegmentInfobox chosenSegment={segment} planHeader={planHeader} />
-                ) : (
-                    <Infobox title={t('tool-panel.alignment.geometry-segment.title')}>
-                        <InfoboxContent>
-                            <InfoboxText
-                                value={t(
-                                    'tool-panel.alignment.geometry-segment.no-segment-selected',
-                                )}
-                            />
-                        </InfoboxContent>
-                    </Infobox>
-                ))}
+            {planHeader && (
+                <GeometryPlanInfobox
+                    planHeader={planHeader}
+                    visibilities={{
+                        plan: visibilities.plan,
+                        planQuality: visibilities.planQuality,
+                    }}
+                    onVisibilityChange={(v) => {
+                        onVisibilityChange({ ...visibilities, ...v });
+                    }}
+                />
+            )}
+            <GeometryAlignmentVerticalGeometryInfobox
+                contentVisible={visibilities.verticalGeometry}
+                onContentVisibilityChange={() => visibilityChange('verticalGeometry')}
+                onVerticalGeometryDiagramVisibilityChange={
+                    onVerticalGeometryDiagramVisibilityChange
+                }
+                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+            />
         </React.Fragment>
     );
 };

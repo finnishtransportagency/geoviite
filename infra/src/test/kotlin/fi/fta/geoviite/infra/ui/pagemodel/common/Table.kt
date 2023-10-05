@@ -1,12 +1,57 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
+abstract class E2ETable<T>(
+    tableFetch: ElementFetch,
+    rowsBy: By = By.tagName("tr"),
+    private val headersBy: By = By.tagName("th"),
+) : E2EList<T>(tableFetch, rowsBy) {
+    val rows: List<T> get() = items
 
-open class TableRow (val headers: List<String>, val row: WebElement) {
-    fun clickRow() = row.findElement(By.tagName("td")).click()
-    protected fun getColumnByName(name: String): WebElement = row.findElements(By.ByTagName("td"))[colIndx(name)]
-    private fun colIndx(name: String): Int = headers.indexOf(name).apply{ if (this == -1) throw RuntimeException("No such column $name")}
+    protected val headerElements: List<WebElement> get() = childElements(headersBy)
+
+    abstract fun getRowContent(row: WebElement): T
+
+    override fun getItemContent(item: WebElement) = getRowContent(item)
+
+
+    //Firefox doesn't handle tr clicks correctly, temporary fixed by clicking on the first td
+    //https://bugzilla.mozilla.org/show_bug.cgi?id=1448825
+    override fun select(item: T): E2ETable<T> = apply {
+        selectBy(item, By.tagName("td"))
+    }
+
+    fun waitUntilReady(): E2ETable<T> = apply {
+        waitChildNotVisible(By.className("table--loading"))
+    }
 }
 
+fun getColumnIndexByText(
+    columnName: String,
+    headers: List<WebElement>,
+) = headers.indexOfFirst { it.text == columnName }
+    .also { idx -> check(idx != -1) { "No header with text $columnName. Headers: ${headers.map { it.text }}" } }
+
+fun getColumnIndex(
+    qaId: String,
+    headers: List<WebElement>,
+) = headers.indexOfFirst { it.getAttribute("qa-id") == qaId }
+    .also { idx ->
+        check(idx != -1) {
+            "No header found with qa-id $qaId. Header: ${headers.map { it.getAttribute("qa-id") }}"
+        }
+    }
+
+fun getColumnContent(
+    qaId: String,
+    columns: List<WebElement>,
+    headers: List<WebElement>,
+): String {
+    return columns[getColumnIndex(qaId, headers)].text
+}
+
+fun getColumnContentByText(columnName: String, columns: List<WebElement>, headers: List<WebElement>): String =
+    columns[getColumnIndexByText(columnName, headers)].text

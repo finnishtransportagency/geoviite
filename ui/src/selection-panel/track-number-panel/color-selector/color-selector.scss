@@ -1,0 +1,42 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.color-selector-menu {
+    @include vayla-design.shadow-8dp;
+
+    position: absolute;
+    z-index: vayla-design.$layer-menu;
+    border-radius: 4px;
+    background-color: white;
+
+    ol {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-gap: 10px;
+        padding: 10px;
+
+        list-style: none;
+        margin: 0;
+    }
+}
+
+.color-square {
+    cursor: pointer;
+    height: 20px;
+    width: 20px;
+
+    &--transparent {
+        position: relative;
+        box-sizing: border-box;
+        border: 1px solid vayla-design.$color-white-darker;
+        background-color: vayla-design.$color-white-default;
+
+        &:after {
+            content: '';
+            position: absolute;
+            border-top: 1px solid vayla-design.$color-white-darker;
+            width: 26px;
+            transform: rotate(-45deg);
+            transform-origin: 22px 10px;
+        }
+    }
+}

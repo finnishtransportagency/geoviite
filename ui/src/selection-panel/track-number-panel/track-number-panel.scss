@@ -1,28 +1,31 @@
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .track-number-panel {
     &__subtitle {
-        color: $color-black-lighter;
+        color: vayla-design.$color-black-lighter;
     }
 
     &__track-numbers {
-        display: grid;
-        grid-template-columns: max-content max-content max-content;
-        grid-gap: 10px;
-        row-gap: 10px;
-
         list-style: none;
         margin: 0;
         padding: 0;
-
-        font-size: 12px;
-        line-height: 16px;
     }
 
     &__track-number {
-        &:hover {
-            text-decoration: underline;
-            cursor: pointer;
+        @include vayla-design.typography-caption;
+
+        font-weight: normal;
+        margin: 8px 0;
+
+        > div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            > span:hover {
+                text-decoration: underline;
+                cursor: pointer;
+            }
         }
 
         .radio {

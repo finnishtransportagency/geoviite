@@ -1,61 +1,69 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import childExists
+import fi.fta.geoviite.infra.ui.util.ElementFetch
+import getChildElement
+import getChildElements
 import org.openqa.selenium.By
 
-abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
+abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
     init {
         logger.info("${this.javaClass} loaded")
     }
 
-    protected fun title() =
-        rootElement.findElement(By.cssSelector("div.formgroup__title")).text
+    protected val title: String get() = childText(By.className("formgroup__title"))
 
-    protected fun fieldValue(fieldLabel: String): String {
-        logger.info("Get field [$fieldLabel]")
-        val fieldValueElement = fieldValueElement(fieldLabel)
-        val fieldLayoutValueElement = getElementIfExists(fieldValueElement, By.className("field-layout__value"))
-        return if (fieldLayoutValueElement != null) {
-            logger.info("field [$fieldLabel]=[${fieldLayoutValueElement.text}]")
+    protected fun getValueForField(fieldName: String): String {
+        logger.info("Get field [$fieldName]")
+        val fieldValueElement = getFieldValueElement(fieldName)
+        val hasFieldLayoutValue = fieldValueElement.childExists(By.className("field-layout__value"))
+        return if (hasFieldLayoutValue) {
+            val fieldLayoutValueElement = fieldValueElement.getChildElement(By.className("field-layout__value"))
+            logger.info("field [$fieldName]=[${fieldLayoutValueElement.text}]")
             fieldLayoutValueElement.text
         } else {
-            logger.info("field [$fieldLabel]=[${fieldValueElement.text}]")
+            logger.info("field [$fieldName]=[${fieldValueElement.text}]")
             fieldValueElement.text
         }
     }
 
-    protected fun changeFieldDropDownValues(fieldLabel: String, inputs: List<String>) {
-        logger.info("Change dropdown field [$fieldLabel] to [$inputs]")
-        clickEditIcon(fieldLabel)
-        inputs.forEachIndexed { index, input ->
-            val dropDown = DropDown(fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index])
-            dropDown.openDropdown()
-            dropDown.selectItem(input)
+    protected fun selectDropdownValues(label: String, values: List<String>): E2EFormGroup = apply {
+        logger.info("Change dropdown field [$label] to [$values]")
+        clickEditIcon(label)
+
+        values.forEachIndexed { index, value ->
+            E2EDropdown { getFieldValueElement(label).getChildElements(By.className("dropdown"))[index] }.select(value)
         }
-        clickEditIcon(fieldLabel)
+
+        clickEditIcon(label)
     }
 
-    protected fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>) {
-        logger.info("Add and change dropdown value field [$fieldLabel] to [$inputs]")
-        clickEditIcon(fieldLabel)
-        val dropDown = DropDown(fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")))
-        dropDown.openDropdown()
-        dropDown.clickAddNew()
-        val dialogPopUp = DialogPopUpWithTextField()
-        dialogPopUp.inputTextField(inputs)
-        dialogPopUp.clickPrimaryButton()
-        clickEditIcon(fieldLabel)
+    protected fun selectNewDropdownValue(label: String, values: List<String>): E2EFormGroup = apply {
+        logger.info("Add and change dropdown value field [$label] to [$values]")
+        clickEditIcon(label)
+
+        E2EDropdown { getFieldValueElement(label).getChildElement(By.className("dropdown")) }
+            .open()
+            .new()
+
+        expectToast {
+            E2EDialogWithTextField()
+                .inputValues(values)
+                .clickPrimaryButton()
+        }
+
+        clickEditIcon(label)
     }
 
-    protected fun fieldValueElement(fieldLabel: String) =
-        getChildElementStaleSafe(By.xpath(".//div[@class='formgroup__field' and div[contains(text(), '$fieldLabel')]]/div[@class='formgroup__field-value']"))
+    private fun getFieldValueElement(fieldName: String) =
+        childElement(By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__field-value']"))
 
 
-    protected fun clickEditIcon(fieldLabel: String) {
-        logger.info("Click edit icon in field $fieldLabel")
-        rootElement.findElement(
-            By.xpath(".//div[@class='formgroup__field' and div[contains(text(), '$fieldLabel')]]/div[@class='formgroup__edit-icon']/div")
+    protected fun clickEditIcon(fieldName: String): E2EFormGroup = apply {
+        logger.info("Click edit icon in field $fieldName")
+        clickChild(
+            By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__edit-icon']/div")
         )
-            .click()
     }
 }

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.configuration
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -10,10 +11,11 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.util.Code
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
+import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
+import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -46,6 +48,7 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)
+        registry.addStringConstructorConverter(::HttpsUrl)
         registry.addStringConstructorConverter(::MetaDataName)
         registry.addStringConstructorConverter(::GeometrySwitchTypeName)
         registry.addStringConstructorConverter(::PlanElementName)
@@ -85,10 +88,17 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering case-insensitive path variable enum converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<PublishType>(it) }
+
+        logger.info("Registering ProjektiVelho sanitized string converters")
+        registry.addStringConstructorConverter(::PVId)
+        registry.addStringConstructorConverter(::PVDictionaryCode)
+        registry.addStringConstructorConverter(::PVDictionaryName)
+        registry.addStringConstructorConverter(::PVTargetCategory)
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
+        builder.serializationInclusion(JsonInclude.Include.NON_NULL)
         converters.add(MappingJackson2HttpMessageConverter(builder.build()))
         converters.add(ByteArrayHttpMessageConverter())
     }

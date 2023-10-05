@@ -3,7 +3,9 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.lineLength
 
 fun moveKmPostLocation(
     kmPost: TrackLayoutKmPost,
@@ -18,7 +20,7 @@ fun moveKmPostLocation(
 fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
-    moveFunc: (point: IPoint, length: Double) -> IPoint,
+    moveFunc: (point: IPoint3DM) -> IPoint,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(
     locationTrack,
@@ -73,7 +75,7 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment,
-    moveFunc: (point: IPoint, length: Double) -> IPoint,
+    moveFunc: (point: IPoint3DM) -> IPoint,
     referenceLineService: ReferenceLineService,
 ) = referenceLineService.saveDraft(
     referenceLine,
@@ -82,21 +84,25 @@ fun moveReferenceLineGeometryPointsAndUpdate(
 
 fun moveAlignmentPoints(
     alignment: LayoutAlignment,
-    moveFunc: (point: IPoint, length: Double) -> IPoint,
-) = alignment.copy(
-    segments = alignment.segments.map { segment ->
-        segment.withPoints(
-            points = segment.points.map { point ->
-                val length = segment.start + point.m
-                val newPoint = moveFunc(point, length)
+    moveFunc: (point: IPoint3DM) -> IPoint,
+): LayoutAlignment {
+    var segmentM = 0.0
+    return alignment.copy(
+        segments = alignment.segments.map { segment ->
+            var prevPoint: IPoint3DM? = null
+            val newPoints = segment.points.map { point ->
+                val newPoint = moveFunc(point)
                 point.copy(
                     x = newPoint.x,
-                    y = newPoint.y
-                )
-            },
-        )
-    }
-)
+                    y = newPoint.y,
+                    m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: segmentM,
+                ).also { p -> prevPoint = p }
+            }
+            segment.copy(geometry = segment.geometry.withPoints(newPoints, segmentM))
+                .also { newSegment -> segmentM = newSegment.endM }
+        }
+    )
+}
 
 fun moveSwitchPoints(
     switch: TrackLayoutSwitch,

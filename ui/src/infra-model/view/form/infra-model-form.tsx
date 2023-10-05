@@ -7,18 +7,17 @@ import {
     PlanSource,
     Project,
 } from 'geometry/geometry-model';
+import styles from './infra-model-form.module.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { TextField } from 'vayla-design-lib/text-field/text-field';
-import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import Formgroup from 'infra-model/view/formgroup/formgroup';
 import FormgroupContent from 'infra-model/view/formgroup/formgroup-content';
 import {
     ExtraInfraModelParameters,
     InfraModelParametersProp,
     OverrideInfraModelParameters,
-} from 'infra-model/infra-model-store';
+} from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
+import { CoordinateSystem as CoordinateSystemModel, Oid, TimeStamp } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -27,6 +26,7 @@ import { fetchAuthors, getProject } from 'geometry/geometry-api';
 import { InfraModelPhaseField } from 'infra-model/view/form/fields/infra-model-phase-field';
 import { InfraModelDecisionPhaseField } from 'infra-model/view/form/fields/infra-model-decision-phase-field';
 import { InfraModelMeasurementMethodField } from 'infra-model/view/form/fields/infra-model-measurement-method-field';
+import { InfraModelElevationMeasurementMethodField } from 'infra-model/view/form/fields/infra-model-elevation-measurement-method-field';
 import NewAuthorDialog from 'infra-model/view/dialogs/new-author-dialog';
 import NewProjectDialog from 'infra-model/view/dialogs/new-project-dialog';
 import { InfraModelVerticalCoordinateInfoboxField } from 'infra-model/view/form/fields/infra-model-vertical-coordinate-infobox-field';
@@ -34,15 +34,23 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { filterNotEmpty } from 'utils/array-utils';
-import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
+import {
+    updateReferenceLineChangeTime,
+    updateTrackNumberChangeTime,
+    updateProjectChangeTime,
+} from 'common/change-time-api';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
+import { ChangeTimes } from 'common/common-slice';
+import { WriteAccessRequired } from 'user/write-access-required';
+import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
+//import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
+import { PVOid } from 'infra-model/projektivelho/pv-oid';
+import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -57,13 +65,13 @@ type InframodelViewFormContainerProps = {
     ) => void;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     extraInframodelParameters: ExtraInfraModelParameters;
-    onCommitField: (fieldName: string) => void;
     committedFields: InfraModelParametersProp[];
     onSelect: OnSelectFunction;
 };
 
 export type EditablePlanField =
     | undefined
+    | 'observations'
     | 'planName'
     | 'planOid'
     | 'assignmentName'
@@ -72,6 +80,7 @@ export type EditablePlanField =
     | 'planPhase'
     | 'planDecisionPhase'
     | 'measurementMethod'
+    | 'elevationMeasurementMethod'
     | 'heightSystem'
     | 'author'
     | 'createdTime'
@@ -87,7 +96,7 @@ function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
 }
 
 function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {
-    return alignments.some((alignment) => alignment.profile != null);
+    return alignments.some((alignment) => alignment.profile);
 }
 
 const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
@@ -99,14 +108,15 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     onInfraModelExtraParametersChange,
     overrideInfraModelParameters,
     extraInframodelParameters,
-    onCommitField,
     committedFields,
     onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
-    const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystemModel | null>();
+    const [coordinateSystem, setCoordinateSystem] = React.useState<
+        CoordinateSystemModel | undefined
+    >();
     const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
-    const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | null>();
+    const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | undefined>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
     const [authors, setAuthors] = React.useState<Author[]>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
@@ -114,6 +124,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
+    const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
 
     const planSourceOptions = [
         {
@@ -205,7 +216,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
             setCoordinateSystem(undefined);
             setFieldInEdit(undefined);
         }
-    }, [overrideInfraModelParameters.coordinateSystemSrid]);
+    }, [
+        overrideInfraModelParameters.coordinateSystemSrid,
+        geometryPlan.units.coordinateSystemSrid,
+    ]);
 
     function getVisibleErrorsByProp(prop: InfraModelParametersProp) {
         return committedFields.includes(prop)
@@ -217,10 +231,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                       return t(`im-form.${error.reason}`);
                   })
             : [];
-    }
-
-    function hasErrors(prop: InfraModelParametersProp) {
-        return getVisibleErrorsByProp(prop).length > 0;
     }
 
     function onSelectTrackNumber(id: LayoutTrackNumberId) {
@@ -237,26 +247,69 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <Formgroup>
-                <FieldLayout
-                    label={t('im-form.observations-field')}
-                    value={
-                        <TextArea
-                            value={extraInframodelParameters.message}
-                            wide
-                            readOnly={false}
-                            maxlength={250}
-                            onChange={(e) =>
-                                changeInExtraParametersField(e.currentTarget.value, 'message')
-                            }
-                        />
-                    }
-                    help={t('im-form.observations-help')}
-                />
-            </Formgroup>
-
+            <WriteAccessRequired>
+                <Formgroup>
+                    <FieldLayout
+                        label={t('im-form.observations-field')}
+                        help={t('im-form.observations-help')}
+                        value={
+                            <FormgroupTextarea
+                                label={t('im-form.observations-field')}
+                                defaultDisplayedValue={t('im-form.observations-field-default')}
+                                value={extraInframodelParameters.message}
+                                inEditMode={fieldInEdit === 'observations'}
+                                onEdit={() => setFieldInEdit('observations')}
+                                onClose={() => setFieldInEdit(undefined)}
+                                onChange={(e) =>
+                                    changeInExtraParametersField(e.currentTarget.value, 'message')
+                                }
+                            />
+                        }
+                    />
+                </Formgroup>
+            </WriteAccessRequired>
             <Formgroup qa-id="im-form-project">
-                <FormgroupContent title={t('im-form.project-information')}>
+                {pvDocument && (
+                    <FormgroupContent title={t('im-form.pv-document-information.title')}>
+                        {pvDocument.projectGroup && (
+                            <FormgroupField
+                                label={t('im-form.pv-document-information.project-group')}>
+                                {projectInfo(
+                                    pvDocument.projectGroup.oid,
+                                    pvDocument.projectGroup.name,
+                                    changeTimes.pvDocument,
+                                )}
+                            </FormgroupField>
+                        )}
+                        {pvDocument.project && (
+                            <FormgroupField label={t('im-form.pv-document-information.project')}>
+                                {projectInfo(
+                                    pvDocument.project.oid,
+                                    pvDocument.project.name,
+                                    changeTimes.pvDocument,
+                                )}
+                            </FormgroupField>
+                        )}
+                        {pvDocument.assignment && (
+                            <FormgroupField label={t('im-form.pv-document-information.assignment')}>
+                                {projectInfo(
+                                    pvDocument.assignment.oid,
+                                    pvDocument.assignment.name,
+                                    changeTimes.pvDocument,
+                                )}
+                            </FormgroupField>
+                        )}
+                        <FormgroupField label={t('im-form.pv-document-information.document')}>
+                            {projectInfo(
+                                pvDocument.document.oid,
+                                pvDocument.document.description || '',
+                                changeTimes.pvDocument,
+                            )}
+                        </FormgroupField>
+                    </FormgroupContent>
+                )}
+
+                <FormgroupContent title={t('im-form.file-metadata')}>
                     <FormgroupField
                         label={t('im-form.name-field')}
                         inEditMode={fieldInEdit === 'planName'}
@@ -271,42 +324,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     changeInOverrideParametersField(projectId, 'projectId')
                                 }
                                 onAddProject={() => setShowNewProjectDialog(true)}
-                            />
-                        )}
-                    </FormgroupField>
-
-                    <FormgroupField
-                        label={t('im-form.oid-field')}
-                        inEditMode={fieldInEdit === 'planOid'}
-                        onEdit={() => setFieldInEdit('planOid')}
-                        onClose={() => setFieldInEdit(undefined)}>
-                        {fieldInEdit !== 'planOid' ? (
-                            <FieldLayout
-                                value={
-                                    <InfraModelTextField hasError={hasErrors('oid')}>
-                                        {extraInframodelParameters.oid
-                                            ? extraInframodelParameters.oid
-                                            : t('im-form.information-missing')}
-                                    </InfraModelTextField>
-                                }
-                                errors={getVisibleErrorsByProp('oid')}
-                            />
-                        ) : (
-                            <FieldLayout
-                                value={
-                                    <TextField
-                                        id="inframodel_oid"
-                                        value={extraInframodelParameters.oid}
-                                        hasError={hasErrors('oid')}
-                                        onBlur={() => onCommitField('oid')}
-                                        onChange={(e) =>
-                                            changeInExtraParametersField(e.target.value, 'oid')
-                                        }
-                                        wide
-                                    />
-                                }
-                                help={t('im-form.oid-help')}
-                                errors={getVisibleErrorsByProp('oid')}
                             />
                         )}
                     </FormgroupField>
@@ -469,6 +486,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         extraInframodelParameters={extraInframodelParameters}
                         changeInExtraParametersField={changeInExtraParametersField}
                     />
+                    <InfraModelElevationMeasurementMethodField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        extraInframodelParameters={extraInframodelParameters}
+                        changeInExtraParametersField={changeInExtraParametersField}
+                    />
                     <FormgroupField
                         label={t('im-form.plan-source')}
                         inEditMode={fieldInEdit === 'source'}
@@ -544,6 +567,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     onSave={(project) => {
                         setShowNewProjectDialog(false);
                         changeInOverrideParametersField(project.id, 'projectId');
+                        updateProjectChangeTime();
                     }}></NewProjectDialog>
             )}
             {showNewTrackNumberDialog && trackNumberList && (
@@ -557,3 +581,18 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 };
 
 export default InfraModelForm;
+
+function projectInfo(oid: Oid, description: string, _changeTime: TimeStamp) {
+    return (
+        <span className={styles['infra-model-upload__project-field']}>
+            <PVOid oid={oid} />
+            {
+                description
+                // TODO Re-enable redirect links when they work
+                /*<PVRedirectLink changeTime={changeTime} oid={oid}>
+                    description
+                </PVRedirectLink>*/
+            }
+        </span>
+    );
+}

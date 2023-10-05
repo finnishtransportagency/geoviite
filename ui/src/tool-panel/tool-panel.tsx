@@ -1,18 +1,21 @@
 import * as React from 'react';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
-import { GeometryPlanHeader, GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryKmPostId,
+    GeometryPlanHeader,
+    GeometryPlanId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     DraftType,
-    LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
-    MapSegment,
 } from 'track-layout/track-layout-model';
 import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
@@ -23,11 +26,9 @@ import {
     SelectedGeometryItem,
 } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
-import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
-import GeometryKmPostInfoboxContainer from 'tool-panel/km-post/geometry-km-post-infobox-container';
+import { filterNotEmpty, filterUnique } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -37,18 +38,25 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
-import { getGeometryPlanHeaders } from 'geometry/geometry-api';
+import { getGeometryPlanHeaders, getTrackLayoutPlansByIds } from 'geometry/geometry-api';
+import { ChangeTimes } from 'common/common-slice';
+import {
+    GeometryKmPostInfoboxVisibilities,
+    InfoboxVisibilities,
+} from 'track-layout/track-layout-slice';
+import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
     trackNumberIds: LayoutTrackNumberId[];
     kmPostIds: LayoutKmPostId[];
-    geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
+    geometryKmPostIds: SelectedGeometryItem<GeometryKmPostId>[];
     switchIds: LayoutSwitchId[];
-    geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
+    geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
-    geometryAlignments: SelectedGeometryItem<MapAlignment>[];
-    geometrySegments: SelectedGeometryItem<MapSegment>[];
+    geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     showArea: (bbox: BoundingBox) => void;
@@ -56,32 +64,49 @@ type ToolPanelProps = {
     publishType: PublishType;
     onDataChange: () => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    selectedTabId: string | undefined;
-    setSelectedTabId: (id: string | undefined) => void;
+    selectedAsset: ToolPanelAsset | undefined;
+    setSelectedAsset: (id: ToolPanelAsset | undefined) => void;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
+    infoboxVisibilities: InfoboxVisibilities;
+    onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
+    stopSwitchLinking: () => void;
+    verticalGeometryDiagramVisible: boolean;
+    onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
+};
+
+export type ToolPanelAsset = {
+    id: string;
+    type:
+        | 'LOCATION_TRACK'
+        | 'SWITCH'
+        | 'KM_POST'
+        | 'REFERENCE_LINE'
+        | 'TRACK_NUMBER'
+        | 'GEOMETRY_ALIGNMENT'
+        | 'GEOMETRY_PLAN'
+        | 'GEOMETRY_KM_POST'
+        | 'GEOMETRY_SWITCH';
 };
 
 type ToolPanelTab = {
-    id: GeometryPlanId;
+    asset: ToolPanelAsset;
     title: string;
     element: React.ReactElement;
 };
 
-export function toolPanelPlanTabId(planId: GeometryPlanId): string {
-    return 'plan-header_' + planId;
-}
+const isSameAsset = (a: ToolPanelAsset | undefined, b: ToolPanelAsset | undefined) =>
+    !!a && !!b && a.id === b.id && a.type === b.type;
 
 const ToolPanel: React.FC<ToolPanelProps> = ({
     planIds,
     trackNumberIds,
     kmPostIds,
-    geometryKmPosts,
+    geometryKmPostIds,
     switchIds,
-    geometrySwitches,
+    geometrySwitchIds,
     locationTrackIds,
-    geometryAlignments,
-    geometrySegments,
+    geometryAlignmentIds,
     suggestedSwitches,
     linkingState,
     showArea,
@@ -89,10 +114,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     publishType,
     onDataChange,
     onUnselect,
-    selectedTabId,
-    setSelectedTabId,
+    selectedAsset,
+    setSelectedAsset,
     startSwitchPlacing,
     viewport,
+    infoboxVisibilities,
+    onInfoboxVisibilityChange,
+    stopSwitchLinking,
+    verticalGeometryDiagramVisible,
+    onHoverOverPlanSection,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -116,13 +146,28 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const switchesPromise = getSwitches(switchIds, publishType);
         const kmPostsPromise = getKmPosts(kmPostIds, publishType);
         const plansPromise = getGeometryPlanHeaders(planIds);
+        const elementPlanIds = [
+            ...geometryKmPostIds.map((kmp) => kmp.planId),
+            ...geometrySwitchIds.map((s) => s.planId),
+            ...geometryAlignmentIds.map((s) => s.planId),
+        ].filter(filterUnique);
+        const elementPlansPromise = getTrackLayoutPlansByIds(
+            elementPlanIds,
+            changeTimes.geometryPlan,
+            false,
+        );
 
         return Promise.all([
-            locationTracksPromise.then((l) => l.filter(filterNotEmpty)),
+            // TODO: GVT-2014 Check the nullability in these api-calls/caches
+            // It is possible for an item in the id-list to not exist, but these functions do not typically return null in that case.
+            // The whole thing needs a check-up. What's the correct handling?
+            // Don't double-check nulls and make sure that types match what is returned.
+            locationTracksPromise,
             switchesPromise.then((l) => l.filter(filterNotEmpty)),
             kmPostsPromise.then((l) => l.filter(filterNotEmpty)),
             trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),
             plansPromise.then((l) => l.filter(filterNotEmpty)),
+            elementPlansPromise,
         ]);
     }, [
         locationTrackIds,
@@ -134,6 +179,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         changeTimes.layoutKmPost,
         changeTimes.layoutTrackNumber,
         planIds,
+        geometryKmPostIds,
+        geometrySwitchIds,
+        geometryAlignmentIds,
     ]);
 
     const locationTracks = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[0]) || [];
@@ -141,6 +189,19 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const kmPosts = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[2]) || [];
     const trackNumbers = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[3]) || [];
     const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
+
+    const getPlan = (id: GeometryPlanId) =>
+        tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[5].find((p) => p.planId === id);
+
+    const infoboxVisibilityChange = (
+        key: keyof InfoboxVisibilities,
+        visibilities: InfoboxVisibilities[keyof InfoboxVisibilities],
+    ) => {
+        onInfoboxVisibilityChange({
+            ...infoboxVisibilities,
+            [key]: visibilities,
+        });
+    };
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
     const visibleByTypeAndPublishType = ({ draftType }: { draftType: DraftType }) =>
@@ -152,38 +213,56 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         }
         const planTabs = planHeaders.map((p: GeometryPlanHeader) => {
             return {
-                id: toolPanelPlanTabId(p.id),
+                asset: { type: 'GEOMETRY_PLAN', id: p.id },
                 title: p.fileName,
-                element: <GeometryPlanInfobox planHeader={p} />,
-            };
+                element: (
+                    <GeometryPlanInfobox
+                        planHeader={p}
+                        visibilities={infoboxVisibilities.geometryPlan}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometryPlan', visibilities)
+                        }
+                    />
+                ),
+            } as ToolPanelTab;
         });
 
         const trackNumberTabs = trackNumberIds
             .map((tnId) => trackNumbers?.find((tn) => tn.id === tnId))
             .filter(filterNotEmpty)
+            .filter(visibleByTypeAndPublishType)
             .map((t) => {
                 return {
-                    id: 'track-number_' + t.id,
+                    asset: { type: 'TRACK_NUMBER', id: t.id },
                     title: t.number,
                     element: (
                         <TrackNumberInfoboxLinkingContainer
+                            visibilities={infoboxVisibilities.trackNumber}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('trackNumber', visibilities)
+                            }
                             trackNumber={t}
                             publishType={publishType}
                             linkingState={linkingState}
                             onUnselect={onUnselect}
                             referenceLineChangeTime={changeTimes.layoutReferenceLine}
                             viewport={viewport}
+                            onHoverOverPlanSection={onHoverOverPlanSection}
                         />
                     ),
-                };
+                } as ToolPanelTab;
             });
 
         const layoutKmPostTabs = kmPosts.filter(visibleByTypeAndPublishType).map((k) => {
             return {
-                id: 'km-post_' + k.id,
+                asset: { type: 'KM_POST', id: k.id },
                 title: k.kmNumber,
                 element: (
                     <KmPostInfobox
+                        visibilities={infoboxVisibilities.kmPost}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('kmPost', visibilities)
+                        }
                         publishType={publishType}
                         kmPostChangeTime={changeTimes.layoutKmPost}
                         onDataChange={onDataChange}
@@ -199,23 +278,45 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         }
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
-        const geometryKmPostTabs = geometryKmPosts.map((k) => {
-            return {
-                id: 'geometry-km-post_' + k.geometryItem.id,
-                title: k.geometryItem.kmNumber,
-                element: <GeometryKmPostInfoboxContainer geometryKmPost={k} showArea={showArea} />,
-            };
-        });
+        const geometryKmPostTabs = geometryKmPostIds.map(
+            (k: SelectedGeometryItem<LayoutKmPostId>) => {
+                const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.sourceId === k.geometryId);
+                return {
+                    asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },
+                    title: kmPost?.kmNumber ?? '...',
+                    element: kmPost ? (
+                        <GeometryKmPostInfobox
+                            geometryKmPost={kmPost}
+                            planId={k.planId}
+                            onShowOnMap={() =>
+                                kmPost.location &&
+                                showArea(calculateBoundingBoxToShowAroundLocation(kmPost.location))
+                            }
+                            visibilities={infoboxVisibilities.geometryKmPost}
+                            onVisibilityChange={(visibilities: GeometryKmPostInfoboxVisibilities) =>
+                                infoboxVisibilityChange('geometryKmPost', visibilities)
+                            }
+                        />
+                    ) : (
+                        <Spinner />
+                    ),
+                } as ToolPanelTab;
+            },
+        );
 
         const switchTabs = switches.filter(visibleByTypeAndPublishType).map((s) => {
             return {
-                id: 'switch_' + s.id,
+                asset: { type: 'SWITCH', id: s.id },
                 title: s.name,
                 element: (
                     <SwitchInfobox
+                        visibilities={infoboxVisibilities.switch}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('switch', visibilities)
+                        }
                         switchId={s.id}
                         onShowOnMap={onShowMapLocation}
                         publishType={publishType}
@@ -228,39 +329,27 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                                 : undefined
                         }
                         startSwitchPlacing={startSwitchPlacing}
+                        stopLinking={stopSwitchLinking}
                     />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
-        const uniqueGeometrySwitches = [
-            ...suggestedSwitches.map((s) => ({
-                id: s.id,
-                name: s.name,
-                switchId: s.geometrySwitchId,
-                planId: s.geometryPlanId,
-                suggestedSwitch: s,
-            })),
-            ...geometrySwitches.map((s) => ({
-                id: s.geometryItem.sourceId as GeometrySwitchId,
-                name: s.geometryItem.name,
-                switchId: s.geometryItem.sourceId as GeometrySwitchId,
-                planId: s.planId,
-                suggestedSwitch: undefined,
-            })),
-        ].filter(filterUniqueById((i) => i.switchId));
-
-        const geometrySwitchTabs = uniqueGeometrySwitches.map((s) => {
+        const suggestedSwitchTabs: ToolPanelTab[] = suggestedSwitches.map((ss) => {
             return {
-                id: 'geometry-switch_' + s.id,
-                title: s.name || '-',
+                asset: { type: 'GEOMETRY_SWITCH', id: ss.id },
+                title: ss.name ?? '...',
                 element: (
                     <GeometrySwitchInfobox
-                        switchId={s.switchId ?? undefined}
+                        visibilities={infoboxVisibilities.geometrySwitch}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometrySwitch', visibilities)
+                        }
+                        switchId={ss.geometrySwitchId ?? undefined}
                         layoutSwitch={switches ? switches[0] : undefined}
-                        suggestedSwitch={s.suggestedSwitch}
+                        suggestedSwitch={ss}
                         linkingState={linkingState}
-                        planId={s.planId ?? undefined}
+                        planId={ss.geometryPlanId ?? undefined}
                         switchChangeTime={changeTimes.layoutSwitch}
                         locationTrackChangeTime={changeTimes.layoutLocationTrack}
                         onShowOnMap={onShowMapLocation}
@@ -268,46 +357,91 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 ),
             };
         });
+        const geometrySwitchTabs: ToolPanelTab[] = geometrySwitchIds
+            .filter((s) => !suggestedSwitches.some((ss) => ss.geometrySwitchId === s.geometryId))
+            .map((s) => {
+                const geomSwitch = getPlan(s.planId)?.switches?.find(
+                    (gs) => gs.sourceId === s.geometryId,
+                );
+                return {
+                    asset: { type: 'GEOMETRY_SWITCH', id: s.geometryId },
+                    title: geomSwitch?.name ?? '...',
+                    element: (
+                        <GeometrySwitchInfobox
+                            visibilities={infoboxVisibilities.geometrySwitch}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('geometrySwitch', visibilities)
+                            }
+                            switchId={s.geometryId}
+                            layoutSwitch={switches ? switches[0] : undefined}
+                            suggestedSwitch={undefined}
+                            linkingState={linkingState}
+                            planId={s.planId ?? undefined}
+                            switchChangeTime={changeTimes.layoutSwitch}
+                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                            onShowOnMap={onShowMapLocation}
+                        />
+                    ),
+                };
+            });
 
-        const locationTrackTabs = locationTracks.map((track) => {
-            return {
-                id: 'location-track_' + track.id,
-                title: track.name,
-                element: (
-                    <LocationTrackInfoboxLinkingContainer
-                        locationTrackId={track.id}
-                        linkingState={linkingState}
-                        publishType={publishType}
-                        locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                        onDataChange={onDataChange}
-                        onUnselect={onUnSelectLocationTracks}
-                        viewport={viewport}
-                    />
-                ),
-            };
-        });
+        const locationTrackTabs = locationTracks
+            .filter(visibleByTypeAndPublishType)
+            .map((track) => {
+                return {
+                    asset: { type: 'LOCATION_TRACK', id: track.id },
+                    title: track.name,
+                    element: (
+                        <LocationTrackInfoboxLinkingContainer
+                            visibilities={infoboxVisibilities.locationTrack}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('locationTrack', visibilities)
+                            }
+                            locationTrackId={track.id}
+                            linkingState={linkingState}
+                            publishType={publishType}
+                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                            onDataChange={onDataChange}
+                            onUnselect={onUnSelectLocationTracks}
+                            viewport={viewport}
+                            verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+                            onHoverOverPlanSection={onHoverOverPlanSection}
+                        />
+                    ),
+                } as ToolPanelTab;
+            });
 
-        const geometryAlignmentTabs = geometryAlignments.map((a) => {
+        const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
+            const header = getPlan(aId.planId)?.alignments?.find(
+                (a) => a.header.id === aId.geometryId,
+            )?.header;
             return {
-                id: 'geometry-alignment_' + a.geometryItem.id,
-                title: a.geometryItem.name,
-                element: (
+                asset: { type: 'GEOMETRY_ALIGNMENT', id: aId.geometryId },
+                title: header?.name ?? '...',
+                element: header ? (
                     <GeometryAlignmentLinkingContainer
-                        geometryAlignment={a.geometryItem}
+                        visibilities={infoboxVisibilities.geometryAlignment}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometryAlignment', visibilities)
+                        }
+                        geometryAlignment={header}
                         selectedLocationTrackId={locationTrackIds[0]}
                         selectedTrackNumberId={trackNumberIds[0]}
-                        segment={geometrySegments[0]?.geometryItem}
-                        planId={a.planId}
+                        planId={aId.planId}
                         linkingState={linkingState}
                         publishType={publishType}
+                        verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                     />
+                ) : (
+                    <Spinner />
                 ),
-            };
+            } as ToolPanelTab;
         });
 
         const allTabs = [
             ...geometryKmPostTabs,
             ...layoutKmPostTabs,
+            ...suggestedSwitchTabs,
             ...geometrySwitchTabs,
             ...switchTabs,
             ...geometryAlignmentTabs,
@@ -321,60 +455,76 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         trackNumbers,
         trackNumberIds,
         kmPosts,
-        geometryKmPosts,
+        geometryKmPostIds,
         switches,
-        geometrySwitches,
+        geometrySwitchIds,
         suggestedSwitches,
         locationTracks,
-        geometryAlignments,
+        geometryAlignmentIds,
         linkingState,
         publishType,
         viewport,
         changeTimes,
+        infoboxVisibilities,
+        verticalGeometryDiagramVisible,
     ]);
 
     React.useEffect(() => {
-        const newTabs = tabs.filter((t) => !previousTabs.some((pt) => t.id == pt.id));
+        const newTabs = tabs.filter(
+            (t) => !previousTabs.some((pt) => isSameAsset(t.asset, pt.asset)),
+        );
 
         if (newTabs.length) {
-            if (selectedTabId && newTabs.some((nt) => nt.id == selectedTabId)) {
-                changeTab(selectedTabId);
+            if (selectedAsset && newTabs.some((nt) => isSameAsset(nt.asset, selectedAsset))) {
+                changeTab(selectedAsset);
             } else {
-                changeTab(tabs[0].id);
+                changeTab(tabs[0].asset);
             }
+        }
+
+        if (!tabs.length) {
+            setSelectedAsset(undefined);
         }
         setPreviousTabs(tabs);
     }, [tabs]);
 
-    function changeTab(tabId: string) {
-        let lockToTabId;
+    function changeTab(tab: ToolPanelAsset) {
+        let lockToAsset;
 
         if (linkingState?.type === LinkingType.LinkingAlignment) {
-            lockToTabId = tabs.find(
-                (t) => t.id === 'location-track_' + linkingState.layoutAlignmentId,
-            )?.id;
+            lockToAsset = tabs.find(
+                (t) =>
+                    t.asset.type === 'LOCATION_TRACK' &&
+                    t.asset.id === linkingState.layoutAlignmentId,
+            )?.asset;
         } else if (
             linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
             linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
             linkingState?.type === LinkingType.UnknownAlignment
         ) {
-            lockToTabId = tabs.find(
-                (t) => t.id === 'geometry-alignment_' + linkingState.geometryAlignmentId,
-            )?.id;
+            lockToAsset = tabs.find(
+                (t) =>
+                    t.asset.type === 'GEOMETRY_ALIGNMENT' &&
+                    t.asset.id === linkingState.geometryAlignmentId,
+            )?.asset;
         } else if (linkingState?.type === LinkingType.LinkingSwitch) {
-            lockToTabId = tabs.find((t) => {
+            lockToAsset = tabs.find((t) => {
                 return (
-                    t.id === 'geometry-switch_' + linkingState.suggestedSwitch.geometrySwitchId ||
-                    suggestedSwitches.some((s) => t.id === 'geometry-switch_' + s.id)
+                    (t.asset.type === 'GEOMETRY_SWITCH' &&
+                        t.asset.id === linkingState.suggestedSwitch.geometrySwitchId) ||
+                    suggestedSwitches.some((s) => t.asset.id === s.id)
                 );
-            })?.id;
+            })?.asset;
         } else if (linkingState?.type === LinkingType.LinkingKmPost) {
-            lockToTabId = tabs.find((t) => {
-                return t.id === 'geometry-km-post_' + linkingState.geometryKmPostId;
-            })?.id;
+            lockToAsset = tabs.find((t) => {
+                return (
+                    t.asset.type === 'GEOMETRY_KM_POST' &&
+                    t.asset.id === linkingState.geometryKmPostId
+                );
+            })?.asset;
         }
 
-        setSelectedTabId(lockToTabId ? lockToTabId : tabId);
+        setSelectedAsset(lockToAsset ? lockToAsset : tab);
     }
 
     return (
@@ -384,22 +534,22 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     {tabs.map((t) => {
                         return (
                             <Button
-                                key={t.id}
+                                key={t.asset.type + '_' + t.asset.id}
                                 variant={
-                                    selectedTabId == t.id
+                                    isSameAsset(t.asset, selectedAsset)
                                         ? ButtonVariant.PRIMARY
                                         : ButtonVariant.SECONDARY
                                 }
                                 size={ButtonSize.SMALL}
-                                onClick={() => changeTab(t.id)}
-                                isPressed={t.id == selectedTabId}>
+                                onClick={() => changeTab(t.asset)}
+                                isPressed={isSameAsset(t.asset, selectedAsset)}>
                                 {t.title}
                             </Button>
                         );
                     })}
                 </div>
             )}
-            {tabs.find((t) => t.id === selectedTabId)?.element || tabs[0]?.element}
+            {tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element || tabs[0]?.element}
         </div>
     );
 };

@@ -1,20 +1,23 @@
 import React from 'react';
 import { LocationTrackType } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type LocationTrackTypeLabelProps = {
-    type: LocationTrackType | null;
+    type: LocationTrackType | undefined;
 };
 
-function getTranslationKey(locationTrackType: LocationTrackType | null) {
+function getTranslationKey(locationTrackType: LocationTrackType | undefined) {
     switch (locationTrackType) {
         case 'MAIN':
         case 'SIDE':
         case 'TRAP':
         case 'CHORD':
             return locationTrackType;
-        default:
+        case undefined:
             return 'UNKNOWN';
+        default:
+            return exhaustiveMatchingGuard(locationTrackType);
     }
 }
 

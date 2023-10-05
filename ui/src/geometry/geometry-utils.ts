@@ -9,17 +9,17 @@ import {
 export function getGeometryElementFromPlan(
     plan: GeometryPlan,
     geomElementId: GeometryElementId,
-): GeometryElement | null {
+): GeometryElement | undefined {
     return (
         plan.alignments
             .flatMap((a) => a.elements)
-            .find((element) => element.id === geomElementId) || null
+            .find((element) => element.id === geomElementId) || undefined
     );
 }
 
 export function getGeometrySwitchFromPlan(
     plan: GeometryPlan,
     geomSwitchId: GeometrySwitchId,
-): GeometrySwitch | null {
-    return plan.switches.find((geomSwitch) => geomSwitch.id === geomSwitchId) || null;
+): GeometrySwitch | undefined {
+    return plan.switches.find((geomSwitch) => geomSwitch.id === geomSwitchId) || undefined;
 }

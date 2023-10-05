@@ -1,97 +1,50 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
-import org.openqa.selenium.StaleElementReferenceException
-import org.openqa.selenium.TimeoutException
-import org.openqa.selenium.WebElement
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
-import java.time.Duration
+import waitUntilValueIs
+import waitUntilValueIsNot
 
-abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
+abstract class E2EInfoBox(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
     init {
         logger.info("${this.javaClass.simpleName} loaded")
     }
 
-    protected fun fieldValue(fieldName: String): String {
-        logger.info("Get field $fieldName")
-        val fieldValueBy =
-            By.xpath(".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']")
-        try {
-            return getChildElementStaleSafe(fieldValueBy).text.also { value -> logger.info("Get field [$fieldName]=[$value]") }
-        } catch (staleEx: StaleElementReferenceException) {
-            return getChildElementStaleSafe(fieldValueBy).text.also { value -> logger.info("Get field [$fieldName]=[$value]") }
-        }
-    }
+    protected val title: String get() = childText(By.className("infobox__title"))
 
-    protected fun fieldValueElement(fieldName: String): WebElement {
-        val fieldValueBy =
-            By.xpath(".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']")
-        val value = getChildElementStaleSafe(fieldValueBy)
-        logger.info("Get field value element $fieldName = ${value.text}")
-        return value
-    }
+    // TODO: GVT-2034 These label-content fields could be a component of their own
+    private fun getValueElementByForField(fieldName: String) = By.xpath(
+        ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']"
+    )
 
-    protected fun editInfoBoxValues() {
+    private fun getValueElementForField(fieldName: String) = childElement(getValueElementByForField(fieldName))
+
+    protected fun getValueForField(fieldName: String): String = getValueElementForField(fieldName).text
+
+    protected fun editFields(): E2EInfoBox = apply {
         logger.info("Click edit values icon")
-        getChildElementStaleSafe(By.className("infobox__edit-icon")).click()
+        clickChild(By.className("infobox__edit-icon"))
     }
 
-    protected fun fieldElement(fieldName: String): WebElement {
-        val fielValueElementBy =
-            By.xpath(".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]")
-        return getChildElementStaleSafe(fielValueElementBy)
+    protected fun getValueForFieldWhenNotEmpty(fieldName: String): String = childText(
+        By.xpath(
+            ".//div[@class='infobox__field-label' and text() = '$fieldName']/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
+        )
+    )
+
+    protected fun waitUntilValueChangesForField(fieldName: String): E2EInfoBox = apply {
+        val originalValue = getValueForField(fieldName)
+        logger.info("Wait until field value is not $originalValue")
+        waitUntilValueIsNot(getValueElementForField(fieldName), originalValue)
+        logger.info("Field $fieldName changed and is now ${getValueForField(fieldName)}")
     }
 
-    protected fun fieldValueWhenNotEmpty(fieldName: String): String {
-        val fieldValueElementBy =
-            By.xpath(".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]")
-        return getChildElementStaleSafe(fieldValueElementBy).text
-    }
-
-    protected fun title() =
-        rootElement.findElement(By.className("infobox__title")).text
-
-    protected fun waitUntilFieldValueChanges(fieldName: String) {
-        val orgValue = fieldValueElement(fieldName).text
-        logger.info("Wait until field value is not ${orgValue}")
-        try {
-            WebDriverWait(browser(), Duration.ofSeconds(10))
-                .until(
-                    ExpectedConditions.not(
-                        ExpectedConditions.textToBePresentInElement(
-                            fieldValueElement(fieldName),
-                            orgValue
-                        )
-                    )
-                )
-        } catch (ex: TimeoutException) {
-            logger.error("Field did not change and is now ${fieldValueElement(fieldName).text}")
-            throw ex
-        }
-        logger.info("Field $fieldName changed and is now ${fieldValueElement(fieldName).text}")
-    }
-
-    protected fun waitUntilFieldValueChanges(fieldName: String, targetValue: String) {
-        //val fieldValueElement = fieldValueElement(fieldName)
-        //val orgValue = fieldValueElement.text
-        logger.info("Wait until field value is  ${targetValue}")
-        try {
-            WebDriverWait(browser(), Duration.ofSeconds(10))
-                .until(
-                        ExpectedConditions.textToBePresentInElement(
-                            fieldValueElement(fieldName),
-                            targetValue
-                        )
-                )
-        } catch (ex: TimeoutException) {
-            logger.error("Field did not change and is now ${fieldValueElement(fieldName).text}")
-            throw ex
-        }
+    protected fun waitUntilValueChangesForField(fieldName: String, targetValue: String): E2EInfoBox = apply {
+        logger.info("Wait until field value is  $targetValue")
+        waitUntilValueIs(getValueElementForField(fieldName), targetValue)
         logger.info("Field $fieldName changed to $targetValue")
     }
 
-
-
+    fun waitUntilLoaded(): E2EInfoBox = apply { waitChildNotVisible(By.className("spinner")) }
 }

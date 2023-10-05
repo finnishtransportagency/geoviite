@@ -1,17 +1,12 @@
-@import 'vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .publication-table {
-    overflow-y: auto;
-    height: 100%;
+    position: relative;
 
     &__table-header {
         position: sticky;
         top: 0;
         z-index: 1;
-    }
-
-    &__count-header {
-        margin-bottom: 12px;
     }
 
     &__message-column {
@@ -33,6 +28,7 @@
 
     &__message-icon {
         float: right;
+
         .icon {
             transition: transform 150ms;
         }
@@ -42,17 +38,22 @@
         }
     }
 
-    &__table-container {
+    &__row-details {
+        &--borderless > td {
+            border: none;
+        }
+    }
+
+    &__row-details-left-bar-container {
         position: relative;
     }
 
-    &__backdrop {
+    &__row-details-left-bar {
         position: absolute;
-        z-index: 1;
+        width: 4px;
         top: 0;
-        left: 0;
-        width: 100%;
+        left: 24px;
         height: 100%;
-        background-color: rgba($color-white-default, 0.67);
+        background-color: vayla-design.$color-blue-default;
     }
 }

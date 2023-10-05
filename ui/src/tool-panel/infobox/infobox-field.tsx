@@ -3,6 +3,7 @@ import styles from './infobox.module.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 type InfoboxFieldProps = {
     label: React.ReactNode;
@@ -37,15 +38,15 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                     <Icons.Edit size={IconSize.SMALL} />
                 </div>
             )}
-            <div>
-                {iconDisabled && (
+            {iconDisabled && (
+                <WriteAccessRequired>
                     <div className={styles['infobox__edit-icon']}>
                         <span title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>
                             <Icons.Edit size={IconSize.SMALL} color={IconColor.DISABLED} />
                         </span>
                     </div>
-                )}
-            </div>
+                </WriteAccessRequired>
+            )}
         </div>
     );
 };

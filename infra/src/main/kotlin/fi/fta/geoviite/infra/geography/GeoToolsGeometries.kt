@@ -16,15 +16,12 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem
 import java.util.concurrent.ConcurrentHashMap
 
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
-    return Transformation.nonKKJToETRSTransform(sourceSrid, targetSrid).transform(point)
+    return Transformation.nonTriangulableTransform(sourceSrid, targetSrid).transform(point)
 }
 
 fun calculateDistance(points: List<IPoint>, srid: Srid): Double = calculateDistance(points, crs(srid))
 
 fun calculateDistance(srid: Srid, vararg points: IPoint): Double = calculateDistance(points.toList(), crs(srid))
-
-fun calculateDistance(ref: CoordinateReferenceSystem, vararg points: IPoint): Double =
-    calculateDistance(points.toList(), ref)
 
 private object GeodeticCalculatorCache {
     val cache: MutableMap<CoordinateReferenceSystem, GeodeticCalculator> = ConcurrentHashMap()
@@ -44,7 +41,8 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
         }
 }
 
-fun crs(srid: Srid): CoordinateReferenceSystem = CRS.decode(srid.toString())
+private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = mutableMapOf()
+fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
 fun toJtsPolygon(polygonPoints: List<IPoint>, ref: CoordinateReferenceSystem): Polygon? {
     val geometryPointList = polygonPoints.map { point -> toJtsPoint(point, ref) }

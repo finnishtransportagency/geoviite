@@ -5,132 +5,85 @@ import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
+import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.projektivelho.PVProjectName
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import java.sql.ResultSet
 import java.time.Instant
 
 
-fun ResultSet.getIntOrNull(name: String): Int? {
-    val value = getInt(name)
-    return if (wasNull()) null else value
-}
+fun ResultSet.getIntOrNull(name: String): Int? = getInt(name).takeUnless { wasNull() }
 
-fun ResultSet.getLongOrNull(name: String): Long? {
-    val value = getLong(name)
-    return if (wasNull()) null else value
-}
+fun ResultSet.getLongOrNull(name: String): Long? = getLong(name).takeUnless { wasNull() }
 
-fun ResultSet.getFloatOrNull(name: String): Float? {
-    val value = getFloat(name)
-    return if (wasNull()) null else value
-}
+fun ResultSet.getFloatOrNull(name: String): Float? = getFloat(name).takeUnless { wasNull() }
 
-fun ResultSet.getDoubleOrNull(name: String): Double? {
-    val value = getDouble(name)
-    return if (wasNull()) null else value
-}
+fun ResultSet.getDoubleOrNull(name: String): Double? = getDouble(name).takeUnless { wasNull() }
 
-fun ResultSet.getBooleanOrNull(name: String): Boolean? {
-    val value = getBoolean(name)
-    return if (wasNull()) null else value
-}
+fun ResultSet.getBooleanOrNull(name: String): Boolean? = getBoolean(name).takeUnless { wasNull() }
 
-fun ResultSet.getInstant(name: String): Instant {
-    return getInstantOrNull(name) ?: throw IllegalStateException("Instant was null")
-}
+fun ResultSet.getInstant(name: String): Instant = verifyNotNull(name, ::getInstantOrNull)
 
-fun ResultSet.getInstantOrNull(name: String): Instant? {
-    return getTimestamp(name)?.toInstant()
-}
+fun ResultSet.getInstantOrNull(name: String): Instant? = getTimestamp(name)?.toInstant()
 
-fun <T> ResultSet.getIndexedId(parent: String, index: String): IndexedId<T> {
-    return getIndexedIdOrNull(parent, index) ?: throw IllegalStateException("Indexed id was null")
-}
+fun <T> ResultSet.getIndexedId(parent: String, index: String): IndexedId<T> =
+    requireNotNull(getIndexedIdOrNull(parent, index)) {
+        "ResultSet value was null: type=${IndexedId::class.simpleName} parent=$parent index=$index"
+    }
 
 fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T>? {
-    val geometryAlignmentId = getIntOrNull(parent)
-    val geometryElementIndex = getIntOrNull(index)
-    return if (geometryAlignmentId != null && geometryElementIndex != null) {
-        IndexedId(geometryAlignmentId, geometryElementIndex)
+    val parentId = getIntOrNull(parent)
+    val childIndex = getIntOrNull(index)
+    return if (parentId != null && childIndex != null) {
+        IndexedId(parentId, childIndex)
     } else {
         null
     }
 }
 
-fun <T> ResultSet.getIntId(name: String): IntId<T> {
-    return getIntIdOrNull(name) ?: throw IllegalStateException("Int id was null")
+fun <T> ResultSet.getIntId(name: String): IntId<T> = verifyNotNull(name, ::getIntIdOrNull)
+
+fun <T> ResultSet.getIntIdOrNull(name: String): IntId<T>? = getIntOrNull(name)?.let(::IntId)
+
+fun <T> ResultSet.getStringId(name: String): StringId<T> = verifyNotNull(name, ::getStringIdOrNull)
+
+fun <T> ResultSet.getStringIdOrNull(name: String): StringId<T>? = getString(name)?.let(::StringId)
+
+fun <T> ResultSet.getOid(name: String): Oid<T> = verifyNotNull(name, ::getOidOrNull)
+
+fun <T> ResultSet.getOidOrNull(name: String): Oid<T>? = getString(name)?.let(::Oid)
+
+fun ResultSet.getSrid(name: String): Srid = verifyNotNull(name, ::getSridOrNull)
+
+fun ResultSet.getSridOrNull(name: String): Srid? = getIntOrNull(name)?.let(::Srid)
+
+fun ResultSet.getTrackNumber(name: String): TrackNumber = requireNotNull(getTrackNumberOrNull(name)) {
+    "Track number was null"
 }
 
-fun <T> ResultSet.getIntIdOrNull(name: String): IntId<T>? {
-    return getIntOrNull(name)?.let { i -> IntId(i) }
-}
+fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? = getString(name)?.let(::TrackNumber)
 
-fun <T> ResultSet.getStringId(name: String): StringId<T> {
-    return getStringIdOrNull(name) ?: throw IllegalStateException("String id was null")
-}
+fun ResultSet.getKmNumber(name: String): KmNumber = verifyNotNull(name, ::getKmNumberOrNull)
 
-fun <T> ResultSet.getStringIdOrNull(name: String): StringId<T>? {
-    return getString(name)?.let { i -> StringId(i) }
-}
+fun ResultSet.getKmNumberOrNull(name: String): KmNumber? = getString(name)?.let(::KmNumber)
 
-fun <T> ResultSet.getOid(name: String): Oid<T> {
-    return getOidOrNull(name) ?: throw IllegalStateException("OID was null")
-}
+fun ResultSet.getTrackMeter(name: String): TrackMeter = verifyNotNull(name, ::getTrackMeterOrNull)
 
-fun <T> ResultSet.getOidOrNull(name: String): Oid<T>? {
-    return getString(name)?.let { i -> Oid(i) }
-}
+fun ResultSet.getTrackMeterOrNull(name: String): TrackMeter? = getString(name)?.let(::TrackMeter)
 
-fun ResultSet.getSrid(name: String): Srid {
-    return getSridOrNull(name) ?: throw IllegalStateException("SRID was null")
-}
+fun ResultSet.getJointNumber(name: String): JointNumber = verifyNotNull(name, ::getJointNumberOrNull)
 
-fun ResultSet.getSridOrNull(name: String): Srid? {
-    return getIntOrNull(name)?.let { i -> Srid(i) }
-}
+fun ResultSet.getJointNumberOrNull(name: String): JointNumber? = getIntOrNull(name)?.let(::JointNumber)
 
-fun ResultSet.getTrackNumber(name: String): TrackNumber {
-    return getTrackNumberOrNull(name) ?: throw IllegalStateException("Track number was null")
-}
+fun ResultSet.getFeatureTypeCode(name: String): FeatureTypeCode = verifyNotNull(name, ::getFeatureTypeCodeOrNull)
 
-fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? {
-    return getString(name)?.let { n -> TrackNumber(n) }
-}
+fun ResultSet.getFeatureTypeCodeOrNull(name: String): FeatureTypeCode? = getString(name)?.let(::FeatureTypeCode)
 
-fun ResultSet.getKmNumber(name: String): KmNumber {
-    return getKmNumberOrNull(name) ?: throw IllegalStateException("KM number was null")
-}
-
-fun ResultSet.getKmNumberOrNull(name: String): KmNumber? {
-    return getString(name)?.let(::KmNumber)
-}
-
-fun ResultSet.getTrackMeter(name: String): TrackMeter {
-    return getTrackMeterOrNull(name) ?: throw IllegalStateException("Track meter was null")
-}
-
-fun ResultSet.getTrackMeterOrNull(name: String): TrackMeter? {
-    return getString(name)?.let(::TrackMeter)
-}
-
-fun ResultSet.getJointNumber(name: String): JointNumber {
-    return getJointNumberOrNull(name) ?: throw IllegalStateException("Joint number was null")
-}
-
-fun ResultSet.getJointNumberOrNull(name: String): JointNumber? {
-    return getIntOrNull(name)?.let { n -> JointNumber(n) }
-}
-
-fun ResultSet.getFeatureTypeCode(name: String): FeatureTypeCode {
-    return getFeatureTypeCodeOrNull(name) ?: throw IllegalStateException("Feature type code was null")
-}
-
-fun ResultSet.getFeatureTypeCodeOrNull(name: String): FeatureTypeCode? {
-    return getString(name)?.let { n -> FeatureTypeCode(n) }
-}
-
-fun ResultSet.getPoint(nameX: String, nameY: String): Point {
-    return getPointOrNull(nameX, nameY) ?: throw IllegalStateException("Point does not exist in result set")
+fun ResultSet.getPoint(nameX: String, nameY: String): Point = requireNotNull(getPointOrNull(nameX, nameY)) {
+    "Point does not exist in result set: nameX=$nameX nameY=$nameY"
 }
 
 fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
@@ -148,14 +101,11 @@ inline fun <reified T : Enum<T>> ResultSet.getEnumOrNull(name: String): T? {
 }
 
 fun ResultSet.getStringListFromString(name: String): List<String> =
-    getStringsListOrNullFromString(name)
-        ?: throw IllegalStateException("List<String> value does not exist in result set")
+    verifyNotNull(name, ::getStringsListOrNullFromString)
 
 fun ResultSet.getStringsListOrNullFromString(name: String): List<String>? = getString(name)?.split(",")
 
-fun ResultSet.getDoubleListFromString(name: String): List<Double> =
-    getDoubleListOrNullFromString(name)
-        ?: throw IllegalStateException("List<Double> value does not exist in result set")
+fun ResultSet.getDoubleListFromString(name: String): List<Double> = verifyNotNull(name, ::getDoubleListOrNullFromString)
 
 fun ResultSet.getDoubleListOrNullFromString(name: String): List<Double>? =
     getStringsListOrNullFromString(name)?.map { s -> s.toDouble() }
@@ -163,62 +113,61 @@ fun ResultSet.getDoubleListOrNullFromString(name: String): List<Double>? =
 fun ResultSet.getNullableDoubleListOrNullFromString(name: String): List<Double?>? =
     getStringsListOrNullFromString(name)?.map { s -> s.toDoubleOrNull() }
 
-fun ResultSet.getIntListFromString(name: String): List<Int> =
-    getIntListOrNullFromString(name) ?: throw IllegalStateException("List<Int> value does not exist in result set")
+fun ResultSet.getIntListFromString(name: String): List<Int> = verifyNotNull(name, ::getIntListOrNullFromString)
 
-fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? {
-    return getString(name)
-        ?.split(",")
-        ?.map { s -> s.toInt() }
-}
-
-fun ResultSet.getIntArray(name: String): List<Int> =
-    getIntArrayOrNull(name) ?: throw IllegalStateException("Array does not exist in result set")
+fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(name)?.split(",")?.map { s -> s.toInt() }
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
+fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
+
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
 
-fun ResultSet.getNullableIntArray(name: String): List<Int?> =
-    getNullableIntArrayOrNull(name) ?: throw IllegalStateException("Array does not exist in result set")
+fun ResultSet.getDoubleArray(name: String): List<Double> = verifyNotNull(name, ::getDoubleArrayOrNull)
 
-fun ResultSet.getNullableIntArrayOrNull(name: String): List<Int?>? = getListOrNull(name)
+fun ResultSet.getDoubleArrayOrNull(name: String): List<Double>? = getListOrNull(name)
 
-fun ResultSet.getStringArray(name: String): List<String> =
-    getListOrNull(name) ?: throw IllegalStateException("Array does not exist in result set")
+fun ResultSet.getStringArray(name: String): List<String> = verifyNotNull(name, ::getListOrNull)
 
 fun ResultSet.getStringArrayOrNull(name: String): List<String>? = getListOrNull(name)
+
+fun ResultSet.getNullableIntArray(name: String): List<Int?> = verifyNotNull(name, ::getNullableIntArrayOrNull)
+
+fun ResultSet.getNullableIntArrayOrNull(name: String): List<Int?>? = getNullableListOrNull(name)
+
+fun ResultSet.getNullableDoubleArray(name: String): List<Double?> = verifyNotNull(name, ::getNullableDoubleArrayOrNull)
+
+fun ResultSet.getNullableDoubleArrayOrNull(name: String): List<Double?>? = getNullableListOrNull(name)
+
+fun ResultSet.getNullableStringArray(name: String): List<String?> = verifyNotNull(name, ::getNullableStringArrayOrNull)
+
+fun ResultSet.getNullableStringArrayOrNull(name: String): List<String?>? = getNullableListOrNull(name)
+
+inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArray(name: String): List<T?> =
+    verifyNotNull(name) { getNullableEnumArrayOrNull<T>(name) }
+
+inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArrayOrNull(name: String): List<T?>? =
+    getNullableStringArrayOrNull(name)?.map { string -> string?.let { s -> enumValueOf<T>(s) } }
 
 fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
     getListOrNull<Array<Int>>(name)?.map { it.toList() }
 
-inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? {
-    val arrayObj = getArray(name)?.array
-    return if (arrayObj is Array<*>) {
-        (arrayObj as Array<out Any?>).toList().mapNotNull { o ->
-            if (o is T) o
-            else throw IllegalStateException("Array contains value of unexpected type: expectedType=${T::class.simpleName} found=$o")
-        }
-    } else {
-        null
-    }
+inline fun <reified T> ResultSet.getList(name: String): List<T> = verifyNotNull(name, ::getListOrNull)
+
+inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? = getArray(name)?.array?.let { arr ->
+    if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType)
+    else null
 }
 
-inline fun <reified T> ResultSet.getList(name: String): List<T> {
-    val arrayObj = getArray(name)?.array
-    val list = (arrayObj as Array<out Any?>).toList()
-
-    return list.mapNotNull { o ->
-        if (o is T) o
-        else throw IllegalStateException("Array contains value of unexpected type")
-    }
+inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? = getArray(name)?.array?.let { arr ->
+    if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) }
+    else null
 }
 
-fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) =
-    DaoResponse<T>(
-        id = getIntId(officialIdName),
-        rowVersion = getRowVersion(versionIdName, versionName),
-    )
+fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = DaoResponse<T>(
+    id = getIntId(officialIdName),
+    rowVersion = getRowVersion(versionIdName, versionName),
+)
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
@@ -231,29 +180,55 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
 
 fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: throw IllegalStateException("$name can't be null")
 
-fun ResultSet.getCode(name: String): Code = getCodeOrNull(name)
-    ?: throw IllegalStateException("StringCode was null")
+fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: throw IllegalStateException("StringCode was null")
 
 fun ResultSet.getCodeOrNull(name: String): Code? = getString(name)?.let(::Code)
 
-fun ResultSet.getFreeText(name: String): FreeText = getFreeTextOrNull(name)
-    ?: throw IllegalStateException("FreeText was null")
+fun ResultSet.getFreeText(name: String): FreeText = verifyNotNull(name, ::getFreeTextOrNull)
 
 fun ResultSet.getFreeTextOrNull(name: String): FreeText? = getString(name)?.let(::FreeText)
 
-fun ResultSet.getFileName(name: String): FileName = getFileNameOrNull(name)
-    ?: throw IllegalStateException("FileName was null")
+fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? = getString(name)?.let(::FreeTextWithNewLines)
+
+fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 
 fun ResultSet.getFileNameOrNull(name: String): FileName? = getString(name)?.let(::FileName)
 
-fun ResultSet.getBbox(name: String): BoundingBox = getBboxOrNull(name)
-    ?: throw IllegalStateException("Bounding box was null")
+fun ResultSet.getBbox(name: String): BoundingBox = verifyNotNull(name, ::getBboxOrNull)
 
 fun ResultSet.getBboxOrNull(name: String): BoundingBox? =
     getPolygonPointListOrNull(name)?.let(::boundingBoxAroundPoints)
 
-fun ResultSet.getPolygonPointList(name: String): List<Point> = getPolygonPointListOrNull(name)
-    ?: throw IllegalStateException("WKT Point list was null")
+fun ResultSet.getPolygonPointList(name: String): List<Point> = verifyNotNull(name, ::getPolygonPointListOrNull)
 
-fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? =
-    getString(name)?.let(::parse2DPolygon)
+fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? = getString(name)?.let(::parse2DPolygon)
+
+fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+
+fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getString(name)?.let(::PVProjectName)
+
+fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName = verifyNotNull(name, ::getPVDictionaryNameOrNull)
+
+fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? = getString(name)?.let(::PVDictionaryName)
+
+fun ResultSet.getPVDictionaryCode(name: String): PVDictionaryCode = verifyNotNull(name, ::getPVDictionaryCodeOrNull)
+
+fun ResultSet.getPVDictionaryCodeOrNull(name: String): PVDictionaryCode? = getString(name)?.let(::PVDictionaryCode)
+
+fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
+
+fun ResultSet.getPVIdOrNull(name: String): PVId? = getString(name)?.let(::PVId)
+
+fun <T> ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<T> =
+    Change(getter("old_$name"), getter(name))
+
+fun ResultSet.getChangePoint(nameX: String, nameY: String) =
+    Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
+
+inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
+    requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
+
+inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
+    require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
+    v
+}

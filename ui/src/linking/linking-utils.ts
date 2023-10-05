@@ -54,10 +54,9 @@ export function getMatchingLocationTrackIdsForJoints(
     const locationTrackIds = jointsOfAlignment
         .flatMap((joint) => joint.accurateMatches.map((m) => m.locationTrackId))
         .filter(filterUnique);
-
     return locationTrackIds.filter((locationTrackId) => {
-        return jointsOfAlignment.every((joint) =>
-            joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId),
+        return [jointsOfAlignment[0], jointsOfAlignment[jointsOfAlignment.length - 1]].every(
+            (joint) => joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId),
         );
     });
 }
@@ -67,7 +66,10 @@ export function getMatchingLocationTrackIdsForJointNumbers(
     joints: LayoutSwitchJointConnection[],
 ): LocationTrackId[] {
     return getMatchingLocationTrackIdsForJoints(
-        joints.filter((joint) => jointNumbers.includes(joint.number)),
+        // retain jointNumbers' ordering (based on switch alignment)
+        jointNumbers.flatMap((jointNumber) =>
+            joints.filter((joint) => joint.number === jointNumber),
+        ),
     );
 }
 

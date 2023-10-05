@@ -8,7 +8,7 @@ import {
     initialLocationTrackEditState,
     reducer,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { deleteLocationTrack } from 'track-layout/layout-location-track-api';
@@ -24,7 +24,7 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
 > = ({ id, onClose, onCancel }: LocationTrackDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
     const [, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
         deleteLocationTrack(id)
@@ -50,25 +50,22 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
     };
 
     return (
-        <React.Fragment>
-            <Dialog
-                title={t('tool-panel.location-track.delete-dialog.delete-draft-confirm')}
-                variant={DialogVariant.DARK}
-                allowClose={false}
-                className={dialogStyles['dialog--narrow']}
-                footerContent={
-                    <React.Fragment>
-                        <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
-                            {t('button.cancel')}
-                        </Button>
-                        <Button onClick={() => deleteDraftLocationTrack(id)}>
-                            {t('button.delete')}
-                        </Button>
-                    </React.Fragment>
-                }>
-                <p>{t('tool-panel.location-track.delete-dialog.can-be-deleted')}</p>
-            </Dialog>
-        </React.Fragment>
+        <Dialog
+            title={t('tool-panel.location-track.delete-dialog.delete-draft-confirm')}
+            variant={DialogVariant.DARK}
+            allowClose={false}
+            footerContent={
+                <div className={dialogStyles['dialog__footer-content--centered']}>
+                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button onClick={() => deleteDraftLocationTrack(id)}>
+                        {t('button.delete')}
+                    </Button>
+                </div>
+            }>
+            <p>{t('tool-panel.location-track.delete-dialog.can-be-deleted')}</p>
+        </Dialog>
     );
 };
 

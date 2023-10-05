@@ -6,34 +6,31 @@ import styles from './location-track-infobox.scss';
 export type LocationTrackInfoboxDuplicateOfProps = {
     existingDuplicate: LayoutLocationTrack | undefined;
     duplicatesOfLocationTrack: LayoutLocationTrackDuplicate[] | undefined;
-}
+};
 
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
     existingDuplicate,
     duplicatesOfLocationTrack,
 }: LocationTrackInfoboxDuplicateOfProps) => {
-    return (
-        <React.Fragment>
-            {
-                existingDuplicate ?
-                    <LocationTrackLink
-                        locationTrackId={existingDuplicate.id}
-                        locationTrackName={existingDuplicate.name}
-                    />
-                    : duplicatesOfLocationTrack ?
-                       <ul className={styles['location-track-infobox-duplicate-of__ul']}> {
-                            duplicatesOfLocationTrack.map(duplicate =>
-                               <li key={duplicate.id}>
-                                   <LocationTrackLink
-                                       locationTrackId={duplicate.id}
-                                       locationTrackName={duplicate.name}
-                                   />
-                               </li>
-                            )
-                        }
-                       </ul>
-                        : ''
-            }
-        </React.Fragment>
+    return existingDuplicate ? (
+        <LocationTrackLink
+            locationTrackId={existingDuplicate.id}
+            locationTrackName={existingDuplicate.name}
+        />
+    ) : duplicatesOfLocationTrack ? (
+        <ul className={styles['location-track-infobox-duplicate-of__ul']}>
+            {duplicatesOfLocationTrack
+                .sort((a, b) => (a.name > b.name ? 1 : -1))
+                .map((duplicate) => (
+                    <li key={duplicate.id}>
+                        <LocationTrackLink
+                            locationTrackId={duplicate.id}
+                            locationTrackName={duplicate.name}
+                        />
+                    </li>
+                ))}
+        </ul>
+    ) : (
+        <React.Fragment />
     );
 };

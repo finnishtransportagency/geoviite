@@ -1,22 +1,19 @@
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import * as React from 'react';
 import { GeometryCurve } from 'geometry/geometry-model';
-import { MapSegment } from 'track-layout/track-layout-model';
 import { CantRange } from 'tool-panel/geometry-alignment/geometry-segment/cant-range';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 
 type CurveInfoBoxProps = {
-    chosenSegment: MapSegment;
+    points: LayoutPoint[];
     geometryCurve: GeometryCurve;
 };
 
 const CurveInfobox: React.FC<CurveInfoBoxProps> = ({
-    chosenSegment,
+    points,
     geometryCurve,
 }: CurveInfoBoxProps) => {
     const { t } = useTranslation();
@@ -37,7 +34,7 @@ const CurveInfobox: React.FC<CurveInfoBoxProps> = ({
                     geometryCurve.radius,
                     Precision.radiusMeters,
                 )} m`}></InfoboxField>
-            <CantRange chosenSegment={chosenSegment} />
+            <CantRange points={points} />
         </React.Fragment>
     );
 };

@@ -1,83 +1,312 @@
 import { asyncCache } from 'cache/cache';
-import { MapTile } from 'map/map-model';
-import { AlignmentId, LocationTrackId, MapAlignment, MapAlignmentType } from './track-layout-model';
-import { API_URI, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
-import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
-import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/layer-visibility-limits';
+import { AlignmentHighlight, MapTile } from 'map/map-model';
+import {
+    AlignmentId,
+    combineLayoutPoints,
+    LayoutPoint,
+    LayoutState,
+    LayoutTrackNumber,
+    LayoutTrackNumberId,
+    LocationTrackId,
+    LocationTrackType,
+    MapAlignmentSource,
+    MapAlignmentType,
+    ReferenceLineId,
+} from './track-layout-model';
+import { API_URI, getNonNull, getNullable, queryParams } from 'api/api-fetch';
+import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
+import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
-import { PublishType, TimeStamp, TrackMeter } from 'common/common-model';
-import { LinkPoint } from 'linking/linking-model';
+import { PublishType, RowVersion, TimeStamp, TrackMeter } from 'common/common-model';
+import { LinkInterval, LinkPoint } from 'linking/linking-model';
 import { bboxString, pointString } from 'common/common-api';
-import { getGeometryAlignmentLayout } from 'geometry/geometry-api';
+import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
-import { createLinkPoints } from 'linking/linking-store';
+import { createLinkPoints, layoutPointToLinkPoint } from 'linking/linking-store';
+import { deduplicate, filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
+import { getMaxTimestamp } from 'utils/date-utils';
+import { getTrackNumbers } from './layout-track-number-api';
+import { directionBetweenPoints } from 'utils/math-utils';
+import { ChangeTimes } from 'common/common-slice';
 
-const locationTrackEndsCache = asyncCache<string, MapAlignment>();
-const referenceLineEndsCache = asyncCache<string, MapAlignment>();
-const alignmentTilesCache = asyncCache<string, MapAlignment[]>();
+export type AlignmentDataHolder = {
+    trackNumber?: LayoutTrackNumber;
+    header: AlignmentHeader;
+    points: LayoutPoint[];
+    planId?: GeometryPlanId;
+};
+
+export type AlignmentHeader = {
+    id: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
+    version?: RowVersion;
+    trackNumberId?: LayoutTrackNumberId;
+    duplicateOf?: LocationTrackId;
+
+    name: string;
+    state: LayoutState;
+    alignmentSource: MapAlignmentSource;
+    alignmentType: MapAlignmentType;
+    trackType?: LocationTrackType;
+
+    length: number;
+    boundingBox?: BoundingBox;
+};
+
+export type AlignmentPolyLine = {
+    id: LocationTrackId | ReferenceLineId;
+    alignmentType: MapAlignmentType;
+    points: LayoutPoint[];
+};
+
+const referenceLineHeaderCache = asyncCache<string, AlignmentHeader | undefined>();
+const locationTrackHeaderCache = asyncCache<string, AlignmentHeader | undefined>();
+const alignmentPolyLinesCache = asyncCache<string, AlignmentPolyLine[]>();
+const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefined>();
+
+const locationTrackSegmentMCache = asyncCache<string, number[]>();
+const referenceLineSegmentMCache = asyncCache<string, number[]>();
+
+const locationTrackEndsCache = asyncCache<string, LayoutPoint[]>();
+const referenceLineEndsCache = asyncCache<string, LayoutPoint[]>();
+const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
+const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
+const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
-type MapDataType = 'alignments' | 'location-tracks' | 'reference-lines';
-export type AlignmentFetchType = 'locationtrack' | 'reference' | 'all';
+export type AlignmentFetchType = 'LOCATION_TRACKS' | 'REFERENCE_LINES' | 'ALL';
 
-function mapUri(dataType: MapDataType, publishType: PublishType, id?: string): string {
-    const baseUri = `${TRACK_LAYOUT_URI}/map/${publishType.toLowerCase()}/${dataType}`;
-    return id ? `${baseUri}/${id}` : baseUri;
+function mapUri(publishType: PublishType): string {
+    return `${TRACK_LAYOUT_URI}/map/${publishType.toLowerCase()}`;
+}
+
+function mapAlignmentUri(
+    publishType: PublishType,
+    alignmentType: MapAlignmentType,
+    content?: string,
+): string {
+    const type = alignmentType == 'LOCATION_TRACK' ? 'location-track' : 'reference-line';
+    const baseUri = `${TRACK_LAYOUT_URI}/map/${publishType.toLowerCase()}/${type}`;
+    return content ? `${baseUri}/${content}` : baseUri;
 }
 
 function geocodingUri(publishType: PublishType) {
     return `${GEOCODING_URI}/${publishType.toLowerCase()}`;
 }
 
-export async function getAlignmentsByTile(
-    changeTime: TimeStamp,
-    mapTile: MapTile,
-    publishType: PublishType,
-    fetchType: AlignmentFetchType,
-    selectedId?: LocationTrackId,
-): Promise<MapAlignment[]> {
-    const tileKey = `${mapTile.id}_${publishType}_${fetchType}`;
-    return alignmentTilesCache.get(changeTime, tileKey, () =>
-        getAlignments(mapTile.area, mapTile.resolution, publishType, fetchType, selectedId),
-    );
+function cacheKey(id: ReferenceLineId | LocationTrackId, publishType: PublishType) {
+    return `${id}_${publishType}`;
 }
 
-export async function getAlignmentsByTiles(
-    changeTime: TimeStamp,
+export async function getMapAlignmentsByTiles(
+    changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     publishType: PublishType,
-    fetchType: AlignmentFetchType,
-    selectedId?: AlignmentId,
-): Promise<MapAlignment[]> {
+) {
+    const polyLines = await Promise.all(
+        mapTiles.map((tile) =>
+            getPolyLines(tile, changeTimes.layoutReferenceLine, publishType, 'ALL'),
+        ),
+    ).then((p) => p.flat());
+
+    const [rlPolyLines, ltPolyLines] = partitionBy(
+        polyLines,
+        (i) => i.alignmentType === 'REFERENCE_LINE',
+    );
+
+    return [
+        ...(await getAlignmentDataHolder('REFERENCE_LINE', rlPolyLines, publishType, changeTimes)),
+        ...(await getAlignmentDataHolder('LOCATION_TRACK', ltPolyLines, publishType, changeTimes)),
+    ];
+}
+
+export async function getReferenceLineMapAlignmentsByTiles(
+    changeTimes: ChangeTimes,
+    mapTiles: MapTile[],
+    publishType: PublishType,
+) {
+    const polyLines = await Promise.all(
+        mapTiles.map((tile) =>
+            getPolyLines(tile, changeTimes.layoutReferenceLine, publishType, 'REFERENCE_LINES'),
+        ),
+    ).then((p) => p.flat());
+
+    return getAlignmentDataHolder('REFERENCE_LINE', polyLines, publishType, changeTimes);
+}
+
+export async function getLocationTrackMapAlignmentsByTiles(
+    changeTimes: ChangeTimes,
+    mapTiles: MapTile[],
+    publishType: PublishType,
+    locationTrackId?: LocationTrackId,
+) {
+    const polyLines = await Promise.all(
+        mapTiles.map((tile) =>
+            locationTrackId
+                ? getLocationTrackPolyline(
+                      locationTrackId,
+                      tile,
+                      changeTimes.layoutLocationTrack,
+                      publishType,
+                  ).then((r) => (r ? [r] : []))
+                : getPolyLines(
+                      tile,
+                      changeTimes.layoutLocationTrack,
+                      publishType,
+                      'LOCATION_TRACKS',
+                  ),
+        ),
+    ).then((lines) => lines.flat());
+
+    return getAlignmentDataHolder('LOCATION_TRACK', polyLines, publishType, changeTimes);
+}
+
+async function getAlignmentDataHolder(
+    type: MapAlignmentType,
+    polyLines: AlignmentPolyLine[],
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+) {
+    const ids = deduplicate(polyLines.map((pl) => pl.id));
+    const headerChangeTime =
+        type === 'LOCATION_TRACK'
+            ? changeTimes.layoutLocationTrack
+            : getMaxTimestamp(changeTimes.layoutTrackNumber, changeTimes.layoutReferenceLine);
+
+    const headers = await getAlignmentHeaders(publishType, ids, type, headerChangeTime);
+    const trackNumbers = await getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
+
+    return combine(headers, polyLines, trackNumbers);
+}
+
+function combine(
+    headers: AlignmentHeader[],
+    polyLines: AlignmentPolyLine[],
+    trackNumbers: LayoutTrackNumber[],
+): AlignmentDataHolder[] {
+    return headers
+        .map((header: AlignmentHeader) => {
+            const polyLinePieces = polyLines.filter(
+                (pl) => pl.id === header.id && pl.alignmentType === header.alignmentType,
+            );
+            return {
+                header: header,
+                points: combineLayoutPoints(polyLinePieces.map((p) => p.points)),
+                trackNumber: trackNumbers.find((tn) => tn.id === header.trackNumberId),
+                planId: undefined,
+            };
+        })
+        .filter(filterNotEmpty);
+}
+
+export async function getLocationTrackSectionsWithoutProfileByTiles(
+    changeTime: TimeStamp,
+    publishType: PublishType,
+    mapTiles: MapTile[],
+): Promise<AlignmentHighlight[]> {
     return (
         await Promise.all(
             mapTiles.map((tile) =>
-                getAlignmentsByTile(changeTime, tile, publishType, fetchType, selectedId),
+                getLocationTrackSectionsWithoutProfileByTile(changeTime, publishType, tile),
             ),
         )
     ).flat();
 }
 
-export async function getReferenceLineSegmentEnds(
-    id: LocationTrackId,
+function getLocationTrackSectionsWithoutProfileByTile(
+    changeTime: TimeStamp,
     publishType: PublishType,
-): Promise<MapAlignment> {
-    const cacheKey = `${id}_${publishType}`;
-    return referenceLineEndsCache.get(getChangeTimes().layoutReferenceLine, cacheKey, () =>
-        getThrowError<MapAlignment>(`${mapUri('reference-lines', publishType)}/${id}`),
+    mapTile: MapTile,
+): Promise<AlignmentHighlight[]> {
+    const tileKey = `${mapTile.id}_${publishType}}`;
+    const params = queryParams({ bbox: bboxString(mapTile.area) });
+    return sectionsWithoutProfileCache.get(changeTime, tileKey, () =>
+        getNonNull(`${mapUri(publishType)}/location-track/without-profile${params}`),
     );
 }
 
-export async function getLocationTrackSegmentEnds(
-    id: LocationTrackId,
+export async function getAlignmentSectionsWithoutLinkingByTiles(
+    changeTime: TimeStamp,
     publishType: PublishType,
-): Promise<MapAlignment> {
-    const cacheKey = `${id}_${publishType}`;
-    return locationTrackEndsCache.get(getChangeTimes().layoutLocationTrack, cacheKey, () =>
-        getThrowError<MapAlignment>(`${mapUri('location-tracks', publishType)}/${id}`),
+    type: AlignmentFetchType,
+    mapTiles: MapTile[],
+): Promise<AlignmentHighlight[]> {
+    return (
+        await Promise.all(
+            mapTiles.map((tile) =>
+                getAlignmentSectionsWithoutLinkingByTile(changeTime, publishType, type, tile),
+            ),
+        )
+    ).flat();
+}
+
+async function getAlignmentSectionsWithoutLinkingByTile(
+    changeTime: TimeStamp,
+    publishType: PublishType,
+    type: AlignmentFetchType,
+    mapTile: MapTile,
+): Promise<AlignmentHighlight[]> {
+    const tileKey = `${mapTile.id}_${type}_${publishType}}`;
+    const params = queryParams({ bbox: bboxString(mapTile.area), type: type });
+    return sectionsWithoutLinkingCache.get(changeTime, tileKey, () =>
+        getNonNull(`${mapUri(publishType)}/alignment/without-linking${params}`),
     );
+}
+
+async function getAlignmentHeaders(
+    publishType: PublishType,
+    ids: (ReferenceLineId | LocationTrackId)[],
+    type: MapAlignmentType,
+    changeTime: TimeStamp,
+): Promise<AlignmentHeader[]> {
+    return (type === 'LOCATION_TRACK' ? locationTrackHeaderCache : referenceLineHeaderCache)
+        .getMany(
+            changeTime,
+            ids,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getNonNull<AlignmentHeader[]>(
+                    `${mapAlignmentUri(publishType, type, 'alignment-headers')}?ids=${fetchIds}`,
+                ).then((headers) => {
+                    const headerMap = indexIntoMap(headers);
+                    return (id) => headerMap.get(id);
+                }),
+        )
+        .then((headers) => headers.filter(filterNotEmpty));
+}
+
+export async function getSegmentEnds(
+    publishType: PublishType,
+    id: ReferenceLineId,
+    type: MapAlignmentType,
+    changeTime: TimeStamp,
+): Promise<number[]> {
+    return (
+        type === 'LOCATION_TRACK' ? locationTrackSegmentMCache : referenceLineSegmentMCache
+    ).get(changeTime, cacheKey(id, publishType), () =>
+        getNonNull<number[]>(mapAlignmentUri(publishType, type, `${id}/segment-m`)),
+    );
+}
+
+export async function getEndLinkPoints(
+    id: ReferenceLineId,
+    publishType: PublishType,
+    type: MapAlignmentType,
+    changeTime: TimeStamp,
+): Promise<LinkInterval> {
+    return (type === 'LOCATION_TRACK' ? locationTrackEndsCache : referenceLineEndsCache)
+        .get(changeTime, cacheKey(id, publishType), () =>
+            getNonNull<LayoutPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`)),
+        )
+        .then(([start, startPlusOne, endMinusOne, end]) => {
+            const startDir = directionBetweenPoints(start, startPlusOne);
+            const endDir = directionBetweenPoints(endMinusOne, end);
+            return {
+                start: layoutPointToLinkPoint(type, id, start, startDir, true, true),
+                end: layoutPointToLinkPoint(type, id, end, endDir, true, true),
+            };
+        });
 }
 
 export async function getLinkPointsByTiles(
@@ -86,71 +315,91 @@ export async function getLinkPointsByTiles(
     alignmentId: AlignmentId,
     alignmentType: MapAlignmentType,
 ): Promise<LinkPoint[]> {
-    return (
-        await Promise.all(
-            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', 'all')),
-        ).then((alignments) => {
-            const allAlignments = alignments.flat().filter((a) => a.alignmentType == alignmentType);
-            if (allAlignments.length == 0) return [];
-            const segments = allAlignments
-                .filter((a) => a.id === alignmentId)
-                .flatMap((a) => a.segments)
-                .sort((a, b) => a.start - b.start);
-
-            const uniqueIds = segments.map((s) => s.id);
-            const uniqueSegments = segments.filter(
-                ({ id }, index) => !uniqueIds.includes(id, index + 1),
-            );
-
-            return createLinkPoints(alignmentType, alignmentId, uniqueSegments);
-        })
-    ).flat();
+    const segmentEndMs = await getSegmentEnds('DRAFT', alignmentId, alignmentType, changeTime);
+    const tiledAlignments = await Promise.all(
+        mapTiles.map((tile) => getPolyLines(tile, changeTime, 'DRAFT', 'ALL')),
+    );
+    const allPieces = tiledAlignments
+        .flat()
+        .filter((a) => a.alignmentType === alignmentType && a.id === alignmentId);
+    const allPoints = combineLayoutPoints(allPieces.map((a) => a.points));
+    return createLinkPoints(
+        alignmentType,
+        alignmentId,
+        segmentEndMs[segmentEndMs.length - 1],
+        segmentEndMs,
+        allPoints,
+    );
 }
 
-export async function createGeometryLinkPointsByTiles(
+export async function getGeometryLinkPointsByTiles(
     geometryPlanId: GeometryPlanId,
     geometryAlignmentId: GeometryAlignmentId,
     mapTiles: MapTile[],
     alwaysIncludePoints: LinkPoint[] = [],
+    changeTime: TimeStamp = getChangeTimes().geometryPlan,
 ): Promise<LinkPoint[]> {
     const resolution = toMapAlignmentResolution(mapTiles[0].resolution);
     const bounds = combineBoundingBoxes(mapTiles.map((tile) => tile.area));
-    const geometryAlignment = await getGeometryAlignmentLayout(geometryPlanId, geometryAlignmentId);
-    if (geometryAlignment) {
+    const plan = await getTrackLayoutPlan(geometryPlanId, changeTime, true);
+    const alignment = plan?.alignments?.find((a) => a.header.id === geometryAlignmentId);
+    if (alignment && alignment.polyLine) {
+        const header = alignment.header;
+        const polyLine = alignment.polyLine;
+        const segmentMValues = alignment.segmentMValues;
+        const points = polyLine.points.filter(
+            (p) =>
+                boundingBoxContains(bounds, p) &&
+                (segmentMValues.includes(p.m) ||
+                    resolution <= 1 ||
+                    Math.floor(p.m) % resolution == 0 ||
+                    alwaysIncludePoints.some((alwaysIncludePoint) => alwaysIncludePoint.m == p.m)),
+        );
         return createLinkPoints(
-            geometryAlignment.alignmentType,
-            geometryAlignment.id,
-            geometryAlignment.segments,
-            bounds,
-            (linkPoint: LinkPoint, isSegmentEndPoint: boolean) =>
-                isSegmentEndPoint ||
-                resolution <= 1 ||
-                Math.floor(linkPoint.ordering) % resolution == 0 ||
-                alwaysIncludePoints.some(
-                    (alwaysIncludePoint) => alwaysIncludePoint.id == linkPoint.id,
-                ),
+            header.alignmentType,
+            header.id,
+            header.length,
+            segmentMValues,
+            points,
         );
     } else {
         return [];
     }
 }
 
-async function getAlignments(
-    area: BoundingBox,
-    resolution: number,
+async function getPolyLines(
+    mapTile: MapTile,
+    changeTime: TimeStamp,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    selectedId?: LocationTrackId,
-): Promise<MapAlignment[]> {
+): Promise<AlignmentPolyLine[]> {
+    const tileKey = `${mapTile.id}_${publishType}_${fetchType}`;
     const params = queryParams({
-        resolution: toMapAlignmentResolution(resolution),
-        bbox: bboxString(area),
+        resolution: toMapAlignmentResolution(mapTile.resolution),
+        bbox: bboxString(mapTile.area),
         type: fetchType.toUpperCase(),
-        selectedId,
     });
-    return await getWithDefault<MapAlignment[]>(
-        `${mapUri('alignments', publishType)}${params}`,
-        [],
+    return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
+        getNonNull<AlignmentPolyLine[]>(`${mapUri(publishType)}/alignment-polylines${params}`),
+    );
+}
+
+async function getLocationTrackPolyline(
+    locationTrackId: LocationTrackId,
+    mapTile: MapTile,
+    changeTime: TimeStamp,
+    publishType: PublishType,
+): Promise<AlignmentPolyLine | undefined> {
+    const tileKey = `${locationTrackId}_${mapTile.id}_${publishType}`;
+    const params = queryParams({
+        resolution: toMapAlignmentResolution(mapTile.resolution),
+        bbox: bboxString(mapTile.area),
+    });
+
+    return await locationTrackPolyLineCache.get(changeTime, tileKey, () =>
+        getNullable<AlignmentPolyLine>(
+            `${mapUri(publishType)}/location-track/${locationTrackId}/alignment-polyline${params}`,
+        ),
     );
 }
 
@@ -161,12 +410,18 @@ export function toMapAlignmentResolution(tileResolution: number): number {
 export async function getTrackMeter(
     trackNumberId: string,
     publishType: PublishType,
+    changeTime: TimeStamp,
     location: Point,
 ): Promise<TrackMeter | undefined> {
     const params = queryParams({ coordinate: pointString(location) });
 
-    return getWithDefault(
-        `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
-        undefined,
+    return trackNumberTrackMeterCache.get(
+        changeTime,
+        `${trackNumberId}_${publishType}_${pointString(location)}`,
+        () => {
+            return getNonNull<TrackMeter>(
+                `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
+            );
+        },
     );
 }

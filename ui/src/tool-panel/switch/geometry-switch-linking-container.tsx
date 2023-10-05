@@ -1,9 +1,12 @@
 import * as React from 'react';
 import GeometrySwitchLinkingInfobox from 'tool-panel/switch/geometry-switch-linking-infobox';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import {
+    GeometrySwitchLinkingInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { TimeStamp } from 'common/common-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
@@ -16,6 +19,8 @@ type GeometrySwitchLinkingContainerProps = {
     locationTrackChangeTime: TimeStamp;
     layoutSwitch?: LayoutSwitch;
     planId?: GeometryPlanId;
+    visibilities: GeometrySwitchLinkingInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometrySwitchLinkingInfoboxVisibilities) => void;
 };
 
 const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerProps> = ({
@@ -26,16 +31,22 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
     locationTrackChangeTime,
     layoutSwitch,
     planId,
+    visibilities,
+    onVisibilityChange,
 }) => {
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
-    const store = useTrackLayoutAppSelector((state) => state.trackLayout);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
+    const store = useTrackLayoutAppSelector((state) => state);
 
     return (
         <GeometrySwitchLinkingInfobox
+            visibilities={visibilities}
+            onVisibilityChange={onVisibilityChange}
             linkingState={linkingState}
             switchId={switchId}
-            onLinkingStart={delegates.startSwitchLinking}
+            onLinkingStart={(suggestedSwitch) => {
+                delegates.showLayers(['switch-linking-layer']);
+                delegates.startSwitchLinking(suggestedSwitch);
+            }}
             selectedSuggestedSwitch={suggestedSwitch}
             onSwitchSelect={(s) => delegates.onSelect({ switches: [s.id] })}
             switchChangeTime={switchChangeTime}
@@ -43,7 +54,10 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
             layoutSwitch={layoutSwitch}
             publishType={store.publishType}
             resolution={store.map.viewport.resolution}
-            onStopLinking={delegates.stopLinking}
+            onStopLinking={() => {
+                delegates.hideLayers(['switch-linking-layer']);
+                delegates.stopLinking();
+            }}
             onSuggestedSwitchChange={(s) => delegates.onSelect({ suggestedSwitches: [s] })}
             planId={planId}
             geometrySwitchId={switchId}

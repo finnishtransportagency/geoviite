@@ -1,0 +1,12 @@
+{
+    "en": {
+        "test": {
+            "text": "test in English",
+            "title": "title in English",
+            "description": {
+                "part1": "Part 1",
+                "part2": "Part 2"
+            }
+        }
+    }
+}

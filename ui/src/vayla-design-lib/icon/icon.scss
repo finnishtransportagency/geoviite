@@ -1,4 +1,4 @@
-@import '../colors';
+@use '../colors';
 
 $icon-size-original: 24px;
 $icon-size-small: 12px;
@@ -6,12 +6,8 @@ $icon-size-medium-small: 16px;
 $icon-size-medium: 20px;
 $icon-size-large: 30px;
 
-.icon {
-    zoom: 1;
-}
-
 .icon:not(.icon--color-inherit) {
-    fill: $color-blue-dark;
+    fill: colors.$color-blue-dark;
 }
 
 .icon.icon--color-original {
@@ -19,7 +15,7 @@ $icon-size-large: 30px;
 }
 
 .icon.icon--color-disabled {
-    fill: $color-black-lighter;
+    fill: colors.$color-black-lighter;
 }
 
 @mixin icon-size($size) {
@@ -29,10 +25,6 @@ $icon-size-large: 30px;
     max-height: $size;
     height: $size;
     min-height: $size;
-}
-
-.icon--size-original {
-    zoom: 1;
 }
 
 .icon--size-small {

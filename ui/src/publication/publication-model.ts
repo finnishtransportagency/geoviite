@@ -3,6 +3,7 @@ import {
     JointNumber,
     KmNumber,
     Oid,
+    Range,
     RowVersion,
     TimeStamp,
     TrackMeter,
@@ -16,12 +17,13 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { RatkoPushStatus } from 'ratko/ratko-model';
-import { Point } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
+import { LocalizationParams } from 'i18n/config';
 
 export type PublishValidationError = {
     type: 'ERROR' | 'WARNING';
     localizationKey: string;
-    params: string[];
+    params: LocalizationParams;
 };
 
 export enum DraftChangeType {
@@ -32,7 +34,7 @@ export enum DraftChangeType {
     KM_POST = 'KM_POST',
 }
 
-export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE';
+export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'CALCULATED';
 
 export type PublicationId = string;
 
@@ -43,41 +45,56 @@ export type PublishCandidate = {
     errors: PublishValidationError[];
 };
 
-export type TrackNumberPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.TRACK_NUMBER;
-    number: TrackNumber;
-    id: LayoutTrackNumberId;
+export type WithBoundingBox = {
+    boundingBox?: BoundingBox;
 };
 
-export type LocationTrackPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.LOCATION_TRACK;
-    id: LocationTrackId;
-    trackNumberId: LayoutTrackNumberId;
-    name: string;
-    duplicateOf: LocationTrackId;
+export type WithLocation = {
+    location?: Point;
 };
 
-export type ReferenceLinePublishCandidate = PublishCandidate & {
-    type: DraftChangeType.REFERENCE_LINE;
-    id: ReferenceLineId;
-    trackNumberId: LayoutTrackNumberId;
-    name: TrackNumber;
-    operation: Operation | null;
-};
+export type TrackNumberPublishCandidate = PublishCandidate &
+    WithBoundingBox & {
+        type: DraftChangeType.TRACK_NUMBER;
+        number: TrackNumber;
+        id: LayoutTrackNumberId;
+    };
 
-export type SwitchPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.SWITCH;
-    id: LayoutSwitchId;
-    name: string;
-    trackNumberIds: LayoutTrackNumberId[];
-};
+export type LocationTrackPublishCandidate = PublishCandidate &
+    WithBoundingBox & {
+        type: DraftChangeType.LOCATION_TRACK;
+        id: LocationTrackId;
+        trackNumberId: LayoutTrackNumberId;
+        name: string;
+        duplicateOf: LocationTrackId;
+    };
 
-export type KmPostPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.KM_POST;
-    id: LayoutKmPostId;
-    trackNumberId: LayoutTrackNumberId;
-    kmNumber: KmNumber;
-};
+export type ReferenceLinePublishCandidate = PublishCandidate &
+    WithBoundingBox & {
+        type: DraftChangeType.REFERENCE_LINE;
+        id: ReferenceLineId;
+        trackNumberId: LayoutTrackNumberId;
+        name: TrackNumber;
+        operation?: Operation;
+        boundingBox?: BoundingBox;
+    };
+
+export type SwitchPublishCandidate = PublishCandidate &
+    WithLocation & {
+        type: DraftChangeType.SWITCH;
+        id: LayoutSwitchId;
+        name: string;
+        trackNumberIds: LayoutTrackNumberId[];
+    };
+
+export type KmPostPublishCandidate = PublishCandidate &
+    WithLocation & {
+        type: DraftChangeType.KM_POST;
+        id: LayoutKmPostId;
+        trackNumberId: LayoutTrackNumberId;
+        kmNumber: KmNumber;
+        location?: Point;
+    };
 
 export type PublishCandidates = {
     trackNumbers: TrackNumberPublishCandidate[];
@@ -101,10 +118,10 @@ export type PublicationDetails = {
     locationTracks: PublishedLocationTrack[];
     switches: PublishedSwitch[];
     kmPosts: PublishedKmPost[];
-    ratkoPushStatus: RatkoPushStatus | null;
-    ratkoPushTime: TimeStamp | null;
+    ratkoPushStatus?: RatkoPushStatus;
+    ratkoPushTime?: TimeStamp;
     calculatedChanges: PublishedCalculatedChanges;
-    message: string | undefined;
+    message?: string;
 };
 
 export type PublishedTrackNumber = {
@@ -152,6 +169,29 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
+export type PropKey = {
+    key: string;
+    params: LocalizationParams;
+};
+
+export type ChangeValue = {
+    oldValue?: string | boolean;
+    newValue?: string | boolean;
+    localizationKey?: string;
+};
+
+export type PublicationChange = {
+    propKey: PropKey;
+    value: ChangeValue;
+    remark?: PublicationChangeRemark;
+    enumKey?: string;
+};
+
+export type PublicationChangeRemark = {
+    key: string;
+    value: string;
+};
+
 export type ValidatedAsset = {
     id: AssetId;
     errors: PublishValidationError[];
@@ -190,9 +230,9 @@ export interface SwitchJointChange {
     address: TrackMeter;
     point: Point;
     locationTrackId: LocationTrackId;
-    locationTrackExternalId: Oid | null;
+    locationTrackExternalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
-    trackNumberExternalId: Oid | null;
+    trackNumberExternalId?: Oid;
 }
 
 export interface SwitchChange {
@@ -229,10 +269,11 @@ export type PublicationTableItem = {
     id: string; //Auto generated
     name: string;
     trackNumbers: TrackNumber[];
-    changedKmNumbers: KmNumber[];
+    changedKmNumbers: Range<string>[];
     operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;
     message: string;
     ratkoPushTime: TimeStamp;
+    propChanges: PublicationChange[];
 };

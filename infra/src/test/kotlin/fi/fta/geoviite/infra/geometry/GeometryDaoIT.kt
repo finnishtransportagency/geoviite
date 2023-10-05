@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.geometry
 
 import assertPlansMatch
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
@@ -27,7 +28,7 @@ const val TEST_NAME_PREFIX = "GEOM_DAO_IT_"
 class GeometryDaoIT @Autowired constructor(
     val geometryDao: GeometryDao,
     val locationTrackService: LocationTrackService,
-): ITTestBase() {
+) : DBTestBase() {
 
     @BeforeEach
     fun init() {
@@ -116,8 +117,12 @@ class GeometryDaoIT @Autowired constructor(
 
     @Test
     fun findsApplicationById() {
-        val application1 = application(name = "${TEST_NAME_PREFIX}Application 1", manufacturer = "Solita Ab/Oy", version = "0.1")
-        val application2 = application(name = "${TEST_NAME_PREFIX}Application 2", manufacturer = "Solita Ab/Oy", version = "0.2")
+        val application1 = application(
+            name = "${TEST_NAME_PREFIX}Application 1", manufacturer = "Solita Ab/Oy", version = "0.1"
+        )
+        val application2 = application(
+            name = "${TEST_NAME_PREFIX}Application 2", manufacturer = "Solita Ab/Oy", version = "0.2"
+        )
 
         val applicationId = geometryDao.insertApplication(application1)
         geometryDao.insertApplication(application2)
@@ -170,15 +175,12 @@ class GeometryDaoIT @Autowired constructor(
     fun minimalElementInsertsWork() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
         val plan = plan(
-            trackNumberId = insertOfficialTrackNumber(),
-            fileName = file.name,
-            alignments = listOf(geometryAlignment(
-                elements = listOf(
-                    minimalLine(),
-                    minimalCurve(),
-                    minimalClothoid(),
-                ),
-            )),
+            trackNumberId = insertOfficialTrackNumber(), fileName = file.name,
+            alignments = listOf(
+                geometryAlignment(
+                    elements = listOf(minimalLine(), minimalCurve(), minimalClothoid()),
+                )
+            ),
         )
         val version = geometryDao.insertPlan(plan, file, null)
         assertPlansMatch(plan, geometryDao.fetchPlan(version))
@@ -191,22 +193,24 @@ class GeometryDaoIT @Autowired constructor(
         val plan = plan(
             trackNumberId = trackNumberId,
             fileName = file.name,
-            alignments = listOf(geometryAlignment(
-                elements = listOf(
-                    minimalLine(),
-                ),
-            )),
+            alignments = listOf(
+                geometryAlignment(
+                    elements = listOf(
+                        minimalLine(),
+                    ),
+                )
+            ),
         )
         val planVersion = geometryDao.insertPlan(plan, file, null)
         val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
-        val track = locationTrackAndAlignment(trackNumberId,
-            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
+        val track = locationTrackAndAlignment(
+            trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))
         val trackChangeTime = locationTrackService.getChangeTimes(trackVersion.id).officialChanged!!
 
-        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, "TEST_USER")
+        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName("TEST_USER")), true)
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))
         val allSummaries = geometryDao.getLinkingSummaries(null)
         assertEquals(mapOf(planVersion.id to expectedSummary), summaries)
@@ -221,20 +225,24 @@ class GeometryDaoIT @Autowired constructor(
         val plan1 = plan(
             trackNumberId = trackNumberId,
             fileName = file1.name,
-            alignments = listOf(geometryAlignment(
-                elements = listOf(
-                    minimalLine(),
-                ),
-            )),
+            alignments = listOf(
+                geometryAlignment(
+                    elements = listOf(
+                        minimalLine(),
+                    ),
+                )
+            ),
         )
         val plan2 = plan(
             trackNumberId = trackNumberId,
             fileName = file1.name,
-            alignments = listOf(geometryAlignment(
-                elements = listOf(
-                    minimalCurve(),
-                ),
-            )),
+            alignments = listOf(
+                geometryAlignment(
+                    elements = listOf(
+                        minimalCurve(),
+                    ),
+                )
+            ),
         )
         val plan1Version = geometryDao.insertPlan(plan1, file1, null)
         val plan2Version = geometryDao.insertPlan(plan2, file2, null)

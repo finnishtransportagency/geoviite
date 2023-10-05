@@ -1,21 +1,25 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.util.CsvEntry
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.SortOrder
-import fi.fta.geoviite.infra.util.printCsv
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
-fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId? = null): String? {
-    val dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-        .withZone(timeZone ?: ZoneId.of("UTC"))
+fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
+    val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(timeZone)
 
     val instant1Date = instant1?.let { dateFormatter.format(it) }
     val instant2Date = instant2?.let { dateFormatter.format(it) }
@@ -31,70 +35,86 @@ fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<By
     headers.contentType = MediaType.APPLICATION_OCTET_STREAM
     headers.set(
         HttpHeaders.CONTENT_DISPOSITION,
-        ContentDisposition.attachment()
-            .filename(fileName.toString())
-            .build()
-            .toString()
+        ContentDisposition.attachment().filename(fileName.toString()).build().toString()
     )
 
-    return ResponseEntity.ok()
-        .headers(headers)
-        .body(content.toByteArray())
+    return ResponseEntity.ok().headers(headers).body(content.toByteArray())
 }
 
-fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId = ZoneId.of("UTC")): String {
-    val columns = mapOf<PublicationTableColumn, (item: PublicationTableItem) -> Any?>(
-        PublicationTableColumn.NAME to { it.name },
-        PublicationTableColumn.TRACK_NUMBERS to {
+fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: Translation): String {
+    val columns = mapOf<String, (item: PublicationTableItem) -> Any?>("publication-table.name" to { it.name },
+        "publication-table.track-number" to {
             it.trackNumbers.sorted().joinToString(", ")
         },
-        PublicationTableColumn.CHANGED_KM_NUMBERS to {
-            it.changedKmNumbers?.sorted()?.let(::formatChangedKmNumbers)
+        "publication-table.km-number" to {
+            it.changedKmNumbers.joinToString(", ") { range -> "${range.min}${if (range.min != range.max) "-${range.max}" else ""}" }
         },
-        PublicationTableColumn.OPERATION to { formatOperation(it.operation) },
-        PublicationTableColumn.PUBLICATION_TIME to { formatInstant(it.publicationTime, timeZone) },
-        PublicationTableColumn.PUBLICATION_USER to { it.publicationUser },
-        PublicationTableColumn.MESSAGE to { it.message },
-        PublicationTableColumn.RATKO_PUSH_TIME to {
+        "publication-table.operation" to { formatOperation(translation, it.operation) },
+        "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
+        "publication-table.publication-user" to { "${it.publicationUser}" },
+        "publication-table.message" to { it.message },
+        "publication-table.pushed-to-ratko" to {
             it.ratkoPushTime?.let { pushTime ->
                 formatInstant(
-                    pushTime,
-                    timeZone
+                    pushTime, timeZone
                 )
-            } ?: getTranslation("no")
+            } ?: translation.t("no")
         },
-    ).map { (column, fn) ->
-        CsvEntry(getTranslation("$column-header"), fn)
+        "publication-table.changes" to {
+            it.propChanges.map { change ->
+                "${
+                    translation.t("publication-details-table.prop.${change.propKey.key}", change.propKey.params)
+                }: ${formatChangeValue(translation, change.value)}${
+                    if (change.remark != null) " (${
+                        translation.t(
+                            "publication-details-table.remark.${change.remark.key}",
+                            mapOf("value" to change.remark.value)
+                        )
+                    })" else ""
+                }"
+            }
+        }).map { (column, fn) ->
+        CsvEntry(translation.t(column), fn)
     }
 
     return printCsv(columns, items)
 }
 
-private fun formatInstant(time: Instant, timeZone: ZoneId) =
-    DateTimeFormatter
-        .ofPattern("dd.MM.yyyy HH:mm")
-        .withZone(timeZone)
-        .format(time)
+private fun enumTranslationKey(enumName: LocalizationKey, value: String) = "enum.${enumName}.${value}"
 
-private fun formatOperation(operation: Operation) =
-    when (operation) {
-        Operation.CREATE -> getTranslation("create")
-        Operation.MODIFY -> getTranslation("modify")
-        Operation.DELETE -> getTranslation("delete")
-        Operation.RESTORE -> getTranslation("restore")
-    }
+private fun <T> formatChangeValue(translation: Translation, value: ChangeValue<T>): String {
 
-fun formatMessage(message: String?, isCalculatedChange: Boolean): String {
-    val calculatedChangeTranslation = getTranslation("calculated-change")
-
-    return if (message == null) {
-        if (isCalculatedChange) calculatedChangeTranslation else ""
-    } else if (isCalculatedChange) "$message ($calculatedChangeTranslation)"
-    else message
+    return "${
+        (if (value.localizationKey != null && value.oldValue != null) translation.t(
+            enumTranslationKey(
+                value.localizationKey, value.oldValue.toString()
+            )
+        ) else if (value.oldValue == null) null else value.oldValue.toString()) ?: ""
+    } -> ${
+        (if (value.localizationKey != null && value.newValue != null) translation.t(
+            enumTranslationKey(
+                value.localizationKey, value.newValue.toString()
+            )
+        ) else if (value.newValue == null) null else value.newValue.toString()) ?: ""
+    }"
 }
 
-private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
-    kmNumbers.fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
+
+private fun formatInstant(time: Instant, timeZone: ZoneId) =
+    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
+
+private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
+    Operation.CREATE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), emptyMap())
+    Operation.MODIFY -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), emptyMap())
+    Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyMap())
+    Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyMap())
+    Operation.CALCULATED -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"), emptyMap()
+    )
+}
+
+fun groupChangedKmNumbers(kmNumbers: List<KmNumber>) =
+    kmNumbers.sorted().fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
         if (acc.isEmpty()) acc.add(listOf(kmNumber))
         else {
             val previousKmNumbers = acc.last()
@@ -105,27 +125,25 @@ private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
             } else acc.add(listOf(kmNumber))
         }
         acc
-    }.joinToString(", ") { it.joinToString("-") }
+    }.map { Range(it.first(), it.last()) }
+
+fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
+    groupChangedKmNumbers(kmNumbers).joinToString(", ") { if (it.min == it.max) "${it.min}" else "${it.min}-${it.max}" }
+
+fun formatDistance(dist: Double) = if (dist >= 0.1) "${roundTo1Decimal(dist)}" else "<${roundTo1Decimal(0.1)}"
 
 fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null): Comparator<PublicationTableItem> =
     if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
-
-//Nulls are "last", e.g., 0, 1, 2, null
-private fun <T : Comparable<T>> compareNullsLast(a: T?, b: T?) =
-    if (a == null && b == null) 0
-    else if (a == null) 1
-    else if (b == null) -1
-    else a.compareTo(b)
 
 private fun getComparator(sortBy: PublicationTableColumn): Comparator<PublicationTableItem> {
     return when (sortBy) {
         PublicationTableColumn.NAME -> Comparator.comparing { p -> p.name }
         PublicationTableColumn.TRACK_NUMBERS -> Comparator { a, b ->
-            compareNullsLast(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
+            nullsLastComparator(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
         }
 
         PublicationTableColumn.CHANGED_KM_NUMBERS -> Comparator { a, b ->
-            compareNullsLast(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
+            nullsLastComparator(a.changedKmNumbers.firstOrNull()?.min, b.changedKmNumbers.firstOrNull()?.min)
         }
 
         PublicationTableColumn.OPERATION -> Comparator.comparing { p -> p.operation.priority }
@@ -133,31 +151,136 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
         PublicationTableColumn.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
         PublicationTableColumn.MESSAGE -> Comparator.comparing { p -> p.message }
         PublicationTableColumn.RATKO_PUSH_TIME -> Comparator { a, b ->
-            compareNullsLast(a.ratkoPushTime, b.ratkoPushTime)
+            nullsLastComparator(a.ratkoPushTime, b.ratkoPushTime)
+        }
+
+        PublicationTableColumn.CHANGES -> Comparator { a, b ->
+            nullsLastComparator(a.propChanges.firstOrNull()?.propKey?.key, b.propChanges.firstOrNull()?.propKey?.key)
         }
     }
 }
 
-fun getTranslation(key: String) = publicationTranslations[key] ?: ""
+fun formatLocation(location: Point) = "${roundTo3Decimals(location.x)} E, ${
+    roundTo3Decimals(
+        location.y
+    )
+} N"
 
-private val publicationTranslations = mapOf(
-    "track-number" to "Ratanumero",
-    "reference-line" to "Pituusmittauslinja",
-    "km-post" to "Tasakilometripiste",
-    "location-track" to "Sijaintiraide",
-    "switch" to "Vaihde",
-    "calculated-change" to "Laskettu muutos",
-    "no" to "Ei",
-    "create" to "Luonti",
-    "modify" to "Muokkaus",
-    "delete" to "Poisto",
-    "restore" to "Palautus",
-    "NAME-header" to "Muutoskohde",
-    "TRACK-NUMBERS-header" to "Ratanro",
-    "CHANGED_KM_NUMBERS-header" to "Kilometrit",
-    "OPERATION-header" to "Muutos",
-    "PUBLICATION_TIME-header" to "Aika",
-    "PUBLICATION_USER-header" to "Käyttäjä",
-    "MESSAGE-header" to "Selite",
-    "RATKO_PUSH_TIME-header" to "Viety Ratkoon"
+const val DISTANCE_CHANGE_THRESHOLD = 0.0005
+
+fun lengthDifference(len1: Double, len2: Double) = abs(abs(len1) - abs(len2))
+fun lengthDifference(len1: BigDecimal, len2: BigDecimal) = abs(abs(len1.toDouble()) - abs(len2.toDouble()))
+
+fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
+    point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
+
+fun getLengthChangedRemarkOrNull(length1: Double?, length2: Double?) =
+    if (length1 != null && length2 != null) lengthDifference(length1, length2).let { lengthDifference ->
+        if (lengthDifference > DISTANCE_CHANGE_THRESHOLD) PublicationChangeRemark(
+            "changed-x-meters", formatDistance(lengthDifference)
+        )
+        else null
+    }
+    else null
+
+fun getPointMovedRemarkOrNull(oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
+    newPoint?.let { p2 ->
+        if (!pointsAreSame(p1, p2)) {
+            val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
+            if (distance > DISTANCE_CHANGE_THRESHOLD) PublicationChangeRemark(
+                "moved-x-meters", formatDistance(distance)
+            )
+            else null
+        } else null
+    }
+}
+
+fun getAddressMovedRemarkOrNull(oldAddress: TrackMeter?, newAddress: TrackMeter?) =
+    if (newAddress == null || oldAddress == null) null
+    else if (newAddress.kmNumber != oldAddress.kmNumber) PublicationChangeRemark(
+        "km-number-changed", "${newAddress.kmNumber}"
+    )
+    else if (lengthDifference(
+            newAddress.meters, oldAddress.meters
+        ) > DISTANCE_CHANGE_THRESHOLD
+    ) PublicationChangeRemark(
+        "moved-x-meters", formatDistance(
+            lengthDifference(
+                newAddress.meters, oldAddress.meters
+            )
+        )
+    )
+    else null
+
+fun getKmNumbersChangedRemarkOrNull(changedKmNumbers: Set<KmNumber>) = PublicationChangeRemark(
+    if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+    formatChangedKmNumbers(changedKmNumbers.toList())
 )
+
+fun <T, U> compareChangeValues(
+    change: Change<T>,
+    valueTransform: (T) -> U,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null,
+) = compareChange(
+    predicate = { change.new != change.old },
+    oldValue = change.old,
+    newValue = change.new,
+    valueTransform = valueTransform,
+    propKey = propKey,
+    remark = remark,
+    enumLocalizationKey = enumLocalizationKey,
+)
+
+fun <U> compareLength(
+    oldValue: Double?,
+    newValue: Double?,
+    threshold: Double,
+    valueTransform: (Double) -> U,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null,
+) = compareChange(
+    predicate = {
+        if (oldValue != null && newValue != null) lengthDifference(oldValue, newValue) > threshold
+        else if (oldValue != null || newValue != null) true
+        else false
+    },
+    oldValue = oldValue,
+    newValue = newValue,
+    valueTransform = valueTransform,
+    propKey = propKey,
+    remark = remark,
+    enumLocalizationKey = enumLocalizationKey,
+)
+
+fun <T, U> compareChange(
+    predicate: () -> Boolean,
+    oldValue: T?,
+    newValue: T?,
+    valueTransform: (T) -> U,
+    propKey: PropKey,
+    remark: PublicationChangeRemark? = null,
+    enumLocalizationKey: String? = null,
+) = if (predicate()) {
+    PublicationChange(
+        propKey,
+        value = ChangeValue(
+            oldValue = oldValue?.let(valueTransform),
+            newValue = newValue?.let(valueTransform),
+            localizationKey = enumLocalizationKey,
+        ),
+        remark,
+    )
+} else null
+
+fun switchBaseTypeToProp(translation: Translation, switchBaseType: SwitchBaseType) = when (switchBaseType) {
+    SwitchBaseType.KRV, SwitchBaseType.YRV, SwitchBaseType.SRR, SwitchBaseType.RR -> translation.t(
+        "publication-details-table.joint.forward-joint"
+    )
+
+    SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.TYV, SwitchBaseType.UKV, SwitchBaseType.YV -> translation.t(
+        "publication-details-table.joint.math-point"
+    )
+}

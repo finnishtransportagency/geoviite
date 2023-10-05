@@ -42,7 +42,6 @@ export type DropdownProps<TItemValue> = {
     hasError?: boolean;
     onAddClick?: () => void;
     wideList?: boolean;
-    qaId?: string;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled'>;
 
 function isOptionsArray<TItemValue>(
@@ -77,7 +76,6 @@ export const Dropdown = function <TItemValue>({
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
     const filteredOptions = getFilteredOptions();
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
-    const qaId = props.qaId;
 
     let isMouseDown = false;
     const className = createClassName(
@@ -327,11 +325,7 @@ export const Dropdown = function <TItemValue>({
     }, [options]);
 
     return (
-        <div
-            className={className}
-            ref={wrapperRef}
-            onMouseDown={() => handleRootMouseDown()}
-            qa-id={qaId}>
+        <div className={className} ref={wrapperRef} onMouseDown={() => handleRootMouseDown()}>
             <div
                 className={styles['dropdown__header']}
                 role="button"
@@ -355,7 +349,7 @@ export const Dropdown = function <TItemValue>({
                         onChange={(e) => handleInputChange(e.target.value)}
                     />
                     {!searchTerm && (
-                        <div className={styles['dropwdown__current-value']}>
+                        <div className={styles['dropdown__current-value']}>
                             <span>{selectedName}</span>
                         </div>
                     )}
@@ -391,22 +385,23 @@ export const Dropdown = function <TItemValue>({
                                 </span>
                             </li>
                         )}
-                        {filteredOptions.map((item, index) => (
-                            <li
-                                className={getItemClassName(item, index)}
-                                key={index}
-                                onClick={(event) => handleItemClick(item, event)}
-                                title={item.name}
-                                aria-disabled={!!item.disabled}
-                                ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
-                                <span className={styles['dropdown__list-item-icon']}>
-                                    <Icons.Selected size={IconSize.SMALL} />
-                                </span>
-                                <span className={styles['dropdown__list-item-text']}>
-                                    {item.name}
-                                </span>
-                            </li>
-                        ))}
+                        {!isLoading &&
+                            filteredOptions.map((item, index) => (
+                                <li
+                                    className={getItemClassName(item, index)}
+                                    key={index}
+                                    onClick={(event) => handleItemClick(item, event)}
+                                    title={item.name}
+                                    aria-disabled={!!item.disabled}
+                                    ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
+                                    <span className={styles['dropdown__list-item-icon']}>
+                                        <Icons.Selected size={IconSize.SMALL} />
+                                    </span>
+                                    <span className={styles['dropdown__list-item-text']}>
+                                        {item.name}
+                                    </span>
+                                </li>
+                            ))}
                         {searchTerm && !isLoading && filteredOptions.length == 0 && (
                             <li
                                 title="Ei vaihtoehtoja"
@@ -417,7 +412,7 @@ export const Dropdown = function <TItemValue>({
                                 Ei vaihtoehtoja
                             </li>
                         )}
-                        {isLoading && filteredOptions.length == 0 && (
+                        {isLoading && (
                             <li
                                 title="Ladataan"
                                 className={createClassName(
@@ -430,7 +425,7 @@ export const Dropdown = function <TItemValue>({
                         )}
                     </ul>
                     {props.onAddClick && (
-                        <div className={styles['dropdown__add-new-container']}>
+                        <div className="dropdown__add-new-container">
                             <Button
                                 variant={ButtonVariant.GHOST}
                                 icon={Icons.Append}

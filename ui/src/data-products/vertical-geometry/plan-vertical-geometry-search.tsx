@@ -10,16 +10,16 @@ import {
     getGeometryPlanVerticalGeometry,
     getGeometryPlanVerticalGeometryCsv,
 } from 'geometry/geometry-api';
-import { PlanVerticalGeometrySearchState } from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import { debounceAsync } from 'utils/async-utils';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import {
     debouncedGetGeometryPlanHeaders,
     getGeometryPlanOptions,
 } from 'data-products/data-products-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
+import { PlanVerticalGeometrySearchState } from 'data-products/data-products-slice';
 
 type PlanVerticalGeometrySearchProps = {
     state: PlanVerticalGeometrySearchState;
@@ -27,6 +27,7 @@ type PlanVerticalGeometrySearchProps = {
         propEdit: PropEdit<PlanVerticalGeometrySearchState, TKey>,
     ) => void;
     setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
+    setLoading: (loading: boolean) => void;
 };
 
 const debouncedGetPlanVerticalGeometry = debounceAsync(getGeometryPlanVerticalGeometry, 250);
@@ -35,11 +36,12 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
     state,
     onUpdateProp,
     setVerticalGeometry,
+    setLoading,
 }) => {
     const { t } = useTranslation();
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedGetGeometryPlanHeaders(state.source, searchTerm).then((planHeaders) =>
                 getGeometryPlanOptions(planHeaders, state.plan),
             ),
@@ -62,10 +64,13 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
         updateProp('plan', undefined);
     };
 
-    const verticalGeometries = useLoader(() => {
-        return !state.plan ? Promise.resolve([]) : debouncedGetPlanVerticalGeometry(state.plan.id);
+    const [verticalGeometries, fetchStatus] = useLoaderWithStatus(() => {
+        return !state.plan
+            ? Promise.resolve([])
+            : debouncedGetPlanVerticalGeometry(undefined, state.plan.id);
     }, [state.plan]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>
@@ -98,7 +103,6 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                                 options={geometryPlanHeaders}
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}
-                                canUnselect={true}
                                 unselectText={t('data-products.search.not-selected')}
                                 wideList
                                 wide

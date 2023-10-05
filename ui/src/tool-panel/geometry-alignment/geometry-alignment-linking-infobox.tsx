@@ -9,9 +9,6 @@ import {
     LayoutReferenceLine,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
-    MapAlignmentType,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
     getLinkedAlignmentIdsInPlan,
@@ -24,25 +21,10 @@ import {
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
-import {
-    getLocationTracks,
-    getLocationTracksNear,
-    getNonLinkedLocationTracks,
-} from 'track-layout/layout-location-track-api';
-import {
-    getNonLinkedReferenceLines,
-    getReferenceLine,
-    getReferenceLinesNear,
-} from 'track-layout/layout-reference-line-api';
-import {
-    LocationTrackBadge,
-    LocationTrackBadgeStatus,
-} from 'geoviite-design-lib/alignment/location-track-badge';
-import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
-import { deduplicateById, fieldComparator, filterNotEmpty, negComparator } from 'utils/array-utils';
+import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getReferenceLine } from 'track-layout/layout-reference-line-api';
+import { filterNotEmpty } from 'utils/array-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import {
     GeometryLinkingAlignmentLockParameters,
@@ -56,26 +38,24 @@ import {
     toIntervalRequest,
 } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
+import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     updateLocationTrackChangeTime,
     updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
-import {
-    ReferenceLineBadge,
-    ReferenceLineBadgeStatus,
-} from 'geoviite-design-lib/alignment/reference-line-badge';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import LocationTrackNames from './location-track-names';
 import { useLoader } from 'utils/react-utils';
 import ReferenceLineNames from 'tool-panel/geometry-alignment/reference-line-names';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { expandBoundingBox } from 'model/geometry';
 import { OnSelectOptions } from 'selection/selection-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-
-const NEAR_TRACK_SEARCH_BUFFER = 10.0;
+import {
+    GeometryAlignmentLinkingLocationTrackCandidates,
+    GeometryAlignmentLinkingReferenceLineCandidates,
+} from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
+import { WriteAccessRequired } from 'user/write-access-required';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -88,16 +68,12 @@ function createLinkingGeometryWithAlignmentParameters(
     if (geometryStart && geometryEnd && layoutStart && layoutEnd) {
         return {
             geometryPlanId: alignmentLinking.geometryPlanId,
-            geometryInterval: {
-                alignmentId: geometryStart.alignmentId,
-                start: toIntervalRequest(geometryStart),
-                end: toIntervalRequest(geometryEnd),
-            },
-            layoutInterval: {
-                alignmentId: layoutStart.alignmentId,
-                start: toIntervalRequest(layoutStart),
-                end: toIntervalRequest(layoutEnd),
-            },
+            geometryInterval: toIntervalRequest(
+                geometryStart.alignmentId,
+                geometryStart.m,
+                geometryEnd.m,
+            ),
+            layoutInterval: toIntervalRequest(layoutStart.alignmentId, layoutStart.m, layoutEnd.m),
         };
     } else {
         throw Error('Cannot create linking parameters, mandatory information is missing!');
@@ -114,11 +90,11 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
         return {
             geometryPlanId: linking.geometryPlanId,
             layoutAlignmentId: linking.layoutAlignmentId,
-            geometryInterval: {
-                alignmentId: geometryStart.alignmentId,
-                start: toIntervalRequest(geometryStart),
-                end: toIntervalRequest(geometryEnd),
-            },
+            geometryInterval: toIntervalRequest(
+                geometryStart.alignmentId,
+                geometryStart.m,
+                geometryEnd.m,
+            ),
         };
     } else {
         throw Error('Cannot create linking parameters, mandatory information is missing!');
@@ -127,74 +103,32 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
 
 type GeometryAlignmentLinkingInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
-    geometryAlignment: MapAlignment;
-    layoutLocationTrack: LayoutLocationTrack | undefined;
-    layoutReferenceLine: LayoutReferenceLine | undefined;
+    geometryAlignment: AlignmentHeader;
+    selectedLayoutLocationTrack?: LayoutLocationTrack;
+    selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
-    alignmentChangeTime: TimeStamp;
+    locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?:
-    | LinkingGeometryWithAlignment
-    | LinkingGeometryWithEmptyAlignment
-    | PreliminaryLinkingGeometry;
+        | LinkingGeometryWithAlignment
+        | LinkingGeometryWithEmptyAlignment
+        | PreliminaryLinkingGeometry;
     onLockAlignment: (lockParameters: GeometryLinkingAlignmentLockParameters) => void;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onStopLinking: () => void;
     resolution: number;
     publishType: PublishType;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
-
-type AlignmentRefs = {
-    [key: string]: AlignmentSelection;
-};
-type AlignmentSelection = {
-    key: string;
-    id: LocationTrackId | ReferenceLineId;
-    type: MapAlignmentType;
-    segmentCount: number;
-    ref: React.RefObject<HTMLLIElement>;
-};
-
-const referenceLineKey = (line: LayoutReferenceLine) => `RL_${line.id}`;
-
-function createReferenceLineSelection(referenceLine: LayoutReferenceLine): AlignmentSelection {
-    return {
-        key: referenceLineKey(referenceLine),
-        id: referenceLine.id,
-        type: 'REFERENCE_LINE',
-        segmentCount: referenceLine.segmentCount,
-        ref: React.createRef(),
-    };
-}
-
-const locationTrackKey = (track: LayoutLocationTrack) => `LT_${track.id}`;
-
-function createLocationTrackSelection(locationTrack: LayoutLocationTrack): AlignmentSelection {
-    return {
-        key: locationTrackKey(locationTrack),
-        id: locationTrack.id,
-        type: 'LOCATION_TRACK',
-        segmentCount: locationTrack.segmentCount,
-        ref: React.createRef(),
-    };
-}
-
-function getKey(
-    referenceLine: LayoutReferenceLine | undefined,
-    locationTrack: LayoutLocationTrack | undefined,
-): string | undefined {
-    if (locationTrack) return locationTrackKey(locationTrack);
-    else if (referenceLine) return referenceLineKey(referenceLine);
-    else return undefined;
-}
 
 const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxProps> = ({
     onSelect,
     geometryAlignment,
-    layoutLocationTrack,
-    layoutReferenceLine,
+    selectedLayoutLocationTrack,
+    selectedLayoutReferenceLine,
     planId,
-    alignmentChangeTime,
+    locationTrackChangeTime,
     trackNumberChangeTime,
     linkingState,
     onLinkingStart,
@@ -202,32 +136,28 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onStopLinking,
     resolution,
     publishType,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
     const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<LocationTrackId[]>([]);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
 
-    const [alignmentRefs, setAlignmentRefs] = React.useState<AlignmentRefs>({});
-    const [locationTracks, setLocationTracks] = React.useState<LayoutLocationTrack[]>([]);
-    const [referenceLines, setReferenceLines] = React.useState<LayoutReferenceLine[]>([]);
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
-    const isLinked =
-        geometryAlignment.sourceId && linkedAlignmentIds.includes(geometryAlignment.sourceId);
+    const isLinked = geometryAlignment.id && linkedAlignmentIds.includes(geometryAlignment.id);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const canLink = !linkingCallInProgress && linkingState?.state == 'allSet';
 
-    const trackNumbers = useTrackNumbers(publishType, trackNumberChangeTime);
-
     const planStatus = useLoader(
         () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
-        [planId, alignmentChangeTime, publishType],
+        [planId, locationTrackChangeTime, publishType],
     );
 
     const linkedReferenceLines = useLoader(() => {
         if (!planStatus) return undefined;
         const referenceLineIds = planStatus.alignments
-            .filter((linkStatus) => linkStatus.id === geometryAlignment.sourceId)
+            .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedReferenceLineIds);
         const referenceLinePromises = referenceLineIds.map((referenceLineId) =>
             getReferenceLine(referenceLineId, publishType),
@@ -238,110 +168,38 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const linkedLocationTracks = useLoader(() => {
         if (!planStatus) return undefined;
         const locationTrackIds = planStatus.alignments
-            .filter((linkStatus) => linkStatus.id === geometryAlignment.sourceId)
+            .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedLocationTrackIds);
         return getLocationTracks(locationTrackIds, publishType);
     }, [planStatus, geometryAlignment]);
 
-    const canLockAlignment = () => {
-        const key = getKey(layoutReferenceLine, layoutLocationTrack);
-        return !!(key && alignmentRefs[key]);
-    };
-
-    const onReferenceLineSelect = (rl: LayoutReferenceLine) => {
-        onSelect({
-            trackNumbers: [rl.trackNumberId],
-            locationTracks: [],
-        });
-    };
-
-    const onLocationTrackSelect = (lt: LayoutLocationTrack) =>
-        onSelect({
-            trackNumbers: [],
-            locationTracks: [lt.id],
-        });
+    const canLockAlignment = !!(selectedLayoutReferenceLine || selectedLayoutLocationTrack);
 
     React.useEffect(() => {
         getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
             setLinkedAlignmentIds(linkedIds);
         });
-    }, [planId, publishType, alignmentChangeTime]);
+    }, [planId, publishType, locationTrackChangeTime]);
 
-    React.useEffect(() => {
-        const tracks = locationTracks.map((lt) => createLocationTrackSelection(lt));
-        if (layoutLocationTrack && !locationTracks.some((lt) => lt.id === layoutLocationTrack.id)) {
-            tracks.push(createLocationTrackSelection(layoutLocationTrack));
-        }
-        const lines = referenceLines.map((rl) => createReferenceLineSelection(rl));
-        if (layoutReferenceLine && !referenceLines.some((lt) => lt.id === layoutReferenceLine.id)) {
-            tracks.push(createReferenceLineSelection(layoutReferenceLine));
-        }
-        const newRefs = [...tracks, ...lines].reduce((acc: AlignmentRefs, value) => {
-            acc[value.key] = value;
-            return acc;
-        }, {});
-        setAlignmentRefs(newRefs);
-    }, [layoutLocationTrack, layoutReferenceLine, locationTracks, referenceLines]);
-
-    React.useEffect(() => {
-        const selectedRef = getKey(layoutReferenceLine, layoutLocationTrack);
-        if (selectedRef && alignmentRefs[selectedRef]) {
-            alignmentRefs[selectedRef].ref.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-            });
-        }
-    }, [layoutReferenceLine, layoutLocationTrack]);
-
-    React.useEffect(() => {
-        if (geometryAlignment.boundingBox) {
-            Promise.all([
-                getNonLinkedReferenceLines().then((lines) =>
-                    lines.sort(negComparator(fieldComparator((line) => line.id))),
-                ),
-                getReferenceLinesNear(
-                    publishType,
-                    expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
-                ),
-            ]).then((lineGroups) => {
-                setReferenceLines(deduplicateById(lineGroups.flat(), (l) => l.id));
-            });
-        }
-    }, [geometryAlignment.boundingBox, alignmentChangeTime, trackNumberChangeTime]);
-
-    React.useEffect(() => {
-        if (geometryAlignment.boundingBox) {
-            Promise.all([
-                getNonLinkedLocationTracks().then((tracks) =>
-                    tracks.sort(negComparator(fieldComparator((a) => a.id))),
-                ),
-                getLocationTracksNear(
-                    publishType,
-                    expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
-                ),
-            ]).then((trackGroups) => {
-                setLocationTracks(deduplicateById(trackGroups.flat(), (l) => l.id));
-            });
-        }
-    }, [geometryAlignment.boundingBox, alignmentChangeTime]);
-
-    function handleLocationTrackInsert(_id: LocationTrackId) {
+    function handleLocationTrackInsert(id: LocationTrackId) {
+        onSelect({ locationTracks: [id] });
         updateLocationTrackChangeTime();
     }
 
-    function handleTrackNumberSave(_id: LayoutTrackNumberId) {
+    function handleTrackNumberSave(id: LayoutTrackNumberId) {
+        onSelect({ trackNumbers: [id] });
         updateReferenceLineChangeTime().then(() => updateTrackNumberChangeTime());
     }
 
     function lockAlignment() {
-        if (canLockAlignment()) {
-            const key = getKey(layoutReferenceLine, layoutLocationTrack) as string;
-            const selection = alignmentRefs[key];
+        const selectedAlignment = selectedLayoutLocationTrack || selectedLayoutReferenceLine;
+
+        if (selectedAlignment) {
             onLockAlignment({
-                alignmentId: selection.id,
-                alignmentType: selection.type,
+                alignmentId: selectedAlignment.id,
+                alignmentType: selectedLayoutLocationTrack ? 'LOCATION_TRACK' : 'REFERENCE_LINE',
                 type:
-                    selection.segmentCount > 0
+                    selectedAlignment.segmentCount > 0
                         ? LinkingType.LinkingGeometryWithAlignment
                         : LinkingType.LinkingGeometryWithEmptyAlignment,
             });
@@ -398,7 +256,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         <React.Fragment>
             <Infobox
                 title={t('tool-panel.alignment.geometry.linking-title')}
-                qa-id="geometry-alignment-linking-infobox">
+                qa-id="geometry-alignment-linking-infobox"
+                contentVisible={contentVisible}
+                onContentVisibilityChange={onContentVisibilityChange}>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.alignment.geometry.is-linked')}
@@ -426,122 +286,36 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         <ReferenceLineNames
                             linkedReferenceLines={linkedReferenceLines}
                             publishType={publishType}
-                            alignmentChangeTime={alignmentChangeTime}
+                            alignmentChangeTime={locationTrackChangeTime}
                         />
                     )}
 
                     {linkingState && (
                         <div className={styles['geometry-alignment-infobox__linking-container']}>
-                            <div className={styles['geometry-alignment-infobox__search-container']}>
-                                <InfoboxText
-                                    value={t('tool-panel.alignment.geometry.choose-reference-line')}
-                                />
-                                <Button
-                                    variant={ButtonVariant.GHOST}
-                                    size={ButtonSize.SMALL}
-                                    icon={Icons.Append}
-                                    onClick={() => setShowAddTrackNumberDialog(true)}
-                                    qa-id="create-tracknumer-button"
-                                />
-                            </div>
-                            <ul
-                                className={
-                                    styles['geometry-alignment-infobox__alignments-container']
-                                }>
-                                {referenceLines &&
-                                    referenceLines.map((line) => {
-                                        const key = getKey(line, undefined);
-                                        const isSelected =
-                                            key ===
-                                            getKey(layoutReferenceLine, layoutLocationTrack);
-                                        const selection = key ? alignmentRefs[key] : undefined;
-                                        const trackNumber = trackNumbers
-                                            ? trackNumbers.find(
-                                                (tn) => tn.id === line.trackNumberId,
-                                            )
-                                            : undefined;
-                                        if (!selection || !trackNumber) return '';
-                                        return (
-                                            <li
-                                                key={selection.key}
-                                                className={
-                                                    styles['geometry-alignment-infobox__alignment']
-                                                }
-                                                onClick={() => onReferenceLineSelect(line)}
-                                                ref={selection.ref}>
-                                                <ReferenceLineBadge
-                                                    trackNumber={trackNumber}
-                                                    status={
-                                                        isSelected
-                                                            ? ReferenceLineBadgeStatus.SELECTED
-                                                            : ReferenceLineBadgeStatus.DEFAULT
-                                                    }
-                                                />
-                                                {linkingInProgress &&
-                                                    linkingState.layoutAlignmentId === line.id && (
-                                                        <Icons.Lock
-                                                            size={IconSize.SMALL}
-                                                            color={IconColor.INHERIT}
-                                                        />
-                                                    )}
-                                            </li>
-                                        );
-                                    })}
-                            </ul>
-                            <div className={styles['geometry-alignment-infobox__search-container']}>
-                                <InfoboxText
-                                    value={t('tool-panel.alignment.geometry.choose-location-track')}
-                                />
-                                <Button
-                                    variant={ButtonVariant.GHOST}
-                                    size={ButtonSize.SMALL}
-                                    icon={Icons.Append}
-                                    onClick={() => setShowAddLocationTrackDialog(true)}
-                                    qa-id="create-location-track-button"
-                                />
-                            </div>
-                            <ul
-                                className={
-                                    styles['geometry-alignment-infobox__alignments-container']
-                                }>
-                                {locationTracks &&
-                                    locationTracks.map((track) => {
-                                        const key = getKey(undefined, track);
-                                        const isSelected =
-                                            key ===
-                                            getKey(layoutReferenceLine, layoutLocationTrack);
-                                        const selection = key ? alignmentRefs[key] : undefined;
-                                        if (!selection) return '';
-                                        return (
-                                            <li
-                                                key={selection.key}
-                                                className={
-                                                    styles['geometry-alignment-infobox__alignment']
-                                                }
-                                                onClick={() => onLocationTrackSelect(track)}
-                                                ref={selection.ref}>
-                                                <LocationTrackBadge
-                                                    locationTrack={track}
-                                                    status={
-                                                        isSelected
-                                                            ? LocationTrackBadgeStatus.SELECTED
-                                                            : LocationTrackBadgeStatus.DEFAULT
-                                                    }
-                                                />
-                                                {linkingInProgress &&
-                                                    linkingState.layoutAlignmentId === track.id && (
-                                                        <Icons.Lock
-                                                            size={IconSize.SMALL}
-                                                            color={IconColor.INHERIT}
-                                                        />
-                                                    )}
-                                                <span>
-                                                    <LocationTrackTypeLabel type={track.type} />
-                                                </span>
-                                            </li>
-                                        );
-                                    })}
-                            </ul>
+                            <GeometryAlignmentLinkingReferenceLineCandidates
+                                geometryAlignment={geometryAlignment}
+                                publishType={publishType}
+                                trackNumberChangeTime={trackNumberChangeTime}
+                                onSelect={onSelect}
+                                selectedLayoutReferenceLine={selectedLayoutReferenceLine}
+                                disableAddButton={
+                                    linkingState.type !== LinkingType.UnknownAlignment
+                                }
+                                onShowAddTrackNumberDialog={() => setShowAddTrackNumberDialog(true)}
+                            />
+                            <GeometryAlignmentLinkingLocationTrackCandidates
+                                geometryAlignment={geometryAlignment}
+                                publishType={publishType}
+                                locationTrackChangeTime={locationTrackChangeTime}
+                                onSelect={onSelect}
+                                selectedLayoutLocationTrack={selectedLayoutLocationTrack}
+                                disableAddButton={
+                                    linkingState.type !== LinkingType.UnknownAlignment
+                                }
+                                onShowAddLocationTrackDialog={() =>
+                                    setShowAddLocationTrackDialog(true)
+                                }
+                            />
                         </div>
                     )}
                     {linkingInProgress && (
@@ -566,14 +340,17 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState === undefined && (
-                        <InfoboxButtons>
-                            <Button size={ButtonSize.SMALL} onClick={startLinking}>
-                                {t(
-                                    `tool-panel.alignment.geometry.${isLinked ? 'add-linking' : 'start-setup'
-                                    }`,
-                                )}
-                            </Button>
-                        </InfoboxButtons>
+                        <WriteAccessRequired>
+                            <InfoboxButtons>
+                                <Button size={ButtonSize.SMALL} onClick={startLinking}>
+                                    {t(
+                                        `tool-panel.alignment.geometry.${
+                                            isLinked ? 'add-linking' : 'start-setup'
+                                        }`,
+                                    )}
+                                </Button>
+                            </InfoboxButtons>
+                        </WriteAccessRequired>
                     )}
                     {linkingState?.state === 'preliminary' && (
                         <InfoboxButtons>
@@ -585,7 +362,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
-                                disabled={!canLockAlignment()}
+                                disabled={!canLockAlignment}
                                 onClick={lockAlignment}>
                                 {t('tool-panel.alignment.geometry.lock-location-track')}
                             </Button>
@@ -616,7 +393,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 <LocationTrackEditDialog
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onInsert={handleLocationTrackInsert}
-                    locationTrackChangeTime={alignmentChangeTime}
+                    locationTrackChangeTime={locationTrackChangeTime}
                     publishType={publishType}
                 />
             )}

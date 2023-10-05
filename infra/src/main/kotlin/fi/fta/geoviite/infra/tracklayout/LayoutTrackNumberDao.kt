@@ -1,19 +1,29 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import org.springframework.cache.annotation.Cacheable
+import fi.fta.geoviite.infra.util.DbTable.LAYOUT_TRACK_NUMBER
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+
+const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
 @Transactional(readOnly = true)
 @Component
-class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
-    DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+class LayoutTrackNumberDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
+) : DraftableDaoBase<TrackLayoutTrackNumber>(
+    jdbcTemplateParam,
+    LAYOUT_TRACK_NUMBER,
+    cacheEnabled,
+    TRACK_NUMBER_CACHE_SIZE,
+) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
@@ -50,8 +60,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         return result.associate { it }
     }
 
-    @Cacheable(CACHE_LAYOUT_TRACK_NUMBER, sync = true)
-    override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
+    override fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
               id as row_id,
@@ -71,21 +80,40 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        val trackNumber = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            TrackLayoutTrackNumber(
-                id = rs.getIntId("official_id"),
-                number = rs.getTrackNumber("number"),
-                description = rs.getFreeText("description"),
-                state = rs.getEnum("state"),
-                externalId = rs.getOidOrNull("external_id"),
-                dataType = DataType.STORED,
-                draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)
-        return trackNumber
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
+            logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, version)
+        }
     }
+
+    override fun preloadCache() {
+        val sql = """
+            select 
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_track_number_id, id) as official_id, 
+              case when draft then id end as draft_id,
+              external_id, 
+              number, 
+              description,
+              state 
+            from layout.track_number
+        """.trimIndent()
+        val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
+            .associateBy(TrackLayoutTrackNumber::version)
+        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumbers.keys)
+        cache.putAll(trackNumbers)
+    }
+
+    private fun getLayoutTrackNumber(rs: ResultSet): TrackLayoutTrackNumber = TrackLayoutTrackNumber(
+        id = rs.getIntId("official_id"),
+        number = rs.getTrackNumber("number"),
+        description = rs.getFreeText("description"),
+        state = rs.getEnum("state"),
+        externalId = rs.getOidOrNull("external_id"),
+        dataType = DataType.STORED,
+        draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
+        version = rs.getRowVersion("row_id", "row_version"),
+    )
 
     @Transactional
     override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
@@ -162,4 +190,42 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
         return response
     }
+
+    fun fetchTrackNumberNames(): List<TrackNumberAndChangeTime> {
+        val sql = """
+            select tn.id, tn.number, tn.change_time
+            from layout.track_number_version tn
+            where tn.draft = false
+            order by tn.change_time
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            TrackNumberAndChangeTime(
+                rs.getIntId("id"),
+                rs.getTrackNumber("number"),
+                rs.getInstant("change_time"),
+            )
+        }.also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
+    }
+
+    fun officialDuplicateNumberExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {
+        val sql = """
+            select
+              exists(
+                  select *
+                    from layout.track_number this_tn
+                      join layout.track_number duplicate_tn
+                           on this_tn.number = duplicate_tn.number
+                             and this_tn.id != duplicate_tn.id
+                             and this_tn.draft_of_track_number_id is distinct from duplicate_tn.id
+                    where not duplicate_tn.draft
+                      and duplicate_tn.state != 'DELETED'
+                      and this_tn.id = :trackNumberId)
+        """.trimIndent()
+
+        return jdbcTemplate.queryForObject(
+            sql, mapOf("trackNumberId" to trackNumberId.intValue)
+        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
+    }
+
 }

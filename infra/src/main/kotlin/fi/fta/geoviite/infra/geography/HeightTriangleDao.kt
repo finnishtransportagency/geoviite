@@ -46,7 +46,7 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
             "srid" to LAYOUT_SRID.code,
         )
 
-        val triangles = jdbcTemplate.query(sql, params) { rs, i ->
+        val triangles = jdbcTemplate.query(sql, params) { rs, _ ->
             HeightTriangle(
                 corner1 = rs.getPoint("x1", "y1"),
                 corner2 = rs.getPoint("x2", "y2"),

@@ -3,7 +3,9 @@ package fi.fta.geoviite.infra.common
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -20,7 +22,10 @@ data class CollectedChangeTimes(
     val layoutSwitch: Instant,
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
+    val project: Instant,
     val publication: Instant,
+    val ratkoPush: Instant,
+    val pvDocument: Instant,
 )
 
 @RestController
@@ -33,6 +38,8 @@ class ChangeTimeController(
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
     private val publicationService: PublicationService,
+    private val ratkoPushDao: RatkoPushDao,
+    private val pvDocumentService: PVDocumentService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -48,7 +55,10 @@ class ChangeTimeController(
             layoutKmPost = kmPostService.getChangeTime(),
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
+            project = geometryService.getProjectChangeTime(),
             publication = publicationService.getChangeTime(),
+            ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
+            pvDocument = pvDocumentService.getDocumentChangeTime(),
         )
     }
 
@@ -95,9 +105,23 @@ class ChangeTimeController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projects")
+    fun getProjectChangeTime(): Instant {
+        logger.apiCall("getProjectChangeTime")
+        return geometryService.getProjectChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/publications")
     fun getPublicationChangeTime(): Instant {
         logger.apiCall("getPublicationChangeTime")
         return publicationService.getChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projektivelho-documents")
+    fun getPVDocumentChangeTime(): Instant {
+        logger.apiCall("getPVDocumentChangeTime")
+        return pvDocumentService.getDocumentChangeTime()
     }
 }

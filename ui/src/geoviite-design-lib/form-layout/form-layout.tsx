@@ -4,6 +4,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 
 export type FormLayoutProps = {
     children?: React.ReactNode;
+    doubleColumn?: boolean;
     isProcessing?: boolean;
 };
 
@@ -15,6 +16,7 @@ export const FormLayout: React.FC<FormLayoutProps> = (props: FormLayoutProps) =>
     const className = createClassName(
         styles['form-layout'],
         props.isProcessing && styles['form-layout--is-processing'],
+        props.doubleColumn && styles['form-layout--double-column'],
     );
 
     return (
@@ -26,7 +28,5 @@ export const FormLayout: React.FC<FormLayoutProps> = (props: FormLayoutProps) =>
 };
 
 export const FormLayoutColumn: React.FC<FormLayoutColumnProps> = (props: FormLayoutColumnProps) => {
-    const className = createClassName(styles['form-layout__column']);
-
-    return <div className={className}>{props.children}</div>;
+    return <div className="form-layout__column">{props.children}</div>;
 };

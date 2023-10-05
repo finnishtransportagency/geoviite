@@ -19,6 +19,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Point } from 'model/geometry';
 import { getSwitchStructure } from 'common/common-api';
+import { GeometrySwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type GeometrySwitchInfoboxProps = {
     switchId?: GeometrySwitchId;
@@ -29,6 +30,8 @@ type GeometrySwitchInfoboxProps = {
     locationTrackChangeTime: TimeStamp;
     layoutSwitch?: LayoutSwitch;
     onShowOnMap: (location: Point) => void;
+    visibilities: GeometrySwitchInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometrySwitchInfoboxVisibilities) => void;
 };
 
 const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
@@ -40,6 +43,8 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
     locationTrackChangeTime,
     layoutSwitch,
     onShowOnMap,
+    visibilities,
+    onVisibilityChange,
 }: GeometrySwitchInfoboxProps) => {
     const { t } = useTranslation();
     const switchItem = useLoader(
@@ -64,10 +69,16 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
     const planHeader = usePlanHeader(planId);
     const isGeometrySwitchLinking = !!switchId;
 
+    const visibilityChange = (key: keyof GeometrySwitchInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
             {isGeometrySwitchLinking && (
                 <Infobox
+                    contentVisible={visibilities.basic}
+                    onContentVisibilityChange={() => visibilityChange('basic')}
                     title={t('tool-panel.switch.geometry.geometry-title')}
                     qa-id="geometry-switch-infobox">
                     <InfoboxContent>
@@ -79,10 +90,12 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                         {SwitchImage && (
                             <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                         )}
-                        <InfoboxField
-                            label={t('tool-panel.switch.geometry.hand')}
-                            value={<SwitchHand hand={switchStructure && switchStructure.hand} />}
-                        />
+                        {switchStructure && (
+                            <InfoboxField
+                                label={t('tool-panel.switch.geometry.hand')}
+                                value={<SwitchHand hand={switchStructure.hand} />}
+                            />
+                        )}
                         <InfoboxButtons>
                             <Button
                                 size={ButtonSize.SMALL}
@@ -97,6 +110,11 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
             )}
             {(!linkingState || linkingState.type === LinkingType.LinkingSwitch) && (
                 <GeometrySwitchLinkingContainer
+                    visibilities={{
+                        linking: visibilities.linking,
+                        suggestedSwitch: visibilities.suggestedSwitch,
+                    }}
+                    onVisibilityChange={(v) => onVisibilityChange({ ...visibilities, ...v })}
                     linkingState={linkingState}
                     switchId={switchId ?? undefined}
                     suggestedSwitch={suggestedSwitch}
@@ -106,7 +124,16 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                     planId={planId ?? undefined}
                 />
             )}
-            {planHeader && <GeometryPlanInfobox planHeader={planHeader} />}
+            {planHeader && (
+                <GeometryPlanInfobox
+                    planHeader={planHeader}
+                    visibilities={{
+                        plan: visibilities.plan,
+                        planQuality: visibilities.planQuality,
+                    }}
+                    onVisibilityChange={(v) => onVisibilityChange({ ...visibilities, ...v })}
+                />
+            )}
         </React.Fragment>
     );
 };

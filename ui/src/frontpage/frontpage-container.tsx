@@ -1,21 +1,22 @@
 import * as React from 'react';
-import { actionCreators } from 'track-layout/track-layout-store';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import Frontpage from 'frontpage/frontpage';
 
 export const FrontpageContainer: React.FC = () => {
-    const state = useTrackLayoutAppSelector((state) => ({
-        publication: state.trackLayout.selection.publication,
-        changeTime: state.trackLayout.changeTimes.publication,
-    }));
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, actionCreators);
+    const publicationChangeTime = useCommonDataAppSelector(
+        (state) => state.changeTimes.publication,
+    );
+    const ratkoPushChangeTime = useCommonDataAppSelector((state) => state.changeTimes.ratkoPush);
+    const publication = useTrackLayoutAppSelector((state) => state.selection.publication);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     return (
         <Frontpage
-            selectedPublication={state.publication}
-            changeTime={state.changeTime}
+            selectedPublication={publication}
+            publicationChangeTime={publicationChangeTime}
+            ratkoPushChangeTime={ratkoPushChangeTime}
             onSelectedPublicationChanged={delegates.onSelectedPublicationChanged}
         />
     );

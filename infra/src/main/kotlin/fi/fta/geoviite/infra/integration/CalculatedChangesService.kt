@@ -499,7 +499,7 @@ private fun getTopologySwitchJointDataHolder(
     fetchStructure: (structureId: IntId<SwitchStructure>) -> SwitchStructure,
 ): Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>? {
     val switch = fetchSwitch(topologySwitch.switchId)
-        ?: throw NoSuchEntityException(TrackLayoutSwitch::class, topologySwitch.switchId)
+        ?: return null
     // Use presentation joint to filter joints to update because
     // - that is joint number that is normally used to connect tracks and switch topologically
     // - and Ratko may not want other joint numbers in this case
@@ -579,7 +579,7 @@ private fun calculateOverlappingLocationTracks(
     locationTracks: Collection<Pair<LocationTrack, LayoutAlignment>>,
 ) = locationTracks
     .filter { (_, alignment) -> alignmentContainsKilometer(geocodingContext, alignment, kilometers) }
-    .map { (locationTrack, _) -> locationTrack.id as IntId<LocationTrack> }
+    .map { (locationTrack, _) -> locationTrack.id as IntId }
 
 private fun findMatchingJoints(
     segment: LayoutSegment,
@@ -593,7 +593,7 @@ private fun findMatchingJoints(
     }
 
     if (segmentPoint == null) null
-    else geocodingContext.getAddress(segmentPoint)?.first?.let { address ->
+    else geocodingContext.getAddress(segmentPoint)?.let { (address) ->
         SwitchJointDataHolder(
             address = address,
             point = segmentPoint,

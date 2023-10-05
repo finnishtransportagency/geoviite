@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,7 +21,12 @@ import kotlin.test.assertContains
 @SpringBootTest
 class LayoutSwitchDaoIT @Autowired constructor(
     private val switchDao: LayoutSwitchDao,
-): ITTestBase() {
+): DBTestBase() {
+
+    @BeforeEach
+    fun cleanup() {
+        deleteFromTables("layout", "switch_joint", "switch")
+    }
 
     @Test
     fun switchExternalIdIsUnique() {

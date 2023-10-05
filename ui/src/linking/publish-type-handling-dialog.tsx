@@ -21,16 +21,15 @@ export const PublishTypeHandlingDialog: React.FC<PublishTypeHandlingDialogProps>
             title={t(`publish-type-dialog-title`)}
             onClose={onClose}
             variant={DialogVariant.DARK}
-            className={dialogStyles['dialog--normal']}
             footerContent={
-                <React.Fragment>
+                <div className={dialogStyles['dialog__footer-content--centered']}>
                     <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('publish-type-dialog-button-cancel')}
                     </Button>
                     <Button onClick={() => onPublishTypeChange('DRAFT')}>
                         {t('publish-type-dialog-button-continue')}
                     </Button>
-                </React.Fragment>
+                </div>
             }>
             {t(`publish-type-dialog-message`)}
         </Dialog>

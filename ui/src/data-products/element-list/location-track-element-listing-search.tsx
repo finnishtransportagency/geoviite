@@ -5,15 +5,9 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import {
-    ContinuousSearchParameters,
-    ElementListContinuousGeometrySearchState,
-    selectedElementTypes,
-    validTrackMeterOrUndefined,
-} from 'data-products/data-products-store';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getLocationTrackElements, getLocationTrackElementsCsv } from 'geometry/geometry-api';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
@@ -24,6 +18,13 @@ import {
     getVisibleErrorsByProp,
     hasErrors,
 } from 'data-products/data-products-utils';
+import {
+    ContinuousSearchParameters,
+    ElementListContinuousGeometrySearchState,
+    selectedElementTypes,
+    validTrackMeterOrUndefined,
+} from 'data-products/data-products-slice';
+import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -32,6 +33,7 @@ type LocationTrackElementListingSearchProps = {
         propEdit: PropEdit<ContinuousSearchParameters, TKey>,
     ) => void;
     onCommitField: <TKey extends keyof ContinuousSearchParameters>(key: TKey) => void;
+    setLoading: (isLoading: boolean) => void;
 };
 
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackElements, 250);
@@ -41,14 +43,24 @@ const LocationTrackElementListingSearch = ({
     onUpdateProp,
     onCommitField,
     setElements,
+    setLoading,
 }: LocationTrackElementListingSearchProps) => {
     const { t } = useTranslation();
 
     // Use memoized function to make debouncing functionality work when re-rendering
     const getLocationTracks = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
-                getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
+                getLocationTrackDescriptions(
+                    locationTracks.map((lt) => lt.id),
+                    'OFFICIAL',
+                ).then((descriptions) =>
+                    getLocationTrackOptions(
+                        locationTracks,
+                        descriptions ?? [],
+                        state.searchParameters.locationTrack,
+                    ),
+                ),
             ),
         [state.searchParameters.locationTrack],
     );
@@ -64,7 +76,7 @@ const LocationTrackElementListingSearch = ({
         });
     }
 
-    const elementList = useLoader(() => {
+    const [elementList, fetchStatus] = useLoaderWithStatus(() => {
         return !state.searchParameters.locationTrack ||
             hasErrors(state.committedFields, state.validationErrors, 'searchGeometries') ||
             hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
@@ -79,6 +91,7 @@ const LocationTrackElementListingSearch = ({
     }, [state.searchParameters]);
 
     React.useEffect(() => setElements(elementList ?? []), [elementList]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>

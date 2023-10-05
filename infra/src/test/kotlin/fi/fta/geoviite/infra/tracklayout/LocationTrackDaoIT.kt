@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import java.lang.IllegalArgumentException
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -32,7 +31,7 @@ class LocationTrackDaoIT @Autowired constructor(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
-): ITTestBase() {
+) : DBTestBase() {
 
     @Test
     fun locationTrackSaveAndLoadWorks() {
@@ -40,7 +39,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val alignmentVersion = alignmentDao.insert(alignment)
         val locationTrack = locationTrack(insertOfficialTrackNumber(), alignment).copy(
             name = AlignmentName("ORIG"),
-            description = FreeText("Oridinal location track"),
+            descriptionBase = FreeText("Oridinal location track"),
             type = MAIN,
             state = IN_USE,
             alignmentVersion = alignmentVersion,
@@ -55,7 +54,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
         val updatedTrack = fromDb.copy(
             name = AlignmentName("UPD"),
-            description = FreeText("Updated location track"),
+            descriptionBase = FreeText("Updated location track"),
             type = SIDE,
             state = NOT_IN_USE,
             topologicalConnectivity = TopologicalConnectivityType.END
@@ -247,7 +246,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching official location tracks with empty id list works`() {
-        val expected = locationTrackDao.fetchOfficialVersionsOrThrow(emptyList())
+        val expected = locationTrackDao.fetchOfficialVersions(emptyList())
         assertEquals(expected.size, 0)
     }
 
@@ -257,7 +256,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
         val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
 
-        val expected = locationTrackDao.fetchOfficialVersionsOrThrow(listOf(locationTrack1.id, locationTrack2.id))
+        val expected = locationTrackDao.fetchOfficialVersions(listOf(locationTrack1.id, locationTrack2.id))
         assertEquals(expected.size, 2)
         assertContains(expected, locationTrack1)
         assertContains(expected, locationTrack2)
@@ -265,7 +264,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching draft location tracks with empty id list works`() {
-        val expected = locationTrackDao.fetchDraftVersionsOrThrow(emptyList())
+        val expected = locationTrackDao.fetchDraftVersions(emptyList())
         assertEquals(expected.size, 0)
     }
 
@@ -275,22 +274,28 @@ class LocationTrackDaoIT @Autowired constructor(
         val locationTrack1 = insertDraftLocationTrack(tnId).rowVersion
         val locationTrack2 = insertDraftLocationTrack(tnId).rowVersion
 
-        val expected = locationTrackDao.fetchDraftVersionsOrThrow(listOf(locationTrack1.id, locationTrack2.id))
+        val expected = locationTrackDao.fetchDraftVersions(listOf(locationTrack1.id, locationTrack2.id))
         assertEquals(expected.size, 2)
         assertContains(expected, locationTrack1)
         assertContains(expected, locationTrack2)
     }
 
     @Test
-    fun `Fetching missing location tracks throws`() {
+    fun `Fetching missing location tracks only returns those that exist`() {
         val tnId = insertOfficialTrackNumber()
         val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
         val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
-        val locationTrack3 = insertDraftLocationTrack(tnId).rowVersion
+        val draftOnly = insertDraftLocationTrack(tnId).rowVersion
+        val entirelyMissing = IntId<LocationTrack>(0)
 
-        assertThrows<IllegalArgumentException> {
-            locationTrackDao.fetchOfficialVersionsOrThrow(listOf(locationTrack1.id, locationTrack2.id, locationTrack3.id))
-        }
+        val res = locationTrackDao.fetchOfficialVersions(
+            listOf(
+                locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing
+            )
+        )
+        assertEquals(res.size, 2)
+        assertContains(res, locationTrack1)
+        assertContains(res, locationTrack2)
     }
 
     private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): DaoResponse<LocationTrack> {
@@ -315,15 +320,17 @@ class LocationTrackDaoIT @Autowired constructor(
         val track = locationTrackDao.fetch(trackVersion)
         assertNull(track.draft)
         val alignmentVersion = alignmentService.duplicate(track.alignmentVersion!!)
-        return locationTrackDao.insert(draft(track).copy(
-            alignmentVersion = alignmentVersion,
-            trackNumberId = newTrackNumber,
-        ))
+        return locationTrackDao.insert(
+            draft(track).copy(
+                alignmentVersion = alignmentVersion,
+                trackNumberId = newTrackNumber,
+            )
+        )
     }
 
     private fun updateOfficial(originalVersion: RowVersion<LocationTrack>): DaoResponse<LocationTrack> {
         val original = locationTrackDao.fetch(originalVersion)
         assertNull(original.draft)
-        return locationTrackDao.update(original.copy(description = original.description + "_update"))
+        return locationTrackDao.update(original.copy(descriptionBase = original.descriptionBase + "_update"))
     }
 }

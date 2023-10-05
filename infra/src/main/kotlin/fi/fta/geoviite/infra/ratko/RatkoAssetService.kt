@@ -89,13 +89,22 @@ class RatkoAssetService @Autowired constructor(
             existingRatkoSwitch = existingRatkoSwitch,
         )
 
-        val baseRatkoLocations = getBaseRatkoSwitchLocations(
-            switchId = layoutSwitch.id,
-            existingRatkoLocations = existingRatkoSwitch.locations ?: emptyList(),
-            jointChanges = jointChanges,
-            switchStructure = switchStructure,
-            moment = moment,
-        )
+        val existingLocations = existingRatkoSwitch.locations ?: emptyList()
+
+        val includeBaseLocations = layoutSwitch.joints.any { lj ->
+            jointChanges.none { jc -> jc.number == lj.number && !jc.isRemoved }
+        }
+
+        val baseRatkoLocations =
+            if (includeBaseLocations && existingLocations.isNotEmpty())
+                getBaseRatkoSwitchLocations(
+                    switchId = layoutSwitch.id,
+                    existingRatkoLocations = existingLocations,
+                    jointChanges = jointChanges,
+                    switchStructure = switchStructure,
+                    moment = moment,
+                )
+            else emptyList()
 
         updateSwitchProperties(
             switchOid = switchOid,
@@ -124,40 +133,38 @@ class RatkoAssetService @Autowired constructor(
         switchStructure: SwitchStructure,
         moment: Instant,
     ): List<RatkoAssetLocation> {
-        return if (existingRatkoLocations.isNotEmpty()) {
-            val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
-                switchId = switchId,
-                topologyJointNumber = switchStructure.presentationJointNumber,
-                moment = moment
-            ).map { ids ->
-                checkNotNull(ids.externalId) { "Official LocationTrack must have an external ID, id=${ids.rowVersion}" }
+        val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
+            switchId = switchId,
+            topologyJointNumber = switchStructure.presentationJointNumber,
+            moment = moment
+        ).map { ids ->
+            checkNotNull(ids.externalId) { "Official LocationTrack must have an external ID, id=${ids.rowVersion}" }
+        }
+
+        return existingRatkoLocations
+            .map { location ->
+                location.nodecollection.nodes
+                    .filter { node -> linkedLocationTracks.any { it.toString() == node.point.locationtrack?.id } }
+                    .filter { node -> node.point.state?.name == RatkoPointStates.VALID }
+                    .filterNot { node ->
+                        jointChanges.any { jointChange ->
+                            val nodeType = mapGeometryTypeToNodeType(
+                                mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
+                            )
+
+                                checkNotNull(jointChange.locationTrackExternalId) {
+                                    "Cannot push switch changes with missing location track oid, $jointChange"
+                                }
+
+                            jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id
+                                    && nodeType == node.nodeType
+                        }
+                    }
+                    .let { nodes ->
+                        location.copy(nodecollection = location.nodecollection.copy(nodes = nodes))
+                    }
             }
-
-            existingRatkoLocations
-                .map { location ->
-                    location.nodecollection.nodes
-                        .filter { node -> linkedLocationTracks.any { it.toString() == node.point.locationtrack?.id } }
-                        .filter { node -> node.point.state?.name == RatkoPointStates.VALID }
-                        .filterNot { node ->
-                            jointChanges.any { jointChange ->
-                                val nodeType = mapGeometryTypeToNodeType(
-                                    mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
-                                )
-
-                            checkNotNull(jointChange.locationTrackExternalId) {
-                                "Cannot push switch changes with missing location track oid, $jointChange"
-                            }
-
-                                jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id
-                                        && nodeType == node.nodeType
-                            }
-                        }
-                        .let { nodes ->
-                            location.copy(nodecollection = location.nodecollection.copy(nodes = nodes))
-                        }
-                }
-                .filter { location -> location.nodecollection.nodes.isNotEmpty() }
-        } else emptyList()
+            .filter { location -> location.nodecollection.nodes.isNotEmpty() }
     }
 
     private fun updateSwitchGeoms(
@@ -166,9 +173,7 @@ class RatkoAssetService @Autowired constructor(
         joints: Collection<TrackLayoutSwitchJoint>,
     ) {
         val switchGeometries = convertToRatkoAssetGeometries(joints, switchBaseType)
-        if (switchGeometries.isNotEmpty()) {
-            ratkoClient.replaceAssetGeoms(switchOid, switchGeometries)
-        }
+        ratkoClient.replaceAssetGeoms(switchOid, switchGeometries)
     }
 
     private fun updateSwitchLocations(
@@ -221,9 +226,7 @@ class RatkoAssetService @Autowired constructor(
         checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
 
         generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
-            if (switchLocations.isNotEmpty()) {
-                ratkoClient.replaceAssetLocations(switchOid, switchLocations)
-            }
+            ratkoClient.replaceAssetLocations(switchOid, switchLocations)
         }
 
         updateSwitchGeoms(

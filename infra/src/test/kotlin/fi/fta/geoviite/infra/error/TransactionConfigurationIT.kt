@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.error
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -24,7 +24,7 @@ class TransactionTestService {
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class TransactionConfigurationIT @Autowired constructor(val transactionTestService: TransactionTestService): ITTestBase() {
+class TransactionConfigurationIT @Autowired constructor(val transactionTestService: TransactionTestService): DBTestBase() {
 
     @BeforeEach
     fun setup() {

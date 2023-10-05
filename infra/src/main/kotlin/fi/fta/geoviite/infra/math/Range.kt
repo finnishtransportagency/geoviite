@@ -11,6 +11,21 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
     fun overlaps(other: Range<T>) = min <= other.max && max >= other.min
 }
 
+fun <T : Comparable<T>> combineContinuous(ranges: List<Range<T>>): List<Range<T>> {
+    val result = mutableListOf<Range<T>>()
+    var current: Range<T>? = null
+    ranges.forEach { r ->
+        current = current?.let { c ->
+            if (r.min > c.max) r.also { result.add(c) }
+            else combine(c, r)
+        } ?: r
+    }
+    current?.let(result::add)
+    return result
+}
+
+fun <T : Comparable<T>> combine(vararg ranges: Range<T>): Range<T> = combine(ranges.toList())
+
 fun <T : Comparable<T>> combine(ranges: List<Range<T>>): Range<T> =
     ranges.reduceRight { r, acc -> Range(minOf(r.min, acc.min), maxOf(r.max, acc.max)) }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import copySvg from './glyphs/action/copy.svg';
 import downloadSvg from './glyphs/action/download.svg';
 import appendSvg from './glyphs/action/append.svg';
 import deleteSvg from './glyphs/action/delete.svg';
@@ -30,6 +31,7 @@ import measureSvg from './glyphs/action/measure.svg';
 import selectSvg from './glyphs/action/select.svg';
 import fullScreen from './glyphs/navigation/fullscreen.svg';
 import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
+import externalLink from './glyphs/navigation/external-link.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -72,6 +74,7 @@ const iconNameToSvgMap = {
     VectorRight: vectorRight,
     FullScreen: fullScreen,
     ExitFullScreen: exitFullScreen,
+    ExternalLink: externalLink,
 
     // Status
     Info: infoSvg,
@@ -82,6 +85,7 @@ const iconNameToSvgMap = {
     Denied: deniedSvg,
 
     // Actions
+    Copy: copySvg,
     Download: downloadSvg,
     Append: appendSvg,
     Filter: filterSvg,
@@ -112,7 +116,7 @@ export enum IconSize {
     MEDIUM = 'icon--size-medium',
     MEDIUM_SMALL = 'icon--size-medium-small',
     LARGE = 'icon--size-large',
-    ORIGINAL = 'icon--size-original',
+    ORIGINAL = '',
 }
 
 export enum IconRotation {
@@ -155,8 +159,8 @@ const SvgIcon: SvgIconComponent = ({
     }
 
     const className = createClassName(
-        styles['icon'],
-        styles[size],
+        'icon',
+        size && styles[size],
         props.rotation && styles[props.rotation],
         color && styles[color],
     );
@@ -186,13 +190,13 @@ function parseViewBox(svg: string): string {
     return viewBoxMatch && viewBoxMatch.length >= 2 ? viewBoxMatch[1] : '0 0 24 24';
 }
 
-function parseSize(svg: string): number[] | null {
+function parseSize(svg: string): number[] | undefined {
     const heightMatch = /height="([0-9]+)"/.exec(svg);
     const widthMatch = /width="([0-9]+)"/.exec(svg);
     if (heightMatch && heightMatch.length >= 2 && widthMatch && widthMatch.length >= 2) {
         return [parseInt(widthMatch[1]), parseInt(heightMatch[1])];
     } else {
-        return null;
+        return undefined;
     }
 }
 

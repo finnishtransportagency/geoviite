@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.result.isEqualTo
 import kotlin.test.assertTrue
 
-class TestApi constructor(val mapper: ObjectMapper, val mockMvc: MockMvc) {
+class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 
     fun doGet(url: String, expectedStatus: HttpStatus): String {
         return doGet(MockMvcRequestBuilders.get(url), expectedStatus);

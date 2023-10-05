@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
+import { ValueOf } from './type-utils';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -20,12 +21,12 @@ export function useLoader<TEntity>(
     return useLoaderWithStatus(loadFunc, deps)[0];
 }
 
-export function useNullableLoader<TEntity>(
-    loadFunc: () => Promise<TEntity | null> | undefined,
+export function useOptionalLoader<TEntity>(
+    loadFunc: () => Promise<TEntity | undefined> | undefined,
     deps: unknown[],
 ): TEntity | undefined {
-    const nullMappingLoadFunc = () => loadFunc()?.then((r) => (r === null ? undefined : r));
-    return useLoader(nullMappingLoadFunc, deps);
+    const nilMappingLoadFunc = () => loadFunc()?.then((r) => (r === undefined ? undefined : r));
+    return useLoader(nilMappingLoadFunc, deps);
 }
 
 export enum LoaderStatus {
@@ -61,12 +62,14 @@ export function useLoaderWithStatus<TEntity>(
         let cancel = false;
         if (result) {
             setLoaderStatus(LoaderStatus.Loading);
-            result.then((r) => {
-                if (!cancel) {
-                    setEntity(r);
-                    setLoaderStatus(LoaderStatus.Ready);
-                }
-            });
+            result
+                .then((r) => {
+                    if (!cancel) {
+                        setEntity(r);
+                        setLoaderStatus(LoaderStatus.Ready);
+                    }
+                })
+                .catch((e) => console.log('loader promise rejected', e));
         } else setEntity(undefined);
 
         return () => {
@@ -75,6 +78,44 @@ export function useLoaderWithStatus<TEntity>(
         };
     }, deps);
     return [entity, loaderStatus];
+}
+
+/**
+ * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
+ * result.
+ */
+export function useTwoPartEffectWithStatus<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    onceOnFulfilled: (result: TEntity) => void,
+    deps: unknown[],
+): LoaderStatus {
+    const [loaderStatus, setLoaderStatus] = React.useState<LoaderStatus>(LoaderStatus.Initialized);
+
+    let cancelled = false;
+    useEffect(() => {
+        const promise = loadFunc();
+
+        if (promise) {
+            setLoaderStatus(LoaderStatus.Loading);
+
+            promise
+                .then((r) => {
+                    if (!cancelled) {
+                        setLoaderStatus(LoaderStatus.Ready);
+
+                        onceOnFulfilled(r);
+                    }
+                })
+                .catch((e) => console.log('loader promise rejected', e));
+        }
+
+        return () => {
+            cancelled = true;
+            setLoaderStatus(LoaderStatus.Cancelled);
+        };
+    }, deps);
+
+    return loaderStatus;
 }
 
 export function useLoaderWithTimer<TEntity>(
@@ -89,9 +130,11 @@ export function useLoaderWithTimer<TEntity>(
         function fetchEntities() {
             const result = loadFunc();
             if (result) {
-                result.then((r) => {
-                    if (!cancel) setEntity(r);
-                });
+                result
+                    .then((r) => {
+                        if (!cancel) setEntity(r);
+                    })
+                    .catch((e) => console.log('loader promise rejected', e));
             }
         }
         fetchEntities();
@@ -150,11 +193,11 @@ export function useCloneRef<T>(
 export function useMapState<K, V>(
     initial?: Map<K, V> | (() => Map<K, V>),
 ): [
-        map: Map<K, V>,
-        setValue: (key: K, value: V) => void,
-        removeKey: (key: K) => void,
-        setMap: React.Dispatch<React.SetStateAction<Map<K, V>>>,
-    ] {
+    map: Map<K, V>,
+    setValue: (key: K, value: V) => void,
+    removeKey: (key: K) => void,
+    setMap: React.Dispatch<React.SetStateAction<Map<K, V>>>,
+] {
     const [map, setMap] = useState<Map<K, V>>(initial ?? (() => new Map()));
     const setValue = (key: K, value: V) => setMap((prevMap) => new Map(prevMap).set(key, value));
     const removeKey = (key: K) =>
@@ -168,11 +211,11 @@ export function useMapState<K, V>(
 export function useSetState<T>(
     initial?: Set<T> | (() => Set<T>),
 ): [
-        set: Set<T>,
-        addToSet: (member: T) => void,
-        deleteFromSet: (member: T) => void,
-        setSet: React.Dispatch<React.SetStateAction<Set<T>>>,
-    ] {
+    set: Set<T>,
+    addToSet: (member: T) => void,
+    deleteFromSet: (member: T) => void,
+    setSet: React.Dispatch<React.SetStateAction<Set<T>>>,
+] {
     const [set, setSet] = useState<Set<T>>(initial ?? (() => new Set()));
     const addToSet = (member: T) => setSet((prevSet) => new Set(prevSet).add(member));
     const deleteFromSet = (member: T) =>
@@ -182,4 +225,26 @@ export function useSetState<T>(
             return copy;
         });
     return [set, addToSet, deleteFromSet, setSet];
+}
+
+type PropsType = Record<string, unknown>;
+
+export function useTraceProps(componentName: string, props: PropsType) {
+    const prev = useRef(props);
+
+    useEffect(() => {
+        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
+            if (prev.current[k] !== v) {
+                acc[k] = { old: prev.current[k], new: v };
+            }
+
+            return acc;
+        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
+
+        if (Object.keys(changedProps).length > 0) {
+            console.log(`[${componentName}] Changed props:`, changedProps);
+        }
+
+        prev.current = props;
+    });
 }

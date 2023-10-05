@@ -1,11 +1,11 @@
 import { TimeStamp } from 'common/common-model';
 
-export function nonEmptyArray<T>(...values: Array<T | null | undefined>): T[] {
+export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
 }
 
-export function filterNotEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-    return value !== null && value !== undefined;
+export function filterNotEmpty<TValue>(value: TValue | undefined): value is TValue {
+    return value !== undefined;
 }
 
 /**
@@ -44,9 +44,20 @@ export function fieldComparator<T, S>(getter: (obj: T) => S): (v1: T, v2: T) => 
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
 }
 
+export function chunk<T>(array: T[], chunkSize: number): T[][] {
+    if (chunkSize <= 0) return [array];
+
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+        chunks.push(array.slice(i, i + chunkSize));
+    }
+
+    return chunks;
+}
+
 //Null and undefined values are considered "max"
 export function timeStampComparator<T>(
-    getter: (obj: T) => TimeStamp | undefined | null,
+    getter: (obj: T) => TimeStamp | undefined,
 ): (v1: T, v2: T) => number {
     return (v1: T, v2: T) => {
         const aTime = getter(v1);
@@ -77,10 +88,14 @@ export function deduplicate<T>(items: T[]): T[] {
 }
 
 export function deduplicateById<T, TId>(items: T[], getItemId: (item: T) => TId): T[] {
-    return items.filter((item, index) => {
+    const x = new Map<TId, T>();
+    items.forEach((item) => {
         const id = getItemId(item);
-        return items.findIndex((item2) => getItemId(item2) == id) == index;
+        if (!x.has(id)) {
+            x.set(id, item);
+        }
     });
+    return [...x.values()];
 }
 
 export function arraysEqual<T>(arr1: T[], arr2: T[]) {
@@ -102,15 +117,18 @@ export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): numbe
 }
 
 export function compare<T>(f1: T, f2: T): number {
-    if (f1 == null && f2 == null) return 0;
-    else if (f1 == null) return -1;
-    else if (f2 == null) return 1;
+    if (f1 == undefined && f2 == undefined) return 0;
+    else if (f1 == undefined) return -1;
+    else if (f2 == undefined) return 1;
     else if (f1 < f2) return -1;
     else if (f2 < f1) return 1;
     else return 0;
 }
 
-export function groupBy<T, K extends string | number>(array: T[], getKey: (item: T) => K) {
+export function groupBy<T, K extends string | number>(
+    array: T[],
+    getKey: (item: T) => K,
+): Record<K, T[]> {
     return array.reduce((acc, item) => {
         (acc[getKey(item)] ||= []).push(item);
         return acc;
@@ -155,6 +173,16 @@ export function maxOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T |
     }, undefined);
 }
 
+export function sum(values: number[]): number {
+    return values.reduce<number>((memo, value) => {
+        return memo + value;
+    }, 0);
+}
+
+export function avg(values: number[]): number {
+    return values.length > 0 ? sum(values) / values.length : Number.NaN;
+}
+
 export function first<T>(array: T[]): T {
     return array[0];
 }
@@ -183,4 +211,37 @@ export function addIfExists<T>(originalCollection: T[], newValue: T | undefined)
 
 export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, Obj> {
     return objs.reduce((map, obj) => map.set(obj.id, obj), new Map());
+}
+
+export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): number | undefined {
+    if (objs.length == 0) {
+        return undefined;
+    }
+    const values = objs.map((obj) => by(obj));
+    let min = values[0];
+    let minIndex = 0;
+    for (let i = 1; i < values.length; i++) {
+        if (values[i] < min) {
+            min = values[i];
+            minIndex = i;
+        }
+    }
+    return minIndex;
+}
+
+export function partitionBy<T>(list: T[], by: (item: T) => boolean): [T[], T[]] {
+    return list.reduce(
+        (acc, item) => {
+            acc[by(item) ? 0 : 1].push(item);
+            return acc;
+        },
+        [[], []] as [T[], T[]],
+    );
+}
+
+export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B): number {
+    for (let i = objs.length - 1; i >= 0; i--) {
+        if (predicate(objs[i])) return i;
+    }
+    return -1;
 }

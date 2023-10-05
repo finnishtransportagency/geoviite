@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -22,12 +22,12 @@ class LinkingDaoIT @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
-): ITTestBase() {
+) : DBTestBase() {
 
 
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switch = switchService.getDraft(switchService.saveDraft(switch(1)).id)
+        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1)).id)
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(OFFICIAL, switch.id as IntId))
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(DRAFT, switch.id as IntId))
     }
@@ -36,29 +36,35 @@ class LinkingDaoIT @Autowired constructor(
     fun switchBoundsAreFoundFromTracks() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.getDraft(switchService.saveDraft(switch(1)).id)
+        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1)).id)
 
-        val point1 = Point(10.0,10.0)
-        val point2 = Point(12.0,10.0)
-        val point3_1 = Point(10.0,12.0)
-        val point3_2 = Point(10.0,13.0)
+        val point1 = Point(10.0, 10.0)
+        val point2 = Point(12.0, 10.0)
+        val point3_1 = Point(10.0, 12.0)
+        val point3_2 = Point(10.0, 13.0)
 
         // Linked from the start only -> second point shouldn't matter
-        locationTrackService.saveDraft(locationTrack(tnId, externalId = someOid()).copy(
-            topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
-        ), alignment(segment(point1, point1+Point(5.0, 5.0))))
+        locationTrackService.saveDraft(
+            locationTrack(tnId, externalId = someOid()).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
+            ), alignment(segment(point1, point1 + Point(5.0, 5.0)))
+        )
         // Linked from the end only -> first point shouldn't matter
-        locationTrackService.saveDraft(locationTrack(tnId, externalId = null).copy(
-            topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
-        ), alignment(segment(point2-Point(5.0, 5.0), point2)))
+        locationTrackService.saveDraft(
+            locationTrack(tnId, externalId = null).copy(
+                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
+            ), alignment(segment(point2 - Point(5.0, 5.0), point2))
+        )
         // Linked by segment ends -> both points matter
         locationTrackService.saveDraft(
             locationTrack(tnId, externalId = someOid()),
-            alignment(segment(point3_1, point3_2).copy(
-                switchId = switch.id as IntId,
-                startJointNumber = JointNumber(1),
-                endJointNumber = JointNumber(2),
-            )),
+            alignment(
+                segment(point3_1, point3_2).copy(
+                    switchId = switch.id as IntId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2),
+                )
+            ),
         )
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(OFFICIAL, switch.id as IntId))
         assertEquals(

@@ -1,11 +1,11 @@
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
-$color-error: $color-red-dark;
-$color-warning: $color-lemon-dark;
+$-color-error: vayla-design.$color-red-dark;
+$-color-warning: vayla-design.$color-lemon-dark;
 
 .asset-validation__error-status {
-    color: $color-error;
-    fill: $color-error;
+    color: $-color-error;
+    fill: $-color-error;
 
     span {
         margin-left: 8px;
@@ -13,6 +13,6 @@ $color-warning: $color-lemon-dark;
 }
 
 .asset-validation__warning-status {
-    color: $color-warning;
-    fill: $color-warning;
+    color: $-color-warning;
+    fill: $-color-warning;
 }

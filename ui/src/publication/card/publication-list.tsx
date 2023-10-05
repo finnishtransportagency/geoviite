@@ -35,14 +35,14 @@ export const PublicationList: React.FC<PublicationListProps> = ({
     const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     return (
-        <div>
+        <div qa-id="publication-list">
             {publications.map((publication) => {
-                const isWaitingAfterFailure = anyFailed && publication.ratkoPushStatus === null;
+                const isWaitingAfterFailure = anyFailed && !publication.ratkoPushStatus;
                 const trackNumberIds = getPublicationTrackNumbers(publication);
 
                 return (
                     <div className={styles['publication-list-item']} key={publication.id}>
-                        {publication.ratkoPushStatus === null && (
+                        {!publication.ratkoPushStatus && (
                             <div
                                 className={styles['publication-list-item__status--waiting']}
                                 title={t('publishing.waiting')}

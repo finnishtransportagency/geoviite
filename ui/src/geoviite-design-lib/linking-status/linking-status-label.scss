@@ -1,9 +1,7 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
-@import '../geoviite-colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .linking-status-label {
-    @include typography-sub-heading;
+    @include vayla-design.typography-sub-heading;
     display: inline-flex;
     align-items: center;
     user-select: none;
@@ -11,12 +9,12 @@
     padding-right: 8px;
 
     &--linked {
-        background-color: $color-green-lighter;
+        background-color: vayla-design.$color-green-lighter;
         border-color: rgba(0, 0, 0, 0.5);
     }
 
     &--unlinked {
-        background-color: $color-red-lighter;
+        background-color: vayla-design.$color-red-lighter;
         border-color: rgba(0, 0, 0, 0.5);
     }
 

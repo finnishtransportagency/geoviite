@@ -1,5 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
+    GeometryItemId,
     ItemCollections,
     OnHighlightItemsOptions,
     OnSelectFlags,
@@ -8,33 +9,29 @@ import {
     SelectedGeometryItem,
     Selection,
     UnselectableItemCollections,
+    VisiblePlanLayout,
 } from 'selection/selection-model';
-import {
-    GeometryPlanLayout,
-    LayoutKmPost,
-    LayoutSwitch,
-    MapAlignment,
-} from 'track-layout/track-layout-model';
-import { LocationTrackBadgeStatus } from 'geoviite-design-lib/alignment/location-track-badge';
-import { deduplicate, filterUniqueById } from 'utils/array-utils';
-import { SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
-import { KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
+import { GeometryPlanLayout } from 'track-layout/track-layout-model';
+import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { ValueOf } from 'utils/type-utils';
-import { GeometryPlanLayoutId } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryKmPostId,
+    GeometryPlanId,
+    GeometryPlanLayoutId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import { PublicationId } from 'publication/publication-model';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
-        segments: [],
         locationTracks: [],
-        // referenceLines: [],
         kmPosts: [],
-        geometryKmPosts: [],
+        geometryKmPostIds: [],
         switches: [],
-        geometrySwitches: [],
+        geometrySwitchIds: [],
         trackNumbers: [],
-        geometryAlignments: [],
-        geometrySegments: [],
+        geometryAlignmentIds: [],
         layoutLinkPoints: [],
         geometryLinkPoints: [],
         clusterPoints: [],
@@ -48,8 +45,8 @@ export const initialSelectionState: Selection = {
     selectionModes: ['alignment', 'switch', 'segment', 'trackNumber'],
     selectedItems: createEmptyItemCollections(),
     highlightedItems: createEmptyItemCollections(),
-    planLayouts: [],
-    openedPlanLayouts: [],
+    openPlans: [],
+    visiblePlans: [],
     publication: undefined,
 };
 
@@ -101,20 +98,15 @@ function filterItemCollection<T extends { id: unknown }>(
     return items.filter((i) => !unselectItemIds.some((u) => u === i.id));
 }
 
-function getNewGeometryItemCollection<T extends { id: unknown }>(
+function getNewGeometryItemIdCollection<T extends GeometryItemId>(
     items: SelectedGeometryItem<T>[],
     newItems: SelectedGeometryItem<T>[] | undefined,
     flags: OnSelectFlags,
 ): SelectedGeometryItem<T>[] {
-    return getNewItemCollectionUsingCustomId(
-        items,
-        newItems,
-        flags,
-        (item) => item.planId + item.geometryItem.id,
-    );
+    return getNewItemCollectionUsingCustomId(items, newItems, flags, (item) => item.geometryId);
 }
 
-function filterGeometryItemCollection<T extends { id: unknown }>(
+function filterGeometryItemIdCollection<T extends GeometryItemId>(
     items: SelectedGeometryItem<T>[],
     unselectItemIds: ValueOf<UnselectableItemCollections> | undefined,
 ) {
@@ -122,7 +114,7 @@ function filterGeometryItemCollection<T extends { id: unknown }>(
         return items;
     }
 
-    return items.filter((i) => !unselectItemIds.some((u) => u === i.geometryItem.id));
+    return items.filter((i) => !unselectItemIds.some((u) => u === i.geometryId));
 }
 
 function getNewItemCollectionUsingCustomId<TEntity, TId>(
@@ -150,11 +142,6 @@ function updateItemCollectionsByOptions(
 ) {
     // Repetitive code, but seems that there is no way do make typescript to accept this in a loop
     const flags = options as OnSelectFlags;
-    itemCollections['segments'] = getNewItemCollection(
-        itemCollections['segments'],
-        options['segments'],
-        flags,
-    );
     itemCollections['locationTracks'] = getNewIdCollection(
         itemCollections['locationTracks'],
         options['locationTracks'],
@@ -165,9 +152,9 @@ function updateItemCollectionsByOptions(
         options['kmPosts'],
         flags,
     );
-    itemCollections['geometryKmPosts'] = getNewGeometryItemCollection(
-        itemCollections['geometryKmPosts'],
-        options['geometryKmPosts'],
+    itemCollections['geometryKmPostIds'] = getNewGeometryItemIdCollection(
+        itemCollections['geometryKmPostIds'],
+        options['geometryKmPostIds'],
         flags,
     );
     itemCollections['switches'] = getNewIdCollection(
@@ -175,9 +162,9 @@ function updateItemCollectionsByOptions(
         options['switches'],
         flags,
     );
-    itemCollections['geometrySwitches'] = getNewGeometryItemCollection(
-        itemCollections['geometrySwitches'],
-        options['geometrySwitches'],
+    itemCollections['geometrySwitchIds'] = getNewGeometryItemIdCollection(
+        itemCollections['geometrySwitchIds'],
+        options['geometrySwitchIds'],
         flags,
     );
     itemCollections['trackNumbers'] = getNewIdCollection(
@@ -185,14 +172,9 @@ function updateItemCollectionsByOptions(
         options['trackNumbers'],
         flags,
     );
-    itemCollections['geometryAlignments'] = getNewGeometryItemCollection(
-        itemCollections['geometryAlignments'],
-        options['geometryAlignments'],
-        flags,
-    );
-    itemCollections['geometrySegments'] = getNewGeometryItemCollection(
-        itemCollections['geometrySegments'],
-        options['geometrySegments'],
+    itemCollections['geometryAlignmentIds'] = getNewGeometryItemIdCollection(
+        itemCollections['geometryAlignmentIds'],
+        options['geometryAlignmentIds'],
         flags,
     );
     itemCollections['layoutLinkPoints'] = getNewItemCollection(
@@ -231,10 +213,6 @@ function updateItemCollectionsByUnselecting(
     itemCollections: ItemCollections,
     unselectItemCollections: OptionalUnselectableItemCollections,
 ) {
-    itemCollections['segments'] = filterItemCollection(
-        itemCollections['segments'],
-        unselectItemCollections['segments'],
-    );
     itemCollections['locationTracks'] = filterIdCollection(
         itemCollections['locationTracks'],
         unselectItemCollections['locationTracks'],
@@ -243,29 +221,25 @@ function updateItemCollectionsByUnselecting(
         itemCollections['kmPosts'],
         unselectItemCollections['kmPosts'],
     );
-    itemCollections['geometryKmPosts'] = filterGeometryItemCollection(
-        itemCollections['geometryKmPosts'],
+    itemCollections['geometryKmPostIds'] = filterGeometryItemIdCollection(
+        itemCollections['geometryKmPostIds'],
         unselectItemCollections['geometryKmPosts'],
     );
     itemCollections['switches'] = filterIdCollection(
         itemCollections['switches'],
         unselectItemCollections['switches'],
     );
-    itemCollections['geometrySwitches'] = filterGeometryItemCollection(
-        itemCollections['geometrySwitches'],
+    itemCollections['geometrySwitchIds'] = filterGeometryItemIdCollection(
+        itemCollections['geometrySwitchIds'],
         unselectItemCollections['geometrySwitches'],
     );
     itemCollections['trackNumbers'] = filterIdCollection(
         itemCollections['trackNumbers'],
         unselectItemCollections['trackNumbers'],
     );
-    itemCollections['geometryAlignments'] = filterGeometryItemCollection(
-        itemCollections['geometryAlignments'],
+    itemCollections['geometryAlignmentIds'] = filterGeometryItemIdCollection(
+        itemCollections['geometryAlignmentIds'],
         unselectItemCollections['geometryAlignments'],
-    );
-    itemCollections['geometrySegments'] = filterGeometryItemCollection(
-        itemCollections['geometrySegments'],
-        unselectItemCollections['geometrySegments'],
     );
     itemCollections['layoutLinkPoints'] = filterItemCollection(
         itemCollections['layoutLinkPoints'],
@@ -290,23 +264,20 @@ function updateItemCollectionsByUnselecting(
 }
 
 export type ToggleAlignmentPayload = {
-    alignment: MapAlignment;
-    status: LocationTrackBadgeStatus;
-    planLayout: GeometryPlanLayout;
+    planId: GeometryPlanId;
+    alignmentId: GeometryAlignmentId;
     keepAlignmentVisible?: boolean;
 };
 
 export type ToggleSwitchPayload = {
-    switch: LayoutSwitch;
-    status: SwitchBadgeStatus;
-    planLayout: GeometryPlanLayout;
+    planId: GeometryPlanId;
+    switchId: GeometrySwitchId;
     keepSwitchesVisible?: boolean;
 };
 
 export type ToggleKmPostPayload = {
-    kmPost: LayoutKmPost;
-    status: KmPostBadgeStatus;
-    planLayout: GeometryPlanLayout;
+    planId: GeometryPlanId;
+    kmPostId: GeometryKmPostId;
     keepKmPostsVisible?: boolean;
 };
 
@@ -348,180 +319,64 @@ export const selectionReducers = {
     },
     togglePlanVisibility: (
         state: Selection,
-        { payload: planLayout }: PayloadAction<GeometryPlanLayout | null>,
+        { payload: plan }: PayloadAction<VisiblePlanLayout>,
     ): void => {
-        const isPlanLayoutSelected = state.planLayouts.some((p) => p.planId == planLayout?.planId);
+        const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.id);
 
-        if (isPlanLayoutSelected) {
-            state.planLayouts = [
-                ...state.planLayouts.filter((p) => p.planId !== planLayout?.planId),
-            ];
+        if (isPlanVisible) {
+            const selectedItems = state.selectedItems;
 
-            state.selectedItems.geometrySegments = [
-                ...state.selectedItems.geometrySegments.filter(
-                    (gs) =>
-                        !planLayout?.alignments.some((a) =>
-                            a.segments.some((s) => s.id === gs.geometryItem.id),
-                        ),
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
+
+            selectedItems.geometryKmPostIds = [
+                ...selectedItems.geometryKmPostIds.filter(
+                    ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
                 ),
             ];
-            state.selectedItems.geometryKmPosts = [
-                ...state.selectedItems.geometryKmPosts.filter(
-                    (gKmPost) =>
-                        !planLayout?.kmPosts.some(
-                            (kmPost) => kmPost.id === gKmPost.geometryItem.id,
-                        ),
+            selectedItems.geometrySwitchIds = [
+                ...selectedItems.geometrySwitchIds.filter(
+                    ({ geometryId }) => !plan?.switches.includes(geometryId),
                 ),
             ];
-            state.selectedItems.geometrySwitches = [
-                ...state.selectedItems.geometrySwitches.filter(
-                    (gs) => !planLayout?.switches.some((s) => s.id == gs.geometryItem.id),
-                ),
-            ];
-            state.selectedItems.geometryAlignments = [
-                ...state.selectedItems.geometryAlignments.filter(
-                    (ga) => !planLayout?.alignments.some((a) => a.id === ga.geometryItem.id),
+            selectedItems.geometryAlignmentIds = [
+                ...selectedItems.geometryAlignmentIds.filter(
+                    (ga) => !plan?.alignments.includes(ga.geometryId),
                 ),
             ];
         } else {
-            state.planLayouts = [...state.planLayouts, ...(planLayout ? [planLayout] : [])];
+            const newVisiblePlan = plan ? [plan] : [];
+            state.visiblePlans = [...state.visiblePlans, ...newVisiblePlan];
         }
     },
     toggleAlignmentVisibility: (
         state: Selection,
         { payload }: PayloadAction<ToggleAlignmentPayload>,
     ): void => {
-        const { planLayout, alignment } = payload;
-
-        const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
-        if (storePlanLayout) {
-            const alignmentVisible = storePlanLayout.alignments.some((a) => a.id === alignment.id);
-
-            if (alignmentVisible) {
-                if (!payload.keepAlignmentVisible) {
-                    state.planLayouts = [
-                        ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                        {
-                            ...storePlanLayout,
-                            alignments: storePlanLayout.alignments.filter(
-                                (a) => a.id !== alignment.id,
-                            ),
-                        },
-                    ];
-                }
-            } else {
-                state.planLayouts = [
-                    ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                    {
-                        ...storePlanLayout,
-                        alignments: [...storePlanLayout.alignments, alignment],
-                    },
-                ];
-            }
-        } else {
-            state.planLayouts = [
-                ...state.planLayouts,
-                {
-                    ...planLayout,
-                    alignments: [alignment],
-                    switches: [],
-                    kmPosts: [],
-                },
-            ];
-        }
+        const { planId, alignmentId, keepAlignmentVisible: keepVisible } = payload;
+        toggleVisibility(state, 'alignments', keepVisible ?? false, planId, alignmentId);
     },
     toggleSwitchVisibility: (
         state: Selection,
         { payload }: PayloadAction<ToggleSwitchPayload>,
     ): void => {
-        const { planLayout, switch: switchItem } = payload;
-
-        const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
-        if (storePlanLayout) {
-            const switchVisible = storePlanLayout.switches.some((s) => s.id === switchItem.id);
-
-            if (switchVisible) {
-                if (!payload.keepSwitchesVisible) {
-                    state.planLayouts = [
-                        ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                        {
-                            ...storePlanLayout,
-                            switches: storePlanLayout.switches.filter(
-                                (s) => s.id !== switchItem.id,
-                            ),
-                        },
-                    ];
-                }
-            } else {
-                state.planLayouts = [
-                    ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                    {
-                        ...storePlanLayout,
-                        switches: [...storePlanLayout.switches, switchItem],
-                    },
-                ];
-            }
-        } else {
-            state.planLayouts = [
-                ...state.planLayouts,
-                {
-                    ...planLayout,
-                    alignments: [],
-                    switches: [switchItem],
-                    kmPosts: [],
-                },
-            ];
-        }
+        const { planId, switchId, keepSwitchesVisible: keepVisible } = payload;
+        toggleVisibility(state, 'switches', keepVisible ?? false, planId, switchId);
     },
     toggleKmPostsVisibility: (
         state: Selection,
         { payload }: PayloadAction<ToggleKmPostPayload>,
     ): void => {
-        const { planLayout, kmPost: kmPost } = payload;
-
-        const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
-        if (storePlanLayout) {
-            const kmPostVisible = storePlanLayout.kmPosts.some((k) => k.id === kmPost.id);
-
-            if (kmPostVisible) {
-                if (!payload.keepKmPostsVisible) {
-                    state.planLayouts = [
-                        ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                        {
-                            ...storePlanLayout,
-                            kmPosts: storePlanLayout.kmPosts.filter((k) => k.id !== kmPost.id),
-                        },
-                    ];
-                }
-            } else {
-                state.planLayouts = [
-                    ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
-                    {
-                        ...storePlanLayout,
-                        kmPosts: [...storePlanLayout.kmPosts, kmPost],
-                    },
-                ];
-            }
-        } else {
-            state.planLayouts = [
-                ...state.planLayouts,
-                {
-                    ...planLayout,
-                    alignments: [],
-                    switches: [],
-                    kmPosts: [kmPost],
-                },
-            ];
-        }
+        const { planId, kmPostId, keepKmPostsVisible: keepVisible } = payload;
+        toggleVisibility(state, 'kmPosts', keepVisible ?? false, planId, kmPostId);
     },
     togglePlanOpen: (
         state: Selection,
         { payload }: PayloadAction<TogglePlanWithSubItemsOpenPayload>,
     ): void => {
         if (payload.isOpen) {
-            state.openedPlanLayouts = [...state.openedPlanLayouts, payload];
+            state.openPlans = [...state.openPlans, payload];
         } else {
-            state.openedPlanLayouts = state.openedPlanLayouts.filter((p) => p.id !== payload.id);
+            state.openPlans = state.openPlans.filter((p) => p.id !== payload.id);
         }
     },
     togglePlanKmPostsOpen: (
@@ -529,7 +384,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isKmPostsOpen: isOpen };
             else return p;
         });
@@ -539,7 +394,7 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isAlignmentsOpen: isOpen };
             else return p;
         });
@@ -549,9 +404,55 @@ export const selectionReducers = {
         { payload }: PayloadAction<ToggleAccordionOpenPayload>,
     ): void => {
         const { id, isOpen } = payload;
-        state.openedPlanLayouts = state.openedPlanLayouts.map((p) => {
+        state.openPlans = state.openPlans.map((p) => {
             if (p.id === id) return { ...p, isSwitchesOpen: isOpen };
             else return p;
         });
     },
 };
+
+function toggleVisibility(
+    state: Selection,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    keepVisible: boolean,
+    planId: GeometryPlanId,
+    itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
+) {
+    const visiblePlan = state.visiblePlans.find((p) => p.id === planId);
+    const itemVisible = visiblePlan?.[type]?.includes(itemId) ?? false;
+    if (visiblePlan && itemVisible) {
+        if (!keepVisible) {
+            visiblePlan[type] = visiblePlan[type].filter((id) => id !== itemId);
+            if (!arePlanPartsVisible(visiblePlan)) {
+                state.visiblePlans = state.visiblePlans.filter((p) => p.id !== planId);
+            }
+        }
+    } else if (visiblePlan) {
+        visiblePlan[type] = [...visiblePlan[type], itemId];
+    } else {
+        state.visiblePlans = [
+            ...state.visiblePlans,
+            {
+                ...{
+                    id: planId,
+                    switches: [],
+                    kmPosts: [],
+                    alignments: [],
+                },
+                [type]: [itemId],
+            },
+        ];
+    }
+}
+
+function arePlanPartsVisible(plan: VisiblePlanLayout): boolean {
+    return plan.kmPosts.length > 0 || plan.switches.length > 0 || plan.alignments.length > 0;
+}
+export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout {
+    return {
+        id: plan.planId,
+        switches: plan.switches.map((s) => s.sourceId).filter(filterNotEmpty),
+        kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
+        alignments: plan.alignments.map((a) => a.header.id),
+    };
+}

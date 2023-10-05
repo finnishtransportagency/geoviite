@@ -1,60 +1,75 @@
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/shadows';
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/layers';
-@import '../geoviite-design-lib/geoviite-colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .track-layout {
     flex: 1;
     display: grid;
     grid-template-rows: 50px;
-    background: $color-white-default;
-}
+    background: vayla-design.$color-white-default;
 
-.track-layout__map {
-    position: relative;
-    flex: 1;
-}
+    &--show-diagram .track-layout__main-view {
+        grid-template-areas:
+            'navi map tool-panel'
+            'navi diagram tool-panel';
+    }
 
-.track-layout__main-view {
-    overflow: hidden;
-    display: flex;
-}
+    &__main-view {
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 336px auto 380px;
+        grid-template-rows: auto 320px;
 
-.track-layout__map-settings {
-    @include shadow-8dp;
+        grid-template-areas:
+            'navi map tool-panel'
+            'navi map tool-panel';
+    }
 
-    position: absolute;
-    overflow-y: auto;
-    margin-top: 5px;
-    margin-left: 5px;
-    max-height: 100%;
-    border-radius: 6px;
-    z-index: $layer-popup;
-}
+    &__navi {
+        @include vayla-design.shadow-8dp;
 
-.track-layout__tool-panel {
-    @include shadow-8dp;
-    width: 380px;
+        grid-area: navi;
+        overflow: auto;
+        z-index: 2;
+        background-color: vayla-design.$color-white-default;
 
-    .infobox {
-        &:last-of-type {
-            margin-bottom: 64px;
+        padding-bottom: 64px;
+        min-width: 336px;
+        width: 336px;
+        max-width: 336px;
+    }
+
+    &__map {
+        grid-area: map;
+        position: relative;
+        flex: 1;
+    }
+
+    &__diagram {
+        @include vayla-design.shadow-8dp;
+        grid-area: diagram;
+        overflow: hidden;
+        display: flex;
+        z-index: 1;
+    }
+
+    &__tool-panel {
+        @include vayla-design.shadow-8dp;
+
+        grid-area: tool-panel;
+        overflow: auto;
+        z-index: 2;
+        background-color: vayla-design.$color-white-default;
+
+        width: 380px;
+
+        .infobox {
+            &:last-of-type {
+                margin-bottom: 64px;
+            }
+        }
+
+        .tool-panel {
+            overflow: hidden auto;
+            height: 100%;
         }
     }
-
-    .tool-panel {
-        overflow: hidden auto;
-        height: 100%;
-    }
-}
-
-.track-layout__navi {
-    @include shadow-8dp;
-
-    padding-bottom: 64px;
-    min-width: 336px;
-    width: 336px;
-    max-width: 336px;
-    overflow: auto;
 }

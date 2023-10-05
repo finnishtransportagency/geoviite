@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
@@ -8,7 +8,7 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import {
     actions,
     canSaveKmPost,
@@ -24,15 +24,13 @@ import {
     updateKmPost,
 } from 'track-layout/layout-km-post-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
+import { LayoutKmPostId } from 'track-layout/track-layout-model';
 import { GeometryTrackNumberId } from 'geometry/geometry-model';
-import { isNullOrBlank } from 'utils/string-utils';
+import { isNilOrBlank } from 'utils/string-utils';
 import { useDebouncedState } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import styles from 'vayla-design-lib/dialog/dialog.scss';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
-import { createClassName } from 'vayla-design-lib/utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 
 export type KmPostDialogProps = {
@@ -47,13 +45,12 @@ export type KmPostDialogProps = {
 export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialogProps) => {
     const { t } = useTranslation();
     const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates.filter(
         (ls) => !state.isNewKmPost || ls.value != 'DELETED',
     );
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
-    const [officialKmPost, setOfficialKmPost] = React.useState<LayoutKmPost>();
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.kmPost?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
@@ -108,7 +105,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         if (
             !hasErrors('kmNumber') &&
             state.kmPost?.trackNumberId &&
-            !isNullOrBlank(state.kmPost.kmNumber) &&
+            !isNilOrBlank(state.kmPost.kmNumber) &&
             (state.kmPost.kmNumber != state.baselineKmNumber ||
                 state.kmPost.trackNumberId != state.baselineTrackNumberId) &&
             isValidKmNumber(state.kmPost.kmNumber)
@@ -122,14 +119,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
             );
         }
     }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state]);
-
-    React.useEffect(() => {
-        if (props.kmPostId) {
-            getKmPost(props.kmPostId, 'OFFICIAL').then((kmPost) => {
-                if (kmPost) setOfficialKmPost(kmPost);
-            });
-        }
-    }, []);
 
     function cancelSave() {
         props.onClose && props.onClose();
@@ -209,7 +198,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
     }
 
     return (
-        <div>
+        <React.Fragment>
             <Dialog
                 title={
                     state.isNewKmPost
@@ -217,14 +206,12 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         : t('km-post-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                className={dialogStyles['dialog--ultrawide']}
-                scrollable={false}
-                footerClassName={'dialog-footer'}
+                width={DialogWidth.WIDE}
                 footerContent={
                     <React.Fragment>
-                        <div className={styles['dialog-footer__content-area']}>
-                            <div className={styles['dialog-footer__content--shrink']}>
-                                {officialKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
+                        <div className={dialogStyles['dialog__footer-content--left-aligned']}>
+                            {state.existingKmPost?.draftType === 'NEW_DRAFT' &&
+                                !state.isNewKmPost && (
                                     <Button
                                         onClick={() =>
                                             props.kmPostId
@@ -236,28 +223,22 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                                         {t('km-post-dialog.delete-draft')}
                                     </Button>
                                 )}
-                            </div>
-                            <div
-                                className={createClassName(
-                                    styles['dialog-footer__content--grow'],
-                                    styles['dialog-footer__content--centered'],
-                                    styles['dialog-footer__content--padded'],
-                                )}>
+                        </div>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={state.isSaving}
+                                onClick={() => cancelSave()}>
+                                {t('button.return')}
+                            </Button>
+                            <span onClick={() => stateActions.validate()}>
                                 <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={state.isSaving}
-                                    onClick={() => cancelSave()}>
-                                    {t('button.return')}
+                                    disabled={!canSaveKmPost(state)}
+                                    isProcessing={state.isSaving}
+                                    onClick={() => saveOrConfirm()}>
+                                    {t('button.save')}
                                 </Button>
-                                <span onClick={() => stateActions.validate()}>
-                                    <Button
-                                        disabled={!canSaveKmPost(state)}
-                                        isProcessing={state.isSaving}
-                                        onClick={() => saveOrConfirm()}>
-                                        {t('button.save')}
-                                    </Button>
-                                </span>
-                            </div>
+                            </span>
                         </div>
                     </React.Fragment>
                 }>
@@ -334,80 +315,38 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             }
                         />
                     </FormLayoutColumn>
-                    <FormLayoutColumn>
-                        <Heading size={HeadingSize.SUB}>
-                            {t('km-post-dialog.info-from-linking')}
-                        </Heading>
-                        <FieldLayout
-                            label={t('km-post-dialog.location')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('km-post-dialog.coordinate-system')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                        <FieldLayout
-                            label={t('km-post-dialog.coordinates')}
-                            value={
-                                <TextField
-                                    value={'-'}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
-                        />
-                    </FormLayoutColumn>
                 </FormLayout>
-                {nonDraftDeleteConfirmationVisible && (
-                    <Dialog
-                        title={t('km-post-delete-dialog.title')}
-                        variant={DialogVariant.DARK}
-                        allowClose={false}
-                        className={dialogStyles['dialog--normal']}
-                        footerContent={
-                            <React.Fragment>
-                                <Button
-                                    onClick={closeNonDraftDeleteConfirmation}
-                                    variant={ButtonVariant.SECONDARY}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button onClick={save}>{t('button.delete')}</Button>
-                            </React.Fragment>
-                        }>
-                        <div className={'dialog__text'}>
-                            {t('km-post-delete-dialog.deleted-km-posts-not-allowed')}
-                        </div>
-                        <div className={'dialog__text'}>
-                            {t('km-post-delete-dialog.confirm-km-post-delete')}
-                        </div>
-                    </Dialog>
-                )}
-                {props.kmPostId && draftDeleteConfirmationVisible && (
-                    <KmPostDeleteConfirmationDialog
-                        id={props.kmPostId}
-                        onCancel={closeDraftDeleteConfirmation}
-                        onClose={onKmPostDeleted}
-                    />
-                )}
             </Dialog>
-        </div>
+            {nonDraftDeleteConfirmationVisible && (
+                <Dialog
+                    title={t('km-post-delete-dialog.title')}
+                    variant={DialogVariant.DARK}
+                    allowClose={false}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={closeNonDraftDeleteConfirmation}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button onClick={save}>{t('button.delete')}</Button>
+                        </div>
+                    }>
+                    <div className={'dialog__text'}>
+                        {t('km-post-delete-dialog.deleted-km-posts-not-allowed')}
+                    </div>
+                    <div className={'dialog__text'}>
+                        {t('km-post-delete-dialog.confirm-km-post-delete')}
+                    </div>
+                </Dialog>
+            )}
+            {props.kmPostId && draftDeleteConfirmationVisible && (
+                <KmPostDeleteConfirmationDialog
+                    id={props.kmPostId}
+                    onCancel={closeDraftDeleteConfirmation}
+                    onClose={onKmPostDeleted}
+                />
+            )}
+        </React.Fragment>
     );
 };

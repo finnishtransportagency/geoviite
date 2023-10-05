@@ -4,6 +4,8 @@ import { err, ok, Result } from 'neverthrow';
 import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
 
+import { LocalizationParams } from 'i18n/config';
+
 export const API_URI = '/api';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -21,7 +23,7 @@ const JSON_HEADERS: HeadersInit = {
 
 const createJsonHeaders = () => {
     const csrfToken = getCsrfCookie();
-    return csrfToken ? {...JSON_HEADERS, 'X-XSRF-TOKEN': csrfToken} : JSON_HEADERS;
+    return csrfToken ? { ...JSON_HEADERS, 'X-XSRF-TOKEN': csrfToken } : JSON_HEADERS;
 };
 
 export type ErrorHandler<T> = (response: ApiErrorResponse) => T;
@@ -36,7 +38,7 @@ export type ApiErrorResponse = {
     correlationId: string;
     timestamp: string;
     localizedMessageKey?: string;
-    localizedMessageParams: string[];
+    localizedMessageParams: LocalizationParams;
     status: number;
 };
 
@@ -46,11 +48,7 @@ export type Page<T> = {
     start: number;
 };
 
-const throwErrorHandler = (response: ApiErrorResponse) => {
-    throw response;
-};
-
-const ignoreErrorHandler = defaultValueErrorHandler(null);
+const ignoreErrorHandler = defaultValueErrorHandler(undefined);
 
 function defaultValueErrorHandler<T>(defaultValue: T): ErrorHandler<T> {
     return (response: ApiErrorResponse): T => {
@@ -60,71 +58,120 @@ function defaultValueErrorHandler<T>(defaultValue: T): ErrorHandler<T> {
 }
 
 export function queryParams(params: Record<string, unknown>): string {
-    const nonNull = Object.keys(params)
+    const stringifiedParameters = Object.keys(params)
         .map((key) => {
             const value = params[key];
-            return value != null
+            return value != undefined
                 ? `${key}=${encodeURIComponent(value.toString())}`
-                : null;
+                : undefined;
         })
-        .filter((p) => p != null);
-    return nonNull.length == 0 ? '' : `?${nonNull.join('&')}`;
+        .filter((p) => p != undefined);
+    return stringifiedParameters.length == 0 ? '' : `?${stringifiedParameters.join('&')}`;
 }
 
-/**
- * @deprecated Throwing loses type information. If you need to handle the error in your use-place, use getAdt instead, fetching a result object with output or error
- */
-export async function getThrowError<Output>(path: string): Promise<Output> {
-    return executeRequest<undefined, Output, Output>(
+export function getNonNull<Output>(path: string, toastFailure = true): Promise<Output> {
+    return getNullable<Output>(path, toastFailure).then((requestResult) => {
+        if (requestResult === undefined) {
+            if (toastFailure) {
+                Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
+            }
+            const rv = Promise.reject(Error(`undefined return when querying ${path}`));
+            rv.catch(() => {
+                console.error('request returned undefined', path);
+            });
+            return rv;
+        } else {
+            return requestResult;
+        }
+    });
+}
+
+const wrapApiErrorResponse = Symbol('wrap api error response');
+type WrappedApiErrorResponse = { [k in typeof wrapApiErrorResponse]: ApiErrorResponse };
+function isWrappedApiError(x: unknown): x is WrappedApiErrorResponse {
+    return typeof x === 'object' && x !== null && wrapApiErrorResponse in x;
+}
+
+export function getNullable<Output>(
+    path: string,
+    toastFailure = true,
+): Promise<Output | undefined> {
+    const rv = executeRequest<undefined, Output, WrappedApiErrorResponse>(
         path,
         undefined,
-        throwErrorHandler,
+        (error) => {
+            if (toastFailure) {
+                Snackbar.error(i18n.t('error.request-failed', { path }));
+            }
+            return { [wrapApiErrorResponse]: error };
+        },
         'GET',
-    ).then(verifyNonNull);
+    ).then((requestResult) =>
+        isWrappedApiError(requestResult)
+            ? Promise.reject(requestResult[wrapApiErrorResponse])
+            : requestResult,
+    );
+    return rv as Promise<Output | undefined>;
 }
 
-export async function getWithDefault<Output>(path: string, defaultValue: Output): Promise<Output> {
-    return executeRequest<undefined, Output, Output>(
+export function getNonNullAdt<Output>(
+    path: string,
+    toastFailure = true,
+): Promise<Result<Output, ApiErrorResponse>> {
+    return getNullableAdt<Output | undefined>(path, toastFailure).then((requestResult) => {
+        if (requestResult.isOk() && requestResult.value === undefined) {
+            Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
+            return Promise.reject(Error(`undefined return when querying ${path}`));
+        } else {
+            return requestResult as Result<Output, ApiErrorResponse>;
+        }
+    });
+}
+
+export function getNullableAdt<Output>(
+    path: string,
+    toastError = true,
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
+    return executeRequest<undefined, Output, WrappedApiErrorResponse>(
         path,
         undefined,
-        defaultValueErrorHandler(defaultValue),
+        (e) => ({
+            [wrapApiErrorResponse]: e,
+        }),
         'GET',
-    ).then((val) => (val != null ? val : defaultValue));
-}
-
-export async function getIgnoreError<Output>(path: string): Promise<Output | null> {
-    return executeRequest<undefined, Output, null>(path, undefined, ignoreErrorHandler, 'GET');
+    ).then((r) => {
+        if (isWrappedApiError(r)) {
+            if (toastError) {
+                Snackbar.error(i18n.t('error.request-failed', { path }));
+            }
+            return err(r[wrapApiErrorResponse]);
+        } else {
+            return ok(r);
+        }
+    });
 }
 
 export async function postIgnoreError<Input, Output>(
     path: string,
     data: Input,
-): Promise<Output | null> {
-    return executeRequest<Input, Output, null>(path, data, ignoreErrorHandler, 'POST');
+): Promise<Output | undefined> {
+    return executeRequest<Input, Output, undefined>(path, data, ignoreErrorHandler, 'POST');
 }
 
 export async function putIgnoreError<Input, Output>(
     path: string,
     data: Input,
-): Promise<Output | null> {
-    return executeRequest<Input, Output, null>(path, data, ignoreErrorHandler, 'PUT');
+): Promise<Output | undefined> {
+    return executeRequest<Input, Output, undefined>(path, data, ignoreErrorHandler, 'PUT');
 }
 
-export async function deleteIgnoreError<Output>(path: string): Promise<Output | null> {
-    return executeRequest<undefined, Output, null>(path, undefined, ignoreErrorHandler, 'DELETE');
-}
-
-// Result object returning versions of HTTP methods (ADT)
-export async function getAdt<Output>(
-    path: string,
-    showErrorMessage = false,
-): Promise<Result<Output, ApiErrorResponse>> {
-    return await executeBodyRequestAdt<undefined, Output>(
+export async function deleteIgnoreError<Output>(path: string): Promise<Output | undefined> {
+    return executeRequest<undefined, Output, undefined>(
         path,
         undefined,
-        'GET',
-        showErrorMessage,
-    ).then(verifyNonNullAdt);
+        ignoreErrorHandler,
+        'DELETE',
+    );
 }
 
 export async function postAdt<Input, Output>(
@@ -133,7 +180,7 @@ export async function postAdt<Input, Output>(
     showErrorMessage = false,
 ): Promise<Result<Output, ApiErrorResponse>> {
     return await executeBodyRequestAdt<Input, Output>(path, data, 'POST', showErrorMessage).then(
-        verifyNonNullAdt,
+        verifyExistsAdt,
     );
 }
 
@@ -143,7 +190,7 @@ export async function putAdt<Input, Output>(
     showErrorMessage = false,
 ): Promise<Result<Output, ApiErrorResponse>> {
     return await executeBodyRequestAdt<Input, Output>(path, data, 'PUT', showErrorMessage).then(
-        verifyNonNullAdt,
+        verifyExistsAdt,
     );
 }
 
@@ -153,15 +200,15 @@ export async function deleteAdt<Input, Output>(
     showErrorMessage = false,
 ): Promise<Result<Output, ApiErrorResponse>> {
     return await executeBodyRequestAdt<Input, Output>(path, data, 'DELETE', showErrorMessage).then(
-        verifyNonNullAdt,
+        verifyExistsAdt,
     );
 }
 
 export async function postFormIgnoreError<Output>(
     path: string,
     data: FormData,
-): Promise<Output | null> {
-    return postFormWithError<Output, null>(path, data, ignoreErrorHandler);
+): Promise<Output | undefined> {
+    return postFormWithError<Output, undefined>(path, data, ignoreErrorHandler);
 }
 
 export async function postFormWithError<Output, ErrorOutput>(
@@ -169,7 +216,7 @@ export async function postFormWithError<Output, ErrorOutput>(
     data: FormData,
     errorHandler: ErrorHandler<ErrorOutput>,
 ): Promise<Output | ErrorOutput> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getFormResponse(path, data, 'POST'),
         true,
     );
@@ -182,8 +229,8 @@ export async function postFormWithError<Output, ErrorOutput>(
 export async function putFormIgnoreError<Output>(
     path: string,
     data: FormData,
-): Promise<Output | null> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+): Promise<Output | undefined> {
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getFormResponse(path, data, 'PUT'),
         true,
     );
@@ -197,8 +244,8 @@ async function executeRequest<Input, Output, ErrorOutput>(
     data: Input | undefined,
     errorHandler: (response: ApiErrorResponse) => ErrorOutput,
     method: HttpMethod,
-): Promise<Output | ErrorOutput | null> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+): Promise<Output | ErrorOutput | undefined> {
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getResponse(path, data, method),
         true,
     );
@@ -211,8 +258,8 @@ async function executeBodyRequestAdt<Input, Output>(
     data: Input | undefined,
     method: HttpMethod,
     showErrorMessage = false,
-): Promise<Result<Output | null, ApiErrorResponse>> {
-    const result: Result<Output | null, ApiErrorResponse> = await executeBodyRequestInternal(
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
+    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
         () => getResponse(path, data, method),
         true,
     );
@@ -226,11 +273,11 @@ async function executeBodyRequestAdt<Input, Output>(
 async function executeBodyRequestInternal<Output>(
     fetchFunction: () => Promise<Response>,
     retryOnTokenExpired: boolean,
-): Promise<Result<Output | null, ApiErrorResponse>> {
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
     const response = await fetchFunction();
 
     if (response.status === 204) {
-        return ok(null);
+        return ok(undefined);
     } else if (response.ok) {
         return ok(await response.json());
     } else {
@@ -243,7 +290,12 @@ async function executeBodyRequestInternal<Output>(
         ) {
             return executeBodyRequestInternal(fetchFunction, false);
         } else {
-            if (response.status === 401 && (response.headers.has('session-expired') || errorResponse.response.localizedMessageKey === TOKEN_EXPIRED)) Snackbar.sessionExpired();
+            if (
+                response.status === 401 &&
+                (response.headers.has('session-expired') ||
+                    errorResponse.response.localizedMessageKey === TOKEN_EXPIRED)
+            )
+                Snackbar.sessionExpired();
             return err(errorResponse.response);
         }
     }
@@ -257,7 +309,7 @@ async function getFormResponse(
     return await fetch(path, {
         method: method,
         credentials: 'same-origin',
-        headers: {'X-XSRF-TOKEN': getCsrfCookie() || ''},
+        headers: { 'X-XSRF-TOKEN': getCsrfCookie() || '' },
         body: data,
     });
 }
@@ -270,18 +322,18 @@ async function getResponse<Input>(
     return await fetch(path, {
         method: method,
         headers: createJsonHeaders(),
-        ...(data !== undefined && {body: JSON.stringify(data)}),
+        ...(data !== undefined && { body: JSON.stringify(data) }),
     });
 }
 
-function verifyNonNullAdt<Output, ErrorOutput>(
-    result: Result<Output | null, ErrorOutput>,
+function verifyExistsAdt<Output, ErrorOutput>(
+    result: Result<Output | undefined, ErrorOutput>,
 ): Result<Output, ErrorOutput> {
-    return result.map(verifyNonNull);
+    return result.map(verifyExists);
 }
 
-function verifyNonNull<Output>(result: Output | null): Output {
-    if (result != null) return result;
+function verifyExists<Output>(result: Output | undefined): Output {
+    if (result != undefined) return result;
     else throw Error('Response contained no body');
 }
 
@@ -292,10 +344,10 @@ async function convertResponseToError(response: Response): Promise<ApiError> {
         contentType && contentType.startsWith('application/json')
             ? await response.json()
             : {
-                messageRows: [await tryToReadText(response)].filter(filterNotEmpty),
-                correlationId: 'FAILED',
-                timestamp: dateString || Date(),
-            };
+                  messageRows: [await tryToReadText(response)].filter(filterNotEmpty),
+                  correlationId: 'FAILED',
+                  timestamp: dateString || Date(),
+              };
     return {
         status: response.status,
         response: {
@@ -318,5 +370,5 @@ const showHttpError = (response: ApiErrorResponse) => {
         response.localizedMessageKey &&
         i18n.t(response.localizedMessageKey, response.localizedMessageParams);
     const content = msg || response.messageRows.map((r) => `${r}`).join('\n');
-    Snackbar.error(`Request failed (${response.status})`, `${content}`);
+    Snackbar.error(`Request failed (${response.status})`, { body: `${content}` });
 };

@@ -1,12 +1,13 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.*
+import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
@@ -37,7 +38,7 @@ class AddressChangesServiceIT @Autowired constructor(
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val layoutKmPostDao: LayoutKmPostDao,
     val addressChangesService: AddressChangesService,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun addressChangesAreEmptyIfNothingCanBeGeocoded() {
@@ -145,11 +146,14 @@ class AddressChangesServiceIT @Autowired constructor(
 
         // Move start-point a bit
         updateAndPublish(initialLocationTrack, setupData.locationTrackGeometry.copy(
-            segments = setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
-                if (index == 0) segment.withPoints(
-                    points = listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1),
-                ) else segment
-            }
+            segments = fixSegmentStarts(setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
+                if (index == 0) segment.copy(
+                    geometry = segment.geometry.withPoints(
+                        fixMValues(listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1)),
+                    )
+                )
+                else segment
+            })
         ))
         val updateMoment = locationTrackDao.fetchChangeTime()
 
@@ -703,15 +707,17 @@ class AddressChangesServiceIT @Autowired constructor(
             referenceLine,
             alignment.copy(
                 segments = fixSegmentStarts(alignment.segments.map { segment ->
-                    segment.withPoints(
-                        points = fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
-                            val newPoint = moveFunc(index, point)
-                            if (inSegmentIndex < segment.points.lastIndex) index++
-                            point.copy(
-                                x = newPoint.x,
-                                y = newPoint.y
-                            )
-                        } ),
+                    segment.copy(
+                        geometry = segment.geometry.withPoints(
+                            fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
+                                val newPoint = moveFunc(index, point)
+                                if (inSegmentIndex < segment.points.lastIndex) index++
+                                point.copy(
+                                    x = newPoint.x,
+                                    y = newPoint.y
+                                )
+                            } ),
+                        ),
                     )
                 } )
             )

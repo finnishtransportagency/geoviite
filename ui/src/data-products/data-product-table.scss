@@ -1,7 +1,8 @@
-@import '../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .data-product-table {
     &__table-container {
+        position: relative;
         overflow: auto;
         padding-left: 32px;
         flex-grow: 1;
@@ -9,6 +10,10 @@
 
     &__element-count {
         padding-left: 32px;
+    }
+
+    &__overlaps-another {
+        fill: vayla-design.$color-lemon-dark;
     }
 
     &__table-heading {
@@ -26,7 +31,7 @@
         &--separator {
             border-left-width: 1px;
             border-left-style: solid;
-            border-left-color: $color-white-darker;
+            border-left-color: vayla-design.$color-white-darker;
         }
     }
 

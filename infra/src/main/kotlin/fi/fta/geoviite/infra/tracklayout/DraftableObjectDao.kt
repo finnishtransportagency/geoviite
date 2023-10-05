@@ -1,11 +1,14 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
@@ -50,24 +53,23 @@ interface IDraftableObjectReader<T : Draftable<T>> {
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
-    fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>>
+    fun fetchDraftVersions(ids: List<IntId<T>>): List<RowVersion<T>>
     fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T>
     fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>?
     fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T>
-    fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>>
-    fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? =
-        when (publishType) {
-            OFFICIAL -> fetchOfficialVersion(id)
-            DRAFT -> fetchDraftVersion(id)
-        }
+    fun fetchOfficialVersions(ids: List<IntId<T>>): List<RowVersion<T>>
+    fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? = when (publishType) {
+        OFFICIAL -> fetchOfficialVersion(id)
+        DRAFT -> fetchDraftVersion(id)
+    }
+
     fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
-    fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> =
-        when (publishType) {
-            OFFICIAL -> fetchOfficialVersionOrThrow(id)
-            DRAFT -> fetchDraftVersionOrThrow(id)
-        }
+    fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> = when (publishType) {
+        OFFICIAL -> fetchOfficialVersionOrThrow(id)
+        DRAFT -> fetchDraftVersionOrThrow(id)
+    }
 }
 
 interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
@@ -75,12 +77,28 @@ interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDr
 @Transactional(readOnly = true)
 abstract class DraftableDaoBase<T : Draftable<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    private val table: DbTable,
-): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
+    val table: DbTable,
+    val cacheEnabled: Boolean,
+    cacheSize: Long,
+) : DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
+
+    protected val cache: Cache<RowVersion<T>, T> =
+        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
+
+    override fun fetch(version: RowVersion<T>): T = if (cacheEnabled) cache.get(version, ::fetchInternal)
+    else fetchInternal(version)
+
+    protected abstract fun fetchInternal(version: RowVersion<T>): T
+
+    abstract fun preloadCache()
 
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
+        val distinctIds = ids.distinct()
+        if (distinctIds.size != ids.size) logger.warn(
+            "Requested publication versions with duplicate ids: duplicated=${ids.size - distinctIds.size} requested=$ids"
+        )
         val sql = """
             select
               coalesce(${table.draftLink}, id) as official_id,
@@ -90,15 +108,17 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             where coalesce(${table.draftLink}, id) in (:ids)
               and draft = true
         """.trimIndent()
-        val params = mapOf(
-            "ids" to ids.map { id -> id.intValue },
-        )
-        return jdbcTemplate.query<ValidationVersion<T>>(sql, params) { rs, _ -> ValidationVersion(
-            rs.getIntId("official_id"),
-            rs.getRowVersion("row_id", "row_version"),
-        ) }.also { found -> ids.forEach { id ->
-            if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
-        } }
+        val params = mapOf("ids" to distinctIds.map { id -> id.intValue })
+        return jdbcTemplate.query<ValidationVersion<T>>(sql, params) { rs, _ ->
+            ValidationVersion(
+                rs.getIntId("official_id"),
+                rs.getRowVersion("row_id", "row_version"),
+            )
+        }.also { found ->
+            distinctIds.forEach { id ->
+                if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
+            }
+        }
     }
 
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
@@ -150,11 +170,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     override fun fetchDraftVersion(id: IntId<T>): RowVersion<T>? = fetchDraftRowVersion(id, table)
 
-    override fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>? {
-        val pair = fetchVersionPair(id)
-        return pair.official
-            ?: if (pair.draft != null) null else throw NoSuchEntityException(table.name, id)
-    }
+    override fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>? = fetchVersionPair(id).official
 
     override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
@@ -162,23 +178,22 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     }
 
     override fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T> {
-        logger.daoAccess(AccessType.VERSION_FETCH,  table.name, id)
+        logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return queryRowVersion(draftFetchSql(table, FetchType.SINGLE), id)
     }
 
-    private fun <T> fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
+    private fun fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return queryRowVersionOrNull(officialFetchSql(table, FetchType.SINGLE), id)
     }
 
-    override fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
+    override fun fetchOfficialVersions(ids: List<IntId<T>>): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, ids)
-        val versions: List<RowVersion<T>> =
-            if (ids.isEmpty()) emptyList()
-            else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
-                rs.getRowVersion("id", "version")
-            }
-        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        val params = mapOf("ids" to ids.distinct().map { it.intValue })
+        val versions: List<RowVersion<T>> = if (ids.isEmpty()) emptyList()
+        else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
         return versions
     }
 
@@ -187,14 +202,13 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         return queryRowVersionOrNull(draftFetchSql(table, FetchType.SINGLE), id)
     }
 
-    override fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
+    override fun fetchDraftVersions(ids: List<IntId<T>>): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
-        val versions: List<RowVersion<T>> =
-            if (ids.isEmpty()) emptyList()
-            else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
-                rs.getRowVersion("id", "version")
-            }
-        require(versions.size == ids.size) { "RowVersions not found for some ids: ids=$ids versions=$versions" }
+        val params = mapOf("ids" to ids.distinct().map { it.intValue })
+        val versions: List<RowVersion<T>> = if (ids.isEmpty()) emptyList()
+        else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
         return versions
     }
 
@@ -205,14 +219,14 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         //language=SQL
         val sql = """
             select
-              case when version.deleted then null else version.id end as id,
-              case when version.deleted then null else version.version end as version
-            from ${table.versionTable} version
+              case when v.deleted then null else v.id end as id,
+              case when v.deleted then null else v.version end as version
+            from ${table.versionTable} v
             where
-              version.id = :id
-              and version.change_time <= :moment
-              and not version.draft
-            order by version.change_time desc
+              v.id = :id
+              and v.change_time <= :moment
+              and not v.draft
+            order by v.change_time desc
             limit 1
         """.trimIndent()
         val params = mapOf(
@@ -240,7 +254,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         val response: List<DaoResponse<T>> = jdbcTemplate.query(sql, params) { rs, _ ->
             // Draft-only (there is no official row) -> id is also the official id
             rs.getDaoResponse("id", "id", "version")
-         }
+        }
         return getOne(table.name, id, response)
     }
 
@@ -286,15 +300,15 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
 }
 
-inline fun <reified T: Draftable<T>> draftOfId(item: T) = draftOfId(item.id, item.draft)
+inline fun <reified T : Draftable<T>> draftOfId(item: T) = draftOfId(item.id, item.draft)
 
-inline fun <reified T: Draftable<T>> draftOfId(id: DomainId<T>, draft: Draft<T>?): IntId<T>? =
+inline fun <reified T : Draftable<T>> draftOfId(id: DomainId<T>, draft: Draft<T>?): IntId<T>? =
     if (draft != null && draft.draftRowId != id) toDbId(T::class, id)
     else null
 
-inline fun <reified T: Draftable<T>> verifyDraftableInsert(item: T) = verifyDraftableInsert(item.id, item.draft)
+inline fun <reified T : Draftable<T>> verifyDraftableInsert(item: T) = verifyDraftableInsert(item.id, item.draft)
 
-inline fun <reified T: Draftable<T>> verifyDraftableInsert(id: DomainId<T>, draft: Draft<T>?) {
+inline fun <reified T : Draftable<T>> verifyDraftableInsert(id: DomainId<T>, draft: Draft<T>?) {
     require(id !is IntId || draft != null) { "Cannot insert existing official ${T::class.simpleName} as new" }
     require(draft?.draftRowId !is IntId) { "Cannot insert existing draft ${T::class.simpleName} as new" }
 }

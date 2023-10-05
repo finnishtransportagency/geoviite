@@ -1,0 +1,76 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.projektivelho-file-list {
+    padding: 20px;
+}
+
+.projektivelho-file-list__expanded {
+    display: flex;
+    flex-direction: row;
+
+    .infobox__content {
+        width: 390px;
+
+        .infobox__field-value {
+            width: 100%;
+        }
+    }
+}
+
+.projektivelho-file-list__table {
+    padding: 1px;
+
+    > thead > tr > th,
+    > tbody > tr > td {
+        align-content: center;
+        text-align: left;
+
+        &:first-of-type {
+            width: 8px;
+        }
+
+        &:last-of-type {
+            width: 250px;
+        }
+    }
+}
+
+.projektivelho-file-list__buttons {
+    display: flex;
+    width: 100%;
+    height: 100%;
+
+    button:not(:last-child) {
+        margin-right: 8px;
+    }
+}
+
+.projektivelho-file-list__link {
+    display: flex;
+    text-decoration: none;
+    fill: vayla-design.$color-blue-dark;
+    align-items: center;
+
+    :not(:first-child) {
+        margin-left: 6px;
+    }
+
+    :hover {
+        text-decoration: underline;
+    }
+
+    &-icon {
+        min-width: 20px;
+    }
+}
+
+.projektivelho-file-list__oid {
+    display: flex;
+    color: vayla-design.$color-black-light;
+    align-items: center;
+
+    .icon {
+        padding-left: 6px;
+        cursor: pointer;
+    }
+}

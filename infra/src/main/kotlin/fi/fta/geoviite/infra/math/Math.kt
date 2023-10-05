@@ -14,11 +14,15 @@ fun factorial(n: Int): Long {
     }
 }
 
+fun roundTo1Decimal(value: Double): BigDecimal = round(value, 1)
 fun roundTo3Decimals(value: Double): BigDecimal = round(value, 3)
+fun roundTo3Decimals(value: BigDecimal): BigDecimal = round(value, 3)
 fun roundTo6Decimals(value: Double): BigDecimal = round(value, 6)
 fun round(value: Double, scale: Int): BigDecimal =
     if (!value.isFinite()) throw IllegalArgumentException("Cannot round $value")
-    else BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP)
+    else round(BigDecimal.valueOf(value), scale)
+
+fun round(value: BigDecimal, scale: Int): BigDecimal = value.setScale(scale, RoundingMode.HALF_UP)
 
 fun interpolate(value1: Double?, value2: Double?, portion: Double) =
     if (value1 == null || value2 == null) null

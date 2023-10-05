@@ -1,20 +1,24 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { CoordinateSystem, TrackMeter } from 'common/common-model';
+import { Srid, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from '../data-product-table.scss';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { findCoordinateSystem } from 'data-products/data-products-utils';
+import { useLoader } from 'utils/react-utils';
+import { getSridList } from 'common/common-api';
 
 export type ElementTableItemProps = {
-    id: string;
     trackNumber: string | undefined;
     geometryAlignmentName: string;
     type: string;
     locationTrackName: string;
-    trackAddressStart: TrackMeter | null;
-    trackAddressEnd: TrackMeter | null;
+    trackAddressStart: TrackMeter | undefined;
+    trackAddressEnd: TrackMeter | undefined;
     locationStartE: number;
     locationStartN: number;
     locationEndE: number;
@@ -22,16 +26,32 @@ export type ElementTableItemProps = {
     length: number;
     curveRadiusStart: number | undefined;
     curveRadiusEnd: number | undefined;
-    cantStart: number | null;
-    cantEnd: number | null;
+    cantStart: number | undefined;
+    cantEnd: number | undefined;
     angleStart: number;
     angleEnd: number;
     plan: string;
     source: string;
-    coordinateSystem: CoordinateSystem | undefined;
+    coordinateSystem: Srid | undefined;
     planId: GeometryPlanId;
     showLocationTrackName: boolean;
+    connectedSwitchName: string | undefined;
+    isPartial: boolean;
 };
+
+const remarks = (
+    t: TFunction<'translation', undefined>,
+    connectedSwitchName: string | undefined,
+    isPartial: boolean,
+) =>
+    [
+        connectedSwitchName !== undefined
+            ? t('data-products.element-list.remarks.connected-to-switch', {
+                  switchName: connectedSwitchName,
+              })
+            : undefined,
+        isPartial ? t('data-products.element-list.remarks.is-partial') : undefined,
+    ].filter((remark) => remark !== undefined);
 
 export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     trackNumber,
@@ -56,7 +76,11 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     coordinateSystem,
     planId,
     showLocationTrackName,
+    connectedSwitchName,
+    isPartial,
 }) => {
+    const { t } = useTranslation();
+    const coordinateSystems = useLoader(getSridList, []);
     return (
         <React.Fragment>
             <tr>
@@ -67,19 +91,26 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
                 <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>
                 <td>
-                    <CoordinateSystemView coordinateSystem={coordinateSystem} />
+                    {coordinateSystem && (
+                        <CoordinateSystemView
+                            coordinateSystem={findCoordinateSystem(
+                                coordinateSystem,
+                                coordinateSystems || [],
+                            )}
+                        />
+                    )}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationStartE, Precision.TM35FIN)}
+                    {roundToPrecision(locationStartE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationStartN, Precision.TM35FIN)}
+                    {roundToPrecision(locationStartN, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationEndE, Precision.TM35FIN)}
+                    {roundToPrecision(locationEndE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationEndN, Precision.TM35FIN)}
+                    {roundToPrecision(locationEndN, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
@@ -93,10 +124,11 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                         roundToPrecision(curveRadiusEnd, Precision.radiusMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {cantStart != null && roundToPrecision(cantStart, Precision.cantMillimeters)}
+                    {cantStart != undefined &&
+                        roundToPrecision(cantStart, Precision.cantMillimeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {cantEnd != null && roundToPrecision(cantEnd, Precision.cantMillimeters)}
+                    {cantEnd != undefined && roundToPrecision(cantEnd, Precision.cantMillimeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(angleStart, Precision.angle6Decimals)}
@@ -108,6 +140,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     <PlanNameLink planId={planId} planName={plan} />
                 </td>
                 <td>{source}</td>
+                <td>{remarks(t, connectedSwitchName, isPartial).join(', ')}</td>
             </tr>
         </React.Fragment>
     );

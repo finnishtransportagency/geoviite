@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -20,7 +20,7 @@ import {
     reducer,
     TrackNumberSaveRequest,
 } from './track-number-edit-store';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import {
     LayoutReferenceLine,
@@ -35,7 +35,6 @@ import styles from 'vayla-design-lib/dialog/dialog.scss';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
-import { createClassName } from 'vayla-design-lib/utils';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -67,7 +66,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id == editTrackNumberId)}
                 inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
-                isNewDraft={!!isDeletable}
+                isNewDraft={isDeletable}
                 onClose={onClose}
                 onSave={onSave}
             />
@@ -91,7 +90,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         reducer,
         initialTrackNumberEditState(inEditTrackNumber, inEditReferenceLine, trackNumbers),
     );
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const startAndEndPoints = inEditReferenceLine
         ? useReferenceLineStartAndEnd(inEditReferenceLine.id, 'DRAFT')
         : undefined;
@@ -155,21 +154,19 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const startAddressErrors = getErrors(state, 'startAddress');
 
     return (
-        <Dialog
-            title={t(
-                inEditTrackNumber
-                    ? 'track-number-edit.title.edit'
-                    : 'track-number-edit.title.create',
-            )}
-            onClose={onClose}
-            className={dialogStyles['dialog--ultrawide']}
-            scrollable={false}
-            footerClassName={'dialog-footer'}
-            footerContent={
-                <React.Fragment>
-                    <div className={styles['dialog-footer__content-area']}>
+        <React.Fragment>
+            <Dialog
+                title={t(
+                    inEditTrackNumber
+                        ? 'track-number-edit.title.edit'
+                        : 'track-number-edit.title.create',
+                )}
+                onClose={onClose}
+                width={DialogWidth.ULTRA_WIDE}
+                footerContent={
+                    <React.Fragment>
                         {isNewDraft && inEditTrackNumber && (
-                            <div className={styles['dialog-footer__content--shrink']}>
+                            <div className={styles['dialog__footer-content--left-aligned']}>
                                 <Button
                                     onClick={() => {
                                         inEditTrackNumber ? confirmNewDraftDelete() : undefined;
@@ -180,12 +177,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 </Button>
                             </div>
                         )}
-                        <div
-                            className={createClassName(
-                                styles['dialog-footer__content--grow'],
-                                styles['dialog-footer__content--centered'],
-                                styles['dialog-footer__content--padded'],
-                            )}>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={saveInProgress}
@@ -199,149 +191,148 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 {t('track-number-edit.action.save')}
                             </Button>
                         </div>
-                    </div>
-                </React.Fragment>
-            }>
-            <FormLayout isProcessing={saveInProgress}>
-                <FormLayoutColumn>
-                    <Heading size={HeadingSize.SUB}>
-                        {t('track-number-edit.title.track-number')}
-                    </Heading>
-                    <FieldLayout
-                        label={`${t('track-number-edit.field.number')} *`}
-                        value={
-                            <TextField
-                                value={state.request.number}
-                                onChange={(e) =>
-                                    stateActions.onUpdateProp({
-                                        key: 'number' as keyof TrackNumberSaveRequest,
-                                        value: e.target.value,
-                                        editingExistingValue: !!inEditTrackNumber,
-                                    })
-                                }
-                                onBlur={() => stateActions.onCommitField('number')}
-                                disabled={saveInProgress}
-                                hasError={numberErrors.length > 0}
-                                wide
-                            />
-                        }
-                        errors={numberErrors.map((e) => t(e.reason))}
-                    />
-                    <FieldLayout
-                        label={`${t('track-number-edit.field.state')} *`}
-                        value={
-                            <Dropdown
-                                value={state.request.state}
-                                canUnselect={false}
-                                options={trackNumberStateOptions}
-                                onChange={(state) =>
-                                    stateActions.onUpdateProp({
-                                        key: 'state' as keyof TrackNumberSaveRequest,
-                                        value: state || 'NOT_IN_USE',
-                                        editingExistingValue: !!inEditTrackNumber,
-                                    })
-                                }
-                                onBlur={() => stateActions.onCommitField('state')}
-                                hasError={stateErrors.length > 0}
-                                wide
-                                searchable
-                            />
-                        }
-                        errors={stateErrors.map((e) => t(e.reason))}
-                    />
-                    <FieldLayout
-                        label={`${t('track-number-edit.field.description')} *`}
-                        value={
-                            <TextField
-                                value={state.request.description}
-                                onChange={(e) =>
-                                    stateActions.onUpdateProp({
-                                        key: 'description' as keyof TrackNumberSaveRequest,
-                                        value: e.target.value,
-                                        editingExistingValue: !!inEditTrackNumber,
-                                    })
-                                }
-                                onBlur={() => stateActions.onCommitField('description')}
-                                disabled={saveInProgress}
-                                hasError={descriptionErrors.length > 0}
-                                wide
-                            />
-                        }
-                        errors={descriptionErrors.map((e) => t(e.reason))}
-                    />
-                </FormLayoutColumn>
-                <FormLayoutColumn>
-                    <Heading size={HeadingSize.SUB}>
-                        {t('track-number-edit.title.reference-line')}
-                    </Heading>
-                    <FieldLayout
-                        label={`${t('track-number-edit.field.start-location')} *`}
-                        value={
-                            <TextField
-                                value={state.request.startAddress}
-                                onChange={(e) =>
-                                    stateActions.onUpdateProp({
-                                        key: 'startAddress' as keyof TrackNumberSaveRequest,
-                                        value: e.target.value,
-                                        editingExistingValue: !!inEditTrackNumber,
-                                    })
-                                }
-                                onBlur={() => stateActions.onCommitField('startAddress')}
-                                disabled={saveInProgress}
-                                hasError={startAddressErrors.length > 0}
-                                wide
-                            />
-                        }
-                        errors={startAddressErrors.map((e) => t(e.reason))}
-                    />
-                    {startAndEndPoints && (
+                    </React.Fragment>
+                }>
+                <FormLayout isProcessing={saveInProgress} doubleColumn>
+                    <FormLayoutColumn>
+                        <Heading size={HeadingSize.SUB}>
+                            {t('track-number-edit.title.track-number')}
+                        </Heading>
                         <FieldLayout
-                            label={t('track-number-edit.field.end-location')}
+                            label={`${t('track-number-edit.field.number')} *`}
                             value={
                                 <TextField
-                                    value={
-                                        startAndEndPoints?.end
-                                            ? formatTrackMeter(startAndEndPoints.end.address)
-                                            : '-'
+                                    value={state.request.number}
+                                    onChange={(e) =>
+                                        stateActions.onUpdateProp({
+                                            key: 'number' as keyof TrackNumberSaveRequest,
+                                            value: e.target.value,
+                                            editingExistingValue: !!inEditTrackNumber,
+                                        })
                                     }
+                                    onBlur={() => stateActions.onCommitField('number')}
+                                    disabled={saveInProgress}
+                                    hasError={numberErrors.length > 0}
                                     wide
-                                    disabled
                                 />
                             }
+                            errors={numberErrors.map((e) => t(e.reason))}
                         />
-                    )}
-                    {inEditReferenceLine && (
                         <FieldLayout
-                            label={t('track-number-edit.field.true-length')}
+                            label={`${t('track-number-edit.field.state')} *`}
+                            value={
+                                <Dropdown
+                                    value={state.request.state}
+                                    canUnselect={false}
+                                    options={trackNumberStateOptions}
+                                    onChange={(state) =>
+                                        stateActions.onUpdateProp({
+                                            key: 'state' as keyof TrackNumberSaveRequest,
+                                            value: state || 'NOT_IN_USE',
+                                            editingExistingValue: !!inEditTrackNumber,
+                                        })
+                                    }
+                                    onBlur={() => stateActions.onCommitField('state')}
+                                    hasError={stateErrors.length > 0}
+                                    wide
+                                    searchable
+                                />
+                            }
+                            errors={stateErrors.map((e) => t(e.reason))}
+                        />
+                        <FieldLayout
+                            label={`${t('track-number-edit.field.description')} *`}
                             value={
                                 <TextField
-                                    value={roundToPrecision(
-                                        inEditReferenceLine.length,
-                                        Precision.alignmentLengthMeters,
-                                    )}
+                                    value={state.request.description}
+                                    onChange={(e) =>
+                                        stateActions.onUpdateProp({
+                                            key: 'description' as keyof TrackNumberSaveRequest,
+                                            value: e.target.value,
+                                            editingExistingValue: !!inEditTrackNumber,
+                                        })
+                                    }
+                                    onBlur={() => stateActions.onCommitField('description')}
+                                    disabled={saveInProgress}
+                                    hasError={descriptionErrors.length > 0}
                                     wide
-                                    disabled
                                 />
                             }
+                            errors={descriptionErrors.map((e) => t(e.reason))}
                         />
-                    )}
-                </FormLayoutColumn>
-            </FormLayout>
+                    </FormLayoutColumn>
+                    <FormLayoutColumn>
+                        <Heading size={HeadingSize.SUB}>
+                            {t('track-number-edit.title.reference-line')}
+                        </Heading>
+                        <FieldLayout
+                            label={`${t('track-number-edit.field.start-location')} *`}
+                            value={
+                                <TextField
+                                    value={state.request.startAddress}
+                                    onChange={(e) =>
+                                        stateActions.onUpdateProp({
+                                            key: 'startAddress' as keyof TrackNumberSaveRequest,
+                                            value: e.target.value,
+                                            editingExistingValue: !!inEditTrackNumber,
+                                        })
+                                    }
+                                    onBlur={() => stateActions.onCommitField('startAddress')}
+                                    disabled={saveInProgress}
+                                    hasError={startAddressErrors.length > 0}
+                                    wide
+                                />
+                            }
+                            errors={startAddressErrors.map((e) => t(e.reason))}
+                        />
+                        {startAndEndPoints && (
+                            <FieldLayout
+                                label={t('track-number-edit.field.end-location')}
+                                value={
+                                    <TextField
+                                        value={
+                                            startAndEndPoints?.end
+                                                ? formatTrackMeter(startAndEndPoints.end.address)
+                                                : '-'
+                                        }
+                                        wide
+                                        disabled
+                                    />
+                                }
+                            />
+                        )}
+                        {inEditReferenceLine && (
+                            <FieldLayout
+                                label={t('track-number-edit.field.true-length')}
+                                value={
+                                    <TextField
+                                        value={roundToPrecision(
+                                            inEditReferenceLine.length,
+                                            Precision.alignmentLengthMeters,
+                                        )}
+                                        wide
+                                        disabled
+                                    />
+                                }
+                            />
+                        )}
+                    </FormLayoutColumn>
+                </FormLayout>
+            </Dialog>
             {nonDraftDeleteConfirmationVisible && (
                 <Dialog
                     title={t('track-number-edit.title.delete-non-draft')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
-                    className={dialogStyles['dialog--normal']}
                     footerContent={
-                        <React.Fragment>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={closeNonDraftDeleteConfirmation}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
                             <Button onClick={saveTrackNumber}>{t('button.delete')}</Button>
-                        </React.Fragment>
+                        </div>
                     }>
                     <div className={'dialog__text'}>
                         {t('track-number-edit.dialog.deleted-track-numbers-not-allowed')}
@@ -358,7 +349,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     onClose={onTrackNumberDeleted}
                 />
             )}
-        </Dialog>
+        </React.Fragment>
     );
 };
 

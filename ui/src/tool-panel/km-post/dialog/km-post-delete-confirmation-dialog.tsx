@@ -3,7 +3,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutKmPostId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
 import {
     actions,
@@ -26,7 +26,7 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
 }: KmPostDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
     const [, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     const deleteKmPost = (id: LayoutKmPostId) => {
         deleteDraftKmPost(id)
@@ -48,23 +48,20 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
     };
 
     return (
-        <React.Fragment>
-            <Dialog
-                title={t('km-post-delete-draft-dialog.delete-draft-confirm')}
-                variant={DialogVariant.DARK}
-                allowClose={false}
-                className={dialogStyles['dialog--narrow']}
-                footerContent={
-                    <React.Fragment>
-                        <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
-                            {t('button.cancel')}
-                        </Button>
-                        <Button onClick={() => deleteKmPost(id)}>{t('button.delete')}</Button>
-                    </React.Fragment>
-                }>
-                <div>{t('km-post-delete-draft-dialog.can-be-deleted')}</div>
-            </Dialog>
-        </React.Fragment>
+        <Dialog
+            title={t('km-post-delete-draft-dialog.delete-draft-confirm')}
+            variant={DialogVariant.DARK}
+            allowClose={false}
+            footerContent={
+                <div className={dialogStyles['dialog__footer-content--centered']}>
+                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                        {t('button.cancel')}
+                    </Button>
+                    <Button onClick={() => deleteKmPost(id)}>{t('button.delete')}</Button>
+                </div>
+            }>
+            <div>{t('km-post-delete-draft-dialog.can-be-deleted')}</div>
+        </Dialog>
     );
 };
 

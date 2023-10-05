@@ -1,7 +1,4 @@
-@import '../../../vayla-design-lib/colors';
-@import '../../../vayla-design-lib/shadows';
-@import '../../../vayla-design-lib/typography';
-@import '../../../geoviite-design-lib/geoviite-colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .infra-model-upload {
     width: 100%;
@@ -9,23 +6,24 @@
     grid-template-rows: 50px auto;
     grid-template-columns: 500px auto;
     column-gap: 0;
-    background: $color-white-default;
+    background: vayla-design.$color-white-default;
 
     .text-area {
         .text-area__input-element {
-            min-height: 40px;
-            height: 40px;
+            min-height: 60px;
+            height: 60px;
             resize: vertical;
         }
     }
 }
 
 .infra-model-upload__tool-bar {
-    @include shadow-4dp;
+    @include vayla-design.shadow-4dp;
 
     padding: 0 16px;
     display: flex;
-    background: $color-white-dark;
+    align-items: center;
+    background: vayla-design.$color-white-dark;
     z-index: 1;
 
     grid-row-start: 1;
@@ -42,7 +40,7 @@
 
 .infra-model-upload__error-photo {
     flex: 1;
-    background-image: url('../../../geoviite-design-lib/IM-download-failed.jpg');
+    background-image: url('geoviite-design-lib/IM-download-failed.jpg');
     background-size: cover;
     background-position: center bottom;
 }
@@ -75,7 +73,7 @@
 }
 
 .infra-model-upload__buttons-container {
-    @include shadow-8dp;
+    @include vayla-design.shadow-8dp;
     display: grid;
     grid-auto-flow: column;
     grid-gap: 20px;
@@ -85,14 +83,14 @@
 
 .infra-model-upload__validation-errors {
     flex: 1;
-    fill: $color-red-dark;
+    fill: vayla-design.$color-red-dark;
 }
 
 .infra-model-upload__validation-error-title {
-    @include typography-sub-heading;
+    @include vayla-design.typography-sub-heading;
 
     padding: 4px 32px;
-    background-color: $color-red-lighter
+    background-color: vayla-design.$color-red-lighter;
 }
 
 .infra-model-upload__date-selection {
@@ -101,7 +99,7 @@
 }
 
 .infra-model-text-field--has-error {
-    color: $color-red-dark;
+    color: vayla-design.$color-red-dark;
 }
 
 .infra-model-upload__errors {
@@ -118,15 +116,7 @@
     display: grid;
     grid-template-columns: auto auto;
     column-gap: 16px;
-    justify-content: start
-}
-
-.infra-model-upload__title-menu {
-    .menu {
-        position: absolute;
-        margin-top: 5px;
-        z-index: 10;
-    }
+    justify-content: start;
 }
 
 .infra-model-upload__title-menu-container {
@@ -144,4 +134,8 @@
 .infra-model-upload-failed__errors {
     padding-left: 0;
     list-style: inside;
+}
+
+.infra-model-upload__project-field {
+    font-size: 80%;
 }

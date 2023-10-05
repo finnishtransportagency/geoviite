@@ -1,84 +1,86 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
+import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
+import java.time.Duration
 
-class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']")) {
+class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
-    //Page is unstable before preview change table is loaded
-    init {
-        getElementWhenVisible(By.cssSelector("table.table"))
+    val changesTable: E2EChangePreviewTable by lazy {
+        waitChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+        E2EChangePreviewTable(fetch(elementFetch, By.cssSelector("[qa-id='unstaged-changes'] table")))
     }
 
-    fun julkaise(): Toaster {
-        logger.info("Publish changes")
-        logger.info("Check is publishing possible")
-        val changesTable = changesTable()
+    val stagedChangesTable: E2EChangePreviewTable by lazy {
+        waitChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+        E2EChangePreviewTable(fetch(elementFetch, By.cssSelector("[qa-id='staged-changes'] table")))
+    }
+
+    fun publish(): E2ETrackLayoutPage {
+        logger.info("Publishing changes")
         //Iterating rows is slow, so we quickly check if iterating is even necessary
-        if (changesTable.hasErrors()) {
-            //changesTable.changeRows().forEach{ row -> assertThat(row.muutokset()).withFailMessage { "${row.muutoskohde()} has changes '${row.muutokset()}' that prevent publishing" }.isBlank()}
-            changesTable.changeRows().forEach{ row -> row.tila()}
-            val errors = changesTable.errorRows()
-            throw AssertionError("Following changes prevent publishing \n $errors")
+        if (stagedChangesTable.hasErrors()) {
+            throw AssertionError("Following changes prevent publishing \n ${changesTable.errorRows}")
         }
 
-        clickButton("Julkaise")
+        clickChild(By.cssSelector(".preview-footer__action-buttons button"))
 
-        PreviewChangesSaveOrDiscardDialog().julkaise()
-        return waitAndGetToasterElement()
+        E2EPreviewChangesSaveOrDiscardDialog().confirm()
+
+        waitAndClearToastByContent("Muutokset julkaistu paikannuspohjaan")
+
+        return E2ETrackLayoutPage()
     }
 
-    fun lisaaMuutoksetJulkaisuun() {
-        logger.info("Stage changes")
-        changesTable().changeRows().forEach {row -> row.nuolinappi().click()}
+    fun stageChanges(): E2EPreviewChangesPage = apply {
+        logger.info("Stage all changes")
+        changesTable.rows.forEach { changesTable.stageChange(it) }
     }
 
-    fun hylkaaMuutos(name: String) {
-        logger.info("Revert ${name}")
-        val row = changesTable().changeRows().find { row -> row.muutoskohde().contains(name) }
-            ?: stagedChangesTable().changeRows().find { row -> row.muutoskohde().contains(name) }
-        row?.menu()?.click()
-        getElementWhenClickable(By.xpath("//div[text() = 'Hylkää muutos']")).click()
-        PreviewChangesSaveOrDiscardDialog().hylkaa()
-        waitAndGetToasterElement()
+    fun stageChange(name: String): E2EPreviewChangesPage = apply {
+        logger.info("Stage change $name")
+        changesTable.stageChange(changesTable.rows.first { it.name == name })
     }
 
-    fun hylkaaMuutokset() {
-        val changes = changesTable().changeRows().map { row -> row.muutoskohde() }
-        changes.forEach { change -> hylkaaMuutos(change) }
+    fun revertStagedChange(name: String): E2EPreviewChangesPage = apply {
+        logger.info("Reverting staged change $name")
+        stagedChangesTable.rows
+            .filter { it.name == name }
+            .forEach { stagedChangesTable.revertChange(it) }
     }
 
-    fun palaaLuonnostilaan() {
+    fun revertChange(name: String): E2EPreviewChangesPage = apply {
+        logger.info("Reverting change $name")
+        changesTable.rows.filter { it.name == name }.forEach { changesTable.revertChange(it) }
+
+        waitAndClearToastByContent("Luonnosmuutokset peruttu")
+    }
+
+    fun goToTrackLayout(): E2ETrackLayoutPage {
         logger.info("Return to draft view")
-        getElementWhenVisible(By.xpath("//span[text() = 'Palaa luonnostilaan']")).click()
+        clickChild(By.xpath("//span[text() = 'Palaa luonnostilaan']"))
         // utter hack: Somehow the map doesn't update the visible items when clicking that in tests; so let's force
         // it to notice something changed by forcefully wiggling it
-        MapPage().also { map -> map.scrollMap(1, 1) }.also { map -> map.scrollMap(-1, -1) }
+        return E2ETrackLayoutPage()
+            .also { map -> map.scrollMap(1, 1) }
+            .also { map -> map.scrollMap(-1, -1) }
     }
-
-    fun changesTable(): ChangePreviewTable =
-        ChangePreviewTable(getElementWhenVisible(By.cssSelector("section[qa-id=unstaged-changes] table.table")))
-
-    fun stagedChangesTable(): ChangePreviewTable =
-        ChangePreviewTable(getElementWhenVisible(By.cssSelector("section[qa-id=staged-changes] table.table")))
-
-    fun logChanges() =
-        changesTable().changeRows().forEach { logger.info(it.toString()) }
-
 }
 
-class PreviewChangesSaveOrDiscardDialog(): DialogPopUp() {
+class E2EPreviewChangesSaveOrDiscardDialog : E2EDialog() {
 
-    fun julkaise() {
-        val messageBox = getElementWhenVisible(By.cssSelector("textarea[qa-id=publication-message]"))
-        messageBox.click()
-        messageBox.sendKeys("test")
-        clickButtonByQaId("publication-confirm")
+    fun confirm() {
+        waitUntilClosed {
+            childTextInput(byQaId("publication-message")).inputValue("test")
+            clickButtonByQaId("publication-confirm")
+        }
     }
 
-    fun hylkaa() =
-        clickButton("Hylkää")
-
+    fun reject() = waitUntilClosed {
+        clickWarningButton()
+    }
 }

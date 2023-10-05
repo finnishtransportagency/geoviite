@@ -1,11 +1,11 @@
 import {
     LayoutKmPostId,
-    LayoutSegmentId,
     LayoutState,
     LayoutStateCategory,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
+    LocationTrackDescriptionSuffixMode,
     LocationTrackId,
     LocationTrackType,
     MapAlignmentType,
@@ -23,22 +23,24 @@ import { Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
-    LayoutEndPoint,
     LocationAccuracy,
     LocationTrackPointUpdateType,
     SwitchAlignmentId,
     SwitchOwnerId,
     SwitchStructure,
     SwitchStructureId,
+    Range,
+    TrackMeter,
 } from 'common/common-model';
 
 export type LocationTrackSaveRequest = {
     name: string;
-    description?: string | null;
-    type?: LocationTrackType | null;
+    descriptionBase?: string;
+    descriptionSuffix?: LocationTrackDescriptionSuffixMode;
+    type?: LocationTrackType;
     state?: LayoutState;
-    trackNumberId?: LayoutTrackNumberId | null;
-    duplicateOf: string | null;
+    trackNumberId?: LayoutTrackNumberId;
+    duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;
 };
 
@@ -70,16 +72,19 @@ export type LinkPoint = {
     id: LinkPointId;
     alignmentType: MapAlignmentType;
     alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
-    segmentId: LayoutSegmentId;
-    ordering: number;
     x: number;
     y: number;
+    m: number;
     isSegmentEndPoint: boolean;
     isEndPoint: boolean;
     direction: number | undefined;
+    address: TrackMeter | undefined;
 };
 
-export type ClusterPoint = LinkPoint & {
+export type ClusterPoint = {
+    id: string;
+    x: number;
+    y: number;
     layoutPoint: LinkPoint;
     geometryPoint: LinkPoint;
 };
@@ -153,7 +158,7 @@ export type LinkingKmPost = LinkingBaseType & {
 export type KmPostSaveRequest = {
     kmNumber: KmNumber;
     state?: LayoutState;
-    trackNumberId?: LayoutTrackNumberId | null;
+    trackNumberId?: LayoutTrackNumberId;
 };
 
 export type KmPostSaveError = {
@@ -170,16 +175,9 @@ export enum LinkingType {
     UnknownAlignment,
 }
 
-export type PointRequest = {
-    segmentId: LayoutSegmentId;
-    endPointType?: LayoutEndPoint;
-    point: Point;
-};
-
 export type IntervalRequest = {
-    start: PointRequest;
-    end: PointRequest;
-    alignmentId: LocationTrackId | ReferenceLineId;
+    mRange: Range<number>;
+    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 };
 
 export type LinkingGeometryWithAlignmentParameters = {
@@ -194,12 +192,16 @@ export type LinkingGeometryWithEmptyAlignmentParameters = {
     geometryInterval: IntervalRequest;
 };
 
-export function toIntervalRequest(point: LinkPoint): PointRequest {
+export function toIntervalRequest(
+    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId,
+    startM: number,
+    endM: number,
+): IntervalRequest {
     return {
-        segmentId: point.segmentId,
-        point: {
-            x: point.x,
-            y: point.y,
+        alignmentId: alignmentId,
+        mRange: {
+            min: startM,
+            max: endM,
         },
     };
 }
@@ -242,7 +244,7 @@ export type SuggestedSwitchId = string;
 
 export type SuggestedSwitchJointMatch = {
     locationTrackId: LocationTrackId;
-    layoutSwitchId: LayoutSwitchId | null;
+    layoutSwitchId?: LayoutSwitchId;
     segmentIndex: number;
     segmentM: number;
 };
@@ -256,12 +258,12 @@ export type SuggestedSwitchJoint = {
 
 export type SuggestedSwitch = {
     name: string;
-    geometryPlanId: GeometryPlanId | null;
+    geometryPlanId?: GeometryPlanId;
     id: SuggestedSwitchId;
     switchStructure: SwitchStructure;
     joints: SuggestedSwitchJoint[];
-    geometrySwitchId: GeometrySwitchId | null;
-    alignmentEndPoint: LocationTrackEndpoint | null;
+    geometrySwitchId?: GeometrySwitchId;
+    alignmentEndPoint?: LocationTrackEndpoint;
 };
 
 export type SwitchLinkingSegment = {
@@ -278,10 +280,16 @@ export type SwitchLinkingJoint = {
 };
 
 export type SwitchLinkingParameters = {
-    geometrySwitchId: GeometrySwitchId | null;
+    geometryPlanId?: GeometryPlanId;
+    geometrySwitchId?: GeometrySwitchId;
     layoutSwitchId: LayoutSwitchId;
     joints: SwitchLinkingJoint[];
     switchStructureId: SwitchStructureId;
+};
+export type KmPostLinkingParameters = {
+    geometryPlanId?: GeometryPlanId;
+    geometryKmPostId: GeometryKmPostId;
+    layoutKmPostId: LayoutKmPostId;
 };
 
 export type TrackLayoutSwitchSaveRequest = {
@@ -289,7 +297,7 @@ export type TrackLayoutSwitchSaveRequest = {
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
-    trapPoint: boolean | undefined;
+    trapPoint?: boolean;
 };
 
 export type TrackLayoutSaveError = {
@@ -307,7 +315,7 @@ export type LocationTrackEndpoint = {
 export type SuggestedSwitchCreateParamsAlignmentMapping = {
     switchAlignmentId: SwitchAlignmentId;
     locationTrackId: LocationTrackId;
-    ascending: boolean | undefined;
+    ascending?: boolean;
 };
 
 export type SuggestedSwitchCreateParams = {

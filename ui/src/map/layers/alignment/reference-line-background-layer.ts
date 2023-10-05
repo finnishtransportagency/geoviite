@@ -1,0 +1,47 @@
+import { LineString } from 'ol/geom';
+import { MapTile } from 'map/map-model';
+import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { MapLayer } from 'map/layers/utils/layer-model';
+import { PublishType } from 'common/common-model';
+import { ChangeTimes } from 'common/common-slice';
+import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+
+let newestLayerId = 0;
+
+export function createReferenceLineBackgroundLayer(
+    mapTiles: MapTile[],
+    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+): MapLayer {
+    const layerId = ++newestLayerId;
+
+    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+
+    let inFlight = true;
+    getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+        .then((referenceLines) => {
+            if (layerId === newestLayerId) {
+                const features = createAlignmentBackgroundFeatures(referenceLines);
+
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
+            }
+        })
+        .catch(() => {
+            if (layerId === newestLayerId) clearFeatures(vectorSource);
+        })
+        .finally(() => {
+            inFlight = false;
+        });
+
+    return {
+        name: 'reference-line-background-layer',
+        layer: layer,
+        requestInFlight: () => inFlight,
+    };
+}

@@ -3,115 +3,138 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
-import org.apache.commons.lang3.builder.ToStringBuilder
+import fi.fta.geoviite.infra.ui.util.ElementFetch
+import getChildElements
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
-import java.time.Duration
 import java.time.LocalDateTime
 
 
-class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
-    private val header = getChildElementStaleSafe(By.xpath("//table/thead/tr"))
-    fun rowElements(): List<WebElement> {
-        try {
-            return getChildElementsStaleSafe(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"), Duration.ofSeconds(2) )
+class E2EInfraModelTable(tableFetch: ElementFetch) : E2ETable<E2EInfraModelTableRow>(
+    tableFetch = tableFetch,
+    headersBy = By.cssSelector("thead th"),
+    rowsBy = By.cssSelector("tbody tr"),
+) {
+    override fun getRowContent(row: WebElement): E2EInfraModelTableRow {
+        return E2EInfraModelTableRow(row.getChildElements(By.tagName("td")), headerElements)
+    }
 
-        } catch (ex: TimeoutException) {
-            return emptyList()
+    fun getRow(projectName: String? = null, fileName: String? = null): E2EInfraModelTableRow? {
+        return rows.firstOrNull { it.projectName == projectName || it.fileName == fileName }
+    }
+
+    fun sortBy(colName: String): E2EInfraModelTable = apply {
+        logger.info("Sort by column $colName")
+        headerElements.first { it.text == colName }.click()
+        waitUntilReady()
+    }
+}
+
+data class E2EInfraModelTableRow(
+    val projectName: String,
+    val fileName: String,
+    val trackNumber: String,
+    val startKmNumber: String,
+    val endKmNumber: String,
+    val planPhase: String,
+    val decisionPhase: String,
+    val planTime: LocalDateTime,
+    val created: LocalDateTime,
+    val linked: LocalDateTime?,
+) {
+
+    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
+        projectName = getColumnContent("im-form.name-header", columns, headers),
+        fileName = getColumnContent("im-form.file-name-header", columns, headers),
+        trackNumber = getColumnContent("im-form.track-number-header", columns, headers),
+        startKmNumber = getColumnContent("im-form.km-start-header", columns, headers),
+        endKmNumber = getColumnContent("im-form.km-end-header", columns, headers),
+        planPhase = getColumnContent("im-form.plan-phase-header", columns, headers),
+        decisionPhase = getColumnContent("im-form.decision-phase-header", columns, headers),
+        planTime = localDateFromString(getColumnContent("im-form.created-at-header", columns, headers)),
+        created = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
+        linked = getColumnContent("im-form.linked-at-header", columns, headers)
+            .takeIf(String::isNotBlank)
+            ?.let(::localDateFromString),
+    )
+}
+
+class E2EMetaFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+    val projectName: String get() = getValueForField("Projektin nimi")
+    val author: String get() = getValueForField("Suunnitteluyritys")
+
+    fun selectNewProject(newProject: String): E2EMetaFormGroup = apply {
+        selectNewDropdownValue("Projektin nimi", listOf(newProject))
+        waitAndClearToastByContent("Uusi projekti luotu onnistuneesti")
+    }
+
+    fun selectNewAuthor(newAuthor: String): E2EMetaFormGroup = apply {
+        selectNewDropdownValue("Suunnitteluyritys", listOf(newAuthor))
+        waitAndClearToastByContent("Uusi suunnitteluyritys luotu onnistuneesti")
+    }
+}
+
+class E2ELocationFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+    val trackNumber: String get() = getValueForField("Ratanumero")
+    val kmNumberRange: String get() = getValueForField("Ratakilometriväli")
+    val coordinateSystem: String get() = getValueForField("Koordinaattijärjestelmä")
+    val verticalCoordinateSystem: String get() = getValueForField("Korkeusjärjestelmä")
+
+    fun selectTrackNumber(trackNumber: String): E2ELocationFormGroup = apply {
+        selectDropdownValues("Ratanumero", listOf(trackNumber))
+        clickEditIcon("Ratanumero")
+    }
+
+    fun selectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
+        selectNewDropdownValue("Ratanumero", listOf(trackNumber, description))
+        waitAndClearToastByContent("Ratanumero tallennettu")
+        clickEditIcon("Ratanumero")
+    }
+
+    fun selectVerticalCoordinateSystem(coordinateSystem: String): E2ELocationFormGroup = apply {
+        selectDropdownValues("Korkeusjärjestelmä", listOf(coordinateSystem))
+    }
+
+    fun selectCoordinateSystem(coordinateSystem: String): E2ELocationFormGroup = apply {
+        selectDropdownValues("Koordinaattijärjestelmä", listOf(coordinateSystem))
+    }
+}
+
+class E2EQualityFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+    val planPhase: String get() = getValueForField("Suunnitteluvaihe")
+    val decisionPhase: String get() = getValueForField("Vaiheen tarkennus")
+    val measurementMethod: String get() = getValueForField("Laatu")
+    val elevationMeasurementMethod: String get() = getValueForField("Korkeusasema")
+
+
+    fun selectPlanPhase(phase: String): E2EQualityFormGroup = apply {
+        selectDropdownValues("Suunnitteluvaihe", listOf(phase))
+    }
+
+    fun selectDecisionPhase(decision: String): E2EQualityFormGroup = apply {
+        selectDropdownValues("Vaiheen tarkennus", listOf(decision))
+    }
+
+    fun selectMeasurementMethod(method: String): E2EQualityFormGroup = apply {
+        selectDropdownValues("Laatu", listOf(method))
+    }
+
+    fun selectElevationMeasurementMethod(method: String): E2EQualityFormGroup = apply {
+        selectDropdownValues("Korkeusasema", listOf(method))
+    }
+}
+
+class E2ELogFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+    val planTime: String get() = getValueForField("Laadittu")
+    fun setPlanTime(month: String, year: String): E2ELogFormGroup = apply {
+        selectDropdownValues("Laadittu", listOf(month, year))
+    }
+}
+
+class E2EConfirmDialog : E2EDialog() {
+    fun confirm() {
+        waitUntilClosed {
+            clickButtonByText("Tallenna")
         }
-    }
-
-    fun infraModelRows(): List<InfraModelRow> {
-        logger.info("Get Infra Model rows")
-        return rowElements().map { rowElement -> InfraModelRow(header.findElements(By.tagName("th")).map {it.text}, rowElement) }
-    }
-
-    fun sortBy(colName: String) {
-        logger.info("Select column $colName")
-        header.findElement(By.xpath(".//*[text() = '$colName']")).click()
-    }
-}
-
-class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, row) {
-    fun projektinNimi(): String = getColumnByName("Projektin nimi").text
-    fun tiedostonimi(): String = getColumnByName("Nimi").text
-    fun ratanumero(): String = getColumnByName("Ratanumero").text
-    fun alkukilometri() = getColumnByName("Alkukm").text
-    fun loppukilometri() = getColumnByName("Loppukm").text
-    fun suunnitelmavaihe(): String = getColumnByName("Suunnitelmavaihe").text
-    fun paatos(): String = getColumnByName("Päätös").text
-    fun laadittu(): LocalDateTime = localDateFromString(getColumnByName("Laadittu").text)
-    fun ladattu(): LocalDateTime = localDateTimeFromString(getColumnByName("Ladattu").text)
-    fun linkitetty(): LocalDateTime = localDateTimeFromString(getColumnByName("Linkitetty").text)
-    fun editInfraModel() = clickRow()
-
-    override fun toString(): String = ToStringBuilder.reflectionToString(this)
-}
-
-class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
-    fun nimi() = fieldValue("Projektin nimi")
-    fun oid() = fieldValue("Projektin OID")
-    fun suunnitteluYritys() = fieldValue("Suunnitteluyritys")
-
-    fun addNimi(input: String) {
-        changeToNewDropDownValue("Projektin nimi", listOf(input))
-    }
-
-    fun addOid(input: String) {
-        clickEditIcon("Projektin OID")
-        val element = fieldValueElement("Projektin OID")
-        
-        element.findElement(By.cssSelector("div.text-field__input input")).sendKeys(input)
-        clickEditIcon("Projektin OID")
-    }
-
-    fun addNewSuunnitteluyritys(input: String) {
-        changeToNewDropDownValue("Suunnitteluyritys", listOf(input))
-    }
-}
-
-class SijaintitiedotFormGroup(by: By) : FormGroup(by) {
-    fun ratanumero(): String = fieldValue("Ratanumero")
-    fun kilometrivali(): String = fieldValue("Kilometriväli")
-    fun koordinaattijarjestelma(): String = fieldValue("Koordinaattijärjestelmä")
-    fun korkeusjarjestelma(): String = fieldValue("Korkeusjärjestelmä")
-
-    fun editRatanumero(ratanumero: String) {
-        changeFieldDropDownValues("Ratanumero", listOf(ratanumero))
-        clickEditIcon("Ratanumero")
-    }
-
-    fun addRatanumero(ratanumero: String, kuvaus: String) {
-        changeToNewDropDownValue("Ratanumero", listOf(ratanumero, kuvaus))
-        clickEditIcon("Ratanumero")
-    }
-
-    fun editKorkeusjarjestelma(korkeusjarjestelma: String) =
-        changeFieldDropDownValues("Korkeusjärjestelmä", listOf(korkeusjarjestelma))
-
-
-    fun editKoordinaattijarjestelma(koordinattijarjestelma: String) =
-        changeFieldDropDownValues("Koordinaattijärjestelmä", listOf(koordinattijarjestelma))
-
-}
-
-class VaiheJaLaatutiedotFormGroup(by: By) : FormGroup(by) {
-    fun suunnitteluvaihe(): String = fieldValue("Suunnitteluvaihe")
-    fun vaiheenTarkennus(): String = fieldValue("Vaiheen tarkennus")
-    fun laatu(): String = fieldValue("Laatu")
-    fun editSuunnitteluvaihe(input: String) = changeFieldDropDownValues("Suunnitteluvaihe", listOf(input))
-    fun editVaiheenTarkennus(input: String) = changeFieldDropDownValues("Vaiheen tarkennus", listOf(input))
-    fun editLaatu(input: String) = changeFieldDropDownValues("Laatu", listOf(input))
-}
-
-class LokiJaLinkitystiedotFormGroup(by: By) : FormGroup(by) {
-    fun laadittu(): String = fieldValue("Laadittu")
-    fun editLaadittu(kuukausi: String, vuosi: String) = changeFieldDropDownValues("Laadittu", listOf(kuukausi, vuosi))
-}
-
-class ConfirmDialog(): DialogPopUp() {
-    fun tallenna() {
-        clickButton("Tallenna")
     }
 }

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 type SwitchPanelProps = {
     switches: LayoutSwitch[];
-    onToggleSwitchSelection: (layoutSwitch: LayoutSwitch) => void;
+    onToggleSwitchSelection: (layoutSwitchId: LayoutSwitchId) => void;
     selectedSwitches?: LayoutSwitchId[];
     max?: number;
 };
@@ -38,7 +38,7 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
                             <li key={switchItem.id}>
                                 <SwitchBadge
                                     switchItem={switchItem}
-                                    onClick={() => onToggleSwitchSelection(switchItem)}
+                                    onClick={() => onToggleSwitchSelection(switchItem.id)}
                                     status={isSelected ? SwitchBadgeStatus.SELECTED : undefined}
                                 />
                             </li>

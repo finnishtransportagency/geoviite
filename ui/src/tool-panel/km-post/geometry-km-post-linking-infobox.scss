@@ -1,9 +1,4 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
-
-.geometry-km-post-linking-infobox {
-    zoom: 1;
-}
+@use 'vayla-design-lib' as vayla-design;
 
 .geometry-km-post-linking-infobox__layout-km-post-selection {
     padding-top: 8px;
@@ -21,7 +16,7 @@
 }
 
 .geometry-km-post-linking-infobox__layout-km-posts {
-    border: 1px solid $color-white-darker;
+    border: 1px solid vayla-design.$color-white-darker;
     border-radius: 4px;
     padding: 10px 20px 10px 12px;
 
@@ -33,4 +28,8 @@
 
 .geometry-km-post-linking-infobox__layout-km-post {
     padding: 4px 0;
+
+    .km-post-badge {
+        cursor: pointer;
+    }
 }

@@ -1,6 +1,5 @@
 import {
     GeometryAlignmentId,
-    GeometryElementId,
     GeometryKmPostId,
     GeometryPlanLayoutId,
     GeometrySwitchId,
@@ -19,6 +18,10 @@ import {
     TrackMeter,
     TrackNumber,
 } from 'common/common-model';
+import { deduplicateById } from 'utils/array-utils';
+import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
+import { GeometryPlanLinkStatus } from 'linking/linking-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -28,73 +31,25 @@ export const LAYOUT_SRID: Srid = 'EPSG:3067';
 export type LayoutPoint = {
     x: number;
     y: number;
-    z: number | null;
+    z?: number;
     m: number;
-    cant: number | null;
+    cant?: number;
 };
 
 export type LayoutSegmentId = string;
 export type GeometrySource = 'IMPORTED' | 'GENERATED' | 'PLAN';
 
-export type MapSegment = {
-    pointCount: number;
-    points: LayoutPoint[];
-    source: GeometrySource;
-    sourceId: GeometryElementId | null;
-    resolution: number;
-    start: number;
-    length: number;
-    id: LayoutSegmentId;
-};
-
-export function simplifySegments(
-    idBase: string,
-    segments: MapSegment[],
-    resolution: number,
-): MapSegment {
-    const lengths = segments.map((s) => s.length);
-    return {
-        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${
-            segments.length
-        }_${resolution}`,
-        resolution: Math.ceil(Math.max(...lengths)),
-        pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
-        points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
-        sourceId: null,
-        start: segments[0].start,
-        length: lengths.reduce((prev, current) => prev + current, 0),
-        source: 'GENERATED',
-    };
-}
-
-export function simplifySegment(segment: MapSegment, resolution: number): MapSegment {
-    return {
-        ...segment,
-        points: pickSegmentPoints(segment.resolution, resolution, segment.points),
-    };
-}
-
-function joinSegmentPoints(segments: MapSegment[]): LayoutPoint[] {
-    return segments.flatMap((segment, segmentIndex) =>
-        segmentIndex == 0
-            ? segment.points
-            : segment.points.filter((_point, pointIndex) => pointIndex > 0),
-    );
-}
-
-function pickSegmentPoints(
-    segmentResolution: number,
+export function filterLayoutPoints(
     desiredResolution: number,
     points: LayoutPoint[],
 ): LayoutPoint[] {
-    const divisor = Math.floor(
-        desiredResolution < segmentResolution ? 1 : desiredResolution / segmentResolution,
-    );
-    if (divisor < 2) return points;
-    else
-        return points.filter((_value, index) => {
-            return index === points.length - 1 || index % divisor == 0;
-        });
+    let prevM = -desiredResolution;
+    return points.filter((point, index) => {
+        const isEndPoint = index === 0 || index === points.length - 1;
+        const result = isEndPoint || Math.round(point.m - prevM) >= desiredResolution;
+        if (result) prevM = point.m;
+        return result;
+    });
 }
 
 export type ReferenceLineId = string;
@@ -104,64 +59,64 @@ export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
 export type DraftType = 'NEW_DRAFT' | 'EDITED_DRAFT' | 'OFFICIAL';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
+export type LocationTrackDescriptionSuffixMode = 'NONE' | 'SWITCH_TO_SWITCH' | 'SWITCH_TO_BUFFER';
 
 export type LayoutReferenceLine = {
     id: ReferenceLineId;
     startAddress: TrackMeter;
     trackNumberId: LayoutTrackNumberId;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
     length: number;
-    sourceId: GeometryAlignmentId | null;
+    sourceId?: GeometryAlignmentId;
     segmentCount: number;
-    version: string | null;
+    version?: string;
     draftType: DraftType;
 };
 
 export type LayoutLocationTrackDuplicate = {
     name: string;
-    externalId: Oid | null;
+    externalId?: Oid;
     id: LocationTrackId;
+};
+
+export type TopologyLocationTrackSwitch = {
+    switchId: LayoutSwitchId;
+    joint: JointNumber;
+};
+
+export type LocationTrackDescription = {
+    id: LocationTrackId;
+    description: string;
 };
 
 export type LayoutLocationTrack = {
     name: string;
-    description: string | null;
-    type: LocationTrackType | null;
+    descriptionBase?: string;
+    descriptionSuffix?: LocationTrackDescriptionSuffixMode;
+    type?: LocationTrackType;
     state: LayoutState;
-    externalId: Oid | null;
+    externalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
-    sourceId: GeometryAlignmentId | null;
+    sourceId?: GeometryAlignmentId;
     id: LocationTrackId;
     dataType: DataType;
     version: string;
-    boundingBox: BoundingBox | null;
+    boundingBox?: BoundingBox;
     length: number;
     segmentCount: number;
     draftType: DraftType;
-    duplicateOf: LocationTrackId | null;
+    duplicateOf?: LocationTrackId;
     topologicalConnectivity: TopologicalConnectivityType;
+    topologyStartSwitch?: TopologyLocationTrackSwitch;
+    topologyEndSwitch?: TopologyLocationTrackSwitch;
 };
 
+export const locationTrackDescription = (lt: {
+    descriptionBase?: string;
+    descriptionSuffix?: string;
+}) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
+
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
-export type MapAlignment = {
-    name: string;
-    description: string | null;
-    alignmentSource: MapAlignmentSource;
-    alignmentType: MapAlignmentType;
-    type: LocationTrackType | null;
-    state: LayoutState;
-    segments: MapSegment[];
-    trackNumberId: LayoutTrackNumberId | null;
-    sourceId: GeometryAlignmentId | null;
-    id: AlignmentId;
-    boundingBox: BoundingBox | null;
-    length: number;
-    segmentCount: number;
-    version: string;
-    draftType: DraftType;
-    topologicalConnectivity: TopologicalConnectivityType;
-    duplicateOf: LocationTrackId | null;
-};
 
 export enum TrapPoint {
     Yes = 1,
@@ -169,14 +124,16 @@ export enum TrapPoint {
     Unknown,
 }
 
-export function booleanToTrapPoint(trapPoint: boolean | null): TrapPoint {
+export function booleanToTrapPoint(trapPoint: boolean | undefined): TrapPoint {
     switch (trapPoint) {
         case true:
             return TrapPoint.Yes;
         case false:
             return TrapPoint.No;
-        default:
+        case undefined:
             return TrapPoint.Unknown;
+        default:
+            return exhaustiveMatchingGuard(trapPoint);
     }
 }
 
@@ -186,8 +143,10 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
             return true;
         case TrapPoint.No:
             return false;
-        default:
+        case TrapPoint.Unknown:
             return undefined;
+        default:
+            return exhaustiveMatchingGuard(trapPoint);
     }
 }
 
@@ -195,15 +154,15 @@ export type LayoutSwitchId = string;
 
 export type LayoutSwitch = {
     id: LayoutSwitchId;
-    externalId: Oid | null;
+    externalId?: Oid;
     name: string;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     joints: LayoutSwitchJoint[];
-    sourceId: GeometrySwitchId | null;
-    trapPoint: boolean | null;
-    ownerId: SwitchOwnerId | null;
-    version: string | null;
+    sourceId?: GeometrySwitchId;
+    trapPoint?: boolean;
+    ownerId?: SwitchOwnerId;
+    version?: string;
     dataType?: DataType;
     draftType: DraftType;
 };
@@ -219,21 +178,22 @@ export type LayoutKmPostId = string;
 export type LayoutKmPost = {
     id: LayoutKmPostId;
     kmNumber: KmNumber;
-    location: Point | null;
+    location?: Point;
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
-    sourceId: GeometryKmPostId | null;
-    version: string | null;
+    sourceId?: GeometryKmPostId;
+    version?: string;
     draftType: DraftType;
 };
 
-export type LayoutKmPostLengthDetails = {
-    trackNumberId: LayoutTrackNumberId;
+export type LayoutKmLengthDetails = {
+    trackNumber: TrackNumber;
     kmNumber: KmNumber;
     length: number;
-    stationStart: number;
-    stationEnd: number;
-    location: Point;
+    startM: number;
+    endM: number;
+    locationSource: GeometrySource;
+    location?: Point;
 };
 
 export type PlanAreaId = string;
@@ -245,37 +205,52 @@ export type PlanArea = {
 
 export type GeometryPlanLayout = {
     name: string;
-    alignments: MapAlignment[];
+    alignments: PlanLayoutAlignment[];
     switches: LayoutSwitch[];
     kmPosts: LayoutKmPost[];
     boundingBox: BoundingBox;
     planId: GeometryPlanLayoutId;
+    planHidden: boolean;
     planDataType: DataType;
+};
+
+export type PlanAndStatus = {
+    plan: GeometryPlanLayout;
+    status?: GeometryPlanLinkStatus;
+};
+
+export type PlanLayoutAlignment = {
+    header: AlignmentHeader;
+    polyLine?: AlignmentPolyLine;
+    segmentMValues: number[];
 };
 
 export type LayoutTrackNumberId = string;
 
 export type LayoutTrackNumber = {
     id: LayoutTrackNumberId;
-    externalId: Oid | null;
+    externalId?: Oid;
     description: string;
     number: TrackNumber;
     state: LayoutState;
-    sourceId: GeometryTrackNumberId | null;
+    sourceId?: GeometryTrackNumberId;
     draftType: DraftType;
 };
 
 export type AddressPoint = {
     point: LayoutPoint;
     address: TrackMeter;
-    distance: number;
 };
 
 export type AlignmentStartAndEnd = {
-    start: AddressPoint | null;
-    end: AddressPoint | null;
+    start?: AddressPoint;
+    end?: AddressPoint;
 };
 
+export type SwitchesAtEnds = {
+    start?: LayoutSwitchId;
+    end?: LayoutSwitchId;
+};
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,
     presentationJointNumber: JointNumber,
@@ -300,3 +275,7 @@ export type SwitchJointTrackMeter = {
     locationTrackName: string;
     trackMeter: TrackMeter;
 };
+
+export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {
+    return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
+}

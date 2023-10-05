@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -24,7 +24,7 @@ import kotlin.test.assertEquals
 @SpringBootTest
 class LayoutTrackNumberDaoIT @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun trackNumberIsStoredAndLoadedOk() {

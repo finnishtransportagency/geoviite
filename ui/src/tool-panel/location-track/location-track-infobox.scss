@@ -1,8 +1,7 @@
-@import '../../vayla-design-lib/typography';
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .location-track-infobox__link-alignment-guide {
-    @include typography-caption-strong;
+    @include vayla-design.typography-caption-strong;
 
     margin: 0;
     padding: 7px 0;

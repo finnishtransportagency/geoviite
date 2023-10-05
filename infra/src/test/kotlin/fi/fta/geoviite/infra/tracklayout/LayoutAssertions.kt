@@ -78,7 +78,6 @@ fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: B
             dataType = expected.dataType,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
     assertEquals(expected.segments.size, actual.segments.size)
@@ -88,14 +87,14 @@ fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: B
 }
 
 fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(geometry = actual.geometry, start = actual.start)
+    val expectedWithSameFloats = expected.copy(geometry = actual.geometry)
     if (idMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
         assertEquals(expectedWithSameFloats, actual.copy(id = expected.id, sourceId = expected.sourceId))
         assertEquals(expected.sourceId != null, actual.sourceId != null)
     }
-    assertEquals(expected.start, actual.start, LENGTH_DELTA)
+    assertEquals(expected.startM, actual.startM, LENGTH_DELTA)
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
     assertEquals(expected.points.size, actual.points.size)
     assertEquals(expected.resolution, actual.resolution)

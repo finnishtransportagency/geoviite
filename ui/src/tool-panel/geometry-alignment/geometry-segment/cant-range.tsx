@@ -1,10 +1,7 @@
 import * as React from 'react';
-import { LayoutPoint, MapSegment } from 'track-layout/track-layout-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
@@ -21,16 +18,16 @@ const getCantRange = (trackLayoutPoints: LayoutPoint[]): string => {
 };
 
 type CantRangeComponentProps = {
-    chosenSegment: MapSegment;
+    points: LayoutPoint[];
 };
 
 export const CantRange: React.FC<CantRangeComponentProps> = ({
-    chosenSegment,
+    points,
 }: CantRangeComponentProps) => {
     const { t } = useTranslation();
     return (
         <InfoboxField
             label={t('tool-panel.alignment.geometry-segment.cant')}
-            value={getCantRange(chosenSegment.points)}></InfoboxField>
+            value={getCantRange(points)}></InfoboxField>
     );
 };

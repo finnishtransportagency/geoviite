@@ -1,16 +1,15 @@
-@import '../../vayla-design-lib/layers';
+@use 'vayla-design-lib' as vayla-design;
 
 .form-layout {
     position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-gap: 24px;
     min-height: 400px;
     padding-bottom: 60px;
-}
 
-.form-layout__column {
-    zoom: 1;
+    &--double-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 24px;
+    }
 }
 
 .form-layout__glass {
@@ -20,7 +19,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    z-index: $layer-glass;
+    z-index: vayla-design.$layer-glass;
 }
 
 .form-layout--is-processing .form-layout__glass {

@@ -7,36 +7,23 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 
 enum class LocationTrackPointUpdateType {
-    START_POINT,
-    END_POINT
+    START_POINT, END_POINT
 }
-
-data class IntervalLayoutPoint(
-    val segmentId: IndexedId<LayoutSegment>,
-    val endPointType: EndPointType?,
-    val point: Point,
-)
-
-data class IntervalGeometryPoint(
-    val segmentId: DomainId<LayoutSegment>,
-    val point: Point,
-)
 
 data class LayoutInterval<T>(
     val alignmentId: IntId<T>,
-    val start: IntervalLayoutPoint,
-    val end: IntervalLayoutPoint,
+    val mRange: Range<Double>,
 )
 
 data class GeometryInterval(
     val alignmentId: IntId<GeometryAlignment>,
-    val start: IntervalGeometryPoint,
-    val end: IntervalGeometryPoint,
+    val mRange: Range<Double>,
 )
 
 data class LinkingParameters<T>(
@@ -51,56 +38,44 @@ data class EmptyAlignmentLinkingParameters<T>(
     val geometryInterval: GeometryInterval,
 )
 
-data class LocationTrackEndPointUpdateRequest(
-    val updateType: LocationTrackPointUpdateType,
-)
-
-data class LocationTrackEndPointConnectedUpdateRequest(
-    val connectedLocationTrackId: IntId<LocationTrack>,
-    val updateType: LocationTrackPointUpdateType,
-)
-
 data class LocationTrackSaveRequest(
     val name: AlignmentName,
-    val description: FreeText,
+    val descriptionBase: FreeText,
+    val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
-    val topologicalConnectivity: TopologicalConnectivityType
+    val topologicalConnectivity: TopologicalConnectivityType,
 ) {
     init {
-        require(description.length in 4..256) {
-            "LocationTrack description length ${description.length} not in range 4-256"
+        require(descriptionBase.length in 4..256) {
+            "LocationTrack description length ${descriptionBase.length} not in range 4-256"
         }
     }
 }
 
 enum class SuggestedSwitchJointMatchType {
-    START,
-    END,
-    LINE,
+    START, END, LINE,
 }
 
 data class SuggestedSwitchJointMatch(
     val locationTrackId: DomainId<LocationTrack>,
     val segmentIndex: Int,
+    val m: Double,
     val layoutSwitchId: DomainId<TrackLayoutSwitch>?,
-    val segmentM: Double,
     @JsonIgnore val switchJoint: SwitchJoint,
     @JsonIgnore val matchType: SuggestedSwitchJointMatchType,
     @JsonIgnore val distance: Double,
     @JsonIgnore val distanceToAlignment: Double,
     @JsonIgnore val alignmentId: IntId<LayoutAlignment>?,
-) {
-    fun segmentId(): IndexedId<LayoutSegment>? = alignmentId?.let { aid -> IndexedId(aid.intValue, segmentIndex) }
-}
+)
 
 data class SuggestedSwitchJoint(
     override val number: JointNumber,
     override val location: Point,
     val matches: List<SuggestedSwitchJointMatch>,
-    val locationAccuracy: LocationAccuracy?
+    val locationAccuracy: LocationAccuracy?,
 ) : ISwitchJoint
 
 data class SuggestedSwitch(
@@ -108,14 +83,14 @@ data class SuggestedSwitch(
     val switchStructure: SwitchStructure,
     val joints: List<SuggestedSwitchJoint>,
     val alignmentEndPoint: LocationTrackEndpoint?,
-    val geometrySwitchId: IntId<GeometrySwitch>? = null,
     val geometryPlanId: IntId<GeometryPlan>? = null,
+    val geometrySwitchId: IntId<GeometrySwitch>? = null,
 )
 
 data class SwitchLinkingSegment(
     val locationTrackId: IntId<LocationTrack>,
+    val m: Double,
     val segmentIndex: Int,
-    val segmentM: Double,
 )
 
 data class SwitchLinkingJoint(
@@ -129,6 +104,7 @@ data class SwitchLinkingParameters(
     val layoutSwitchId: IntId<TrackLayoutSwitch>,
     val switchStructureId: IntId<SwitchStructure>,
     val joints: List<SwitchLinkingJoint>,
+    val geometryPlanId: IntId<GeometryPlan>? = null,
     val geometrySwitchId: IntId<GeometrySwitch>?,
 )
 
@@ -137,7 +113,7 @@ data class TrackLayoutSwitchSaveRequest(
     val switchStructureId: IntId<SwitchStructure>,
     val stateCategory: LayoutStateCategory,
     val ownerId: IntId<SwitchOwner>,
-    val trapPoint: Boolean?
+    val trapPoint: Boolean?,
 )
 
 data class TrackNumberSaveRequest(
@@ -161,13 +137,13 @@ data class TrackLayoutKmPostSaveRequest(
 data class LocationTrackEndpoint(
     val locationTrackId: IntId<LocationTrack>,
     val location: Point,
-    val updateType: LocationTrackPointUpdateType
+    val updateType: LocationTrackPointUpdateType,
 )
 
 data class SuggestedSwitchCreateParamsAlignmentMapping(
     val switchAlignmentId: StringId<SwitchAlignment>,
     val locationTrackId: IntId<LocationTrack>,
-    val ascending: Boolean? = null
+    val ascending: Boolean? = null,
 )
 
 data class SuggestedSwitchCreateParams(
@@ -177,6 +153,7 @@ data class SuggestedSwitchCreateParams(
 )
 
 data class KmPostLinkingParameters(
+    val geometryPlanId: IntId<GeometryPlan>,
     val geometryKmPostId: IntId<GeometryKmPost>,
     val layoutKmPostId: IntId<TrackLayoutKmPost>,
 )

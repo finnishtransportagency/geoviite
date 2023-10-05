@@ -4,12 +4,11 @@ import styles from 'data-products/data-product-view.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-store';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import { getGeometryPlanElements, getGeometryPlanElementsCsv } from 'geometry/geometry-api';
 import { ElementItem, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { planSources } from 'utils/enum-localization-utils';
@@ -19,6 +18,7 @@ import {
     getGeometryPlanOptions,
     getVisibleErrorsByProp,
 } from 'data-products/data-products-utils';
+import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-slice';
 
 type PlanGeometryElementListingSearchProps = {
     state: PlanGeometrySearchState;
@@ -26,6 +26,7 @@ type PlanGeometryElementListingSearchProps = {
         propEdit: PropEdit<PlanGeometrySearchState, TKey>,
     ) => void;
     setElements: (elements: ElementItem[]) => void;
+    setLoading: (isLoading: boolean) => void;
 };
 
 const debouncedGetPlanElements = debounceAsync(getGeometryPlanElements, 250);
@@ -34,11 +35,12 @@ const PlanGeometryElementListingSearch = ({
     state,
     onUpdateProp,
     setElements,
+    setLoading,
 }: PlanGeometryElementListingSearchProps) => {
     const { t } = useTranslation();
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
-        (searchTerm) =>
+        (searchTerm: string) =>
             debouncedGetGeometryPlanHeaders(state.source, searchTerm).then((planHeaders) =>
                 getGeometryPlanOptions(planHeaders, state.plan),
             ),
@@ -62,7 +64,7 @@ const PlanGeometryElementListingSearch = ({
         );
     }
 
-    const elementList = useLoader(() => {
+    const [elementList, fetchStatus] = useLoaderWithStatus(() => {
         return !state.plan || hasErrors('searchGeometries')
             ? Promise.resolve([])
             : debouncedGetPlanElements(state.plan.id, selectedElementTypes(state.searchGeometries));
@@ -74,6 +76,7 @@ const PlanGeometryElementListingSearch = ({
     };
 
     React.useEffect(() => setElements(elementList ?? []), [elementList]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>

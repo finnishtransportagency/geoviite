@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles
 class ReferenceLineDaoIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
-): ITTestBase() {
+): DBTestBase() {
 
     @Test
     fun referenceLineSaveAndLoadWorks() {

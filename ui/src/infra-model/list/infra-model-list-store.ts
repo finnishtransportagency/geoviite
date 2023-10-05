@@ -2,8 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import {
     GeometryPlanHeader,
     GeometryPlanSearchParams,
-    SortByValue,
-    SortOrderValue,
+    GeometrySortBy,
 } from 'geometry/geometry-model';
 import { objectEquals } from 'utils/object-utils';
 
@@ -25,8 +24,8 @@ export const initialInfraModelListState: InfraModelListState = {
         freeText: '',
         trackNumberIds: [],
         sources: ['GEOMETRIAPALVELU'],
-        sortBy: SortByValue.NO_SORTING,
-        sortOrder: SortOrderValue.DESCENDING,
+        sortBy: GeometrySortBy.NO_SORTING,
+        sortOrder: undefined,
     },
     searchErrorMsg: undefined,
     plans: [],

@@ -1,12 +1,11 @@
-@import '../../vayla-design-lib/colors';
-@import '../../vayla-design-lib/typography';
+@use 'vayla-design-lib' as vayla-design;
 
 $accordion-right-padding: 20px;
 
 .accordion__subheader {
     padding-top: 2px;
     font-size: 10px;
-    color: $color-black-lighter;
+    color: vayla-design.$color-black-lighter;
 }
 
 .geometry-plan-panel {
@@ -38,12 +37,12 @@ $accordion-right-padding: 20px;
         transition: background-color 150ms;
 
         &--selected {
-            background-color: $color-blue-lighter;
+            background-color: vayla-design.$color-blue-lighter;
         }
     }
 
     &__no-entities {
-        @include typography-caption;
+        @include vayla-design.typography-caption;
         margin-bottom: 4px;
     }
 
@@ -53,16 +52,16 @@ $accordion-right-padding: 20px;
         cursor: pointer;
         margin-left: auto;
         transition: fill 150ms;
-        fill: $color-white-darker;
+        fill: vayla-design.$color-white-darker;
         height: 20px;
 
         &--visible {
-            fill: $color-blue-default;
+            fill: vayla-design.$color-blue-default;
         }
     }
-}
 
-.geometry-plan-panel__list-item-main-content {
-    flex: 1;
-    cursor: pointer;
+    &__list-item-main-content {
+        flex: 1;
+        cursor: pointer;
+    }
 }

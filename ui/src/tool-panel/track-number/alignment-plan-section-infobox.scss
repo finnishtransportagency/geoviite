@@ -1,4 +1,4 @@
-@import '../../vayla-design-lib/colors';
+@use 'vayla-design-lib' as vayla-design;
 
 .alignment-plan-section-infobox__plan-name {
     white-space: normal;
@@ -10,16 +10,16 @@
 }
 
 .alignment-plan-section-infobox__no-plan-icon {
+    fill: vayla-design.$color-red-dark;
     display: block;
     transform: translate(0, 1px);
-    fill: $color-red-dark;
 }
 
 .alignment-plan-section-infobox__show-plan-icon {
     display: block;
     transform: translate(0, -3px);
     cursor: pointer;
-    fill: $color-white-darker;
+    fill: vayla-design.$color-white-darker;
     padding: 0 2px;
     line-height: 0;
 }

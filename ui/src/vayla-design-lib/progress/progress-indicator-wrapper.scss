@@ -1,5 +1,5 @@
-@import '../animation';
-@import '../colors';
+@use '../animation';
+@use '../colors';
 
 .progress-indicator-wrapper {
     display: block;
@@ -41,12 +41,12 @@
     display: block;
 
     &::after {
+        @include animation.spinner-animation;
         display: block;
-        @include spinner-animation;
         box-sizing: border-box;
         width: 20px;
         height: 20px;
-        color: $color-black-light;
+        color: colors.$color-black-light;
         content: '';
     }
 }
@@ -63,7 +63,7 @@
     &::after {
         content: '';
         animation: ellipses-animation 2s infinite linear;
-        color: $color-black-light;
+        color: colors.$color-black-light;
     }
 }
 .progress-indicator-wrapper--subtle-indicator.progress-indicator-wrapper--in-progress

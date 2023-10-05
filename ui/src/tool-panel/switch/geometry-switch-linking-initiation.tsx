@@ -5,6 +5,7 @@ import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { LinkingState } from 'linking/linking-model';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
@@ -19,26 +20,23 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
 }) => {
     const { t } = useTranslation();
     return (
-        <React.Fragment>
-            {linkingState === undefined && (
-                <React.Fragment>
-                    {hasSuggestedSwitch ? (
-                        <InfoboxButtons>
-                            <Button size={ButtonSize.SMALL} onClick={onStartLinking}>
-                                {t('tool-panel.switch.geometry.start-setup')}
-                            </Button>
-                        </InfoboxButtons>
-                    ) : (
-                        <InfoboxContentSpread>
-                            <MessageBox>
-                                {t(
-                                    'tool-panel.switch.geometry.cannot-start-switch-linking-related-tracks-not-linked-msg',
-                                )}
-                            </MessageBox>
-                        </InfoboxContentSpread>
-                    )}
-                </React.Fragment>
-            )}
-        </React.Fragment>
+        <WriteAccessRequired>
+            {linkingState === undefined &&
+                (hasSuggestedSwitch ? (
+                    <InfoboxButtons>
+                        <Button size={ButtonSize.SMALL} onClick={onStartLinking}>
+                            {t('tool-panel.switch.geometry.start-setup')}
+                        </Button>
+                    </InfoboxButtons>
+                ) : (
+                    <InfoboxContentSpread>
+                        <MessageBox>
+                            {t(
+                                'tool-panel.switch.geometry.cannot-start-switch-linking-related-tracks-not-linked-msg',
+                            )}
+                        </MessageBox>
+                    </InfoboxContentSpread>
+                ))}
+        </WriteAccessRequired>
     );
 };

@@ -1,40 +1,44 @@
 import React from 'react';
 import styles from './infra-model-main.scss';
-import { InfraModelListContainer } from 'infra-model/list/infra-model-list-container';
 import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Route, Routes } from 'react-router-dom';
-import { InfraModelViewType } from 'infra-model/infra-model-store';
+import { InfraModelTabType, InfraModelViewType } from 'infra-model/infra-model-slice';
+import { useInfraModelAppSelector } from 'store/hooks';
+import InfraModelTabs from 'infra-model/tabs/infra-model-tabs';
 
-export type InfraModelMainProps = {
-    changeTimes: ChangeTimes;
-};
+export const inframodelEditPath = `/edit`;
 
-export const InfraModelMainView: React.FC<InfraModelMainProps> = ({
-    changeTimes,
-}: InfraModelMainProps) => {
+export const InfraModelMainView: React.FC = () => {
+    const activeInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
+
     return (
         <div className={styles['infra-model-main']}>
             <Routes>
                 <Route
-                    path="/edit/:id"
-                    element={
-                        <InfraModelViewContainer
-                            viewType={InfraModelViewType.EDIT}
-                            changeTimes={changeTimes}
-                        />
-                    }
+                    path={`${inframodelEditPath}/:id`}
+                    element={<InfraModelViewContainer viewType={InfraModelViewType.EDIT} />}
+                />
+                <Route
+                    path="/import/:id"
+                    element={<InfraModelViewContainer viewType={InfraModelViewType.IMPORT} />}
                 />
                 <Route
                     path="/upload"
-                    element={
-                        <InfraModelViewContainer
-                            viewType={InfraModelViewType.UPLOAD}
-                            changeTimes={changeTimes}
-                        />
-                    }
+                    element={<InfraModelViewContainer viewType={InfraModelViewType.UPLOAD} />}
                 />
-                <Route path="/" element={<InfraModelListContainer changeTimes={changeTimes} />} />
+                <Route path="/" element={<InfraModelTabs activeTab={activeInfraModelTab} />} />
+                <Route
+                    path="/plans"
+                    element={<InfraModelTabs activeTab={InfraModelTabType.PLAN} />}
+                />
+                <Route
+                    path="/waiting-for-approval"
+                    element={<InfraModelTabs activeTab={InfraModelTabType.WAITING} />}
+                />
+                <Route
+                    path="/rejected"
+                    element={<InfraModelTabs activeTab={InfraModelTabType.REJECTED} />}
+                />
             </Routes>
         </div>
     );

@@ -1,18 +1,14 @@
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/shadows';
+@use 'vayla-design-lib' as vayla-design;
 
 .publication-details {
     display: flex;
-    flex: 1;
     flex-direction: column;
+    width: 100%;
 
     &__title {
-        @include typography-body;
-
-        color: $color-black-lighter;
-        background-color: $color-white-dark;
-        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+        color: vayla-design.$color-black-lighter;
+        background-color: vayla-design.$color-white-dark;
+        box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
         margin-bottom: 8px;
         padding: 12px 0 8px 20px;
     }
@@ -21,13 +17,30 @@
         white-space: pre;
     }
 
+    &__content {
+        padding: 0 24px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: auto;
+    }
+
+    .publication-table {
+        overflow: auto;
+    }
+
+    &__count-header {
+        margin-bottom: 12px;
+    }
+
     &__footer {
-        @include shadow-8dp;
+        @include vayla-design.shadow-8dp;
         display: flex;
         align-items: center;
         justify-content: center;
 
         height: 68px;
+        z-index: 1;
     }
 
     &__failure-notification {
@@ -35,22 +48,16 @@
         margin-right: 24px;
 
         &__content {
-            @include typography-body-strong;
+            @include vayla-design.typography-body-strong;
             margin: auto 0 auto 16px;
         }
 
         &--info {
-            fill: $color-black-lighter;
+            fill: vayla-design.$color-black-lighter;
         }
 
         &--error {
-            fill: $color-red-default;
+            fill: vayla-design.$color-red-default;
         }
-    }
-
-    &__content {
-        background: $color-white-default;
-        padding: 24px;
-        flex-grow: 1;
     }
 }

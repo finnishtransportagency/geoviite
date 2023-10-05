@@ -1,15 +1,14 @@
 package fi.fta.geoviite.infra.ratko
 
 import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
-import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.module.kotlin.*
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
-import fi.fta.geoviite.infra.ratko.model.RatkoPoint
+import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
+import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
 import org.mockserver.matchers.Times
@@ -17,11 +16,11 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
-import org.springframework.test.context.ActiveProfiles
 
 @ConditionalOnProperty("geoviite.ratko.test-port")
 @Service
@@ -30,7 +29,9 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 }
 
 class FakeRatko (port: Int) {
-    private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
+    private val mockServer: ClientAndServer =
+        ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
+
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -61,10 +62,12 @@ class FakeRatko (port: Int) {
         post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
             .respond(okJson(mapOf("id" to oid)))
         put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
-        get("/api/locations/v1.1/locationtracks/${oid}").respond(okJson(listOf<Unit>()))
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.0/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
+        post("/api/assets/v1.2/",mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
     fun acceptsNewSwitchGivingItOid(oid: String) {
@@ -93,12 +96,12 @@ class FakeRatko (port: Int) {
         put("/api/assets/v1.2/${switchAsset.id}/properties").respond(ok())
     }
 
-    fun getPushedRouteNumber(oid: Oid<TrackLayoutTrackNumber>): List<InterfaceRatkoRouteNumber> =
-        mockServer.retrieveRecordedRequests(request("/api/infra/v1.0/routenumbers").withMethod("POST"))
+    fun getPushedRouteNumber(oid: Oid<TrackLayoutTrackNumber>): List<RatkoRouteNumber> =
+        mockServer.retrieveRecordedRequests(request("/api/infra/v1.0/routenumbers").withMethod("POST|PUT"))
             .map { request -> request.bodyAsString }
             .filter { body -> body.length > 3 }
             .mapNotNull { body ->
-                val json = jsonMapper.readValue(body, InterfaceRatkoRouteNumber::class.java)
+                val json = jsonMapper.readValue(body, RatkoRouteNumber::class.java)
                 if (json.id == oid.toString()) json else null
             }
 
@@ -116,20 +119,65 @@ class FakeRatko (port: Int) {
 
     fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "PATCH")
 
-    fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch = jsonMapper.readValue(
+    private fun metadataFilterOn(pointField: String, oid: String) =
+        mapOf(
+            "locations" to listOf(
+                mapOf(
+                    "nodecollection" to mapOf(
+                        "nodes" to listOf(
+                            mapOf("point" to mapOf(pointField to (mapOf("id" to oid)))),
+                            mapOf("point" to mapOf(pointField to (mapOf("id" to oid)))),
+                        )
+                    )
+                )
+            )
+        )
+
+    fun getPushedMetadata(locationTrackOid: String? = null, routeNumberOid: String? = null): List<RatkoMetadataAsset> =
         mockServer.retrieveRecordedRequests(
             request().withPath("/api/assets/v1.2/")
                 .withMethod("POST")
-                .withBody(JsonBody.json(mapOf("type" to "turnout", "id" to oid)))
-        ).last().bodyAsString
-    )
+                .withBody(
+                    JsonBody.json(
+                        mapOf("type" to RatkoAssetType.METADATA.value) +
+                                (locationTrackOid?.let { oid -> metadataFilterOn("locationtrack", oid) } ?: mapOf()) +
+                                (routeNumberOid?.let { oid -> metadataFilterOn("routenumber", oid) } ?: mapOf())
+                    )
+                )
+        ).map { req ->
+            jsonMapper.readValue(req.bodyAsString)
+        }
 
-    fun getLastPushedLocationTrack(oid: String): InterfaceRatkoLocationTrack = jsonMapper.readValue(
-        mockServer.retrieveRecordedRequests(
-            request("/api/infra/v1.0/locationtracks").withMethod("POST")
-                .withBody(JsonBody.json(mapOf("id" to oid), MatchType.ONLY_MATCHING_FIELDS))
-        ).last().bodyAsString
-    )
+    private fun putKmMs(nodeCollection: JsonNode) = nodeCollection.get("nodes").forEach { node ->
+        val point = node.get("point") as ObjectNode
+        val kmM = point.get("kmM").textValue()
+        point.put("km", kmM.substring(0, 4))
+        point.put("m", kmM.substring(5))
+    }
+
+    fun lastPushedSwitchBody(oid: String) = mockServer.retrieveRecordedRequests(
+        request().withPath("/api/assets/v1.2/")
+            .withMethod("POST")
+            .withBody(JsonBody.json(mapOf("type" to "turnout", "id" to oid)))
+    ).last().bodyAsString
+
+    fun hostPushedSwitch(oid: String) = hasSwitch(getLastPushedSwitch(oid))
+
+    fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch = jsonMapper.readValue(lastPushedSwitchBody(oid))
+
+    private fun lastPushedLocationTrackBody(oid: String): String = mockServer.retrieveRecordedRequests(
+        request("/api/infra/v1.0/locationtracks").withMethod("POST|PUT")
+            .withBody(JsonBody.json(mapOf("id" to oid), MatchType.ONLY_MATCHING_FIELDS))
+    ).last().bodyAsString!!
+
+    fun hostPushedLocationTrack(oid: String) {
+        val tree = jsonMapper.readTree(lastPushedLocationTrackBody(oid))
+        putKmMs(tree.get("nodecollection"))
+        hasLocationTrack(jsonMapper.treeToValue(tree))
+    }
+
+    fun getLastPushedLocationTrack(oid: String): RatkoLocationTrack =
+        jsonMapper.readValue(lastPushedLocationTrackBody(oid))
 
     fun getPushedSwitchLocations(oid: String): List<List<RatkoAssetLocation>> =
         mockServer.retrieveRecordedRequests(
@@ -137,6 +185,11 @@ class FakeRatko (port: Int) {
         ).map { request ->
             jsonMapper.readValue(request.bodyAsString)
         }
+
+    fun getPushedSwitchGeometries(oid: String): List<List<RatkoAssetGeometry>> =
+        mockServer.retrieveRecordedRequests(
+            request().withPath("/api/assets/v1.2/${oid}/geoms").withMethod("PUT")
+        ).map { request -> jsonMapper.readValue(request.bodyAsString) }
 
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer.retrieveRecordedRequests(

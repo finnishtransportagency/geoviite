@@ -5,7 +5,7 @@ import { InfraModelSearchResult } from 'infra-model/list/infra-model-search-resu
 import { GeometryPlanId, GeometryPlanSearchParams } from 'geometry/geometry-model';
 import { InfraModelListState } from 'infra-model/list/infra-model-list-store';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'common/common-slice';
 
 export type InfraModelListViewProps = Pick<
     InfraModelListState,
@@ -16,12 +16,16 @@ export type InfraModelListViewProps = Pick<
     onNextPage: () => void;
     onPrevPage: () => void;
     changeTimes: ChangeTimes;
+    clearInfraModelState: () => void;
 };
 
 export const InfraModelListView: React.FC<InfraModelListViewProps> = (
     props: InfraModelListViewProps,
 ) => {
     const trackNumbers = useTrackNumbers('DRAFT');
+    React.useEffect(() => {
+        props.clearInfraModelState();
+    }, []);
     return (
         <div className="infra-model-list">
             <div className="infra-model-list__search-form">
@@ -31,20 +35,18 @@ export const InfraModelListView: React.FC<InfraModelListViewProps> = (
                     onSearchParamsChange={props.onSearchParamsChange}
                 />
             </div>
-            <div className="infra-model-list__search-result">
-                <InfraModelSearchResult
-                    searchParams={props.searchParams}
-                    plans={props.plans}
-                    searchState={props.searchState}
-                    onSearchParamsChange={props.onSearchParamsChange}
-                    onSelectPlan={props.onSelectPlan}
-                    page={props.page}
-                    pageSize={props.pageSize}
-                    totalCount={props.totalCount}
-                    onNextPage={props.onNextPage}
-                    onPrevPage={props.onPrevPage}
-                />
-            </div>
+            <InfraModelSearchResult
+                searchParams={props.searchParams}
+                plans={props.plans}
+                searchState={props.searchState}
+                onSearchParamsChange={props.onSearchParamsChange}
+                onSelectPlan={props.onSelectPlan}
+                page={props.page}
+                pageSize={props.pageSize}
+                totalCount={props.totalCount}
+                onNextPage={props.onNextPage}
+                onPrevPage={props.onPrevPage}
+            />
         </div>
     );
 };

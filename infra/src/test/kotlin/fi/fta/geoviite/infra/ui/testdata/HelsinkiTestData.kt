@@ -20,8 +20,8 @@ class HelsinkiTestData {
         const val HKI_BASE_POINT_X = 385000.00
         const val HKI_BASE_POINT_Y = 6672000.00
 
-        const val HKI_TRACKNUMBER_1 = "HKI1"
-        const val HKI_TRACKNUMBER_2 = "HKI2"
+        const val HKI_TRACK_NUMBER_1 = "HKI1"
+        const val HKI_TRACK_NUMBER_2 = "HKI2"
 
         val HKI_BASE_POINT = Point(HKI_BASE_POINT_X, HKI_BASE_POINT_Y)
 
@@ -39,10 +39,11 @@ class HelsinkiTestData {
                 switches = listOf(),
                 kmPosts = listOf(westGeometryKmPost(trackLayoutTrackNumberId)),
                 fileName = FileName("ratapiha.xml"),
-                oid = null,
+                pvDocumentId = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
                 decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
                 measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+                elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
                 uploadTime = Instant.now()
             )
@@ -82,7 +83,7 @@ class HelsinkiTestData {
             return locationTrack(
                 name = "west",
                 trackNumber = trackNumber,
-                basePoint = HKI_BASE_POINT + Point(x = 675.0, y = 410.0 ),
+                basePoint = HKI_BASE_POINT + Point(x = 675.0, y = 410.0),
                 incrementPoints = listOf(Point(x = 15.0, y = 90.0), Point(x = 5.0, y = 60.0)),
             )
         }

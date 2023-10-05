@@ -1,0 +1,46 @@
+import { Tile } from 'ol/layer';
+import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
+import WMTSCapabilities from 'ol/format/WMTSCapabilities';
+import { MapLayer } from 'map/layers/utils/layer-model';
+import { LAYOUT_SRID } from 'track-layout/track-layout-model';
+import TileSource from 'ol/source/Tile';
+
+const parser = new WMTSCapabilities();
+
+const MMLTileSourcePromise = fetch(
+    '/location-map/wmts/maasto?service=WMTS&request=GetCapabilities&version=1.0.0',
+).then(async (response) => {
+    const body = await response.text();
+    const parse = parser.read(body);
+    const options =
+        parse['Contents'] !== undefined &&
+        optionsFromCapabilities(parse, {
+            layer: 'taustakartta',
+            matrixSet: 'ETRS-TM35FIN',
+            projection: LAYOUT_SRID,
+            requestEncoding: 'REST',
+        });
+
+    if (options) {
+        options.urls = [
+            '/location-map/wmts/maasto/1.0.0/taustakartta/default/ETRS-TM35FIN/{TileMatrix}/{TileRow}/{TileCol}.png',
+        ];
+        return new WMTS(options);
+    }
+});
+
+function createLayer() {
+    const layer = new Tile({ opacity: 0.5 });
+    MMLTileSourcePromise.then((source) => source && layer.setSource(source));
+    return layer;
+}
+
+export function createBackgroundMapLayer(existingOlLayer: Tile<TileSource>): MapLayer {
+    const layer = existingOlLayer || createLayer();
+    return {
+        name: 'background-map-layer',
+        layer: layer,
+        // the background map uses OL's native loading, so we don't need to worry about it
+        requestInFlight: () => false,
+    };
+}

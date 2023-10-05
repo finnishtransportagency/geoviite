@@ -1,11 +1,16 @@
 import React from 'react';
 import styles from './form/infra-model-form.module.scss';
-import { CustomValidationError, ErrorType, ValidationResponse } from 'infra-model/infra-model-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
+import {
+    CustomValidationError,
+    ErrorType,
+    ValidationResponse,
+} from 'infra-model/infra-model-slice';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type InframodelValidationErrorListProps = {
-    validationResponse: ValidationResponse | null;
+    validationResponse?: ValidationResponse;
 };
 
 const getIcon = (errorType: ErrorType) => {
@@ -18,6 +23,8 @@ const getIcon = (errorType: ErrorType) => {
         case 'OBSERVATION_MAJOR':
         case 'OBSERVATION_MINOR':
             return Icons.StatusError;
+        default:
+            return exhaustiveMatchingGuard(errorType);
     }
 };
 

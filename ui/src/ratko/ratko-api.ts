@@ -1,4 +1,4 @@
-import { API_URI, getAdt, getIgnoreError, postAdt } from 'api/api-fetch';
+import { API_URI, getNonNull, getNonNullAdt, postAdt, postIgnoreError } from 'api/api-fetch';
 import { PublicationId } from 'publication/publication-model';
 import { RatkoPushError } from 'ratko/ratko-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
@@ -6,24 +6,24 @@ import { KmNumber } from 'common/common-model';
 
 const RATKO_URI = `${API_URI}/ratko`;
 
-export const pushToRatko = () => getAdt(`${RATKO_URI}/push`);
+export const pushToRatko = () => postIgnoreError(`${RATKO_URI}/push`, undefined);
 
 export const getRatkoPushError = (publishId: PublicationId) =>
-    getIgnoreError<RatkoPushError>(`${RATKO_URI}/errors/${publishId}`);
+    getNonNull<RatkoPushError>(`${RATKO_URI}/errors/${publishId}`);
 
-export type RatkoStatus = {
-    statusCode: number;
-    isOnline: boolean;
-};
-export const getRatkoStatus = () =>
-    getAdt(`${RATKO_URI}/is-online`).then((result) => {
+export type RatkoStatus =
+    | { isOnline: true }
+    | {
+          isOnline: false;
+          statusCode: number;
+      };
+
+export const getRatkoStatus: () => Promise<RatkoStatus> = () =>
+    getNonNullAdt<RatkoStatus>(`${RATKO_URI}/is-online`).then((result) => {
         if (result.isOk()) {
-            return result.value;
+            return { isOnline: true };
         } else {
-            return {
-                statusCode: result.error.status,
-                isOnline: false,
-            };
+            return { statusCode: result.error.status, isOnline: false };
         }
     });
 

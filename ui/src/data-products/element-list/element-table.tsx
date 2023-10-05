@@ -5,9 +5,6 @@ import { useTranslation } from 'react-i18next';
 import styles from '../data-product-table.scss';
 import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { useLoader } from 'utils/react-utils';
-import { getSridList } from 'common/common-api';
-import { Srid } from 'common/common-model';
 import {
     ElementHeading,
     nonNumericHeading,
@@ -17,9 +14,10 @@ import {
 type ElementTableProps = {
     elements: ElementItem[];
     showLocationTrackName: boolean;
+    isLoading: boolean;
 };
 
-export const ElementTable = ({ elements, showLocationTrackName }: ElementTableProps) => {
+const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
@@ -42,6 +40,7 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
         numericHeading('angle-end'),
         nonNumericHeading('plan'),
         nonNumericHeading('source'),
+        nonNumericHeading('remarks'),
     ];
 
     const tableHeadingsToShowInUI = showLocationTrackName
@@ -50,21 +49,18 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
           )
         : [nonNumericHeading('track-number')].concat(commonTableHeadings);
 
-    const coordinateSystems = useLoader(getSridList, []);
-    const findCoordinateSystem = (srid: Srid) =>
-        coordinateSystems && coordinateSystems.find((crs) => crs.srid === srid);
-
     return (
         <React.Fragment>
             <p className={styles['data-product-table__element-count']}>
                 {t(`data-products.element-list.geometry-elements`, { amount })}
             </p>
             <div className={styles['data-product-table__table-container']}>
-                <Table wide>
+                <Table wide isLoading={isLoading}>
                     <thead className={styles['data-product-table__table-heading']}>
                         <tr>
                             {tableHeadingsToShowInUI.map((heading) => (
                                 <Th
+                                    qa-id={`data-products.element-list.element-list-table.${heading.name}`}
                                     key={heading.name}
                                     className={
                                         heading.numeric
@@ -80,9 +76,8 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                     </thead>
                     <tbody>
                         {elements.map((item) => (
-                            <React.Fragment key={`${item.id}`}>
+                            <React.Fragment key={item.id}>
                                 <ElementTableItem
-                                    id={item.alignmentId}
                                     trackNumber={
                                         trackNumbers?.find((tn) => tn.id === item.trackNumberId)
                                             ?.number
@@ -94,9 +89,7 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                                     )}
                                     trackAddressStart={item.start.address}
                                     trackAddressEnd={item.end.address}
-                                    coordinateSystem={findCoordinateSystem(
-                                        item.coordinateSystemSrid,
-                                    )}
+                                    coordinateSystem={item.coordinateSystemSrid}
                                     locationStartE={item.start.coordinate.x}
                                     locationStartN={item.start.coordinate.y}
                                     locationEndE={item.end.coordinate.x}
@@ -112,6 +105,8 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                                     source={item.planSource}
                                     planId={item.planId}
                                     showLocationTrackName={showLocationTrackName}
+                                    connectedSwitchName={item.connectedSwitchName}
+                                    isPartial={item.isPartial}
                                 />
                             </React.Fragment>
                         ))}
@@ -121,3 +116,5 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
         </React.Fragment>
     );
 };
+
+export default React.memo(ElementTable);
