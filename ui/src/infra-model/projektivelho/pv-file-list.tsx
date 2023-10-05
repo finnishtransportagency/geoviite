@@ -49,6 +49,7 @@ type PVFileListProps = {
     onImport: (id: PVDocumentId) => void;
     onRestore: (id: PVDocumentId) => void;
     changeTime: TimeStamp;
+    documentsReloading: PVDocumentId[];
 };
 
 export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
@@ -56,32 +57,39 @@ export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
     listMode,
 }: PVFileListContainerProps) => {
     const navigate = useAppNavigate();
-    const [documentHeaders, isLoading] =
-        useLoaderWithStatus(async () => {
-            const documents = await getPVDocuments(changeTime, listMode);
-            setLoadingForUserTriggeredChange(false);
-            return documents;
-        }, [changeTime]) || [];
     const [loadingForUserTriggeredChange, setLoadingForUserTriggeredChange] = useState(false);
+    const [documentsReloading, setDocumentsReloading] = React.useState<PVDocumentId[]>([]);
+
+    const [documentHeaders, isLoading] = useLoaderWithStatus(async () => {
+        const documents = await getPVDocuments(changeTime, listMode);
+        setLoadingForUserTriggeredChange(false);
+        setDocumentsReloading([]);
+        return documents;
+    }, [changeTime]);
 
     return (
         <div className="projektivelho-file-list">
             <PVFileList
+                documentsReloading={documentsReloading}
                 documentHeaders={documentHeaders || []}
                 isLoading={isLoading !== LoaderStatus.Ready && !loadingForUserTriggeredChange}
-                onReject={(ids) =>
+                onReject={(ids) => {
+                    setDocumentsReloading([...documentsReloading, ...ids]);
+
                     rejectPVDocuments(ids).then(() => {
                         setLoadingForUserTriggeredChange(true);
                         updatePVDocumentsChangeTime();
-                    })
-                }
+                    });
+                }}
                 onImport={(id) => navigate('inframodel-import', id)}
-                onRestore={(id) =>
+                onRestore={(id) => {
+                    setDocumentsReloading([...documentsReloading, id]);
+
                     restorePVDocument(id).then(() => {
                         setLoadingForUserTriggeredChange(true);
                         updatePVDocumentsChangeTime();
-                    })
-                }
+                    });
+                }}
                 listMode={listMode}
                 changeTime={changeTime}
             />
@@ -97,6 +105,7 @@ export const PVFileList = ({
     onRestore,
     listMode,
     changeTime,
+    documentsReloading,
 }: PVFileListProps) => {
     const { t } = useTranslation();
 
@@ -184,6 +193,7 @@ export const PVFileList = ({
                 <tbody>
                     {sortedDocumentHeaders.map((item) => (
                         <PVFileListRow
+                            actionsDisabled={documentsReloading.includes(item.document.id)}
                             listMode={listMode}
                             key={item.document.id}
                             item={item}
@@ -228,6 +238,7 @@ type PVFileListRowProps = {
     onRejectByProject: (oid: Oid) => void;
     onRejectByProjectGroup: (oid: Oid) => void;
     onRejectByAssignment: (oid: Oid) => void;
+    actionsDisabled: boolean;
     itemCounts: { project: number; projectGroup: number; assignment: number };
 };
 
@@ -242,6 +253,7 @@ const PVFileListRow = ({
     onRejectByProjectGroup,
     onRejectByAssignment,
     itemCounts,
+    actionsDisabled,
 }: PVFileListRowProps) => {
     const { t } = useTranslation();
 
@@ -397,6 +409,7 @@ const PVFileListRow = ({
                             ref={actionMenuRef}>
                             {listMode === 'SUGGESTED' && (
                                 <Button
+                                    disabled={actionsDisabled}
                                     title={t('projektivelho.file-list.reject-tooltip')}
                                     variant={ButtonVariant.SECONDARY}
                                     onClick={onReject}
@@ -406,6 +419,7 @@ const PVFileListRow = ({
                             )}
                             {listMode === 'REJECTED' && (
                                 <Button
+                                    disabled={actionsDisabled}
                                     title={t('projektivelho.file-list.restore-tooltip')}
                                     variant={ButtonVariant.SECONDARY}
                                     onClick={onRestore}
@@ -416,6 +430,7 @@ const PVFileListRow = ({
                             <Button
                                 title={t('projektivelho.file-list.upload-tooltip')}
                                 variant={ButtonVariant.SECONDARY}
+                                disabled={actionsDisabled}
                                 onClick={onImport}
                                 qa-id="pv-import-button">
                                 {t('projektivelho.file-list.upload')}
@@ -424,6 +439,7 @@ const PVFileListRow = ({
                                 <Button
                                     title={t('projektivelho.file-list.more')}
                                     variant={ButtonVariant.SECONDARY}
+                                    disabled={actionsDisabled}
                                     onClick={() => {
                                         setFileActionMenuVisible(!fileActionMenuVisible);
                                     }}
