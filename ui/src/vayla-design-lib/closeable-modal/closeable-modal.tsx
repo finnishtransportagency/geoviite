@@ -9,25 +9,23 @@ type CloseableModalProps = {
     offsetY?: number;
     children: React.ReactNode;
     className?: string;
+    useRefWidth?: boolean;
+    offsetWidth?: number;
 };
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({
     positionRef,
     onClickOutside,
-    offsetX = 0,
-    offsetY = 0,
     children,
     className,
+    offsetX = 0,
+    offsetY = 0,
+    offsetWidth = 0,
+    useRefWidth = false,
 }: CloseableModalProps) => {
     const [x, setX] = React.useState<number>();
     const [y, setY] = React.useState<number>();
-
-    const boundingRect = positionRef.current?.getBoundingClientRect();
-
-    React.useEffect(() => {
-        setX(boundingRect?.x);
-        setY(boundingRect?.y);
-    }, [boundingRect?.x, boundingRect?.y]);
+    const [width, setWidth] = React.useState<number | undefined>();
 
     React.useEffect(() => {
         function clickHandler(event: MouseEvent) {
@@ -46,8 +44,14 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     useResizeObserver({
         ref: document.body,
         onResize: () => {
-            setX(positionRef.current?.getBoundingClientRect().x);
-            setY(positionRef.current?.getBoundingClientRect().y);
+            const br = positionRef.current?.getBoundingClientRect();
+
+            setX(br?.x);
+            setY(br?.y);
+
+            if (useRefWidth) {
+                setWidth(br?.width ? br?.width + offsetWidth : undefined);
+            }
         },
     });
 
@@ -59,6 +63,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
                 top: y + offsetY,
                 left: x + offsetX,
                 position: 'absolute',
+                width: width,
             }}
             className={className}
             onClick={(e) => e.stopPropagation()}>

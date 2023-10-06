@@ -91,6 +91,10 @@ fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = 
         "Wait for element value 'to not be x' failed: expectedNot=$value element=${element.getInnerHtml()}"
     }
 
+fun elementExists(byCondition: By): Boolean {
+    return browser().findElements(byCondition).isNotEmpty()
+}
+
 fun waitUntilChildMatches(
     parentFetch: ElementFetch,
     childBy: By,

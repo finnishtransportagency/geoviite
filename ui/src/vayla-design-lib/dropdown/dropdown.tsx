@@ -3,6 +3,7 @@ import styles from './dropdown.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 
 let searchSequence = 0;
 
@@ -60,7 +61,7 @@ export const Dropdown = function <TItemValue>({
     searchable = true,
     ...props
 }: DropdownProps<TItemValue>): JSX.Element {
-    const wrapperRef = React.useRef<HTMLDivElement>(null);
+    const menuRef = React.useRef<HTMLDivElement>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const listRef = React.useRef<HTMLUListElement>(null);
     const focusedOptionRef = React.useRef<HTMLLIElement>(null);
@@ -270,23 +271,6 @@ export const Dropdown = function <TItemValue>({
         setHasFocus(document.activeElement == inputRef.current);
     });
 
-    // Handle clicks out of this dropdown -> close list
-    React.useEffect(() => {
-        if (open) {
-            const onClickHandler = function (this: Document, ev: MouseEvent): void {
-                if (wrapperRef.current && !wrapperRef.current.contains(ev.target as Node)) {
-                    closeList();
-                    removeListener();
-                }
-            };
-            const removeListener = function () {
-                document.removeEventListener('click', onClickHandler);
-            };
-            document.addEventListener('click', onClickHandler);
-            return removeListener;
-        }
-    }, [open]);
-
     React.useEffect(() => {
         if (searchTerm) {
             openList();
@@ -325,7 +309,7 @@ export const Dropdown = function <TItemValue>({
     }, [options]);
 
     return (
-        <div className={className} ref={wrapperRef} onMouseDown={() => handleRootMouseDown()}>
+        <div className={className} ref={menuRef} onMouseDown={() => handleRootMouseDown()}>
             <div
                 className={styles['dropdown__header']}
                 role="button"
@@ -369,7 +353,12 @@ export const Dropdown = function <TItemValue>({
                 </div>
             </div>
             {open && (
-                <div className={styles['dropdown__list-container']}>
+                <CloseableModal
+                    useRefWidth
+                    onClickOutside={closeList}
+                    className={styles['dropdown__list-container']}
+                    offsetY={36}
+                    positionRef={menuRef}>
                     <ul className={styles['dropdown__list']} ref={listRef}>
                         {showEmptyOption && (
                             <li
@@ -435,7 +424,7 @@ export const Dropdown = function <TItemValue>({
                             </Button>
                         </div>
                     )}
-                </div>
+                </CloseableModal>
             )}
         </div>
     );
