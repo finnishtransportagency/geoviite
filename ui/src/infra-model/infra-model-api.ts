@@ -168,7 +168,7 @@ export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined>
     });
 }
 
-export async function restorePVDocument(id: PVDocumentId): Promise<undefined> {
+export async function restorePVDocument(id: PVDocumentId[]): Promise<undefined> {
     return putIgnoreError<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
