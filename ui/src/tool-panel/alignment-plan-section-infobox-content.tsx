@@ -63,6 +63,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 
     function locateOnMap(section: AlignmentPlanSection) {
         if (section.start && section.end) {
+            // Point coordinates are needed to locate on map
             //            delegates.showArea(boundingBoxAroundPoints([section.start, section.end));
         }
     }
@@ -115,10 +116,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                         });
                                                     }
                                                 }}
-                                                title={t(
-                                                    'tool-panel.alignment-plan-sections.plan-tooltip',
-                                                    // [section.planName, section.alignmentName],
-                                                )}>
+                                                title={`${section.planName}, ${section.alignmentName}`}>
                                                 <span
                                                     className={
                                                         styles[
@@ -131,10 +129,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                         </React.Fragment>
                                     ) : (
                                         <span
-                                            title={t(
-                                                'tool-panel.alignment-plan-sections.plan-tooltip',
-                                                // [section.planName, section.alignmentName],
-                                            )}>
+                                            title={`${section.planName}, ${section.alignmentName}`}>
                                             {section.planName}
                                         </span>
                                     )
@@ -150,7 +145,8 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                         section.planId &&
                                         togglePlanVisibility(section.planId, section.alignmentId)
                                     }
-                                    className="alignment-plan-section-infobox__show-plan-icon">
+                                    className="alignment-plan-section-infobox__show-plan-icon"
+                                    title={`${section.planName}, ${section.alignmentName}`}>
                                     {isVisible(section.planId) ? (
                                         <Icons.Eye />
                                     ) : (
