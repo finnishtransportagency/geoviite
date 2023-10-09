@@ -13,7 +13,7 @@ import {
     getPVDocuments,
     projektivelhoDocumentDownloadUri,
     rejectPVDocuments,
-    restorePVDocument,
+    restorePVDocuments,
 } from 'infra-model/infra-model-api';
 import { updatePVDocumentsChangeTime } from 'common/change-time-api';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -75,7 +75,7 @@ export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
                 }
                 onImport={(id) => navigate('inframodel-import', id)}
                 onRestore={(ids) =>
-                    restorePVDocument(ids).then(() => {
+                    restorePVDocuments(ids).then(() => {
                         setLoadingForUserTriggeredChange(true);
                         updatePVDocumentsChangeTime();
                     })
