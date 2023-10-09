@@ -13,6 +13,8 @@ type CloseableModalProps = {
     offsetWidth?: number;
 };
 
+const WINDOW_MARGIN = 6;
+
 export const CloseableModal: React.FC<CloseableModalProps> = ({
     positionRef,
     onClickOutside,
@@ -26,6 +28,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     const [x, setX] = React.useState<number>();
     const [y, setY] = React.useState<number>();
     const [width, setWidth] = React.useState<number | undefined>();
+    const modalRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         function clickHandler(event: MouseEvent) {
@@ -41,16 +44,45 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
         };
     }, [positionRef]);
 
+    React.useEffect(() => {
+        const ref = modalRef.current;
+        if (ref) {
+            const {
+                x: trueX,
+                y: trueY,
+                width: trueWidth,
+                height: trueHeight,
+            } = ref.getBoundingClientRect();
+
+            const maxHeight = window.innerHeight;
+            const maxWidth = window.innerWidth;
+
+            const heightOverflow = trueHeight + trueY - maxHeight + WINDOW_MARGIN;
+            const widthOverflow = trueWidth + trueX - maxWidth + WINDOW_MARGIN;
+
+            if (heightOverflow > 0 && trueHeight < maxHeight) {
+                setY(trueY - offsetY - heightOverflow);
+            }
+
+            if (widthOverflow > 0 && trueWidth < maxWidth) {
+                setX(trueX - offsetX - widthOverflow);
+            }
+        }
+    }, [x, y, width]);
+
     useResizeObserver({
         ref: document.body,
         onResize: () => {
-            const br = positionRef.current?.getBoundingClientRect();
+            const ref = positionRef.current;
+            if (ref) {
+                const { x: newX, y: newY, width: newWidth } = ref.getBoundingClientRect();
 
-            setX(br?.x);
-            setY(br?.y);
+                setX(newX);
+                setY(newY);
 
-            if (useRefWidth) {
-                setWidth(br?.width ? br?.width + offsetWidth : undefined);
+                if (useRefWidth) {
+                    setWidth(newWidth + offsetWidth);
+                }
             }
         },
     });
@@ -59,6 +91,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
 
     return createPortal(
         <div
+            ref={modalRef}
             style={{
                 top: y + offsetY,
                 left: x + offsetX,

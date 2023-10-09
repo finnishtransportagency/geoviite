@@ -254,9 +254,10 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     onMenuChange={props.onMapLayerChange}
                     mapLayerMenuGroups={props.mapLayerMenuGroups}
                 />
-                <div className={styles['tool-bar__new-menu-button']} ref={menuRef}>
+                <div className={styles['tool-bar__new-menu-button']}>
                     <WriteAccessRequired>
                         <Button
+                            ref={menuRef}
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
                             disabled={props.publishType !== 'DRAFT' || props.disableNewMenu}
