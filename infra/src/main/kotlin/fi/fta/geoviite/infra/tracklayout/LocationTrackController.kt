@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -192,5 +193,12 @@ class LocationTrackController(
             "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
         )
         return locationTrackService.getMetadataSections(id, publishType, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/location-track-owners")
+    fun getLocationTrackOwners(): List<LocationTrackOwner> {
+        logger.apiCall("getLocationTrackOwners")
+        return locationTrackService.getLocationTrackOwners()
     }
 }

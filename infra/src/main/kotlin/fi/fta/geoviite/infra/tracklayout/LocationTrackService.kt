@@ -15,7 +15,9 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -23,6 +25,7 @@ import java.time.Instant
 @Service
 class LocationTrackService(
     dao: LocationTrackDao,
+    private val locationTrackDao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
@@ -50,6 +53,7 @@ class LocationTrackService(
             topologicalConnectivity = request.topologicalConnectivity,
             topologyStartSwitch = null,
             topologyEndSwitch = null,
+            ownerId = request.ownerId,
         )
         return saveDraftInternal(locationTrack)
     }
@@ -346,6 +350,11 @@ class LocationTrackService(
     fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
         logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
         return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
+    }
+
+    fun getLocationTrackOwners(): List<LocationTrackOwner> {
+        fi.fta.geoviite.infra.util.logger.serviceCall("getLocationTrackOwners")
+        return dao.fetchLocationTrackOwners()
     }
 }
 

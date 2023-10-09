@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -112,7 +113,8 @@ class LocationTrackDao(
               lt.topology_start_switch_id,
               lt.topology_start_switch_joint_number,
               lt.topology_end_switch_id,
-              lt.topology_end_switch_joint_number
+              lt.topology_end_switch_joint_number,
+              lt.owner_id
             from layout.location_track lt
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
         """.trimIndent()
@@ -142,6 +144,7 @@ class LocationTrackDao(
         version = rs.getRowVersion("row_id", "row_version"),
         duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
         topologicalConnectivity = rs.getEnum("topological_connectivity"),
+        ownerId = rs.getIntIdOrNull("owner_id"),
         topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
             TopologyLocationTrackSwitch(
                 id,
@@ -176,7 +179,8 @@ class LocationTrackDao(
               topology_start_switch_id,
               topology_start_switch_joint_number,
               topology_end_switch_id,
-              topology_end_switch_joint_number
+              topology_end_switch_joint_number,
+              owner_id
             ) 
             values (
               :track_number_id,
@@ -195,7 +199,8 @@ class LocationTrackDao(
               :topology_start_switch_id,
               :topology_start_switch_joint_number,
               :topology_end_switch_id,
-              :topology_end_switch_joint_number
+              :topology_end_switch_joint_number,
+              :owner_id
             ) 
             returning 
               coalesce(draft_of_location_track_id, id) as official_id,
@@ -219,7 +224,8 @@ class LocationTrackDao(
             "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
             "topology_start_switch_joint_number" to newItem.topologyStartSwitch?.jointNumber?.intValue,
             "topology_end_switch_id" to newItem.topologyEndSwitch?.switchId?.intValue,
-            "topology_end_switch_joint_number" to newItem.topologyEndSwitch?.jointNumber?.intValue
+            "topology_end_switch_joint_number" to newItem.topologyEndSwitch?.jointNumber?.intValue,
+            "owner_id" to newItem.ownerId?.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -390,4 +396,29 @@ class LocationTrackDao(
             sql, mapOf("locationTrackId" to locationTrackId.intValue)
         ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
+
+    //@Transactional(readOnly = true)
+    //@Component
+    //class SwitchOwnerDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+
+        //tarvitseeko tätä cachetusta? SELVITÄ - onko muualla tällaiset?
+        //@Cacheable(CACHE_COMMON_SWITCH_OWNER, sync = true)
+        fun fetchLocationTrackOwners(): List<LocationTrackOwner> {
+            val sql = """
+            select
+                id,
+                name
+            from common.location_track_owner
+        """.trimIndent()
+            val locationTrackOwners = jdbcTemplate.query(sql) { rs, _ ->
+                LocationTrackOwner(
+                    id = rs.getIntId("id"),
+                    name = MetaDataName(rs.getString("name")),
+                )
+            }
+            logger.daoAccess(AccessType.FETCH, LocationTrackOwner::class, locationTrackOwners.map { it.id })
+            return locationTrackOwners
+        }
+    //}
+
 }

@@ -10,7 +10,7 @@ import {
     DataType,
     JointNumber,
     KmNumber,
-    LocationAccuracy,
+    LocationAccuracy, LocationTrackOwnerId,
     Oid,
     Srid,
     SwitchOwnerId,
@@ -109,6 +109,7 @@ export type LayoutLocationTrack = {
     topologicalConnectivity: TopologicalConnectivityType;
     topologyStartSwitch?: TopologyLocationTrackSwitch;
     topologyEndSwitch?: TopologyLocationTrackSwitch;
+    ownerId?: LocationTrackOwnerId;
 };
 
 export const locationTrackDescription = (lt: {
