@@ -2,10 +2,15 @@ package fi.fta.geoviite.infra.ifc
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ifc.IfcDataTransformType.*
+import fi.fta.geoviite.infra.tievelho.getMateriaali
 
 
 enum class IfcDataTransformType {
-    RAW_STEP, JSON, JSON_LIST
+    // Generic base types
+    RAW_STEP, JSON, JSON_LIST,
+
+    // TieVelho types
+    TV_MATERIAL
 }
 
 data class IfcPropertyTransform(
@@ -73,38 +78,38 @@ data class IfcTransformTemplate(val jsonTemplate: String, val propertiesToIndice
     private fun dropTemplating(property: String): String = property.substring(2, property.length - 1)
 }
 
-fun transform(
-    ifc: Ifc,
-    name: IfcName,
-    template: String,
-    classification: IfcClassification?,
-): List<String> =
+fun transform(ifc: Ifc, name: IfcName, template: String, classification: IfcClassification?): List<String> =
     transform(ifc, name, IfcTransformTemplate(template, IfcTransformTemplate.classificationMapper(classification)))
 
-fun transform(
-    ifc: Ifc,
-    name: IfcName,
-    transformTemplate: IfcTransformTemplate,
-): List<String> = ifc.getDereferenced(name).map { entity ->
+fun transform(ifc: Ifc, name: IfcName, transformTemplate: IfcTransformTemplate): List<String> =
+    ifc.getDereferenced(name).map { entity -> transform(entity, transformTemplate) }
+
+fun transform(entity: IfcEntity, transformTemplate: IfcTransformTemplate): String {
     val transformedValues = transformTemplate.transforms.associate { t ->
         t.key to transformValue(t.transform ?: JSON, t.propertyChainIndices.map(entity::getValue))
     }
-    transformTemplate.toJson(transformedValues)
+    return transformTemplate.toJson(transformedValues)
 }
 
 fun transformValue(type: IfcDataTransformType, attributes: List<IfcEntityAttribute>): Any? = when (type) {
-    RAW_STEP -> {
-        require(attributes.size == 1) { "Attribute combinations don't have a raw STEP representation" }
-        // Default toString() -> RAW STEP format for value
-        attributes[0].toString()
-    }
-
-    JSON -> {
-        require(attributes.size == 1) { "Attribute combinations don't have a simple JSON representation" }
-        getJsonMapValue(attributes[0])
-    }
-
+    RAW_STEP -> single(attributes).toString()
+    JSON -> getJsonMapValue(single(attributes))
     JSON_LIST -> attributes.map(::getJsonMapValue)
+
+    TV_MATERIAL -> getMateriaali(singleString(attributes)).value.also { m -> println("Mapped material to $m") }
+}
+
+private fun singleString(attributes: List<IfcEntityAttribute>): String =
+    typed<IfcEntityString>(single(attributes)).value
+
+private inline fun <reified T : IfcEntityAttribute> typed(value: IfcEntityAttribute): T {
+    return if (value is T) value
+    else throw IllegalArgumentException("Unexpected type: expected=${T::class.simpleName} actual=${value::class.simpleName}")
+}
+
+private fun single(attributes: List<IfcEntityAttribute>): IfcEntityAttribute {
+    require(attributes.size == 1) { "Expected exactly 1 attribute: count=${attributes.size}" }
+    return attributes[0]
 }
 
 private fun getJsonMapValue(attribute: IfcEntityAttribute): Any? = when (attribute) {

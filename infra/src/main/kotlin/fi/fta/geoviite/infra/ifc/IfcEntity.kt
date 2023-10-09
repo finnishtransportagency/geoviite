@@ -38,6 +38,7 @@ interface IfcEntityAttributeContainer : IfcEntityAttribute {
     fun getValue(indices: List<Int>): IfcEntityAttribute {
         var current: IfcEntityAttribute = this
         for (index in indices) {
+            println("fetching $index (of $indices) from $current")
             current = when (current) {
                 is IfcEntityAttributeContainer -> current[index]
                 else -> throw IllegalArgumentException(
@@ -112,7 +113,9 @@ data class IfcEntityList(val items: List<IfcEntityAttribute>) : IfcEntityAttribu
 
     override fun toString(): String = "$START_MARKER${items.joinToString("$IFC_ATTRIBUTE_SEPARATOR")}$END_MARKER"
     override fun dereference(ifc: Ifc): IfcEntityList = copy(items = items.map { a -> a.dereference(ifc) })
-    override operator fun get(index: Int) = items[index]
+    override operator fun get(index: Int) = items.getOrNull(index) ?: throw IndexOutOfBoundsException(
+        "Index out of bounds for ${this::class.simpleName}: index=$index length=${items.size} items=${items}"
+    )
 
     inline fun <reified T : IfcEntityAttribute> getTyped(index: Int): T = coerce<T>(get(index))
 

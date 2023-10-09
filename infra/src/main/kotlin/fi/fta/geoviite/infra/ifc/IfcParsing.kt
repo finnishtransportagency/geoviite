@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ifc
 
+import fi.fta.geoviite.infra.ifc.LineCommentState.*
 import fi.fta.geoviite.infra.util.formatForLog
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
@@ -13,11 +14,11 @@ fun parseIfcFromClasspath(path: String): Ifc =
 fun parseIfcFromPath(path: String): Ifc = parseIfc(File(path))
 
 fun parseIfc(bytes: ByteArray, charset: Charset = Charsets.UTF_8) = parseIfc(
-    BufferedReader(InputStreamReader(ByteArrayInputStream(bytes), charset)).lineSequence().mapNotNull(::toContentLine)
+    BufferedReader(InputStreamReader(ByteArrayInputStream(bytes), charset)).lineSequence().let(::mapContentLines)
 )
 
 fun parseIfc(file: File, charset: Charset = Charsets.UTF_8): Ifc =
-    file.useLines(charset) { lines -> parseIfc(lines.mapNotNull(::toContentLine)) }
+    file.useLines(charset) { lines -> parseIfc(lines.let(::mapContentLines)) }
 
 fun parseIfc(lines: Sequence<IfcContentPart>): Ifc {
     val iterator = lines.iterator()
@@ -59,20 +60,45 @@ fun parseIfcContent(
     throw IllegalArgumentException("No section end tag found: startTag=$startTag endTag=$endTag")
 }
 
-fun toContentLine(rawLine: String): IfcContentPart? =
-    rawLine.takeIf(String::isNotBlank)?.let(::dropSuffix)?.let { line ->
-        try {
-            if (line.startsWith(IfcEntityId.PREFIX)) IfcDataEntity(line)
-            else if (line.contains(IfcEntityList.START_MARKER)) IfcEntity(line)
-            else IfcName.valueOf(line)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Failed to parse IFC line: $line", e)
+fun mapContentLines(lines: Sequence<String>): Sequence<IfcContentPart> {
+    var commentSection = false
+    return lines.mapNotNull { line ->
+        if (line.isBlank()) null
+        else line.trim().let { trimmed ->
+            isCommentLine(trimmed, commentSection).let { commentState ->
+                commentSection = (commentState == OPEN_COMMENT)
+                if (commentState == NOT_COMMENT) toContentLine(trimmed) else null
+            }
         }
     }
+}
 
-fun dropSuffix(line: String): String = line.also {
-    require(line.endsWith(IFC_LINE_SUFFIX)) {
-        "IFC lines should end with '$IFC_LINE_SUFFIX': line=${formatForLog(line)}"
+fun toContentLine(rawLine: String): IfcContentPart = rawLine.let(::dropSuffix).let { line ->
+    try {
+        if (line.startsWith(IfcEntityId.PREFIX)) IfcDataEntity(line)
+        else if (line.contains(IfcEntityList.START_MARKER)) IfcEntity(line)
+        else IfcName.valueOf(line)
+    } catch (e: Exception) {
+        throw IllegalArgumentException("Failed to parse IFC line: $line", e)
+    }
+}
+
+enum class LineCommentState { NOT_COMMENT, OPEN_COMMENT, CLOSED_COMMENT }
+
+fun isCommentLine(line: String, commentSection: Boolean): LineCommentState {
+    // Step file comments are enclosed between /* and */
+    // https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml
+    return if (commentSection) {
+        if (line.endsWith("*/")) CLOSED_COMMENT else OPEN_COMMENT
+    } else if (line.startsWith("/*")) {
+        if (line.endsWith("*/")) CLOSED_COMMENT else OPEN_COMMENT
+    } else NOT_COMMENT
+}
+
+
+fun dropSuffix(line: String): String = line.let(String::trim).also { l ->
+    require(l.endsWith(IFC_LINE_SUFFIX)) {
+        "IFC lines should end with '$IFC_LINE_SUFFIX': line=${formatForLog(l)}"
     }
 }.dropLast(IFC_LINE_SUFFIX.length).trim()
 
