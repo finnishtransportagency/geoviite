@@ -39,9 +39,9 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import {
+    updateProjectChangeTime,
     updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
-    updateProjectChangeTime,
 } from 'common/change-time-api';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
@@ -588,10 +588,11 @@ function projectInfo(oid: Oid, description: string, _changeTime: TimeStamp) {
             <PVOid oid={oid} />
             {
                 description
-                // TODO Re-enable redirect links when they work
-                /*<PVRedirectLink changeTime={changeTime} oid={oid}>
-                    description
-                </PVRedirectLink>*/
+                /*
+                    <PVRedirectLink changeTime={changeTime} oid={oid}>
+                        {description}
+                    </PVRedirectLink>
+                */
             }
         </span>
     );

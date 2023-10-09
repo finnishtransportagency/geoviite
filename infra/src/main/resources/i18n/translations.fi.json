@@ -251,6 +251,33 @@
                 "document-type": "Dokumenttityyppi",
                 "document-state": "Dokumentin tila"
             },
+            "confirm-dialog": {
+                "reject": {
+                    "confirm": "Hylkää aineistot ({{count}} kpl)",
+                    "by-assignment": "Hylkää toimeksiannon aineistot ({{assignmentCount}} kpl)",
+                    "by-assignment-title": "Toimeksiannon aineistojen hylkääminen",
+                    "by-assignment-message": "Haluatko siirtää kaikki toimeksiannon <strong>{{assignment}}</strong> aineistot ({{assignmentCount}} kpl) hylättyjen aineistojen kokoelmaan?",
+                    "by-project": "Hylkää projektin aineistot ({{projectCount}} kpl)",
+                    "by-project-title": "Projektin aineistojen hylkääminen",
+                    "by-project-message": "Haluatko siirtää kaikki projektin <strong>{{projectName}}</strong> aineistot ({{projectCount}} kpl) hylättyjen aineistojen kokoelmaan?",
+                    "by-project-group": "Hylkää projektijoukon aineistot ({{groupCount}} kpl)",
+                    "by-project-group-title": "Projektijoukon aineistojen hylkääminen",
+                    "by-project-group-message": "Haluatko siirtää kaikki projektijoukon <strong>{{projectGroup}}</strong> aineistot ({{groupCount}} kpl) hylättyjen aineistojen kokoelmaan?"
+                },
+                "restore": {
+                    "confirm": "Palauta aineistot ({{count}} kpl)",
+                    "by-assignment": "Palauta toimeksiannon aineistot ({{assignmentCount}} kpl)",
+                    "by-assignment-title": "Toimeksiannon aineistojen palauttaminen",
+                    "by-assignment-message": "Haluatko palauttaa kaikki toimeksiannon <strong>{{assignment}}</strong> aineistot ({{assignmentCount}} kpl)?",
+                    "by-project": "Palauta projektin aineistot ({{projectCount}} kpl)",
+                    "by-project-title": "Projektin aineistojen palauttaminen",
+                    "by-project-message": "Haluatko palauttaa kaikki projektin <strong>{{projectName}}</strong> aineistot ({{projectCount}} kpl)?",
+                    "by-project-group": "Palauta projektijoukon aineistot ({{groupCount}} kpl)",
+                    "by-project-group-title": "Projektijoukon aineistojen palauttaminen",
+                    "by-project-group-message": "Haluatko palauttaa kaikki projektijoukon <strong>{{projectGroup}}</strong> aineistot ({{groupCount}} kpl)?"
+                }
+            },
+            "cancel": "Peruuta",
             "reject": "Hylkää",
             "reject-tooltip": "Siirrä hylättyjen aineistojen kokoelmaan",
             "reject-success": "Aineisto siirretty hylättyjen aineistojen kokoelmaan",
@@ -260,16 +287,6 @@
             "upload": "Tuo suunnitelma...",
             "upload-tooltip": "Tuo aineisto Geoviitteen suunnitelmaksi",
             "oid-copied-to-clipboard": "OID kopioitu leikepöydälle",
-            "reject-by-assignment": "Hylkää toimeksiannon aineistot ({{assignmentCount}} kpl)",
-            "reject-by-assignment-title": "Toimeksiannon aineistojen hylkääminen",
-            "reject-by-assignment-message": "Haluatko siirtää kaikki toimeksiannon <strong>{{assignment}}</strong> aineistot ({{assignmentCount}} kpl) hylättyjen aineistojen kokoelmaan?",
-            "reject-by-project": "Hylkää projektin aineistot ({{projectCount}} kpl)",
-            "reject-by-project-title": "Projektin aineistojen hylkääminen",
-            "reject-by-project-message": "Haluatko siirtää kaikki projektin <strong>{{projectName}}</strong> aineistot ({{projectCount}} kpl) hylättyjen aineistojen kokoelmaan?",
-            "reject-by-project-group": "Hylkää projektijoukon aineistot ({{groupCount}} kpl)",
-            "reject-by-project-group-title": "Projektijoukon aineistojen hylkääminen",
-            "reject-by-project-group-message": "Haluatko siirtää kaikki projektijoukon <strong>{{projectGroup}}</strong> aineistot ({{groupCount}} kpl) hylättyjen aineistojen kokoelmaan?",
-            "reject-confirm": "Hylkää aineistot ({{count}} kpl)",
             "more": "Lisää"
         }
     },

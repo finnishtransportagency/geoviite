@@ -13,14 +13,13 @@ import {
     getPVDocuments,
     projektivelhoDocumentDownloadUri,
     rejectPVDocuments,
-    restorePVDocument,
+    restorePVDocuments,
 } from 'infra-model/infra-model-api';
 import { updatePVDocumentsChangeTime } from 'common/change-time-api';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Oid, TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
-//import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import {
@@ -47,7 +46,7 @@ type PVFileListProps = {
     listMode: ListMode;
     onReject: (ids: PVDocumentId[]) => void;
     onImport: (id: PVDocumentId) => void;
-    onRestore: (id: PVDocumentId) => void;
+    onRestore: (id: PVDocumentId[]) => void;
     changeTime: TimeStamp;
     documentsReloading: PVDocumentId[];
 };
@@ -82,10 +81,10 @@ export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
                     });
                 }}
                 onImport={(id) => navigate('inframodel-import', id)}
-                onRestore={(id) => {
-                    setDocumentsReloading([...documentsReloading, id]);
+                onRestore={(ids) => {
+                    setDocumentsReloading([...documentsReloading, ...ids]);
 
-                    restorePVDocument(id).then(() => {
+                    restorePVDocuments(ids).then(() => {
                         setLoadingForUserTriggeredChange(true);
                         updatePVDocumentsChangeTime();
                     });
@@ -109,23 +108,27 @@ export const PVFileList = ({
 }: PVFileListProps) => {
     const { t } = useTranslation();
 
-    const rejectByFilter = (filter: (item: PVDocumentHeader) => boolean) => {
-        onReject(documentHeaders.filter((item) => filter(item)).map((item) => item.document.id));
-    };
+    const filter = (filter: (item: PVDocumentHeader) => unknown) =>
+        documentHeaders.filter(filter).map((item) => item.document.id);
 
-    const isAssignment = (header: PVDocumentHeader, assignmentOid: string | undefined) =>
-        header.assignment?.oid === assignmentOid;
-    const isProject = (header: PVDocumentHeader, projectOid: string | undefined) =>
-        header.project?.oid === projectOid;
-    const isProjectGroup = (header: PVDocumentHeader, projectGroupOid: string | undefined) =>
-        header.projectGroup?.oid === projectGroupOid;
+    const filterByAssignment = (assignmentOid: Oid | undefined) =>
+        filter((header) => header.assignment?.oid && header.assignment.oid === assignmentOid);
 
-    const rejectByAssignment = (assignmentOid: string) =>
-        rejectByFilter((item: PVDocumentHeader) => isAssignment(item, assignmentOid));
-    const rejectByProject = (projectOid: string) =>
-        rejectByFilter((item: PVDocumentHeader) => isProject(item, projectOid));
-    const rejectByProjectGroup = (projectGroupOid: string) =>
-        rejectByFilter((item: PVDocumentHeader) => isProjectGroup(item, projectGroupOid));
+    const filterByProject = (projectOid: Oid | undefined) =>
+        filter((header) => header.project && header.project.oid === projectOid);
+
+    const filterByProjectGroup = (projectGroupOid: Oid | undefined) =>
+        filter((header) => header.projectGroup && header.projectGroup.oid === projectGroupOid);
+
+    const rejectByAssignment = (assignmentOid: Oid) => onReject(filterByAssignment(assignmentOid));
+    const rejectByProject = (projectOid: Oid) => onReject(filterByProject(projectOid));
+    const rejectByProjectGroup = (projectGroupOid: Oid) =>
+        onReject(filterByProjectGroup(projectGroupOid));
+
+    const restoreByAssignment = (assigmentOid: Oid) => onRestore(filterByAssignment(assigmentOid));
+    const restoreByProject = (projectOid: Oid) => onRestore(filterByProject(projectOid));
+    const restoreByProjectGroup = (projectGroupOid: Oid) =>
+        onRestore(filterByProjectGroup(projectGroupOid));
 
     const [sortInfo, setSortInfo] = React.useState<PVTableSortInformation>(PVInitiallyUnsorted);
 
@@ -199,26 +202,18 @@ export const PVFileList = ({
                             item={item}
                             onReject={() => onReject([item.document.id])}
                             onImport={() => onImport(item.document.id)}
-                            onRestore={() => onRestore(item.document.id)}
+                            onRestore={() => onRestore([item.document.id])}
+                            onRestoreByProject={(oid: Oid) => restoreByProject(oid)}
+                            onRestoreByAssignment={(oid: Oid) => restoreByAssignment(oid)}
+                            onRestoreByProjectGroup={(oid: Oid) => restoreByProjectGroup(oid)}
                             onRejectByProject={(oid: Oid) => rejectByProject(oid)}
                             onRejectByProjectGroup={(oid: Oid) => rejectByProjectGroup(oid)}
                             onRejectByAssignment={(oid: Oid) => rejectByAssignment(oid)}
                             changeTime={changeTime}
                             itemCounts={{
-                                assignment: documentHeaders.filter(
-                                    (document) =>
-                                        document.assignment &&
-                                        isAssignment(document, item.assignment?.oid),
-                                ).length,
-                                project: documentHeaders.filter(
-                                    (document) =>
-                                        document.project && isProject(document, item.project?.oid),
-                                ).length,
-                                projectGroup: documentHeaders.filter(
-                                    (document) =>
-                                        document.projectGroup &&
-                                        isProjectGroup(document, item.projectGroup?.oid),
-                                ).length,
+                                assignment: filterByAssignment(item.assignment?.oid).length,
+                                project: filterByProject(item.project?.oid).length,
+                                projectGroup: filterByProjectGroup(item.projectGroup?.oid).length,
                             }}
                         />
                     ))}
@@ -238,6 +233,9 @@ type PVFileListRowProps = {
     onRejectByProject: (oid: Oid) => void;
     onRejectByProjectGroup: (oid: Oid) => void;
     onRejectByAssignment: (oid: Oid) => void;
+    onRestoreByProject: (oid: Oid) => void;
+    onRestoreByProjectGroup: (oid: Oid) => void;
+    onRestoreByAssignment: (oid: Oid) => void;
     actionsDisabled: boolean;
     itemCounts: { project: number; projectGroup: number; assignment: number };
 };
@@ -252,139 +250,152 @@ const PVFileListRow = ({
     onRejectByProject,
     onRejectByProjectGroup,
     onRejectByAssignment,
+    onRestoreByProject,
+    onRestoreByProjectGroup,
+    onRestoreByAssignment,
     itemCounts,
     actionsDisabled,
 }: PVFileListRowProps) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation(undefined, { keyPrefix: 'projektivelho.file-list' });
 
     const [isOpen, setIsOpen] = React.useState(false);
     const [fileActionMenuVisible, setFileActionMenuVisible] = React.useState(false);
-    const [showConfirmAssignmentReject, setShowConfirmAssignmentReject] = useState(false);
-    const [showConfirmProjectReject, setShowConfirmProjectReject] = useState(false);
-    const [showConfirmProjectGroupReject, setShowConfirmProjectGroupReject] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+    const dialogParams = React.useRef<{
+        title: string;
+        message: { key: string; params: Record<string, string | number | undefined> };
+        onConfirm: () => void;
+        confirmText: string;
+    }>();
 
     const actionMenuRef = React.useRef(null);
+    const suggestedList = listMode === 'SUGGESTED';
+
+    const dialogTranslationPrefix = `confirm-dialog.${suggestedList ? 'reject' : 'restore'}`;
 
     const fileActions = [
         {
             disabled: !item.assignment?.oid,
             onSelect: () => {
-                setShowConfirmAssignmentReject(true);
+                dialogParams.current = {
+                    title: t(`${dialogTranslationPrefix}.by-assignment-title`),
+                    message: {
+                        key: `${dialogTranslationPrefix}.by-assignment-message`,
+                        params: {
+                            assignment: item.assignment?.name,
+                            assignmentCount: itemCounts.assignment,
+                        },
+                    },
+                    onConfirm: () => {
+                        item.assignment &&
+                            (suggestedList ? onRejectByAssignment : onRestoreByAssignment)(
+                                item.assignment?.oid,
+                            );
+                    },
+                    confirmText: t(`${dialogTranslationPrefix}.confirm`, {
+                        count: itemCounts.assignment,
+                    }),
+                };
+
+                setShowConfirmDialog(true);
                 setFileActionMenuVisible(false);
             },
-            name: t('projektivelho.file-list.reject-by-assignment', {
-                assignmentCount: itemCounts.assignment ? itemCounts.assignment : '-',
+            name: t(`${dialogTranslationPrefix}.by-assignment`, {
+                assignmentCount: itemCounts.assignment ?? '-',
             }),
         },
         {
             disabled: !item.project?.oid,
             onSelect: () => {
-                setShowConfirmProjectReject(true);
+                dialogParams.current = {
+                    title: t(`${dialogTranslationPrefix}.by-project-title`),
+                    message: {
+                        key: `${dialogTranslationPrefix}.by-project-message`,
+                        params: {
+                            projectName: item.project?.name,
+                            projectCount: itemCounts.project,
+                        },
+                    },
+                    onConfirm: () => {
+                        item.project &&
+                            (suggestedList ? onRejectByProject : onRestoreByProject)(
+                                item.project?.oid,
+                            );
+                    },
+                    confirmText: t(`${dialogTranslationPrefix}.confirm`, {
+                        count: itemCounts.project,
+                    }),
+                };
+
+                setShowConfirmDialog(true);
                 setFileActionMenuVisible(false);
             },
-            name: t('projektivelho.file-list.reject-by-project', {
-                projectCount: itemCounts.project ? itemCounts.project : '-',
+            name: t(`${dialogTranslationPrefix}.by-project`, {
+                projectCount: itemCounts.project ?? '-',
             }),
         },
         {
             disabled: !item.projectGroup?.oid,
             onSelect: () => {
-                setShowConfirmProjectGroupReject(true);
+                dialogParams.current = {
+                    title: t(`${dialogTranslationPrefix}.by-project-group-title`),
+                    message: {
+                        key: `${dialogTranslationPrefix}.by-project-group-message`,
+                        params: {
+                            projectGroup: item.projectGroup?.name,
+                            groupCount: itemCounts.projectGroup,
+                        },
+                    },
+                    onConfirm: () => {
+                        item.projectGroup &&
+                            (suggestedList ? onRejectByProjectGroup : onRestoreByProjectGroup)(
+                                item.projectGroup?.oid,
+                            );
+                    },
+                    confirmText: t(`${dialogTranslationPrefix}.confirm`, {
+                        count: itemCounts.projectGroup,
+                    }),
+                };
+
+                setShowConfirmDialog(true);
                 setFileActionMenuVisible(false);
             },
-            name: t('projektivelho.file-list.reject-by-project-group', {
-                groupCount: itemCounts.projectGroup ? itemCounts.projectGroup : '-',
+            name: t(`${dialogTranslationPrefix}.by-project-group`, {
+                groupCount: itemCounts.projectGroup ?? '-',
             }),
         },
     ];
 
-    const confirmAssignmentRejectDialog = () => (
-        <Dialog
-            variant={DialogVariant.LIGHT}
-            title={t('projektivelho.file-list.reject-by-assignment-title')}
-            onClose={() => setShowConfirmAssignmentReject(false)}
-            footerContent={
-                <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() => setShowConfirmAssignmentReject(false)}>
-                        {t('button.cancel')}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            item.assignment && onRejectByAssignment(item.assignment?.oid);
-                            setShowConfirmAssignmentReject(false);
-                        }}>
-                        {t('projektivelho.file-list.reject-confirm', {
-                            count: itemCounts.assignment,
-                        })}
-                    </Button>
-                </div>
-            }>
-            <Trans
-                i18nKey="projektivelho.file-list.reject-by-assignment-message"
-                assignment={item.assignment?.name}
-                assignmentCount={itemCounts.assignment}></Trans>
-        </Dialog>
-    );
-    const confirmProjectRejectDialog = () => (
-        <Dialog
-            variant={DialogVariant.LIGHT}
-            title={t('projektivelho.file-list.reject-by-project-title')}
-            onClose={() => setShowConfirmProjectReject(false)}
-            footerContent={
-                <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() => setShowConfirmProjectReject(false)}>
-                        {t('button.cancel')}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            item.project && onRejectByProject(item.project?.oid);
-                            setShowConfirmProjectReject(false);
-                        }}>
-                        {t('projektivelho.file-list.reject-confirm', { count: itemCounts.project })}
-                    </Button>
-                </div>
-            }>
-            <Trans
-                i18nKey="projektivelho.file-list.reject-by-project-message"
-                projectName={item.project?.name}
-                projectCount={itemCounts.project}
-            />
-        </Dialog>
-    );
-    const confirmProjectGroupRejectDialog = () => (
-        <Dialog
-            variant={DialogVariant.LIGHT}
-            title={t('projektivelho.file-list.reject-by-project-group-title')}
-            onClose={() => setShowConfirmProjectGroupReject(false)}
-            footerContent={
-                <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() => setShowConfirmProjectGroupReject(false)}>
-                        {t('button.cancel')}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            item.projectGroup && onRejectByProjectGroup(item.projectGroup?.oid);
-                            setShowConfirmProjectGroupReject(false);
-                        }}>
-                        {t('projektivelho.file-list.reject-confirm', {
-                            count: itemCounts.projectGroup,
-                        })}
-                    </Button>
-                </div>
-            }>
-            <Trans
-                i18nKey="projektivelho.file-list.reject-by-project-group-message"
-                projectGroup={item.projectGroup?.name}
-                groupCount={itemCounts.projectGroup}
-            />
-        </Dialog>
-    );
+    const confirmDialog = () => {
+        return (
+            <Dialog
+                variant={DialogVariant.LIGHT}
+                title={dialogParams.current?.title}
+                onClose={() => setShowConfirmDialog(false)}
+                footerContent={
+                    <div className={dialogStyles['dialog__footer-content--centered']}>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            onClick={() => setShowConfirmDialog(false)}>
+                            {t('cancel')}
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setShowConfirmDialog(false);
+                                dialogParams.current?.onConfirm();
+                            }}>
+                            {dialogParams.current?.confirmText}
+                        </Button>
+                    </div>
+                }>
+                <Trans
+                    t={t}
+                    i18nKey={dialogParams.current?.message.key}
+                    values={dialogParams.current?.message.params}
+                />
+            </Dialog>
+        );
+    };
 
     return (
         <>
@@ -407,46 +418,44 @@ const PVFileListRow = ({
                         <div
                             className={styles['projektivelho-file-list__buttons']}
                             ref={actionMenuRef}>
-                            {listMode === 'SUGGESTED' && (
+                            {suggestedList && (
                                 <Button
                                     disabled={actionsDisabled}
-                                    title={t('projektivelho.file-list.reject-tooltip')}
+                                    title={t('reject-tooltip')}
                                     variant={ButtonVariant.SECONDARY}
                                     onClick={onReject}
                                     qa-id="pv-reject-button">
-                                    {t('projektivelho.file-list.reject')}
+                                    {t('reject')}
                                 </Button>
                             )}
-                            {listMode === 'REJECTED' && (
+                            {!suggestedList && (
                                 <Button
                                     disabled={actionsDisabled}
-                                    title={t('projektivelho.file-list.restore-tooltip')}
+                                    title={t('restore-tooltip')}
                                     variant={ButtonVariant.SECONDARY}
                                     onClick={onRestore}
                                     qa-id="pv-restore-button">
-                                    {t('projektivelho.file-list.restore')}
+                                    {t('restore')}
                                 </Button>
                             )}
                             <Button
-                                title={t('projektivelho.file-list.upload-tooltip')}
+                                title={t('upload-tooltip')}
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={actionsDisabled}
                                 onClick={onImport}
                                 qa-id="pv-import-button">
-                                {t('projektivelho.file-list.upload')}
+                                {t('upload')}
                             </Button>
-                            {listMode === 'SUGGESTED' && (
-                                <Button
-                                    title={t('projektivelho.file-list.more')}
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={actionsDisabled}
-                                    onClick={() => {
-                                        setFileActionMenuVisible(!fileActionMenuVisible);
-                                    }}
-                                    qa-id="pv-menu-button">
-                                    {'...'}
-                                </Button>
-                            )}
+                            <Button
+                                title={t('more')}
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={actionsDisabled}
+                                onClick={() => {
+                                    setFileActionMenuVisible(!fileActionMenuVisible);
+                                }}
+                                qa-id="pv-menu-button">
+                                {'...'}
+                            </Button>
                         </div>
                         {fileActionMenuVisible && (
                             <Menu
@@ -455,9 +464,7 @@ const PVFileListRow = ({
                                 onClickOutside={() => setFileActionMenuVisible(false)}
                             />
                         )}
-                        {showConfirmAssignmentReject && confirmAssignmentRejectDialog()}
-                        {showConfirmProjectReject && confirmProjectRejectDialog()}
-                        {showConfirmProjectGroupReject && confirmProjectGroupRejectDialog()}
+                        {showConfirmDialog && confirmDialog()}
                     </td>
                 </WriteAccessRequired>
             </tr>
@@ -480,61 +487,58 @@ type PVFileListExpandedItemProps = {
     changeTime: TimeStamp;
 };
 
-const PVFileListExpandedItem = ({ item, changeTime: _changeTime }: PVFileListExpandedItemProps) => {
-    const { t } = useTranslation();
+const PVFileListExpandedItem = ({ item }: PVFileListExpandedItemProps) => {
+    const { t } = useTranslation(undefined, { keyPrefix: 'projektivelho.file-list.field' });
     return (
         <div className={styles['projektivelho-file-list__expanded']}>
             <InfoboxContent>
                 {item.projectGroup && (
                     <InfoboxField
-                        label={t('projektivelho.file-list.field.project-group')}
+                        label={t('project-group')}
                         value={
-                            item.projectGroup.name
-                            // TODO Re-enable redirect links when they work
-                            /*<PVRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
-                                {`${item.projectGroup.name} (${item.projectGroup.state})`}
-                            </PVRedirectLink>*/
+                            `${item.projectGroup.name} (${item.projectGroup.state})`
+                            /*
+                                <PVRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
+                                    {`${item.projectGroup.name} (${item.projectGroup.state})`}
+                                </PVRedirectLink>
+                            */
                         }
                     />
                 )}
                 {item.project && (
                     <InfoboxField
-                        label={t('projektivelho.file-list.field.project-name')}
+                        label={t('project-name')}
                         value={
-                            item.project.name
-                            // TODO Re-enable redirect links when they work
-                            /*<PVRedirectLink changeTime={changeTime} oid={item.project.oid}>
-                                {`${item.project.name} (${item.project.state})`}
-                            </PVRedirectLink>*/
+                            `${item.project.name} (${item.project.state})`
+                            /*
+                                <PVRedirectLink changeTime={changeTime} oid={item.project.oid}>
+                                    {`${item.project.name} (${item.project.state})`}
+                                </PVRedirectLink>
+                             */
                         }
                     />
                 )}
                 {item.assignment && (
                     <InfoboxField
-                        label={t('projektivelho.file-list.field.assignment')}
+                        label={t('assignment')}
                         value={
-                            item.assignment.name
-                            // TODO Re-enable redirect links when they work
-                            /*<PVRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
-                                {`${item.assignment.name} (${item.assignment.state})`}
-                            </PVRedirectLink>*/
+                            `${item.assignment.name} (${item.assignment.state})`
+                            /*
+                                <PVRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
+                                    {`${item.assignment.name} (${item.assignment.state})`}
+                                </PVRedirectLink>
+                             */
                         }
                     />
                 )}
             </InfoboxContent>
             <InfoboxContent>
                 <InfoboxField
-                    label={t('projektivelho.file-list.field.material-group')}
+                    label={t('material-group')}
                     value={`${item.document.group} / ${item.document.category}`}
                 />
-                <InfoboxField
-                    label={t('projektivelho.file-list.field.document-type')}
-                    value={item.document.type}
-                />
-                <InfoboxField
-                    label={t('projektivelho.file-list.field.document-state')}
-                    value={item.document.state}
-                />
+                <InfoboxField label={t('document-type')} value={item.document.type} />
+                <InfoboxField label={t('document-state')} value={item.document.state} />
             </InfoboxContent>
         </div>
     );
