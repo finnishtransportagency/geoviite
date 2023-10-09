@@ -1,0 +1,28 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.loading-screen {
+    background-color: vayla-design.$color-white-dark;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+
+    img {
+        height: 60px;
+        width: 60px;
+
+        animation: logo-spin 2s linear infinite;
+    }
+}
+
+@keyframes logo-spin {
+    0% {
+        transform: rotate(0);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
