@@ -96,10 +96,20 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     />
                 </InfraModelTabContent>
                 <InfraModelTabContent tabId={InfraModelTabType.WAITING} activeTab={activeTab}>
-                    <PVFileListContainer listMode={'SUGGESTED'} changeTime={changeTime} />
+                    <PVFileListContainer
+                        listMode={'SUGGESTED'}
+                        changeTime={changeTime}
+                        sortPersistorFn={infraModelListDelegates.onSortPVSuggestedList}
+                        sorting={state.pvListState.suggested.sortedBy}
+                    />
                 </InfraModelTabContent>
                 <InfraModelTabContent tabId={InfraModelTabType.REJECTED} activeTab={activeTab}>
-                    <PVFileListContainer listMode={'REJECTED'} changeTime={changeTime} />
+                    <PVFileListContainer
+                        listMode={'REJECTED'}
+                        changeTime={changeTime}
+                        sortPersistorFn={infraModelListDelegates.onSortPVRejectedList}
+                        sorting={state.pvListState.rejected.sortedBy}
+                    />
                 </InfraModelTabContent>
             </div>
         </div>

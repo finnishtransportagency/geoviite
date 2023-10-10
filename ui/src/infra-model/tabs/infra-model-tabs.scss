@@ -44,6 +44,7 @@
     &__outlet {
         background: vayla-design.$color-white-default;
         flex: 1;
+        overflow: auto;
     }
 
     &__exclamation-point-container {
