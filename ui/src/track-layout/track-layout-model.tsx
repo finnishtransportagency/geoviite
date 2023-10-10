@@ -105,11 +105,6 @@ export type LayoutLocationTrack = {
     topologyEndSwitch?: TopologyLocationTrackSwitch;
 };
 
-export const locationTrackDescription = (lt: {
-    descriptionBase?: string;
-    descriptionSuffix?: string;
-}) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
-
 export type LocationTrackDuplicate = {
     id: LocationTrackId;
     name: string;
