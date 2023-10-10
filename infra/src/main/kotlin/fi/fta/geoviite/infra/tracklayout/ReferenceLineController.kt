@@ -85,7 +85,7 @@ class ReferenceLineController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): ChangeTimes {
+    fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): DraftableChangeInfo {
         logger.apiCall("getReferenceLineChangeInfo", "id" to id)
         return referenceLineService.getChangeTimes(id)
     }

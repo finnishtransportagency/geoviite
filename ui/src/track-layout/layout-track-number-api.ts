@@ -4,7 +4,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
+import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
 import {
     deleteAdt,
     getNonNull,
@@ -104,6 +104,6 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
 
 export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
-): Promise<ChangeTimes | undefined> => {
-    return getNullable<ChangeTimes>(changeTimeUri('track-numbers', id));
+): Promise<DraftableChangeInfo | undefined> => {
+    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id));
 };

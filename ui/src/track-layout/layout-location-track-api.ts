@@ -5,7 +5,7 @@ import {
     LocationTrackId,
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
+import { DraftableChangeInfo, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
@@ -201,8 +201,8 @@ export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[
 
 export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
-): Promise<ChangeTimes | undefined> => {
-    return getNullable<ChangeTimes>(changeTimeUri('location-tracks', id));
+): Promise<DraftableChangeInfo | undefined> => {
+    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id));
 };
 
 export const getLocationTrackSectionsByPlan = async (
