@@ -320,7 +320,10 @@
         "start-switch": "Vaihde raiteen alussa",
         "end-switch": "Vaihde raiteen lopussa",
         "no-start-or-end-switch": "Ei vaihdetta",
-        "buffer": "Puskin"
+        "buffer": "Puskin",
+        "description-base": "Kuvauksen perusosa",
+        "description-suffix": "Kuvauksen lisäosa",
+        "full-description": "Valmis kuvaus"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",

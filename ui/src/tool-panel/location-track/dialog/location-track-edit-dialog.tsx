@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     LayoutLocationTrack,
-    locationTrackDescription,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -13,6 +12,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import {
     getLocationTrack,
+    getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
     insertLocationTrack,
     updateLocationTrack,
@@ -231,17 +231,29 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
-                locationTracks
-                    .filter((lt) => {
-                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined;
-                    })
-                    .map((lt) => ({
-                        name: `${lt.name}, ${locationTrackDescription(lt)}`,
-                        value: {
-                            type: 'locationTrackSearchItem',
-                            locationTrack: lt,
-                        },
-                    })),
+                getLocationTrackDescriptions(
+                    locationTracks.map((lt) => lt.id),
+                    'DRAFT',
+                ).then((descriptions) => {
+                    return locationTracks
+                        .filter((lt) => {
+                            return (
+                                lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined
+                            );
+                        })
+                        .map((lt) => {
+                            const description =
+                                descriptions &&
+                                descriptions.find((d) => d.id === lt.id)?.description;
+                            return {
+                                name: description ? `${lt.name}, ${description}` : lt.name,
+                                value: {
+                                    type: 'locationTrackSearchItem',
+                                    locationTrack: lt,
+                                },
+                            };
+                        });
+                }),
             ),
         [props.locationTrack?.id],
     );
@@ -287,7 +299,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         const last = splits.length ? splits[splits.length - 1] : '';
         const numberPart = last[0] === 'V' ? last.substring(1) : '';
         const number = parseInt(numberPart, 10);
-        return !isNaN(number) ? `V${number}`.padStart(3, '0') : undefined;
+        return !isNaN(number) ? `V${number.toString(10).padStart(3, '0')}` : undefined;
     };
 
     return (
@@ -411,7 +423,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <div className={styles['location-track-edit-dialog__description']}>
                                     <FieldLayout
-                                        label={`Kuvauksen perusosa *`}
+                                        label={`${t('location-track-dialog.description-base')} *`}
                                         value={
                                             <TextField
                                                 value={state.locationTrack?.descriptionBase || ''}
@@ -428,7 +440,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         errors={getVisibleErrorsByProp('descriptionBase')}
                                     />
                                     <FieldLayout
-                                        label={`Kuvauksen lisäosa *`}
+                                        label={`${t('location-track-dialog.description-suffix')} *`}
                                         value={
                                             <Dropdown
                                                 options={descriptionSuffixModes}
@@ -448,7 +460,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         errors={getVisibleErrorsByProp('descriptionSuffix')}
                                     />
                                     <FieldLayout
-                                        label={`Valmis kuvaus`}
+                                        label={`${t('location-track-dialog.full-description')}`}
                                         value={state.locationTrack && fullDescription()}
                                     />
                                 </div>
