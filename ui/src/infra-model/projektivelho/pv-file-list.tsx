@@ -24,7 +24,6 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import {
     getPVSortInfoForProp,
-    PVInitiallyUnsorted,
     PVTableSortField,
     PVTableSortInformation,
     sortPVTableColumns,
@@ -38,6 +37,8 @@ type ListMode = 'SUGGESTED' | 'REJECTED';
 type PVFileListContainerProps = {
     changeTime: TimeStamp;
     listMode: ListMode;
+    sortPersistorFn: (sortInfo: PVTableSortInformation) => void;
+    sorting: PVTableSortInformation;
 };
 
 type PVFileListProps = {
@@ -47,6 +48,8 @@ type PVFileListProps = {
     onReject: (ids: PVDocumentId[]) => void;
     onImport: (id: PVDocumentId) => void;
     onRestore: (id: PVDocumentId[]) => void;
+    onSort: (sortInfo: PVTableSortInformation) => void;
+    sorting: PVTableSortInformation;
     changeTime: TimeStamp;
     documentsReloading: PVDocumentId[];
 };
@@ -54,6 +57,8 @@ type PVFileListProps = {
 export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
     changeTime,
     listMode,
+    sortPersistorFn,
+    sorting,
 }: PVFileListContainerProps) => {
     const navigate = useAppNavigate();
     const [loadingForUserTriggeredChange, setLoadingForUserTriggeredChange] = useState(false);
@@ -89,6 +94,8 @@ export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
                         updatePVDocumentsChangeTime();
                     });
                 }}
+                onSort={sortPersistorFn}
+                sorting={sorting}
                 listMode={listMode}
                 changeTime={changeTime}
             />
@@ -105,6 +112,8 @@ export const PVFileList = ({
     listMode,
     changeTime,
     documentsReloading,
+    sorting,
+    onSort,
 }: PVFileListProps) => {
     const { t } = useTranslation();
 
@@ -130,96 +139,89 @@ export const PVFileList = ({
     const restoreByProjectGroup = (projectGroupOid: Oid) =>
         onRestore(filterByProjectGroup(projectGroupOid));
 
-    const [sortInfo, setSortInfo] = React.useState<PVTableSortInformation>(PVInitiallyUnsorted);
-
     const [sortedDocumentHeaders, setSortedDocumentHeaders] = React.useState<PVDocumentHeader[]>([
         ...documentHeaders,
     ]);
 
     React.useEffect(() => {
-        const sortableDocumentHeaders = sortPVTableColumns(sortInfo, [...documentHeaders]);
+        const sortableDocumentHeaders = sortPVTableColumns(sorting, [...documentHeaders]);
         setSortedDocumentHeaders(sortableDocumentHeaders);
-    }, [documentHeaders, sortInfo]);
+    }, [documentHeaders, sorting]);
 
     const sortByProp = (propName: PVTableSortField) => {
-        const newSortInfo = getPVSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
-
-        setSortInfo(newSortInfo);
+        const newSortInfo = getPVSortInfoForProp(sorting.direction, sorting.propName, propName);
 
         if (newSortInfo.direction === SortDirection.UNSORTED) {
             setSortedDocumentHeaders([...documentHeaders]);
         }
+        onSort(newSortInfo);
     };
 
     const sortableTableHeader = (prop: PVTableSortField, translationKey: string, qaId: string) => (
         <Th
             onClick={() => sortByProp(prop)}
             qa-id={qaId}
-            icon={
-                sortInfo?.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
-            }>
+            icon={sorting?.propName === prop ? getSortDirectionIcon(sorting.direction) : undefined}>
             {t(translationKey)}
         </Th>
     );
 
     return (
-        <div>
-            <Table className={styles['projektivelho-file-list__table']} wide isLoading={isLoading}>
-                <thead>
-                    <tr>
+        <Table className={styles['projektivelho-file-list__table']} wide isLoading={isLoading}>
+            <thead>
+                <tr>
+                    <Th></Th>
+                    {sortableTableHeader(
+                        PVTableSortField.PROJECT_NAME,
+                        'projektivelho.file-list.header.project-name',
+                        'projektivelho.project-name',
+                    )}
+                    {sortableTableHeader(
+                        PVTableSortField.DOCUMENT_NAME,
+                        'projektivelho.file-list.header.document-name',
+                        'projektivelho.document-name',
+                    )}
+                    {sortableTableHeader(
+                        PVTableSortField.DOCUMENT_DESCRIPTION,
+                        'projektivelho.file-list.header.document-description',
+                        'projektivelho.document-description',
+                    )}
+                    {sortableTableHeader(
+                        PVTableSortField.DOCUMENT_MODIFIED,
+                        'projektivelho.file-list.header.document-modified',
+                        'projektivelho.document-modified',
+                    )}
+                    <WriteAccessRequired>
                         <Th></Th>
-                        {sortableTableHeader(
-                            PVTableSortField.PROJECT_NAME,
-                            'projektivelho.file-list.header.project-name',
-                            'projektivelho.project-name',
-                        )}
-                        {sortableTableHeader(
-                            PVTableSortField.DOCUMENT_NAME,
-                            'projektivelho.file-list.header.document-name',
-                            'projektivelho.document-name',
-                        )}
-                        {sortableTableHeader(
-                            PVTableSortField.DOCUMENT_DESCRIPTION,
-                            'projektivelho.file-list.header.document-description',
-                            'projektivelho.document-description',
-                        )}
-                        {sortableTableHeader(
-                            PVTableSortField.DOCUMENT_MODIFIED,
-                            'projektivelho.file-list.header.document-modified',
-                            'projektivelho.document-modified',
-                        )}
-                        <WriteAccessRequired>
-                            <Th></Th>
-                        </WriteAccessRequired>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sortedDocumentHeaders.map((item) => (
-                        <PVFileListRow
-                            actionsDisabled={documentsReloading.includes(item.document.id)}
-                            listMode={listMode}
-                            key={item.document.id}
-                            item={item}
-                            onReject={() => onReject([item.document.id])}
-                            onImport={() => onImport(item.document.id)}
-                            onRestore={() => onRestore([item.document.id])}
-                            onRestoreByProject={(oid: Oid) => restoreByProject(oid)}
-                            onRestoreByAssignment={(oid: Oid) => restoreByAssignment(oid)}
-                            onRestoreByProjectGroup={(oid: Oid) => restoreByProjectGroup(oid)}
-                            onRejectByProject={(oid: Oid) => rejectByProject(oid)}
-                            onRejectByProjectGroup={(oid: Oid) => rejectByProjectGroup(oid)}
-                            onRejectByAssignment={(oid: Oid) => rejectByAssignment(oid)}
-                            changeTime={changeTime}
-                            itemCounts={{
-                                assignment: filterByAssignment(item.assignment?.oid).length,
-                                project: filterByProject(item.project?.oid).length,
-                                projectGroup: filterByProjectGroup(item.projectGroup?.oid).length,
-                            }}
-                        />
-                    ))}
-                </tbody>
-            </Table>
-        </div>
+                    </WriteAccessRequired>
+                </tr>
+            </thead>
+            <tbody>
+                {sortedDocumentHeaders.map((item) => (
+                    <PVFileListRow
+                        actionsDisabled={documentsReloading.includes(item.document.id)}
+                        listMode={listMode}
+                        key={item.document.id}
+                        item={item}
+                        onReject={() => onReject([item.document.id])}
+                        onImport={() => onImport(item.document.id)}
+                        onRestore={() => onRestore([item.document.id])}
+                        onRestoreByProject={(oid: Oid) => restoreByProject(oid)}
+                        onRestoreByAssignment={(oid: Oid) => restoreByAssignment(oid)}
+                        onRestoreByProjectGroup={(oid: Oid) => restoreByProjectGroup(oid)}
+                        onRejectByProject={(oid: Oid) => rejectByProject(oid)}
+                        onRejectByProjectGroup={(oid: Oid) => rejectByProjectGroup(oid)}
+                        onRejectByAssignment={(oid: Oid) => rejectByAssignment(oid)}
+                        changeTime={changeTime}
+                        itemCounts={{
+                            assignment: filterByAssignment(item.assignment?.oid).length,
+                            project: filterByProject(item.project?.oid).length,
+                            projectGroup: filterByProjectGroup(item.projectGroup?.oid).length,
+                        }}
+                    />
+                ))}
+            </tbody>
+        </Table>
     );
 };
 
