@@ -17,7 +17,7 @@ import {
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { CoordinateSystem as CoordinateSystemModel, Oid, TimeStamp } from 'common/common-model';
+import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -48,9 +48,9 @@ import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-projec
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
-//import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
+import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -274,38 +274,51 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         {pvDocument.projectGroup && (
                             <FormgroupField
                                 label={t('im-form.pv-document-information.project-group')}>
-                                {projectInfo(
-                                    pvDocument.projectGroup.oid,
-                                    pvDocument.projectGroup.name,
-                                    changeTimes.pvDocument,
-                                )}
+                                <span className={styles['infra-model-upload__project-field']}>
+                                    <PVOid oid={pvDocument.projectGroup.oid} />
+                                    <PVRedirectLink projectGroupOid={pvDocument.projectGroup.oid}>
+                                        {pvDocument.projectGroup.name}
+                                    </PVRedirectLink>
+                                </span>
                             </FormgroupField>
                         )}
                         {pvDocument.project && (
                             <FormgroupField label={t('im-form.pv-document-information.project')}>
-                                {projectInfo(
-                                    pvDocument.project.oid,
-                                    pvDocument.project.name,
-                                    changeTimes.pvDocument,
-                                )}
+                                <span className={styles['infra-model-upload__project-field']}>
+                                    <PVOid oid={pvDocument.project.oid} />
+                                    <PVRedirectLink projectOid={pvDocument.project.oid}>
+                                        {pvDocument.project.name}
+                                    </PVRedirectLink>
+                                </span>
                             </FormgroupField>
                         )}
-                        {pvDocument.assignment && (
-                            <FormgroupField label={t('im-form.pv-document-information.assignment')}>
-                                {projectInfo(
-                                    pvDocument.assignment.oid,
-                                    pvDocument.assignment.name,
-                                    changeTimes.pvDocument,
-                                )}
-                            </FormgroupField>
+                        {pvDocument.assignment && pvDocument.project && (
+                            <>
+                                <FormgroupField
+                                    label={t('im-form.pv-document-information.assignment')}>
+                                    <span className={styles['infra-model-upload__project-field']}>
+                                        <PVOid oid={pvDocument.assignment.oid} />
+                                        <PVRedirectLink
+                                            assignmentOid={pvDocument.assignment.oid}
+                                            projectOid={pvDocument.project.oid}>
+                                            {pvDocument.assignment.name}
+                                        </PVRedirectLink>
+                                    </span>
+                                </FormgroupField>
+                                <FormgroupField
+                                    label={t('im-form.pv-document-information.document')}>
+                                    <span className={styles['infra-model-upload__project-field']}>
+                                        <PVOid oid={pvDocument.document.oid} />
+                                        <PVRedirectLink
+                                            documentOid={pvDocument.document.oid}
+                                            assignmentOid={pvDocument.assignment.oid}
+                                            projectOid={pvDocument.project.oid}>
+                                            {pvDocument.document.description}
+                                        </PVRedirectLink>
+                                    </span>
+                                </FormgroupField>
+                            </>
                         )}
-                        <FormgroupField label={t('im-form.pv-document-information.document')}>
-                            {projectInfo(
-                                pvDocument.document.oid,
-                                pvDocument.document.description || '',
-                                changeTimes.pvDocument,
-                            )}
-                        </FormgroupField>
                     </FormgroupContent>
                 )}
 
@@ -581,19 +594,3 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 };
 
 export default InfraModelForm;
-
-function projectInfo(oid: Oid, description: string, _changeTime: TimeStamp) {
-    return (
-        <span className={styles['infra-model-upload__project-field']}>
-            <PVOid oid={oid} />
-            {
-                description
-                /*
-                    <PVRedirectLink changeTime={changeTime} oid={oid}>
-                        {description}
-                    </PVRedirectLink>
-                */
-            }
-        </span>
-    );
-}

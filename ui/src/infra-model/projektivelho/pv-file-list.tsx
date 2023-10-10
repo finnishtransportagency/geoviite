@@ -32,6 +32,7 @@ import {
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from '../../vayla-design-lib/dialog/dialog.scss';
+import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -496,12 +497,9 @@ const PVFileListExpandedItem = ({ item }: PVFileListExpandedItemProps) => {
                     <InfoboxField
                         label={t('project-group')}
                         value={
-                            `${item.projectGroup.name} (${item.projectGroup.state})`
-                            /*
-                                <PVRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
-                                    {`${item.projectGroup.name} (${item.projectGroup.state})`}
-                                </PVRedirectLink>
-                            */
+                            <PVRedirectLink projectGroupOid={item.projectGroup.oid}>
+                                {`${item.projectGroup.name} (${item.projectGroup.state})`}
+                            </PVRedirectLink>
                         }
                     />
                 )}
@@ -509,25 +507,21 @@ const PVFileListExpandedItem = ({ item }: PVFileListExpandedItemProps) => {
                     <InfoboxField
                         label={t('project-name')}
                         value={
-                            `${item.project.name} (${item.project.state})`
-                            /*
-                                <PVRedirectLink changeTime={changeTime} oid={item.project.oid}>
-                                    {`${item.project.name} (${item.project.state})`}
-                                </PVRedirectLink>
-                             */
+                            <PVRedirectLink projectOid={item.project.oid}>
+                                {`${item.project.name} (${item.project.state})`}
+                            </PVRedirectLink>
                         }
                     />
                 )}
-                {item.assignment && (
+                {item.assignment && item.project && (
                     <InfoboxField
                         label={t('assignment')}
                         value={
-                            `${item.assignment.name} (${item.assignment.state})`
-                            /*
-                                <PVRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
-                                    {`${item.assignment.name} (${item.assignment.state})`}
-                                </PVRedirectLink>
-                             */
+                            <PVRedirectLink
+                                assignmentOid={item.assignment.oid}
+                                projectOid={item.project.oid}>
+                                {`${item.assignment.name} (${item.assignment.state})`}
+                            </PVRedirectLink>
                         }
                     />
                 )}
