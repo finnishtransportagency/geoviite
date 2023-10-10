@@ -50,13 +50,7 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                         </td>
                         <td>{formatValue(change.value.oldValue, change.value.localizationKey)}</td>
                         <td>{formatValue(change.value.newValue, change.value.localizationKey)}</td>
-                        <td>
-                            {change.remark
-                                ? t(`publication-details-table.remark.${change.remark.key}`, {
-                                      value: change.remark.value,
-                                  })
-                                : ''}
-                        </td>
+                        <td>{change.remark}</td>
                     </tr>
                 ))}
             </tbody>

@@ -475,6 +475,10 @@ class PublicationDao(
               old_av.length as old_length,
               ltv.track_number_id as track_number_id,
               old_ltv.track_number_id as old_track_number_id,
+              ltv.alignment_id,
+              old_ltv.alignment_id as old_alignment_id,
+              ltv.alignment_version,
+              old_ltv.alignment_version as old_alignment_version,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -538,6 +542,7 @@ class PublicationDao(
                 duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
+                alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version")
             )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
     }
@@ -588,6 +593,10 @@ class PublicationDao(
               old_reference_line_version.track_number_id as old_track_number_id,
               av.length,
               old_av.length as old_length,
+              reference_line_version.alignment_id,
+              old_reference_line_version.alignment_id as old_alignment_id,
+              reference_line_version.alignment_version,
+              old_reference_line_version.alignment_version as old_alignment_version,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -633,7 +642,8 @@ class PublicationDao(
                 trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
-                endPoint = rs.getChangePoint("end_x", "end_y")
+                endPoint = rs.getChangePoint("end_x", "end_y"),
+                alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
             )
         }.toMap().also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
     }

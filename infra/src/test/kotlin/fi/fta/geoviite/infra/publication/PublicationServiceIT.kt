@@ -945,6 +945,7 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val diff = publicationService.diffTrackNumber(
+            localizationService.getLocalization("fi"),
             changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
             thisAndPreviousPublication.last().publicationTime
@@ -991,6 +992,7 @@ class PublicationServiceIT @Autowired constructor(
         val updatedTrackNumber = trackNumberService.getOrThrow(OFFICIAL, idOfUpdated)
 
         val diff = publicationService.diffTrackNumber(
+            localizationService.getLocalization("fi"),
             changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
             thisAndPreviousPublication.last().publicationTime
@@ -1078,6 +1080,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
+            localizationService.getLocalization("fi"),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -1124,6 +1127,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
+            localizationService.getLocalization("fi"),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -1187,6 +1191,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
+            localizationService.getLocalization("fi"),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -1222,6 +1227,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
+            localizationService.getLocalization("fi"),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,

@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivityType
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivityType
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
 
 const val VALIDATION = "validation.layout"
@@ -650,18 +651,6 @@ private fun areDirectionsContinuous(points: List<LayoutPoint>): Boolean {
         angleOk
     }.all { it }
 }
-
-private fun rangesOfConsecutiveIndicesOf(
-    value: Boolean,
-    ts: List<Boolean>,
-    offsetRangeEndsBy: Int = 0,
-): List<ClosedRange<Int>> =
-    sequence { yield(!value); yieldAll(ts.asSequence()); yield(!value) }
-        .zipWithNext()
-        .mapIndexedNotNull { i, (a, b) -> if (a != b) i else null }
-        .chunked(2)
-        .map { c -> c[0]..c[1] + offsetRangeEndsBy }
-        .toList()
 
 private fun discontinuousDirectionRangeIndices(points: List<LayoutPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
