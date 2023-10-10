@@ -92,8 +92,8 @@ export type ElementLocation = {
 };
 
 export type ChangeTimes = {
-    changed: Date;
-    created: Date;
+    changed: TimeStamp;
+    created: TimeStamp;
 };
 
 export type Message = string;

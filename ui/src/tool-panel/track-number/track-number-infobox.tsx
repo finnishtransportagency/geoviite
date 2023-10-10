@@ -16,9 +16,10 @@ import {
     useCoordinateSystem,
     useReferenceLineChangeTimes,
     useReferenceLineStartAndEnd,
+    useTrackNumberChangeTimes,
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
@@ -26,7 +27,7 @@ import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { formatDateShort } from 'utils/date-utils';
+import { formatDateShort, getMaxTimestamp, getMinTimestamp } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
@@ -37,6 +38,7 @@ import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice'
 import { WriteAccessRequired } from 'user/write-access-required';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { ChangeTimes } from 'common/common-slice';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -48,7 +50,7 @@ type TrackNumberInfoboxProps = {
     onStartReferenceLineGeometryChange: (alignment: LinkInterval) => void;
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
-    referenceLineChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     visibilities: TrackNumberInfoboxVisibilities;
     onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
@@ -63,7 +65,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onStartReferenceLineGeometryChange,
     onEndReferenceLineGeometryChange,
     viewport,
-    referenceLineChangeTime,
+    changeTimes,
     visibilities,
     onVisibilityChange,
     onHighlightItem,
@@ -72,10 +74,19 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const startAndEndPoints = useReferenceLineStartAndEnd(
         referenceLine?.id,
         publishType,
-        referenceLineChangeTime,
+        changeTimes.layoutReferenceLine,
     );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
-    const changeTimes = useReferenceLineChangeTimes(referenceLine?.id);
+    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id);
+    const rlChangeTimes = useReferenceLineChangeTimes(referenceLine?.id);
+    const createdTime =
+        tnChangeTimes?.created && rlChangeTimes?.created
+            ? getMinTimestamp(tnChangeTimes.created, rlChangeTimes.created)
+            : tnChangeTimes?.created || rlChangeTimes?.created;
+    const changedTime =
+        tnChangeTimes?.changed && rlChangeTimes?.changed
+            ? getMaxTimestamp(tnChangeTimes.changed, rlChangeTimes.changed)
+            : tnChangeTimes?.changed || rlChangeTimes?.changed;
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -185,7 +196,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                                 referenceLine.id,
                                                 publishType,
                                                 'REFERENCE_LINE',
-                                                referenceLineChangeTime,
+                                                changeTimes.layoutReferenceLine,
                                             ).then(onStartReferenceLineGeometryChange);
                                         }}>
                                         {t('tool-panel.location-track.modify-start-or-end')}
@@ -282,10 +293,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     id={trackNumber.id}
                     type={'TRACK_NUMBER'}
                     publishType={publishType}
-                    changeTime={referenceLineChangeTime}
+                    changeTime={getMaxTimestamp(
+                        changeTimes.layoutTrackNumber,
+                        changeTimes.layoutReferenceLine,
+                    )}
                 />
             )}
-            {changeTimes && (
+            {createdTime && changedTime && (
                 <Infobox
                     contentVisible={visibilities.log}
                     onContentVisibilityChange={() => visibilityChange('log')}
@@ -294,11 +308,11 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     <InfoboxContent>
                         <InfoboxField
                             label={t('tool-panel.created')}
-                            value={formatDateShort(changeTimes.created)}
+                            value={formatDateShort(createdTime)}
                         />
                         <InfoboxField
                             label={t('tool-panel.changed')}
-                            value={formatDateShort(changeTimes.changed)}
+                            value={formatDateShort(changedTime)}
                         />
                         {isDeletable && (
                             <InfoboxButtons>
