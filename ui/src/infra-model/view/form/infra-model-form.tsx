@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    Author,
     GeometryAlignment,
     GeometryKmPost,
     GeometryPlan,
@@ -51,6 +50,7 @@ import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
 //import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
+import { useLoader } from 'utils/react-utils';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -118,13 +118,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
     const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | undefined>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
-    const [authors, setAuthors] = React.useState<Author[]>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
+    const authors = useLoader(() => fetchAuthors(), [changeTimes.geometryPlan]) || [];
 
     const planSourceOptions = [
         {
@@ -181,6 +181,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         return trackNumberList?.find((t) => t.id == trackId)?.number;
     }
 
+    const authorsIncludingFromPlan = () => {
+        const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
+        return [...authors, ...(!authorInList && geometryPlan.author ? [geometryPlan.author] : [])];
+    };
+
     React.useEffect(() => {
         getSridList().then((list) => setSridList(list));
         updateTrackNumbers();
@@ -194,13 +199,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         overrideInfraModelParameters.projectId
             ? getProject(overrideInfraModelParameters.projectId).then(setProject)
             : setProject(geometryPlan.project);
-        fetchAuthors().then((authors) => {
-            const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
-            setAuthors([
-                ...authors,
-                ...(authorInList || !geometryPlan.author ? [] : [geometryPlan.author]),
-            ]);
-        });
     }, [geometryPlan]);
 
     React.useEffect(() => {
@@ -339,14 +337,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         wide
                                         value={geometryPlan.author?.id}
-                                        options={
-                                            authors
-                                                ? authors.map((author) => ({
-                                                      name: author.companyName,
-                                                      value: author.id,
-                                                  }))
-                                                : []
-                                        }
+                                        options={authorsIncludingFromPlan().map((author) => ({
+                                            name: author.companyName,
+                                            value: author.id,
+                                        }))}
                                         onChange={(authorId) => {
                                             authorId &&
                                                 authorId != geometryPlan.author?.id &&
@@ -553,7 +547,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
             {showNewAuthorDialog && (
                 <NewAuthorDialog
-                    authors={authors}
+                    authors={authorsIncludingFromPlan()}
                     onClose={() => setShowNewAuthorDialog(false)}
                     onSave={(author) => {
                         setShowNewAuthorDialog(false);
