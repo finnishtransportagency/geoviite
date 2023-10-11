@@ -160,7 +160,7 @@ $dropdown-border-error: 1.5px;
     @include typography.typography-body;
     @include shadows.shadow-8dp;
     position: absolute;
-    z-index: layers.$layer-menu;
+    z-index: layers.$layer-popup;
     display: flex;
     flex-direction: column;
     margin-top: 2px;
