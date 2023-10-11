@@ -35,7 +35,6 @@ export type InfraModelBaseProps = InfraModelState & {
 };
 export type InfraModelViewProps = InfraModelBaseProps & {
     onSave: () => Promise<boolean>;
-    onValidate: () => void;
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {

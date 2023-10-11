@@ -11,6 +11,7 @@ export type ChangeTimes = {
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
     project: TimeStamp;
+    author: TimeStamp;
     publication: TimeStamp;
     ratkoPush: TimeStamp;
     pvDocument: TimeStamp;
@@ -25,6 +26,7 @@ export const initialChangeTimes: ChangeTimes = {
     layoutKmPost: initialChangeTime,
     geometryPlan: initialChangeTime,
     project: initialChangeTime,
+    author: initialChangeTime,
     publication: initialChangeTime,
     ratkoPush: initialChangeTime,
     pvDocument: initialChangeTime,
