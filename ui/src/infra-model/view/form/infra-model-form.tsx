@@ -124,7 +124,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
-    const authors = useLoader(() => fetchAuthors(), [changeTimes.geometryPlan]) || [];
+    const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
     const planSourceOptions = [
         {
