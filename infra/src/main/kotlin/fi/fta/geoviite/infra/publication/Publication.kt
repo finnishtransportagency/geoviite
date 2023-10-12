@@ -59,7 +59,7 @@ data class ChangeValue<T>(
 data class PublicationChange<T>(
     val propKey: PropKey,
     val value: ChangeValue<T>,
-    val remark: PublicationChangeRemark?,
+    val remark: String?,
 )
 
 data class PropKey(
@@ -67,13 +67,6 @@ data class PropKey(
     val params: LocalizationParams = emptyMap(),
 ) {
     constructor(key: String, params: LocalizationParams = emptyMap()) : this(LocalizationKey(key), params)
-}
-
-data class PublicationChangeRemark(
-    val key: LocalizationKey,
-    val value: String,
-) {
-    constructor(key: String, value: String) : this(LocalizationKey(key), value)
 }
 
 open class Publication(
@@ -368,6 +361,7 @@ data class LocationTrackChanges(
     val startPoint: Change<Point>,
     val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
+    val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
 )
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
@@ -393,6 +387,7 @@ data class ReferenceLineChanges(
     val length: Change<Double>,
     val startPoint: Change<Point>,
     val endPoint: Change<Point>,
+    val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
 )
 
 data class TrackNumberChanges(

@@ -37,11 +37,13 @@ export const KilometerLengthsView = () => {
                 <div>
                     <span className={styles['data-product-view__radio-layout']}>
                         <Radio
+                            qaId="select-location-track-km-lengths"
                             onChange={() => handleRadioClick('TRACK_NUMBER')}
                             checked={state.selectedSearch === 'TRACK_NUMBER'}>
                             {t('data-products.km-lengths.track-number-km-lengths')}
                         </Radio>
                         <Radio
+                            qaId="select-entire-rail-network"
                             onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
                             checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
                             {t('data-products.km-lengths.entire-rail-network-km-lengths')}

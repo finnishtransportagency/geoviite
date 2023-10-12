@@ -43,6 +43,7 @@ export type DropdownProps<TItemValue> = {
     hasError?: boolean;
     onAddClick?: () => void;
     wideList?: boolean;
+    qaId?: string;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled'>;
 
 function isOptionsArray<TItemValue>(
@@ -309,7 +310,11 @@ export const Dropdown = function <TItemValue>({
     }, [options]);
 
     return (
-        <div className={className} ref={menuRef} onMouseDown={() => handleRootMouseDown()}>
+        <div
+            qa-id={props.qaId}
+            className={className}
+            ref={menuRef}
+            onMouseDown={() => handleRootMouseDown()}>
             <div
                 className={styles['dropdown__header']}
                 role="button"

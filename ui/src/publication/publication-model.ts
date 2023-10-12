@@ -183,13 +183,8 @@ export type ChangeValue = {
 export type PublicationChange = {
     propKey: PropKey;
     value: ChangeValue;
-    remark?: PublicationChangeRemark;
+    remark?: string;
     enumKey?: string;
-};
-
-export type PublicationChangeRemark = {
-    key: string;
-    value: string;
 };
 
 export type ValidatedAsset = {

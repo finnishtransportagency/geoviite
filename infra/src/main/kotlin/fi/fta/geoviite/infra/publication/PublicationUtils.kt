@@ -2,11 +2,15 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -17,6 +21,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import kotlin.math.hypot
 
 fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(timeZone)
@@ -65,12 +70,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
                 "${
                     translation.t("publication-details-table.prop.${change.propKey.key}", change.propKey.params)
                 }: ${formatChangeValue(translation, change.value)}${
-                    if (change.remark != null) " (${
-                        translation.t(
-                            "publication-details-table.remark.${change.remark.key}",
-                            mapOf("value" to change.remark.value)
-                        )
-                    })" else ""
+                    if (change.remark != null) " (${change.remark})" else ""
                 }"
             }
         }).map { (column, fn) ->
@@ -174,37 +174,36 @@ fun lengthDifference(len1: BigDecimal, len2: BigDecimal) = abs(abs(len1.toDouble
 fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
     point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
 
-fun getLengthChangedRemarkOrNull(length1: Double?, length2: Double?) =
+fun getLengthChangedRemarkOrNull(translation: Translation, length1: Double?, length2: Double?) =
     if (length1 != null && length2 != null) lengthDifference(length1, length2).let { lengthDifference ->
-        if (lengthDifference > DISTANCE_CHANGE_THRESHOLD) PublicationChangeRemark(
-            "changed-x-meters", formatDistance(lengthDifference)
+        if (lengthDifference > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
+            translation, "changed-x-meters", formatDistance(lengthDifference)
         )
         else null
     }
     else null
 
-fun getPointMovedRemarkOrNull(oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
+fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
     newPoint?.let { p2 ->
         if (!pointsAreSame(p1, p2)) {
             val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
-            if (distance > DISTANCE_CHANGE_THRESHOLD) PublicationChangeRemark(
-                "moved-x-meters", formatDistance(distance)
+            if (distance > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
+                translation, "moved-x-meters", formatDistance(distance)
             )
             else null
         } else null
     }
 }
 
-fun getAddressMovedRemarkOrNull(oldAddress: TrackMeter?, newAddress: TrackMeter?) =
+fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter?, newAddress: TrackMeter?) =
     if (newAddress == null || oldAddress == null) null
-    else if (newAddress.kmNumber != oldAddress.kmNumber) PublicationChangeRemark(
-        "km-number-changed", "${newAddress.kmNumber}"
+    else if (newAddress.kmNumber != oldAddress.kmNumber) publicationChangeRemark(
+        translation, "km-number-changed", "${newAddress.kmNumber}"
     )
     else if (lengthDifference(
             newAddress.meters, oldAddress.meters
-        ) > DISTANCE_CHANGE_THRESHOLD
-    ) PublicationChangeRemark(
-        "moved-x-meters", formatDistance(
+        ) > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
+        translation, "moved-x-meters", formatDistance(
             lengthDifference(
                 newAddress.meters, oldAddress.meters
             )
@@ -212,16 +211,11 @@ fun getAddressMovedRemarkOrNull(oldAddress: TrackMeter?, newAddress: TrackMeter?
     )
     else null
 
-fun getKmNumbersChangedRemarkOrNull(changedKmNumbers: Set<KmNumber>) = PublicationChangeRemark(
-    if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
-    formatChangedKmNumbers(changedKmNumbers.toList())
-)
-
 fun <T, U> compareChangeValues(
     change: Change<T>,
     valueTransform: (T) -> U,
     propKey: PropKey,
-    remark: PublicationChangeRemark? = null,
+    remark: String? = null,
     enumLocalizationKey: String? = null,
 ) = compareChange(
     predicate = { change.new != change.old },
@@ -239,7 +233,7 @@ fun <U> compareLength(
     threshold: Double,
     valueTransform: (Double) -> U,
     propKey: PropKey,
-    remark: PublicationChangeRemark? = null,
+    remark: String? = null,
     enumLocalizationKey: String? = null,
 ) = compareChange(
     predicate = {
@@ -261,7 +255,7 @@ fun <T, U> compareChange(
     newValue: T?,
     valueTransform: (T) -> U,
     propKey: PropKey,
-    remark: PublicationChangeRemark? = null,
+    remark: String? = null,
     enumLocalizationKey: String? = null,
 ) = if (predicate()) {
     PublicationChange(
@@ -284,3 +278,105 @@ fun switchBaseTypeToProp(translation: Translation, switchBaseType: SwitchBaseTyp
         "publication-details-table.joint.math-point"
     )
 }
+
+data class GeometryChangeSummary(
+    val changedLengthM: Double,
+    val maxDistance: Double,
+    val startKm: KmNumber,
+    val endKm: KmNumber,
+)
+
+fun getKmNumbersChangedRemarkOrNull(
+    translation: Translation,
+    oldAlignment: LayoutAlignment?,
+    newAlignment: LayoutAlignment?,
+    geocodingContext: GeocodingContext,
+    changedKmNumbers: Set<KmNumber>,
+): String {
+    val summaries = if (oldAlignment != null && newAlignment != null) summarizeAlignmentChanges(
+        geocodingContext,
+        oldAlignment,
+        newAlignment
+    ) else null
+
+    return if (summaries.isNullOrEmpty()) {
+        publicationChangeRemark(
+            translation,
+            if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+            formatChangedKmNumbers(changedKmNumbers.toList())
+        )
+    } else summaries.joinToString { summary ->
+        val key =
+            "publication-details-table.remark.geometry-changed${if (summary.startKm == summary.endKm) "" else "-many-km"}"
+        translation.t(
+            key,
+            mapOf(
+                "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
+                "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
+                "addressRange" to
+                        if (summary.startKm == summary.endKm) summary.startKm.toString()
+                        else "${summary.startKm}-${summary.endKm}"
+            )
+        )
+    }
+}
+
+private fun isContiguous(numbers: List<Int>) =
+    numbers.zipWithNext { a, b -> a + 1 == b}.all { it }
+
+private data class ComparisonPoints(
+    val oldPoint: LayoutPoint,
+    val newPoint: LayoutPoint,
+) {
+    val roughDistance = hypot(oldPoint.x - newPoint.x, oldPoint.y - newPoint.y)
+    fun distance() = calculateDistance(LAYOUT_SRID, oldPoint, newPoint)
+}
+
+fun summarizeAlignmentChanges(
+    geocodingContext: GeocodingContext,
+    oldAlignment: LayoutAlignment,
+    newAlignment: LayoutAlignment,
+    changeThreshold: Double = 1.0,
+): List<GeometryChangeSummary> {
+    val changedRanges = getChangedAlignmentRanges(oldAlignment, newAlignment)
+    return changedRanges.mapNotNull { oldSegments ->
+        val oldPoints = oldSegments.flatMap { segment -> segment.points }
+        val changedPoints = oldPoints.mapIndexedNotNull { index, oldPoint ->
+            geocodingContext.getAddress(oldPoint)?.let { address ->
+                val comparison =
+                    geocodingContext.getTrackLocation(newAlignment, address.first)?.let { newAddressPoint ->
+                        ComparisonPoints(oldPoint, newAddressPoint.point)
+                    }
+                if (comparison != null && comparison.roughDistance < changeThreshold) null
+                else index to comparison
+            }
+        }
+
+        if (changedPoints.isEmpty()) null else {
+            val startKm = geocodingContext.getAddress(oldPoints[changedPoints.first().first])?.first?.kmNumber
+            val endKm = geocodingContext.getAddress(oldPoints[changedPoints.last().first])?.first?.kmNumber
+
+            if (startKm == null || endKm == null) null else
+                GeometryChangeSummary(
+                    oldPoints[changedPoints.last().first].m - oldPoints[changedPoints.first().first].m,
+                    changedPoints.mapNotNull { it.second }.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
+                    startKm,
+                    endKm,
+                )
+        }
+    }
+}
+
+private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment): List<List<LayoutSegment>> {
+    val newIndexByGeometryId = new.segments.mapIndexed { i, s -> i to s }.associate { (index, segment) -> segment.geometry.id to index }
+    val changedOldSegmentIndexRanges = rangesOfConsecutiveIndicesOf(
+        false,
+        old.segments.map { segment -> newIndexByGeometryId.containsKey(segment.geometry.id) }
+    )
+    return changedOldSegmentIndexRanges.map { oldSegmentIndexRange ->
+        old.segments.subList(oldSegmentIndexRange.start, oldSegmentIndexRange.endInclusive)
+    }
+}
+
+fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
+    translation.t("publication-details-table.remark.$key", if (value != null) mapOf("value" to value) else mapOf())
