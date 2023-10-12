@@ -9,10 +9,13 @@ import { useTranslation } from 'react-i18next';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
 
-const formatJointTrackMeter = (jointTrackMeter: SwitchJointTrackMeter) => {
+const formatJointTrackMeter = (
+    jointTrackMeter: SwitchJointTrackMeter,
+    addressPlaceHolder: string,
+) => {
     return (
         <span>
-            <TrackMeter value={jointTrackMeter.trackMeter} />
+            <TrackMeter value={jointTrackMeter.trackMeter} placeholder={addressPlaceHolder} />
             <br />
             <LocationTrackLink
                 locationTrackId={jointTrackMeter.locationTrackId}
@@ -47,18 +50,18 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
         setShowOtherJoints(false);
     }, [jointTrackMeters, presentationJoint]);
 
+    const addressMissingText = t('tool-panel.switch.layout.no-location');
+
     return (
         <div className="switch-infobox-track-meters">
             <section>
-                {presentationJointAddress.length === 0 && (
-                    <span>{t('tool-panel.switch.layout.no-location')}</span>
-                )}
+                {presentationJointAddress.length === 0 && <span>{addressMissingText}</span>}
                 <ol className={styles['switch-infobox-track-meters__track-meters']}>
                     {presentationJointAddress.map((pja) => (
                         <li
                             key={pja.locationTrackId}
                             className={styles['switch-infobox-track-meters__track-meter']}>
-                            {formatJointTrackMeter(pja)}
+                            {formatJointTrackMeter(pja, addressMissingText)}
                         </li>
                     ))}
                 </ol>
@@ -80,7 +83,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                                         className={
                                             styles['switch-infobox-track-meters__track-meter']
                                         }>
-                                        {formatJointTrackMeter(a)}
+                                        {formatJointTrackMeter(a, addressMissingText)}
                                     </li>
                                 ))}
                             </ol>

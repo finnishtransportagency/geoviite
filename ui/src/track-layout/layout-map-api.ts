@@ -421,7 +421,7 @@ export async function getTrackMeter(
         changeTime,
         `${trackNumberId}_${publishType}_${pointString(location)}`,
         () => {
-            return getNonNull<TrackMeter>(
+            return getNullable<TrackMeter>(
                 `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
             );
         },
