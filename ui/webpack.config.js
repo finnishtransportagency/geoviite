@@ -51,30 +51,51 @@ module.exports = (env) => {
             compress: false,
             proxy: {
                 '/api': {
-                    target: 'http://localhost:8080',
+                    target: 'http://127.0.0.1:8080',
                     logLevel: 'debug',
                     pathRewrite: { '^/api': '' },
                 },
-                '/map': {
-                    target: 'http://localhost:8081/geoserver/Geoviite/wms',
+                '/redirect/projektivelho/files': {
+                    target: process.env.PROJEKTIVELHO_REDIRECT_URL,
                     logLevel: 'debug',
-                    pathRewrite: (url) => url.replace(/^\/map/, ''),
-                },
-                ...(process.env.MML_MAP_IN_USE === 'true' && {
-                    '/location-map/': {
-                        target: process.env.MML_MAP_URL,
-                        logLevel: 'debug',
-                        pathRewrite: { '^/location-map': '' },
-                        changeOrigin: true,
-                        headers: {
-                            'X-API-Key': process.env.MML_MAP_API_KEY,
-                        },
-                        onProxyRes: (proxyRes) => {
-                            proxyRes.headers['Cache-Control'] =
-                                'public, max-age=86400, no-transform';
-                        },
+                    changeOrigin: true,
+                    pathRewrite: (_path, req) => {
+                        const documentOid = req.query['document'];
+                        const assignmentOid = req.query['assignment'];
+                        const projectOid = req.query['project'];
+                        const projectGroupOid = req.query['projectGroup'];
+
+                        let redirectUrl = '';
+
+                        if (projectOid) {
+                            redirectUrl = `/projektit/oid-${projectOid}`;
+
+                            if (assignmentOid) {
+                                redirectUrl += `/toimeksiannot/oid-${assignmentOid}`;
+
+                                if (documentOid) {
+                                    redirectUrl += `/aineistot/oid-${documentOid}/muokkaa`;
+                                }
+                            }
+                        } else if (projectGroupOid) {
+                            redirectUrl += `/projektijoukot/oid-${projectGroupOid}`;
+                        }
+
+                        return redirectUrl;
                     },
-                }),
+                },
+                '/location-map/': {
+                    target: process.env.MML_MAP_URL,
+                    logLevel: 'debug',
+                    pathRewrite: { '^/location-map': '' },
+                    changeOrigin: true,
+                    headers: {
+                        'X-API-Key': process.env.MML_MAP_API_KEY,
+                    },
+                    onProxyRes: (proxyRes) => {
+                        proxyRes.headers['Cache-Control'] = 'public, max-age=86400, no-transform';
+                    },
+                },
             },
         },
         output: {
