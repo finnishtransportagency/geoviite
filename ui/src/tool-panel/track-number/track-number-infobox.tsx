@@ -71,10 +71,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onHighlightItem,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
+    const trackNumberChangeTime = getMaxTimestamp(
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+    );
     const startAndEndPoints = useReferenceLineStartAndEnd(
         referenceLine?.id,
         publishType,
-        changeTimes.layoutReferenceLine,
+        trackNumberChangeTime,
     );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id);
@@ -284,6 +288,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     publishType={publishType}
                     viewport={viewport}
                     onHighlightItem={onHighlightItem}
+                    changeTime={trackNumberChangeTime}
                 />
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (
@@ -293,10 +298,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     id={trackNumber.id}
                     type={'TRACK_NUMBER'}
                     publishType={publishType}
-                    changeTime={getMaxTimestamp(
-                        changeTimes.layoutTrackNumber,
-                        changeTimes.layoutReferenceLine,
-                    )}
+                    changeTime={trackNumberChangeTime}
                 />
             )}
             {createdTime && changedTime && (

@@ -118,7 +118,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
-        getTrackNumbers('DRAFT').then((trackNumbers) => {
+        getTrackNumbers('DRAFT', undefined, true).then((trackNumbers) => {
             stateActions.onTrackNumbersLoaded(trackNumbers);
         });
     }, []);
@@ -300,6 +300,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         const number = parseInt(numberPart, 10);
         return !isNaN(number) ? `V${number.toString(10).padStart(3, '0')}` : undefined;
     };
+    const trackNumberOptions = state.trackNumbers
+        .filter(
+            (tn) => tn.id === state.existingLocationTrack?.trackNumberId || tn.state !== 'DELETED',
+        )
+        .map((tn) => {
+            const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+            return { name: tn.number + note, value: tn.id };
+        });
 
     return (
         <React.Fragment>
@@ -373,10 +381,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <Dropdown
                                     value={state.locationTrack?.trackNumberId}
-                                    options={state.trackNumbers.map((trackNumber) => ({
-                                        name: trackNumber.number,
-                                        value: trackNumber.id,
-                                    }))}
+                                    options={trackNumberOptions}
                                     onChange={(value) => updateProp('trackNumberId', value)}
                                     onBlur={() => stateActions.onCommitField('trackNumberId')}
                                     hasError={hasErrors('trackNumberId')}
