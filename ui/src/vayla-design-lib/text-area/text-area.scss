@@ -8,17 +8,14 @@ $text-area-input-padding-side: 12px;
 $text-area-input-border-default: 1px;
 $text-area-input-border-thick: 2px;
 
-@mixin text-area-border($color, $width, $has-icon) {
-    border: $width solid $color;
-    $border-width-diff: $width - $text-area-input-border-default;
+@mixin text-area-shadow($color, $width, $has-icon) {
+    box-shadow: inset 0 0 0 $width $color;
+    border: none;
 
     @if ($has-icon) {
-        padding: (8px - $border-width-diff)
-            (32px - $border-width-diff)
-            8px
-            (12px - $border-width-diff);
+        padding: 8px 32px 8px 12px;
     } @else {
-        padding: (8px - $border-width-diff) (12px - $border-width-diff);
+        padding: 8px 12px;
     }
 }
 
@@ -47,7 +44,7 @@ $text-area-input-border-thick: 2px;
     background: colors.$color-white-default;
 
     outline: none;
-    @include text-area-border(
+    @include text-area-shadow(
         $color: colors.$color-black-lighter,
         $width: $text-area-input-border-default,
         $has-icon: false
@@ -76,7 +73,7 @@ $text-area-input-border-thick: 2px;
 
 .text-area:hover:not(.text-area--disabled) {
     .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-black-lighter,
             $width: $text-area-input-border-thick,
             $has-icon: false
@@ -84,7 +81,7 @@ $text-area-input-border-thick: 2px;
     }
 
     &.text-area--with-icon .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-black-lighter,
             $width: $text-area-input-border-thick,
             $has-icon: true
@@ -96,7 +93,7 @@ $text-area-input-border-thick: 2px;
 
 .text-area--focus {
     .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-blue-dark,
             $width: $text-area-input-border-thick,
             $has-icon: false
@@ -104,7 +101,7 @@ $text-area-input-border-thick: 2px;
     }
 
     &.text-area--with-icon .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-blue-dark,
             $width: $text-area-input-border-thick,
             $has-icon: true
@@ -116,7 +113,7 @@ $text-area-input-border-thick: 2px;
 
 .text-area--has-error {
     .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-red-dark,
             $width: $text-area-input-border-thick,
             $has-icon: false
@@ -124,7 +121,7 @@ $text-area-input-border-thick: 2px;
     }
 
     &.text-area--with-icon .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-red-dark,
             $width: $text-area-input-border-thick,
             $has-icon: true
@@ -144,7 +141,7 @@ $text-area-input-border-thick: 2px;
     }
 
     .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-white-darker,
             $width: $text-area-input-border-default,
             $has-icon: false
@@ -153,7 +150,7 @@ $text-area-input-border-thick: 2px;
     }
 
     &.text-area--with-icon .text-area__input-element {
-        @include text-area-border(
+        @include text-area-shadow(
             $color: colors.$color-white-darker,
             $width: $text-area-input-border-default,
             $has-icon: true
