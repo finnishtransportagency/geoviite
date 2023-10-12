@@ -1,3 +1,5 @@
+@use 'vayla-design-lib' as vayla-design;
+
 .data-product-view {
     width: 100%;
     display: flex;
@@ -46,7 +48,7 @@
 }
 
 .element-list__download-button a {
-    color: white;
+    color: vayla-design.$color-white-default;
     text-decoration: none;
 }
 
