@@ -390,7 +390,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Overlapping switch linking should not remove previous switch from overlapping layout segment (specific case)`() {
+    fun `Switch linking slight overlap correction should not remove previous switch linking`() {
         val switchOverlapAmount = 4.99
         val testLocation = createLocationTracksWithLinkedSwitch()
 
