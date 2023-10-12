@@ -30,7 +30,7 @@ class E2EDataProductPlanElementListPage : E2EElementListPage() {
     val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
     val resultList: E2EDataProductPlanElementList get() = E2EDataProductPlanElementList()
 
-    val plan: E2EDropdown get() = searchForm.dropdown("data-products-search-plan")
+    val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
 
     val line: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.line")
     val curve: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.curve")
@@ -49,7 +49,7 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
 
     val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
-    val locationTrack: E2EDropdown get() = searchForm.dropdown("data-products-search-location-track")
+    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-location-track")
     val startAddress: E2ETextInput get() = searchForm.textInputByQaId("data-products-search-start-km")
     val endAddress: E2ETextInput get() = searchForm.textInputByQaId("data-products-search-end-km")
     val line: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.line")

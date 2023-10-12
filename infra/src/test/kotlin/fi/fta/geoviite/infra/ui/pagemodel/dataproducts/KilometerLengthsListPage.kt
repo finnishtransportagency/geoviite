@@ -22,7 +22,7 @@ abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-pro
 class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
     private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
     val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
-    val locationTrack: E2EDropdown get() = searchForm.dropdown("km-lengths-search-location-track")
+    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("km-lengths-search-location-track")
     val startKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-start-km")
     val endKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-end-km")
 

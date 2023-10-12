@@ -32,7 +32,7 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
     val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
     val resultList: E2EDataProductPlanVerticalGeometryList get() = E2EDataProductPlanVerticalGeometryList()
 
-    val plan: E2EDropdown get() = searchForm.dropdown("data-products-search-plan")
+    val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
 
     val downloadUrl: String get() {
         val text = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
@@ -49,7 +49,7 @@ class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeome
 
     val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
 
-    val locationTrack: E2EDropdown get() = searchForm.dropdown("data-products-search-location-track")
+    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-location-track")
     val resultList: E2EDataProductLayoutVerticalGeometryList get() = E2EDataProductLayoutVerticalGeometryList()
 
     val downloadUrl: String get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
