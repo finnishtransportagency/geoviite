@@ -1056,7 +1056,7 @@
     "validation": {
         "layout": {
             "track-number": {
-                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
                 "state": {
                     "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
@@ -1076,7 +1076,7 @@
                 "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}"
             },
             "km-post": {
-                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
                 "state": {
                     "PLANNED": "Tasakilometripiste on tilassa \"Suunniteltu\""
@@ -1096,7 +1096,7 @@
                 }
             },
             "reference-line": {
-                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
                     "null": "Pituusmittauslinjan ratanumero ei ole mukana julkaisussa",

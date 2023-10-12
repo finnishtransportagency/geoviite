@@ -456,9 +456,7 @@ fun validateAddressPoints(
     geocode()?.let { addresses ->
         validateAddressPoints(trackNumber, locationTrack, addresses)
     } ?: listOf(
-        PublishValidationError(
-            ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()
-        )
+        PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()),
     )
 } catch (e: ClientException) {
     listOf(PublishValidationError(ERROR, e.localizedMessageKey))

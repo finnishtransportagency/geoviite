@@ -1230,8 +1230,9 @@ class PublicationService @Autowired constructor(
         .orElse(null)
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
-        cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)
-            ?.let { context -> validateGeocodingContext(context) } ?: listOf(noGeocodingContext(localizationKey))
+        cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)?.let { context ->
+            validateGeocodingContext(context)
+        } ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
         trackNumber: TrackLayoutTrackNumber,
@@ -1286,14 +1287,12 @@ class PublicationService @Autowired constructor(
     }
 
     private fun collectCacheKeys(versions: ValidationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
-        val trackNumberIds =
-            (versions.trackNumbers.map { version -> version.officialId } + versions.kmPosts.mapNotNull { v ->
-                kmPostDao.fetch(v.validatedAssetVersion).trackNumberId
-            } + versions.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion).trackNumberId } + versions.referenceLines.map { v ->
-                referenceLineDao.fetch(
-                    v.validatedAssetVersion
-                ).trackNumberId
-            }).toSet()
+        val trackNumberIds = listOf(
+            versions.trackNumbers.map { version -> version.officialId },
+            versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId },
+            versions.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion).trackNumberId },
+            versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId },
+        ).flatten().toSet()
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 
