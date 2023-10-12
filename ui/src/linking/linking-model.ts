@@ -30,7 +30,7 @@ import {
     SwitchStructure,
     SwitchStructureId,
     Range,
-    TrackMeter,
+    TrackMeter, LocationTrackOwnerId,
 } from 'common/common-model';
 
 export type LocationTrackSaveRequest = {
@@ -42,6 +42,7 @@ export type LocationTrackSaveRequest = {
     trackNumberId?: LayoutTrackNumberId;
     duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;
+    ownerId?: LocationTrackOwnerId;
 };
 
 export type LocationTrackSaveError = {

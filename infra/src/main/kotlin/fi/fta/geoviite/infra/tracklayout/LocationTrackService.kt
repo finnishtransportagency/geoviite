@@ -71,6 +71,7 @@ class LocationTrackService(
             trackNumberId = request.trackNumberId,
             duplicateOf = request.duplicateOf,
             topologicalConnectivity = request.topologicalConnectivity,
+            ownerId = request.ownerId,
         )
 
         return if (locationTrack.state != LayoutState.DELETED) {

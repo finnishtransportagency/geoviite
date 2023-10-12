@@ -295,6 +295,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     <InfoboxField
                         label={t('tool-panel.location-track.owner')}
                         value={getLocationTrackOwnerName(locationTrack?.ownerId)}
+                        onEdit={openEditLocationTrackDialog}
+                        iconDisabled={isOfficial()}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.start-switch')}

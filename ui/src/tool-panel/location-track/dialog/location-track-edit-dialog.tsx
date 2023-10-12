@@ -36,19 +36,17 @@ import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
-import {
-    useLocationTrackStartAndEnd,
-    useLocationTrackSwitchesAtEnds,
-} from 'track-layout/track-layout-react-utils';
+import { useLocationTrackStartAndEnd, useLocationTrackSwitchesAtEnds } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LocationTrackOwner, PublishType, TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { getLocationTrackOwners } from 'common/common-api';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -85,6 +83,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         React.useState<boolean>();
     const [locationTrackDescriptionSuffixMode, setLocationTrackDescriptionSuffixMode] =
         React.useState<LocationTrackDescriptionSuffixMode>();
+    const [locationTrackOwners, setLocationTrackOwners] = React.useState<LocationTrackOwner[]>([]);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     React.useEffect(() => {
@@ -117,6 +116,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.onClose && props.onClose();
         state.existingLocationTrack && props.onUnselect && props.onUnselect();
     };
+
+    React.useEffect(() => {
+        getLocationTrackOwners().then((owners) => {
+            setLocationTrackOwners(owners);
+        });
+    }, []);
 
     // Load track numbers once
     React.useEffect(() => {
@@ -514,15 +519,21 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={t('location-track-dialog.owner')}
                             value={
                                 <Dropdown
-                                    value={undefined}
-                                    options={[]}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
+                                    value={state.locationTrack?.ownerId}
+                                    options={locationTrackOwners.map((o) => ({
+                                        name: o.name,
+                                        value: o.id,
+                                    }))}
+                                    onChange={(value) =>
+                                        value && updateProp('ownerId', value)}
+                                    onBlur={() => stateActions.onCommitField('ownerId')}
+                                    //virheiden näyttäminen ei välttämättä tarpeen
+                                    //hasError={hasErrors('ownerId')}
                                     wide
-                                    disabled
                                     searchable
                                 />
                             }
+                            //errors={getVisibleErrorsByProp('ownerId')}
                         />
 
                         <Heading size={HeadingSize.SUB}>

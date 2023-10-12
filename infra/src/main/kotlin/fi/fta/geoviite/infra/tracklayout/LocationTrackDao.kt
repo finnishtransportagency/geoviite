@@ -71,7 +71,8 @@ class LocationTrackDao(
               ltv.topology_start_switch_id,
               ltv.topology_start_switch_joint_number,
               ltv.topology_end_switch_id,
-              ltv.topology_end_switch_joint_number
+              ltv.topology_end_switch_joint_number,
+              ltv.owner_id
             from layout.location_track_version ltv
               left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
             where ltv.id = :id

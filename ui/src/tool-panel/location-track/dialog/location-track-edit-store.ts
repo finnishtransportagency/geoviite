@@ -45,6 +45,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
         type: undefined,
         descriptionBase: '',
         duplicateOf: undefined,
+        ownerId: '',
     },
     validationErrors: [],
     committedFields: [],
@@ -64,6 +65,7 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
         trackNumberId: undefined,
         topologicalConnectivity: undefined,
         duplicateOf: undefined,
+        ownerId: '',
     };
 }
 
@@ -82,6 +84,7 @@ function validateLinkingLocationTrack(
             'descriptionBase',
             'descriptionSuffix',
             'topologicalConnectivity',
+            'ownerId'
         ]
             .map((prop: keyof LocationTrackSaveRequest) => {
                 if (isNilOrBlank(saveRequest[prop])) {
