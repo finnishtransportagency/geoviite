@@ -233,7 +233,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 getLocationTrackDescriptions(
                     locationTracks.map((lt) => lt.id),
-                    'DRAFT',
+                    props.publishType,
                 ).then((descriptions) => {
                     return locationTracks
                         .filter((lt) => {
@@ -242,9 +242,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             );
                         })
                         .map((lt) => {
-                            const description =
-                                descriptions &&
-                                descriptions.find((d) => d.id === lt.id)?.description;
+                            const description = descriptions?.find((d) => d.id === lt.id)
+                                ?.description;
                             return {
                                 name: description ? `${lt.name}, ${description}` : lt.name,
                                 value: {
