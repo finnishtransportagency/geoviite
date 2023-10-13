@@ -111,14 +111,6 @@ export const Dropdown = function <TItemValue>({
         inputRef.current?.focus();
     }
 
-    function toggleList() {
-        if (open) {
-            closeList();
-        } else {
-            openList();
-        }
-    }
-
     function openList() {
         setOpen(true);
         if (options) {
@@ -202,7 +194,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
         if (!searchable && e.code == 'Space') {
-            toggleList();
+            openList();
             e.preventDefault();
         }
     }
@@ -321,7 +313,7 @@ export const Dropdown = function <TItemValue>({
                 onClick={() => {
                     if (!props.disabled) {
                         focusInput();
-                        toggleList();
+                        openList();
                     }
                 }}
                 title={selectedName}>
@@ -329,8 +321,8 @@ export const Dropdown = function <TItemValue>({
                     <input
                         className={styles['dropdown__input']}
                         ref={inputRef}
-                        onFocus={() => handleInputFocus()}
-                        onBlur={() => handleInputBlur()}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
@@ -368,7 +360,7 @@ export const Dropdown = function <TItemValue>({
                         {showEmptyOption && (
                             <li
                                 className={getItemClassName(undefined, -1)}
-                                onClick={() => unselect()}
+                                onClick={unselect}
                                 title={props.unselectText || 'Ei valittu'}
                                 ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
