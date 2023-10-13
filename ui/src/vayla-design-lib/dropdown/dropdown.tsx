@@ -310,10 +310,11 @@ export const Dropdown = function <TItemValue>({
             <div
                 className={styles['dropdown__header']}
                 role="button"
-                onClick={() => {
+                onClick={(e) => {
                     if (!props.disabled) {
+                        e.stopPropagation();
                         focusInput();
-                        openList();
+                        open ? closeList() : openList();
                     }
                 }}
                 title={selectedName}>

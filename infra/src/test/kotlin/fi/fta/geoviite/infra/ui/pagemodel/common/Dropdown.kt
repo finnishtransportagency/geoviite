@@ -48,12 +48,10 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     fun selectFromDynamicByName(name: String): E2EDropdown = apply {
         logger.info("Select item $name from dynamic dropdown")
         input.inputValue(name)
-        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
-        optionsList.selectByTextWhenContains(name)
         // can't use optionsList directly, as it contains a loading placeholder element that goes stale once the list
         // has loaded
-
-        //fetch(elementFetch, CONTAINER_BY)().getChildElement(By.xpath(".//span[contains(text(), \"$name\")]")).click()
+        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
+        optionsList.selectByTextWhenContains(name)
     }
 
     fun new() {
