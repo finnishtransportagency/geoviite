@@ -14,6 +14,8 @@ import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
+import { Button } from 'vayla-design-lib/button/button';
 
 type Link = {
     link: string;
@@ -42,6 +44,10 @@ export const AppBar: React.FC = () => {
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
     const exclamationPointVisibility = !!pvDocumentCounts && pvDocumentCounts?.suggested > 0;
+    const [showMenu, setShowMenu] = React.useState(false);
+    const menuRef = React.useRef(null);
+    const menuOffsetX = 0;
+    const menuOffsetY = 50;
 
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
@@ -108,10 +114,29 @@ export const AppBar: React.FC = () => {
                 </li>
             </ul>
             <img
+                ref={menuRef}
                 className={styles['app-bar__vayla-logo']}
                 src={vaylaLogo}
                 alt="Väylävirasto logo"
+                onClick={() => setShowMenu(!showMenu)}
             />
+            {showMenu && (
+                <CloseableModal
+                    positionRef={menuRef}
+                    onClickOutside={() => setShowMenu(false)}
+                    offsetX={menuOffsetX}
+                    offsetY={menuOffsetY}
+                    className={styles['app-bar__menu']}>
+                    <Button
+                        className={styles['app-bar__menu-item']}
+                        onClick={() => {
+                            // TODO: Do logout
+                        }}>
+                        Kirjaudu ulos
+                    </Button>
+                    <div className={styles['app-bar__menu-item']}>Lisenssit</div>
+                </CloseableModal>
+            )}
         </nav>
     );
 };
