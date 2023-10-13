@@ -1000,6 +1000,8 @@ class PublicationService @Autowired constructor(
                 getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
             }
         } else null
+        val oldAlignment = locationTrackChanges.alignmentVersion.old?.let(alignmentDao::fetch)
+        val newAlignment = locationTrackChanges.alignmentVersion.new?.let(alignmentDao::fetch)
 
         return listOfNotNull(
             compareChangeValues(
@@ -1080,15 +1082,22 @@ class PublicationService @Autowired constructor(
                 }?.let { geocodingContext ->
                     getKmNumbersChangedRemarkOrNull(
                         translation,
-                        locationTrackChanges.alignmentVersion.old?.let(alignmentDao::fetch),
-                        locationTrackChanges.alignmentVersion.new?.let(alignmentDao::fetch),
+                        oldAlignment,
+                        newAlignment,
                         geocodingContext,
                         changedKmNumbers
                     )
                 }
                 PublicationChange(PropKey("geometry"), ChangeValue(null, null), remark)
             } else null,
-
+            compareChange(
+                { locationTrackChanges.linkedSwitches.old != locationTrackChanges.linkedSwitches.new },
+                null,
+                null,
+                { it  },
+                PropKey("linked-switches"), getSwitchLinksChangedRemark(
+                    translation, locationTrackChanges)
+            )
             // TODO owner
         )
     }
