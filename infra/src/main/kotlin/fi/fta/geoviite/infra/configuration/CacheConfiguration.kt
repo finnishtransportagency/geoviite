@@ -24,6 +24,7 @@ const val CACHE_COORDINATE_SYSTEMS = "coordinate-systems"
 const val CACHE_FEATURE_TYPES = "feature-types"
 const val CACHE_COMMON_SWITCH_STRUCTURE = "switch-structure"
 const val CACHE_COMMON_SWITCH_OWNER = "switch-owner"
+const val CACHE_COMMON_LOCATION_TRACK_OWNER = "location-track-owner"
 const val CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK = "kkj-tm35fin-triangles"
 
 const val CACHE_GEOCODING_CONTEXTS = "geocoding-contexts"

@@ -15,22 +15,19 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.logger
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 @Service
 class LocationTrackService(
-    dao: LocationTrackDao,
-    private val locationTrackDao: LocationTrackDao,
+    locationTrackDao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
-) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
+) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
@@ -354,7 +351,7 @@ class LocationTrackService(
     }
 
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
-        fi.fta.geoviite.infra.util.logger.serviceCall("getLocationTrackOwners")
+        logger.serviceCall("getLocationTrackOwners")
         return dao.fetchLocationTrackOwners()
     }
 }

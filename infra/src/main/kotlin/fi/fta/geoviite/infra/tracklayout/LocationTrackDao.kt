@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -398,28 +400,23 @@ class LocationTrackDao(
         ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
 
-    //@Transactional(readOnly = true)
-    //@Component
-    //class SwitchOwnerDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+    @Cacheable(CACHE_COMMON_LOCATION_TRACK_OWNER, sync = true)
+    fun fetchLocationTrackOwners(): List<LocationTrackOwner> {
+        val sql = """
+        select
+            id,
+            name
+        from common.location_track_owner
+    """.trimIndent()
 
-        //tarvitseeko tätä cachetusta? SELVITÄ - onko muualla tällaiset?
-        //@Cacheable(CACHE_COMMON_SWITCH_OWNER, sync = true)
-        fun fetchLocationTrackOwners(): List<LocationTrackOwner> {
-            val sql = """
-            select
-                id,
-                name
-            from common.location_track_owner
-        """.trimIndent()
-            val locationTrackOwners = jdbcTemplate.query(sql) { rs, _ ->
-                LocationTrackOwner(
-                    id = rs.getIntId("id"),
-                    name = MetaDataName(rs.getString("name")),
-                )
-            }
-            logger.daoAccess(AccessType.FETCH, LocationTrackOwner::class, locationTrackOwners.map { it.id })
-            return locationTrackOwners
+        val locationTrackOwners = jdbcTemplate.query(sql) { rs, _ ->
+            LocationTrackOwner(
+                id = rs.getIntId("id"),
+                name = MetaDataName(rs.getString("name")),
+            )
         }
-    //}
+        logger.daoAccess(AccessType.FETCH, LocationTrackOwner::class, locationTrackOwners.map { it.id })
+        return locationTrackOwners
+    }
 
 }

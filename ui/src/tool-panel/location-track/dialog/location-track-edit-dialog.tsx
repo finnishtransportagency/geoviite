@@ -36,7 +36,10 @@ import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
-import { useLocationTrackStartAndEnd, useLocationTrackSwitchesAtEnds } from 'track-layout/track-layout-react-utils';
+import {
+    useLocationTrackStartAndEnd,
+    useLocationTrackSwitchesAtEnds,
+} from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { LocationTrackOwner, PublishType, TimeStamp } from 'common/common-model';
@@ -524,16 +527,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         name: o.name,
                                         value: o.id,
                                     }))}
-                                    onChange={(value) =>
-                                        value && updateProp('ownerId', value)}
+                                    onChange={(value) => value && updateProp('ownerId', value)}
                                     onBlur={() => stateActions.onCommitField('ownerId')}
-                                    //virheiden näyttäminen ei välttämättä tarpeen
-                                    //hasError={hasErrors('ownerId')}
                                     wide
                                     searchable
                                 />
                             }
-                            //errors={getVisibleErrorsByProp('ownerId')}
                         />
 
                         <Heading size={HeadingSize.SUB}>

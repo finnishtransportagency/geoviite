@@ -24,13 +24,14 @@ import {
     JointNumber,
     KmNumber,
     LocationAccuracy,
+    LocationTrackOwnerId,
     LocationTrackPointUpdateType,
+    Range,
     SwitchAlignmentId,
     SwitchOwnerId,
     SwitchStructure,
     SwitchStructureId,
-    Range,
-    TrackMeter, LocationTrackOwnerId,
+    TrackMeter,
 } from 'common/common-model';
 
 export type LocationTrackSaveRequest = {

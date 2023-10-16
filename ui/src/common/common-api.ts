@@ -1,6 +1,7 @@
 import { API_URI, getNonNull } from 'api/api-fetch';
 import {
-    CoordinateSystem, LocationTrackOwner,
+    CoordinateSystem,
+    LocationTrackOwner,
     Srid,
     SwitchOwner,
     SwitchStructure,
@@ -61,7 +62,7 @@ export async function getSwitchStructure(
         switchStructures.find((s) => s.id === id),
     );
 }
-export async function getLocationTrackOwners(): Promise<SwitchOwner[]> {
+export async function getLocationTrackOwners(): Promise<LocationTrackOwner[]> {
     return locationTrackOwnerCache.getImmutable(undefined, () =>
         getNonNull<LocationTrackOwner[]>(`${LOCATION_TRACK_URI}/location-track-owners`).catch(() =>
             Promise.reject('failed to fetch location track owners'),
