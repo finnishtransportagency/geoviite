@@ -76,26 +76,26 @@ abstract class E2ESelectionList<T : E2ESelectionListItem>(
 }
 
 data class E2EKmPostSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.getChildElement(By.xpath("./div/span")).text)
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
 }
 
 data class E2ELocationTrackSelectionListItem(override val name: String, val type: String) : E2ESelectionListItem {
     constructor(element: WebElement) : this(
-        name = element.getChildElement(By.xpath("./div/span")).text,
-        type = element.getChildElement(By.tagName("span")).text,
+        name = element.findElement(By.xpath("./div/span")).text,
+        type = element.findElement(By.tagName("span")).text,
     )
 }
 
 data class E2ETrackNumberSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.getChildElement(By.xpath("./div/span")).text)
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./div/span")).text)
 }
 
 data class E2EReferenceLineSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.getChildElement(By.tagName("span")).text)
+    constructor(element: WebElement) : this(element.findElement(By.tagName("span")).text)
 }
 
 data class E2ESwitchSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.getChildElement(By.xpath("./span/span")).text)
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./span/span")).text)
 }
 
 class E2EKmPostSelectionList(elementFetch: ElementFetch) : E2ESelectionList<E2EKmPostSelectionListItem>(
