@@ -1222,7 +1222,11 @@
             "changed-km-numbers": "Geometria ei siirtynyt. Muita tietoja muuttunut kilometreiltä {{value}}",
             "km-number-changed": "Siirtynyt ratakilometrille {{value}}",
             "geometry-changed-many-km": "Muuttunut kilometriväliltä {{addressRange}}, laajuus {{changedLengthM}} m, poikkeama {{maxDistance}} m",
-            "geometry-changed": "Muuttunut kilometriltä {{addressRange}}, laajuus {{changedLengthM}} m, poikkeama {{maxDistance}} m"
+            "geometry-changed": "Muuttunut kilometriltä {{addressRange}}, laajuus {{changedLengthM}} m, poikkeama {{maxDistance}} m",
+            "switch-link-added-singular": "Vaihde {{value}} linkitetty",
+            "switch-link-added-plural": "Vaihteet {{value}} linkitetty",
+            "switch-link-removed-singular": "Vaihteen {{value}} linkitys purettu",
+            "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu"
         },
         "joint": {
             "math-point": "Matemaattinen piste",
@@ -1257,7 +1261,8 @@
             "measurement-method": "Sijainnin mittausmenetelmä",
             "location-track-connectivity": "Liitos raiteisiin",
             "switch-joint-location": "Sijainti ratanumerolla {{trackNumber}} ({{switchType}})",
-            "address": "Rataosoite"
+            "address": "Rataosoite",
+            "linked-switches": "Vaihdelinkitykset"
         }
     },
     "publication-log": {
