@@ -14,6 +14,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
+    LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -44,6 +45,7 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
+import { getTrackNumbersBySearchTerm } from 'track-layout/layout-track-number-api';
 
 export type ToolbarParams = {
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
@@ -71,7 +73,22 @@ type SwitchItemValue = {
     type: 'switchSearchItem';
 };
 
-type SearchItemValue = LocationTrackItemValue | SwitchItemValue;
+type TrackNumberItemValue = {
+    trackNumber: LayoutTrackNumber;
+    type: 'trackNumberSearchItem';
+};
+
+function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<TrackNumberItemValue> {
+    return {
+        name: layoutTrackNumber.number,
+        value: {
+            type: 'trackNumberSearchItem',
+            trackNumber: layoutTrackNumber,
+        },
+    };
+}
+
+type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberItemValue;
 
 async function getOptions(
     publishType: PublishType,
@@ -114,8 +131,16 @@ async function getOptions(
             },
         }));
     });
-    const result = await Promise.all([locationTracks, switches]);
-    return [...result[0], ...result[1]];
+
+    const trackNumbers: Promise<Item<TrackNumberItemValue>[]> = getTrackNumbersBySearchTerm(
+        searchTerm,
+        publishType,
+        10,
+    ).then((layoutTrackNumbers) => layoutTrackNumbers.map(createTrackNumberItem));
+
+    return await Promise.all([locationTracks, switches, trackNumbers]).then((results) =>
+        results.flat(),
+    );
 }
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
@@ -155,20 +180,27 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     );
 
     function onItemSelected(item: SearchItemValue | undefined) {
-        if (item?.type == 'locationTrackSearchItem') {
-            item.locationTrack.boundingBox && props.showArea(item.locationTrack.boundingBox);
-            props.onSelectLocationTrack(item.locationTrack.id);
-        } else if (item?.type == 'switchSearchItem') {
-            if (item.layoutSwitch.joints.length > 0) {
-                const center = centerForBoundingBox(
-                    boundingBoxAroundPoints(
-                        item.layoutSwitch.joints.map((joint) => joint.location),
-                    ),
-                );
-                const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
-                props.showArea(bbox);
-            }
-            props.onSelectSwitch(item.layoutSwitch.id);
+        switch (item?.type) {
+            case 'locationTrackSearchItem':
+                item.locationTrack.boundingBox && props.showArea(item.locationTrack.boundingBox);
+                return props.onSelectLocationTrack(item.locationTrack.id);
+
+            case 'switchSearchItem':
+                if (item.layoutSwitch.joints.length > 0) {
+                    const center = centerForBoundingBox(
+                        boundingBoxAroundPoints(
+                            item.layoutSwitch.joints.map((joint) => joint.location),
+                        ),
+                    );
+                    const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
+                    props.showArea(bbox);
+                }
+                return props.onSelectSwitch(item.layoutSwitch.id);
+
+            case 'trackNumberSearchItem':
+                return props.onSelectTrackNumber(item.trackNumber.id);
+            default:
+                return;
         }
     }
 
