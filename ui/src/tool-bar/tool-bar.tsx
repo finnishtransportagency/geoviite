@@ -46,6 +46,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 import { getTrackNumbersBySearchTerm } from 'track-layout/layout-track-number-api';
+import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 
 export type ToolbarParams = {
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
@@ -198,7 +199,14 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 return props.onSelectSwitch(item.layoutSwitch.id);
 
             case 'trackNumberSearchItem':
+                getTrackNumberReferenceLine(item.trackNumber.id, 'DRAFT').then((referenceLine) => {
+                    if (referenceLine?.boundingBox) {
+                        props.showArea(referenceLine.boundingBox);
+                    }
+                });
+
                 return props.onSelectTrackNumber(item.trackNumber.id);
+
             default:
                 return;
         }
