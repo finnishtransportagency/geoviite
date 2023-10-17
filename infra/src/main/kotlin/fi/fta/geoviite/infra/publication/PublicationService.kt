@@ -25,7 +25,6 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.SortOrder
-import fi.fta.geoviite.infra.util.measureAndCollect
 import org.postgresql.util.PSQLException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -187,7 +186,7 @@ class PublicationService @Autowired constructor(
                 .distinct()
                 .filterNot(locationTracks::contains) else emptyList()
 
-        val idationVersions = toValidationVersions(
+        val validationVersions = toValidationVersions(
             switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
@@ -198,7 +197,7 @@ class PublicationService @Autowired constructor(
             ValidatedAsset(
                 validateSwitch(
                     version = toValidationVersion(switch),
-                    validationVersions = idationVersions,
+                    validationVersions = validationVersions,
                     linkedTracks = linkedTracks.getOrDefault(switch.id, setOf()),
                     allOfficialSwitches = allOfficialSwitches,
                 ),
