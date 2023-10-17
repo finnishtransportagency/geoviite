@@ -147,7 +147,8 @@ class LayoutTrackNumberController(
     ): ResponseEntity<ByteArray> {
         logger.apiCall("getEntireRailNetworkTrackNumberKmLengthsAsCsv", "lang" to lang)
 
-        val csv = trackNumberService.getAllKmLengthsAsCsv(publishType = PublishType.OFFICIAL,
+        val csv = trackNumberService.getAllKmLengthsAsCsv(
+            publishType = PublishType.OFFICIAL,
             trackNumberIds = trackNumberService.listOfficial().map { tn ->
                 tn.id as IntId
             })

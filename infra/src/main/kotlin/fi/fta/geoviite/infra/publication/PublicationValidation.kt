@@ -121,10 +121,10 @@ fun validateSwitchLocationTrackLinkStructure(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<PublishValidationError> {
     val existingTracks = locationTracks.filter { (track, _) -> track.exists }
-    val segmentGroups =
-        locationTracks.filter { (track, _) -> track.exists } // Only consider the non-deleted tracks for switch alignments
-            .map { (track, alignment) -> track to alignment.segments.filter { segment -> segment.switchId == switch.id } }
-            .filter { (_, segments) -> segments.isNotEmpty() }
+    val segmentGroups = locationTracks
+        .filter { (track, _) -> track.exists } // Only consider the non-deleted tracks for switch alignments
+        .map { (track, alignment) -> track to alignment.segments.filter { segment -> segment.switchId == switch.id } }
+        .filter { (_, segments) -> segments.isNotEmpty() }
 
     val structureJoints = collectJoints(structure)
     val segmentJoints = segmentGroups.map { (track, group) -> collectJoints(track, group) }
@@ -221,7 +221,8 @@ private fun validateExcessTracksThroughJoint(
     val excesses =
         tracksThroughJoint.filter { (joint, tracks) -> joint != connectivityType.sharedJoint && tracks.size > 1 }
     return validateWithParams(excesses.isEmpty(), WARNING) {
-        val trackNames = excesses.entries.sortedBy { (jointNumber, _) -> jointNumber.intValue }
+        val trackNames = excesses.entries
+            .sortedBy { (jointNumber, _) -> jointNumber.intValue }
             .joinToString { (jointNumber, tracks) ->
                 "${jointNumber.intValue} (${tracks.sortedBy { it.name }.joinToString { it.name }})"
             }
@@ -403,7 +404,8 @@ fun validateGeocodingContext(stuff: GeocodingContextCreateResult): List<PublishV
             }
         }
 
-    val kmPostsFarFromLine = context.referencePoints.filter { point -> point.intersectType == WITHIN }
+    val kmPostsFarFromLine = context.referencePoints
+        .filter { point -> point.intersectType == WITHIN }
         .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
         .let { farAwayPoints ->
             validateWithParams(farAwayPoints.isEmpty(), WARNING) {

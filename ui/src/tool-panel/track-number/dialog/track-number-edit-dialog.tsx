@@ -229,15 +229,17 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={numberErrors.map((e) => t(e.reason))}
-                        />
-                        {otherTrackNumber && (
-                            <Link onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
-                                {t('track-number-edit.action.move-to-edit', {
-                                    number: otherTrackNumber.number,
-                                })}
-                            </Link>
-                        )}
+                            errors={numberErrors.map((e) => t(e.reason))}>
+                            {otherTrackNumber && (
+                                <Link
+                                    className="move-to-edit-link"
+                                    onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                    {t('track-number-edit.action.move-to-edit', {
+                                        number: otherTrackNumber.number,
+                                    })}
+                                </Link>
+                            )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('track-number-edit.field.state')} *`}
                             value={
