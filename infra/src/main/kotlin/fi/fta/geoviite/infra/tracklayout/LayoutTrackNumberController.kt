@@ -51,7 +51,9 @@ class LayoutTrackNumberController(
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limit", required = true) limit: Int,
     ): List<TrackLayoutTrackNumber> {
-        logger.apiCall("searchTrackNumbers", "searchTerm" to searchTerm, "limit" to limit)
+        logger.apiCall(
+            "searchTrackNumbers", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit,
+        )
         return trackNumberService.list(publishType, searchTerm, limit)
     }
 
