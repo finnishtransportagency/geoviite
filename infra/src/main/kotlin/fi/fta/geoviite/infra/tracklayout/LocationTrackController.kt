@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -144,8 +145,8 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions =
-            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds.distinct()
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
+            switchIds.distinct()
                 .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
