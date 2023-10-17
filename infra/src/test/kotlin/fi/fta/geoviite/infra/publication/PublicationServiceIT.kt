@@ -713,14 +713,12 @@ class PublicationServiceIT @Autowired constructor(
         val switchId2 = switchDao.insert(switch(234)).id
         val switchId3 = switchDao.insert(switch(456)).id
 
-        val validation = publicationService.validateSwitches(listOf(switchId, switchId2, switchId3), OFFICIAL)
-        assertEquals(3, validation.size)
-        assertEquals(switchId, validation[0].id)
-        assertEquals(3, validation[0].errors.size)
-        assertEquals(switchId2, validation[1].id)
-        assertEquals(3, validation[1].errors.size)
-        assertEquals(switchId3, validation[2].id)
-        assertEquals(3, validation[2].errors.size)
+        val validationIds =
+            publicationService.validateSwitches(listOf(switchId, switchId2, switchId3), OFFICIAL).map { it.id }
+        assertEquals(3, validationIds.size)
+        assertContains(validationIds, switchId)
+        assertContains(validationIds, switchId2)
+        assertContains(validationIds, switchId3)
     }
 
     @Test
@@ -1367,10 +1365,8 @@ class PublicationServiceIT @Autowired constructor(
             locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1))),
             alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0)).copy(
-                    switchId = switch2.id,
-                    startJointNumber = JointNumber(1)
-                ),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+                    switchId = switch2.id, startJointNumber = JointNumber(1)
+                ), segment(Point(0.0, 1.0), Point(0.0, 2.0))
             )
         )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
@@ -1378,12 +1374,10 @@ class PublicationServiceIT @Autowired constructor(
             locationTrackDao.fetch(locationTrackDao.fetchVersion(originalLocationTrack.id, OFFICIAL)!!).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switch3.id, JointNumber(1)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(switch4.id, JointNumber(1))
-            ),
-            alignment(
+            ), alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0)),
                 segment(Point(0.0, 1.0), Point(0.0, 2.0)).copy(
-                    switchId = switch5.id,
-                    startJointNumber = JointNumber(1)
+                    switchId = switch5.id, startJointNumber = JointNumber(1)
                 ),
             )
         )

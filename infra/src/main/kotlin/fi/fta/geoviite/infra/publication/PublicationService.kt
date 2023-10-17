@@ -210,32 +210,7 @@ class PublicationService @Autowired constructor(
     fun validateSwitch(
         switchId: IntId<TrackLayoutSwitch>,
         publishType: PublishType,
-    ): ValidatedAsset<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "validateSwitch", "switchId" to switchId, "publishType" to publishType
-        )
-
-        val layoutSwitch = switchService.getOrThrow(publishType, switchId)
-        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map { it.rowVersion }
-
-        val previouslyLinkedTracks =
-            if (publishType == DRAFT) switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId)
-                .mapNotNull { lt -> locationTrackDao.fetchDraftVersion(lt.rowVersion.id) }
-                .filterNot(locationTracks::contains)
-            else emptyList()
-
-        val versions = toValidationVersions(
-            switches = listOf(layoutSwitch),
-            locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
-        )
-
-        val linkedTracks =
-            publicationDao.fetchLinkedLocationTracks(listOf(switchId), DRAFT).getOrDefault(switchId, setOf())
-        return ValidatedAsset(
-            validateSwitch(toValidationVersion(layoutSwitch), versions, linkedTracks),
-            switchId,
-        )
-    }
+    ): ValidatedAsset<TrackLayoutSwitch> = validateSwitches(listOf(switchId), publishType).single()
 
     fun validateKmPost(
         kmPostId: IntId<TrackLayoutKmPost>,
@@ -1024,12 +999,11 @@ class PublicationService @Autowired constructor(
         val oldAlignment = locationTrackChanges.alignmentVersion.old?.let(alignmentDao::fetch)
         val newAlignment = locationTrackChanges.alignmentVersion.new?.let(alignmentDao::fetch)
 
-        return listOfNotNull(
-            compareChangeValues(
-                locationTrackChanges.trackNumberId,
-                { trackNumberCache.findLast { it.id == locationTrackChanges.trackNumberId.new && it.changeTime <= publicationTime }?.number },
-                PropKey("track-number"),
-            ),
+        return listOfNotNull(compareChangeValues(
+            locationTrackChanges.trackNumberId,
+            { trackNumberCache.findLast { it.id == locationTrackChanges.trackNumberId.new && it.changeTime <= publicationTime }?.number },
+            PropKey("track-number"),
+        ),
             compareChangeValues(
                 locationTrackChanges.name, { it }, PropKey("location-track")
             ),
@@ -1109,22 +1083,19 @@ class PublicationService @Autowired constructor(
                     getGeocodingContext(oldTrackNumberId, publicationTime)
                 }?.let { geocodingContext ->
                     getKmNumbersChangedRemarkOrNull(
-                        translation,
-                        oldAlignment,
-                        newAlignment,
-                        geocodingContext,
-                        changedKmNumbers
+                        translation, oldAlignment, newAlignment, geocodingContext, changedKmNumbers
                     )
                 }
                 PublicationChange(PropKey("geometry"), ChangeValue(null, null), remark)
             } else null,
-            compareChange(
-                { locationTrackChanges.linkedSwitches.old != locationTrackChanges.linkedSwitches.new },
+            compareChange({ locationTrackChanges.linkedSwitches.old != locationTrackChanges.linkedSwitches.new },
                 null,
                 null,
-                { it  },
-                PropKey("linked-switches"), getSwitchLinksChangedRemark(
-                    translation, locationTrackChanges)
+                { it },
+                PropKey("linked-switches"),
+                getSwitchLinksChangedRemark(
+                    translation, locationTrackChanges
+                )
             )
             // TODO owner
         )
