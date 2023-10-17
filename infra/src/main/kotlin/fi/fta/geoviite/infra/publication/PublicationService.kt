@@ -982,8 +982,6 @@ class PublicationService @Autowired constructor(
                 getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
             }
         } else null
-        val oldAlignment = locationTrackChanges.alignmentVersion.old?.let(alignmentDao::fetch)
-        val newAlignment = locationTrackChanges.alignmentVersion.new?.let(alignmentDao::fetch)
 
         return listOfNotNull(
             compareChangeValues(
@@ -1058,18 +1056,9 @@ class PublicationService @Autowired constructor(
                 remark = getAddressMovedRemarkOrNull(translation, oldEndPointAndM?.address, newEndPointAndM?.address)
             ),
             if (changedKmNumbers.isNotEmpty()) {
-                val remark = locationTrackChanges.trackNumberId.old ?.let { oldTrackNumberId ->
-                    getGeocodingContext(oldTrackNumberId, publicationTime)
-                }?.let { geocodingContext ->
-                    getKmNumbersChangedRemarkOrNull(
-                        translation,
-                        oldAlignment,
-                        newAlignment,
-                        geocodingContext,
-                        changedKmNumbers
-                    )
-                }
-                PublicationChange(PropKey("geometry"), ChangeValue(null, null), remark)
+                PublicationChange(PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
+                    translation, changedKmNumbers
+                ))
             } else null,
             compareChange(
                 { locationTrackChanges.linkedSwitches.old != locationTrackChanges.linkedSwitches.new },
@@ -1116,18 +1105,11 @@ class PublicationService @Autowired constructor(
                 getPointMovedRemarkOrNull(translation, changes.endPoint.old, changes.endPoint.new)
             ),
             if (changedKmNumbers.isNotEmpty()) {
-                val remark = changes.trackNumberId.old ?.let { oldTrackNumberId ->
-                    getGeocodingContext(oldTrackNumberId, oldTimestamp)
-                }?.let { geocodingContext ->
-                    getKmNumbersChangedRemarkOrNull(
-                        translation,
-                        changes.alignmentVersion.old?.let(alignmentDao::fetch),
-                        changes.alignmentVersion.new?.let(alignmentDao::fetch),
-                        geocodingContext,
-                        changedKmNumbers
+                PublicationChange(
+                    PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
+                        translation, changedKmNumbers
                     )
-                }
-                PublicationChange(PropKey("geometry"), ChangeValue(null, null), remark)
+                )
             } else null,
         )
     }
