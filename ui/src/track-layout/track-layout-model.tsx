@@ -110,7 +110,7 @@ export type LayoutLocationTrack = {
     topologicalConnectivity: TopologicalConnectivityType;
     topologyStartSwitch?: TopologyLocationTrackSwitch;
     topologyEndSwitch?: TopologyLocationTrackSwitch;
-    ownerId?: LocationTrackOwnerId;
+    ownerId: LocationTrackOwnerId;
 };
 
 export const locationTrackDescription = (lt: {

@@ -126,6 +126,17 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         });
     }, []);
 
+    React.useEffect(() => {
+        if (
+            locationTrackOwners.length > 0 &&
+            state.isNewLocationTrack &&
+            !state.locationTrack.ownerId
+        ) {
+            const vayla = locationTrackOwners.find((o) => o.name === 'Väylävirasto');
+            updateProp('ownerId', vayla ? vayla.id : locationTrackOwners[0].id);
+        }
+    }, [locationTrackOwners]);
+
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
@@ -519,20 +530,22 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         />
 
                         <FieldLayout
-                            label={t('location-track-dialog.owner')}
+                            label={`${t('location-track-dialog.owner')} * `}
                             value={
                                 <Dropdown
-                                    value={state.locationTrack?.ownerId}
+                                    value={state.locationTrack.ownerId}
                                     options={locationTrackOwners.map((o) => ({
                                         name: o.name,
                                         value: o.id,
                                     }))}
                                     onChange={(value) => value && updateProp('ownerId', value)}
                                     onBlur={() => stateActions.onCommitField('ownerId')}
+                                    hasError={hasErrors('ownerId')}
                                     wide
                                     searchable
                                 />
                             }
+                            errors={getVisibleErrorsByProp('ownerId')}
                         />
 
                         <Heading size={HeadingSize.SUB}>

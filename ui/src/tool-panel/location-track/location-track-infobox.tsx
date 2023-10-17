@@ -32,7 +32,10 @@ import { LocationTrackOwnerId, PublishType, TimeStamp } from 'common/common-mode
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import { getLocationTrackDescriptions, getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getLocationTracksBySearchTerm,
+} from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
@@ -48,7 +51,10 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { SwitchLinkContainer } from 'geoviite-design-lib/switch/switch-link';
-import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getLocationTrackOwners } from 'common/common-api';
 
 type LocationTrackInfoboxProps = {
@@ -138,11 +144,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         closeEditLocationTrackDialog();
     }
 
-    function getLocationTrackOwnerName(ownerId: LocationTrackOwnerId | undefined) {
+    function getLocationTrackOwnerName(ownerId: LocationTrackOwnerId) {
         const name = locationTrackOwners?.find((o) => o.id == ownerId)?.name;
         return name ?? '-';
     }
-
 
     const showLocationTrackDeleteConfirmation = () => {
         setConfirmingDraftDelete(true);
@@ -294,7 +299,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.owner')}
-                        value={getLocationTrackOwnerName(locationTrack?.ownerId)}
+                        value={getLocationTrackOwnerName(locationTrack.ownerId)}
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={isOfficial()}
                     />

@@ -147,7 +147,7 @@ class LocationTrackDao(
         version = rs.getRowVersion("row_id", "row_version"),
         duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
         topologicalConnectivity = rs.getEnum("topological_connectivity"),
-        ownerId = rs.getIntIdOrNull("owner_id"),
+        ownerId = rs.getIntId("owner_id"),
         topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")?.let { id ->
             TopologyLocationTrackSwitch(
                 id,
@@ -228,7 +228,7 @@ class LocationTrackDao(
             "topology_start_switch_joint_number" to newItem.topologyStartSwitch?.jointNumber?.intValue,
             "topology_end_switch_id" to newItem.topologyEndSwitch?.switchId?.intValue,
             "topology_end_switch_joint_number" to newItem.topologyEndSwitch?.jointNumber?.intValue,
-            "owner_id" to newItem.ownerId?.intValue,
+            "owner_id" to newItem.ownerId.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -261,7 +261,8 @@ class LocationTrackDao(
               topology_start_switch_id = :topology_start_switch_id,
               topology_start_switch_joint_number = :topology_start_switch_joint_number,
               topology_end_switch_id = :topology_end_switch_id,
-              topology_end_switch_joint_number = :topology_end_switch_joint_number
+              topology_end_switch_joint_number = :topology_end_switch_joint_number,
+              owner_id = :owner_id
             where id = :id
             returning 
               coalesce(draft_of_location_track_id, id) as official_id,
@@ -288,6 +289,7 @@ class LocationTrackDao(
             "topology_start_switch_joint_number" to updatedItem.topologyStartSwitch?.jointNumber?.intValue,
             "topology_end_switch_id" to updatedItem.topologyEndSwitch?.switchId?.intValue,
             "topology_end_switch_joint_number" to updatedItem.topologyEndSwitch?.jointNumber?.intValue,
+            "owner_id" to updatedItem.ownerId.intValue
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
