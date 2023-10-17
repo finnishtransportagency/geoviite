@@ -269,6 +269,7 @@ class LocationTrackService(
 
         fun getSwitchShortName(switchId: IntId<TrackLayoutSwitch>) =
             switchDao.fetchVersion(switchId, publishType)?.let(switchDao::fetch)?.shortName
+
         val startSwitchName = startSwitch?.let(::getSwitchShortName)
         val endSwitchName = endSwitch?.let(::getSwitchShortName)
 
@@ -285,8 +286,8 @@ class LocationTrackService(
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)
 
-    @Transactional(readOnly=true)
-    fun getInfoboxExtras(publishType: PublishType, id: IntId<LocationTrack>,): LocationTrackInfoboxExtras? {
+    @Transactional(readOnly = true)
+    fun getInfoboxExtras(publishType: PublishType, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
         val locationTrackAndAlignment = getWithAlignment(publishType, id)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
             val duplicateOf = getDuplicateOf(locationTrack, publishType)
@@ -324,12 +325,12 @@ class LocationTrackService(
         locationTrack: LocationTrack,
         publishType: PublishType,
     ) = locationTrack.duplicateOf?.let { duplicateId ->
-            get(publishType, duplicateId)?.let { dup ->
-                LocationTrackDuplicate(
-                    duplicateId, dup.name, dup.externalId
-                )
-            }
+        get(publishType, duplicateId)?.let { dup ->
+            LocationTrackDuplicate(
+                duplicateId, dup.name, dup.externalId
+            )
         }
+    }
 
     private fun fetchSwitchAtEndById(id: IntId<TrackLayoutSwitch>, publishType: PublishType) = switchDao.fetchVersion(
         id, publishType
@@ -389,6 +390,22 @@ class LocationTrackService(
     fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
         logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
         return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
+    }
+
+    fun getSwitchesForLocationTrack(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
+    ): List<IntId<TrackLayoutSwitch>> {
+        logger.serviceCall(
+            "getSwitchesForLocationTrack", "locationTrackId" to locationTrackId, "publishType" to publishType
+        )
+        val ltAndAlignment = getWithAlignment(publishType, locationTrackId)
+        val topologySwitches = listOfNotNull(
+            ltAndAlignment?.first?.topologyStartSwitch?.switchId, ltAndAlignment?.first?.topologyEndSwitch?.switchId
+        )
+        val segmentSwitches =
+            ltAndAlignment?.second?.segments?.mapNotNull { segment -> segment.switchId as IntId? } ?: emptyList()
+        return topologySwitches + segmentSwitches
     }
 }
 

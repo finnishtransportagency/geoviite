@@ -25,6 +25,8 @@ class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
     private val publicationService: PublicationService,
+    private val switchService: LayoutSwitchService,
+    private val switchLinkingService: SwitchLinkingService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -130,6 +132,25 @@ class LocationTrackController(
     ): ValidatedAsset<LocationTrack> {
         logger.apiCall("validateLocationTrack", "publishType" to publishType, "id" to id)
         return publicationService.validateLocationTrack(id, publishType)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/{id}/validation/switches")
+    fun validateLocationTrackSwitches(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<SwitchValidationWithSuggestedSwitch> {
+        logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
+        val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
+        val switchValidation = publicationService.validateSwitches(switchIds, publishType)
+        val switchSuggestions =
+            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds.distinct()
+                .let { swId -> switchService.getMany(publishType, swId) })
+        return switchValidation.map { validatedAsset ->
+            SwitchValidationWithSuggestedSwitch(
+                validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
+            )
+        }
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

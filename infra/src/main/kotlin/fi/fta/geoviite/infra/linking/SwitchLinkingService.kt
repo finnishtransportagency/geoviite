@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
@@ -1019,6 +1020,17 @@ class SwitchLinkingService @Autowired constructor(
             locationTracks,
             getMeasurementMethod = this::getMeasurementMethod,
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getSuggestedSwitchesAtPresentationJointLocations(switches: List<TrackLayoutSwitch>): List<Pair<DomainId<TrackLayoutSwitch>, SuggestedSwitch?>> {
+        logger.serviceCall("getSuggestedSwitchesAtPresentationJointLocations", "switches" to switches)
+        return switches.parallelStream().map { switch ->
+            val presentationJointLocation = switchService.getPresentationJointOrThrow(switch).location
+            val switchStructure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
+
+            switch.id to getSuggestedSwitch(presentationJointLocation, switchStructure.id as IntId<SwitchStructure>)
+        }.collect(Collectors.toList())
     }
 
     @Transactional

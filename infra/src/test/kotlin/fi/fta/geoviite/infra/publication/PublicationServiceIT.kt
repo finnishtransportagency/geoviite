@@ -708,6 +708,22 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `Validating multiple switches should work`() {
+        val switchId = switchDao.insert(switch(123)).id
+        val switchId2 = switchDao.insert(switch(234)).id
+        val switchId3 = switchDao.insert(switch(456)).id
+
+        val validation = publicationService.validateSwitches(listOf(switchId, switchId2, switchId3), OFFICIAL)
+        assertEquals(3, validation.size)
+        assertEquals(switchId, validation[0].id)
+        assertEquals(3, validation[0].errors.size)
+        assertEquals(switchId2, validation[1].id)
+        assertEquals(3, validation[1].errors.size)
+        assertEquals(switchId3, validation[2].id)
+        assertEquals(3, validation[2].errors.size)
+    }
+
+    @Test
     fun `Validating official km post should work`() {
         val kmPostId = kmPostDao.insert(kmPost(insertOfficialTrackNumber(), km = KmNumber.ZERO)).id
 
