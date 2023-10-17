@@ -1015,7 +1015,8 @@ class PublicationServiceIT @Autowired constructor(
                     LayoutState.IN_USE,
                     getUnusedTrackNumberId(),
                     null,
-                    TopologicalConnectivityType.NONE
+                    TopologicalConnectivityType.NONE,
+                    IntId(1)
                 )
             ).rowVersion
         )
@@ -1030,7 +1031,8 @@ class PublicationServiceIT @Autowired constructor(
                     LayoutState.IN_USE,
                     getUnusedTrackNumberId(),
                     null,
-                    TopologicalConnectivityType.NONE
+                    TopologicalConnectivityType.NONE,
+                    IntId(1)
                 )
             ).rowVersion
         )
@@ -1045,7 +1047,8 @@ class PublicationServiceIT @Autowired constructor(
                     LayoutState.IN_USE,
                     getUnusedTrackNumberId(),
                     duplicate.id as IntId<LocationTrack>,
-                    TopologicalConnectivityType.NONE
+                    TopologicalConnectivityType.NONE,
+                    IntId(1)
                 )
             ).rowVersion
         )
@@ -1069,7 +1072,8 @@ class PublicationServiceIT @Autowired constructor(
                     state = LayoutState.NOT_IN_USE,
                     trackNumberId = locationTrack.trackNumberId,
                     duplicate2.id as IntId<LocationTrack>,
-                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END
+                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                    IntId(1)
                 )
             ).rowVersion
         )
@@ -1107,7 +1111,8 @@ class PublicationServiceIT @Autowired constructor(
             LayoutState.IN_USE,
             getUnusedTrackNumberId(),
             null,
-            TopologicalConnectivityType.NONE
+            TopologicalConnectivityType.NONE,
+            IntId(1)
         )
 
         val locationTrack = locationTrackService.get(

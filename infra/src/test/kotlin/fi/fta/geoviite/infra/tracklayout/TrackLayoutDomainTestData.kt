@@ -212,6 +212,7 @@ fun locationTrack(
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
+    ownerId: IntId<LocationTrackOwner> = IntId(1),
 ) = LocationTrack(
     name = AlignmentName(name),
     descriptionBase = FreeText(description),
@@ -230,6 +231,7 @@ fun locationTrack(
     topologyStartSwitch = topologyStartSwitch,
     topologyEndSwitch = topologyEndSwitch,
     alignmentVersion = alignmentVersion,
+    ownerId = ownerId
 ).let { lt -> if (id != null) lt.copy(id = id) else lt }
 
 fun <T> someOid() = Oid<T>(
@@ -538,13 +540,13 @@ fun splitSegment(segment: LayoutSegment, numberOfParts: Int): List<LayoutSegment
     val indexRange = 0..allPoints.lastIndex
     val pointsPerSegment = allPoints.count() / numberOfParts.toDouble()
     return indexRange.groupBy { index -> (index / pointsPerSegment).toInt() }.map { (_, groupIndexRange) ->
-            val points = allPoints.subList(
-                0.coerceAtLeast(groupIndexRange.first() - 1), groupIndexRange.last() + 1
-            )
-            segment(
-                points = points.map { Point(it) }.toTypedArray(), start = points.first().m
-            )
-        }
+        val points = allPoints.subList(
+            0.coerceAtLeast(groupIndexRange.first() - 1), groupIndexRange.last() + 1
+        )
+        segment(
+            points = points.map { Point(it) }.toTypedArray(), start = points.first().m
+        )
+    }
 }
 
 fun toTrackLayoutPoints(vararg points: IPoint) = toTrackLayoutPoints(to3DMPoints(points.asList()))
