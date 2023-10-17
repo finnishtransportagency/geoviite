@@ -14,8 +14,8 @@ import {
 } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
 import {
-    ChangeTimes,
     CoordinateSystem,
+    DraftableChangeInfo,
     PublishType,
     Srid,
     SwitchStructure,
@@ -40,7 +40,11 @@ import {
     getLocationTrackStartAndEnd,
 } from 'track-layout/layout-location-track-api';
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
-import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
+import {
+    getTrackNumberById,
+    getTrackNumberChangeTimes,
+    getTrackNumbers,
+} from 'track-layout/layout-track-number-api';
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
@@ -212,23 +216,33 @@ export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeade
     return useLoader(() => (id ? getGeometryPlanHeader(id) : undefined), [id]);
 }
 
+export function useTrackNumberChangeTimes(
+    id: LayoutTrackNumberId | undefined,
+): DraftableChangeInfo | undefined {
+    return useOptionalLoader(() => (id ? getTrackNumberChangeTimes(id) : undefined), [id]);
+}
+
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
-): ChangeTimes | undefined {
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
 }
 
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
-): ChangeTimes | undefined {
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
 }
 
-export function useSwitchChangeTimes(id: LayoutSwitchId | undefined): ChangeTimes | undefined {
+export function useSwitchChangeTimes(
+    id: LayoutSwitchId | undefined,
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getSwitchChangeTimes(id) : undefined), [id]);
 }
 
-export function useKmPostChangeTimes(id: LayoutKmPostId | undefined): ChangeTimes | undefined {
+export function useKmPostChangeTimes(
+    id: LayoutKmPostId | undefined,
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getKmPostChangeTimes(id) : undefined), [id]);
 }
 

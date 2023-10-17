@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -11,8 +12,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.web.reactive.function.client.WebClient
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -22,6 +23,7 @@ class KilometerLengthsTestUI @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val kmPostDao: LayoutKmPostDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val webClient: LocalHostWebClient,
 ) : SeleniumTest() {
 
     @BeforeEach
@@ -49,7 +51,9 @@ class KilometerLengthsTestUI @Autowired constructor(
         assertEquals(listOf("0.000", "900.000", "2000.000", "3000.000"), items.map { it.stationStart })
 
         val downloadUrl = kmLengthsPage.downloadUrl
-        val csv = WebClient.create().get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         Assertions.assertTrue(csv.isNotEmpty())
     }
 
@@ -58,7 +62,9 @@ class KilometerLengthsTestUI @Autowired constructor(
         startGeoviite()
         val kmLengthsPage = navigationBar.goToKilometerLengthsPage().entireNetworkPage()
         val downloadUrl = kmLengthsPage.downloadUrl
-        val csv = WebClient.create().get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         Assertions.assertTrue(csv.isNotEmpty())
     }
 

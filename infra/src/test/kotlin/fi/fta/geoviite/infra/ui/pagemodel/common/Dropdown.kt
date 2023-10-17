@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import elementExists
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.fetch
-import getChildElement
 import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
@@ -51,7 +50,8 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
         input.inputValue(name)
         // can't use optionsList directly, as it contains a loading placeholder element that goes stale once the list
         // has loaded
-        fetch(elementFetch, CONTAINER_BY)().getChildElement(By.xpath(".//span[contains(text(), \"$name\")]")).click()
+        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
+        optionsList.selectByTextWhenContains(name)
     }
 
     fun new() {

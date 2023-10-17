@@ -129,10 +129,13 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce((acc, item) => {
-        (acc[getKey(item)] ||= []).push(item);
-        return acc;
-    }, {} as Record<K, T[]>);
+    return array.reduce(
+        (acc, item) => {
+            (acc[getKey(item)] ||= []).push(item);
+            return acc;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 /**
@@ -161,6 +164,16 @@ export function itemsEqual<T>(
                     ),
             ))
     );
+}
+
+export function minOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
+    return values.reduce<T | undefined>((old, candidate, index) => {
+        if (index == 0 || comparator(old as T, candidate) > 0) {
+            return candidate;
+        } else {
+            return old;
+        }
+    }, undefined);
 }
 
 export function maxOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {

@@ -6,21 +6,18 @@ import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.springframework.web.reactive.function.client.WebClient
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -29,6 +26,8 @@ class GeometryElementListTestUI @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val geometryService: GeometryService,
+    private val webClient: LocalHostWebClient,
 ) : SeleniumTest() {
 
     @BeforeEach
@@ -82,7 +81,9 @@ class GeometryElementListTestUI @Autowired constructor(
         assertEquals("Kaari", resultItems[1].elementType)
         assertEquals("4.263", resultItems[1].length)
         val downloadUrl = planListPage.downloadUrl
-        val csv = WebClient.create().get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         assertTrue(csv.isNotEmpty())
     }
 
@@ -91,11 +92,14 @@ class GeometryElementListTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
         val planVersion = insertSomePlan(trackNumberId)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
+        geometryService.makeElementListingCsv()
 
         startGeoviite()
         val page = navigationBar.goToElementListPage().entireNetworkPage()
         val downloadUrl = page.downloadUrl
-        val csv = WebClient.create().get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         assertTrue(csv.isNotEmpty())
     }
 

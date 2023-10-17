@@ -76,7 +76,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     React.useEffect(() => {
-        getTrackNumbers('DRAFT').then((trackNumbers) => setTrackNumbers(trackNumbers));
+        getTrackNumbers('DRAFT', undefined, true).then((trackNumbers) =>
+            setTrackNumbers(trackNumbers),
+        );
     }, []);
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);

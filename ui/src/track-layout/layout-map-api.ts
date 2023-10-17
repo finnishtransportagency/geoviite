@@ -126,10 +126,12 @@ export async function getReferenceLineMapAlignmentsByTiles(
     mapTiles: MapTile[],
     publishType: PublishType,
 ) {
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutTrackNumber,
+    );
     const polyLines = await Promise.all(
-        mapTiles.map((tile) =>
-            getPolyLines(tile, changeTimes.layoutReferenceLine, publishType, 'REFERENCE_LINES'),
-        ),
+        mapTiles.map((tile) => getPolyLines(tile, changeTime, publishType, 'REFERENCE_LINES')),
     ).then((p) => p.flat());
 
     return getAlignmentDataHolder('REFERENCE_LINE', polyLines, publishType, changeTimes);
@@ -419,7 +421,7 @@ export async function getTrackMeter(
         changeTime,
         `${trackNumberId}_${publishType}_${pointString(location)}`,
         () => {
-            return getNonNull<TrackMeter>(
+            return getNullable<TrackMeter>(
                 `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
             );
         },

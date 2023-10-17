@@ -49,8 +49,7 @@ class ReferenceLineController(
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ReferenceLine> {
         logger.apiCall(
-            "getTrackNumberReferenceLine",
-            "publishType" to publishType, "trackNumberId" to trackNumberId
+            "getTrackNumberReferenceLine", "publishType" to publishType, "trackNumberId" to trackNumberId
         )
         return toResponse(referenceLineService.getByTrackNumber(publishType, trackNumberId))
     }
@@ -72,15 +71,9 @@ class ReferenceLineController(
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getReferenceLineStartAndEnd", "publishType" to publishType, "id" to id)
-        return toResponse(
-            referenceLineService.getWithAlignment(publishType, id)
-                ?.let { (referenceLine, alignment) ->
-                    geocodingService.getReferenceLineStartAndEnd(
-                        publishType,
-                        referenceLine,
-                        alignment
-                    )
-                })
+        return toResponse(referenceLineService.getWithAlignment(publishType, id)?.let { (referenceLine, alignment) ->
+            geocodingService.getReferenceLineStartAndEnd(publishType, referenceLine, alignment)
+        })
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -92,7 +85,7 @@ class ReferenceLineController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): ChangeTimes {
+    fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): DraftableChangeInfo {
         logger.apiCall("getReferenceLineChangeInfo", "id" to id)
         return referenceLineService.getChangeTimes(id)
     }

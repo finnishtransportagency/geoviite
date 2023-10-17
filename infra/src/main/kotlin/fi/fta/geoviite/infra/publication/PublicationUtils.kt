@@ -211,6 +211,29 @@ fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter
     )
     else null
 
+fun getSwitchLinksChangedRemark(
+    translation: Translation,
+    locationTrackChanges: LocationTrackChanges,
+): String {
+    val old = HashSet(locationTrackChanges.linkedSwitches.old ?: listOf())
+    val new = HashSet(locationTrackChanges.linkedSwitches.new ?: listOf())
+    val removed = old.minus(new)
+    val added = new.minus(old)
+    val remarkRemoved = publicationChangeRemark(
+        translation,
+        if (removed.size > 1) "switch-link-removed-plural" else "switch-link-removed-singular",
+        removed.sorted().joinToString()
+    )
+    val remarkAdded = publicationChangeRemark(
+        translation,
+        if (added.size > 1) "switch-link-added-plural" else "switch-link-added-singular",
+        added.sorted().joinToString()
+    )
+    return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
+        else if (removed.isNotEmpty()) remarkRemoved
+        else remarkAdded
+}
+
 fun <T, U> compareChangeValues(
     change: Change<T>,
     valueTransform: (T) -> U,
@@ -380,3 +403,6 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
     translation.t("publication-details-table.remark.$key", if (value != null) mapOf("value" to value) else mapOf())
+
+fun publicationChangeRemark(translation: Translation, key: String, params: Map<String, String>) =
+    translation.t("publication-details-table.remark.$key", params)

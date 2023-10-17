@@ -6,7 +6,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
+import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -186,7 +187,7 @@ class LocationTrackController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): ChangeTimes {
+    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): DraftableChangeInfo {
         logger.apiCall("getLocationTrackChangeInfo", "id" to id)
         return locationTrackService.getChangeTimes(id)
     }
