@@ -105,6 +105,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                     label={t('data-products.search.location-track')}
                     value={
                         <Dropdown
+                            qaId={'data-products-search-location-track'}
                             value={state.searchParameters.locationTrack}
                             getName={(item) => item.name}
                             placeholder={t('data-products.search.search')}
@@ -160,21 +161,22 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <Button
-                    className={styles['element-list__download-button']}
-                    disabled={!state.verticalGeometry || state.verticalGeometry.length === 0}
-                    onClick={() => {
-                        if (state.searchParameters.locationTrack) {
-                            location.href = getLocationTrackVerticalGeometryCsv(
-                                state.searchParameters.locationTrack?.id,
-                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-                            );
-                        }
-                    }}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                <a
+                    qa-id="vertical-geometry-csv-download"
+                    {...(state.searchParameters.locationTrack && {
+                        href: getLocationTrackVerticalGeometryCsv(
+                            state.searchParameters.locationTrack?.id,
+                            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                        ),
+                    })}>
+                    <Button
+                        className={styles['element-list__download-button']}
+                        disabled={!state.verticalGeometry || state.verticalGeometry.length === 0}
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

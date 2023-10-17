@@ -15,13 +15,13 @@ type KilometerLengthsTableProps = {
     isLoading: boolean;
 };
 
-export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
+const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
     const { t } = useTranslation();
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
         nonNumericHeading('track-number'),
         nonNumericHeading('kilometer'),
-        numericHeading('station-start'),
+        numericHeading('station-start', 'station-start'),
         numericHeading('station-end'),
         numericHeading('length'),
         numericHeading('location-e'),
@@ -45,7 +45,8 @@ export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengths
                                         heading.numeric
                                             ? styles['data-product-table__column--number']
                                             : ''
-                                    }>
+                                    }
+                                    qa-id={heading.qaId && `km-length-header-${heading.qaId}`}>
                                     {t(`data-products.km-lengths.table.${heading.name}`)}
                                 </Th>
                             ))}
@@ -72,3 +73,5 @@ export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengths
         </React.Fragment>
     );
 };
+
+export default React.memo(KilometerLengthsTable);

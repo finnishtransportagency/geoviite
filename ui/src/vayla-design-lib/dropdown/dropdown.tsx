@@ -3,6 +3,7 @@ import styles from './dropdown.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 
 let searchSequence = 0;
 
@@ -42,6 +43,7 @@ export type DropdownProps<TItemValue> = {
     hasError?: boolean;
     onAddClick?: () => void;
     wideList?: boolean;
+    qaId?: string;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled'>;
 
 function isOptionsArray<TItemValue>(
@@ -60,7 +62,7 @@ export const Dropdown = function <TItemValue>({
     searchable = true,
     ...props
 }: DropdownProps<TItemValue>): JSX.Element {
-    const wrapperRef = React.useRef<HTMLDivElement>(null);
+    const menuRef = React.useRef<HTMLDivElement>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const listRef = React.useRef<HTMLUListElement>(null);
     const focusedOptionRef = React.useRef<HTMLLIElement>(null);
@@ -107,14 +109,6 @@ export const Dropdown = function <TItemValue>({
 
     function focusInput() {
         inputRef.current?.focus();
-    }
-
-    function toggleList() {
-        if (open) {
-            closeList();
-        } else {
-            openList();
-        }
     }
 
     function openList() {
@@ -200,7 +194,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
         if (!searchable && e.code == 'Space') {
-            toggleList();
+            openList();
             e.preventDefault();
         }
     }
@@ -270,23 +264,6 @@ export const Dropdown = function <TItemValue>({
         setHasFocus(document.activeElement == inputRef.current);
     });
 
-    // Handle clicks out of this dropdown -> close list
-    React.useEffect(() => {
-        if (open) {
-            const onClickHandler = function (this: Document, ev: MouseEvent): void {
-                if (wrapperRef.current && !wrapperRef.current.contains(ev.target as Node)) {
-                    closeList();
-                    removeListener();
-                }
-            };
-            const removeListener = function () {
-                document.removeEventListener('click', onClickHandler);
-            };
-            document.addEventListener('click', onClickHandler);
-            return removeListener;
-        }
-    }, [open]);
-
     React.useEffect(() => {
         if (searchTerm) {
             openList();
@@ -325,14 +302,19 @@ export const Dropdown = function <TItemValue>({
     }, [options]);
 
     return (
-        <div className={className} ref={wrapperRef} onMouseDown={() => handleRootMouseDown()}>
+        <div
+            qa-id={props.qaId}
+            className={className}
+            ref={menuRef}
+            onMouseDown={() => handleRootMouseDown()}>
             <div
                 className={styles['dropdown__header']}
                 role="button"
-                onClick={() => {
+                onClick={(e) => {
                     if (!props.disabled) {
+                        e.stopPropagation();
                         focusInput();
-                        toggleList();
+                        open ? closeList() : openList();
                     }
                 }}
                 title={selectedName}>
@@ -340,8 +322,8 @@ export const Dropdown = function <TItemValue>({
                     <input
                         className={styles['dropdown__input']}
                         ref={inputRef}
-                        onFocus={() => handleInputFocus()}
-                        onBlur={() => handleInputBlur()}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
@@ -369,12 +351,17 @@ export const Dropdown = function <TItemValue>({
                 </div>
             </div>
             {open && (
-                <div className={styles['dropdown__list-container']}>
+                <CloseableModal
+                    useRefWidth
+                    onClickOutside={closeList}
+                    className={styles['dropdown__list-container']}
+                    offsetY={36}
+                    positionRef={menuRef}>
                     <ul className={styles['dropdown__list']} ref={listRef}>
                         {showEmptyOption && (
                             <li
                                 className={getItemClassName(undefined, -1)}
-                                onClick={() => unselect()}
+                                onClick={unselect}
                                 title={props.unselectText || 'Ei valittu'}
                                 ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
@@ -435,7 +422,7 @@ export const Dropdown = function <TItemValue>({
                             </Button>
                         </div>
                     )}
-                </div>
+                </CloseableModal>
             )}
         </div>
     );

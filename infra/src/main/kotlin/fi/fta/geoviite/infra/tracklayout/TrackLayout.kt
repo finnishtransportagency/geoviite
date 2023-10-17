@@ -111,6 +111,14 @@ val locationTrackDescriptionLength = 4..256
 enum class DescriptionSuffixType {
     NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER
 }
+data class LayoutSwitchIdAndName(val id: IntId<TrackLayoutSwitch>, val name: SwitchName)
+
+data class LocationTrackInfoboxExtras(
+    val duplicateOf: LocationTrackDuplicate?,
+    val duplicates: List<LocationTrackDuplicate>,
+    val switchAtStart: LayoutSwitchIdAndName?,
+    val switchAtEnd: LayoutSwitchIdAndName?,
+)
 
 data class LocationTrack(
     val name: AlignmentName,
@@ -272,11 +280,6 @@ data class TrackNumberAndChangeTime(
     val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val changeTime: Instant,
-)
-
-data class SwitchesAtEnds(
-    val start: IntId<TrackLayoutSwitch>?,
-    val end: IntId<TrackLayoutSwitch>?,
 )
 
 fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""

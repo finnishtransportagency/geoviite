@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.*
-import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -72,16 +71,6 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/duplicate-of")
-    fun getLocationTrackDuplicateOfList(
-        @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<LocationTrack>,
-    ): List<LocationTrackDuplicate> {
-        logger.apiCall("getLocationTrack", "id" to id, "publishType" to publishType, "id" to id)
-        return locationTrackService.getDuplicates(id, publishType)
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/{id}/start-and-end")
     fun getLocationTrackStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
@@ -97,13 +86,13 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/switches-at-ends")
-    fun getLocationTrackSwitchesAtEnds(
+    @GetMapping("/{publishType}/{id}/infobox-extras")
+    fun getLocationTrackInfoboxExtras(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<SwitchesAtEnds> {
-        logger.apiCall("getLocationTrackSwitchesAtEnds", "publishType" to publishType, "id" to id)
-        return toResponse(locationTrackService.getSwitchesAtEnds(id, publishType))
+    ): ResponseEntity<LocationTrackInfoboxExtras> {
+        logger.apiCall("getLocationTrackInfoboxExtras", "publishType" to publishType, "id" to id)
+        return toResponse(locationTrackService.getInfoboxExtras(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

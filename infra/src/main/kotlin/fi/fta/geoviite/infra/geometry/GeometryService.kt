@@ -142,6 +142,11 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchProjectChangeTime()
     }
 
+    fun getAuthorChangeTime(): Instant {
+        logger.serviceCall("getAuthorChangeTime")
+        return geometryDao.fetchAuthorChangeTime()
+    }
+
     fun getProject(id: IntId<Project>): Project {
         logger.serviceCall("getProject", "id" to id)
         return geometryDao.getProject(id)
@@ -399,18 +404,18 @@ class GeometryService @Autowired constructor(
         }
         val verticalGeometryListingWithTrackNumbers =
             locationTrackService.list(OFFICIAL, includeDeleted = false).sortedWith(
-                    compareBy(
-                        { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
-                        { locationTrack -> locationTrack.name },
-                    )
-                ).flatMap { locationTrack ->
-                    val verticalGeometryListingWithoutTrackNumbers =
-                        getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
+                compareBy(
+                    { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
+                    { locationTrack -> locationTrack.name },
+                )
+            ).flatMap { locationTrack ->
+                val verticalGeometryListingWithoutTrackNumbers =
+                    getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
 
-                    verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
-                        verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
-                    }
+                verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
+                    verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
                 }
+            }
 
         val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
@@ -454,8 +459,8 @@ class GeometryService @Autowired constructor(
                 )
             }
 
-            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> localization.t("enum.plan-phase.$h.planPhase?.name") }
-            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> localization.t("enum.plan-decision.$h.decisionPhase?.name") }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> localization.t("enum.plan-phase.${h.planPhase?.name}") }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> localization.t("enum.plan-decision.${h.decisionPhase?.name}") }
             GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
@@ -496,10 +501,7 @@ class GeometryService @Autowired constructor(
                 val plan = geometryDao.fetchPlan(planVersion)
                 val planAlignment =
                     plan.alignments.find { alignment -> alignment.id == planAlignmentId } ?: return@map SegmentSource(
-                        null,
-                        null,
-                        null,
-                        plan
+                        null, null, null, plan
                     )
                 val planProfile = planAlignment.profile ?: return@map SegmentSource(null, null, null, plan)
                 val planElement = planAlignment.elements[sourceId.index]
@@ -644,8 +646,7 @@ class GeometryService @Autowired constructor(
             alignment.getPointAtM(boundary.distanceOnAlignment)?.let { point ->
                 geocodingContext.getAddress(point)?.let { address -> address.first to boundary.segmentIndex }
             }
-        }
-            .groupBy({ (trackMeter) -> trackMeter.kmNumber },
+        }.groupBy({ (trackMeter) -> trackMeter.kmNumber },
                 { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex })
 
         val (alignmentStart, alignmentEnd) = geocodingContext.getStartAndEnd(alignment).let { startAndEnd ->
@@ -686,16 +687,16 @@ class GeometryService @Autowired constructor(
             KmHeights(
                 referencePoint.kmNumber,
                 ticksToSend.mapNotNull { (trackMeterInKm, segmentIndex) ->
-                        val trackMeter = TrackMeter(kmNumber, trackMeterInKm)
-                        geocodingContext.getTrackLocation(alignment, trackMeter)?.let { address ->
-                            TrackMeterHeight(
-                                address.point.m,
-                                address.address.meters.toDouble(),
-                                getHeightAt(address.point, segmentIndex),
-                                address.point.toPoint(),
-                            )
-                        }
-                    }.distinct(), // don't bother sending segment boundary sides with the same location and height
+                    val trackMeter = TrackMeter(kmNumber, trackMeterInKm)
+                    geocodingContext.getTrackLocation(alignment, trackMeter)?.let { address ->
+                        TrackMeterHeight(
+                            address.point.m,
+                            address.address.meters.toDouble(),
+                            getHeightAt(address.point, segmentIndex),
+                            address.point.toPoint(),
+                        )
+                    }
+                }.distinct(), // don't bother sending segment boundary sides with the same location and height
                 endM,
             )
         }.collect(Collectors.toList()).filter { km -> km.trackMeterHeights.isNotEmpty() }

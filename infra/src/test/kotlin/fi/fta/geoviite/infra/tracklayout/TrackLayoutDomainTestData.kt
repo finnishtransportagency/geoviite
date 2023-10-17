@@ -211,6 +211,7 @@ fun locationTrack(
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
+    duplicateOf: IntId<LocationTrack>? = null,
 ) = LocationTrack(
     name = AlignmentName(name),
     descriptionBase = FreeText(description),
@@ -224,7 +225,7 @@ fun locationTrack(
     segmentCount = alignment?.segments?.size ?: 0,
     length = alignment?.length ?: 0.0,
     draft = draft,
-    duplicateOf = null,
+    duplicateOf = duplicateOf,
     topologicalConnectivity = TopologicalConnectivityType.START,
     topologyStartSwitch = topologyStartSwitch,
     topologyEndSwitch = topologyEndSwitch,

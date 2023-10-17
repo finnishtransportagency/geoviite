@@ -34,7 +34,7 @@ type MainProps = {
     version: string | undefined;
 };
 
-const Main: React.VFC<MainProps> = (props: MainProps) => {
+const Main: React.FC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
     return (
         <div className={styles.main}>

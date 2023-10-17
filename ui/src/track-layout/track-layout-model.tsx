@@ -74,12 +74,6 @@ export type LayoutReferenceLine = {
     draftType: DraftType;
 };
 
-export type LayoutLocationTrackDuplicate = {
-    name: string;
-    externalId?: Oid;
-    id: LocationTrackId;
-};
-
 export type TopologyLocationTrackSwitch = {
     switchId: LayoutSwitchId;
     joint: JointNumber;
@@ -113,10 +107,19 @@ export type LayoutLocationTrack = {
     ownerId: LocationTrackOwnerId;
 };
 
-export const locationTrackDescription = (lt: {
-    descriptionBase?: string;
-    descriptionSuffix?: string;
-}) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
+export type LocationTrackDuplicate = {
+    id: LocationTrackId;
+    name: string;
+    externalId: Oid;
+};
+export type LayoutSwitchIdAndName = { id: LayoutSwitchId; name: string };
+
+export type LocationTrackInfoboxExtras = {
+    duplicateOf?: LocationTrackDuplicate;
+    duplicates: LocationTrackDuplicate[];
+    switchAtStart?: LayoutSwitchIdAndName;
+    switchAtEnd?: LayoutSwitchIdAndName;
+};
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 
@@ -249,10 +252,6 @@ export type AlignmentStartAndEnd = {
     end?: AddressPoint;
 };
 
-export type SwitchesAtEnds = {
-    start?: LayoutSwitchId;
-    end?: LayoutSwitchId;
-};
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,
     presentationJointNumber: JointNumber,

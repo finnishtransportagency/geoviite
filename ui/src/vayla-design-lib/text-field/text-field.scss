@@ -9,16 +9,16 @@ $text-field-input-border-default: 1px;
 $text-field-input-border-thick: 2px;
 $text-field-input-border-error: 1.5px;
 
-@mixin text-field-border($color, $width, $icon: no-icon) {
-    border: $width solid $color;
-    $border-width-diff: $width - $text-field-input-border-default;
+@mixin text-field-shadow($color, $width, $icon: no-icon) {
+    box-shadow: inset 0 0 0 $width $color;
+    border: none;
 
     @if $icon == left {
-        padding: 8px (12px - $border-width-diff) 8px (32px - $border-width-diff);
+        padding: 8px 12px 8px 32px;
     } @else if $icon == right {
-        padding: 8px (32px - $border-width-diff) 8px (12px - $border-width-diff);
+        padding: 8px 32px 8px 12px;
     } @else {
-        padding: 8px (12px - $border-width-diff);
+        padding: 8px 12px;
     }
 }
 
@@ -49,7 +49,7 @@ $text-field-input-border-error: 1.5px;
     background: colors.$color-white-default;
 
     outline: none;
-    @include text-field-border(
+    @include text-field-shadow(
         $color: colors.$color-black-lighter,
         $width: $text-field-input-border-default
     );
@@ -105,14 +105,14 @@ $text-field-input-border-error: 1.5px;
 
 .text-field:hover:not(.text-field--disabled) {
     .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-black-lighter,
             $width: $text-field-input-border-thick
         );
     }
 
     &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-black-lighter,
             $width: $text-field-input-border-thick,
             $icon: left
@@ -120,7 +120,7 @@ $text-field-input-border-error: 1.5px;
     }
 
     &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-black-lighter,
             $width: $text-field-input-border-thick,
             $icon: right
@@ -136,14 +136,14 @@ $text-field-input-border-error: 1.5px;
     }
 
     .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-blue-dark,
             $width: $text-field-input-border-thick
         );
     }
 
     &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-blue-dark,
             $width: $text-field-input-border-thick,
             $icon: left
@@ -151,7 +151,7 @@ $text-field-input-border-error: 1.5px;
     }
 
     &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-blue-dark,
             $width: $text-field-input-border-thick,
             $icon: right
@@ -164,14 +164,14 @@ $text-field-input-border-error: 1.5px;
 .text-field--has-error {
     .text-field__input-element {
         color: colors.$color-red-dark;
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-red-dark,
             $width: $text-field-input-border-error
         );
     }
 
     &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-red-dark,
             $width: $text-field-input-border-error,
             $icon: left
@@ -179,7 +179,7 @@ $text-field-input-border-error: 1.5px;
     }
 
     &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-red-dark,
             $width: $text-field-input-border-error,
             $icon: right
@@ -195,7 +195,7 @@ $text-field-input-border-error: 1.5px;
     }
 
     .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-white-darker,
             $width: $text-field-input-border-default
         );
@@ -203,7 +203,7 @@ $text-field-input-border-error: 1.5px;
     }
 
     &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-white-darker,
             $width: $text-field-input-border-default,
             $icon: left
@@ -211,7 +211,7 @@ $text-field-input-border-error: 1.5px;
     }
 
     &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-border(
+        @include text-field-shadow(
             $color: colors.$color-white-darker,
             $width: $text-field-input-border-default,
             $icon: right

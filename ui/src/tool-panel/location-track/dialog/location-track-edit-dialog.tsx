@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     LayoutLocationTrack,
-    locationTrackDescription,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -13,6 +12,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import {
     getLocationTrack,
+    getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
     insertLocationTrack,
     updateLocationTrack,
@@ -37,8 +37,8 @@ import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/fo
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
+    useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
-    useLocationTrackSwitchesAtEnds,
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -70,11 +70,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 ) => {
     const { t } = useTranslation();
 
-    const switchesAtEnds = useLocationTrackSwitchesAtEnds(
-        props.locationTrack,
-        props.publishType,
-        props.locationTrackChangeTime,
-    );
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -97,6 +92,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.publishType,
         props.locationTrackChangeTime,
     );
+
+    const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, props.publishType);
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
@@ -253,17 +250,28 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
-                locationTracks
-                    .filter((lt) => {
-                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined;
-                    })
-                    .map((lt) => ({
-                        name: `${lt.name}, ${locationTrackDescription(lt)}`,
-                        value: {
-                            type: 'locationTrackSearchItem',
-                            locationTrack: lt,
-                        },
-                    })),
+                getLocationTrackDescriptions(
+                    locationTracks.map((lt) => lt.id),
+                    props.publishType,
+                ).then((descriptions) => {
+                    return locationTracks
+                        .filter((lt) => {
+                            return (
+                                lt.id !== props.locationTrack?.id && lt.duplicateOf === undefined
+                            );
+                        })
+                        .map((lt) => {
+                            const description = descriptions?.find((d) => d.id === lt.id)
+                                ?.description;
+                            return {
+                                name: description ? `${lt.name}, ${description}` : lt.name,
+                                value: {
+                                    type: 'locationTrackSearchItem',
+                                    locationTrack: lt,
+                                },
+                            };
+                        });
+                }),
             ),
         [props.locationTrack?.id],
     );
@@ -274,14 +282,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }
 
     const switchToSwitchDescriptionSuffix = () =>
-        `${shortenSwitchName(switchesAtEnds?.start?.name) ?? '???'} - ${
-            shortenSwitchName(switchesAtEnds?.end?.name) ?? '???'
+        `${shortenSwitchName(extraInfo?.switchAtStart?.name) ?? '???'} - ${
+            shortenSwitchName(extraInfo?.switchAtEnd?.name) ?? '???'
         }`;
 
     const switchToBufferDescriptionSuffix = () =>
         `${
-            shortenSwitchName(switchesAtEnds?.start?.name) ??
-            shortenSwitchName(switchesAtEnds?.end?.name) ??
+            shortenSwitchName(extraInfo?.switchAtStart?.name) ??
+            shortenSwitchName(extraInfo?.switchAtEnd?.name) ??
             '???'
         } - ${t('location-track-dialog.buffer')}`;
 
@@ -309,7 +317,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         const last = splits.length ? splits[splits.length - 1] : '';
         const numberPart = last[0] === 'V' ? last.substring(1) : '';
         const number = parseInt(numberPart, 10);
-        return !isNaN(number) ? `V${number}`.padStart(3, '0') : undefined;
+        return !isNaN(number) ? `V${number.toString(10).padStart(3, '0')}` : undefined;
     };
 
     return (
@@ -433,7 +441,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <div className={styles['location-track-edit-dialog__description']}>
                                     <FieldLayout
-                                        label={`Kuvauksen perusosa *`}
+                                        label={`${t('location-track-dialog.description-base')} *`}
                                         value={
                                             <TextField
                                                 value={state.locationTrack?.descriptionBase || ''}
@@ -450,7 +458,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         errors={getVisibleErrorsByProp('descriptionBase')}
                                     />
                                     <FieldLayout
-                                        label={`Kuvauksen lisäosa *`}
+                                        label={`${t('location-track-dialog.description-suffix')} *`}
                                         value={
                                             <Dropdown
                                                 options={descriptionSuffixModes}
@@ -470,7 +478,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         errors={getVisibleErrorsByProp('descriptionSuffix')}
                                     />
                                     <FieldLayout
-                                        label={`Valmis kuvaus`}
+                                        label={`${t('location-track-dialog.full-description')}`}
                                         value={state.locationTrack && fullDescription()}
                                     />
                                 </div>
@@ -600,7 +608,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {switchesAtEnds?.start?.name ??
+                                    {extraInfo?.switchAtStart?.name ??
                                         t('location-track-dialog.no-start-or-end-switch')}
                                 </span>
                             }
@@ -612,7 +620,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {switchesAtEnds?.end?.name ??
+                                    {extraInfo?.switchAtEnd?.name ??
                                         t('location-track-dialog.no-start-or-end-switch')}
                                 </span>
                             }

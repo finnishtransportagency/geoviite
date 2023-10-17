@@ -26,12 +26,9 @@ class LocationTrackDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
-    fun fetchDuplicates(id: IntId<LocationTrack>, publicationState: PublishType): List<LocationTrackDuplicate> {
+    fun fetchDuplicates(id: IntId<LocationTrack>, publicationState: PublishType): List<RowVersion<LocationTrack>> {
         val sql = """
-            select
-              official_id,
-              external_id, 
-              name
+            select row_id, row_version
             from layout.location_track_publication_view
             where duplicate_of_location_track_id = :id
               and :publication_state = any(publication_states)
@@ -39,11 +36,7 @@ class LocationTrackDao(
         """.trimIndent()
         val params = mapOf("id" to id.intValue, "publication_state" to publicationState.name)
         val locationTracks = jdbcTemplate.query(sql, params) { rs, _ ->
-            LocationTrackDuplicate(
-                id = rs.getIntId("official_id"),
-                externalId = rs.getOidOrNull("external_id"),
-                name = AlignmentName(rs.getString("name")),
-            )
+            rs.getRowVersion<LocationTrack>("row_id", "row_version")
         }
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
         return locationTracks

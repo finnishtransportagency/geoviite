@@ -1,7 +1,11 @@
 import * as React from 'react';
 import styles from './location-track-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutLocationTrack, LayoutSwitchId } from 'track-layout/track-layout-model';
+import {
+    LAYOUT_SRID,
+    LayoutLocationTrack,
+    LayoutSwitchIdAndName,
+} from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -13,9 +17,8 @@ import {
     useCoordinateSystem,
     useLocationTrack,
     useLocationTrackChangeTimes,
-    useLocationTrackDuplicates,
+    useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
-    useLocationTrackSwitchesAtEnds,
     useTrackNumber,
 } from 'track-layout/track-layout-react-utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
@@ -32,10 +35,7 @@ import { LocationTrackOwnerId, PublishType, TimeStamp } from 'common/common-mode
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import {
-    getLocationTrackDescriptions,
-    getLocationTracksBySearchTerm,
-} from 'track-layout/layout-location-track-api';
+import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
@@ -46,15 +46,19 @@ import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
-import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    LocationTrackInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
-import { SwitchLinkContainer } from 'geoviite-design-lib/switch/switch-link';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { Link } from 'vayla-design-lib/link/link';
+import { createDelegates } from 'store/store-utils';
 import { getLocationTrackOwners } from 'common/common-api';
 
 type LocationTrackInfoboxProps = {
@@ -94,6 +98,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onHighlightItem,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
+    const delegates = createDelegates(TrackLayoutActions);
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
     const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
         locationTrack?.id,
@@ -105,11 +110,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const officialLocationTrack = useLocationTrack(
         locationTrack.id,
         'OFFICIAL',
-        locationTrackChangeTime,
-    );
-    const switchesAtEnds = useLocationTrackSwitchesAtEnds(
-        locationTrack,
-        publishType,
         locationTrackChangeTime,
     );
     const description = useLoader(
@@ -169,11 +169,19 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     function closeLocationTrackPushDialog() {
         setShowRatkoPushDialog(false);
     }
-    function getSwitchLink(id?: LayoutSwitchId) {
-        if (switchesAtEnds === undefined) {
-            return '';
-        } else if (id) {
-            return <SwitchLinkContainer switchId={id} />;
+    function getSwitchLink(sw?: LayoutSwitchIdAndName) {
+        if (sw) {
+            const switchId = sw.id;
+            return (
+                <Link
+                    onClick={() =>
+                        delegates.onSelect({
+                            switches: [switchId],
+                        })
+                    }>
+                    {sw.name}
+                </Link>
+            );
         } else {
             return t('tool-panel.location-track.no-start-or-end-switch');
         }
@@ -202,16 +210,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         }
     };
 
-    const existingDuplicateOfList = useLoader(() => {
-        const duplicateOfTrack =
-            locationTrack?.duplicateOf &&
-            getLocationTracksBySearchTerm(locationTrack?.duplicateOf, publishType, 1);
-        if (duplicateOfTrack === '') return undefined;
-        else return duplicateOfTrack;
-    }, [locationTrack]);
-
-    const existingDuplicate = existingDuplicateOfList && existingDuplicateOfList[0];
-    const duplicatesOfLocationTrack = useLocationTrackDuplicates(locationTrack.id, publishType);
+    const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
+        locationTrack?.id,
+        publishType,
+    );
 
     const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
@@ -220,7 +222,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     return (
         <React.Fragment>
             <Infobox
-                contentVisible={visibilities.basic}
+                contentVisible={
+                    visibilities.basic && extraInfoLoadingStatus != LoaderStatus.Loading
+                }
                 onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.location-track.basic-info-heading')}
                 qa-id="location-track-infobox">
@@ -262,31 +266,25 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         iconDisabled={isOfficial()}
                     />
                     <InfoboxText value={trackNumber?.description} />
-
-                    {duplicatesOfLocationTrack !== undefined && (
-                        <InfoboxField
-                            label={
-                                duplicatesOfLocationTrack.length > 0
-                                    ? t('tool-panel.location-track.has-duplicates')
-                                    : existingDuplicate
-                                    ? t('tool-panel.location-track.duplicate-of')
-                                    : t('tool-panel.location-track.not-a-duplicate')
-                            }
-                            value={
-                                <LocationTrackInfoboxDuplicateOf
-                                    existingDuplicate={existingDuplicate}
-                                    duplicatesOfLocationTrack={duplicatesOfLocationTrack}
-                                />
-                            }
-                            onEdit={
-                                duplicatesOfLocationTrack.length > 0
-                                    ? undefined
-                                    : openEditLocationTrackDialog
-                            }
-                            iconDisabled={isOfficial()}
-                        />
-                    )}
-
+                    <InfoboxField
+                        label={
+                            locationTrack.duplicateOf
+                                ? t('tool-panel.location-track.duplicate-of')
+                                : extraInfo?.duplicates?.length ?? 0 > 0
+                                ? t('tool-panel.location-track.has-duplicates')
+                                : t('tool-panel.location-track.not-a-duplicate')
+                        }
+                        value={
+                            <LocationTrackInfoboxDuplicateOf
+                                existingDuplicate={extraInfo?.duplicateOf}
+                                duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
+                                publishType={publishType}
+                                changeTime={locationTrackChangeTime}
+                            />
+                        }
+                        onEdit={openEditLocationTrackDialog}
+                        iconDisabled={isOfficial()}
+                    />
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
                         value={
@@ -305,13 +303,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.start-switch')}
-                        value={getSwitchLink(switchesAtEnds?.start?.id)}
+                        value={extraInfo && getSwitchLink(extraInfo.switchAtStart)}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.end-switch')}
-                        value={getSwitchLink(switchesAtEnds?.end?.id)}
+                        value={extraInfo && getSwitchLink(extraInfo.switchAtEnd)}
                     />
-
                     <InfoboxButtons>
                         <Button
                             variant={ButtonVariant.SECONDARY}
@@ -541,11 +538,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     publishType={publishType}
                     locationTrackChangeTime={locationTrackChangeTime}
                     onUnselect={() => onUnselect(locationTrack)}
-                    existingDuplicateTrack={existingDuplicate}
-                    duplicatesExist={
-                        duplicatesOfLocationTrack !== undefined &&
-                        duplicatesOfLocationTrack.length > 0
-                    }
                 />
             )}
         </React.Fragment>

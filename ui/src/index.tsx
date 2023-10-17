@@ -8,6 +8,7 @@ import './style.scss';
 import 'normalize.css';
 import { PersistGate } from 'redux-persist/integration/react';
 import { persistStore } from 'redux-persist';
+import { LoadingScreen } from 'geoviite-design-lib/loading-screen/loading-screen';
 
 const persistor = persistStore(appStore);
 
@@ -16,7 +17,7 @@ if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
         <React.StrictMode>
-            <React.Suspense fallback={<React.Fragment />}>
+            <React.Suspense fallback={<LoadingScreen />}>
                 <Provider store={appStore}>
                     <PersistGate loading={null} persistor={persistor}>
                         <HashRouter>

@@ -18,8 +18,8 @@ type VerticalGeometryTableProps = {
 };
 
 const COMMON_HEADINGS = [
-    nonNumericHeading('plan'),
-    nonNumericHeading('creation-date'),
+    nonNumericHeading('plan', 'plan'),
+    nonNumericHeading('creation-date', 'creation-date'),
     nonNumericHeading('crs'),
     nonNumericHeading('alignment'),
     withSeparator(numericHeading('track-address')),
@@ -28,8 +28,8 @@ const COMMON_HEADINGS = [
     numericHeading('location-e'),
     numericHeading('location-n'),
     withSeparator(numericHeading('track-address')),
-    numericHeading('height'),
-    numericHeading('location-e'),
+    numericHeading('height', 'pvi-point-height'),
+    numericHeading('location-e', 'pvi-point-location-e'),
     numericHeading('location-n'),
     withSeparator(numericHeading('track-address')),
     numericHeading('height'),
@@ -50,7 +50,7 @@ const COMMON_HEADINGS = [
     nonNumericHeading('remarks'),
 ];
 
-export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
+const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
     verticalGeometry,
     showLocationTrack,
     isLoading,
@@ -66,9 +66,12 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
             hasSeparator && styles['data-product-table__table-heading--separator'],
         );
 
-    const headings = (showLocationTrack ? [nonNumericHeading('location-track')] : []).concat(
-        COMMON_HEADINGS,
-    );
+    const headings: {
+        name: string;
+        numeric: boolean;
+        hasSeparator: boolean;
+        qaId?: string;
+    }[] = [...(showLocationTrack ? [nonNumericHeading('location-track')] : []), ...COMMON_HEADINGS];
 
     return (
         <React.Fragment>
@@ -154,7 +157,10 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
                                         heading.hasSeparator,
                                     )}
                                     scope={'colgroup'}
-                                    variant={ThVariant.MULTILINE_BOTTOM}>
+                                    variant={ThVariant.MULTILINE_BOTTOM}
+                                    {...(heading.qaId && {
+                                        ['qa-id']: `data-products.vertical-geometry.table.${heading.qaId}`,
+                                    })}>
                                     {t(`data-products.vertical-geometry.table.${heading.name}`)}
                                 </Th>
                             ))}
@@ -175,3 +181,5 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
         </React.Fragment>
     );
 };
+
+export default React.memo(VerticalGeometryTable);

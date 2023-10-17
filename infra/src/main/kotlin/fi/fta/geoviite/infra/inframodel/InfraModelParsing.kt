@@ -59,9 +59,9 @@ private val schema: Schema by lazy {
 }
 
 
-val unmarshaller: Unmarshaller by lazy { jaxbContext.createUnmarshaller() }
-
-val marshaller: Marshaller by lazy { jaxbContext.createMarshaller() }
+//Unlike jaxbContexts, Marshallers are not thread-safe
+val unmarshaller: Unmarshaller get() = jaxbContext.createUnmarshaller()
+val marshaller: Marshaller get() = jaxbContext.createMarshaller()
 
 private val saxParserFactory: SAXParserFactory by lazy {
     val spf = SAXParserFactory.newInstance()

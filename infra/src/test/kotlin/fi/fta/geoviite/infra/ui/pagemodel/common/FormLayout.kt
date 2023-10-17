@@ -2,13 +2,14 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import childExists
 import fi.fta.geoviite.infra.ui.util.ElementFetch
+import fi.fta.geoviite.infra.ui.util.byQaId
 import getChildElement
 import getChildElements
 import org.openqa.selenium.By
 
 open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
-    fun getValueForField(fieldName: String): String {
+    fun getValueForFieldByLabel(fieldName: String): String {
         logger.info("Get field $fieldName")
         val fieldValueElement = getFieldValueElement(fieldName)
         val value =
@@ -20,14 +21,14 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
         return value
     }
 
-    fun inputFieldValue(label: String, value: String): E2EFormLayout = apply {
+    fun inputFieldValueByLabel(label: String, value: String): E2EFormLayout = apply {
         logger.info("Change field $label to $value")
         getTextInputForField(label)
             .clear()
             .inputValue(value)
     }
 
-    fun clearInput(label: String): E2EFormLayout = apply {
+    fun clearInputByLabel(label: String): E2EFormLayout = apply {
         getTextInputForField(label).clear()
     }
 
@@ -44,17 +45,14 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
         )
     )
 
-    fun dropdown(label: String) = E2EDropdown { getFieldValueElement(label).findElement(By.className("dropdown")) }
-    fun textInput(label: String) =
-        E2ETextInput { getFieldValueElement(label).findElement(By.cssSelector("input.text-field__input-element")) }
+    fun dropdownByQaId(qaId: String) = E2EDropdown { childElement(byQaId(qaId)) }
+    fun textInputByQaId(qaId: String) = E2ETextInput { childElement(byQaId(qaId)) }
 
-    fun checkBox(label: String) = E2ECheckbox { getFieldValueElement(label).findElement(By.cssSelector("input.checkbox__input")) }
+    fun checkBoxByQaId(qaId: String) = E2ECheckbox { childElement(byQaId(qaId)) }
 
-    fun checkBoxByLabel(label: String) = E2ECheckbox { childElement(By.xpath(".//label/*[contains(text(), \"$label\")]")) }
+    fun selectDropdownValueByLabel(label: String, value: String) = selectDropdownValuesByLabel(label, listOf(value))
 
-    fun selectDropdownValue(label: String, value: String) = selectDropdownValues(label, listOf(value))
-
-    fun selectDropdownValues(label: String, values: List<String>): E2EFormLayout = apply {
+    fun selectDropdownValuesByLabel(label: String, values: List<String>): E2EFormLayout = apply {
         logger.info("Change dropdown $label to [$values]")
         values.forEachIndexed { index, value ->
             E2EDropdown { getFieldValueElement(label).getChildElements(By.className("dropdown"))[index] }.select(value)

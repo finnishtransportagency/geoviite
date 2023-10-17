@@ -1,9 +1,14 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import elementExists
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.fetch
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
+import waitAndClick
+import waitUntilNotVisible
+import waitUntilVisible
 
 class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
@@ -13,7 +18,7 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     private val currentValueHolder: WebElement get() = childElement(By.className("dropdown__current-value"))
 
     private val optionsList: E2ETextList by lazy {
-        E2ETextList(fetch(elementFetch, CONTAINER_BY), By.className("dropdown__list-item"))
+        E2ETextList(fetch(CONTAINER_BY), By.className("dropdown__list-item"))
     }
 
     val options: List<E2ETextListItem> get() = optionsList.items
@@ -27,9 +32,9 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
 
-        if (!childExists(CONTAINER_BY)) {
+        if (!elementExists(CONTAINER_BY)) {
             clickChild(By.className("dropdown__header"))
-            waitChildVisible(CONTAINER_BY)
+            waitUntilVisible(CONTAINER_BY)
         }
     }
 
@@ -37,12 +42,22 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
         logger.info("Select item $name")
         open()
         optionsList.selectByTextWhenContains(name)
-        waitChildNotVisible(CONTAINER_BY)
+        waitUntilNotVisible(CONTAINER_BY)
+    }
+
+    fun selectFromDynamicByName(name: String): E2EDropdown = apply {
+        logger.info("Select item $name from dynamic dropdown")
+        input.inputValue(name)
+        // can't use optionsList directly, as it contains a loading placeholder element that goes stale once the list
+        // has loaded
+        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
+        optionsList.selectByTextWhenContains(name)
     }
 
     fun new() {
         logger.info("Add new item")
-        clickChild(By.cssSelector(".dropdown__add-new-container > button"))
+        open()
+        getElementWhenVisible(By.cssSelector(".dropdown__add-new-container > button")).waitAndClick()
     }
 
     fun inputValue(text: String): E2EDropdown = apply {

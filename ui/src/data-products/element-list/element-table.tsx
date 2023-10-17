@@ -17,7 +17,7 @@ type ElementTableProps = {
     isLoading: boolean;
 };
 
-export const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
+const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
@@ -44,10 +44,12 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
     ];
 
     const tableHeadingsToShowInUI = showLocationTrackName
-        ? [nonNumericHeading('track-number'), nonNumericHeading('location-track')].concat(
-              commonTableHeadings,
-          )
-        : [nonNumericHeading('track-number')].concat(commonTableHeadings);
+        ? [
+              nonNumericHeading('track-number'),
+              nonNumericHeading('location-track'),
+              ...commonTableHeadings,
+          ]
+        : [nonNumericHeading('track-number'), ...commonTableHeadings];
 
     return (
         <React.Fragment>
@@ -116,3 +118,5 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
         </React.Fragment>
     );
 };
+
+export default React.memo(ElementTable);

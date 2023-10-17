@@ -6,7 +6,7 @@ import PlanVerticalGeometrySearch from 'data-products/vertical-geometry/plan-ver
 import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry/location-track-vertical-geometry-search';
 import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-geometry-table';
+import VerticalGeometryTable from 'data-products/vertical-geometry/vertical-geometry-table';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkVerticalGeometryListing } from 'data-products/vertical-geometry/entire-rail-network-vertical-geometry-listing';
 
@@ -29,17 +29,20 @@ const VerticalGeometryView = () => {
                     <span className={styles['data-product-view__radio-layout']}>
                         <Radio
                             onChange={() => handleRadioClick('LOCATION_TRACK')}
-                            checked={state.selectedSearch === 'LOCATION_TRACK'}>
+                            checked={state.selectedSearch === 'LOCATION_TRACK'}
+                            qaId="select-layout-geometry">
                             {t('data-products.vertical-geometry.location-track-vertical-geometry')}
                         </Radio>
                         <Radio
                             onChange={() => handleRadioClick('PLAN')}
-                            checked={state.selectedSearch === 'PLAN'}>
+                            checked={state.selectedSearch === 'PLAN'}
+                            qaId="select-plan-geometry">
                             {t('data-products.vertical-geometry.plan-vertical-geometry')}
                         </Radio>
                         <Radio
                             onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
-                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}
+                            qaId="select-entire-rail-network">
                             {t(
                                 'data-products.vertical-geometry.entire-rail-network-vertical-geometry',
                             )}
