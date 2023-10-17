@@ -272,7 +272,7 @@ export type SwitchJointTrackMeter = {
     jointNumber: JointNumber;
     locationTrackId: LocationTrackId;
     locationTrackName: string;
-    trackMeter: TrackMeter;
+    trackMeter: TrackMeter | undefined;
 };
 
 export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {

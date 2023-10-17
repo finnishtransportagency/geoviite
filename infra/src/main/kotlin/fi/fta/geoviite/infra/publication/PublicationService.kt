@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.roundTo1Decimal
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -448,7 +449,7 @@ class PublicationService @Autowired constructor(
     private inline fun <reified T> assertNoErrors(
         version: ValidationVersion<T>, errors: List<PublishValidationError>,
     ) {
-        val severeErrors = errors.filter { error -> error.type == PublishValidationErrorType.ERROR }
+        val severeErrors = errors.filter { error -> error.type == ERROR }
         if (severeErrors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$severeErrors")
             throw PublicationFailureException(
@@ -543,14 +544,10 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_TRACK_NUMBER.duplicate-name-official",
-                mapOf("trackNumber" to trackNumber.number)
+                ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-official", mapOf("trackNumber" to trackNumber.number)
             ) else null,
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_TRACK_NUMBER.duplicate-name-draft",
-                mapOf("trackNumber" to trackNumber.number)
+                ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-draft", mapOf("trackNumber" to trackNumber.number)
             ) else null,
         )
     }
@@ -615,14 +612,10 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_SWITCH.duplicate-name-official",
-                mapOf("switch" to switch.name)
+                ERROR, "$VALIDATION_SWITCH.duplicate-name-official", mapOf("switch" to switch.name)
             ) else null,
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_SWITCH.duplicate-name-draft",
-                mapOf("switch" to switch.name)
+                ERROR, "$VALIDATION_SWITCH.duplicate-name-draft", mapOf("switch" to switch.name)
             ) else null,
         )
     }
@@ -719,11 +712,11 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
+                ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-draft",
                 mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null, if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
+                ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-official",
                 mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null
@@ -765,16 +758,6 @@ class PublicationService @Autowired constructor(
         officials = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
         validations = versions.locationTracks
     ).map(locationTrackDao::fetch).filter { lt -> lt.trackNumberId == trackNumberId }
-
-    private fun <T> combineVersions(
-        officials: List<RowVersion<T>>,
-        validations: List<ValidationVersion<T>>,
-    ): Collection<RowVersion<T>> {
-        val officialVersions = officials.filterNot { officialId -> validations.any { v -> v.officialId == officialId } }
-        val validationVersions = validations.map { it.validatedAssetVersion }
-
-        return (officialVersions + validationVersions).distinct()
-    }
 
     private fun getReferenceLineAndAlignment(version: RowVersion<ReferenceLine>) =
         referenceLineWithAlignment(referenceLineDao, alignmentDao, version)
@@ -957,8 +940,7 @@ class PublicationService @Autowired constructor(
                     translation, trackNumberChanges.startAddress.old, trackNumberChanges.startAddress.new
                 )
             ),
-            compareChange(
-                { oldEndAddress != newEndAddress },
+            compareChange({ oldEndAddress != newEndAddress },
                 oldEndAddress,
                 newEndAddress,
                 { it.toString() },
@@ -1027,8 +1009,7 @@ class PublicationService @Autowired constructor(
                 PropKey("description-suffix"),
                 enumLocalizationKey = "location-track-description-suffix"
             ),
-            compareChange(
-                { oldAndTime.first != newAndTime.first },
+            compareChange({ oldAndTime.first != newAndTime.first },
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
@@ -1207,8 +1188,7 @@ class PublicationService @Autowired constructor(
                     PropKey("switch-joint-location", jointPropKeyParams),
                     getPointMovedRemarkOrNull(translation, oldLocation, joint.point),
                     null
-                ), compareChange(
-                    { oldAddress != joint.address },
+                ), compareChange({ oldAddress != joint.address },
                     oldAddress,
                     joint.address,
                     { it.toString() },
@@ -1250,9 +1230,9 @@ class PublicationService @Autowired constructor(
         .orElse(null)
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
-        cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)
-            ?.let { context -> validateGeocodingContext(context) }
-            ?: listOf(noGeocodingContext(localizationKey))
+        cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)?.let { context ->
+            validateGeocodingContext(context)
+        } ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
         trackNumber: TrackLayoutTrackNumber,
@@ -1307,14 +1287,12 @@ class PublicationService @Autowired constructor(
     }
 
     private fun collectCacheKeys(versions: ValidationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
-        val trackNumberIds =
-            (versions.trackNumbers.map { version -> version.officialId } + versions.kmPosts.mapNotNull { v ->
-                kmPostDao.fetch(v.validatedAssetVersion).trackNumberId
-            } + versions.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion).trackNumberId } + versions.referenceLines.map { v ->
-                referenceLineDao.fetch(
-                    v.validatedAssetVersion
-                ).trackNumberId
-            }).toSet()
+        val trackNumberIds = listOf(
+            versions.trackNumbers.map { version -> version.officialId },
+            versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId },
+            versions.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion).trackNumberId },
+            versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId },
+        ).flatten().toSet()
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 

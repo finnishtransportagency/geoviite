@@ -20,7 +20,9 @@ import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
-import java.time.*
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
@@ -54,9 +56,7 @@ class PublicationController @Autowired constructor(
     @PostMapping("/calculated-changes")
     fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges", "request" to request)
-        return calculatedChangesService.getCalculatedChanges(
-            publicationService.getValidationVersions(request)
-        )
+        return calculatedChangesService.getCalculatedChanges(publicationService.getValidationVersions(request))
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

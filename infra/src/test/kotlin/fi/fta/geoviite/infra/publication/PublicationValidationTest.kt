@@ -95,10 +95,8 @@ class PublicationValidationTest {
     fun trackNumberValidationCatchesUnpublishedKmPost() {
         val trackNumber = trackNumber().copy(id = IntId(1))
         val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId).copy(id = IntId(1))
-        val unpublished = kmPost(trackNumber.id as IntId, KmNumber(1))
-            .copy(draft = Draft(IntId(2)), id = IntId(1))
-        val published = kmPost(trackNumber.id as IntId, KmNumber(1))
-            .copy(draft = null, id = IntId(1))
+        val unpublished = kmPost(trackNumber.id as IntId, KmNumber(1)).copy(draft = Draft(IntId(2)), id = IntId(1))
+        val published = kmPost(trackNumber.id as IntId, KmNumber(1)).copy(draft = null, id = IntId(1))
         assertTrackNumberReferenceError(
             true,
             trackNumber,
@@ -195,10 +193,7 @@ class PublicationValidationTest {
             id = IntId(1),
         ).first
         assertSwitchSegmentError(
-            false,
-            switch,
-            published,
-            "$VALIDATION_SWITCH.location-track.not-published"
+            false, switch, published, "$VALIDATION_SWITCH.location-track.not-published"
         )
         assertSwitchSegmentError(
             false,
@@ -220,19 +215,23 @@ class PublicationValidationTest {
         val switch = switch(structureId = structure.id as IntId).copy(id = IntId(1))
         val good = locationTrackAndAlignment(
             IntId(0),
-            segment(Point(0.0, 0.0), Point(10.0, 10.0))
-                .copy(switchId = switch.id, endJointNumber = switch.joints.last().number),
-            segment(Point(10.0, 10.0), Point(20.0, 20.0))
-                .copy(switchId = switch.id, startJointNumber = switch.joints.first().number),
+            segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
+                switchId = switch.id, endJointNumber = switch.joints.last().number
+            ),
+            segment(Point(10.0, 10.0), Point(20.0, 20.0)).copy(
+                switchId = switch.id, startJointNumber = switch.joints.first().number
+            ),
             segment(Point(20.0, 20.0), Point(30.0, 30.0)),
         )
         val broken = locationTrackAndAlignment(
             IntId(0),
-            segment(Point(0.0, 0.0), Point(10.0, 10.0))
-                .copy(switchId = switch.id, endJointNumber = switch.joints.last().number),
+            segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
+                switchId = switch.id, endJointNumber = switch.joints.last().number
+            ),
             segment(Point(10.0, 10.0), Point(20.0, 20.0)),
-            segment(Point(20.0, 20.0), Point(30.0, 30.0))
-                .copy(switchId = switch.id, startJointNumber = switch.joints.first().number),
+            segment(Point(20.0, 20.0), Point(30.0, 30.0)).copy(
+                switchId = switch.id, startJointNumber = switch.joints.first().number
+            ),
         )
 
         assertSwitchSegmentStructureError(
@@ -478,8 +477,7 @@ class PublicationValidationTest {
             )
         }
         assertSingleAddressPointErrorRangeDescription(
-            geocode,
-            "0000+0000..0000+0050, 0000+0060..0000+0110"
+            geocode, "0000+0000..0000+0050, 0000+0060..0000+0110"
         )
     }
 
@@ -606,7 +604,8 @@ class PublicationValidationTest {
     fun validationCatchesLoopyDuplicate() {
         val lt = locationTrack(IntId(0)).copy(duplicateOf = IntId(0))
         assertContainsError(
-            true, validateDuplicateOfState(lt, lt, listOf(IntId(0))),
+            true,
+            validateDuplicateOfState(lt, lt, listOf(IntId(0))),
             "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate"
         )
     }
@@ -614,23 +613,24 @@ class PublicationValidationTest {
     @Test
     fun validationCatchesMisplacedTopologyLink() {
         val wrongPlaceSwitch =
-            switch(seed = 123, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null)))
-                .copy(id = IntId(1))
+            switch(seed = 123, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null))).copy(
+                id = IntId(1)
+            )
         val rightPlaceSwitch =
-            switch(seed = 124, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null)))
-                .copy(id = IntId(2))
+            switch(seed = 124, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null))).copy(
+                id = IntId(2)
+            )
         val unlinkedTrack = locationTrackAndAlignment(
-            IntId(0),
-            segment(Point(150.0, 150.0), Point(200.0, 200.0))
+            IntId(0), segment(Point(150.0, 150.0), Point(200.0, 200.0))
         )
-        val lt = unlinkedTrack.first
-            .copy(
-                topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
-                topologyEndSwitch = TopologyLocationTrackSwitch(rightPlaceSwitch.id as IntId, JointNumber(1))
-            ) to unlinkedTrack.second
+        val lt = unlinkedTrack.first.copy(
+            topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
+            topologyEndSwitch = TopologyLocationTrackSwitch(rightPlaceSwitch.id as IntId, JointNumber(1))
+        ) to unlinkedTrack.second
 
         assertContainsError(
-            true, validateSwitchLocationTrackLinkStructure(wrongPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
+            true,
+            validateSwitchLocationTrackLinkStructure(wrongPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
             "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
         )
 
@@ -638,6 +638,29 @@ class PublicationValidationTest {
             false,
             validateSwitchLocationTrackLinkStructure(rightPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
             "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
+        )
+    }
+
+    @Test
+    fun `Combine versions overrides official version with validation version`() {
+        val officialVersions: List<RowVersion<PublicationValidationTest>> = listOf(
+            RowVersion(IntId(1), 2),
+            RowVersion(IntId(2), 3),
+            RowVersion(IntId(3), 4),
+        )
+        val validationVersions: List<ValidationVersion<PublicationValidationTest>> = listOf(
+            ValidationVersion(IntId(2), RowVersion(IntId(16), 1)),
+            ValidationVersion(IntId(4), RowVersion(IntId(17), 1)),
+        )
+        assertEquals(
+            listOf(
+                RowVersion(IntId(1), 2),
+                // Official version for row 2 gets replace by draft 16_1
+                RowVersion(IntId(3), 4),
+                RowVersion(IntId(16), 1),
+                RowVersion(IntId(17), 1),
+            ),
+            combineVersions(officialVersions, validationVersions),
         )
     }
 

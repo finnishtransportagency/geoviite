@@ -1056,7 +1056,7 @@
     "validation": {
         "layout": {
             "track-number": {
-                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
                 "state": {
                     "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
@@ -1076,7 +1076,7 @@
                 "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}"
             },
             "km-post": {
-                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
                 "state": {
                     "PLANNED": "Tasakilometripiste on tilassa \"Suunniteltu\""
@@ -1096,7 +1096,7 @@
                 }
             },
             "reference-line": {
-                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
                     "null": "Pituusmittauslinjan ratanumero ei ole mukana julkaisussa",
@@ -1167,8 +1167,8 @@
                 "duplicate-name-official": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{switch}}",
                 "track-linkage": {
-                    "front-joint-not-connected":  "Vaihteen etujatkokselta ei jatku raidetta",
-                    "front-joint-only-duplicate-connected":  "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
+                    "front-joint-not-connected": "Vaihteen etujatkokselta ei jatku raidetta",
+                    "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
                     "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{locationTracks}}",
                     "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"
                 }
@@ -1432,7 +1432,8 @@
         },
         "action": {
             "cancel": "Poistu",
-            "save": "Tallenna"
+            "save": "Tallenna",
+            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}"
         },
         "result": {
             "failed": "Ratanumeron tallennus epäonnistui.",

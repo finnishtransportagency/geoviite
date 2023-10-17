@@ -33,14 +33,14 @@ class GeocodingDao(
         //language=SQL
         val sql = """
             select
-              tn.row_id tn_row_id,
-              tn.row_version tn_row_version,
-              rl.row_id rl_row_id,
-              rl.row_version rl_row_version,
+              tn.row_id as tn_row_id,
+              tn.row_version as tn_row_version,
+              rl.row_id as rl_row_id,
+              rl.row_version as rl_row_version,
               array_agg(kmp.row_id order by kmp.row_id, kmp.row_version) 
-                filter (where kmp.row_id is not null) kmp_row_ids,
+                filter (where kmp.row_id is not null) as kmp_row_ids,
               array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) 
-                filter (where kmp.row_id is not null) kmp_row_versions
+                filter (where kmp.row_id is not null) as kmp_row_versions
             from layout.track_number_publication_view tn
               left join layout.reference_line_publication_view rl on rl.track_number_id = tn.official_id
                 and :publication_state = any(rl.publication_states)
@@ -49,7 +49,6 @@ class GeocodingDao(
                 and kmp.state = 'IN_USE'
             where :publication_state = any(tn.publication_states)
               and :tn_id = tn.official_id
-              and tn.state != 'DELETED'
             group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """.trimIndent()
         val params = mapOf(
@@ -95,19 +94,18 @@ class GeocodingDao(
                 order by id, version desc
               )
             select
-              tn.id tn_row_id,
-              tn.version tn_row_version,
-              rl.id rl_row_id,
-              rl.version rl_row_version,
+              tn.id as tn_row_id,
+              tn.version as tn_row_version,
+              rl.id as rl_row_id,
+              rl.version as rl_row_version,
               array_agg(kmp.id order by kmp.id, kmp.version) 
-                filter (where kmp.id is not null and kmp.hide = false) kmp_row_ids,
+                filter (where kmp.id is not null and kmp.hide = false) as kmp_row_ids,
               array_agg(kmp.version order by kmp.id, kmp.version) 
-                filter (where kmp.id is not null and kmp.hide = false) kmp_row_versions
+                filter (where kmp.id is not null and kmp.hide = false) as kmp_row_versions
             from tn 
               left join rl on true 
               left join kmp on true
             where tn.deleted = false
-              and tn.state != 'DELETED'
               and rl.deleted = false
             group by tn.id, tn.version, rl.id, rl.version
         """.trimIndent()
@@ -138,12 +136,13 @@ class GeocodingDao(
         versions: ValidationVersions,
     ): GeocodingContextCacheKey? {
         val official = getLayoutGeocodingContextCacheKey(OFFICIAL, trackNumberId)
-        val trackNumberVersion = versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: official?.trackNumberVersion
+        val trackNumberVersion =
+            versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: official?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references
         // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
-        val referenceLineVersion = versions.referenceLines
-            .find { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId == trackNumberId }?.validatedAssetVersion
-            ?: official?.referenceLineVersion
+        val referenceLineVersion =
+            versions.referenceLines.find { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId == trackNumberId }?.validatedAssetVersion
+                ?: official?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
             val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->

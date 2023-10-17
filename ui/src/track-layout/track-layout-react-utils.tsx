@@ -40,7 +40,11 @@ import {
     getLocationTrackStartAndEnd,
 } from 'track-layout/layout-location-track-api';
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
-import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
+import {
+    getTrackNumberById,
+    getTrackNumberChangeTimes,
+    getTrackNumbers,
+} from 'track-layout/layout-track-number-api';
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
@@ -210,6 +214,12 @@ export function useLocationTrackInfoboxExtras(
 
 export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeader | undefined {
     return useLoader(() => (id ? getGeometryPlanHeader(id) : undefined), [id]);
+}
+
+export function useTrackNumberChangeTimes(
+    id: LayoutTrackNumberId | undefined,
+): ChangeTimes | undefined {
+    return useOptionalLoader(() => (id ? getTrackNumberChangeTimes(id) : undefined), [id]);
 }
 
 export function useReferenceLineChangeTimes(
