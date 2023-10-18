@@ -311,41 +311,12 @@ data class GeometryChangeSummary(
 
 fun getKmNumbersChangedRemarkOrNull(
     translation: Translation,
-    oldAlignment: LayoutAlignment?,
-    newAlignment: LayoutAlignment?,
-    geocodingContext: GeocodingContext,
     changedKmNumbers: Set<KmNumber>,
-): String {
-    val summaries = if (oldAlignment != null && newAlignment != null) summarizeAlignmentChanges(
-        geocodingContext,
-        oldAlignment,
-        newAlignment
-    ) else null
-
-    return if (summaries.isNullOrEmpty()) {
-        publicationChangeRemark(
-            translation,
-            if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
-            formatChangedKmNumbers(changedKmNumbers.toList())
-        )
-    } else summaries.joinToString { summary ->
-        val key =
-            "publication-details-table.remark.geometry-changed${if (summary.startKm == summary.endKm) "" else "-many-km"}"
-        translation.t(
-            key,
-            mapOf(
-                "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
-                "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
-                "addressRange" to
-                        if (summary.startKm == summary.endKm) summary.startKm.toString()
-                        else "${summary.startKm}-${summary.endKm}"
-            )
-        )
-    }
-}
-
-private fun isContiguous(numbers: List<Int>) =
-    numbers.zipWithNext { a, b -> a + 1 == b}.all { it }
+): String = publicationChangeRemark(
+    translation,
+    if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+    formatChangedKmNumbers(changedKmNumbers.toList())
+)
 
 private data class ComparisonPoints(
     val oldPoint: LayoutPoint,
@@ -404,5 +375,3 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
     translation.t("publication-details-table.remark.$key", if (value != null) mapOf("value" to value) else mapOf())
 
-fun publicationChangeRemark(translation: Translation, key: String, params: Map<String, String>) =
-    translation.t("publication-details-table.remark.$key", params)
