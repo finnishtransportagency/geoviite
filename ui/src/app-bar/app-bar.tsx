@@ -2,7 +2,7 @@ import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
-import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
+//import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
-import { Button } from 'vayla-design-lib/button/button';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 type Link = {
     link: string;
@@ -113,13 +113,23 @@ export const AppBar: React.FC = () => {
                     <DataProductsMenu />
                 </li>
             </ul>
-            <img
-                ref={menuRef}
+            {
+                // TODO Re-add logo when it has been specified where it should go
+                /*<img
                 className={styles['app-bar__vayla-logo']}
                 src={vaylaLogo}
                 alt="Väylävirasto logo"
-                onClick={() => setShowMenu(!showMenu)}
-            />
+            />*/
+            }
+            <ul className={styles['app-bar__links']}>
+                <li
+                    ref={menuRef}
+                    title={t('app-bar.more')}
+                    className={styles['app-bar__link']}
+                    onClick={() => setShowMenu(!showMenu)}>
+                    <Icons.Menu color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
+                </li>
+            </ul>
             {showMenu && (
                 <CloseableModal
                     positionRef={menuRef}
@@ -127,14 +137,9 @@ export const AppBar: React.FC = () => {
                     offsetX={menuOffsetX}
                     offsetY={menuOffsetY}
                     className={styles['app-bar__menu']}>
-                    <Button
-                        className={styles['app-bar__menu-item']}
-                        onClick={() => {
-                            // TODO: Do logout
-                        }}>
-                        Kirjaudu ulos
-                    </Button>
-                    <div className={styles['app-bar__menu-item']}>Lisenssit</div>
+                    <div className={styles['app-bar__menu-item']}>
+                        <a href={'/sso/logout?auth=1'}>{t('app-bar.logout')}</a>
+                    </div>
                 </CloseableModal>
             )}
         </nav>

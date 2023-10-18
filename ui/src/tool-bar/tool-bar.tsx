@@ -258,6 +258,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     <WriteAccessRequired>
                         <Button
                             ref={menuRef}
+                            title={t('tool-bar.new')}
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
                             disabled={props.publishType !== 'DRAFT' || props.disableNewMenu}

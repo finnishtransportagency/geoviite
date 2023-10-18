@@ -113,6 +113,7 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
                 <Button
                     variant={ButtonVariant.SECONDARY}
                     icon={Icons.Layers}
+                    title={t('map-layer-menu.title')}
                     onClick={() => setShowMapLayerMenu(!showMapLayerMenu)}
                     qa-id="map-layers-button"
                 />

@@ -233,7 +233,9 @@
             "vertical-geometry": "Pystygeometria",
             "km-lengths": "Ratakilometrien pituudet"
         },
-        "vertical-geometry-diagram-demo": "Korkeuskaavio-demo"
+        "vertical-geometry-diagram-demo": "Korkeuskaavio-demo",
+        "more": "Lisää",
+        "logout": "Kirjaudu ulos"
     },
     "projektivelho": {
         "file-list": {
@@ -952,6 +954,7 @@
     "end-point-type-update-succeeded": "Päätepisteen tyypin päivitys onnistui",
     "end-point-type-update-failed": "Päätepisteen tyypin päivitys epäonnistui",
     "map-layer-menu": {
+        "title": "Karttatasot",
         "layout-title": "Paikannuspohja",
         "geometry-title": "Geometriat",
         "debug-title": "Debug-työkalut",
@@ -1314,6 +1317,7 @@
     },
     "tool-bar": {
         "search": "Hae...",
+        "new": "Luo uusi",
         "draft-mode": {
             "title": "LUONNOSTILA",
             "enable": "Luonnostila",
