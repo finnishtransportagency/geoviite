@@ -16,6 +16,9 @@ import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type Link = {
     link: string;
@@ -45,6 +48,7 @@ export const AppBar: React.FC = () => {
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
     const exclamationPointVisibility = !!pvDocumentCounts && pvDocumentCounts?.suggested > 0;
     const [showMenu, setShowMenu] = React.useState(false);
+    const [showLogoutConfirmation, setShowLogoutConfirmation] = React.useState(false);
     const menuRef = React.useRef(null);
     const menuOffsetX = 0;
     const menuOffsetY = 50;
@@ -138,9 +142,31 @@ export const AppBar: React.FC = () => {
                     offsetY={menuOffsetY}
                     className={styles['app-bar__menu']}>
                     <div className={styles['app-bar__menu-item']}>
-                        <a href={'/sso/logout?auth=1'}>{t('app-bar.logout')}</a>
+                        <a onClick={() => setShowLogoutConfirmation(true)}>{t('app-bar.logout')}</a>
                     </div>
                 </CloseableModal>
+            )}
+            {showLogoutConfirmation && (
+                <Dialog
+                    title={t('app-bar.logout')}
+                    allowClose={false}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={() => setShowLogoutConfirmation(false)}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                qa-id="confirm-logout"
+                                onClick={() => (window.location.href = '/sso/logout?auth=1')}
+                                variant={ButtonVariant.PRIMARY}>
+                                {t('button.ok')}
+                            </Button>
+                        </div>
+                    }>
+                    {t('app-bar.logout-confirm')}
+                </Dialog>
             )}
         </nav>
     );
