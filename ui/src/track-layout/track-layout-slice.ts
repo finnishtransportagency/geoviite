@@ -71,6 +71,7 @@ export type SwitchInfoboxVisibilities = {
 
 export type LocationTrackInfoboxVisibilities = {
     basic: boolean;
+    splitting: boolean;
     location: boolean;
     log: boolean;
     validation: boolean;
@@ -131,6 +132,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
     },
     locationTrack: {
         basic: true,
+        splitting: true,
         location: true,
         log: true,
         validation: true,

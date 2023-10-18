@@ -120,6 +120,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     );
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
+    const [splittingTrack, setSplittingTrack] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
@@ -308,6 +309,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
+            {splittingTrack && (
+                <Infobox
+                    contentVisible={visibilities.splitting}
+                    onContentVisibilityChange={() => visibilityChange('splitting')}
+                    title={'Raiteen jakaminen osiin'}>
+                    <InfoboxContent>
+                        <React.Fragment>
+                            <InfoboxField label={'Alkusijainti'}>0123+456.789</InfoboxField>
+                        </React.Fragment>
+                    </InfoboxContent>
+                </Infobox>
+            )}
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
                     contentVisible={visibilities.location}
@@ -389,6 +402,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         </InfoboxButtons>
                                     </React.Fragment>
                                 )}
+                                <InfoboxButtons>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        onClick={() => {
+                                            setSplittingTrack(true);
+                                        }}>
+                                        Aloita raiteen jakaminen
+                                    </Button>
+                                </InfoboxButtons>
 
                                 <InfoboxField
                                     label={t('tool-panel.location-track.true-length')}
