@@ -49,7 +49,7 @@
     }
 
     &__alignments-container-search-field {
-        border-color: vayla-design.$color-white-darker;
+        box-shadow: inset 0 0 0 1px vayla-design.$color-white-darker;
         border-radius: 4px 4px 0 0;
     }
 
