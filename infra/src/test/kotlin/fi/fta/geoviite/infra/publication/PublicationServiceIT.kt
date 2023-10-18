@@ -1339,6 +1339,59 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `Location track switch link changes are reported`() {
+        val switch1 = switchDao.insert(switch(1, name = "sw 1"))
+        val switch2 = switchDao.insert(switch(2, name = "sw 2"))
+        val switch3 = switchDao.insert(switch(3, name = "sw 3"))
+        val switch4 = switchDao.insert(switch(4, name = "sw 4"))
+        val switch5 = switchDao.insert(switch(5, name = "sw 5"))
+
+        val trackNumberId = getUnusedTrackNumberId()
+        val originalLocationTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1))),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)).copy(
+                    switchId = switch2.id,
+                    startJointNumber = JointNumber(1)
+                ),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+        publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
+        locationTrackService.saveDraft(
+            locationTrackDao.fetch(locationTrackDao.fetchVersion(originalLocationTrack.id, OFFICIAL)!!).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(switch3.id, JointNumber(1)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(switch4.id, JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0)).copy(
+                    switchId = switch5.id,
+                    startJointNumber = JointNumber(1)
+                ),
+            )
+        )
+        publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs[0]
+        val previousPub = latestPubs[1]
+        val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
+
+        val diff = publicationService.diffLocationTrack(
+            localizationService.getLocalization("fi"),
+            changes.getValue(originalLocationTrack.id as IntId),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            trackNumberDao.fetchTrackNumberNames(),
+            false,
+            setOf(),
+        ) { _, _ -> null }
+        assertEquals(1, diff.size)
+        assertEquals("linked-switches", diff[0].propKey.key.toString())
+        assertEquals("Vaihteiden sw 1, sw 2 linkitys purettu. Vaihteet sw 3, sw 4, sw 5 linkitetty.", diff[0].remark)
+    }
+
+    @Test
     fun `should filter publication details by dates`() {
         clearPublicationTables()
 

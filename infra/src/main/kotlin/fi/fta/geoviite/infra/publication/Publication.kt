@@ -362,6 +362,7 @@ data class LocationTrackChanges(
     val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
+    val linkedSwitches: Change<List<String>>,
 )
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well

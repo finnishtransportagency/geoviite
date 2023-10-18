@@ -141,7 +141,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     }, []);
 
     const tracksSwitchesKmPostsPlans = useLoader(() => {
-        const trackNumbersPromise = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
+        const trackNumbersPromise = getTrackNumbers(
+            publishType,
+            changeTimes.layoutTrackNumber,
+            true,
+        );
         const locationTracksPromise = getLocationTracks(locationTrackIds, publishType);
         const switchesPromise = getSwitches(switchIds, publishType);
         const kmPostsPromise = getKmPosts(kmPostIds, publishType);
@@ -245,7 +249,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             publishType={publishType}
                             linkingState={linkingState}
                             onUnselect={onUnselect}
-                            referenceLineChangeTime={changeTimes.layoutReferenceLine}
+                            changeTimes={changeTimes}
                             viewport={viewport}
                             onHoverOverPlanSection={onHoverOverPlanSection}
                         />

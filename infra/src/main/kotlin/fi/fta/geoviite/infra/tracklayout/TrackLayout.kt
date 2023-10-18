@@ -268,7 +268,7 @@ data class TrackLayoutSwitchJointConnection(
     }
 }
 
-data class ChangeTimes(
+data class DraftableChangeInfo(
     val created: Instant,
     val changed: Instant,
     val officialChanged: Instant?,

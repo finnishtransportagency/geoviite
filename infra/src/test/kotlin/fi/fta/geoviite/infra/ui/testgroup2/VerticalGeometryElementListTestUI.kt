@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
@@ -17,18 +18,20 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.web.reactive.function.client.WebClient
 import java.math.BigDecimal
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class VerticalGeometryElementListTestUI
 @Autowired constructor(
     private val geometryDao: GeometryDao,
+    private val geometryService: GeometryService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val webClient: LocalHostWebClient,
 ) : SeleniumTest() {
 
     @BeforeEach
@@ -50,7 +53,9 @@ class VerticalGeometryElementListTestUI
         assertEquals(listOf("5.280", "5.240"), resultItems.map { it.pviPointHeight })
         assertEquals(listOf("385808.877", "385943.755"), resultItems.map { it.pviPointLocationE })
 
-        val csv = WebClient.create().get().uri(page.downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(page.downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         Assertions.assertTrue(csv.isNotEmpty())
     }
 
@@ -70,7 +75,9 @@ class VerticalGeometryElementListTestUI
         assertEquals(listOf("5.280", "5.240"), resultItems.map { it.pviPointHeight })
         assertEquals(listOf("385808.877", "385943.755"), resultItems.map { it.pviPointLocationE })
 
-        val csv = WebClient.create().get().uri(page.downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(page.downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         Assertions.assertTrue(csv.isNotEmpty())
     }
 
@@ -81,10 +88,13 @@ class VerticalGeometryElementListTestUI
         insertMinimalPlan(trackNumberId)
 
         linkPlanToSomeLocationTrack(goodPlan, trackNumberId)
+        geometryService.makeEntireVerticalGeometryListingCsv()
         startGeoviite()
         val page = navigationBar.goToVerticalGeometryListPage().entireNetworkPage()
 
-        val csv = WebClient.create().get().uri(page.downloadUrl).retrieve().bodyToMono(String::class.java).block()!!
+        val csv = webClient.get().uri(page.downloadUrl).retrieve().bodyToMono(String::class.java).block()
+
+        assertNotNull(csv)
         Assertions.assertTrue(csv.isNotEmpty())
     }
 
