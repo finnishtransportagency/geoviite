@@ -1228,8 +1228,11 @@
         "remark": {
             "changed-x-meters": "Muutos {{value}} m",
             "moved-x-meters": "Siirtynyt {{value}} m",
-            "changed-km-number": "Muuttunut kilometriltä {{value}}",
-            "changed-km-numbers": "Muuttunut kilometreiltä {{value}}",
+            "geometry-change-info-not-calculated": "Geometriamuutostietoja ei vielä laskettu",
+            "changed-km-number": "Geometria ei siirtynyt. Muita tietoja muuttunut kilometriltä {{value}}",
+            "changed-km-numbers": "Geometria ei siirtynyt. Muita tietoja muuttunut kilometreiltä {{value}}",
+            "geometry-changed-many-km": "Muuttunut kilometriväliltä {{addressRange}}, laajuus {{changedLengthM}} m, poikkeama {{maxDistance}} m",
+            "geometry-changed": "Muuttunut kilometriltä {{addressRange}}, laajuus {{changedLengthM}} m, poikkeama {{maxDistance}} m",
             "km-number-changed": "Siirtynyt ratakilometrille {{value}}",
             "switch-link-added-singular": "Vaihde {{value}} linkitetty",
             "switch-link-added-plural": "Vaihteet {{value}} linkitetty",

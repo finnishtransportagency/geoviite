@@ -57,7 +57,7 @@ class PublicationUtilsTest {
     }
 
     @Test
-    fun `summarizeAlignmentChanges detects change in the middle of track`() {
+    fun `summarizeAlignmentChanges detects change to track geometry`() {
         val oldAlignment = alignment(
             segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0))
         )
@@ -70,32 +70,6 @@ class PublicationUtilsTest {
         val row = result[0]
         assertEquals(2.0, row.changedLengthM)
         assertEquals(row.maxDistance, 1.4, 0.1)
-    }
-
-    @Test
-    fun `summarizeAlignmentChanges detects track shortened by removing segment at start`() {
-        val oldAlignment = alignment(
-            segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)),
-            segment(Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0)),
-        )
-        val newAlignment = alignment(oldAlignment.segments[1])
-        val result = summarizeAlignmentChanges(xAxisGeocodingContext(), oldAlignment, newAlignment)
-        assertEquals(1, result.size)
-        val row = result[0]
-        assertEquals(1.0, row.changedLengthM, 0.1)
-    }
-
-    @Test
-    fun `summarizeAlignmentChanges detects track shortened by removing segment at end`() {
-        val oldAlignment = alignment(
-            segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)),
-            segment(Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0)),
-        )
-        val newAlignment = alignment(oldAlignment.segments[0])
-        val result = summarizeAlignmentChanges(xAxisGeocodingContext(), oldAlignment, newAlignment)
-        assertEquals(1, result.size)
-        val row = result[0]
-        assertEquals(1.0, row.changedLengthM, 0.1)
     }
 
     @Test
@@ -121,7 +95,7 @@ class PublicationUtilsTest {
         assertEquals(1.5, result[0].maxDistance, 0.1)
         assertEquals(2.0, result[0].changedLengthM)
         assertEquals(5.0, result[1].maxDistance, 0.1)
-        assertEquals(7.0, result[1].changedLengthM)
+        assertEquals(5.0, result[1].changedLengthM)
     }
 
     private fun xAxisGeocodingContext() = geocodingContext((0..30).map { x -> Point(x.toDouble(), 0.0)})

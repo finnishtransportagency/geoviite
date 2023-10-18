@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -9,7 +8,10 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -332,13 +334,32 @@ data class GeometryChangeSummary(
 fun getKmNumbersChangedRemarkOrNull(
     translation: Translation,
     changedKmNumbers: Set<KmNumber>,
-): String = publicationChangeRemark(
-    translation,
-    if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
-    formatChangedKmNumbers(changedKmNumbers.toList())
-)
+    summaries: List<GeometryChangeSummary>?,
+): String = if (summaries.isNullOrEmpty()) {
+    publicationChangeRemark(
+        translation,
+        if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+        formatChangedKmNumbers(changedKmNumbers.toList())
+    )
+} else summaries.joinToString { summary ->
+    val key =
+        "publication-details-table.remark.geometry-changed${if (summary.startKm == summary.endKm) "" else "-many-km"}"
+    translation.t(
+        key, LocalizationParams(
+            mapOf(
+                "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
+                "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
+                "addressRange" to if (summary.startKm == summary.endKm) summary.startKm.toString()
+                else "${summary.startKm}-${summary.endKm}"
+            )
+        )
+    )
+}
+
 
 private data class ComparisonPoints(
+    val mOnReferenceLine: Double,
+    val oldPointIndex: Int,
     val oldPoint: LayoutPoint,
     val newPoint: LayoutPoint,
 ) {
@@ -356,27 +377,25 @@ fun summarizeAlignmentChanges(
     return changedRanges.mapNotNull { oldSegments ->
         val oldPoints = oldSegments.flatMap { segment -> segment.points }
         val changedPoints = oldPoints.mapIndexedNotNull { index, oldPoint ->
-            geocodingContext.getAddress(oldPoint)?.let { address ->
-                val comparison =
-                    geocodingContext.getTrackLocation(newAlignment, address.first)?.let { newAddressPoint ->
-                        ComparisonPoints(oldPoint, newAddressPoint.point)
-                    }
-                if (comparison != null && comparison.roughDistance < changeThreshold) null
-                else index to comparison
+            geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
+                geocodingContext.getTrackLocation(newAlignment, address)?.let { newAddressPoint ->
+                    ComparisonPoints(mOnReferenceLine, index, oldPoint, newAddressPoint.point)
+                }?.let { comparison -> if (comparison.roughDistance < changeThreshold) null else comparison }
             }
         }
 
         if (changedPoints.isEmpty()) null else {
-            val startKm = geocodingContext.getAddress(oldPoints[changedPoints.first().first])?.first?.kmNumber
-            val endKm = geocodingContext.getAddress(oldPoints[changedPoints.last().first])?.first?.kmNumber
+            val startKm = geocodingContext.getAddress(oldPoints[changedPoints.first().oldPointIndex])?.first?.kmNumber
+            val endKm = geocodingContext.getAddress(oldPoints[changedPoints.last().oldPointIndex])?.first?.kmNumber
 
-            if (startKm == null || endKm == null) null else
+            if (startKm == null || endKm == null) null else {
                 GeometryChangeSummary(
-                    oldPoints[changedPoints.last().first].m - oldPoints[changedPoints.first().first].m,
-                    changedPoints.mapNotNull { it.second }.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
+                    changedPoints.last().mOnReferenceLine - changedPoints.first().mOnReferenceLine,
+                    changedPoints.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
                     startKm,
                     endKm,
                 )
+            }
         }
     }
 }
