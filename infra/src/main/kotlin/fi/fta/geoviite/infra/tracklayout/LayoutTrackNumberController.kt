@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -41,6 +42,19 @@ class LayoutTrackNumberController(
     ): List<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumbers", "publishType" to publishType)
         return trackNumberService.list(publishType, includeDeleted)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}", params = ["searchTerm", "limit"])
+    fun searchSwitches(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("searchTerm", required = true) searchTerm: FreeText,
+        @RequestParam("limit", required = true) limit: Int,
+    ): List<TrackLayoutTrackNumber> {
+        logger.apiCall(
+            "searchTrackNumbers", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit,
+        )
+        return trackNumberService.list(publishType, searchTerm, limit)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
