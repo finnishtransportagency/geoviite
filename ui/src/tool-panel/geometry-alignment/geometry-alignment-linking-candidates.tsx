@@ -339,12 +339,17 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     const locationTrackElements = locationTracks?.map((track) => {
         const isSelected = track.id == selectedLayoutLocationTrack?.id;
         const ref = locationTrackRefs.find((r) => r.id == track.id);
-        if (!ref) return <React.Fragment key={track.id} />;
 
-        if (
-            layoutLocationTrackSearchInput &&
-            !track.name.toLowerCase().includes(layoutLocationTrackSearchInput)
-        ) {
+        const alignmentExists = ref;
+        const hasSearchInput = layoutLocationTrackSearchInput.length > 0;
+        const layoutLocationTrackMatchesSearchInput = track.name
+            .toLowerCase()
+            .includes(layoutLocationTrackSearchInput);
+
+        const displayLocationTrackOption =
+            !hasSearchInput || (hasSearchInput && layoutLocationTrackMatchesSearchInput);
+
+        if (!alignmentExists || (!isSelected && !displayLocationTrackOption)) {
             return <React.Fragment key={track.id} />;
         }
 
