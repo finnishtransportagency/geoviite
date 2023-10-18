@@ -491,7 +491,7 @@ class PublicationDao(
               postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
               postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
-              (select array_agg(sw.name order by sw.name)
+              (select array_agg(sw.id || ' ' || sw.name)
                 from layout.switch_at(publication_time) sw
                  where sw.id = ltv.topology_start_switch_id or sw.id = ltv.topology_end_switch_id or
                    exists (select *
@@ -499,7 +499,7 @@ class PublicationDao(
                            where sv.alignment_id = ltv.alignment_id
                              and sv.alignment_version = ltv.alignment_version
                              and sw.id = sv.switch_id)) as linked_switches,
-              (select array_agg(sw.name order by sw.name)
+              (select array_agg(sw.id || ' ' || sw.name)
                 from layout.switch_at(publication_time) sw
                  where sw.id = old_ltv.topology_start_switch_id or sw.id = old_ltv.topology_end_switch_id or
                    exists (select *
@@ -564,9 +564,14 @@ class PublicationDao(
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
-                linkedSwitches = rs.getChange("linked_switches") { rs.getStringArrayOrNull(it) }
+                linkedSwitches = rs.getChange("linked_switches") { rs.getStringArrayOrNull(it)?.map(::parseSwitchChangeReference) }
             )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
+    }
+
+    private fun parseSwitchChangeReference(str: String): Pair<IntId<TrackLayoutSwitch>, String> {
+        val spaceIndex = str.indexOf(" ")
+        return IntId<TrackLayoutSwitch>(str.substring(0, spaceIndex).toInt()) to str.substring(spaceIndex + 1)
     }
 
     fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutKmPost>, KmPostChanges> {

@@ -1347,6 +1347,7 @@ class PublicationServiceIT @Autowired constructor(
         val switchAddedToAlignment = switchDao.insert(switch(5, name = "sw-added-to-alignment"))
         val switchDeleted = switchDao.insert(switch(6, name = "sw-deleted"))
         val switchMerelyRenamed = switchDao.insert(switch(7, name = "sw-merely-renamed"))
+        val originalSwitchReplacedWithNewSameName = switchDao.insert(switch(8, name = "sw-replaced-with-new-same-name"))
 
         val trackNumberId = getUnusedTrackNumberId()
         val originalLocationTrack = locationTrackService.saveDraft(
@@ -1364,6 +1365,10 @@ class PublicationServiceIT @Autowired constructor(
                     switchId = switchMerelyRenamed.id,
                     startJointNumber = JointNumber(7)
                 ),
+                segment(Point(0.0, 3.0), Point(0.0, 4.0)).copy(
+                    switchId = originalSwitchReplacedWithNewSameName.id,
+                    startJointNumber = JointNumber(1)
+                ),
             )
         )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
@@ -1371,8 +1376,13 @@ class PublicationServiceIT @Autowired constructor(
             switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
         )
         switchService.saveDraft(
+            switchDao.fetch(originalSwitchReplacedWithNewSameName.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        )
+        switchService.saveDraft(
             switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name"))
         )
+        val newSwitchReplacingOldWithSameName = switchService.saveDraft(switch(8, name = "sw-replaced-with-new-same-name"))
+
         locationTrackService.saveDraft(
             locationTrackDao.fetch(locationTrackDao.fetchVersion(originalLocationTrack.id, OFFICIAL)!!).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
@@ -1388,12 +1398,21 @@ class PublicationServiceIT @Autowired constructor(
                     switchId = switchMerelyRenamed.id,
                     startJointNumber = JointNumber(1)
                 ),
+                segment(Point(0.0, 3.0), Point(0.0, 4.0)).copy(
+                    switchId = newSwitchReplacingOldWithSameName.id,
+                    startJointNumber = JointNumber(1)
+                ),
             )
         )
         publish(
             publicationService,
             locationTracks = listOf(originalLocationTrack.id),
-            switches = listOf(switchDeleted.id, switchMerelyRenamed.id)
+            switches = listOf(
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id,
+                newSwitchReplacingOldWithSameName.id,
+            )
         )
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)
         val latestPub = latestPubs[0]
@@ -1411,7 +1430,11 @@ class PublicationServiceIT @Autowired constructor(
         ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("linked-switches", diff[0].propKey.key.toString())
-        assertEquals("Vaihteiden sw-deleted, sw-unlinked-from-alignment, sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end, sw-added-to-topo-start linkitetty.", diff[0].remark)
+        assertEquals("""
+            Vaihteiden sw-deleted, sw-replaced-with-new-same-name, sw-unlinked-from-alignment,
+            sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
+            sw-added-to-topo-start, sw-replaced-with-new-same-name linkitetty.
+        """.trimIndent().replace("\n", " "), diff[0].remark)
     }
 
 
