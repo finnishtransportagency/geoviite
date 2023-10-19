@@ -1338,37 +1338,36 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(updatedSwitch.name, diff[0].value.newValue)
     }
 
+    private fun alignmentWithSwitchLinks(vararg switchIds: IntId<TrackLayoutSwitch>?): LayoutAlignment =
+        alignment(switchIds.mapIndexed { index, switchId ->
+            segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->
+                if (switchId == null) segment else segment.copy(
+                    switchId = switchId, startJointNumber = JointNumber(1)
+                )
+            }
+        })
+
     @Test
     fun `Location track switch link changes are reported`() {
-        val switchUnlinkedFromTopology = switchDao.insert(switch(1, name = "sw-unlinked-from-topology"))
-        val switchUnlinkedFromAlignment = switchDao.insert(switch(2, name = "sw-unlinked-from-alignment"))
-        val switchAddedToTopologyStart = switchDao.insert(switch(3, name = "sw-added-to-topo-start"))
-        val switchAddedToTopologyEnd = switchDao.insert(switch(4, name = "sw-added-to-topo-end"))
-        val switchAddedToAlignment = switchDao.insert(switch(5, name = "sw-added-to-alignment"))
-        val switchDeleted = switchDao.insert(switch(6, name = "sw-deleted"))
-        val switchMerelyRenamed = switchDao.insert(switch(7, name = "sw-merely-renamed"))
-        val originalSwitchReplacedWithNewSameName = switchDao.insert(switch(8, name = "sw-replaced-with-new-same-name"))
+        val switchUnlinkedFromTopology = switchDao.insert(switch(name = "sw-unlinked-from-topology"))
+        val switchUnlinkedFromAlignment = switchDao.insert(switch(name = "sw-unlinked-from-alignment"))
+        val switchAddedToTopologyStart = switchDao.insert(switch(name = "sw-added-to-topo-start"))
+        val switchAddedToTopologyEnd = switchDao.insert(switch(name = "sw-added-to-topo-end"))
+        val switchAddedToAlignment = switchDao.insert(switch(name = "sw-added-to-alignment"))
+        val switchDeleted = switchDao.insert(switch(name = "sw-deleted"))
+        val switchMerelyRenamed = switchDao.insert(switch(name = "sw-merely-renamed"))
+        val originalSwitchReplacedWithNewSameName = switchDao.insert(switch(name = "sw-replaced-with-new-same-name"))
 
         val trackNumberId = getUnusedTrackNumberId()
+
+
         val originalLocationTrack = locationTrackService.saveDraft(
             locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1))),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)).copy(
-                    switchId = switchUnlinkedFromAlignment.id,
-                    startJointNumber = JointNumber(1)
-                ),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)).copy(
-                    switchId = switchDeleted.id,
-                    startJointNumber = JointNumber(1)
-                ),
-                segment(Point(0.0, 2.0), Point(0.0, 3.0)).copy(
-                    switchId = switchMerelyRenamed.id,
-                    startJointNumber = JointNumber(7)
-                ),
-                segment(Point(0.0, 3.0), Point(0.0, 4.0)).copy(
-                    switchId = originalSwitchReplacedWithNewSameName.id,
-                    startJointNumber = JointNumber(1)
-                ),
+            alignmentWithSwitchLinks(
+                switchUnlinkedFromAlignment.id,
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id
             )
         )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
@@ -1388,20 +1387,11 @@ class PublicationServiceIT @Autowired constructor(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
             ),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)).copy(
-                    switchId = switchAddedToAlignment.id,
-                    startJointNumber = JointNumber(1)
-                ),
-                segment(Point(0.0, 2.0), Point(0.0, 3.0)).copy(
-                    switchId = switchMerelyRenamed.id,
-                    startJointNumber = JointNumber(1)
-                ),
-                segment(Point(0.0, 3.0), Point(0.0, 4.0)).copy(
-                    switchId = newSwitchReplacingOldWithSameName.id,
-                    startJointNumber = JointNumber(1)
-                ),
+            alignmentWithSwitchLinks(
+                switchAddedToAlignment.id,
+                switchMerelyRenamed.id,
+                newSwitchReplacingOldWithSameName.id,
+                null
             )
         )
         publish(
