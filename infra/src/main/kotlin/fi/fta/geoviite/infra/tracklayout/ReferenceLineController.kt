@@ -87,6 +87,6 @@ class ReferenceLineController(
     @GetMapping("/{id}/change-times")
     fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): DraftableChangeInfo {
         logger.apiCall("getReferenceLineChangeInfo", "id" to id)
-        return referenceLineService.getChangeTimes(id)
+        return referenceLineService.getDraftableChangeInfo(id)
     }
 }

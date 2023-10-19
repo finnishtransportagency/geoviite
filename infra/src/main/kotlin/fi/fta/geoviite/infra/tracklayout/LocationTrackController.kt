@@ -168,7 +168,7 @@ class LocationTrackController(
     @GetMapping("/{id}/change-times")
     fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): DraftableChangeInfo {
         logger.apiCall("getLocationTrackChangeInfo", "id" to id)
-        return locationTrackService.getChangeTimes(id)
+        return locationTrackService.getDraftableChangeInfo(id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
