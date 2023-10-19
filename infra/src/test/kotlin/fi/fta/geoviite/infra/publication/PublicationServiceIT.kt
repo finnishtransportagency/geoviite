@@ -764,7 +764,7 @@ class PublicationServiceIT @Autowired constructor(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "validation.layout.location-track.duplicate-name-official",
-                    mapOf("locationTrack" to "LT", "trackNumber" to "TN")
+                    mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN"))
                 )
             ), validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.errors
         )
@@ -773,7 +773,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.location-track.duplicate-name-draft",
-                mapOf("locationTrack" to "NLT", "trackNumber" to "TN")
+                mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN"))
             )
         },
             validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
@@ -783,7 +783,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.switch.duplicate-name-official",
-                mapOf("switch" to "SW")
+                mapOf("switch" to SwitchName("SW"))
             )
         ),
             validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name-official" })
@@ -792,7 +792,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.switch.duplicate-name-draft",
-                mapOf("switch" to "NSW")
+                mapOf("switch" to SwitchName("NSW"))
             )
         },
             validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }
@@ -804,7 +804,7 @@ class PublicationServiceIT @Autowired constructor(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "validation.layout.track-number.duplicate-name-official",
-                    mapOf("trackNumber" to "TN")
+                    mapOf("trackNumber" to TrackNumber("TN"))
                 )
             ), validation.validatedAsPublicationUnit.trackNumbers[0].errors
         )
@@ -823,7 +823,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         }
         assertEquals("error.publication.duplicate-name-on.track-number", exception.localizedMessageKey.toString())
-        assertEquals(mapOf("name" to "TN"), exception.localizedMessageParams)
+        assertEquals(mapOf("name" to "TN"), exception.localizedMessageParams.params)
     }
 
     @Test
@@ -839,7 +839,10 @@ class PublicationServiceIT @Autowired constructor(
             publish(publicationService, locationTracks = listOf(draftLocationTrackId))
         }
         assertEquals("error.publication.duplicate-name-on.location-track", exception.localizedMessageKey.toString())
-        assertEquals(mapOf("locationTrack" to "LT", "trackNumber" to "TN"), exception.localizedMessageParams)
+        assertEquals(
+            mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN")),
+            exception.localizedMessageParams.params
+        )
     }
 
     @Test
@@ -869,7 +872,7 @@ class PublicationServiceIT @Autowired constructor(
             publish(publicationService, switches = listOf(draftSwitchId))
         }
         assertEquals("error.publication.duplicate-name-on.switch", exception.localizedMessageKey.toString())
-        assertEquals(mapOf("name" to "SW123"), exception.localizedMessageParams)
+        assertEquals(mapOf("name" to "SW123"), exception.localizedMessageParams.params)
     }
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
