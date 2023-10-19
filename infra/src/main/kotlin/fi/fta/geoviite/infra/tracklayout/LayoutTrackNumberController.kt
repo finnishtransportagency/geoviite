@@ -181,6 +181,6 @@ class LayoutTrackNumberController(
     @GetMapping("/{id}/change-times")
     fun getTrackNumberChangeInfo(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): DraftableChangeInfo {
         logger.apiCall("getTrackNumberChangeInfo", "id" to id)
-        return trackNumberService.getChangeTimes(id)
+        return trackNumberService.getDraftableChangeInfo(id)
     }
 }

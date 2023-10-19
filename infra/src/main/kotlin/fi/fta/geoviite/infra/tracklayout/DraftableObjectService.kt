@@ -66,9 +66,9 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         return dao.fetchChangeTime()
     }
 
-    fun getChangeTimes(id: IntId<ObjectType>): DraftableChangeInfo {
+    fun getDraftableChangeInfo(id: IntId<ObjectType>): DraftableChangeInfo {
         logger.serviceCall("getChangeTimes", "id" to id)
-        return dao.fetchChangeTimes(id)
+        return dao.fetchDraftableChangeInfo(id)
     }
 
     fun draftExists(id: IntId<ObjectType>): Boolean {

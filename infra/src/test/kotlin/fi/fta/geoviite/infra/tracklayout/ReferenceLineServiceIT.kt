@@ -74,9 +74,9 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertEquals(referenceLine.alignmentVersion, updatedLine.alignmentVersion)
         val changeTimeAfterUpdate = referenceLineService.getChangeTime()
 
-        val trackChangeTimes = referenceLineService.getChangeTimes(referenceLineId)
-        assertEquals(changeTimeAfterInsert, trackChangeTimes.created)
-        assertEquals(changeTimeAfterUpdate, trackChangeTimes.draftChanged)
+        val changeInfo = referenceLineService.getDraftableChangeInfo(referenceLineId)
+        assertEquals(changeTimeAfterInsert, changeInfo.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
     }
 
     @Test
@@ -213,8 +213,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val publishedVersion = publish(draft.id as IntId)
         val (published, publishedAlignment) = referenceLineService.getWithAlignmentOrThrow(
-            OFFICIAL,
-            publishedVersion.id
+            OFFICIAL, publishedVersion.id
         )
         val publishedByTrackNumber = referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId)
         assertEquals(published, publishedByTrackNumber)
@@ -250,7 +249,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     private fun address(seed: Int = 0) = TrackMeter(KmNumber(seed), seed * 100)
 
-    private fun publish(id: IntId<ReferenceLine>) = referenceLineDao.fetchPublicationVersions(listOf(id))
+    private fun publish(id: IntId<ReferenceLine>) = referenceLineDao
+        .fetchPublicationVersions(listOf(id))
         .first()
         .let { version -> referenceLineService.publish(version) }
 }
