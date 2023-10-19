@@ -864,7 +864,7 @@ class PublicationService @Autowired constructor(
             publications.mapIndexed { index, publicationDetails ->
                 val previousPublication = publications.getOrNull(index - 1)
                 publicationDetails to (previousPublication?.publicationTime ?: publicationDetails.publicationTime.minusMillis(1))
-            }.parallelStream().map { (publicationDetails, timeDiff) ->
+            }.flatMap { (publicationDetails, timeDiff) ->
                 mapToPublicationTableItems(
                     translation,
                     publicationDetails,
@@ -872,7 +872,7 @@ class PublicationService @Autowired constructor(
                     getGeocodingContextOrNull,
                     trackNumbersCache,
                 )
-            }.collect(Collectors.toList()).flatMap { rows -> rows}
+            }
         }.let { publications ->
             if (sortBy == null) publications
             else publications.sortedWith(getComparator(sortBy, order))
