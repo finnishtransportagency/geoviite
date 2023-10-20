@@ -8,7 +8,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "29.2"
 val kotlinVersion = "1.9.10"
-val springBootVersion = "2.7.16"
 
 plugins {
     id("org.springframework.boot") version "2.7.16"
@@ -49,13 +48,13 @@ dependencies {
     // Actual deps
     implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.560")
     implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
-    implementation("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
-    implementation("org.springframework.boot:spring-boot-starter-jdbc:$springBootVersion")
-    implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
-    implementation("org.springframework.boot:spring-boot-starter-log4j2:$springBootVersion")
-    implementation("org.springframework.boot:spring-boot-starter-cache:$springBootVersion")
-    implementation("org.springframework.boot:spring-boot-starter-security:$springBootVersion")
-    implementation("org.springframework.boot:spring-boot-starter-webflux:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-log4j2")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
@@ -85,10 +84,10 @@ dependencies {
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.1")
     implementation("com.github.davidmoten:rtree2:0.9.3")
     implementation("commons-validator:commons-validator:1.7")
-    compileOnly("org.springframework.boot:spring-boot-devtools:$springBootVersion")
+    compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.3")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
-    testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.13.0")
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
