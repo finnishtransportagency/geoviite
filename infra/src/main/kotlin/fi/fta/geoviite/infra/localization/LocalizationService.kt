@@ -18,7 +18,7 @@ constructor(@JsonValue val params: Map<String, Any?>) {
 
     init {
         require(params.none { LOCALIZATION_PARAMS_KEY_REGEX.matchEntire(it.key) == null }) {
-            "There are localization keys that do not with the localization regex. Keys are ${
+            "There are localization keys that do not match with the localization pattern regex. Keys in question are ${
                 params.map { it.key }.filter { LOCALIZATION_PARAMS_KEY_REGEX.matchEntire(it) == null }
             }"
         }
