@@ -1,11 +1,14 @@
 import * as React from 'react';
-import { LayoutLocationTrack, LayoutLocationTrackDuplicate } from 'track-layout/track-layout-model';
+import { LocationTrackDuplicate } from 'track-layout/track-layout-model';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import styles from './location-track-infobox.scss';
+import { PublishType, TimeStamp } from 'common/common-model';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
-    existingDuplicate: LayoutLocationTrack | undefined;
-    duplicatesOfLocationTrack: LayoutLocationTrackDuplicate[] | undefined;
+    publishType: PublishType;
+    changeTime: TimeStamp;
+    existingDuplicate: LocationTrackDuplicate | undefined;
+    duplicatesOfLocationTrack: LocationTrackDuplicate[] | undefined;
 };
 
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
@@ -19,16 +22,14 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         />
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
-            {duplicatesOfLocationTrack
-                .sort((a, b) => (a.name > b.name ? 1 : -1))
-                .map((duplicate) => (
-                    <li key={duplicate.id}>
-                        <LocationTrackLink
-                            locationTrackId={duplicate.id}
-                            locationTrackName={duplicate.name}
-                        />
-                    </li>
-                ))}
+            {duplicatesOfLocationTrack.map((duplicate) => (
+                <li key={duplicate.id}>
+                    <LocationTrackLink
+                        locationTrackId={duplicate.id}
+                        locationTrackName={duplicate.name}
+                    />
+                </li>
+            ))}
         </ul>
     ) : (
         <React.Fragment />

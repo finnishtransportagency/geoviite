@@ -4,9 +4,16 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { PublishType, TimeStamp } from 'common/common-model';
-import { deleteAdt, getNonNull, postIgnoreError, putIgnoreError, queryParams } from 'api/api-fetch';
-import { layoutUri } from 'track-layout/track-layout-api';
+import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
+import {
+    deleteAdt,
+    getNonNull,
+    getNullable,
+    postIgnoreError,
+    putIgnoreError,
+    queryParams,
+} from 'api/api-fetch';
+import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
     getChangeTimes,
@@ -27,7 +34,7 @@ export async function getTrackNumberById(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): Promise<LayoutTrackNumber | undefined> {
-    return getTrackNumbers(publishType, changeTime).then((trackNumbers) =>
+    return getTrackNumbers(publishType, changeTime, true).then((trackNumbers) =>
         trackNumbers.find((trackNumber) => trackNumber.id == trackNumberId),
     );
 }
@@ -94,3 +101,23 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
         `${layoutUri('track-numbers', publishType, id)}/plan-geometry/${params}`,
     );
 };
+
+export const getTrackNumberChangeTimes = (
+    id: LayoutTrackNumberId,
+): Promise<DraftableChangeInfo | undefined> => {
+    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id));
+};
+
+export async function getTrackNumbersBySearchTerm(
+    searchTerm: string,
+    publishType: PublishType,
+    limit: number,
+): Promise<LayoutTrackNumber[]> {
+    const params = queryParams({
+        searchTerm: searchTerm,
+        limit: limit,
+    });
+    return await getNonNull<LayoutTrackNumber[]>(
+        `${layoutUri('track-numbers', publishType)}${params}`,
+    );
+}

@@ -1,36 +1,62 @@
 import * as React from 'react';
 import { Link } from 'vayla-design-lib/link/link';
 import styles from 'infra-model/projektivelho/pv-file-list.scss';
-import { getPVRedirectUrl } from 'infra-model/infra-model-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { Oid, TimeStamp } from 'common/common-model';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { Oid } from 'common/common-model';
+import { getPVFilesRedirectUrl } from 'infra-model/infra-model-api';
 
-type PVRedirectLinkProps = {
-    changeTime: TimeStamp;
-    oid: Oid;
-} & React.HTMLProps<HTMLAnchorElement>;
+interface PVDocumentRedirectLinkProps {
+    documentOid: Oid;
+    assignmentOid: Oid;
+    projectOid: Oid;
+    projectGroupOid?: never;
+}
 
-export const PVRedirectLink: React.FC<PVRedirectLinkProps> = ({ changeTime, oid, children }) => {
-    const [url, loaderStatus] = useLoaderWithStatus(() => getPVRedirectUrl(changeTime, oid), [oid]);
+interface PVAssignmentRedirectLinkProps {
+    assignmentOid: Oid;
+    projectOid: Oid;
+    documentOid?: never;
+    projectGroupOid?: never;
+}
+
+interface PVProjectGroupLinkProps {
+    projectGroupOid: Oid;
+    assignmentOid?: never;
+    projectOid?: never;
+    documentOid?: never;
+}
+
+interface PVProjectLinkProps {
+    projectOid: Oid;
+    projectGroupOid?: never;
+    assignmentOid?: never;
+    documentOid?: never;
+}
+
+type PVRedirectLinkProps = (
+    | PVDocumentRedirectLinkProps
+    | PVAssignmentRedirectLinkProps
+    | PVProjectGroupLinkProps
+    | PVProjectLinkProps
+) & { children?: React.ReactNode };
+
+export const PVRedirectLink: React.FC<PVRedirectLinkProps> = ({
+    projectOid,
+    projectGroupOid,
+    assignmentOid,
+    documentOid,
+    children,
+}) => {
+    const url = getPVFilesRedirectUrl(projectGroupOid, projectOid, assignmentOid, documentOid);
+
     return (
-        <React.Fragment>
-            <Link
-                className={styles['projektivelho-file-list__link']}
-                href={url || undefined}
-                target={'_blank'}>
-                <span>
-                    {children}{' '}
-                    <span className={styles['projektivelho-file-list__link-icon']}>
-                        {loaderStatus === LoaderStatus.Ready ? (
-                            <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
-                        ) : (
-                            <Spinner />
-                        )}
-                    </span>
+        <Link className={styles['projektivelho-file-list__link']} href={url} target={'_blank'}>
+            <span>
+                {children}{' '}
+                <span className={styles['projektivelho-file-list__link-icon']}>
+                    <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
                 </span>
-            </Link>
-        </React.Fragment>
+            </span>
+        </Link>
     );
 };

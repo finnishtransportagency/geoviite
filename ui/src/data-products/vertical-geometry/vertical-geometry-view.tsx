@@ -29,17 +29,20 @@ const VerticalGeometryView = () => {
                     <span className={styles['data-product-view__radio-layout']}>
                         <Radio
                             onChange={() => handleRadioClick('LOCATION_TRACK')}
-                            checked={state.selectedSearch === 'LOCATION_TRACK'}>
+                            checked={state.selectedSearch === 'LOCATION_TRACK'}
+                            qaId="select-layout-geometry">
                             {t('data-products.vertical-geometry.location-track-vertical-geometry')}
                         </Radio>
                         <Radio
                             onChange={() => handleRadioClick('PLAN')}
-                            checked={state.selectedSearch === 'PLAN'}>
+                            checked={state.selectedSearch === 'PLAN'}
+                            qaId="select-plan-geometry">
                             {t('data-products.vertical-geometry.plan-vertical-geometry')}
                         </Radio>
                         <Radio
                             onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
-                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}
+                            qaId="select-entire-rail-network">
                             {t(
                                 'data-products.vertical-geometry.entire-rail-network-vertical-geometry',
                             )}

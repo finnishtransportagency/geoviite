@@ -23,37 +23,37 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 
     fun setName(name: String): E2ELocationTrackEditDialog = apply {
-        content.inputFieldValue("Sijaintiraidetunnus", name)
+        content.inputFieldValueByLabel("Sijaintiraidetunnus", name)
     }
 
     fun selectTrackNumber(trackNumber: String): E2ELocationTrackEditDialog = apply {
-        content.selectDropdownValue("Ratanumero", trackNumber)
+        content.selectDropdownValueByLabel("Ratanumero", trackNumber)
     }
 
     fun selectState(state: State): E2ELocationTrackEditDialog = apply {
-        content.selectDropdownValue("Tila", state.uiText)
+        content.selectDropdownValueByLabel("Tila", state.uiText)
     }
 
     fun selectType(type: Type): E2ELocationTrackEditDialog = apply {
-        content.selectDropdownValue("Raidetyyppi", type.uiText)
+        content.selectDropdownValueByLabel("Raidetyyppi", type.uiText)
     }
 
     fun setDescription(description: String): E2ELocationTrackEditDialog = apply {
-        content.inputFieldValue("Kuvauksen perusosa", description)
+        content.inputFieldValueByLabel("Kuvauksen perusosa", description)
     }
 
     fun setDescriptionSuffix(descriptionSuffix: DescriptionSuffix): E2ELocationTrackEditDialog = apply {
-        content.selectDropdownValue("Kuvauksen lisäosa", descriptionSuffix.uiText)
+        content.selectDropdownValueByLabel("Kuvauksen lisäosa", descriptionSuffix.uiText)
     }
 
     fun selectTopologicalConnectivity(topologicalConnectivity: TopologicalConnectivity): E2ELocationTrackEditDialog =
         apply {
-            content.selectDropdownValue(label = "Topologinen kytkeytyminen", topologicalConnectivity.uiText)
+            content.selectDropdownValueByLabel(label = "Topologinen kytkeytyminen", topologicalConnectivity.uiText)
         }
 
     fun save() = expectToast {
         waitUntilClosed {
-            val isDeleted = content.getValueForField("Tila") == State.DELETED.uiText
+            val isDeleted = content.getValueForFieldByLabel("Tila") == State.DELETED.uiText
             clickPrimaryButton()
 
             if (isDeleted) {
@@ -75,19 +75,19 @@ class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 
     fun setName(name: String): E2ETrackNumberEditDialog = apply {
-        content.inputFieldValue("Tunnus", name)
+        content.inputFieldValueByLabel("Tunnus", name)
     }
 
     fun selectState(state: State): E2ETrackNumberEditDialog = apply {
-        content.selectDropdownValue("Tila", state.uiText)
+        content.selectDropdownValueByLabel("Tila", state.uiText)
     }
 
     fun setDescription(description: String): E2ETrackNumberEditDialog = apply {
-        content.inputFieldValue("Kuvaus", description)
+        content.inputFieldValueByLabel("Kuvaus", description)
     }
 
     fun save() = waitUntilClosed {
-        val isDeleted = content.getValueForField("Tila") == E2ELocationTrackEditDialog.State.DELETED.uiText
+        val isDeleted = content.getValueForFieldByLabel("Tila") == E2ELocationTrackEditDialog.State.DELETED.uiText
         clickButtonByText("Tallenna")
 
         if (isDeleted) {
@@ -105,11 +105,11 @@ class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 
     fun setName(name: String): E2EKmPostEditDialog = apply {
-        content.inputFieldValue("Tasakmpistetunnus", name)
+        content.inputFieldValueByLabel("Tasakmpistetunnus", name)
     }
 
     fun selectState(state: State): E2EKmPostEditDialog = apply {
-        content.selectDropdownValue("Tila", state.uiText)
+        content.selectDropdownValueByLabel("Tila", state.uiText)
     }
 
     fun save() = expectToast {
@@ -130,16 +130,16 @@ class E2ELayoutSwitchEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 
     fun setName(name: String): E2ELayoutSwitchEditDialog = apply {
-        content.inputFieldValue("Vaihdetunnus", name)
+        content.inputFieldValueByLabel("Vaihdetunnus", name)
     }
 
     fun selectStateCategory(stateCategory: StateCategory): E2ELayoutSwitchEditDialog = apply {
-        content.selectDropdownValue("Tilakategoria", stateCategory.uiText)
+        content.selectDropdownValueByLabel("Tilakategoria", stateCategory.uiText)
     }
 
     fun save() = expectToast {
         waitUntilClosed {
-            val isNotExisting = content.getValueForField("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
+            val isNotExisting = content.getValueForFieldByLabel("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
             clickButtonByText("Tallenna")
 
             if (isNotExisting) {

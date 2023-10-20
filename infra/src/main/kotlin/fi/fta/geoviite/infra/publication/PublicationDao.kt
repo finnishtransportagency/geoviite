@@ -349,6 +349,7 @@ class PublicationDao(
             select id, publication_user, publication_time, message
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
+            order by id
         """.trimIndent()
 
         val params = mapOf(
@@ -475,6 +476,14 @@ class PublicationDao(
               old_av.length as old_length,
               ltv.track_number_id as track_number_id,
               old_ltv.track_number_id as old_track_number_id,
+              ltv.alignment_id,
+              old_ltv.alignment_id as old_alignment_id,
+              ltv.alignment_version,
+              old_ltv.alignment_version as old_alignment_version,
+              ltv.topology_start_switch_id,
+              old_ltv.topology_start_switch_id as old_topology_start_switch_id,
+              ltv.topology_end_switch_id,
+              old_ltv.topology_end_switch_id as old_topology_end_switch_id,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -482,8 +491,25 @@ class PublicationDao(
               postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
               postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
+              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
+              (select array_agg(sw.id || ' ' || sw.name)
+                from layout.switch_at(publication_time) sw
+                 where sw.id = ltv.topology_start_switch_id or sw.id = ltv.topology_end_switch_id or
+                   exists (select *
+                           from layout.segment_version sv
+                           where sv.alignment_id = ltv.alignment_id
+                             and sv.alignment_version = ltv.alignment_version
+                             and sw.id = sv.switch_id)) as linked_switches,
+              (select array_agg(sw.id || ' ' || sw.name)
+                from layout.switch_at(publication_time) sw
+                 where sw.id = old_ltv.topology_start_switch_id or sw.id = old_ltv.topology_end_switch_id or
+                   exists (select *
+                           from layout.segment_version sv
+                           where sv.alignment_id = old_ltv.alignment_id
+                             and sv.alignment_version = old_ltv.alignment_version
+                             and sw.id = sv.switch_id)) as old_linked_switches
               from publication.location_track
+                join publication.publication on location_track.publication_id = publication.id
                 left join layout.location_track_version ltv
                           on location_track.location_track_id = ltv.id and location_track.location_track_version = ltv.version
                 left join layout.alignment_version av
@@ -538,8 +564,15 @@ class PublicationDao(
                 duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
+                alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
+                linkedSwitches = rs.getChange("linked_switches") { rs.getStringArrayOrNull(it)?.map(::parseSwitchChangeReference) }
             )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
+    }
+
+    private fun parseSwitchChangeReference(str: String): Pair<IntId<TrackLayoutSwitch>, String> {
+        val spaceIndex = str.indexOf(" ")
+        return IntId<TrackLayoutSwitch>(str.substring(0, spaceIndex).toInt()) to str.substring(spaceIndex + 1)
     }
 
     fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutKmPost>, KmPostChanges> {
@@ -588,6 +621,10 @@ class PublicationDao(
               old_reference_line_version.track_number_id as old_track_number_id,
               av.length,
               old_av.length as old_length,
+              reference_line_version.alignment_id,
+              old_reference_line_version.alignment_id as old_alignment_id,
+              reference_line_version.alignment_version,
+              old_reference_line_version.alignment_version as old_alignment_version,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -633,7 +670,8 @@ class PublicationDao(
                 trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
-                endPoint = rs.getChangePoint("end_x", "end_y")
+                endPoint = rs.getChangePoint("end_x", "end_y"),
+                alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
             )
         }.toMap().also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
     }

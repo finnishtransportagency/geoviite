@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -89,6 +90,25 @@ class LayoutTrackNumberService(
             dao.deleteDraft(draftRowId)
         }
     }
+
+    fun list(publishType: PublishType, searchTerm: FreeText, limit: Int?): List<TrackLayoutTrackNumber> {
+        logger.serviceCall(
+            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+        )
+        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
+            listInternal(publishType, true).filter { trackLayoutTrackNumber ->
+                idMatches(term, trackLayoutTrackNumber) || contentMatches(
+                    term, trackLayoutTrackNumber
+                )
+            }.sortedBy(TrackLayoutTrackNumber::number).let { list -> if (limit != null) list.take(limit) else list }
+        } ?: listOf()
+    }
+
+    private fun idMatches(term: String, trackLayoutTrackNumber: TrackLayoutTrackNumber) =
+        trackLayoutTrackNumber.externalId.toString() == term || trackLayoutTrackNumber.id.toString() == term
+
+    private fun contentMatches(term: String, trackLayoutTrackNumber: TrackLayoutTrackNumber) =
+        trackLayoutTrackNumber.exists && trackLayoutTrackNumber.number.toString().replace("  ", " ").contains(term, true)
 
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }
 

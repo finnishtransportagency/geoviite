@@ -116,6 +116,7 @@ const PlanGeometryElementListingSearch = ({
                                 unselectText={t('data-products.search.not-selected')}
                                 wideList
                                 wide
+                                qaId={'data-products-search-plan'}
                             />
                         }
                     />
@@ -125,6 +126,7 @@ const PlanGeometryElementListingSearch = ({
                         value={
                             <div className={styles['element-list__geometry-checkbox']}>
                                 <Checkbox
+                                    qaId="data-products.search.line"
                                     checked={state.searchGeometries.searchLines}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -135,6 +137,7 @@ const PlanGeometryElementListingSearch = ({
                                     {t(`data-products.search.line`)}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.curve"
                                     checked={state.searchGeometries.searchCurves}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -145,6 +148,7 @@ const PlanGeometryElementListingSearch = ({
                                     {t(`data-products.search.curve`)}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.clothoid"
                                     checked={state.searchGeometries.searchClothoids}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -163,20 +167,21 @@ const PlanGeometryElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <Button
-                    className={styles['element-list__download-button']}
-                    disabled={!state.elements || state.elements.length === 0}
-                    onClick={() => {
-                        if (state.plan) {
-                            location.href = getGeometryPlanElementsCsv(
-                                state.plan?.id,
-                                selectedElementTypes(state.searchGeometries),
-                            );
-                        }
-                    }}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                <a
+                    qa-id={'plan-element-list-csv-download'}
+                    {...(state.plan && {
+                        href: getGeometryPlanElementsCsv(
+                            state.plan?.id,
+                            selectedElementTypes(state.searchGeometries),
+                        ),
+                    })}>
+                    <Button
+                        className={styles['element-list__download-button']}
+                        disabled={!state.elements || state.elements.length === 0}
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

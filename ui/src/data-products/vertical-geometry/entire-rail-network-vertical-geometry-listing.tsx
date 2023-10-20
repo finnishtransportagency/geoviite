@@ -17,12 +17,15 @@ export const EntireRailNetworkVerticalGeometryListing = () => {
                 {t('data-products.vertical-geometry.entire-rail-network-length-warning')}
             </p>
             <div className={styles['data-products__search']}>
-                <Button
-                    className={styles['vertical-geometry-list__download-button--left-aligned']}
-                    onClick={() => (location.href = getEntireRailNetworkVerticalGeometryCsvUrl())}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                <a
+                    href={getEntireRailNetworkVerticalGeometryCsvUrl()}
+                    qa-id="vertical-geometry-csv-download">
+                    <Button
+                        className={styles['vertical-geometry-list__download-button--left-aligned']}
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

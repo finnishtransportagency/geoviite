@@ -9,14 +9,14 @@ $dropdown-border-default: 1px;
 $dropdown-border-thick: 2px;
 $dropdown-border-error: 1.5px;
 
-@mixin dropdown-border($color, $width, $has-icon) {
-    border: $width solid $color;
-    $border-width-diff: $width - $dropdown-border-default;
+@mixin dropdown-shadow($color, $width, $has-icon) {
+    box-shadow: inset 0 0 0 $width $color;
+    border-color: transparent;
 
     @if ($has-icon) {
-        padding: 8px (8px - $border-width-diff) 8px (32px - $border-width-diff);
+        padding: 8px 8px 8px 32px;
     } @else {
-        padding: 8px (8px - $border-width-diff);
+        padding: 8px 8px;
     }
 }
 
@@ -64,7 +64,7 @@ $dropdown-border-error: 1.5px;
 }
 
 .dropdown__header:hover {
-    @include dropdown-border(
+    @include dropdown-shadow(
         $color: colors.$color-black-lighter,
         $width: $dropdown-border-thick,
         $has-icon: false
@@ -73,7 +73,7 @@ $dropdown-border-error: 1.5px;
 
 .dropdown--disabled {
     .dropdown__header {
-        @include dropdown-border($color: colors.$color-white-darker, $width: 1px, $has-icon: false);
+        @include dropdown-shadow($color: colors.$color-white-darker, $width: 1px, $has-icon: false);
         color: colors.$color-black-lighter;
         cursor: default;
     }
@@ -88,7 +88,7 @@ $dropdown-border-error: 1.5px;
 }
 
 .dropdown--has-focus .dropdown__header {
-    @include dropdown-border(
+    @include dropdown-shadow(
         $color: colors.$color-blue-dark,
         $width: $dropdown-border-thick,
         $has-icon: false
@@ -96,7 +96,7 @@ $dropdown-border-error: 1.5px;
 }
 
 .dropdown--has-error .dropdown__header {
-    @include dropdown-border(
+    @include dropdown-shadow(
         $color: colors.$color-red-dark,
         $width: $dropdown-border-error,
         $has-icon: false
@@ -160,13 +160,11 @@ $dropdown-border-error: 1.5px;
     @include typography.typography-body;
     @include shadows.shadow-8dp;
     position: absolute;
-    z-index: layers.$layer-menu;
+    z-index: layers.$layer-popup;
     display: flex;
     flex-direction: column;
     margin-top: 2px;
     max-height: 250px;
-    max-width: 200px;
-    min-width: 100%;
     border-radius: 4px;
     background: colors.$color-white-default;
 }
@@ -185,6 +183,7 @@ $dropdown-border-error: 1.5px;
 }
 
 .dropdown__list-item {
+    border: 1px solid transparent;
     display: flex;
     align-items: center;
     background: colors.$color-white-default;

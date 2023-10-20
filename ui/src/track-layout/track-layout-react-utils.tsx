@@ -3,19 +3,19 @@ import {
     LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
-    LayoutLocationTrackDuplicate,
     LayoutReferenceLine,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
+    LocationTrackInfoboxExtras,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
 import {
-    ChangeTimes,
     CoordinateSystem,
+    DraftableChangeInfo,
     PublishType,
     Srid,
     SwitchStructure,
@@ -35,13 +35,16 @@ import {
 import {
     getLocationTrack,
     getLocationTrackChangeTimes,
-    getLocationTrackDuplicates,
+    getLocationTrackInfoboxExtras,
     getLocationTracks,
     getLocationTrackStartAndEnd,
-    getLocationTrackSwitchesAtEnds,
 } from 'track-layout/layout-location-track-api';
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
-import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
+import {
+    getTrackNumberById,
+    getTrackNumberChangeTimes,
+    getTrackNumbers,
+} from 'track-layout/layout-track-number-api';
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
@@ -81,16 +84,6 @@ export function useReferenceLines(
             () => (ids ? getReferenceLines(ids, publishType, changeTime) : undefined),
             [ids, publishType, changeTime],
         ) || []
-    );
-}
-
-export function useLocationTrackDuplicates(
-    id: LocationTrackId | undefined,
-    publishType: PublishType,
-): LayoutLocationTrackDuplicate[] | undefined {
-    return useLoader(
-        () => (id ? getLocationTrackDuplicates(publishType, id) : undefined),
-        [id, publishType],
     );
 }
 
@@ -201,52 +194,55 @@ export function useLocationTrackStartAndEnd(
     changeTime: TimeStamp,
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
     return useLoaderWithStatus(
-        () => (id && publishType ? getLocationTrackStartAndEnd(id, publishType) : undefined),
+        () =>
+            id && publishType
+                ? getLocationTrackStartAndEnd(id, publishType, changeTime)
+                : undefined,
         [id, publishType, changeTime],
     );
 }
 
-export function useLocationTrackSwitchesAtEnds(
-    locationTrack: LayoutLocationTrack | undefined,
+export function useLocationTrackInfoboxExtras(
+    id: LocationTrackId | undefined,
     publishType: PublishType,
-    changeTime: TimeStamp,
-): { start: LayoutSwitch | undefined; end: LayoutSwitch | undefined } | undefined {
-    const id = locationTrack?.id;
-    const [switchIds, status] = useLoaderWithStatus(
-        () =>
-            id === undefined
-                ? undefined
-                : getLocationTrackSwitchesAtEnds(id, publishType, changeTime),
-        [id, publishType, changeTime],
+): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
+    return useLoaderWithStatus(
+        () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
+        [id, publishType],
     );
-    const start = useSwitch(switchIds?.start ?? undefined, publishType);
-    const end = useSwitch(switchIds?.end ?? undefined, publishType);
-    return id === undefined || switchIds === undefined || status !== LoaderStatus.Ready
-        ? undefined
-        : { start, end };
 }
 
 export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeader | undefined {
     return useLoader(() => (id ? getGeometryPlanHeader(id) : undefined), [id]);
 }
 
+export function useTrackNumberChangeTimes(
+    id: LayoutTrackNumberId | undefined,
+): DraftableChangeInfo | undefined {
+    return useOptionalLoader(() => (id ? getTrackNumberChangeTimes(id) : undefined), [id]);
+}
+
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
-): ChangeTimes | undefined {
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
 }
 
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
-): ChangeTimes | undefined {
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
 }
 
-export function useSwitchChangeTimes(id: LayoutSwitchId | undefined): ChangeTimes | undefined {
+export function useSwitchChangeTimes(
+    id: LayoutSwitchId | undefined,
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getSwitchChangeTimes(id) : undefined), [id]);
 }
 
-export function useKmPostChangeTimes(id: LayoutKmPostId | undefined): ChangeTimes | undefined {
+export function useKmPostChangeTimes(
+    id: LayoutKmPostId | undefined,
+): DraftableChangeInfo | undefined {
     return useOptionalLoader(() => (id ? getKmPostChangeTimes(id) : undefined), [id]);
 }
 

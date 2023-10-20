@@ -39,10 +39,10 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/projektivelho`;
+const PROJEKTIVELHO_REDIRECT_URI = '/redirect/projektivelho';
 
 const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | undefined>();
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
-const pvRedirectUrlCache = asyncCache<string, string | undefined>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
@@ -140,10 +140,21 @@ export async function getPVDocuments(
     );
 }
 
-export const getPVRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
-    pvRedirectUrlCache.get(changeTime, oid, () =>
-        getNonNull<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
-    );
+export const getPVFilesRedirectUrl = (
+    projectGroupOid?: Oid,
+    projectOid?: Oid,
+    assignmentOid?: Oid,
+    documentOid?: Oid,
+) => {
+    const params = queryParams({
+        projectGroup: projectGroupOid,
+        project: projectOid,
+        assignment: assignmentOid,
+        document: documentOid,
+    });
+
+    return `${PROJEKTIVELHO_REDIRECT_URI}/files${params}`;
+};
 
 export async function getPVDocument(
     changeTime: TimeStamp = getChangeTimes().pvDocument,
@@ -168,7 +179,7 @@ export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined>
     });
 }
 
-export async function restorePVDocument(id: PVDocumentId): Promise<undefined> {
+export async function restorePVDocuments(id: PVDocumentId[]): Promise<undefined> {
     return putIgnoreError<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',

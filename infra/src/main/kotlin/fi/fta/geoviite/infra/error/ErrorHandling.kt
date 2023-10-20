@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
 import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
 import org.opengis.referencing.operation.TransformException
@@ -65,8 +66,13 @@ fun createResponse(
     headers.contentType = MediaType.APPLICATION_JSON
     return ResponseEntity(
         ApiErrorResponse(
-            messageRows, correlationId, localizedMessage?.first, localizedMessage?.second ?: emptyMap()
-        ), headers, status
+            messageRows,
+            correlationId,
+            localizedMessage?.first,
+            localizedMessage?.second ?: LocalizationParams.empty()
+        ),
+        headers,
+        status
     )
 }
 

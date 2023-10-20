@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import styles from './dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
@@ -62,7 +63,7 @@ export const Dialog: React.FC<DialogProps> = ({
         props.onClose && props.onClose();
     }
 
-    return (
+    return createPortal(
         <div
             className={styles['dialog']}
             onMouseUp={() => setDialogDragParams(undefined)}
@@ -106,7 +107,8 @@ export const Dialog: React.FC<DialogProps> = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 };
 

@@ -103,6 +103,7 @@ const LocationTrackElementListingSearch = ({
                     label={t('data-products.search.location-track')}
                     value={
                         <Dropdown
+                            qaId="data-products-search-location-track"
                             value={state.searchParameters.locationTrack}
                             getName={(item) => item.name}
                             placeholder={t('data-products.search.search')}
@@ -120,6 +121,7 @@ const LocationTrackElementListingSearch = ({
                     label={t('data-products.search.track-address-start')}
                     value={
                         <TextField
+                            qa-id="data-products-search-start-km"
                             value={state.searchFields.startTrackMeter}
                             onChange={(e) => updateProp('startTrackMeter', e.target.value)}
                             onBlur={() => onCommitField('startTrackMeter')}
@@ -141,6 +143,7 @@ const LocationTrackElementListingSearch = ({
                     label={t('data-products.search.track-address-end')}
                     value={
                         <TextField
+                            qa-id="data-products-search-end-km"
                             value={state.searchFields.endTrackMeter}
                             onChange={(e) => updateProp('endTrackMeter', e.target.value)}
                             onBlur={() => onCommitField('endTrackMeter')}
@@ -164,6 +167,7 @@ const LocationTrackElementListingSearch = ({
                         value={
                             <div className={styles['element-list__geometry-checkbox']}>
                                 <Checkbox
+                                    qaId="data-products.search.line"
                                     checked={state.searchFields.searchGeometries.searchLines}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -174,6 +178,7 @@ const LocationTrackElementListingSearch = ({
                                     {t('data-products.search.line')}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.curve"
                                     checked={state.searchFields.searchGeometries.searchCurves}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -184,6 +189,7 @@ const LocationTrackElementListingSearch = ({
                                     {t('data-products.search.curve')}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.clothoid"
                                     checked={state.searchFields.searchGeometries.searchClothoids}
                                     onChange={(e) =>
                                         updateProp('searchGeometries', {
@@ -194,6 +200,7 @@ const LocationTrackElementListingSearch = ({
                                     {t('data-products.search.clothoid')}
                                 </Checkbox>
                                 <Checkbox
+                                    qaId="data-products.search.missing-section"
                                     checked={
                                         state.searchFields.searchGeometries.searchMissingGeometry
                                     }
@@ -214,22 +221,27 @@ const LocationTrackElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <Button
-                    className={styles['element-list__download-button']}
-                    disabled={!state.elements || state.elements.length === 0}
-                    onClick={() => {
-                        if (state.searchParameters.locationTrack) {
-                            location.href = getLocationTrackElementsCsv(
-                                state.searchParameters.locationTrack?.id,
-                                selectedElementTypes(state.searchParameters.searchGeometries),
-                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-                            );
+                <a
+                    qa-id={'location-track-element-list-csv-download'}
+                    {...(state.searchParameters.locationTrack && {
+                        href: getLocationTrackElementsCsv(
+                            state.searchParameters.locationTrack?.id,
+                            selectedElementTypes(state.searchParameters.searchGeometries),
+                            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                        ),
+                    })}>
+                    <Button
+                        className={styles['element-list__download-button']}
+                        disabled={
+                            !state.elements ||
+                            state.elements.length === 0 ||
+                            state.searchParameters.locationTrack === undefined
                         }
-                    }}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

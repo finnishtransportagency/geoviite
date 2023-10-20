@@ -56,9 +56,5 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props
         }
     }, [planId]);
 
-    return isLoading ? (
-        <Spinner />
-    ) : (
-        <InfraModelView {...props} onSave={onSave} onValidate={onValidate} />
-    );
+    return isLoading ? <Spinner /> : <InfraModelView {...props} onSave={onSave} />;
 };

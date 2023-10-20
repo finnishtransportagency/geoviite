@@ -13,15 +13,13 @@ import java.time.Instant
 import kotlin.reflect.KClass
 
 enum class FetchType {
-    SINGLE,
-    MULTI
+    SINGLE, MULTI
 }
 
-fun idOrIdsEqualSqlFragment(fetchType: FetchType) =
-    when (fetchType) {
-        FetchType.MULTI -> "in (:ids)"
-        FetchType.SINGLE -> "= :id"
-    }
+fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
+    FetchType.MULTI -> "in (:ids)"
+    FetchType.SINGLE -> "= :id"
+}
 
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
 
@@ -34,6 +32,7 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
 
     GEOMETRY_PLAN("geometry", "plan"),
     GEOMETRY_PLAN_PROJECT("geometry", "plan_project"),
+    GEOMETRY_PLAN_AUTHOR("geometry", "plan_author"),
     GEOMETRY_ALIGNMENT("geometry", "alignment"),
     GEOMETRY_SWITCH("geometry", "switch"),
     GEOMETRY_KM_POST("geometry", "km_post", listOf("track_number_id", "km_number")),
@@ -61,17 +60,20 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
     protected fun <T> fetchRowVersion(id: IntId<T>, table: DbTable): RowVersion<T> {
         logger.daoAccess(VERSION_FETCH, "fetchRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersion("select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.SINGLE)}", id)
+        return queryRowVersion(
+            "select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.SINGLE)}",
+            id
+        )
     }
 
     protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
         logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
         return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
-                "select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.MULTI)}",
-                mapOf("ids" to ids.map { it.intValue })
-            ) { rs, _ ->
-                rs.getRowVersion("id", "version")
-            }
+            "select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.MULTI)}",
+            mapOf("ids" to ids.map { it.intValue })
+        ) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
     }
 
 
@@ -86,8 +88,7 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     protected fun fetchLatestChangeTime(table: DbTable): Instant {
         val sql = "select max(change_time) change_time from ${table.versionTable}"
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
-            .firstOrNull()
-            ?: Instant.EPOCH
+            .firstOrNull() ?: Instant.EPOCH
     }
 
     protected fun <T> createListString(items: List<T>, mapping: (t: T) -> Double?) = when {
@@ -125,10 +126,8 @@ fun <T, S> getOne(name: String, id: DomainId<T>, result: List<S>): S {
     return result.first()
 }
 
-inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> =
-    if (id is IntId) id
-    else throw NoSuchEntityException(T::class, id)
+inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> = if (id is IntId) id
+else throw NoSuchEntityException(T::class, id)
 
-fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> =
-    if (id is IntId) id
-    else throw NoSuchEntityException(clazz, id)
+fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> = if (id is IntId) id
+else throw NoSuchEntityException(clazz, id)

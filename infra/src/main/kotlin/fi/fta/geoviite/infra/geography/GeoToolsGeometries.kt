@@ -14,6 +14,7 @@ import org.locationtech.jts.geom.Polygon
 import org.locationtech.jts.geom.PrecisionModel
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.getOrSet
 
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
     return Transformation.nonTriangulableTransform(sourceSrid, targetSrid).transform(point)
@@ -24,8 +25,8 @@ fun calculateDistance(points: List<IPoint>, srid: Srid): Double = calculateDista
 fun calculateDistance(srid: Srid, vararg points: IPoint): Double = calculateDistance(points.toList(), crs(srid))
 
 private object GeodeticCalculatorCache {
-    val cache: MutableMap<CoordinateReferenceSystem, GeodeticCalculator> = ConcurrentHashMap()
-    fun get(crs: CoordinateReferenceSystem) = cache.computeIfAbsent(crs, ::GeodeticCalculator)
+    val cache: ThreadLocal<Map<CoordinateReferenceSystem, GeodeticCalculator>> = ThreadLocal()
+    fun get(crs: CoordinateReferenceSystem) = cache.getOrSet { HashMap() }.getOrElse(crs) { GeodeticCalculator(crs) }
 }
 
 fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Double {

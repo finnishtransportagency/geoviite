@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    Author,
     GeometryAlignment,
     GeometryKmPost,
     GeometryPlan,
@@ -17,7 +16,7 @@ import {
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { CoordinateSystem as CoordinateSystemModel, Oid, TimeStamp } from 'common/common-model';
+import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -39,18 +38,19 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import {
+    updateProjectChangeTime,
     updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
-    updateProjectChangeTime,
 } from 'common/change-time-api';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
-//import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
+import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
+import { useLoader } from 'utils/react-utils';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -118,13 +118,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
     const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | undefined>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
-    const [authors, setAuthors] = React.useState<Author[]>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
+    const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
     const planSourceOptions = [
         {
@@ -181,6 +181,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         return trackNumberList?.find((t) => t.id == trackId)?.number;
     }
 
+    const authorsIncludingFromPlan = () => {
+        const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
+        return [...authors, ...(!authorInList && geometryPlan.author ? [geometryPlan.author] : [])];
+    };
+
     React.useEffect(() => {
         getSridList().then((list) => setSridList(list));
         updateTrackNumbers();
@@ -194,13 +199,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         overrideInfraModelParameters.projectId
             ? getProject(overrideInfraModelParameters.projectId).then(setProject)
             : setProject(geometryPlan.project);
-        fetchAuthors().then((authors) => {
-            const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
-            setAuthors([
-                ...authors,
-                ...(authorInList || !geometryPlan.author ? [] : [geometryPlan.author]),
-            ]);
-        });
     }, [geometryPlan]);
 
     React.useEffect(() => {
@@ -274,38 +272,51 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         {pvDocument.projectGroup && (
                             <FormgroupField
                                 label={t('im-form.pv-document-information.project-group')}>
-                                {projectInfo(
-                                    pvDocument.projectGroup.oid,
-                                    pvDocument.projectGroup.name,
-                                    changeTimes.pvDocument,
-                                )}
+                                <span className={styles['infra-model-upload__project-field']}>
+                                    <PVOid oid={pvDocument.projectGroup.oid} />
+                                    <PVRedirectLink projectGroupOid={pvDocument.projectGroup.oid}>
+                                        {pvDocument.projectGroup.name}
+                                    </PVRedirectLink>
+                                </span>
                             </FormgroupField>
                         )}
                         {pvDocument.project && (
                             <FormgroupField label={t('im-form.pv-document-information.project')}>
-                                {projectInfo(
-                                    pvDocument.project.oid,
-                                    pvDocument.project.name,
-                                    changeTimes.pvDocument,
-                                )}
+                                <span className={styles['infra-model-upload__project-field']}>
+                                    <PVOid oid={pvDocument.project.oid} />
+                                    <PVRedirectLink projectOid={pvDocument.project.oid}>
+                                        {pvDocument.project.name}
+                                    </PVRedirectLink>
+                                </span>
                             </FormgroupField>
                         )}
-                        {pvDocument.assignment && (
-                            <FormgroupField label={t('im-form.pv-document-information.assignment')}>
-                                {projectInfo(
-                                    pvDocument.assignment.oid,
-                                    pvDocument.assignment.name,
-                                    changeTimes.pvDocument,
-                                )}
-                            </FormgroupField>
+                        {pvDocument.assignment && pvDocument.project && (
+                            <>
+                                <FormgroupField
+                                    label={t('im-form.pv-document-information.assignment')}>
+                                    <span className={styles['infra-model-upload__project-field']}>
+                                        <PVOid oid={pvDocument.assignment.oid} />
+                                        <PVRedirectLink
+                                            assignmentOid={pvDocument.assignment.oid}
+                                            projectOid={pvDocument.project.oid}>
+                                            {pvDocument.assignment.name}
+                                        </PVRedirectLink>
+                                    </span>
+                                </FormgroupField>
+                                <FormgroupField
+                                    label={t('im-form.pv-document-information.document')}>
+                                    <span className={styles['infra-model-upload__project-field']}>
+                                        <PVOid oid={pvDocument.document.oid} />
+                                        <PVRedirectLink
+                                            documentOid={pvDocument.document.oid}
+                                            assignmentOid={pvDocument.assignment.oid}
+                                            projectOid={pvDocument.project.oid}>
+                                            {pvDocument.document.description}
+                                        </PVRedirectLink>
+                                    </span>
+                                </FormgroupField>
+                            </>
                         )}
-                        <FormgroupField label={t('im-form.pv-document-information.document')}>
-                            {projectInfo(
-                                pvDocument.document.oid,
-                                pvDocument.document.description || '',
-                                changeTimes.pvDocument,
-                            )}
-                        </FormgroupField>
                     </FormgroupContent>
                 )}
 
@@ -339,14 +350,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         wide
                                         value={geometryPlan.author?.id}
-                                        options={
-                                            authors
-                                                ? authors.map((author) => ({
-                                                      name: author.companyName,
-                                                      value: author.id,
-                                                  }))
-                                                : []
-                                        }
+                                        options={authorsIncludingFromPlan().map((author) => ({
+                                            name: author.companyName,
+                                            value: author.id,
+                                        }))}
                                         onChange={(authorId) => {
                                             authorId &&
                                                 authorId != geometryPlan.author?.id &&
@@ -553,7 +560,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
             {showNewAuthorDialog && (
                 <NewAuthorDialog
-                    authors={authors}
+                    authors={authorsIncludingFromPlan()}
                     onClose={() => setShowNewAuthorDialog(false)}
                     onSave={(author) => {
                         setShowNewAuthorDialog(false);
@@ -581,18 +588,3 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 };
 
 export default InfraModelForm;
-
-function projectInfo(oid: Oid, description: string, _changeTime: TimeStamp) {
-    return (
-        <span className={styles['infra-model-upload__project-field']}>
-            <PVOid oid={oid} />
-            {
-                description
-                // TODO Re-enable redirect links when they work
-                /*<PVRedirectLink changeTime={changeTime} oid={oid}>
-                    description
-                </PVRedirectLink>*/
-            }
-        </span>
-    );
-}
