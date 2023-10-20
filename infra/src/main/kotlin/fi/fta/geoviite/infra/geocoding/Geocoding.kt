@@ -72,11 +72,11 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
-typealias KmPostsWithRejectReason = List<Pair<TrackLayoutKmPost, KmPostRejectedReason>>
+data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedReason: KmPostRejectedReason)
 
 data class GeocodingContextCreateResult(
     val geocodingContext: GeocodingContext,
-    val rejectedKmPosts: KmPostsWithRejectReason,
+    val rejectedKmPosts: List<KmPostWithRejectedReason>,
 )
 
 enum class KmPostRejectedReason {
@@ -203,7 +203,7 @@ data class GeocodingContext(
         private fun validateKmPosts(
             kmPosts: List<TrackLayoutKmPost>,
             startAddress: TrackMeter,
-        ): Pair<List<TrackLayoutKmPost>, KmPostsWithRejectReason> {
+        ): Pair<List<TrackLayoutKmPost>, List<KmPostWithRejectedReason>> {
             val (withoutLocations, withLocations) = kmPosts.partition { it.location == null }
 
             val (invalidStartAddresses, validKmPosts) = withLocations.partition {
@@ -213,13 +213,13 @@ data class GeocodingContext(
             val rejectedKmPosts = withoutLocations.map { it to KmPostRejectedReason.NO_LOCATION } +
                     invalidStartAddresses.map { it to KmPostRejectedReason.IS_BEFORE_START_ADDRESS }
 
-            return validKmPosts to rejectedKmPosts
+            return validKmPosts to rejectedKmPosts.map { (kp, reason) -> KmPostWithRejectedReason(kp, reason) }
         }
 
         private fun validateReferencePoints(
             referencePoints: List<GeocodingReferencePoint>,
             kmPosts: List<TrackLayoutKmPost>,
-        ): Pair<List<GeocodingReferencePoint>, KmPostsWithRejectReason> {
+        ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val (withinPoints, beforePoints, afterPoints) = referencePoints
                 .groupBy { it.intersectType }
                 .let { byIntersect ->
@@ -245,7 +245,8 @@ data class GeocodingContext(
 
             val rejectedKmPosts = (beforePoints + afterPoints + invalidPoints).map { (rp, reason) ->
                 val kp = kmPosts.first { k -> k.kmNumber == rp.kmNumber }
-                kp to reason
+
+                KmPostWithRejectedReason(kp, reason)
             }
 
             return validPoints.distinctBy { it.distance } to rejectedKmPosts

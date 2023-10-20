@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.roundTo1Decimal
@@ -1153,8 +1154,11 @@ class PublicationService @Autowired constructor(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
             val jointPropKeyParams =
-                mapOf("trackNumber" to trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
-                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
+                LocalizationParams(
+                    "trackNumber" to trackNumberCache
+                        .findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
+                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) }
+                )
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(
                     joint.trackNumberId, oldTimestamp

@@ -10,7 +10,7 @@ type CloseableModalProps = {
     children: React.ReactNode;
     className?: string;
     useRefWidth?: boolean;
-    offsetWidth?: number;
+    refWidthOffset?: number;
 };
 
 const WINDOW_MARGIN = 6;
@@ -22,7 +22,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     className,
     offsetX = 0,
     offsetY = 0,
-    offsetWidth = 0,
+    refWidthOffset = 0,
     useRefWidth = false,
 }: CloseableModalProps) => {
     const [x, setX] = React.useState<number>();
@@ -81,7 +81,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
                 setY(newY);
 
                 if (useRefWidth) {
-                    setWidth(newWidth + offsetWidth);
+                    setWidth(newWidth ? newWidth + refWidthOffset : undefined);
                 }
             }
         },

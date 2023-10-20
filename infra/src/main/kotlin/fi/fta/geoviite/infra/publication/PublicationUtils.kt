@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
@@ -102,12 +103,29 @@ private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
-    Operation.CREATE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), emptyMap())
-    Operation.MODIFY -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), emptyMap())
-    Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyMap())
-    Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyMap())
+    Operation.CREATE -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"),
+        LocalizationParams.empty()
+    )
+
+    Operation.MODIFY -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"),
+        LocalizationParams.empty()
+    )
+
+    Operation.DELETE -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"),
+        LocalizationParams.empty()
+    )
+
+    Operation.RESTORE -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"),
+        LocalizationParams.empty()
+    )
+
     Operation.CALCULATED -> translation.t(
-        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"), emptyMap()
+        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
+        LocalizationParams.empty()
     )
 }
 
@@ -229,8 +247,8 @@ fun getSwitchLinksChangedRemark(
         added.values.sorted().joinToString()
     )
     return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
-        else if (removed.isNotEmpty()) remarkRemoved
-        else remarkAdded
+    else if (removed.isNotEmpty()) remarkRemoved
+    else remarkAdded
 }
 
 fun <T, U> compareChangeValues(
@@ -372,5 +390,7 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 }
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
-    translation.t("publication-details-table.remark.$key", if (value != null) mapOf("value" to value) else mapOf())
-
+    translation.t(
+        "publication-details-table.remark.$key",
+        LocalizationParams("value" to value)
+    )
