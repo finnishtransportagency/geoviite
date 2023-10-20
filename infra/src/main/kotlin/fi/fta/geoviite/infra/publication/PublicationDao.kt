@@ -349,6 +349,7 @@ class PublicationDao(
             select id, publication_user, publication_time, message
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
+            order by id
         """.trimIndent()
 
         val params = mapOf(
