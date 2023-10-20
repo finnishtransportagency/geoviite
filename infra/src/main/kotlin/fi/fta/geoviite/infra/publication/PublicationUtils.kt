@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -7,10 +8,7 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -211,23 +209,24 @@ fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter
     )
     else null
 
+
 fun getSwitchLinksChangedRemark(
     translation: Translation,
     locationTrackChanges: LocationTrackChanges,
 ): String {
-    val old = HashSet(locationTrackChanges.linkedSwitches.old ?: listOf())
-    val new = HashSet(locationTrackChanges.linkedSwitches.new ?: listOf())
-    val removed = old.minus(new)
-    val added = new.minus(old)
+    val old = (locationTrackChanges.linkedSwitches.old ?: listOf()).toMap()
+    val new = (locationTrackChanges.linkedSwitches.new ?: listOf()).toMap()
+    val removed = old.minus(new.keys)
+    val added = new.minus(old.keys)
     val remarkRemoved = publicationChangeRemark(
         translation,
         if (removed.size > 1) "switch-link-removed-plural" else "switch-link-removed-singular",
-        removed.sorted().joinToString()
+        removed.values.sorted().joinToString()
     )
     val remarkAdded = publicationChangeRemark(
         translation,
         if (added.size > 1) "switch-link-added-plural" else "switch-link-added-singular",
-        added.sorted().joinToString()
+        added.values.sorted().joinToString()
     )
     return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
         else if (removed.isNotEmpty()) remarkRemoved
