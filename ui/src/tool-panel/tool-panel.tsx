@@ -16,6 +16,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    LocationTrackSplittingState,
 } from 'track-layout/track-layout-model';
 import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
@@ -59,6 +60,7 @@ type ToolPanelProps = {
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
+    splittingState?: LocationTrackSplittingState;
     showArea: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
@@ -109,6 +111,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     geometryAlignmentIds,
     suggestedSwitches,
     linkingState,
+    splittingState,
     showArea,
     changeTimes,
     publishType,
@@ -403,6 +406,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             }
                             locationTrackId={track.id}
                             linkingState={linkingState}
+                            splittingState={splittingState}
                             publishType={publishType}
                             locationTrackChangeTime={changeTimes.layoutLocationTrack}
                             onDataChange={onDataChange}
@@ -466,6 +470,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         locationTracks,
         geometryAlignmentIds,
         linkingState,
+        splittingState,
         publishType,
         viewport,
         changeTimes,

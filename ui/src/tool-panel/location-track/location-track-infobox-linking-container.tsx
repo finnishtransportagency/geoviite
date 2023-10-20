@@ -1,6 +1,10 @@
 import * as React from 'react';
 import LocationTrackInfobox from 'tool-panel/location-track/location-track-infobox';
-import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    LocationTrackId,
+    LocationTrackSplittingState,
+} from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
 import {
@@ -15,6 +19,7 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
     linkingState?: LinkingState;
+    splittingState?: LocationTrackSplittingState;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
     onUnselect: (track: LayoutLocationTrack) => void;
@@ -29,6 +34,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
     locationTrackId,
     linkingState,
+    splittingState,
     publishType,
     locationTrackChangeTime,
     onUnselect,
@@ -50,6 +56,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 onVisibilityChange={onVisibilityChange}
                 locationTrack={locationTrack}
                 linkingState={linkingState}
+                splittingState={splittingState}
                 onDataChange={onDataChange}
                 onStartLocationTrackGeometryChange={(interval) => {
                     delegates.showLayers(['alignment-linking-layer']);

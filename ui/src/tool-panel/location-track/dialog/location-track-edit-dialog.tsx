@@ -27,7 +27,6 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import {
-    descriptionSuffixModes,
     layoutStates,
     locationTrackTypes,
     topologicalConnectivityTypes,
@@ -49,6 +48,7 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -446,9 +446,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     <FieldLayout
                                         label={`${t('location-track-dialog.description-suffix')} *`}
                                         value={
-                                            <Dropdown
-                                                options={descriptionSuffixModes}
-                                                value={locationTrackDescriptionSuffixMode}
+                                            <DescriptionSuffixDropdown
+                                                suffixMode={locationTrackDescriptionSuffixMode}
                                                 onChange={(value) => {
                                                     updateProp('descriptionSuffix', value);
                                                     setLocationTrackDescriptionSuffixMode(value);
@@ -456,9 +455,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                                 onBlur={() =>
                                                     stateActions.onCommitField('descriptionSuffix')
                                                 }
-                                                canUnselect={false}
-                                                wideList
-                                                wide
                                             />
                                         }
                                         errors={getVisibleErrorsByProp('descriptionSuffix')}

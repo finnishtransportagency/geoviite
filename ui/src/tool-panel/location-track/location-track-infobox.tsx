@@ -5,6 +5,7 @@ import {
     LAYOUT_SRID,
     LayoutLocationTrack,
     LayoutSwitchIdAndName,
+    LocationTrackSplittingState,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -59,12 +60,14 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
+import { LocationTrackSplittingInfobox } from 'tool-panel/location-track/location-track-splitting-infobox';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
     onStartLocationTrackGeometryChange: (linkInterval: LinkInterval) => void;
     onEndLocationTrackGeometryChange: () => void;
     linkingState?: LinkingState;
+    splittingState?: LocationTrackSplittingState;
     showArea: (area: BoundingBox) => void;
     onDataChange: () => void;
     publishType: PublishType;
@@ -85,6 +88,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onEndLocationTrackGeometryChange,
     showArea,
     linkingState,
+    splittingState,
     onDataChange,
     publishType,
     locationTrackChangeTime,
@@ -120,7 +124,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     );
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
-    const [splittingTrack, setSplittingTrack] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
@@ -309,17 +312,17 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-            {splittingTrack && (
-                <Infobox
-                    contentVisible={visibilities.splitting}
-                    onContentVisibilityChange={() => visibilityChange('splitting')}
-                    title={'Raiteen jakaminen osiin'}>
-                    <InfoboxContent>
-                        <React.Fragment>
-                            <InfoboxField label={'Alkusijainti'}>0123+456.789</InfoboxField>
-                        </React.Fragment>
-                    </InfoboxContent>
-                </Infobox>
+            {splittingState && splittingState.endpoint && (
+                <LocationTrackSplittingInfobox
+                    visibilities={visibilities}
+                    visibilityChange={visibilityChange}
+                    splits={splittingState.splits || []}
+                    endPoint={splittingState.endpoint}
+                    removeSplit={(splitLocation) =>
+                        delegates.removeSplit({ address: splitLocation })
+                    }
+                    addSplit={(split) => delegates.addSplit(split)}
+                />
             )}
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
@@ -407,7 +410,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
                                         onClick={() => {
-                                            setSplittingTrack(true);
+                                            if (
+                                                startAndEndPoints?.start &&
+                                                startAndEndPoints?.end
+                                            ) {
+                                                delegates.onStartSplitting({
+                                                    locationTrack: locationTrack,
+                                                    start: startAndEndPoints?.start,
+                                                    end: startAndEndPoints?.end,
+                                                });
+                                            }
                                         }}>
                                         Aloita raiteen jakaminen
                                     </Button>
