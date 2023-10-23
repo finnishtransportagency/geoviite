@@ -10,10 +10,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
-import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
@@ -222,6 +219,29 @@ class LocationTrackService(
             "listNearWithAlignments", "publishType" to publishType, "bbox" to bbox
         )
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
+    }
+
+    @Transactional(readOnly = true)
+    fun getLocationTracksNear(
+        location: IPoint,
+        publishType: PublishType,
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall("getLocationTracksNear", "location" to location)
+        val alignmentSearchAreaSize = 2.0
+        val alignmentSearchArea = BoundingBox(
+            Point(0.0, 0.0), Point(alignmentSearchAreaSize, alignmentSearchAreaSize)
+        ).centerAt(location)
+        val nearbyLocationTracks = listNearWithAlignments(publishType, alignmentSearchArea).filter { (_, alignment) ->
+            alignment.segments.any { segment ->
+                alignmentSearchArea.intersects(segment.boundingBox) && segment.points.any { point ->
+                    alignmentSearchArea.contains(
+                        point
+                    )
+                }
+            }
+        }
+
+        return nearbyLocationTracks
     }
 
     @Transactional(readOnly = true)
