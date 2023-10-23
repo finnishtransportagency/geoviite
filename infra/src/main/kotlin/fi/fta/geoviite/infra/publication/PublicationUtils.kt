@@ -230,21 +230,24 @@ fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter
 
 fun getSwitchLinksChangedRemark(
     translation: Translation,
-    locationTrackChanges: LocationTrackChanges,
+    switchLinkChanges: LocationTrackPublicationSwitchLinkChanges,
 ): String {
-    val old = (locationTrackChanges.linkedSwitches.old ?: listOf()).toMap()
-    val new = (locationTrackChanges.linkedSwitches.new ?: listOf()).toMap()
-    val removed = old.minus(new.keys)
-    val added = new.minus(old.keys)
+    val removed = switchLinkChanges.old.minus(switchLinkChanges.new.keys)
+    val added = switchLinkChanges.new.minus(switchLinkChanges.old.keys)
+    val commonNames = removed.values.map { it.name }.intersect(added.values.map { it.name }.toSet())
+
+    fun remarkOnIds(ids: SwitchChangeIds) =
+        if (commonNames.contains(ids.name)) "${ids.name} (${ids.externalId})" else ids.name
+
     val remarkRemoved = publicationChangeRemark(
         translation,
         if (removed.size > 1) "switch-link-removed-plural" else "switch-link-removed-singular",
-        removed.values.sorted().joinToString()
+        removed.values.map(::remarkOnIds).sorted().joinToString()
     )
     val remarkAdded = publicationChangeRemark(
         translation,
         if (added.size > 1) "switch-link-added-plural" else "switch-link-added-singular",
-        added.values.sorted().joinToString()
+        added.values.map(::remarkOnIds).sorted().joinToString()
     )
     return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
     else if (removed.isNotEmpty()) remarkRemoved

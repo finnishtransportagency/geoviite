@@ -39,7 +39,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
 
 
 @Service
@@ -811,6 +810,7 @@ class PublicationService @Autowired constructor(
                 .find { it.key < publication.publicationTime }
             mapToPublicationTableItems(translation,
                 publication,
+                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(publication.id),
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
                     getOrPutGeocodingContext(
@@ -854,6 +854,8 @@ class PublicationService @Autowired constructor(
             "order" to order,
         )
 
+        val switchLinkChanges = publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, from, to)
+
         return fetchPublicationDetailsBetweenInstants(from, to).sortedBy { it.publicationTime }.let { publications ->
             val geocodingContextCache =
                 ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
@@ -865,15 +867,16 @@ class PublicationService @Autowired constructor(
             publications.mapIndexed { index, publicationDetails ->
                 val previousPublication = publications.getOrNull(index - 1)
                 publicationDetails to (previousPublication?.publicationTime ?: publicationDetails.publicationTime.minusMillis(1))
-            }.parallelStream().map { (publicationDetails, timeDiff) ->
+            }.flatMap { (publicationDetails, timeDiff) ->
                 mapToPublicationTableItems(
                     translation,
                     publicationDetails,
+                    switchLinkChanges[publicationDetails.id] ?: mapOf(),
                     timeDiff,
                     getGeocodingContextOrNull,
                     trackNumbersCache,
                 )
-            }.collect(Collectors.toList()).flatMap { rows -> rows}
+            }
         }.let { publications ->
             if (sortBy == null) publications
             else publications.sortedWith(getComparator(sortBy, order))
@@ -954,6 +957,7 @@ class PublicationService @Autowired constructor(
     fun diffLocationTrack(
         translation: Translation,
         locationTrackChanges: LocationTrackChanges,
+        switchLinkChanges: LocationTrackPublicationSwitchLinkChanges?,
         publicationTime: Instant,
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
@@ -1061,13 +1065,13 @@ class PublicationService @Autowired constructor(
                     translation, changedKmNumbers
                 ))
             } else null,
-            compareChange(
-                { locationTrackChanges.linkedSwitches.old != locationTrackChanges.linkedSwitches.new },
+            if (switchLinkChanges == null) null else compareChange(
+                { switchLinkChanges.old != switchLinkChanges.new },
                 null,
                 null,
                 { it  },
                 PropKey("linked-switches"), getSwitchLinksChangedRemark(
-                    translation, locationTrackChanges)
+                    translation, switchLinkChanges)
             )
             // TODO owner
         )
@@ -1294,6 +1298,7 @@ class PublicationService @Autowired constructor(
     private fun mapToPublicationTableItems(
         translation: Translation,
         publication: PublicationDetails,
+        switchLinkChanges: Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>,
         previousComparisonTime: Instant,
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
         trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(),
@@ -1355,6 +1360,7 @@ class PublicationService @Autowired constructor(
                 propChanges = diffLocationTrack(
                     translation,
                     publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
+                    switchLinkChanges[lt.version.id],
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
@@ -1415,6 +1421,7 @@ class PublicationService @Autowired constructor(
                 propChanges = diffLocationTrack(
                     translation,
                     publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
+                    switchLinkChanges[lt.version.id],
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,

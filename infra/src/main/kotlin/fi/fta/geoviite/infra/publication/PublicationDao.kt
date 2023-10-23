@@ -455,6 +455,98 @@ class PublicationDao(
         }.toMap().also { logger.daoAccess(FETCH, TrackNumberChanges::class, publicationId) }
     }
 
+    fun fetchPublicationLocationTrackSwitchLinkChanges(
+        publicationId: IntId<Publication>,
+    ): Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges> =
+        fetchPublicationLocationTrackSwitchLinkChanges(publicationId, null, null)[publicationId] ?: mapOf()
+
+    fun fetchPublicationLocationTrackSwitchLinkChanges(
+        publicationId: IntId<Publication>?,
+        from: Instant?,
+        to: Instant?,
+    ): Map<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> {
+        val sql = """
+            select
+              change_side,
+              plt.publication_id,
+              location_track_id,
+              switch_version.id as switch_id,
+              switch_version.name as switch_name,
+              switch_version.external_id as switch_oid
+              from publication.publication
+                join publication.location_track plt on publication.id = plt.publication_id
+                join lateral
+                (select 'new' as change_side, topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
+                   from layout.location_track_version ltv
+                   where plt.location_track_id = ltv.id and plt.location_track_version = ltv.version
+                 union all
+                 select 'old', topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
+                   from layout.location_track_version ltv
+                   where plt.location_track_id = ltv.id
+                     and plt.location_track_version = ltv.version + 1
+                     and not ltv.draft) ltvs on (true)
+                join lateral
+                (select distinct switch_id
+                   from (
+                     select ltvs.topology_start_switch_id as switch_id
+                     union all
+                     select ltvs.topology_end_switch_id
+                     union all
+                     select switch_id
+                       from layout.segment_version
+                       where segment_version.alignment_id = ltvs.alignment_id
+                         and segment_version.alignment_version = ltvs.alignment_version
+                   ) s
+                   where switch_id is not null) switch_ids on (true)
+                join layout.switch_version on switch_ids.switch_id = switch_version.id and not switch_version.draft
+              where direct_change
+                and not exists(
+                  select *
+                  from publication.switch psw
+                  where psw.switch_id = switch_version.id
+                    and direct_change
+                    and (psw.switch_version = switch_version.version and psw.publication_id > plt.publication_id
+                      or psw.switch_version > switch_version.version and psw.publication_id <= plt.publication_id))
+                and (:publicationId::integer is null or :publicationId = publication.id)
+                and (:from::timestamptz is null or :from <= publication_time)
+                and (:to::timestamptz is null or :to >= publication_time)
+        """.trimIndent()
+
+        data class ResultRow(
+            val changeSide: String,
+            val publicationId: IntId<Publication>,
+            val locationTrackId: IntId<LocationTrack>,
+            val switchId: IntId<TrackLayoutSwitch>,
+            val switchName: String,
+            val switchOid: Oid<TrackLayoutSwitch>,
+        )
+
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "publicationId" to publicationId?.intValue,
+                "from" to from?.let { Timestamp.from(it) },
+                "to" to to?.let { Timestamp.from(it) })
+        ) { rs, _ ->
+            ResultRow(
+                rs.getString("change_side"),
+                rs.getIntId("publication_id"),
+                rs.getIntId("location_track_id"),
+                rs.getIntId("switch_id"),
+                rs.getString("switch_name"),
+                rs.getOid("switch_oid"),
+            )
+        }.groupBy { it.publicationId }.mapValues { (_, publicationResults) ->
+            publicationResults.groupBy { it.locationTrackId }.mapValues { (_, locationTrackResults) ->
+                val (olds, news) = locationTrackResults.partition { it.changeSide == "old" }
+                LocationTrackPublicationSwitchLinkChanges(
+                    old = olds.associateBy({ it.switchId }, { SwitchChangeIds(it.switchName, it.switchOid) }),
+                    new = news.associateBy({ it.switchId }, { SwitchChangeIds(it.switchName, it.switchOid) }),
+                )
+            }
+        }
+    }
+
     fun fetchPublicationLocationTrackChanges(publicationId: IntId<Publication>): Map<IntId<LocationTrack>, LocationTrackChanges> {
         val sql = """
             select
@@ -491,23 +583,7 @@ class PublicationDao(
               postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
               postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
-              (select array_agg(sw.id || ' ' || sw.name)
-                from layout.switch_at(publication_time) sw
-                 where sw.id = ltv.topology_start_switch_id or sw.id = ltv.topology_end_switch_id or
-                   exists (select *
-                           from layout.segment_version sv
-                           where sv.alignment_id = ltv.alignment_id
-                             and sv.alignment_version = ltv.alignment_version
-                             and sw.id = sv.switch_id)) as linked_switches,
-              (select array_agg(sw.id || ' ' || sw.name)
-                from layout.switch_at(publication_time) sw
-                 where sw.id = old_ltv.topology_start_switch_id or sw.id = old_ltv.topology_end_switch_id or
-                   exists (select *
-                           from layout.segment_version sv
-                           where sv.alignment_id = old_ltv.alignment_id
-                             and sv.alignment_version = old_ltv.alignment_version
-                             and sw.id = sv.switch_id)) as old_linked_switches
+              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
               from publication.location_track
                 join publication.publication on location_track.publication_id = publication.id
                 left join layout.location_track_version ltv
@@ -565,7 +641,6 @@ class PublicationDao(
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
-                linkedSwitches = rs.getChange("linked_switches") { rs.getStringArrayOrNull(it)?.map(::parseSwitchChangeReference) }
             )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
     }

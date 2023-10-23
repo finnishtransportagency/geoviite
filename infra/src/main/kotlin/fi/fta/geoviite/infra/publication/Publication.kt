@@ -365,7 +365,6 @@ data class LocationTrackChanges(
     val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
-    val linkedSwitches: Change<List<Pair<IntId<TrackLayoutSwitch>, String>>>,
 )
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
@@ -427,4 +426,11 @@ fun toValidationVersions(
     kmPosts = kmPosts.map(::toValidationVersion),
     locationTracks = locationTracks.map(::toValidationVersion),
     switches = switches.map(::toValidationVersion)
+)
+
+data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>)
+
+data class LocationTrackPublicationSwitchLinkChanges(
+    val old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+    val new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
 )
