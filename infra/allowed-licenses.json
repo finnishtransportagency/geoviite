@@ -52,6 +52,11 @@
             "moduleLicense": null,
             "moduleName": "com.fasterxml.jackson:jackson-bom",
             "description": "License resolution for this fails, but it's Apache 2.0"
+        },
+        {
+            "moduleLicense": null,
+            "moduleName": "com.google.guava:guava-parent",
+            "description": "License resolution for this fails, but it's Apache 2.0"
         }
     ]
 }
