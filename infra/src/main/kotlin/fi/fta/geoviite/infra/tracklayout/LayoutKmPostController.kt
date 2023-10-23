@@ -143,8 +143,8 @@ class LayoutKmPostController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getKmPostChangeTimes(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): DraftableChangeInfo {
+    fun getKmPostChangeInfo(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): DraftableChangeInfo {
         logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
-        return kmPostService.getChangeTimes(kmPostId)
+        return kmPostService.getDraftableChangeInfo(kmPostId)
     }
 }

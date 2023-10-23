@@ -629,8 +629,9 @@ fun switch(
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
     joints: List<TrackLayoutSwitchJoint> = joints(seed),
     name: String = "TV$seed",
+    externalId: String? = null,
 ) = TrackLayoutSwitch(
-    externalId = null,
+    externalId = if (externalId != null) Oid(externalId) else null,
     sourceId = null,
     name = SwitchName(name),
     stateCategory = getSomeValue(seed),

@@ -2,12 +2,11 @@ package fi.fta.geoviite.infra.error
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.*
 import kotlin.reflect.KClass
-
-typealias LocalizationParams = Map<String, String?>
 
 interface HasLocalizeMessageKey {
     val localizedMessageKey: LocalizationKey
@@ -19,14 +18,14 @@ sealed class ClientException(
     message: String,
     cause: Throwable? = null,
     override val localizedMessageKey: LocalizationKey,
-    override val localizedMessageParams: LocalizationParams = emptyMap(),
+    override val localizedMessageParams: LocalizationParams = LocalizationParams.empty(),
 ) : RuntimeException(message, cause), HasLocalizeMessageKey {
     constructor(
         status: HttpStatus,
         message: String,
         cause: Throwable?,
         localizedMessageKey: String,
-        localizedMessageParams: LocalizationParams = emptyMap(),
+        localizedMessageParams: LocalizationParams = LocalizationParams.empty(),
     ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
 }
 
@@ -76,9 +75,13 @@ class InframodelParsingException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = INFRAMODEL_PARSING_KEY_GENERIC,
-    localizedMessageParams: LocalizationParams = emptyMap(),
+    localizedMessageParams: LocalizationParams = LocalizationParams.empty(),
 ) : ClientException(
-    BAD_REQUEST, "InfraModel could not be parsed: $message", cause, localizedMessageKey, localizedMessageParams
+    BAD_REQUEST,
+    "InfraModel could not be parsed: $message",
+    cause,
+    localizedMessageKey,
+    localizedMessageParams
 )
 
 class NoSuchEntityException(
@@ -98,11 +101,11 @@ class DuplicateNameInPublicationException(
     duplicatedName: String,
     cause: Throwable? = null,
 ) : ClientException(
-    BAD_REQUEST,
-    "Duplicate $type in publication: $duplicatedName",
-    cause,
+    status = BAD_REQUEST,
+    message = "Duplicate $type in publication: $duplicatedName",
+    cause = cause,
     localizedMessageKey = "error.publication.duplicate-name-on.${if (type == DuplicateNameInPublication.SWITCH) "switch" else "track-number"}",
-    localizedMessageParams = mapOf("name" to duplicatedName),
+    localizedMessageParams = LocalizationParams("name" to duplicatedName),
 )
 
 class DuplicateLocationTrackNameInPublicationException(
@@ -110,11 +113,14 @@ class DuplicateLocationTrackNameInPublicationException(
     trackNumber: TrackNumber,
     cause: Throwable? = null,
 ) : ClientException(
-    BAD_REQUEST,
-    "Duplicate location track $alignmentName in $trackNumber",
-    cause,
+    status = BAD_REQUEST,
+    message = "Duplicate location track $alignmentName in $trackNumber",
+    cause = cause,
     localizedMessageKey = "error.publication.duplicate-name-on.location-track",
-    localizedMessageParams = mapOf("locationTrack" to alignmentName.toString(), "trackNumber" to trackNumber.value)
+    localizedMessageParams = LocalizationParams(
+        "locationTrack" to alignmentName,
+        "trackNumber" to trackNumber
+    )
 )
 
 

@@ -107,9 +107,9 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
         val changeTimeAfterUpdate = locationTrackService.getChangeTime()
 
-        val trackChangeTimes = locationTrackService.getChangeTimes(id)
-        assertEquals(changeTimeAfterInsert, trackChangeTimes.created)
-        assertEquals(changeTimeAfterUpdate, trackChangeTimes.draftChanged)
+        val changeInfo = locationTrackService.getDraftableChangeInfo(id)
+        assertEquals(changeTimeAfterInsert, changeInfo.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
     }
 
     @Test
@@ -597,7 +597,8 @@ class LocationTrackServiceIT @Autowired constructor(
         topologicalConnectivity = TopologicalConnectivityType.START_AND_END
     )
 
-    private fun publish(id: IntId<LocationTrack>) = locationTrackDao.fetchPublicationVersions(listOf(id))
+    private fun publish(id: IntId<LocationTrack>) = locationTrackDao
+        .fetchPublicationVersions(listOf(id))
         .first()
         .let { version -> locationTrackService.publish(version) }
 }

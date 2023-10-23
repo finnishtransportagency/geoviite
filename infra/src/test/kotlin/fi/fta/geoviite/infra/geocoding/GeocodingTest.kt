@@ -651,7 +651,7 @@ class GeocodingTest {
 
         assertTrue("Km post without location was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.first == kmPost && kp.second == KmPostRejectedReason.NO_LOCATION
+                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.NO_LOCATION
             }
         }
     }
@@ -674,7 +674,7 @@ class GeocodingTest {
 
         assertTrue("Km post with too small km number was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.first == kmPost && kp.second == KmPostRejectedReason.IS_BEFORE_START_ADDRESS
+                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.IS_BEFORE_START_ADDRESS
             }
         }
     }
@@ -697,7 +697,7 @@ class GeocodingTest {
 
         assertTrue("Km post that intersected before reference line was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.first == kmPost && kp.second == KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE
+                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE
             }
         }
     }
@@ -720,7 +720,7 @@ class GeocodingTest {
 
         assertTrue("Km post that intersected after reference line was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.first == kmPost && kp.second == KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE
+                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE
             }
         }
     }
@@ -743,7 +743,7 @@ class GeocodingTest {
 
         assertTrue("Km post that had over 10000 m in distance was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.first == kmPost && kp.second == KmPostRejectedReason.TOO_FAR_APART
+                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.TOO_FAR_APART
             }
         }
     }

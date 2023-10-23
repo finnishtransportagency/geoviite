@@ -778,7 +778,7 @@ class PublicationServiceIT @Autowired constructor(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "validation.layout.location-track.duplicate-name-official",
-                    mapOf("locationTrack" to "LT", "trackNumber" to "TN")
+                    mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN"))
                 )
             ), validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.errors
         )
@@ -787,7 +787,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.location-track.duplicate-name-draft",
-                mapOf("locationTrack" to "NLT", "trackNumber" to "TN")
+                mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN"))
             )
         },
             validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
@@ -797,7 +797,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.switch.duplicate-name-official",
-                mapOf("switch" to "SW")
+                mapOf("switch" to SwitchName("SW"))
             )
         ),
             validation.validatedAsPublicationUnit.switches.find { it.name == SwitchName("SW") }?.errors?.filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name-official" })
@@ -806,7 +806,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 "validation.layout.switch.duplicate-name-draft",
-                mapOf("switch" to "NSW")
+                mapOf("switch" to SwitchName("NSW"))
             )
         },
             validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }
@@ -818,7 +818,7 @@ class PublicationServiceIT @Autowired constructor(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "validation.layout.track-number.duplicate-name-official",
-                    mapOf("trackNumber" to "TN")
+                    mapOf("trackNumber" to TrackNumber("TN"))
                 )
             ), validation.validatedAsPublicationUnit.trackNumbers[0].errors
         )
@@ -837,7 +837,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         }
         assertEquals("error.publication.duplicate-name-on.track-number", exception.localizedMessageKey.toString())
-        assertEquals(mapOf("name" to "TN"), exception.localizedMessageParams)
+        assertEquals(mapOf("name" to "TN"), exception.localizedMessageParams.params)
     }
 
     @Test
@@ -853,7 +853,10 @@ class PublicationServiceIT @Autowired constructor(
             publish(publicationService, locationTracks = listOf(draftLocationTrackId))
         }
         assertEquals("error.publication.duplicate-name-on.location-track", exception.localizedMessageKey.toString())
-        assertEquals(mapOf("locationTrack" to "LT", "trackNumber" to "TN"), exception.localizedMessageParams)
+        assertEquals(
+            mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN")),
+            exception.localizedMessageParams.params
+        )
     }
 
     @Test
@@ -883,7 +886,7 @@ class PublicationServiceIT @Autowired constructor(
             publish(publicationService, switches = listOf(draftSwitchId))
         }
         assertEquals("error.publication.duplicate-name-on.switch", exception.localizedMessageKey.toString())
-        assertEquals(mapOf("name" to "SW123"), exception.localizedMessageParams)
+        assertEquals(mapOf("name" to "SW123"), exception.localizedMessageParams.params)
     }
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
@@ -1096,6 +1099,7 @@ class PublicationServiceIT @Autowired constructor(
         val diff = publicationService.diffLocationTrack(
             localizationService.getLocalization("fi"),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
+            null,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1143,6 +1147,7 @@ class PublicationServiceIT @Autowired constructor(
         val diff = publicationService.diffLocationTrack(
             localizationService.getLocalization("fi"),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
+            null,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1352,36 +1357,69 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(updatedSwitch.name, diff[0].value.newValue)
     }
 
+    private fun alignmentWithSwitchLinks(vararg switchIds: IntId<TrackLayoutSwitch>?): LayoutAlignment =
+        alignment(switchIds.mapIndexed { index, switchId ->
+            segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->
+                if (switchId == null) segment else segment.copy(
+                    switchId = switchId, startJointNumber = JointNumber(1)
+                )
+            }
+        })
+
     @Test
     fun `Location track switch link changes are reported`() {
-        val switch1 = switchDao.insert(switch(1, name = "sw 1"))
-        val switch2 = switchDao.insert(switch(2, name = "sw 2"))
-        val switch3 = switchDao.insert(switch(3, name = "sw 3"))
-        val switch4 = switchDao.insert(switch(4, name = "sw 4"))
-        val switch5 = switchDao.insert(switch(5, name = "sw 5"))
+        val switchUnlinkedFromTopology = switchDao.insert(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1"))
+        val switchUnlinkedFromAlignment = switchDao.insert(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2"))
+        val switchAddedToTopologyStart = switchDao.insert(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3"))
+        val switchAddedToTopologyEnd = switchDao.insert(switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4"))
+        val switchAddedToAlignment = switchDao.insert(switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5"))
+        val switchDeleted = switchDao.insert(switch(name = "sw-deleted", externalId = "1.1.1.1.6"))
+        val switchMerelyRenamed = switchDao.insert(switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7"))
+        val originalSwitchReplacedWithNewSameName = switchDao.insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8"))
 
         val trackNumberId = getUnusedTrackNumberId()
+
         val originalLocationTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switch1.id, JointNumber(1))),
-            alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)).copy(
-                    switchId = switch2.id, startJointNumber = JointNumber(1)
-                ), segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1))),
+            alignmentWithSwitchLinks(
+                switchUnlinkedFromAlignment.id,
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id
             )
         )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
+        switchService.saveDraft(
+            switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        )
+        switchService.saveDraft(
+            switchDao.fetch(originalSwitchReplacedWithNewSameName.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        )
+        switchService.saveDraft(
+            switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name"))
+        )
+        val newSwitchReplacingOldWithSameName = switchService.saveDraft(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9"))
+
         locationTrackService.saveDraft(
             locationTrackDao.fetch(locationTrackDao.fetchVersion(originalLocationTrack.id, OFFICIAL)!!).copy(
-                topologyStartSwitch = TopologyLocationTrackSwitch(switch3.id, JointNumber(1)),
-                topologyEndSwitch = TopologyLocationTrackSwitch(switch4.id, JointNumber(1))
-            ), alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                segment(Point(0.0, 1.0), Point(0.0, 2.0)).copy(
-                    switchId = switch5.id, startJointNumber = JointNumber(1)
-                ),
+                topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
+            ), alignmentWithSwitchLinks(
+                switchAddedToAlignment.id,
+                switchMerelyRenamed.id,
+                newSwitchReplacingOldWithSameName.id, null
             )
         )
-        publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
+        publish(
+            publicationService,
+            locationTracks = listOf(originalLocationTrack.id),
+            switches = listOf(
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id,
+                newSwitchReplacingOldWithSameName.id,
+            )
+        )
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)
         val latestPub = latestPubs[0]
         val previousPub = latestPubs[1]
@@ -1389,7 +1427,8 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffLocationTrack(
             localizationService.getLocalization("fi"),
-            changes.getValue(originalLocationTrack.id as IntId),
+            changes.getValue(originalLocationTrack.id),
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1398,8 +1437,13 @@ class PublicationServiceIT @Autowired constructor(
         ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("linked-switches", diff[0].propKey.key.toString())
-        assertEquals("Vaihteiden sw 1, sw 2 linkitys purettu. Vaihteet sw 3, sw 4, sw 5 linkitetty.", diff[0].remark)
+        assertEquals("""
+            Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
+            sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
+            sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
+        """.trimIndent().replace("\n", " "), diff[0].remark)
     }
+
 
     @Test
     fun `should filter publication details by dates`() {
