@@ -77,7 +77,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
-        getTrackNumbers('DRAFT').then((trackNumbers) => {
+        getTrackNumbers('DRAFT', undefined, true).then((trackNumbers) => {
             stateActions.onTrackNumbersLoaded(trackNumbers);
         });
     }, []);
@@ -197,6 +197,13 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
+    const trackNumberOptions = state.trackNumbers
+        .filter((tn) => tn.id === state.existingKmPost?.trackNumberId || tn.state !== 'DELETED')
+        .map((tn) => {
+            const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+            return { name: tn.number + note, value: tn.id };
+        });
+
     return (
         <React.Fragment>
             <Dialog
@@ -267,10 +274,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             value={
                                 <Dropdown
                                     value={state.kmPost?.trackNumberId}
-                                    options={state.trackNumbers.map((trackNumber) => ({
-                                        name: trackNumber.number,
-                                        value: trackNumber.id,
-                                    }))}
+                                    options={trackNumberOptions}
                                     onChange={(value) => updateProp('trackNumberId', value)}
                                     onBlur={() => stateActions.onCommitField('trackNumberId')}
                                     hasError={hasErrors('trackNumberId')}
