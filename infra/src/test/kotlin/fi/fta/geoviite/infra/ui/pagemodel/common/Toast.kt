@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import browser
 import childExists
-import getChildElement
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
@@ -32,9 +31,9 @@ data class E2EToast(
 ) {
 
     constructor(element: WebElement) : this(
-        header = element.getChildElement(headerBy).text,
-        content = if (element.childExists(contentBy)) element.getChildElement(contentBy).text else null,
-        qaId = element.getChildElement(qaIdBy).getAttribute("qa-id"),
+        header = element.findElement(headerBy).text,
+        content = if (element.childExists(contentBy)) element.findElement(contentBy).text else null,
+        qaId = element.findElement(qaIdBy).getAttribute("qa-id"),
         type = getToastType(element)
     )
 }
@@ -49,8 +48,8 @@ private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) 
 }
 
 private fun getToasts(): List<Pair<E2EToast, WebElement>> {
-    return browser().findElements(toasterBy).mapNotNull { e ->
-        if (e.isDisplayed) E2EToast(e) to e else null
+    return browser().findElements(toasterBy).map { e ->
+        E2EToast(e) to e
     }
 }
 
