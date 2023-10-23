@@ -125,7 +125,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
     }
 
     const saveOrConfirm = () => {
-        if (state.kmPost?.state === 'DELETED') {
+        if (state.kmPost?.state === 'DELETED' && state.existingKmPost?.state !== 'DELETED') {
             setNonDraftDeleteConfirmationVisible(true);
         } else {
             save();

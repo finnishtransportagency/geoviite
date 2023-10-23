@@ -147,7 +147,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }
 
     const saveOrConfirm = () => {
-        if (state.locationTrack?.state === 'DELETED') {
+        if (
+            state.locationTrack?.state === 'DELETED' &&
+            state.existingLocationTrack?.state !== 'DELETED'
+        ) {
             setNonDraftDeleteConfirmationVisible(true);
         } else {
             save();

@@ -157,8 +157,12 @@ export const SwitchEditDialog = ({
     }
 
     function saveOrConfirm() {
-        if (switchStateCategory === 'NOT_EXISTING') setShowDeleteOfficialConfirmDialog(true);
-        else if (switchStructureChanged) {
+        if (
+            switchStateCategory === 'NOT_EXISTING' &&
+            existingSwitch?.stateCategory !== 'NOT_EXISTING'
+        ) {
+            setShowDeleteOfficialConfirmDialog(true);
+        } else if (switchStructureChanged) {
             setShowStructureChangeConfirmationDialog(true);
         } else {
             save();
