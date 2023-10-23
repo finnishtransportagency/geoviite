@@ -1108,21 +1108,29 @@ class SwitchLinkingService @Autowired constructor(
         layoutSegments: List<LayoutSegment>,
         searchIndexRange: IntProgression,
     ): IndexedValue<LayoutSegment>? {
+        val layoutSegmentIndicesAreValid =
+            searchIndexRange.first in layoutSegments.indices && searchIndexRange.last in layoutSegments.indices
 
-        if (searchIndexRange.any { index -> index !in layoutSegments.indices }) {
-            logger.info("Invalid searchIndexRange: $searchIndexRange contains indices outside of layoutSegments (${layoutSegments.indices})")
-            return null
+        val step = searchIndexRange.step
+        val firstAdjacentIndexIsValid = (searchIndexRange.first + step) in layoutSegments.indices
+        val lastAdjacentIndexIsValid = (searchIndexRange.last + step) in layoutSegments.indices
+
+        val adjacentSegmentIndicesAreValid = firstAdjacentIndexIsValid && lastAdjacentIndexIsValid
+
+        require(layoutSegmentIndicesAreValid) {
+            "Invalid searchIndexRange: $searchIndexRange contains indices outside of layoutSegments (${layoutSegments.indices})"
         }
 
-        if (searchIndexRange.any { index -> index + searchIndexRange.step !in layoutSegments.indices }) {
-            logger.info("Invalid searchIndexRange: $searchIndexRange contains adjacent indices 'index + (${searchIndexRange.step})' outside of layoutSegments (${layoutSegments.indices})")
-            return null
+        require(adjacentSegmentIndicesAreValid) {
+            "Invalid searchIndexRange: $searchIndexRange contains adjacent indices outside of layoutSegments (${layoutSegments.indices})"
         }
 
         for (i in searchIndexRange) {
             val segment = layoutSegments[i];
-            if (segment.switchId != existingSwitchId) {
-                logger.info("Invalid segment switch id: expected to find $existingSwitchId, but found ${segment.switchId}")
+
+            val existingSwitchIdMatchesSegment = existingSwitchId == segment.switchId
+            if (!existingSwitchIdMatchesSegment) {
+                logger.info("Expected to find switch $existingSwitchId from segment, but found ${segment.switchId} (at least one switch should be overridden from the two adjacent switches)")
                 return null
             }
 
@@ -1147,47 +1155,53 @@ class SwitchLinkingService @Autowired constructor(
             return switchLinkingSegment
         }
 
-        // Towards the start of the location track.
-        val negativeSearchIndexDirection = IntProgression.fromClosedRange(
-            switchLinkingSegment.segmentIndex, 1, -1
-        )
-
-        findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
-            referencedLayoutSegment.switchId as IntId,
-            layoutAlignment.segments,
-            searchIndexRange = negativeSearchIndexDirection,
-        )?.let { indexedExistingSwitchStartSegment ->
-            val distanceToPreviousSwitchLineStart = switchLinkingSegment.m - indexedExistingSwitchStartSegment.value.startM
-            val hasAdjacentLayoutSegment = indexedExistingSwitchStartSegment.index > 0
-
-            if (hasAdjacentLayoutSegment && distanceToPreviousSwitchLineStart <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS) {
-                return switchLinkingSegment.copy(
-                    m = switchLinkingSegment.m - distanceToPreviousSwitchLineStart,
-                    segmentIndex = indexedExistingSwitchStartSegment.index - 1
+        // Snapping towards the start of the location track.
+        switchLinkingSegment.segmentIndex
+            .takeIf { segmentIndex -> segmentIndex > 1 }
+            ?.let { segmentIndex -> IntProgression.fromClosedRange(segmentIndex, 1, -1) }
+            ?.let { negativeSearchIndexDirection ->
+                findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
+                    referencedLayoutSegment.switchId as IntId,
+                    layoutAlignment.segments,
+                    searchIndexRange = negativeSearchIndexDirection,
                 )
             }
-        }
+            ?.let { indexedExistingSwitchStartSegment ->
+                val distanceToPreviousSwitchLineStart = switchLinkingSegment.m - indexedExistingSwitchStartSegment.value.startM
+                val hasAdjacentLayoutSegment = indexedExistingSwitchStartSegment.index > 0
 
-        // Towards the end of the location track.
-        val positiveSearchIndexDirection = IntProgression.fromClosedRange(
-            switchLinkingSegment.segmentIndex, layoutAlignment.segments.size - 2, 1
-        )
+                if (hasAdjacentLayoutSegment && distanceToPreviousSwitchLineStart <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS) {
+                    return switchLinkingSegment.copy(
+                        m = switchLinkingSegment.m - distanceToPreviousSwitchLineStart,
+                        segmentIndex = indexedExistingSwitchStartSegment.index - 1
+                    )
+                }
+            }
 
-        findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
-            referencedLayoutSegment.switchId as IntId,
-            layoutAlignment.segments,
-            searchIndexRange = positiveSearchIndexDirection,
-        )?.let { indexedExistingSwitchEndSegment ->
-            val distanceToPreviousSwitchLineEnd = indexedExistingSwitchEndSegment.value.endM - switchLinkingSegment.m
-            val hasAdjacentLayoutSegment = indexedExistingSwitchEndSegment.index < layoutAlignment.segments.size - 1
-
-            if (hasAdjacentLayoutSegment && distanceToPreviousSwitchLineEnd <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS) {
-                return switchLinkingSegment.copy(
-                    m = switchLinkingSegment.m + distanceToPreviousSwitchLineEnd,
-                    segmentIndex = indexedExistingSwitchEndSegment.index + 1
+        // Snapping towards the end of the location track.
+        switchLinkingSegment.segmentIndex
+            .takeIf { segmentIndex -> segmentIndex < layoutAlignment.segments.lastIndex - 1}
+            ?.let { segmentIndex ->
+                IntProgression.fromClosedRange(segmentIndex, layoutAlignment.segments.lastIndex - 1, 1)
+            }
+            ?.let { positiveSearchIndexDirection ->
+                findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
+                    referencedLayoutSegment.switchId as IntId,
+                    layoutAlignment.segments,
+                    searchIndexRange = positiveSearchIndexDirection
                 )
             }
-        }
+            ?.let { indexedExistingSwitchEndSegment ->
+                val distanceToPreviousSwitchLineEnd = indexedExistingSwitchEndSegment.value.endM - switchLinkingSegment.m
+                val hasAdjacentLayoutSegment = indexedExistingSwitchEndSegment.index < layoutAlignment.segments.lastIndex
+
+                if (hasAdjacentLayoutSegment && distanceToPreviousSwitchLineEnd <= MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS) {
+                    return switchLinkingSegment.copy(
+                        m = switchLinkingSegment.m + distanceToPreviousSwitchLineEnd,
+                        segmentIndex = indexedExistingSwitchEndSegment.index + 1
+                    )
+                }
+            }
 
         // Couldn't snap, possibly due to too much overlap or adjacent switch segment(s) already contained another switch.
         return switchLinkingSegment
