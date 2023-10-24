@@ -1,13 +1,9 @@
 name: "Detekt"
 
 on:
-  push:
-    branches:
-      - 'dev/GVT-2141-sarif-test'
-
   pull_request:
     branches:
-      - 'dev/GVT-2141-sarif-test'
+      - 'main'
 
 jobs:
   without-type-resolution:
