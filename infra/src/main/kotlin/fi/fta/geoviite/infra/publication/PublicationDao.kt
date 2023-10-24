@@ -518,7 +518,7 @@ class PublicationDao(
             val locationTrackId: IntId<LocationTrack>,
             val switchId: IntId<TrackLayoutSwitch>,
             val switchName: String,
-            val switchOid: Oid<TrackLayoutSwitch>,
+            val switchOid: Oid<TrackLayoutSwitch>?,
         )
 
         return jdbcTemplate.query(
@@ -534,7 +534,7 @@ class PublicationDao(
                 rs.getIntId("location_track_id"),
                 rs.getIntId("switch_id"),
                 rs.getString("switch_name"),
-                rs.getOid("switch_oid"),
+                rs.getOidOrNull("switch_oid"),
             )
         }.groupBy { it.publicationId }.mapValues { (_, publicationResults) ->
             publicationResults.groupBy { it.locationTrackId }.mapValues { (_, locationTrackResults) ->
