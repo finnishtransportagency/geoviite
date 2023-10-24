@@ -633,6 +633,7 @@ fun switch(
     stateCategory: LayoutStateCategory = getSomeValue(seed),
     foo: String = "",
     bar: String = "",
+    baz: String = "",
 ) = TrackLayoutSwitch(
     externalId = if (externalId != null) Oid(externalId) else null,
     sourceId = null,
