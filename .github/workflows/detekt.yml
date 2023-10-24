@@ -1,0 +1,37 @@
+name: "Detekt"
+
+on:
+  push:
+    branches:
+      - 'dev/GVT-2141-sarif-test'
+
+jobs:
+  without-type-resolution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Download detekt
+        working-directory: ./infra
+        run: |
+          curl -sSLO https://github.com/detekt/detekt/releases/download/v1.23.1/detekt-cli-1.23.1-all.jar
+
+      - name: Run detekt
+        working-directory: ./infra
+        run: |
+          java -jar detekt-cli-1.23.1-all.jar \
+          --build-upon-default-config \
+          --report sarif:build/reports/detekt/detekt.sarif
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        if: success() || failure()
+        with:
+          sarif_file: infra/build/reports/detekt/detekt.sarif
