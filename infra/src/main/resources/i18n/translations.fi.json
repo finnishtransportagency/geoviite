@@ -389,7 +389,8 @@
                 "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
-                "delete-draft": "Poista luonnos"
+                "delete-draft": "Poista luonnos",
+                "no-kilometer-length": "Pituutta ei voida laskea"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
