@@ -5,6 +5,10 @@ on:
     branches:
       - 'dev/GVT-2141-sarif-test'
 
+  pull_request:
+    branches:
+      - 'dev/GVT-2141-sarif-test'
+
 jobs:
   without-type-resolution:
     runs-on: ubuntu-latest
@@ -28,6 +32,7 @@ jobs:
         run: |
           java -jar detekt-cli-1.23.1-all.jar \
           --build-upon-default-config \
+          --baseline src/main/resources/xml/detekt-baseline.xml \
           --report sarif:build/reports/detekt/detekt.sarif
 
       - name: Upload SARIF to GitHub
