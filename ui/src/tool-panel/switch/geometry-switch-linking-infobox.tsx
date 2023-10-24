@@ -17,7 +17,7 @@ import { getSuggestedSwitchesByTile, linkSwitch } from 'linking/linking-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import GeometrySwitchLinkingSuggestedInfobox from 'tool-panel/switch/geometry-switch-linking-suggested-infobox';
 import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
-import { getGeometrySwitch, getGeometrySwitchLayout } from 'geometry/geometry-api';
+import { getGeometrySwitchLayout } from 'geometry/geometry-api';
 import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
 import { useSwitch, useSwitchStructure } from 'track-layout/track-layout-react-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -70,10 +70,6 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     onVisibilityChange,
 }) => {
     const { t } = useTranslation();
-    const geometrySwitch = useLoader(
-        () => (geometrySwitchId ? getGeometrySwitch(geometrySwitchId) : undefined),
-        [geometrySwitchId],
-    );
     const geometrySwitchLayout = useLoader(
         () => (geometrySwitchId ? getGeometrySwitchLayout(geometrySwitchId) : undefined),
         [geometrySwitchId],
@@ -81,19 +77,19 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     const [suggestedSwitch, suggestedSwitchFetchStatus] = useLoaderWithStatus(() => {
         if (selectedSuggestedSwitch) {
             return Promise.resolve(selectedSuggestedSwitch);
-        } else if (geometrySwitch && geometrySwitchLayout) {
+        } else if (geometrySwitchId && geometrySwitchLayout) {
             const boundingBox = expandBoundingBox(
                 boundingBoxAroundPoints(geometrySwitchLayout.joints.map((joint) => joint.location)),
                 200,
             );
             const fakeMapTile = {
-                id: `geom-switch-${geometrySwitch.id}`,
+                id: `geom-switch-${geometrySwitchId}`,
                 area: boundingBox,
                 resolution: 0,
             };
             return getSuggestedSwitchesByTile(fakeMapTile).then((suggestedSwitches) =>
                 suggestedSwitches.find(
-                    (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitch.id,
+                    (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitchId,
                 ),
             );
         }
