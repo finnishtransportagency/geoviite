@@ -428,7 +428,7 @@ fun toValidationVersions(
     switches = switches.map(::toValidationVersion)
 )
 
-data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>)
+data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>?)
 
 data class LocationTrackPublicationSwitchLinkChanges(
     val old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
