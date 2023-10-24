@@ -29,9 +29,9 @@ jobs:
       - name: Run detekt
         run: |
           java -jar detekt-cli-1.23.1-all.jar \
+          --config ${{ github.workspace }}/infra/detekt.yml \
           --base-path ${{ github.workspace }} \
           --input ${{ github.workspace }}/infra \
-          --build-upon-default-config \
           --baseline ${{ github.workspace }}/infra/src/main/resources/xml/detekt-baseline.xml \
           --report sarif:${{ github.workspace }}/infra/build/reports/detekt/detekt.sarif
 
