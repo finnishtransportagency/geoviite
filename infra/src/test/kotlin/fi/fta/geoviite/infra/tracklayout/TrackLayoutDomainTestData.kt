@@ -631,6 +631,8 @@ fun switch(
     name: String = "TV$seed",
     externalId: String? = null,
     stateCategory: LayoutStateCategory = getSomeValue(seed),
+    foo: String = "",
+    bar: String = "",
 ) = TrackLayoutSwitch(
     externalId = if (externalId != null) Oid(externalId) else null,
     sourceId = null,
