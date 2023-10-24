@@ -233,13 +233,16 @@ export function useTraceProps(componentName: string, props: PropsType) {
     const prev = useRef(props);
 
     useEffect(() => {
-        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
-            if (prev.current[k] !== v) {
-                acc[k] = { old: prev.current[k], new: v };
-            }
+        const changedProps = Object.entries(props).reduce(
+            (acc, [k, v]) => {
+                if (prev.current[k] !== v) {
+                    acc[k] = { old: prev.current[k], new: v };
+                }
 
-            return acc;
-        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
+                return acc;
+            },
+            {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } },
+        );
 
         if (Object.keys(changedProps).length > 0) {
             console.log(`[${componentName}] Changed props:`, changedProps);
