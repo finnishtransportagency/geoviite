@@ -113,6 +113,12 @@ data class GeocodingContext(
         ) {
             "Reference points are too far apart from each other, trackNumber=${trackNumber.number}"
         }
+
+        require(kmPosts.none { it.location == null }) {
+            "Geocoding context created with kmPosts without location ${
+                kmPosts.filter { it.location == null }
+            }}"
+        }
     }
 
     private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
@@ -168,20 +174,27 @@ data class GeocodingContext(
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContextCreateResult {
-            val (validKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
+            val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
-            val referencePoints = createReferencePoints(startAddress, validKmPosts, referenceLineGeometry)
-            val (validReferencePoints, rejectedKmPosts) = validateReferencePoints(referencePoints, validKmPosts)
+            val referencePoints = createReferencePoints(startAddress, validatedKmPosts, referenceLineGeometry)
+            val (validReferencePoints, kmPostsOutsideGeometry) = validateReferencePoints(
+                referencePoints,
+                validatedKmPosts
+            )
+
+            val validKmPosts = validatedKmPosts.filterNot { vkp ->
+                kmPostsOutsideGeometry.any { kp -> kp.kmPost.id == vkp.id }
+            }
 
             return GeocodingContextCreateResult(
                 geocodingContext = GeocodingContext(
                     trackNumber = trackNumber,
-                    kmPosts = kmPosts,
+                    kmPosts = validKmPosts,
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
                     startAddress = startAddress
                 ),
-                rejectedKmPosts = rejectedKmPosts + invalidKmPosts
+                rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry
             )
         }
 
@@ -285,8 +298,9 @@ data class GeocodingContext(
     }
 
     val referenceLineAddresses by lazy {
-        getAddressPoints(referenceLineGeometry)
-            ?: throw IllegalStateException("Can't resolve reference line addresses")
+        checkNotNull(getAddressPoints(referenceLineGeometry)) {
+            "Can't resolve reference line addresses"
+        }
     }
 
     private fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
@@ -569,8 +583,8 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
             // Direction for projection lines from the edge: 90 degrees turned from own direction
             val direction = PI / 2 +
                     if (segment.source != GeometrySource.GENERATED) directionBetweenPoints(previous, point)
-                    // Generated connection segments can have a sideways offset, but the real line doesn't change direction
-                    // To compensate, we want to project with the direction of previous/next segments
+                    // Generated connection segments can have a sideways offset, but the real line doesn't
+                    // change direction. To compensate, we want to project with the direction of previous/next segments
                     else if (prevDir == null || nextDir == null) prevDir ?: nextDir ?: directionBetweenPoints(
                         previous,
                         point

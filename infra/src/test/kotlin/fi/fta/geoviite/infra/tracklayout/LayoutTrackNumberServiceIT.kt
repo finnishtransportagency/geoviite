@@ -147,6 +147,70 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `should ignore km posts without location when calculating lengths lengths between km posts`() {
+        val trackNumber = trackNumberDao.fetch(trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).rowVersion)
+
+        referenceLineAndAlignment(
+            trackNumberId = trackNumber.id as IntId,
+            segments = listOf(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(1.0, 0.0),
+                    Point(2.0, 0.0),
+                    Point(3.0, 0.0),
+                    Point(4.0, 0.0),
+                )
+            ),
+            startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+        ).let { (referenceLine, alignment) ->
+            val referenceLineVersion = referenceLineDao
+                .insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+
+            referenceLineDao.fetch(referenceLineVersion.rowVersion)
+        }
+
+        listOf(
+            kmPost(
+                trackNumberId = trackNumber.id as IntId,
+                km = KmNumber(2),
+                location = Point(1.0, 0.0)
+            ),
+            kmPost(
+                trackNumberId = trackNumber.id as IntId,
+                km = KmNumber(3),
+                location = null
+            )
+        ).map(kmPostDao::insert)
+
+        val kmLengths = trackNumberService.getKmLengths(OFFICIAL, trackNumber.id as IntId)
+        assertNotNull(kmLengths)
+        assertEquals(2, kmLengths.size)
+
+        assertEquals(
+            TrackLayoutKmLengthDetails(
+                trackNumber = trackNumber.number,
+                kmNumber = KmNumber(1),
+                startM = BigDecimal(-0.5).setScale(3),
+                endM = BigDecimal(1).setScale(3),
+                locationSource = GeometrySource.GENERATED,
+                location = Point(0.0, 0.0)
+            ),
+            kmLengths.first()
+        )
+
+        assertEquals(
+            TrackLayoutKmLengthDetails(
+                trackNumber = trackNumber.number,
+                kmNumber = KmNumber(2),
+                startM = BigDecimal(1).setScale(3),
+                endM = BigDecimal(4).setScale(3),
+                locationSource = GeometrySource.IMPORTED,
+                location = Point(1.0, 0.0)
+            ), kmLengths.last()
+        )
+    }
+
+    @Test
     fun `free text search should find multiple matching track numbers, and not the ones that did not match`() {
         val trackNumbers = listOf(
             TrackNumber("track number 1"),
