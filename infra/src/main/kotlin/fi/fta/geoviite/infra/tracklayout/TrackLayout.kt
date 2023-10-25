@@ -227,15 +227,6 @@ data class TrackLayoutKmLengthDetails(
     val location: Point?,
 ) {
     val length = endM - startM
-
-    init {
-        require(endM >= startM) {
-            "Km post is wrong way around (endM is smaller than startM), trackNumber=$trackNumber kmNumber=$kmNumber startM=$startM endM=$endM"
-        }
-        require(length >= BigDecimal.ZERO) {
-            "Km post cannot have negative length, trackNumber=$trackNumber kmNumber=$kmNumber length=$length"
-        }
-    }
 }
 
 data class TrackLayoutSwitchJointMatch(

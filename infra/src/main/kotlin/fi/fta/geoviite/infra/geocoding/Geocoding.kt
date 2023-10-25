@@ -119,6 +119,12 @@ data class GeocodingContext(
                 kmPosts.filter { it.location == null }
             }}"
         }
+
+        require(kmPosts.distinctBy { it.kmNumber }.size == kmPosts.size) {
+            "There are km posts with duplicate km number, ${
+                kmPosts.groupingBy { it.kmNumber }.eachCount().filter { it.value > 1 }
+            }}"
+        }
     }
 
     private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
@@ -176,10 +182,10 @@ data class GeocodingContext(
         ): GeocodingContextCreateResult {
             val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
-            val referencePoints = createReferencePoints(startAddress, validatedKmPosts, referenceLineGeometry)
-            val (validReferencePoints, kmPostsOutsideGeometry) = validateReferencePoints(
-                referencePoints,
-                validatedKmPosts
+            val (validReferencePoints, kmPostsOutsideGeometry) = createReferencePoints(
+                startAddress,
+                validatedKmPosts,
+                referenceLineGeometry
             )
 
             val validKmPosts = validatedKmPosts.filterNot { vkp ->
@@ -202,15 +208,15 @@ data class GeocodingContext(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
             referenceLineGeometry: IAlignment,
-        ): List<GeocodingReferencePoint> {
-            val kpReferencePoints = kmPosts
-                .mapNotNull { post ->
-                    post.location?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
-                }
+        ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
+            val kpReferencePoints = kmPosts.mapNotNull { post ->
+                post.location?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
+            }
 
             val firstPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
+            val referencePoints = listOf(firstPoint) + kpReferencePoints
 
-            return listOf(firstPoint) + kpReferencePoints
+            return validateReferencePoints(referencePoints, kmPosts)
         }
 
         private fun validateKmPosts(

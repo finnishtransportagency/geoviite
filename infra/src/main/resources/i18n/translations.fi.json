@@ -390,7 +390,8 @@
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
                 "delete-draft": "Poista luonnos",
-                "no-kilometer-length": "Pituutta ei voida laskea"
+                "no-kilometer-length": "Pituutta ei voida laskea",
+                "negative-kilometer-length": "Virheellinen sijainti"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
