@@ -206,7 +206,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         : t('km-post-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                width={DialogWidth.WIDE}
                 footerContent={
                     <React.Fragment>
                         <div className={dialogStyles['dialog__footer-content--left-aligned']}>

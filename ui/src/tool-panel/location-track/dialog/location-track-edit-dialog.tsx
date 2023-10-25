@@ -318,7 +318,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         : t('location-track-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                width={DialogWidth.ULTRA_WIDE}
+                width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
                         {state.existingLocationTrack?.draftType === 'NEW_DRAFT' &&

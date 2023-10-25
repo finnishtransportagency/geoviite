@@ -11,8 +11,7 @@ export enum DialogVariant {
 
 export enum DialogWidth {
     NORMAL = 'dialog__popup--normal',
-    WIDE = 'dialog__popup--wide',
-    ULTRA_WIDE = 'dialog__popup--ultrawide',
+    TWO_COLUMNS = 'dialog__popup--two-columns',
 }
 
 export type DialogProps = {
@@ -53,6 +52,7 @@ export const Dialog: React.FC<DialogProps> = ({
     React.useLayoutEffect(() => {
         const dialogBounds =
             dialogHeaderRef.current && dialogHeaderRef.current.getBoundingClientRect();
+
         if (dialogBounds && !moved) {
             setDialogPositionX((window.innerWidth - dialogBounds.width) / 2);
             setDialogPositionY((window.innerHeight - dialogBounds.height) / 2);
@@ -67,7 +67,7 @@ export const Dialog: React.FC<DialogProps> = ({
         <div
             className={styles['dialog']}
             onMouseUp={() => setDialogDragParams(undefined)}
-            onMouseMove={(e) => moveDialog(e)}>
+            onMouseMove={moveDialog}>
             <div
                 className={createClassName(
                     styles['dialog__popup'],
@@ -91,7 +91,7 @@ export const Dialog: React.FC<DialogProps> = ({
                     }}>
                     <span className={styles['dialog__title']}>{props.title}</span>
                     {allowClose && (
-                        <div className={styles['dialog__close']} onClick={() => close()}>
+                        <div className={styles['dialog__close']} onClick={close}>
                             <Icons.Close color={IconColor.INHERIT} />
                         </div>
                     )}

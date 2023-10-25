@@ -175,7 +175,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         : 'track-number-edit.title.create',
                 )}
                 onClose={onClose}
-                width={DialogWidth.ULTRA_WIDE}
+                width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
                         {isNewDraft && inEditTrackNumber && (
