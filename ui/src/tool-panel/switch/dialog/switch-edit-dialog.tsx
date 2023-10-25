@@ -305,14 +305,12 @@ export const SwitchEditDialog = ({
                 footerContent={
                     <React.Fragment>
                         {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
-                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
-                                <Button
-                                    onClick={() => setShowDeleteDraftConfirmDialog(true)}
-                                    icon={Icons.Delete}
-                                    variant={ButtonVariant.WARNING}>
-                                    {t('tool-panel.switch.layout.delete-draft')}
-                                </Button>
-                            </div>
+                            <Button
+                                onClick={() => setShowDeleteDraftConfirmDialog(true)}
+                                icon={Icons.Delete}
+                                variant={ButtonVariant.WARNING}>
+                                {t('tool-panel.switch.layout.delete-draft')}
+                            </Button>
                         )}
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>

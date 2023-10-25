@@ -208,21 +208,16 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                 onClose={() => cancelSave()}
                 footerContent={
                     <React.Fragment>
-                        <div className={dialogStyles['dialog__footer-content--left-aligned']}>
-                            {state.existingKmPost?.draftType === 'NEW_DRAFT' &&
-                                !state.isNewKmPost && (
-                                    <Button
-                                        onClick={() =>
-                                            props.kmPostId
-                                                ? confirmNonDraftDraftDelete()
-                                                : undefined
-                                        }
-                                        icon={Icons.Delete}
-                                        variant={ButtonVariant.WARNING}>
-                                        {t('km-post-dialog.delete-draft')}
-                                    </Button>
-                                )}
-                        </div>
+                        {state.existingKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
+                            <Button
+                                onClick={() =>
+                                    props.kmPostId ? confirmNonDraftDraftDelete() : undefined
+                                }
+                                icon={Icons.Delete}
+                                variant={ButtonVariant.WARNING}>
+                                {t('km-post-dialog.delete-draft')}
+                            </Button>
+                        )}
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
