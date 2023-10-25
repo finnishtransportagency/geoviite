@@ -53,10 +53,8 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
     publishType: PublishType;
-    onClose?: () => void;
-    onInsert?: (locationTrackId: LocationTrackId) => void;
-    onUpdate?: () => void;
-    onUnselect?: () => void;
+    onClose: () => void;
+    onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
     existingDuplicateTrack?: LayoutLocationTrack | undefined;
     duplicatesExist?: boolean;
@@ -97,24 +95,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
         .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
 
-    const closeNonDraftDeleteConfirmation = () => {
-        setNonDraftDeleteConfirmationVisible(false);
-    };
-
-    const confirmNonDraftDelete = () => {
-        setDraftDeleteConfirmationVisible(true);
-    };
-
-    const closeDraftDeleteConfirmation = () => {
-        setDraftDeleteConfirmationVisible(false);
-    };
-
-    const onLocationTrackDeleted = () => {
-        closeNonDraftDeleteConfirmation();
-        props.onClose && props.onClose();
-        state.existingLocationTrack && props.onUnselect && props.onUnselect();
-    };
-
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
@@ -133,7 +113,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     firstInputRef.current?.focus();
                 } else {
                     Snackbar.error(t('location-track-dialog.cant-open-deleted'));
-                    onLocationTrackDeleted();
+                    props.onClose();
                 }
             });
         } else {
@@ -161,29 +141,23 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (canSaveLocationTrack(state) && state.locationTrack) {
             stateActions.onStartSaving();
             if (state.isNewLocationTrack) {
-                insertLocationTrack(state.locationTrack)
-                    .then((result) => {
-                        result
-                            .map((locationTrackId) => {
-                                stateActions.onSaveSucceed(locationTrackId);
-                                props.onInsert && props.onInsert(locationTrackId);
-                                Snackbar.success(t('location-track-dialog.created-successfully'));
-                                props.onClose && props.onClose();
-                            })
-                            .mapErr((_err) => {
-                                stateActions.onSaveFailed();
-                            });
-                    })
-                    .catch(() => {
-                        stateActions.onSaveFailed();
-                    });
+                insertLocationTrack(state.locationTrack).then((result) => {
+                    result
+                        .map((locationTrackId) => {
+                            stateActions.onSaveSucceed(locationTrackId);
+                            props.onSave && props.onSave(locationTrackId);
+                            Snackbar.success(t('location-track-dialog.created-successfully'));
+                            props.onClose();
+                        })
+                        .mapErr((_err) => stateActions.onSaveFailed());
+                });
             } else if (state.existingLocationTrack) {
-                updateLocationTrack(state.existingLocationTrack.id, state.locationTrack)
-                    .then((result) => {
+                updateLocationTrack(state.existingLocationTrack.id, state.locationTrack).then(
+                    (result) => {
                         result
                             .map((locationTrackId) => {
                                 stateActions.onSaveSucceed(locationTrackId);
-                                props.onUpdate && props.onUpdate();
+                                props.onSave && props.onSave(locationTrackId);
                                 const successMessage =
                                     state.locationTrack?.state === 'DELETED'
                                         ? t('location-track-dialog.deleted-successfully')
@@ -191,13 +165,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 Snackbar.success(successMessage);
                                 props.onClose && props.onClose();
                             })
-                            .mapErr((_err) => {
-                                stateActions.onSaveFailed();
-                            });
-                    })
-                    .catch(() => {
-                        stateActions.onSaveFailed();
-                    });
+                            .mapErr((_err) => stateActions.onSaveFailed());
+                    },
+                );
             }
         }
     }
@@ -332,7 +302,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     }>
                                     <Button
                                         onClick={() =>
-                                            state.existingLocationTrack && confirmNonDraftDelete()
+                                            state.existingLocationTrack &&
+                                            setDraftDeleteConfirmationVisible(true)
                                         }
                                         icon={Icons.Delete}
                                         variant={ButtonVariant.WARNING}>
@@ -621,7 +592,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     footerContent={
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
-                                onClick={closeNonDraftDeleteConfirmation}
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
@@ -647,8 +618,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             {state.existingLocationTrack && draftDeleteConfirmationVisible && (
                 <LocationTrackDeleteConfirmationDialog
                     id={state.existingLocationTrack?.id}
-                    onCancel={closeDraftDeleteConfirmation}
-                    onClose={onLocationTrackDeleted}
+                    onClose={() => setDraftDeleteConfirmationVisible(false)}
+                    onSave={props.onSave}
                 />
             )}
         </React.Fragment>

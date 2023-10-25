@@ -2,7 +2,7 @@ import styles from './track-layout.module.scss';
 import * as React from 'react';
 import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 import { MapContext } from 'map/map-store';
-import { OnSelectFunction } from 'selection/selection-model';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
 import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
@@ -21,6 +21,7 @@ export type TrackLayoutViewProps = {
     publishType: PublishType;
     linkingState: LinkingState | undefined;
     onSelect: OnSelectFunction;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onLayoutModeChange: (mode: LayoutMode) => void;
     showArea: (area: BoundingBox) => void;
@@ -35,6 +36,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     publishType,
     linkingState,
     onSelect,
+    onUnselect,
     onPublishTypeChange,
     onLayoutModeChange,
     showArea,
@@ -61,26 +63,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 }
                 publishType={publishType}
                 showArea={showArea}
-                onSelectTrackNumber={(trackNumberId) =>
-                    onSelect({
-                        trackNumbers: [trackNumberId],
-                    })
-                }
-                onSelectLocationTrack={(locationTrackId) =>
-                    onSelect({
-                        locationTracks: [locationTrackId],
-                    })
-                }
-                onSelectSwitch={(switchId) =>
-                    onSelect({
-                        switches: [switchId],
-                    })
-                }
-                onSelectKmPost={(kmPostId) =>
-                    onSelect({
-                        kmPosts: [kmPostId],
-                    })
-                }
+                onSelect={onSelect}
+                onUnselect={onUnselect}
                 onPublishTypeChange={(publishType: PublishType) => {
                     onPublishTypeChange(publishType);
                 }}

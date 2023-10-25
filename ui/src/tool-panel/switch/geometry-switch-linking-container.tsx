@@ -48,7 +48,8 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
                 delegates.startSwitchLinking(suggestedSwitch);
             }}
             selectedSuggestedSwitch={suggestedSwitch}
-            onSwitchSelect={(s) => delegates.onSelect({ switches: [s.id] })}
+            onSelect={delegates.onSelect}
+            onUnselect={delegates.onUnselect}
             switchChangeTime={switchChangeTime}
             locationTrackChangeTime={locationTrackChangeTime}
             layoutSwitch={layoutSwitch}

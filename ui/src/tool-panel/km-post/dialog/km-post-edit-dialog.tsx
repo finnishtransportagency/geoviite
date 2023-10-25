@@ -10,6 +10,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import {
+    KmPostEditState,
     actions,
     canSaveKmPost,
     initialKmPostEditState,
@@ -24,25 +25,48 @@ import {
     updateKmPost,
 } from 'track-layout/layout-km-post-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LayoutKmPostId } from 'track-layout/track-layout-model';
+import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { GeometryTrackNumberId } from 'geometry/geometry-model';
-import { isNilOrBlank } from 'utils/string-utils';
 import { useDebouncedState } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
-import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { Link } from 'vayla-design-lib/link/link';
+import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 
-export type KmPostDialogProps = {
+type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
-    onClose?: () => void;
-    onInsert?: (kmPostId: LayoutKmPostId) => void;
-    onUpdate?: () => void;
-    onUnselect?: () => void;
+    onClose: () => void;
+    onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: GeometryTrackNumberId;
 };
 
-export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialogProps) => {
+type KmPostEditDialogProps = {
+    kmPostId?: LayoutKmPostId;
+    onClose: () => void;
+    onSave?: (kmPostId: LayoutKmPostId) => void;
+    prefilledTrackNumberId?: GeometryTrackNumberId;
+    onEditKmPost: (id?: LayoutKmPostId) => void;
+};
+
+export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps> = (
+    props: KmPostEditDialogContainerProps,
+) => {
+    const [editKmPostId, setEditKmPostId] = React.useState<LayoutKmPostId | undefined>(
+        props.kmPostId,
+    );
+    return (
+        <KmPostEditDialog
+            kmPostId={editKmPostId}
+            onClose={props.onClose}
+            onSave={props.onSave}
+            onEditKmPost={setEditKmPostId}
+            prefilledTrackNumberId={props.prefilledTrackNumberId}
+        />
+    );
+};
+
+export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostEditDialogProps) => {
     const { t } = useTranslation();
     const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
@@ -55,46 +79,23 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         React.useState<boolean>(state.kmPost?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
-
-    const closeNonDraftDeleteConfirmation = () => {
-        setNonDraftDeleteConfirmationVisible(false);
-    };
-
-    const confirmNonDraftDraftDelete = () => {
-        setDraftDeleteConfirmationVisible(true);
-    };
-
-    const closeDraftDeleteConfirmation = () => {
-        setDraftDeleteConfirmationVisible(false);
-    };
-
-    const onKmPostDeleted = () => {
-        closeNonDraftDeleteConfirmation();
-        props.onClose && props.onClose();
-        props.kmPostId && props.onUnselect && props.onUnselect();
-    };
-
-    // Load track numbers once
-    React.useEffect(() => {
-        stateActions.onStartLoadingTrackNumbers();
-        getTrackNumbers('DRAFT', undefined, true).then((trackNumbers) => {
-            stateActions.onTrackNumbersLoaded(trackNumbers);
-        });
-    }, []);
+    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT', undefined);
 
     // Load an existing kmPost or create a new KmPost
     React.useEffect(() => {
         if (props.kmPostId) {
-            stateActions.onStartLoadingKmPost();
-            getKmPost(props.kmPostId, 'DRAFT').then((kmPost) => {
-                if (kmPost) {
-                    stateActions.onKmPostLoaded(kmPost);
-                    firstInputRef.current?.focus();
-                } else {
-                    Snackbar.error(t('km-post-dialog.cant-open-deleted'));
-                    onKmPostDeleted();
-                }
-            });
+            stateActions.init();
+            getKmPost(props.kmPostId, 'DRAFT')
+                .then((kmPost) => {
+                    if (kmPost) {
+                        stateActions.onKmPostLoaded(kmPost);
+                        firstInputRef.current?.focus();
+                    } else {
+                        Snackbar.error(t('km-post-dialog.cant-open-deleted'));
+                        close();
+                    }
+                })
+                .catch(() => close());
         } else {
             stateActions.initWithNewKmPost(props.prefilledTrackNumberId);
             firstInputRef.current?.focus();
@@ -102,27 +103,13 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
     }, [props.kmPostId]);
 
     React.useEffect(() => {
-        if (
-            !hasErrors('kmNumber') &&
-            state.kmPost?.trackNumberId &&
-            !isNilOrBlank(state.kmPost.kmNumber) &&
-            (state.kmPost.kmNumber != state.baselineKmNumber ||
-                state.kmPost.trackNumberId != state.baselineTrackNumberId) &&
-            isValidKmNumber(state.kmPost.kmNumber)
-        ) {
-            getKmPostByNumber('DRAFT', state.kmPost.trackNumberId, state.kmPost.kmNumber).then(
-                (found) => {
-                    if (found) {
-                        stateActions.onKmNumberExistsOnTrack();
-                    }
-                },
-            );
-        }
-    }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state]);
+        findTrackNumberKmPost(state).then((found) => stateActions.onTrackNumberKmPostFound(found));
+    }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state, state.existingKmPost]);
 
-    function cancelSave() {
-        props.onClose && props.onClose();
-    }
+    const close = () => {
+        setNonDraftDeleteConfirmationVisible(false);
+        props.onClose();
+    };
 
     const saveOrConfirm = () => {
         if (state.kmPost?.state === 'DELETED' && state.existingKmPost?.state !== 'DELETED') {
@@ -132,45 +119,31 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         }
     };
 
+    async function saveState(state: KmPostEditState): Promise<LayoutKmPostId | undefined> {
+        if (state.isNewKmPost) {
+            const result = await insertKmPost(state.kmPost);
+            if (result.isOk()) Snackbar.success(t('km-post-dialog.insert-succeeded'));
+            else Snackbar.error(t('km-post-dialog.insert-failed'));
+            return result.unwrapOr(undefined);
+        } else if (state.existingKmPost) {
+            const result_2 = await updateKmPost(state.existingKmPost.id, state.kmPost);
+            if (result_2.isOk()) Snackbar.success(t('km-post-dialog.modify-succeeded'));
+            else Snackbar.error(t('km-post-dialog.modify-failed'));
+            return result_2.unwrapOr(undefined);
+        } else {
+            return Promise.resolve(undefined);
+        }
+    }
     function save() {
         if (canSaveKmPost(state) && state.kmPost) {
             stateActions.onStartSaving();
-            if (state.isNewKmPost) {
-                insertKmPost(state.kmPost)
-                    .then((result) => {
-                        result
-                            .map((kmPostId) => {
-                                stateActions.onSaveSucceed(kmPostId);
-                                props.onInsert && props.onInsert(kmPostId);
-                                Snackbar.success(t('km-post-dialog.created-successfully'));
-                            })
-                            .mapErr((_err) => {
-                                stateActions.onSaveFailed();
-                                Snackbar.error(t('km-post-dialog.adding-failed'));
-                            });
-                    })
-                    .catch(() => {
-                        stateActions.onSaveFailed();
-                        Snackbar.error(t('km-post-dialog.adding-failed'));
-                    });
-            } else if (state.existingKmPost) {
-                updateKmPost(state.existingKmPost.id, state.kmPost)
-                    .then((result) => {
-                        result
-                            .map((kmPostId) => {
-                                stateActions.onSaveSucceed(kmPostId);
-                                props.onUpdate && props.onUpdate();
-                                const successMessage = t('km-post-dialog.modified-successfully');
-                                Snackbar.success(successMessage);
-                            })
-                            .mapErr((_err) => {
-                                stateActions.onSaveFailed();
-                            });
-                    })
-                    .catch(() => {
-                        stateActions.onSaveFailed();
-                    });
-            }
+            saveState(state).then((kmPostId) => {
+                if (kmPostId) {
+                    props.onSave && props.onSave(kmPostId);
+                    props.onClose();
+                }
+                stateActions.onEndSaving();
+            });
         }
     }
 
@@ -197,7 +170,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    const trackNumberOptions = state.trackNumbers
+    const trackNumberOptions = (trackNumbers ?? [])
         .filter((tn) => tn.id === state.existingKmPost?.trackNumberId || tn.state !== 'DELETED')
         .map((tn) => {
             const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
@@ -212,7 +185,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         ? t('km-post-dialog.title-new')
                         : t('km-post-dialog.title-edit')
                 }
-                onClose={() => cancelSave()}
+                onClose={() => close()}
                 width={DialogWidth.WIDE}
                 footerContent={
                     <React.Fragment>
@@ -222,7 +195,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                                     <Button
                                         onClick={() =>
                                             props.kmPostId
-                                                ? confirmNonDraftDraftDelete()
+                                                ? setDraftDeleteConfirmationVisible(true)
                                                 : undefined
                                         }
                                         icon={Icons.Delete}
@@ -235,7 +208,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
-                                onClick={() => cancelSave()}>
+                                onClick={() => close()}>
                                 {t('button.return')}
                             </Button>
                             <span onClick={() => stateActions.validate()}>
@@ -267,8 +240,17 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('kmNumber')}
-                        />
+                            errors={getVisibleErrorsByProp('kmNumber')}></FieldLayout>
+                        {state.trackNumberKmPost &&
+                            state.trackNumberKmPost.id !== state.existingKmPost?.id && (
+                                <Link
+                                    className="move-to-edit-link"
+                                    onClick={() => props.onEditKmPost(state.trackNumberKmPost?.id)}>
+                                    {t('km-post-dialog.move-to-edit', {
+                                        number: state.trackNumberKmPost.kmNumber,
+                                    })}
+                                </Link>
+                            )}
                         <FieldLayout
                             label={`${t('km-post-dialog.track-number')} *`}
                             value={
@@ -329,7 +311,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                     footerContent={
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
-                                onClick={closeNonDraftDeleteConfirmation}
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
@@ -347,10 +329,18 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
             {props.kmPostId && draftDeleteConfirmationVisible && (
                 <KmPostDeleteConfirmationDialog
                     id={props.kmPostId}
-                    onCancel={closeDraftDeleteConfirmation}
-                    onClose={onKmPostDeleted}
+                    onClose={() => setDraftDeleteConfirmationVisible(false)}
+                    onSave={props.onSave}
                 />
             )}
         </React.Fragment>
     );
 };
+
+function findTrackNumberKmPost(state: KmPostEditState): Promise<LayoutKmPost | undefined> {
+    if (state.kmPost?.trackNumberId !== undefined && isValidKmNumber(state.kmPost.kmNumber)) {
+        return getKmPostByNumber('DRAFT', state.kmPost.trackNumberId, state.kmPost.kmNumber, true);
+    } else {
+        return Promise.resolve(undefined);
+    }
+}

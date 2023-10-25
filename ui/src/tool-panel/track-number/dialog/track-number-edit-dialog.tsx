@@ -367,8 +367,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             {inEditTrackNumber && draftDeleteConfirmationVisible && (
                 <TrackNumberDeleteConfirmationDialog
                     id={inEditTrackNumber.id}
-                    onCancel={closeDraftDeleteConfirmation}
-                    onClose={onTrackNumberDeleted}
+                    onClose={closeDraftDeleteConfirmation}
+                    onSave={onTrackNumberDeleted}
                 />
             )}
         </React.Fragment>

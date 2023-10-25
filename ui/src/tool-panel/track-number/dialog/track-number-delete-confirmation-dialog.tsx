@@ -15,40 +15,33 @@ import { deleteTrackNumber } from 'track-layout/layout-track-number-api';
 
 type TrackNumberDeleteConfirmationDialogProps = {
     id: LayoutTrackNumberId;
+    onSave: () => void;
     onClose: () => void;
-    onCancel: () => void;
 };
 
 const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmationDialogProps> = ({
     id,
+    onSave,
     onClose,
-    onCancel,
 }: TrackNumberDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
     const [, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
-        deleteTrackNumber(id)
-            .then((result) => {
-                result
-                    .map((trackNumberId) => {
-                        stateActions.onSaveSucceed(trackNumberId);
-                        Snackbar.success(
-                            t('tool-panel.track-number.delete-dialog.delete-succeeded'),
-                        );
-                        onClose();
-                    })
-                    .mapErr(() => {
-                        stateActions.onSaveFailed();
-                        Snackbar.error(t('tool-panel.track-number.delete-dialog.delete-failed'));
-                        onClose();
-                    });
-            })
-            .catch(() => {
-                stateActions.onSaveFailed();
-                onClose();
-            });
+        deleteTrackNumber(id).then((result) => {
+            result
+                .map((trackNumberId) => {
+                    stateActions.onSaveSucceed(trackNumberId);
+                    Snackbar.success(t('tool-panel.track-number.delete-dialog.delete-succeeded'));
+                    onSave();
+                    onClose();
+                })
+                .mapErr(() => {
+                    stateActions.onSaveFailed();
+                    Snackbar.error(t('tool-panel.track-number.delete-dialog.delete-failed'));
+                });
+        });
     };
 
     return (
@@ -58,7 +51,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                    <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('button.cancel')}
                     </Button>
                     <Button onClick={() => deleteDraftLocationTrack(id)}>

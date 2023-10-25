@@ -1,7 +1,7 @@
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
+import { LayoutKmPost } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
@@ -17,12 +17,13 @@ import styles from 'tool-panel/km-post/geometry-km-post-linking-infobox.scss';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
-import { getKmPost, getKmPostForLinking, getKmPosts } from 'track-layout/layout-km-post-api';
+import { getKmPostForLinking, getKmPosts } from 'track-layout/layout-km-post-api';
 import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-field';
-import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
-import { updateKmPostChangeTime } from 'common/change-time-api';
+import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { filterNotEmpty } from 'utils/array-utils';
 import { WriteAccessRequired } from 'user/write-access-required';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import { refereshKmPostSelection } from 'track-layout/track-layout-react-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -32,7 +33,8 @@ type GeometryKmPostLinkingInfoboxProps = {
     linkingState: LinkingKmPost | undefined;
     startLinking: (geometryKmPostId: GeometryKmPostId) => void;
     stopLinking: () => void;
-    onKmPostSelect: (kmPost: LayoutKmPost) => void;
+    onSelect: OnSelectFunction;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     publishType: PublishType;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
@@ -46,7 +48,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     linkingState,
     startLinking,
     stopLinking,
-    onKmPostSelect,
+    onSelect,
+    onUnselect,
     publishType,
     contentVisible,
     onContentVisibilityChange,
@@ -108,16 +111,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         }
     }
 
-    function handleKmPostInsert(id: LayoutKmPostId) {
-        updateKmPostChangeTime().then((kp) => {
-            getKmPost(id, publishType, kp).then((kmPost) => {
-                if (kmPost) onKmPostSelect(kmPost);
-            });
-            setShowAddDialog(false);
-        });
-
-        setShowAddDialog(false);
-    }
+    const handleKmPostSave = refereshKmPostSelection(onSelect, onUnselect);
 
     return (
         <React.Fragment>
@@ -209,7 +203,9 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                                     'geometry-km-post-linking-infobox__layout-km-post'
                                                 ]
                                             }
-                                            onClick={() => onKmPostSelect(layoutKmPostOption)}>
+                                            onClick={() =>
+                                                onSelect({ kmPosts: [layoutKmPostOption.id] })
+                                            }>
                                             <KmPostBadge
                                                 kmPost={layoutKmPostOption}
                                                 status={
@@ -245,9 +241,9 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
             </Infobox>
 
             {showAddDialog && (
-                <KmPostEditDialog
+                <KmPostEditDialogContainer
                     onClose={() => setShowAddDialog(false)}
-                    onInsert={handleKmPostInsert}
+                    onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
                 />
             )}

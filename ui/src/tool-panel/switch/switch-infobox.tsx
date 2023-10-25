@@ -41,7 +41,11 @@ import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { formatDateShort } from 'utils/date-utils';
-import { useSwitchChangeTimes } from 'track-layout/track-layout-react-utils';
+import {
+    refreshSwitchSelection,
+    useSwitchChangeTimes,
+} from 'track-layout/track-layout-react-utils';
+import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -49,7 +53,8 @@ type SwitchInfoboxProps = {
     onDataChange: () => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
-    onUnselect: (switchId: LayoutSwitchId) => void;
+    onSelect: (options: OnSelectOptions) => void;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     placingSwitchLinkingState?: PlacingSwitch;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     stopLinking: () => void;
@@ -123,6 +128,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     onDataChange,
     changeTimes,
     publishType,
+    onSelect,
     onUnselect,
     placingSwitchLinkingState,
     startSwitchPlacing,
@@ -171,16 +177,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         onDataChange();
     }
 
-    function closeEditSwitchDialog() {
-        setShowEditDialog(false);
-    }
-
-    function handleSwitchDelete() {
-        setShowDeleteDialog(false);
-        setShowEditDialog(false);
-        onUnselect(switchId);
-    }
-
     function getOwnerName(ownerId: SwitchOwnerId | undefined) {
         const name = switchOwners?.find((o) => o.id == ownerId)?.name;
         return name ?? '-';
@@ -195,6 +191,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const visibilityChange = (key: keyof SwitchInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
+    const handleSwitchSave = refreshSwitchSelection(onSelect, onUnselect);
 
     return (
         <React.Fragment>
@@ -369,17 +366,16 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
             {showDeleteDialog && (
                 <SwitchDeleteDialog
                     switchId={switchId}
-                    onDelete={handleSwitchDelete}
-                    onCancel={() => setShowDeleteDialog(false)}
+                    onClose={() => setShowDeleteDialog(false)}
+                    onSave={handleSwitchSave}
                 />
             )}
 
             {showEditDialog && (
                 <SwitchEditDialog
                     switchId={layoutSwitch?.id}
-                    onClose={closeEditSwitchDialog}
-                    onUpdate={closeEditSwitchDialog}
-                    onDelete={handleSwitchDelete}
+                    onClose={() => setShowEditDialog(false)}
+                    onSave={handleSwitchSave}
                 />
             )}
         </React.Fragment>

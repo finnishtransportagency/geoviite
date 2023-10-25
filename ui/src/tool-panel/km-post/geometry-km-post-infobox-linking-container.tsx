@@ -58,7 +58,8 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
                 delegates.hideLayers(linkingLayers);
                 delegates.stopLinking();
             }}
-            onKmPostSelect={(kmPost: LayoutKmPost) => delegates.onSelect({ kmPosts: [kmPost.id] })}
+            onSelect={delegates.onSelect}
+            onUnselect={delegates.onUnselect}
             publishType={state.publishType}
         />
     );

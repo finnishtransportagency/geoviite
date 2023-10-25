@@ -3,49 +3,33 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutKmPostId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
-import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
-import {
-    actions,
-    initialKmPostEditState,
-    reducer,
-} from 'tool-panel/km-post/dialog/km-post-edit-store';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { deleteDraftKmPost } from 'track-layout/layout-km-post-api';
 
 type KmPostDeleteConfirmationDialogProps = {
     id: LayoutKmPostId;
+    onSave?: (id: LayoutKmPostId) => void;
     onClose: () => void;
-    onCancel: () => void;
 };
 
 const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogProps> = ({
     id,
+    onSave,
     onClose,
-    onCancel,
 }: KmPostDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
-    const [, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
-    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
-    const deleteKmPost = (id: LayoutKmPostId) => {
-        deleteDraftKmPost(id)
-            .then((result) => {
-                result
-                    .map((kmPostId) => {
-                        stateActions.onSaveSucceed(kmPostId);
-                        Snackbar.success(t('km-post-delete-draft-dialog.delete-succeeded'));
-                        onClose();
-                    })
-                    .mapErr(() => {
-                        stateActions.onSaveFailed();
-                        Snackbar.error(t('km-post-delete-draft-dialog.delete-failed'));
-                    });
-            })
-            .catch(() => {
-                stateActions.onSaveFailed();
-            });
-    };
+    const deleteKmPost = (id: LayoutKmPostId) =>
+        deleteDraftKmPost(id).then((result) => {
+            result
+                .map((kmPostId) => {
+                    Snackbar.success(t('km-post-delete-draft-dialog.delete-succeeded'));
+                    onSave && onSave(kmPostId);
+                    onClose();
+                })
+                .mapErr(() => Snackbar.error(t('km-post-delete-draft-dialog.delete-failed')));
+        });
 
     return (
         <Dialog
@@ -54,7 +38,7 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                    <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('button.cancel')}
                     </Button>
                     <Button onClick={() => deleteKmPost(id)}>{t('button.delete')}</Button>

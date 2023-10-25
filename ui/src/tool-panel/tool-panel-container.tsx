@@ -32,8 +32,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
         delegates.onSelect({
             switches: [layoutSwitch.id],
         });
-    },
-    []);
+    }, []);
 
     const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
         delegates.showLayers(['switch-linking-layer']);
@@ -74,7 +73,8 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             changeTimes={changeTimes}
             publishType={store.publishType}
             suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
-            onDataChange={typeChange}
+            onDataChange={typeChange} // TODO: GVT-2173 WTF is this?
+            onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
             setSelectedAsset={delegates.setToolPanelTab}
             selectedAsset={store.selectedToolPanelTab}

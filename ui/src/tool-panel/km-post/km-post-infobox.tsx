@@ -8,7 +8,7 @@ import { formatToTM35FINString } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
+import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getKmLengths, getKmPost } from 'track-layout/layout-km-post-api';
@@ -16,15 +16,21 @@ import { useLoader } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { KmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { useKmPostChangeTimes } from 'track-layout/track-layout-react-utils';
+import {
+    refereshKmPostSelection,
+    useKmPostChangeTimes,
+} from 'track-layout/track-layout-react-utils';
 import { formatDateShort } from 'utils/date-utils';
+import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 
 type KmPostInfoboxProps = {
     publishType: PublishType;
     kmPostChangeTime: TimeStamp;
     kmPost: LayoutKmPost;
     onShowOnMap: () => void;
-    onUnselect: () => void;
+    onSelect: (items: OnSelectOptions) => void;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onDataChange: () => void;
     visibilities: KmPostInfoboxVisibilities;
     onVisibilityChange: (visibilities: KmPostInfoboxVisibilities) => void;
@@ -35,6 +41,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     kmPostChangeTime,
     kmPost,
     onShowOnMap,
+    onSelect,
     onUnselect,
     onDataChange,
     visibilities,
@@ -75,22 +82,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onDataChange();
     }
 
-    const showDeleteConfirmation = () => {
-        setConfirmingDraftDelete(true);
-    };
-
-    const closeDeleteConfirmation = () => {
-        setConfirmingDraftDelete(false);
-    };
-
-    const closeConfirmationAndUnselect = () => {
-        closeDeleteConfirmation();
-        onUnselect();
-    };
-
     const visibilityChange = (key: keyof KmPostInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
+
+    const handleKmPostSave = refereshKmPostSelection(onSelect, onUnselect);
 
     return (
         <React.Fragment>
@@ -113,6 +109,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                 trackNumberId={updatedKmPost?.trackNumberId}
                             />
                         }
+                    />
+                    <InfoboxField
+                        label={t('tool-panel.km-post.layout.state')}
+                        value={<LayoutState state={kmPost.state} />}
                     />
                     {kmPostLength && (
                         <InfoboxField
@@ -181,7 +181,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     {kmPost?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button
-                                onClick={() => showDeleteConfirmation()}
+                                onClick={() => setConfirmingDraftDelete(true)}
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
@@ -194,17 +194,16 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             {confirmingDraftDelete && (
                 <KmPostDeleteConfirmationDialog
                     id={kmPost.id}
-                    onClose={closeConfirmationAndUnselect}
-                    onCancel={closeDeleteConfirmation}
+                    onSave={() => handleKmPostSave(kmPost.id)}
+                    onClose={() => setConfirmingDraftDelete(false)}
                 />
             )}
 
             {showEditDialog && (
-                <KmPostEditDialog
+                <KmPostEditDialogContainer
                     kmPostId={kmPost.id}
                     onClose={closeEditDialog}
-                    onUpdate={closeEditDialog}
-                    onUnselect={onUnselect}
+                    onSave={handleKmPostSave}
                 />
             )}
         </React.Fragment>

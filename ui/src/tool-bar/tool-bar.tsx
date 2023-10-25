@@ -2,21 +2,15 @@ import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
-import { getKmPost } from 'track-layout/layout-km-post-api';
+import { getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
 import {
-    getLocationTrack,
     getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import {
-    LayoutKmPostId,
     LayoutLocationTrack,
     LayoutSwitch,
-    LayoutSwitchId,
     LayoutTrackNumber,
-    LayoutTrackNumberId,
-    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -30,14 +24,8 @@ import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
 import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
-import {
-    updateKmPostChangeTime,
-    updateLocationTrackChangeTime,
-    updateReferenceLineChangeTime,
-    updateTrackNumberChangeTime,
-} from 'common/change-time-api';
 import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
-import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
+import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import { ChangeTimes } from 'common/common-slice';
@@ -47,12 +35,17 @@ import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
 import { getTrackNumbersBySearchTerm } from 'track-layout/layout-track-number-api';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import {
+    refereshKmPostSelection,
+    refreshLocationTrackSelection,
+    refreshSwitchSelection,
+    refreshTrackNumberSelection,
+} from 'track-layout/track-layout-react-utils';
 
 export type ToolbarParams = {
-    onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
-    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
-    onSelectSwitch: (switchId: LayoutSwitchId) => void;
-    onSelectKmPost: (kmPostId: LayoutKmPostId) => void;
+    onSelect: OnSelectFunction;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
@@ -184,7 +177,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
         switch (item?.type) {
             case 'locationTrackSearchItem':
                 item.locationTrack.boundingBox && props.showArea(item.locationTrack.boundingBox);
-                return props.onSelectLocationTrack(item.locationTrack.id);
+                return props.onSelect({ locationTracks: [item.locationTrack.id] });
 
             case 'switchSearchItem':
                 if (item.layoutSwitch.joints.length > 0) {
@@ -196,7 +189,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
                     props.showArea(bbox);
                 }
-                return props.onSelectSwitch(item.layoutSwitch.id);
+                return props.onSelect({ switches: [item.layoutSwitch.id] });
 
             case 'trackNumberSearchItem':
                 getTrackNumberReferenceLine(item.trackNumber.id, 'DRAFT').then((referenceLine) => {
@@ -205,7 +198,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     }
                 });
 
-                return props.onSelectTrackNumber(item.trackNumber.id);
+                return props.onSelect({ trackNumbers: [item.trackNumber.id] });
 
             default:
                 return;
@@ -233,41 +226,6 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
         setShowAddMenu(false);
     }
 
-    function handleTrackNumberSave(id: LayoutTrackNumberId) {
-        updateReferenceLineChangeTime().then(() =>
-            updateTrackNumberChangeTime().then(() => props.onSelectTrackNumber(id)),
-        );
-    }
-
-    function handleLocationTrackInsert(id: LocationTrackId) {
-        updateLocationTrackChangeTime().then((ts) => {
-            getLocationTrack(id, 'DRAFT', ts).then((locationTrack) => {
-                if (locationTrack) props.onSelectLocationTrack(locationTrack.id);
-            });
-
-            setShowAddLocationTrackDialog(false);
-        });
-    }
-
-    function handleSwitchInsert(switchId: LayoutSwitchId) {
-        getSwitch(switchId, 'DRAFT').then((s) => {
-            if (s) props.onSelectSwitch(s.id);
-        });
-
-        setShowAddSwitchDialog(false);
-    }
-
-    function handleKmPostInsert(id: LayoutKmPostId) {
-        updateKmPostChangeTime().then((kp) => {
-            getKmPost(id, 'DRAFT', kp).then((kmPost) => {
-                if (kmPost) props.onSelectKmPost(kmPost.id);
-            });
-            setShowAddKmPostDialog(false);
-        });
-
-        setShowAddKmPostDialog(false);
-    }
-
     function moveToOfficialPublishType() {
         props.onPublishTypeChange('OFFICIAL');
         setShowAddMenu(false);
@@ -277,6 +235,11 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
         props.onOpenPreview();
         props.onStopLinking();
     }
+
+    const handleTrackNumberSave = refreshTrackNumberSelection(props.onSelect, props.onUnselect);
+    const handleLocationTrackSave = refreshLocationTrackSelection(props.onSelect, props.onUnselect);
+    const handleSwitchSave = refreshSwitchSelection(props.onSelect, props.onUnselect);
+    const handleKmPostSave = refereshKmPostSelection(props.onSelect, props.onUnselect);
 
     return (
         <div className={`tool-bar tool-bar--${props.publishType.toLowerCase()}`}>
@@ -357,7 +320,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
             {showAddLocationTrackDialog && (
                 <LocationTrackEditDialog
                     onClose={() => setShowAddLocationTrackDialog(false)}
-                    onInsert={handleLocationTrackInsert}
+                    onSave={handleLocationTrackSave}
                     locationTrackChangeTime={props.changeTimes.layoutLocationTrack}
                     publishType={'DRAFT'}
                 />
@@ -366,14 +329,14 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
             {showAddSwitchDialog && (
                 <SwitchEditDialog
                     onClose={() => setShowAddSwitchDialog(false)}
-                    onInsert={handleSwitchInsert}
+                    onSave={handleSwitchSave}
                 />
             )}
 
             {showAddKmPostDialog && (
-                <KmPostEditDialog
+                <KmPostEditDialogContainer
                     onClose={() => setShowAddKmPostDialog(false)}
-                    onInsert={handleKmPostInsert}
+                    onSave={handleKmPostSave}
                 />
             )}
         </div>
