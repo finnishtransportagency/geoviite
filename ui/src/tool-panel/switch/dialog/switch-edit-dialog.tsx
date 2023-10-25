@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import {
     booleanToTrapPoint,
@@ -28,7 +28,7 @@ import {
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';

@@ -4,7 +4,7 @@ import {
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -45,7 +45,7 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { PublishType, TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';

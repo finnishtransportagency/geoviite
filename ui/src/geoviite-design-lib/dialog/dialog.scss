@@ -1,7 +1,7 @@
-@use '../colors';
-@use '../typography';
-@use '../shadows';
-@use '../layers';
+@use 'vayla-design-lib/colors';
+@use 'vayla-design-lib/typography';
+@use 'vayla-design-lib/shadows';
+@use 'vayla-design-lib/layers';
 
 $dialog-padding-horizontal: 24px;
 $dialog-padding-vertical: 16px;
