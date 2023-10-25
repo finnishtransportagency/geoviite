@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
@@ -976,20 +977,7 @@ class SwitchLinkingService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
-        val alignmentSearchAreaSize = 2.0
-        val alignmentSearchArea = BoundingBox(
-            Point(0.0, 0.0), Point(alignmentSearchAreaSize, alignmentSearchAreaSize)
-        ).centerAt(location)
-        val nearbyLocationTracks =
-            locationTrackService.listNearWithAlignments(DRAFT, alignmentSearchArea).filter { (_, alignment) ->
-                alignment.segments.any { segment ->
-                    alignmentSearchArea.intersects(segment.boundingBox) && segment.points.any { point ->
-                        alignmentSearchArea.contains(
-                            point
-                        )
-                    }
-                }
-            }
+        val nearbyLocationTracks = locationTrackService.getLocationTracksNear(location, DRAFT)
 
         return createSuggestedSwitchByPoint(
             location, switchStructure, nearbyLocationTracks
@@ -1019,6 +1007,25 @@ class SwitchLinkingService @Autowired constructor(
             locationTracks,
             getMeasurementMethod = this::getMeasurementMethod,
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getSuggestedSwitchesAtPresentationJointLocations(switches: List<TrackLayoutSwitch>): List<Pair<DomainId<TrackLayoutSwitch>, SuggestedSwitch?>> {
+        logger.serviceCall("getSuggestedSwitchesAtPresentationJointLocations", "switches" to switches)
+        val switchSuggestionCalculationData = switches.map { switch ->
+            val location = switchService.getPresentationJointOrThrow(switch).location
+            val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
+            val locationTracks = locationTrackService.getLocationTracksNear(location, DRAFT)
+
+            Pair(switch.id, Triple(location, structure, locationTracks))
+        }
+
+        return switchSuggestionCalculationData.parallelStream().map { (switchId, triple) ->
+            val (location, structure, locationTracks) = triple
+            createSuggestedSwitchByPoint(location, structure, locationTracks)?.let { switchSuggestion ->
+                switchId to switchSuggestion
+            }
+        }.collect(Collectors.toList())
     }
 
     @Transactional

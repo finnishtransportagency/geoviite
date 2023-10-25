@@ -406,7 +406,14 @@ class LayoutSwitchDao(
     fun findLocationTracksLinkedToSwitch(
         publicationState: PublishType,
         switchId: IntId<TrackLayoutSwitch>,
+    ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(publicationState, listOf(switchId))
+
+    fun findLocationTracksLinkedToSwitches(
+        publicationState: PublishType,
+        switchIds: List<IntId<TrackLayoutSwitch>>,
     ): List<LocationTrackIdentifiers> {
+        if (switchIds.isEmpty()) return emptyList()
+
         val sql = """ 
             select 
               location_track.row_id,
@@ -417,9 +424,9 @@ class LayoutSwitchDao(
                 on location_track.alignment_id = segment_version.alignment_id
                   and location_track.alignment_version = segment_version.alignment_version
             where :publication_state = any(publication_states)
-              and (segment_version.switch_id = :switch_id 
-                or location_track.topology_start_switch_id = :switch_id
-                or location_track.topology_end_switch_id = :switch_id
+              and (segment_version.switch_id in (:switch_ids) 
+                or location_track.topology_start_switch_id in (:switch_ids)
+                or location_track.topology_end_switch_id in (:switch_ids)
               )
             group by 
               location_track.row_id, 
@@ -427,7 +434,7 @@ class LayoutSwitchDao(
               location_track.external_id
         """.trimIndent()
         val params = mapOf(
-            "switch_id" to switchId.intValue,
+            "switch_ids" to switchIds.map { it.intValue },
             "publication_state" to publicationState.name,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->

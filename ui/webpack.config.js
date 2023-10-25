@@ -65,23 +65,25 @@ module.exports = (env) => {
                         const projectOid = req.query['project'];
                         const projectGroupOid = req.query['projectGroup'];
 
-                        let redirectUrl = '';
-
                         if (projectOid) {
-                            redirectUrl = `/projektit/oid-${projectOid}`;
+                            const projectPath = `/projektit/oid-${projectOid}`;
 
-                            if (assignmentOid) {
-                                redirectUrl += `/toimeksiannot/oid-${assignmentOid}`;
+                            const assigmentPath = assignmentOid
+                                ? `/toimeksiannot/oid-${assignmentOid}`
+                                : '';
 
-                                if (documentOid) {
-                                    redirectUrl += `/aineistot/oid-${documentOid}/muokkaa`;
-                                }
-                            }
+                            const documentPath =
+                                assignmentOid && documentOid
+                                    ? `/aineistot/oid-${documentOid}/muokkaa`
+                                    : '';
+
+                            return projectPath + assigmentPath + documentPath;
                         } else if (projectGroupOid) {
-                            redirectUrl += `/projektijoukot/oid-${projectGroupOid}`;
+                            return `/projektijoukot/oid-${projectGroupOid}`;
                         }
 
-                        return redirectUrl;
+                        //Returning undefined would redirect uri as it is to ProjektiVelho, and we don't want that
+                        return '';
                     },
                 },
                 '/location-map/': {

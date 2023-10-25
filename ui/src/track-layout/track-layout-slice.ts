@@ -248,6 +248,14 @@ function filterItemSelectOptions(
         }
     }
 
+    if (options?.trackNumbers && options.trackNumbers.length > 0) {
+        options.locationTracks = [];
+    }
+
+    if (options?.locationTracks && options.locationTracks.length > 0) {
+        options.trackNumbers = [];
+    }
+
     return {
         ...options,
 

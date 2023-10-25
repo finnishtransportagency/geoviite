@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.*
@@ -111,9 +110,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = ratkoNodes,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(
-                    PublishType.OFFICIAL, layoutLocationTrack
-                ).toString()
+                locationTrackService.getFullDescription(PublishType.OFFICIAL, locationTrack).toString()
             })
         val locationTrackOid = ratkoClient.newLocationTrack(ratkoLocationTrack)
         checkNotNull(locationTrackOid) {
@@ -350,9 +347,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = changedNodeCollection,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(
-                    PublishType.OFFICIAL, layoutLocationTrack
-                ).toString()
+                locationTrackService.getFullDescription(PublishType.OFFICIAL, locationTrack).toString()
             })
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)

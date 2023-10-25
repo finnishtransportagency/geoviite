@@ -853,7 +853,7 @@ class PublicationValidationTest {
         errorRangeDescription: String,
     ) {
         val errors = validateAddressPoints(trackNumber(), locationTrack(IntId(1)), "", geocode)
-        assertEquals(errorRangeDescription, errors[0].params["kmNumbers"])
+        assertEquals(errorRangeDescription, errors[0].params.get("kmNumbers"))
     }
 
     private fun assertContainsError(contains: Boolean, errors: List<PublishValidationError>, error: String) {
