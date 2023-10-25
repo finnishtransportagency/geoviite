@@ -199,11 +199,13 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 return props.onSelectSwitch(item.layoutSwitch.id);
 
             case 'trackNumberSearchItem':
-                getTrackNumberReferenceLine(item.trackNumber.id, 'DRAFT').then((referenceLine) => {
-                    if (referenceLine?.boundingBox) {
-                        props.showArea(referenceLine.boundingBox);
-                    }
-                });
+                getTrackNumberReferenceLine(item.trackNumber.id, props.publishType).then(
+                    (referenceLine) => {
+                        if (referenceLine?.boundingBox) {
+                            props.showArea(referenceLine.boundingBox);
+                        }
+                    },
+                );
 
                 return props.onSelectTrackNumber(item.trackNumber.id);
 
