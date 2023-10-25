@@ -107,17 +107,3 @@ export const getTrackNumberChangeTimes = (
 ): Promise<DraftableChangeInfo | undefined> => {
     return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id));
 };
-
-export async function getTrackNumbersBySearchTerm(
-    searchTerm: string,
-    publishType: PublishType,
-    limit: number,
-): Promise<LayoutTrackNumber[]> {
-    const params = queryParams({
-        searchTerm: searchTerm,
-        limit: limit,
-    });
-    return await getNonNull<LayoutTrackNumber[]>(
-        `${layoutUri('track-numbers', publishType)}${params}`,
-    );
-}

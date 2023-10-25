@@ -42,18 +42,6 @@ export async function getSwitchesByBoundingBox(
     return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
-export async function getSwitchesBySearchTerm(
-    searchTerm: string,
-    publishType: PublishType,
-    limit: number,
-): Promise<LayoutSwitch[]> {
-    const params = queryParams({
-        searchTerm: searchTerm,
-        limit: limit,
-    });
-    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
-}
-
 export async function getSwitchesByTile(
     changeTime: TimeStamp,
     mapTile: MapTile,

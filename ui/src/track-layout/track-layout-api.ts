@@ -6,7 +6,8 @@ type LayoutDataType =
     | 'km-posts'
     | 'switches'
     | 'location-tracks'
-    | 'reference-lines';
+    | 'reference-lines'
+    | 'search';
 
 export const TRACK_LAYOUT_URI = `${API_URI}/track-layout`;
 
