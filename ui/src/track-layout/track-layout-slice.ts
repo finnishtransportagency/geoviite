@@ -18,15 +18,13 @@ import {
 } from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
-import { compareTrackMeterStrings, LayoutMode, PublishType, TrackMeter } from 'common/common-model';
+import { LayoutMode, PublishType } from 'common/common-model';
 import {
     GeometryPlanLayout,
     LayoutKmPostId,
-    LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
-    LocationTrackSplittingState,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
@@ -34,7 +32,7 @@ import { addIfExists, subtract } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { formatTrackMeter } from 'utils/geography-utils';
+import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -191,7 +189,7 @@ export type TrackLayoutState = {
     selection: Selection;
     stagedPublicationRequestIds: PublishRequestIds;
     linkingState?: LinkingState;
-    splittingState?: LocationTrackSplittingState;
+    splittingState?: SplittingState;
     linkingIssuesSelectedBeforeLinking: boolean;
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
@@ -211,7 +209,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
 };
 
 export function getSelectableItemTypes(
-    splittingState?: LocationTrackSplittingState | undefined,
+    splittingState?: SplittingState | undefined,
     linkingState?: LinkingState | undefined,
 ): SelectableItemType[] {
     if (splittingState) return ['switches'];
@@ -270,6 +268,7 @@ const trackLayoutSlice = createSlice({
         ...wrapReducers((state: TrackLayoutState) => state.map, mapReducers),
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
         ...wrapReducers((state: TrackLayoutState) => state, linkingReducers),
+        ...wrapReducers((state: TrackLayoutState) => state, splitReducers),
 
         onInfoboxVisibilityChange: (
             state: TrackLayoutState,
@@ -288,6 +287,11 @@ const trackLayoutSlice = createSlice({
 
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
+            if (state.splittingState) {
+                // Add split
+                return;
+            }
+
             // Handle selection
             const options = filterItemSelectOptions(state, action.payload);
             selectionReducers.onSelect(state.selection, {
@@ -480,79 +484,6 @@ const trackLayoutSlice = createSlice({
             { payload }: PayloadAction<ToolPanelAsset | undefined>,
         ): void => {
             state.selectedToolPanelTab = payload;
-        },
-        onStartSplitting: (
-            state: TrackLayoutState,
-            {
-                payload,
-            }: PayloadAction<{
-                start: { point: Point; address: TrackMeter };
-                end: { point: Point; address: TrackMeter };
-                locationTrack: LayoutLocationTrack;
-            }>,
-        ): void => {
-            state.splittingState = {
-                originLocationTrack: payload.locationTrack,
-                splits: [
-                    {
-                        location: payload.start.address,
-                        name: '',
-                        descriptionBase: '',
-                        suffixMode: 'NONE',
-                    },
-                ],
-                endpoint: payload.end,
-            };
-        },
-        cancelSplitting: (state: TrackLayoutState): void => {
-            state.splittingState = undefined;
-        },
-        addSplit: (
-            state: TrackLayoutState,
-            { payload }: PayloadAction<{ point: Point; address: TrackMeter }>,
-        ): void => {
-            if (state.splittingState) {
-                const splits = (state.splittingState.splits || []).concat([
-                    {
-                        location: payload.address,
-                        name: '',
-                        descriptionBase: '',
-                        suffixMode: 'NONE',
-                    },
-                ]);
-                splits.sort((a, b) =>
-                    compareTrackMeterStrings(
-                        formatTrackMeter(a.location),
-                        formatTrackMeter(b.location),
-                    ),
-                );
-                state.splittingState.splits = splits;
-            }
-        },
-        removeSplit: (
-            state: TrackLayoutState,
-            { payload }: PayloadAction<{ address: TrackMeter }>,
-        ): void => {
-            if (state.splittingState) {
-                state.splittingState.splits = (state.splittingState.splits || []).filter(
-                    (split) =>
-                        !(
-                            split.location.meters == payload.address.meters &&
-                            split.location.kmNumber == payload.address.kmNumber
-                        ),
-                );
-            }
-        },
-        setSplitDuplicate: (
-            state: TrackLayoutState,
-            { payload }: PayloadAction<{ splitStart: TrackMeter; duplicateOf: LocationTrackId }>,
-        ): void => {
-            if (state.splittingState) {
-                state.splittingState.splits.find(
-                    (split) =>
-                        formatTrackMeter(split.location) === formatTrackMeter(payload.splitStart),
-                )!.duplicateOf = payload.duplicateOf;
-            }
         },
     },
 });

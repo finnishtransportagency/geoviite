@@ -5,7 +5,6 @@ import {
     LAYOUT_SRID,
     LayoutLocationTrack,
     LayoutSwitchIdAndName,
-    LocationTrackSplittingState,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -61,13 +60,14 @@ import {
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { LocationTrackSplittingInfobox } from 'tool-panel/location-track/location-track-splitting-infobox';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
     onStartLocationTrackGeometryChange: (linkInterval: LinkInterval) => void;
     onEndLocationTrackGeometryChange: () => void;
     linkingState?: LinkingState;
-    splittingState?: LocationTrackSplittingState;
+    splittingState?: SplittingState;
     showArea: (area: BoundingBox) => void;
     onDataChange: () => void;
     publishType: PublishType;
@@ -317,11 +317,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     visibilities={visibilities}
                     visibilityChange={visibilityChange}
                     splits={splittingState.splits || []}
+                    locationTrackId={splittingState.originLocationTrack.id}
                     endPoint={splittingState.endpoint}
-                    removeSplit={(splitLocation) =>
-                        delegates.removeSplit({ address: splitLocation })
-                    }
-                    addSplit={(split) => delegates.addSplit(split)}
+                    removeSplit={(_splitLocation) => console.log('blöö')}
+                    addSplit={(_split) => console.log('blää')}
+                    cancelSplitting={() => {
+                        delegates.cancelSplitting();
+                    }}
                 />
             )}
             {startAndEndPoints && coordinateSystem && (
@@ -414,11 +416,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 startAndEndPoints?.start &&
                                                 startAndEndPoints?.end
                                             ) {
-                                                delegates.onStartSplitting({
-                                                    locationTrack: locationTrack,
-                                                    start: startAndEndPoints?.start,
-                                                    end: startAndEndPoints?.end,
-                                                });
+                                                delegates.onStartSplitting(locationTrack);
                                             }
                                         }}>
                                         Aloita raiteen jakaminen

@@ -16,7 +16,6 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
-    LocationTrackSplittingState,
 } from 'track-layout/track-layout-model';
 import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
@@ -48,6 +47,7 @@ import {
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -60,7 +60,7 @@ type ToolPanelProps = {
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
-    splittingState?: LocationTrackSplittingState;
+    splittingState?: SplittingState;
     showArea: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;

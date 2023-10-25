@@ -1,10 +1,6 @@
 import * as React from 'react';
 import LocationTrackInfobox from 'tool-panel/location-track/location-track-infobox';
-import {
-    LayoutLocationTrack,
-    LocationTrackId,
-    LocationTrackSplittingState,
-} from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
 import {
@@ -15,11 +11,12 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { MapViewport } from 'map/map-model';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
     linkingState?: LinkingState;
-    splittingState?: LocationTrackSplittingState;
+    splittingState?: SplittingState;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
     onUnselect: (track: LayoutLocationTrack) => void;

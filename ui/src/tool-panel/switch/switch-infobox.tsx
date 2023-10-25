@@ -95,7 +95,7 @@ const getTrackMeterForPoint = async (
     return mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter);
 };
 
-const getSwitchJointTrackMeters = async (
+export const getSwitchJointTrackMeters = async (
     switchJointConnections: LayoutSwitchJointConnection[],
     publishType: PublishType,
     changeTimes: ChangeTimes,

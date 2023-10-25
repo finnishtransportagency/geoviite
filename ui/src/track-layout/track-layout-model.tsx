@@ -275,20 +275,6 @@ export type SwitchJointTrackMeter = {
     trackMeter: TrackMeter | undefined;
 };
 
-export type LocationTrackSplit = {
-    location: TrackMeter;
-    name: string;
-    descriptionBase: string;
-    suffixMode: LocationTrackDescriptionSuffixMode;
-    duplicateOf?: LocationTrackId;
-};
-
-export type LocationTrackSplittingState = {
-    originLocationTrack: LayoutLocationTrack;
-    splits: LocationTrackSplit[];
-    endpoint: { address: TrackMeter; point: Point };
-};
-
 export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }

@@ -48,6 +48,7 @@ import {
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
+import { getChangeTimes } from 'common/change-time-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -191,7 +192,7 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
-    changeTime: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () =>
