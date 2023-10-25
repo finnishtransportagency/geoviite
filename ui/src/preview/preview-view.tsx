@@ -411,6 +411,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                     onShowOnMap={props.onShowOnMap}
+                                    changeTimes={props.changeTimes}
                                 />
                             </section>
 
@@ -425,6 +426,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                     onShowOnMap={props.onShowOnMap}
+                                    changeTimes={props.changeTimes}
                                 />
                             </section>
 
