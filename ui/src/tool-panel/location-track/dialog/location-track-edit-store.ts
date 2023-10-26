@@ -1,9 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {
-    LayoutLocationTrack,
-    LayoutTrackNumber,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -197,13 +193,7 @@ const locationTrackEditSlice = createSlice({
         onStartSaving: (state: LocationTrackEditState): void => {
             state.isSaving = true;
         },
-        onSaveSucceed: (
-            state: LocationTrackEditState,
-            { payload: _payload }: PayloadAction<LocationTrackId>,
-        ): void => {
-            state.isSaving = false;
-        },
-        onSaveFailed: (state: LocationTrackEditState): void => {
+        onEndSaving: (state: LocationTrackEditState): void => {
             state.isSaving = false;
         },
     },

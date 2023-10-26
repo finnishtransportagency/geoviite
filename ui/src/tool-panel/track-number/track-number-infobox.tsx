@@ -329,7 +329,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 <TrackNumberDeleteConfirmationDialog
                     id={trackNumber.id}
                     onClose={() => setConfirmingDraftDelete(false)}
-                    onSave={() => handleTrackNumberSave(trackNumber.id)}
+                    onSave={handleTrackNumberSave}
                 />
             )}
             {showEditDialog && (

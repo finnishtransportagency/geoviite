@@ -141,30 +141,26 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             stateActions.onStartSaving();
             if (state.isNewLocationTrack) {
                 insertLocationTrack(state.locationTrack).then((result) => {
-                    result
-                        .map((locationTrackId) => {
-                            stateActions.onSaveSucceed(locationTrackId);
-                            props.onSave && props.onSave(locationTrackId);
-                            Snackbar.success(t('location-track-dialog.created-successfully'));
-                            props.onClose();
-                        })
-                        .mapErr((_err) => stateActions.onSaveFailed());
+                    stateActions.onEndSaving();
+                    result.map((locationTrackId) => {
+                        props.onSave && props.onSave(locationTrackId);
+                        Snackbar.success(t('location-track-dialog.created-successfully'));
+                        props.onClose();
+                    });
                 });
             } else if (state.existingLocationTrack) {
                 updateLocationTrack(state.existingLocationTrack.id, state.locationTrack).then(
                     (result) => {
-                        result
-                            .map((locationTrackId) => {
-                                stateActions.onSaveSucceed(locationTrackId);
-                                props.onSave && props.onSave(locationTrackId);
-                                const successMessage =
-                                    state.locationTrack?.state === 'DELETED'
-                                        ? t('location-track-dialog.deleted-successfully')
-                                        : t('location-track-dialog.modified-successfully');
-                                Snackbar.success(successMessage);
-                                props.onClose && props.onClose();
-                            })
-                            .mapErr((_err) => stateActions.onSaveFailed());
+                        stateActions.onEndSaving();
+                        result.map((locationTrackId) => {
+                            props.onSave && props.onSave(locationTrackId);
+                            const successMessage =
+                                state.locationTrack?.state === 'DELETED'
+                                    ? t('location-track-dialog.deleted-successfully')
+                                    : t('location-track-dialog.modified-successfully');
+                            Snackbar.success(successMessage);
+                            props.onClose();
+                        });
                     },
                 );
             }

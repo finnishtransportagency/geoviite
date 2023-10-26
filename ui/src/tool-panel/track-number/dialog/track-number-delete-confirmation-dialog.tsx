@@ -3,19 +3,13 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
-import {
-    actions,
-    initialLocationTrackEditState,
-    reducer,
-} from 'tool-panel/location-track/dialog/location-track-edit-store';
-import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { deleteTrackNumber } from 'track-layout/layout-track-number-api';
 
 type TrackNumberDeleteConfirmationDialogProps = {
     id: LayoutTrackNumberId;
-    onSave: () => void;
+    onSave?: (trackNumberId: LayoutTrackNumberId) => void;
     onClose: () => void;
 };
 
@@ -25,20 +19,16 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
     onClose,
 }: TrackNumberDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
-    const [, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
-    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
         deleteTrackNumber(id).then((result) => {
             result
                 .map((trackNumberId) => {
-                    stateActions.onSaveSucceed(trackNumberId);
                     Snackbar.success(t('tool-panel.track-number.delete-dialog.delete-succeeded'));
-                    onSave();
+                    onSave && onSave(trackNumberId);
                     onClose();
                 })
                 .mapErr(() => {
-                    stateActions.onSaveFailed();
                     Snackbar.error(t('tool-panel.track-number.delete-dialog.delete-failed'));
                 });
         });
