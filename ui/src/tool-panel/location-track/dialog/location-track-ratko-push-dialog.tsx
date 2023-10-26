@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { AlignmentStartAndEnd, LocationTrackId } from 'track-layout/track-layout-model';
@@ -13,7 +13,7 @@ import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown
 import { KmNumber, TimeStamp } from 'common/common-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { pushLocationTracksToRatko } from 'ratko/ratko-api';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 
 export type LocationTrackRatkoPushDialogProps = {
     locationTrackId: LocationTrackId;
