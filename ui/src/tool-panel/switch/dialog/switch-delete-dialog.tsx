@@ -22,7 +22,7 @@ const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({
     const deleteSwitch = () => {
         deleteDraftSwitch(switchId).then((r) => {
             if (r) {
-                Snackbar.success(t('switch-delete-dialog.success'));
+                Snackbar.success('switch-delete-dialog.success');
                 onDelete();
             }
         });

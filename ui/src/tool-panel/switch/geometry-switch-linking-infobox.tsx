@@ -161,7 +161,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
             setLinkingCallInProgress(true);
             try {
                 await linkSwitch(params);
-                SnackBar.success(t('tool-panel.switch.geometry.linking-succeed-msg'));
+                SnackBar.success('tool-panel.switch.geometry.linking-succeed-msg');
                 onStopLinking();
             } finally {
                 setLinkingCallInProgress(false);

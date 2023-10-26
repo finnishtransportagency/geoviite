@@ -194,9 +194,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 max: state.layoutAlignmentInterval.end.m,
             })
                 .then(() => {
-                    Snackbar.success(
-                        t('tool-panel.location-track.location-track-endpoints-updated'),
-                    );
+                    Snackbar.success('tool-panel.location-track.location-track-endpoints-updated');
                     onEndLocationTrackGeometryChange();
                 })
                 .finally(() => setUpdatingLength(false));

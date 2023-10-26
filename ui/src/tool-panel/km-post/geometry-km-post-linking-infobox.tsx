@@ -98,11 +98,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     geometryKmPostId: geometryKmPost.sourceId,
                     layoutKmPostId: layoutKmPost.id,
                 });
-                Snackbar.success(t('tool-panel.km-post.geometry.linking.linking-succeed-msg'));
+                Snackbar.success('tool-panel.km-post.geometry.linking.linking-succeed-msg');
                 stopLinking();
             }
         } catch {
-            Snackbar.error(t('error.linking.generic'));
+            Snackbar.error('error.linking.generic');
         } finally {
             setLinkingCallInProgress(false);
         }

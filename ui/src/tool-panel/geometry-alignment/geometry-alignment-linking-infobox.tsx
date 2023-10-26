@@ -228,11 +228,11 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     : linkGeometryWithReferenceLine(linkingParameters));
                 if (result) {
                     Snackbar.success(
-                        t('tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked'),
+                        'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
                     );
                     onStopLinking();
                 } else {
-                    Snackbar.error(t('error.linking.generic'));
+                    Snackbar.error('error.linking.generic');
                 }
             } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
@@ -241,10 +241,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     ? linkGeometryWithEmptyLocationTrack(linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(linkingParameters));
                 if (result) {
-                    Snackbar.success(t('tool-panel.alignment.geometry.linking-succeeded'));
+                    Snackbar.success('tool-panel.alignment.geometry.linking-succeeded');
                     onStopLinking();
                 } else {
-                    Snackbar.error(t('error.linking.generic'));
+                    Snackbar.error('error.linking.generic');
                 }
             }
         } finally {

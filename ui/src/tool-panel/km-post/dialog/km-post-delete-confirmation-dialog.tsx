@@ -34,12 +34,12 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
                 result
                     .map((kmPostId) => {
                         stateActions.onSaveSucceed(kmPostId);
-                        Snackbar.success(t('km-post-delete-draft-dialog.delete-succeeded'));
+                        Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');
                         onClose();
                     })
                     .mapErr(() => {
                         stateActions.onSaveFailed();
-                        Snackbar.error(t('km-post-delete-draft-dialog.delete-failed'));
+                        Snackbar.error('km-post-delete-draft-dialog.delete-failed');
                     });
             })
             .catch(() => {

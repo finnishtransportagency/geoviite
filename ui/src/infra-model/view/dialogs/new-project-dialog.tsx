@@ -59,10 +59,10 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onS
             setSaveInProgress(false);
 
             if (p) {
-                Snackbar.success(t('im-form.new-project-created'));
+                Snackbar.success('im-form.new-project-created');
                 onSave(p);
             } else {
-                Snackbar.error(t('im-form.new-project-creation-failed'));
+                Snackbar.error('im-form.new-project-creation-failed');
             }
         });
     };

@@ -91,7 +91,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                     stateActions.onKmPostLoaded(kmPost);
                     firstInputRef.current?.focus();
                 } else {
-                    Snackbar.error(t('km-post-dialog.cant-open-deleted'));
+                    Snackbar.error('km-post-dialog.cant-open-deleted');
                     onKmPostDeleted();
                 }
             });
@@ -142,16 +142,16 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             .map((kmPostId) => {
                                 stateActions.onSaveSucceed(kmPostId);
                                 props.onInsert && props.onInsert(kmPostId);
-                                Snackbar.success(t('km-post-dialog.created-successfully'));
+                                Snackbar.success('km-post-dialog.created-successfully');
                             })
                             .mapErr((_err) => {
                                 stateActions.onSaveFailed();
-                                Snackbar.error(t('km-post-dialog.adding-failed'));
+                                Snackbar.error('km-post-dialog.adding-failed');
                             });
                     })
                     .catch(() => {
                         stateActions.onSaveFailed();
-                        Snackbar.error(t('km-post-dialog.adding-failed'));
+                        Snackbar.error('km-post-dialog.adding-failed');
                     });
             } else if (state.existingKmPost) {
                 updateKmPost(state.existingKmPost.id, state.kmPost)
@@ -160,8 +160,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                             .map((kmPostId) => {
                                 stateActions.onSaveSucceed(kmPostId);
                                 props.onUpdate && props.onUpdate();
-                                const successMessage = t('km-post-dialog.modified-successfully');
-                                Snackbar.success(successMessage);
+                                Snackbar.success('km-post-dialog.modified-successfully');
                             })
                             .mapErr((_err) => {
                                 stateActions.onSaveFailed();

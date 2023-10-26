@@ -132,7 +132,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     stateActions.onLocationTrackLoaded(locationTrack);
                     firstInputRef.current?.focus();
                 } else {
-                    Snackbar.error(t('location-track-dialog.cant-open-deleted'));
+                    Snackbar.error('location-track-dialog.cant-open-deleted');
                     onLocationTrackDeleted();
                 }
             });
@@ -164,7 +164,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             .map((locationTrackId) => {
                                 stateActions.onSaveSucceed(locationTrackId);
                                 props.onInsert && props.onInsert(locationTrackId);
-                                Snackbar.success(t('location-track-dialog.created-successfully'));
+                                Snackbar.success('location-track-dialog.created-successfully');
                                 props.onClose && props.onClose();
                             })
                             .mapErr((_err) => {
@@ -183,8 +183,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 props.onUpdate && props.onUpdate();
                                 const successMessage =
                                     state.locationTrack?.state === 'DELETED'
-                                        ? t('location-track-dialog.deleted-successfully')
-                                        : t('location-track-dialog.modified-successfully');
+                                        ? 'location-track-dialog.deleted-successfully'
+                                        : 'location-track-dialog.modified-successfully';
                                 Snackbar.success(successMessage);
                                 props.onClose && props.onClose();
                             })

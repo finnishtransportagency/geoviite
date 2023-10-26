@@ -368,7 +368,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         revertCandidates(changesBeingReverted.changeIncludingDependencies)
             .then((r) => {
                 if (r.isOk()) {
-                    Snackbar.success(t('publish.revert-success'));
+                    Snackbar.success('publish.revert-success');
                     revertedCandidatesSoFar.current = addPublishRequestIds(
                         revertedCandidatesSoFar.current,
                         changesBeingReverted.changeIncludingDependencies,

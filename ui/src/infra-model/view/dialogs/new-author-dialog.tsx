@@ -59,10 +59,10 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
             setSaveInProgress(false);
 
             if (a) {
-                Snackbar.success(t('im-form.new-author-created'));
+                Snackbar.success('im-form.new-author-created');
                 onSave(a);
             } else {
-                Snackbar.error(t('im-form.new-author-creation-failed'));
+                Snackbar.error('im-form.new-author-creation-failed');
             }
         });
     };

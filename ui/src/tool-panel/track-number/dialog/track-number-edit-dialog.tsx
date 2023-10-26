@@ -140,11 +140,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         operation
             .then((tn) => {
                 if (tn) {
-                    Snackbar.success(t('track-number-edit.result.succeeded'));
+                    Snackbar.success('track-number-edit.result.succeeded');
                     if (onSave) onSave(tn);
                     onClose();
                 } else {
-                    Snackbar.error(t('track-number-edit.result.failed'));
+                    Snackbar.error('track-number-edit.result.failed');
                 }
             })
             .finally(() => {
