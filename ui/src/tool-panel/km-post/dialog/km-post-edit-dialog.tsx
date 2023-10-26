@@ -126,10 +126,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             else Snackbar.error(t('km-post-dialog.insert-failed'));
             return result.unwrapOr(undefined);
         } else if (state.existingKmPost) {
-            const result_2 = await updateKmPost(state.existingKmPost.id, state.kmPost);
-            if (result_2.isOk()) Snackbar.success(t('km-post-dialog.modify-succeeded'));
+            const result = await updateKmPost(state.existingKmPost.id, state.kmPost);
+            if (result.isOk()) Snackbar.success(t('km-post-dialog.modify-succeeded'));
             else Snackbar.error(t('km-post-dialog.modify-failed'));
-            return result_2.unwrapOr(undefined);
+            return result.unwrapOr(undefined);
         } else {
             return Promise.resolve(undefined);
         }
