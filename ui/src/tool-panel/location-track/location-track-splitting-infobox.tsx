@@ -7,40 +7,42 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { SwitchStructure, TrackMeter as TrackMeterModel } from 'common/common-model';
+import { TrackMeter as TrackMeterModel } from 'common/common-model';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
-    AlignmentStartAndEnd,
-    LayoutSwitch,
     LayoutSwitchId,
     LocationTrackDescriptionSuffixMode,
+    LocationTrackDuplicate,
     LocationTrackId,
-    SwitchJointTrackMeter,
 } from 'track-layout/track-layout-model';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { Point } from 'model/geometry';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import { LocationTrackBoundaryEndpoint, Split } from 'tool-panel/location-track/split-store';
-import { useLocationTrackStartAndEnd } from 'track-layout/track-layout-react-utils';
-import { getSwitches, getSwitchJointConnections } from 'track-layout/layout-switch-api';
-import { useLoader } from 'utils/react-utils';
-import { getSwitchStructures } from 'common/common-api';
-import { getSwitchJointTrackMeters } from 'tool-panel/switch/switch-infobox';
+import {
+    InitialSplit,
+    Split,
+    SplitDuplicate,
+    SwitchOnLocationTrack,
+} from 'tool-panel/location-track/split-store';
+import {
+    useLocationTrack,
+    useLocationTrackStartAndEnd,
+} from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type LocationTrackInfoboxSplittingProps = {
+    duplicateLocationTracks: LocationTrackDuplicate[];
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
+    initialSplit: InitialSplit;
     splits: Split[];
-    endPoint: LocationTrackBoundaryEndpoint;
-    removeSplit: (startTrackMeter: TrackMeterModel) => void;
-    addSplit: (split: { point: Point; address: TrackMeterModel }) => void;
+    allowedSwitches: SwitchOnLocationTrack[];
+    removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrackId: string;
     cancelSplitting: () => void;
+    setSplitDuplicate: (splitDuplicate: SplitDuplicate | undefined) => void;
 };
 
 type EndpointProps = {
@@ -49,14 +51,34 @@ type EndpointProps = {
 
 type SplitProps = EndpointProps & {
     isInitial: boolean;
-    onRemove?: (startTrackMeter: TrackMeterModel) => void;
+    switchId?: LayoutSwitchId;
+    onRemove?: (switchId: LayoutSwitchId) => void;
+    duplicateLocationTracks?: LocationTrackDuplicate[];
+    setSplitDuplicate: (splitDuplicate: SplitDuplicate | undefined) => void;
+    duplicateOf: LocationTrackId | undefined;
 };
 
-const Split: React.FC<SplitProps> = ({ location, isInitial, onRemove: _onRemove }) => {
+const Split: React.FC<SplitProps> = ({
+    location,
+    switchId,
+    isInitial,
+    onRemove,
+    setSplitDuplicate,
+    duplicateOf,
+    duplicateLocationTracks = [],
+}) => {
     const [name, setName] = React.useState<string>('');
     const [descriptionBase, setDescriptionBase] = React.useState<string>('');
     const [suffixMode, setSuffixMode] = React.useState<LocationTrackDescriptionSuffixMode>('NONE');
-    const [replacesDuplicate, setReplacesDuplicate] = React.useState<boolean>(false);
+    React.useEffect(() => {
+        const duplicateId = duplicateLocationTracks.find((lt) => lt.name === name)?.id;
+        setSplitDuplicate({ splitId: switchId, duplicateOf: duplicateId });
+    }, [name, duplicateLocationTracks]);
+    const duplicateLocationTrack = useLocationTrack(
+        duplicateOf,
+        'DRAFT',
+        getChangeTimes().layoutLocationTrack,
+    );
 
     return (
         <div className={styles['location-track-infobox__split-container']}>
@@ -68,47 +90,59 @@ const Split: React.FC<SplitProps> = ({ location, isInitial, onRemove: _onRemove 
                         label={isInitial ? 'Alkusijainti (km+m)' : 'Katkaisukohta (km+m)'}>
                         <TrackMeter value={location} />
                     </InfoboxField>
-                    <InfoboxField label={'Sijaintiraidetunnus'}>
+                    <InfoboxField
+                        className={styles['location-track-infobox__split-item-field-label']}
+                        label={'Sijaintiraidetunnus'}>
                         <TextField
                             value={name}
                             onChange={(e) => {
                                 const newName = e.target.value;
                                 setName(newName);
-                                setReplacesDuplicate(newName === 'HAS 002');
                             }}
                         />
                     </InfoboxField>
-                    {replacesDuplicate && (
+                    {duplicateOf && (
                         <InfoboxField
                             className={styles['location-track-infobox__split-replaces-duplicate']}
                             label={''}>
                             <InfoboxText value={'Korvaa duplikaattiraiteen'} />
                         </InfoboxField>
                     )}
-                    <InfoboxField label={'Kuvauksen perusosa'}>
+                    <InfoboxField
+                        className={styles['location-track-infobox__split-item-field-label']}
+                        label={'Kuvauksen perusosa'}>
                         <TextField
-                            value={descriptionBase}
-                            disabled={replacesDuplicate}
+                            value={
+                                duplicateLocationTrack
+                                    ? duplicateLocationTrack.descriptionBase
+                                    : descriptionBase
+                            }
+                            disabled={!!duplicateOf}
                             onChange={(e) => setDescriptionBase(e.target.value)}
                         />
                     </InfoboxField>
-                    <InfoboxField label={'Kuvauksen lisäosa'}>
+                    <InfoboxField
+                        className={styles['location-track-infobox__split-item-field-label']}
+                        label={'Kuvauksen lisäosa'}>
                         <DescriptionSuffixDropdown
-                            suffixMode={suffixMode}
+                            suffixMode={
+                                duplicateLocationTrack
+                                    ? duplicateLocationTrack.descriptionSuffix
+                                    : suffixMode
+                            }
                             onChange={(mode) => {
                                 setSuffixMode(mode);
                             }}
                             onBlur={() => {}}
-                            disabled={replacesDuplicate}
+                            disabled={!!duplicateOf}
                         />
                     </InfoboxField>
                 </div>
                 <div className={styles['location-track-infobox__close-split-button-column']}>
-                    {!isInitial && (
+                    {onRemove && (
                         <div
                             className={styles['location-track-infobox__split-close-button']}
-                            //onClick={() => onRemove && onRemove(location)}
-                        >
+                            onClick={() => switchId && onRemove(switchId)}>
                             <Icons.Close size={IconSize.SMALL} color={IconColor.INHERIT} />
                         </div>
                     )}
@@ -129,85 +163,23 @@ const Endpoint: React.FC<EndpointProps> = ({ location }) => {
     );
 };
 
-const switchLocation = (
-    switchesAndTheirJoints: { switch: LayoutSwitch; meters: SwitchJointTrackMeter[] }[],
-    switchStructures: SwitchStructure[],
-    switchId: LayoutSwitchId,
-    locationTrackId: LocationTrackId,
-) => {
-    const switchAndJoints = switchesAndTheirJoints.find((s) => s.switch.id === switchId);
-    const structure =
-        switchAndJoints &&
-        switchStructures.find((s) => s.id === switchAndJoints.switch.switchStructureId);
-    return (
-        switchAndJoints &&
-        structure &&
-        switchAndJoints.meters.find(
-            (m) =>
-                m.jointNumber === structure.presentationJointNumber &&
-                m.locationTrackId === locationTrackId,
-        )?.trackMeter
-    );
-};
-
-const locationTrackEndpointAddress = (
-    endpoint: LocationTrackBoundaryEndpoint,
-    startAndEnd: AlignmentStartAndEnd,
-) => {
-    switch (endpoint.type) {
-        case 'LOCATION_TRACK_START':
-            return startAndEnd.start?.address;
-        case 'LOCATION_TRACK_END':
-            return startAndEnd.end?.address;
-        default:
-            exhaustiveMatchingGuard(endpoint.type);
-    }
-};
-
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplittingProps> = ({
+    duplicateLocationTracks,
     visibilities,
     visibilityChange,
     locationTrackId,
+    initialSplit,
     splits,
-    endPoint,
+    allowedSwitches,
     removeSplit,
-    addSplit: _addSplit,
     cancelSplitting,
+    setSplitDuplicate,
 }) => {
     const { t } = useTranslation();
     const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
-    const switchStructures = useLoader(() => getSwitchStructures(), []);
-    const switchIds = splits
-        .map((split) => (split.start.type === 'SWITCH' ? split.start.switchId : undefined))
-        .filter((id): id is string => id !== undefined);
-    const switchesAndJointTrackMeters = useLoader(
-        () =>
-            getSwitches(switchIds, 'DRAFT').then((switches) =>
-                Promise.all(
-                    switches.map((s) =>
-                        getSwitchJointConnections('DRAFT', s.id).then((connections) =>
-                            getSwitchJointTrackMeters(connections, 'DRAFT', getChangeTimes()).then(
-                                (jointTrackMeters) => ({ switch: s, meters: jointTrackMeters }),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        [switchIds],
-    );
 
-    const getSplitLocation = (split: Split) => {
-        return split.start.type === 'SWITCH'
-            ? switchesAndJointTrackMeters &&
-                  switchStructures &&
-                  switchLocation(
-                      switchesAndJointTrackMeters,
-                      switchStructures,
-                      split.start.switchId,
-                      locationTrackId,
-                  )
-            : startAndEnd && locationTrackEndpointAddress(split.start, startAndEnd);
-    };
+    const getSplitLocation = (split: Split) =>
+        allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
 
     return (
         <Infobox
@@ -215,20 +187,29 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
             onContentVisibilityChange={() => visibilityChange('splitting')}
             title={'Raiteen jakaminen osiin'}>
             <InfoboxContent className={styles['location-track-infobox__split']}>
+                <Split
+                    location={startAndEnd?.start?.address}
+                    isInitial={true}
+                    duplicateLocationTracks={duplicateLocationTracks}
+                    setSplitDuplicate={setSplitDuplicate}
+                    duplicateOf={initialSplit.duplicateOf}
+                />
                 {splits.map((split, index) => {
                     return (
                         <Split
                             key={index.toString()}
                             location={getSplitLocation(split)}
-                            isInitial={index === 0}
+                            isInitial={false}
+                            switchId={split.switchId}
                             onRemove={removeSplit}
+                            duplicateLocationTracks={duplicateLocationTracks}
+                            setSplitDuplicate={setSplitDuplicate}
+                            duplicateOf={split.duplicateOf}
                         />
                     );
                 })}
-                <Endpoint
-                    location={startAndEnd && locationTrackEndpointAddress(endPoint, startAndEnd)}
-                />
-                {splits.length <= 1 && (
+                <Endpoint location={startAndEnd?.end?.address} />
+                {splits.length === 0 && (
                     <InfoboxContentSpread>
                         <MessageBox>
                             {t('Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan')}

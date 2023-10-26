@@ -295,8 +295,8 @@ const trackLayoutSlice = createSlice({
 
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
-            if (state.splittingState) {
-                // Add split
+            if (state.splittingState && action.payload.switches?.length) {
+                splitReducers.addSplit(state, { ...action, payload: action.payload.switches[0] });
                 return;
             }
 

@@ -35,7 +35,10 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getSwitchesOnLocationTrack,
+} from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
@@ -122,6 +125,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             ),
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );
+    const allowedSwitchesForSplitting = useLoader(
+        () => getSwitchesOnLocationTrack(publishType, locationTrack.id),
+        [publishType, locationTrack],
+    );
+
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
@@ -312,18 +320,20 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-            {splittingState && splittingState.endpoint && (
+            {splittingState && (
                 <LocationTrackSplittingInfobox
                     visibilities={visibilities}
                     visibilityChange={visibilityChange}
+                    initialSplit={splittingState.initialSplit}
                     splits={splittingState.splits || []}
                     locationTrackId={splittingState.originLocationTrack.id}
-                    endPoint={splittingState.endpoint}
-                    removeSplit={(_splitLocation) => console.log('blöö')}
-                    addSplit={(_split) => console.log('blää')}
+                    removeSplit={delegates.removeSplit}
                     cancelSplitting={() => {
                         delegates.cancelSplitting();
                     }}
+                    allowedSwitches={splittingState.allowedSwitches}
+                    duplicateLocationTracks={extraInfo?.duplicates || []}
+                    setSplitDuplicate={delegates.setSplitDuplicate}
                 />
             )}
             {startAndEndPoints && coordinateSystem && (
@@ -408,19 +418,25 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     </React.Fragment>
                                 )}
                                 <InfoboxButtons>
-                                    <Button
-                                        variant={ButtonVariant.SECONDARY}
-                                        size={ButtonSize.SMALL}
-                                        onClick={() => {
-                                            if (
-                                                startAndEndPoints?.start &&
-                                                startAndEndPoints?.end
-                                            ) {
-                                                delegates.onStartSplitting(locationTrack);
-                                            }
-                                        }}>
-                                        Aloita raiteen jakaminen
-                                    </Button>
+                                    {!splittingState && (
+                                        <Button
+                                            variant={ButtonVariant.SECONDARY}
+                                            size={ButtonSize.SMALL}
+                                            onClick={() => {
+                                                if (
+                                                    startAndEndPoints?.start &&
+                                                    startAndEndPoints?.end
+                                                ) {
+                                                    delegates.onStartSplitting({
+                                                        locationTrack: locationTrack,
+                                                        allowedSwitches:
+                                                            allowedSwitchesForSplitting || [],
+                                                    });
+                                                }
+                                            }}>
+                                            Aloita raiteen jakaminen
+                                        </Button>
+                                    )}
                                 </InfoboxButtons>
 
                                 <InfoboxField

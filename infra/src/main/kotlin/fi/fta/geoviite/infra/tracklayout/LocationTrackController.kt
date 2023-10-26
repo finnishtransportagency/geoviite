@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
@@ -13,6 +14,7 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -20,6 +22,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
+
+data class SwitchOnLocationTrack(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val address: TrackMeter?,
+)
 
 @RestController
 @RequestMapping("/track-layout/location-tracks")
@@ -29,6 +36,7 @@ class LocationTrackController(
     private val publicationService: PublicationService,
     private val switchService: LayoutSwitchService,
     private val switchLinkingService: SwitchLinkingService,
+    private val switchLibraryService: SwitchLibraryService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -99,6 +107,26 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/switches")
+    fun getSwitchesOnLocationTrack(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<SwitchOnLocationTrack> {
+        logger.apiCall("getSwitchesOnLocationTrack", "publishType" to publishType, "id" to id)
+        val locationTrack = locationTrackService.getOrThrow(publishType, id)
+        return locationTrackService.getSwitchesForLocationTrack(id, publishType).map { switchId ->
+            SwitchOnLocationTrack(switchId,
+                switchService.get(publishType, switchId)
+                    ?.let(switchService::getPresentationJoint)
+                    ?.let { presentationJoint ->
+                        geocodingService.getAddress(
+                            publishType, locationTrack.trackNumberId, presentationJoint.location
+                        )?.first
+                    })
+        }
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/description")
     fun getDescription(
         @PathVariable("publishType") publishType: PublishType,
@@ -145,8 +173,8 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
-            switchIds.distinct()
+        val switchSuggestions =
+            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds.distinct()
                 .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(

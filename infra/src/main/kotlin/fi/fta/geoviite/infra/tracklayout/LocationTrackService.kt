@@ -425,7 +425,7 @@ class LocationTrackService(
         )
         val segmentSwitches =
             ltAndAlignment?.second?.segments?.mapNotNull { segment -> segment.switchId as IntId? } ?: emptyList()
-        return topologySwitches + segmentSwitches
+        return (topologySwitches + segmentSwitches).distinct()
     }
 }
 

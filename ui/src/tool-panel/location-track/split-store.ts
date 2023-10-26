@@ -6,81 +6,109 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
+import { compareTrackMeterStrings, TrackMeter } from 'common/common-model';
+import { formatTrackMeter } from 'utils/geography-utils';
 
-export type LocationTrackBoundaryEndpoint = {
-    type: 'LOCATION_TRACK_START' | 'LOCATION_TRACK_END';
-};
-
-export type SwitchEndpoint = {
-    type: 'SWITCH';
-    switchId: LayoutSwitchId;
-};
-
-export type Split = {
-    start: LocationTrackBoundaryEndpoint | SwitchEndpoint;
+export type InitialSplit = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
     duplicateOf?: LocationTrackId;
 };
 
+export type Split = InitialSplit & {
+    switchId: LayoutSwitchId;
+};
+
 export type SplittingState = {
     originLocationTrack: LayoutLocationTrack;
+    allowedSwitches: SwitchOnLocationTrack[];
+    initialSplit: InitialSplit;
     splits: Split[];
-    endpoint: LocationTrackBoundaryEndpoint;
+};
+
+type SplitStart = {
+    locationTrack: LayoutLocationTrack;
+    allowedSwitches: SwitchOnLocationTrack[];
+};
+
+export type SwitchOnLocationTrack = {
+    switchId: LayoutSwitchId;
+    address: TrackMeter | undefined;
+};
+
+export type SplitDuplicate = {
+    splitId: LayoutSwitchId | undefined;
+    duplicateOf: LocationTrackId | undefined;
 };
 
 export const splitReducers = {
-    onStartSplitting: (
-        state: TrackLayoutState,
-        { payload }: PayloadAction<LayoutLocationTrack>,
-    ): void => {
+    onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
         state.splittingState = {
-            originLocationTrack: payload,
-            splits: [
-                {
-                    start: { type: 'LOCATION_TRACK_START' },
-                    name: '',
-                    descriptionBase: '',
-                    suffixMode: 'NONE',
-                },
-            ],
-            endpoint: { type: 'LOCATION_TRACK_END' },
+            originLocationTrack: payload.locationTrack,
+            allowedSwitches: payload.allowedSwitches,
+            splits: [],
+            initialSplit: {
+                name: '',
+                descriptionBase: '',
+                suffixMode: 'NONE',
+            },
         };
     },
     cancelSplitting: (state: TrackLayoutState): void => {
         state.splittingState = undefined;
     },
     addSplit: (state: TrackLayoutState, { payload }: PayloadAction<LayoutSwitchId>): void => {
-        if (state.splittingState) {
-            const splits = (state.splittingState.splits || []).concat([
+        if (
+            state.splittingState &&
+            state.splittingState.allowedSwitches.some((sw) => sw.switchId == payload) &&
+            !state.splittingState.splits.some((split) => split.switchId === payload)
+        ) {
+            const newSplits = (state.splittingState.splits || []).concat([
                 {
-                    start: { type: 'SWITCH', switchId: payload },
+                    switchId: payload,
                     name: '',
                     descriptionBase: '',
                     suffixMode: 'NONE',
                 },
             ]);
-            state.splittingState.splits = splits;
+            newSplits.sort((a, b) => {
+                const aAddress = state.splittingState?.allowedSwitches?.find(
+                    (sw) => sw.switchId === a.switchId,
+                )?.address;
+                const bAddress = state.splittingState?.allowedSwitches?.find(
+                    (sw) => sw.switchId === b.switchId,
+                )?.address;
+                if (aAddress && bAddress) {
+                    return compareTrackMeterStrings(
+                        formatTrackMeter(aAddress),
+                        formatTrackMeter(bAddress),
+                    );
+                } else if (aAddress) return 1;
+                else if (bAddress) return -1;
+                else return 0;
+            });
+            state.splittingState.splits = newSplits;
         }
     },
     removeSplit: (state: TrackLayoutState, { payload }: PayloadAction<LayoutSwitchId>): void => {
         if (state.splittingState) {
             state.splittingState.splits = (state.splittingState.splits || []).filter(
-                (split) => split.start.type === 'SWITCH' && split.start.switchId === payload,
+                (split) => split.switchId !== payload,
             );
         }
     },
     setSplitDuplicate: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<{ splitSwitchId: LayoutSwitchId; duplicateOf: LocationTrackId }>,
+        { payload }: PayloadAction<SplitDuplicate>,
     ): void => {
         if (state.splittingState) {
-            const split = state.splittingState.splits.find(
-                (split) =>
-                    split.start.type === 'SWITCH' && split.start.switchId === payload.splitSwitchId,
-            );
-            if (split) split.duplicateOf = payload.duplicateOf;
+            const split =
+                state.splittingState.splits.find((split) => split.switchId === payload.splitId) ??
+                state.splittingState.initialSplit;
+            if (split) {
+                split.duplicateOf = payload.duplicateOf;
+            }
         }
     },
 };

@@ -20,6 +20,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
 const locationTrackInfoboxExtrasCache = asyncCache<
@@ -127,6 +128,14 @@ export async function getLocationTracksNear(
         `${layoutUri('location-tracks', publishType)}${params}`,
     );
 }
+
+export const getSwitchesOnLocationTrack = async (
+    publishType: PublishType,
+    locationTrackId: LocationTrackId,
+) =>
+    getNonNull<SwitchOnLocationTrack[]>(
+        `${layoutUri('location-tracks', publishType, locationTrackId)}/switches`,
+    );
 
 export async function insertLocationTrack(
     locationTrack: LocationTrackSaveRequest,

@@ -20,8 +20,12 @@
         margin-left: 25px;
 
         .infobox__field-label {
-            max-width: 104px;
-            min-width: 104px;
+            max-width: 116px;
+            min-width: 116px;
+        }
+
+        .infobox__field-value {
+            margin-left: 12px;
         }
 
         .dropdown {
@@ -84,4 +88,10 @@
     height: 100%;
     width: 6px;
     background-color: vayla-design.$color-blue-default;
+}
+
+.location-track-infobox__split-item-field-label {
+    .infobox__field-label {
+        margin-top: 10px;
+    }
 }
