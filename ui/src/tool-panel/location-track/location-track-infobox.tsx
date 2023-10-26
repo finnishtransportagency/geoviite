@@ -502,7 +502,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onClose={closeEditLocationTrackDialog}
                     onSave={handleLocationTrackSave}
                     locationTrack={locationTrack}
-                    publishType={publishType} // TODO: GVT-2173 wat?
                     locationTrackChangeTime={locationTrackChangeTime}
                 />
             )}

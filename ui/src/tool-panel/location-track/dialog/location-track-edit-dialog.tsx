@@ -42,7 +42,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
@@ -52,12 +52,10 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
-    publishType: PublishType;
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
     existingDuplicateTrack?: LayoutLocationTrack | undefined;
-    duplicatesExist?: boolean;
 };
 
 const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
@@ -85,11 +83,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }, [state.locationTrack]);
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         state.existingLocationTrack?.id,
-        props.publishType,
+        'DRAFT',
         props.locationTrackChangeTime,
     );
 
-    const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, props.publishType);
+    const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, 'DRAFT');
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
@@ -107,15 +105,17 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     React.useEffect(() => {
         if (props.locationTrack) {
             stateActions.onStartLoadingLocationTrack();
-            getLocationTrack(props.locationTrack.id, 'DRAFT').then((locationTrack) => {
-                if (locationTrack) {
-                    stateActions.onLocationTrackLoaded(locationTrack);
-                    firstInputRef.current?.focus();
-                } else {
-                    Snackbar.error(t('location-track-dialog.cant-open-deleted'));
-                    props.onClose();
-                }
-            });
+            getLocationTrack(props.locationTrack.id, 'DRAFT', props.locationTrackChangeTime).then(
+                (locationTrack) => {
+                    if (locationTrack) {
+                        stateActions.onLocationTrackLoaded(locationTrack);
+                        firstInputRef.current?.focus();
+                    } else {
+                        Snackbar.error(t('location-track-dialog.cant-open-deleted'));
+                        props.onClose();
+                    }
+                },
+            );
         } else {
             stateActions.initWithNewLocationTrack();
             firstInputRef.current?.focus();
@@ -203,10 +203,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     // Use memoized function to make debouncing functionality to work when re-rendering
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm: string) =>
-            debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
+            debouncedSearchTracks(searchTerm, 'DRAFT', 10).then((locationTracks) =>
                 getLocationTrackDescriptions(
                     locationTracks.map((lt) => lt.id),
-                    props.publishType,
+                    'DRAFT',
                 ).then((descriptions) => {
                     return locationTracks
                         .filter((lt) => {
@@ -445,31 +445,29 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             }
                         />
 
-                        {props.duplicatesExist || (
-                            <FieldLayout
-                                label={`${t('location-track-dialog.duplicate-of')}`}
-                                value={
-                                    <Dropdown
-                                        value={
-                                            selectedDuplicateTrack && {
-                                                type: 'locationTrackSearchItem',
-                                                locationTrack: selectedDuplicateTrack,
-                                            }
+                        <FieldLayout
+                            label={`${t('location-track-dialog.duplicate-of')}`}
+                            value={
+                                <Dropdown
+                                    value={
+                                        selectedDuplicateTrack && {
+                                            type: 'locationTrackSearchItem',
+                                            locationTrack: selectedDuplicateTrack,
                                         }
-                                        getName={(item) => item.locationTrack.name}
-                                        placeholder={t('location-track-dialog.search')}
-                                        options={getDuplicateTrackOptions}
-                                        searchable
-                                        onChange={onDuplicateTrackSelected}
-                                        onBlur={() => stateActions.onCommitField('duplicateOf')}
-                                        canUnselect={true}
-                                        unselectText={t('location-track-dialog.not-a-duplicate')}
-                                        wideList
-                                        wide
-                                    />
-                                }
-                            />
-                        )}
+                                    }
+                                    getName={(item) => item.locationTrack.name}
+                                    placeholder={t('location-track-dialog.search')}
+                                    options={getDuplicateTrackOptions}
+                                    searchable
+                                    onChange={onDuplicateTrackSelected}
+                                    onBlur={() => stateActions.onCommitField('duplicateOf')}
+                                    canUnselect={true}
+                                    unselectText={t('location-track-dialog.not-a-duplicate')}
+                                    wideList
+                                    wide
+                                />
+                            }
+                        />
                     </FormLayoutColumn>
 
                     <FormLayoutColumn>
