@@ -15,9 +15,6 @@ import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation, withTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
-// fontsource requires fonts to be imported somewhere in code
-import '@fontsource/open-sans/400.css';
-import '@fontsource/open-sans/600.css';
 import { getEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
