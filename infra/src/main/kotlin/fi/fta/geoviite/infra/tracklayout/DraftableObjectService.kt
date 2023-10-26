@@ -41,8 +41,8 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         return searchTerm.toString().trim().takeIf(String::isNotEmpty)
             ?.let { term -> listInternal(publishType, true)
                 .filter { item ->
-                    idMatches(term, item) == true ||
-                    contentMatches(term, item) == true
+                    idMatches(term, item) ||
+                    contentMatches(term, item)
                 }
                 .let { list -> sortSearchResult(list)}
                 .let { list -> if (limit != null) list.take(limit) else list }
@@ -122,9 +122,9 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
 
     protected open fun sortSearchResult(list: List<ObjectType>): List<ObjectType> = list
 
-    protected open fun idMatches(term: String, item: ObjectType): Boolean? = null
+    protected open fun idMatches(term: String, item: ObjectType): Boolean = false
 
-    protected open fun contentMatches(term: String, item: ObjectType): Boolean? = null
+    protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
     open fun saveDraft(draft: ObjectType): DaoResponse<ObjectType> {
