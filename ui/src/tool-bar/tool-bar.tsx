@@ -2,12 +2,11 @@ import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
+import { getSwitch } from 'track-layout/layout-switch-api';
 import { getKmPost } from 'track-layout/layout-km-post-api';
 import {
     getLocationTrack,
     getLocationTrackDescriptions,
-    getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import {
     LayoutKmPostId,
@@ -45,8 +44,8 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
-import { getTrackNumbersBySearchTerm } from 'track-layout/layout-track-number-api';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
+import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 
 export type ToolbarParams = {
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
@@ -99,45 +98,37 @@ async function getOptions(
         return Promise.resolve([]);
     }
 
-    const locationTracks: Promise<Item<LocationTrackItemValue>[]> = getLocationTracksBySearchTerm(
-        searchTerm,
+    const searchResult = await getBySearchTerm(searchTerm, publishType);
+
+    const locationTrackDescriptions = await getLocationTrackDescriptions(
+        searchResult.locationTracks.map((lt) => lt.id),
         publishType,
-        10,
-    ).then(async (locationTracks) => {
-        const descriptions = await getLocationTrackDescriptions(
-            locationTracks.map((lt) => lt.id),
-            publishType,
-        );
-        return locationTracks.map((locationTrack) => ({
+    );
+
+    const locationTracks: Item<LocationTrackItemValue>[] = searchResult.locationTracks.map(
+        (locationTrack) => ({
             name: `${locationTrack.name}, ${
-                (descriptions && descriptions.find((d) => d.id == locationTrack.id)?.description) ??
+                (locationTrackDescriptions &&
+                    locationTrackDescriptions.find((d) => d.id == locationTrack.id)?.description) ??
                 ''
             }`,
             value: {
                 type: 'locationTrackSearchItem',
                 locationTrack: locationTrack,
             },
-        }));
-    });
-    const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
-        searchTerm,
-        publishType,
-        10,
-    ).then((switches) => {
-        return switches.map((layoutSwitch) => ({
-            name: `${layoutSwitch.name}`,
-            value: {
-                type: 'switchSearchItem',
-                layoutSwitch: layoutSwitch,
-            },
-        }));
-    });
+        }),
+    );
 
-    const trackNumbers: Promise<Item<TrackNumberItemValue>[]> = getTrackNumbersBySearchTerm(
-        searchTerm,
-        publishType,
-        10,
-    ).then((layoutTrackNumbers) => layoutTrackNumbers.map(createTrackNumberItem));
+    const switches: Item<SwitchItemValue>[] = searchResult.switches.map((layoutSwitch) => ({
+        name: `${layoutSwitch.name}`,
+        value: {
+            type: 'switchSearchItem',
+            layoutSwitch: layoutSwitch,
+        },
+    }));
+
+    const trackNumbers: Item<TrackNumberItemValue>[] =
+        searchResult.trackNumbers.map(createTrackNumberItem);
 
     return await Promise.all([locationTracks, switches, trackNumbers]).then((results) =>
         results.flat(),
@@ -199,11 +190,13 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 return props.onSelectSwitch(item.layoutSwitch.id);
 
             case 'trackNumberSearchItem':
-                getTrackNumberReferenceLine(item.trackNumber.id, 'DRAFT').then((referenceLine) => {
-                    if (referenceLine?.boundingBox) {
-                        props.showArea(referenceLine.boundingBox);
-                    }
-                });
+                getTrackNumberReferenceLine(item.trackNumber.id, props.publishType).then(
+                    (referenceLine) => {
+                        if (referenceLine?.boundingBox) {
+                            props.showArea(referenceLine.boundingBox);
+                        }
+                    },
+                );
 
                 return props.onSelectTrackNumber(item.trackNumber.id);
 
