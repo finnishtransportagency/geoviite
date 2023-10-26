@@ -55,7 +55,6 @@ export type LocationTrackDialogProps = {
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
-    existingDuplicateTrack?: LayoutLocationTrack | undefined;
 };
 
 const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
@@ -69,7 +68,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
         LayoutLocationTrack | undefined
-    >(props.existingDuplicateTrack);
+    >(undefined);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.locationTrack?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
