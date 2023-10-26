@@ -143,7 +143,7 @@ class InfraModelTestUI @Autowired constructor(
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 
         uploadForm.save(true)
-        waitAndClearToast("infra-model-import-upload__success-toast")
+        waitAndClearToast("infra-model.upload.success")
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 

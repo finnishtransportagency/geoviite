@@ -97,9 +97,7 @@ export const saveInfraModelFile = async (
     const formData = createFormData(file, extraParameters, overrideParameters);
     const response = await postFormIgnoreError<InsertResponse>(INFRAMODEL_URI, formData);
     if (response) {
-        Snackbar.success(i18n.t('infra-model.upload.success'), {
-            qaId: 'infra-model-import-upload__success-toast',
-        });
+        Snackbar.success('infra-model.upload.success');
         updatePlanChangeTime();
     }
     return response;
@@ -210,9 +208,7 @@ export async function importPVDocument(
     const url = `${PROJEKTIVELHO_URI}/documents/${id}`;
     const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
     if (response) {
-        Snackbar.success(i18n.t('infra-model.import.success'), {
-            qaId: 'infra-model-import-upload__success-toast',
-        });
+        Snackbar.success(i18n.t('infra-model.import.success'));
         updatePlanChangeTime();
     }
     return response;
