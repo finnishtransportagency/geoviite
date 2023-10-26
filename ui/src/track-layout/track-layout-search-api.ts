@@ -5,7 +5,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import { getNonNull, queryParams } from 'api/api-fetch';
-import { layoutUri } from 'track-layout/track-layout-api';
+import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 
 export interface LayoutSearchResult {
     switches: LayoutSwitch[];
@@ -18,10 +18,12 @@ export async function getBySearchTerm(
     publishType: PublishType,
     limitPerResultType: number = 10,
 ): Promise<LayoutSearchResult> {
+    const uri = `${TRACK_LAYOUT_URI}/search/${publishType.toLowerCase()}`;
+
     const params = queryParams({
         searchTerm: searchTerm,
         limitPerResultType: limitPerResultType,
     });
 
-    return await getNonNull<LayoutSearchResult>(`${layoutUri('search', publishType)}${params}`);
+    return await getNonNull<LayoutSearchResult>(`${uri}${params}`);
 }
