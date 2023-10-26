@@ -12,12 +12,13 @@ import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog'
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getKmLengths, getKmPost } from 'track-layout/layout-km-post-api';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { KmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { useKmPostChangeTimes } from 'track-layout/track-layout-react-utils';
 import { formatDateShort } from 'utils/date-utils';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type KmPostInfoboxProps = {
     publishType: PublishType;
@@ -41,29 +42,19 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     onVisibilityChange,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const [showEditDialog, setShowEditDialog] = React.useState(false);
-    const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
-    const updatedKmPost = useLoader(
-        () => getKmPost(kmPost.id, publishType),
-        [kmPost, kmPostChangeTime, publishType],
-    );
-    const [kmPostLength, setKmPostLength] = React.useState<number>();
     const changeTimes = useKmPostChangeTimes(kmPost.id);
 
-    React.useEffect(() => {
-        setKmPostLength(undefined);
-        getKmLengths(publishType, kmPost.trackNumberId).then((details) => {
-            details.find((value) => value.kmNumber === kmPost.kmNumber)
-                ? setKmPostLength(
-                      details.filter((value) => value.kmNumber === kmPost.kmNumber)[0].length,
-                  )
-                : '';
-        });
-    }, [kmPost]);
+    const [showEditDialog, setShowEditDialog] = React.useState(false);
+    const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
+    const updatedKmPost = useLoader(
+        () => getKmPost(kmPost.id, publishType),
+        [kmPost.id, kmPostChangeTime, publishType],
+    );
 
-    function isOfficial(): boolean {
-        return publishType === 'OFFICIAL';
-    }
+    const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(async () => {
+        const allKmLengths = await getKmLengths(publishType, kmPost.trackNumberId);
+        return allKmLengths.find((value) => value.kmNumber === kmPost.kmNumber)?.length;
+    }, [kmPost.trackNumberId, kmPost.kmNumber, publishType]);
 
     function openEditDialog() {
         setShowEditDialog(true);
@@ -74,10 +65,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         setShowEditDialog(false);
         onDataChange();
     }
-
-    const showDeleteConfirmation = () => {
-        setConfirmingDraftDelete(true);
-    };
 
     const closeDeleteConfirmation = () => {
         setConfirmingDraftDelete(false);
@@ -92,6 +79,13 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
+    const kmPostLengthText =
+        kmPostLength == undefined
+            ? t('tool-panel.km-post.layout.no-kilometer-length')
+            : kmPostLength < 0
+            ? t('tool-panel.km-post.layout.negative-kilometer-length')
+            : `${kmPostLength} m`;
+
     return (
         <React.Fragment>
             <Infobox
@@ -104,7 +98,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
                         onEdit={openEditDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={publishType === 'OFFICIAL'}
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
@@ -114,18 +108,22 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-                    {kmPostLength && (
-                        <InfoboxField
-                            label={t('tool-panel.km-post.layout.kilometer-length')}
-                            value={`${kmPostLength} m`}
-                        />
-                    )}
+                    <InfoboxField
+                        label={t('tool-panel.km-post.layout.kilometer-length')}
+                        value={
+                            kmPostLengthLoading === LoaderStatus.Ready ? (
+                                kmPostLengthText
+                            ) : (
+                                <Spinner />
+                            )
+                        }
+                    />
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
                             disabled={!kmPost.location}
                             variant={ButtonVariant.SECONDARY}
-                            onClick={() => onShowOnMap()}>
+                            onClick={onShowOnMap}>
                             {t('tool-panel.km-post.layout.show-on-map')}
                         </Button>
                     </InfoboxButtons>
@@ -181,7 +179,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     {kmPost?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button
-                                onClick={() => showDeleteConfirmation()}
+                                onClick={() => setConfirmingDraftDelete(true)}
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>

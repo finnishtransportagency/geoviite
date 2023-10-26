@@ -149,7 +149,7 @@ class LayoutTrackNumberService(
                     locationSource = GeometrySource.GENERATED,
                     location = startPoint.point.toPoint()
                 )
-            ) + distances.sortedBy { it.second }.mapIndexed { index, (kmPost, startM) ->
+            ) + distances.mapIndexed { index, (kmPost, startM) ->
                 val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
                 TrackLayoutKmLengthDetails(
