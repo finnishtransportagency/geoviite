@@ -1,17 +1,18 @@
 name: "Detekt"
 
 on:
+  push:
+    branches:
+      - 'dev/GVT-2141-detekt-workflow-alt'
+
   pull_request:
     branches:
-      - 'main'
+      - 'dev/GVT-2141-detekt-workflow-alt'
 
 jobs:
   without-type-resolution:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
@@ -20,18 +21,43 @@ jobs:
 
       - name: Download detekt
         run: |
-          curl -sSLO https://github.com/detekt/detekt/releases/download/v1.23.1/detekt-cli-1.23.1-all.jar
+          curl -sSL -o /tmp/detekt.jar \
+          https://github.com/detekt/detekt/releases/download/v1.23.1/detekt-cli-1.23.1-all.jar
 
-      - name: Run detekt
+      - name: Checkout branch that triggered the workflow
+        uses: actions/checkout@v4
+
+      - name: Copy detekt config from the branch that triggered the workflow
         run: |
-          java -jar detekt-cli-1.23.1-all.jar \
-          --config ${{ github.workspace }}/infra/detekt.yml \
+          cp infra/detekt.yml /tmp/detekt-config.yml
+
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Run detekt to create baseline from the main branch
+        run: |
+          java -jar /tmp/detekt.jar \
+          --config /tmp/detekt-config.yml \
           --base-path ${{ github.workspace }} \
           --input ${{ github.workspace }}/infra \
-          --baseline ${{ github.workspace }}/infra/src/main/resources/xml/detekt-baseline.xml \
+          --create-baseline \
+          --baseline /tmp/detekt-baseline.xml
+
+      - name: Checkout the branch that triggered the workflow
+        uses: actions/checkout@v4
+
+      - name: Run detekt again to check for errors created by the branch that triggered the workflow
+        run: |
+          java -jar /tmp/detekt.jar \
+          --config /tmp/detekt-config.yml \
+          --base-path ${{ github.workspace }} \
+          --input ${{ github.workspace }}/infra \
+          --baseline /tmp/detekt-baseline.xml \
           --report sarif:${{ github.workspace }}/infra/build/reports/detekt/detekt.sarif
 
-      - name: Upload SARIF to GitHub
+      - name: Upload SARIF file to GitHub
         uses: github/codeql-action/upload-sarif@v2
         if: success() || failure()
         with:
