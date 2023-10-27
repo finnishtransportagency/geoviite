@@ -91,24 +91,13 @@ class LayoutTrackNumberService(
         }
     }
 
-    fun list(publishType: PublishType, searchTerm: FreeText, limit: Int?): List<TrackLayoutTrackNumber> {
-        logger.serviceCall(
-            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
-        )
-        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            listInternal(publishType, true).filter { trackLayoutTrackNumber ->
-                idMatches(term, trackLayoutTrackNumber) || contentMatches(
-                    term, trackLayoutTrackNumber
-                )
-            }.sortedBy(TrackLayoutTrackNumber::number).let { list -> if (limit != null) list.take(limit) else list }
-        } ?: listOf()
-    }
+    override fun sortSearchResult(list: List<TrackLayoutTrackNumber>) = list.sortedBy(TrackLayoutTrackNumber::number)
 
-    private fun idMatches(term: String, trackLayoutTrackNumber: TrackLayoutTrackNumber) =
-        trackLayoutTrackNumber.externalId.toString() == term || trackLayoutTrackNumber.id.toString() == term
+    override fun idMatches(term: String, item: TrackLayoutTrackNumber) =
+        item.externalId.toString() == term || item.id.toString() == term
 
-    private fun contentMatches(term: String, trackLayoutTrackNumber: TrackLayoutTrackNumber) =
-        trackLayoutTrackNumber.exists && trackLayoutTrackNumber.number.toString().replace("  ", " ").contains(term, true)
+    override fun contentMatches(term: String, item: TrackLayoutTrackNumber) =
+        item.exists && item.number.toString().replace("  ", " ").contains(term, true)
 
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }
 
@@ -149,7 +138,7 @@ class LayoutTrackNumberService(
                     locationSource = GeometrySource.GENERATED,
                     location = startPoint.point.toPoint()
                 )
-            ) + distances.sortedBy { it.second }.mapIndexed { index, (kmPost, startM) ->
+            ) + distances.mapIndexed { index, (kmPost, startM) ->
                 val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
                 TrackLayoutKmLengthDetails(

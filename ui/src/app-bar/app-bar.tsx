@@ -16,8 +16,8 @@ import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type Link = {

@@ -1,4 +1,4 @@
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutKmPostId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -10,7 +10,7 @@ import {
     initialKmPostEditState,
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteDraftKmPost } from 'track-layout/layout-km-post-api';
 
 type KmPostDeleteConfirmationDialogProps = {

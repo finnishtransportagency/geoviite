@@ -152,26 +152,13 @@ class LocationTrackService(
         return listInternal(publishType, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
-    fun list(
-        publishType: PublishType,
-        searchTerm: FreeText,
-        limit: Int?,
-    ): List<LocationTrack> {
-        logger.serviceCall(
-            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
-        )
-        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            listInternal(publishType, true).filter { track ->
-                idMatches(term, track) || contentMatches(term, track)
-            }.sortedBy(LocationTrack::name).let { list -> if (limit != null) list.take(limit) else list }
-        } ?: listOf()
-    }
+    override fun sortSearchResult(list: List<LocationTrack>) = list.sortedBy (LocationTrack::name)
 
-    private fun idMatches(term: String, track: LocationTrack) =
-        track.externalId.toString() == term || track.id.toString() == term
+    override fun idMatches(term: String, item: LocationTrack) =
+        item.externalId.toString() == term || item.id.toString() == term
 
-    private fun contentMatches(term: String, track: LocationTrack) =
-        track.exists && (track.name.contains(term, true) || track.descriptionBase.contains(term, true))
+    override fun contentMatches(term: String, item: LocationTrack) =
+        item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))
 
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)

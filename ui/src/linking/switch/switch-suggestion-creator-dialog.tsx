@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './switch-suggestion-creator-dialog.scss';
-import { Dialog, DialogContentSpread, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogContentSpread, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import {
     LocationTrackEndpoint,
@@ -29,7 +29,7 @@ import {
 import { getLocationTracksNear } from 'track-layout/layout-location-track-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 
 export type SwitchSuggestionCreatorProps = {
     locationTrackEndpoint: LocationTrackEndpoint;

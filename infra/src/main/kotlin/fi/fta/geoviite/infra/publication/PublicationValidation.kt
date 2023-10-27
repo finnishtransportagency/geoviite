@@ -429,8 +429,8 @@ private fun jointSequence(joints: List<JointNumber>) =
 fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
     PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context")
 
-fun validateGeocodingContext(stuff: GeocodingContextCreateResult): List<PublishValidationError> {
-    val context = stuff.geocodingContext
+fun validateGeocodingContext(contextCreateResult: GeocodingContextCreateResult): List<PublishValidationError> {
+    val context = contextCreateResult.geocodingContext
     val kmPostsInWrongOrder =
         context.referencePoints.filter { point -> point.intersectType == WITHIN }.filterIndexed { index, point ->
             val previous = context.referencePoints.getOrNull(index - 1)
@@ -440,7 +440,7 @@ fun validateGeocodingContext(stuff: GeocodingContextCreateResult): List<PublishV
             validateWithParams(invalidPoints.isEmpty()) {
                 "$VALIDATION_GEOCODING.km-posts-invalid" to LocalizationParams(
                     "trackNumber" to context.trackNumber.number,
-                    "kmNumbers" to invalidPoints.joinToString(",") { point -> point.kmNumber.toString() },
+                    "kmNumbers" to invalidPoints.joinToString(", ") { point -> point.kmNumber.toString() },
                 )
             }
         }
@@ -457,7 +457,7 @@ fun validateGeocodingContext(stuff: GeocodingContextCreateResult): List<PublishV
             }
         }
 
-    val kmPostsRejected = stuff.rejectedKmPosts.map { (kmPost, reason) ->
+    val kmPostsRejected = contextCreateResult.rejectedKmPosts.map { (kmPost, reason) ->
         val kmPostLocalizationParams = mapOf("trackNumber" to context.trackNumber.number, "kmNumber" to kmPost.kmNumber)
 
         when (reason) {

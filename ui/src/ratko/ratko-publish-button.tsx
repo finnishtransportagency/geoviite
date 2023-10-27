@@ -3,8 +3,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { pushToRatko } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
-import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { WriteAccessRequired } from 'user/write-access-required';
 
 type RatkoPublishButtonProps = {

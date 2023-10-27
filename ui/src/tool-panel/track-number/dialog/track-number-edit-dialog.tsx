@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -31,8 +31,8 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
-import styles from 'vayla-design-lib/dialog/dialog.scss';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import styles from 'geoviite-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
@@ -175,7 +175,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         : 'track-number-edit.title.create',
                 )}
                 onClose={onClose}
-                width={DialogWidth.ULTRA_WIDE}
+                width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
                         {isNewDraft && inEditTrackNumber && (
