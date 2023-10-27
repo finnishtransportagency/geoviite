@@ -34,14 +34,12 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                 result
                     .map((trackNumberId) => {
                         stateActions.onSaveSucceed(trackNumberId);
-                        Snackbar.success(
-                            t('tool-panel.track-number.delete-dialog.delete-succeeded'),
-                        );
+                        Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
                         onClose();
                     })
                     .mapErr(() => {
                         stateActions.onSaveFailed();
-                        Snackbar.error(t('tool-panel.track-number.delete-dialog.delete-failed'));
+                        Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
                         onClose();
                     });
             })

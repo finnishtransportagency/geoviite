@@ -187,14 +187,14 @@ export const SwitchEditDialog = ({
                     result
                         .map((switchId) => {
                             onInsert && onInsert(switchId);
-                            Snackbar.success(t('switch-dialog.new-switch-added'));
+                            Snackbar.success('switch-dialog.new-switch-added');
                         })
                         .mapErr((_err) => {
-                            Snackbar.error(t('switch-dialog.adding-switch-failed'));
+                            Snackbar.error('switch-dialog.adding-switch-failed');
                         });
                 })
                 .catch(() => {
-                    Snackbar.error(t('switch-dialog.adding-switch-failed'));
+                    Snackbar.error('switch-dialog.adding-switch-failed');
                 });
         }
         //save updated switch here
@@ -218,14 +218,14 @@ export const SwitchEditDialog = ({
                     result
                         .map(() => {
                             onUpdate && onUpdate();
-                            Snackbar.success(t('switch-dialog.modified-successfully'));
+                            Snackbar.success('switch-dialog.modified-successfully');
                         })
                         .mapErr((_err) => {
-                            Snackbar.error(t('switch-dialog.modify-failed'));
+                            Snackbar.error('switch-dialog.modify-failed');
                         });
                 })
                 .catch(() => {
-                    Snackbar.error(t('switch-dialog.modify-failed'));
+                    Snackbar.error('switch-dialog.modify-failed');
                 });
         }
     }

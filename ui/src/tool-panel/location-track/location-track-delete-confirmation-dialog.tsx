@@ -33,13 +33,13 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
                     .map((locationTrackId) => {
                         stateActions.onSaveSucceed(locationTrackId);
                         Snackbar.success(
-                            t('tool-panel.location-track.delete-dialog.delete-succeeded'),
+                            'tool-panel.location-track.delete-dialog.delete-succeeded',
                         );
                         onClose();
                     })
                     .mapErr(() => {
                         stateActions.onSaveFailed();
-                        Snackbar.error(t('tool-panel.location-track.delete-dialog.delete-failed'));
+                        Snackbar.error('tool-panel.location-track.delete-dialog.delete-failed');
                         onClose();
                     });
             })

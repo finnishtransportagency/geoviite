@@ -117,7 +117,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 max: state.layoutAlignmentInterval.end.m,
             })
                 .then(() => {
-                    Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
+                    Snackbar.success('tool-panel.reference-line.end-points-updated');
                     onEndReferenceLineGeometryChange();
                 })
                 .finally(() => setUpdatingLength(false));
