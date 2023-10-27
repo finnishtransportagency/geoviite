@@ -43,7 +43,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
-import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
+import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 
@@ -61,6 +61,7 @@ export type ToolbarParams = {
     disableNewMenu: boolean;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
+    visibleLayers: MapLayerName[];
 };
 
 type LocationTrackItemValue = {
@@ -286,6 +287,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 <MapLayerMenu
                     onMenuChange={props.onMapLayerChange}
                     mapLayerMenuGroups={props.mapLayerMenuGroups}
+                    visibleLayers={props.visibleLayers}
                 />
                 <div className={styles['tool-bar__new-menu-button']}>
                     <WriteAccessRequired>
