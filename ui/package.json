@@ -48,7 +48,7 @@
         "webpack-license-plugin": "~4.2.2"
     },
     "dependencies": {
-        "@fontsource/open-sans": "~5.0.12",
+        "@fontsource/open-sans": "~5.0.17",
         "@jcoreio/async-throttle": "~1.6.0",
         "@reduxjs/toolkit": "~1.9.5",
         "date-fns": "~2.30.0",
