@@ -27,6 +27,7 @@ export const TrackLayoutContainer: React.FC = () => {
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
             showVerticalGeometryDiagram={showVerticalGeometryDiagram}
+            visibleMapLayers={trackLayoutState.map.visibleLayers}
         />
     );
 };

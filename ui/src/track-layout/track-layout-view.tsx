@@ -1,6 +1,6 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { MapLayerMenuChange, MapLayerMenuGroups } from 'map/map-model';
+import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { MapContext } from 'map/map-store';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
@@ -29,6 +29,7 @@ export type TrackLayoutViewProps = {
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
     showVerticalGeometryDiagram: boolean;
+    visibleMapLayers: MapLayerName[];
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
@@ -43,6 +44,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     changeTimes,
     onStopLinking,
     showVerticalGeometryDiagram,
+    visibleMapLayers,
 }) => {
     const className = createClassName(
         styles['track-layout'],
@@ -89,6 +91,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 onStopLinking={onStopLinking}
                 onMapLayerChange={onLayerMenuItemChange}
                 mapLayerMenuGroups={mapLayerMenuGroups}
+                visibleLayers={visibleMapLayers}
             />
 
             <div className={styles['track-layout__main-view']}>
