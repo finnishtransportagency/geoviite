@@ -76,7 +76,7 @@ const CloseButton = ({ closeToast }: never) => (
 export function info(header: string, body?: string, opts?: ToastOpts) {
     const { toastId: id, ...options } = opts ?? {};
 
-    const toastId = id ?? getToastId(header);
+    const toastId = id ?? getToastId(header, body);
     const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {

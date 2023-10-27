@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.geometry.TestGeometryPlanService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2EKmPostEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELayoutSwitchEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
@@ -146,7 +146,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(locationTrackStartPoint)
 
         linkingBox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
         toolPanel.selectToolPanelTab("replacement alignment")
 
         assertEquals("Kyllä", toolPanel.geometryAlignmentLinking.linked)
@@ -273,7 +273,7 @@ class LinkingTestUI @Autowired constructor(
 
         kmPostLinkingInfoBox.linkTo(firstTrackLayoutKmPost)
         kmPostLinkingInfoBox.link()
-        waitAndClearToastByContent("Tasakilometripiste linkitetty onnistuneesti")
+        waitAndClearToast("linking-succeed-msg")
 
         assertEquals("KYLLÄ", toolPanel.geometryKmPostLinking.linked)
         toolPanel.selectToolPanelTab("0123")
@@ -307,10 +307,10 @@ class LinkingTestUI @Autowired constructor(
             .setName(newKmPostNumber)
             .selectState(E2EKmPostEditDialog.State.IN_USE)
             .save()
-        waitAndClearToastByContent("Uusi tasakilometripiste lisätty rekisteriin")
+        waitAndClearToast("created-successfully")
 
         kmPostLinkingInfoBox.link()
-        waitAndClearToastByContent("Tasakilometripiste linkitetty onnistuneesti")
+        waitAndClearToast("linking-succeed-msg")
         geometryPlan.selectKmPost("0126")
 
         selectionPanel.selectKmPost(newKmPostNumber)
@@ -367,11 +367,11 @@ class LinkingTestUI @Autowired constructor(
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.EXISTING)
             .save()
 
-        waitAndClearToastByContent("Uusi vaihde lisätty rekisteriin")
+        waitAndClearToast("new-switch-added")
 
         switchLinkingInfoBox.linkTo(layoutSwitchName)
         switchLinkingInfoBox.link()
-        waitAndClearToastByContent("Vaihde linkitetty onnistuneesti")
+        waitAndClearToast("linking-succeed-msg")
         toolPanel.selectToolPanelTab(layoutSwitchName)
 
         val layoutSwitchInfoBox = toolPanel.layoutSwitchStructureGeneralInfo
@@ -437,7 +437,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
 
         alignmentLinkinInfobox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
         toolPanel.selectToolPanelTab("lt-track to extend")
         val lengthAfterLinking = CommonUiTestUtil.metersToDouble(locationTrackLocationInfobox.trueLength)
 
@@ -506,7 +506,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().points.first())
         trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().points.last())
         alignmentLinkinInfobox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
         val locationTrackAfterLinking = getLocationTrackAndAlignment(PublishType.DRAFT, originalLocationTrack.id)
 
@@ -573,7 +573,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(referenceLineEndPoint)
 
         alignmentLinkingInfobox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
         assertEquals("foo tracknumber", alignmentLinkingInfobox.trackNumber)
         toolPanel.selectToolPanelTab("foo tracknumber")
@@ -618,7 +618,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.toolPanel.locationTrackGeneralInfo.edit()
             .selectState(E2ELocationTrackEditDialog.State.DELETED)
             .save()
-        waitAndClearToastByContent("Sijaintiraide poistettu")
+        waitAndClearToast("deleted-successfully")
 
         assertTrue(trackLayoutPage.selectionPanel.locationTracksList.items.none { it.name == "lt-track to delete" })
 
@@ -667,7 +667,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.toolPanel.layoutSwitchGeneralInfo.edit()
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.NOT_EXISTING)
             .save()
-        waitAndClearToastByContent("Vaihteen tiedot päivitetty")
+        waitAndClearToast("modified-successfully")
 
         trackLayoutPage.selectionPanel.waitUntilSwitchNotVisible("switch to delete")
 
@@ -706,7 +706,7 @@ class LinkingTestUI @Autowired constructor(
             .selectTopologicalConnectivity(E2ELocationTrackEditDialog.TopologicalConnectivity.NONE)
             .save()
 
-        waitAndClearToastByContent("Uusi sijaintiraide lisätty rekisteriin")
+        waitAndClearToast("created-successfully")
 
         alignmentLinkingInfoBox.linkTo(locationTrackName)
         alignmentLinkingInfoBox.lock()
@@ -714,7 +714,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.last().end)
         alignmentLinkingInfoBox.link()
-        waitAndClearToastByContent("Raide linkitetty")
+        waitAndClearToast("linking-succeeded")
     }
 
     private fun createAndInsertCommonReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): LayoutAlignment {

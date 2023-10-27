@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
 import fi.fta.geoviite.infra.ui.pagemodel.common.expectToast
-import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byText
 import org.openqa.selenium.By
@@ -77,7 +77,7 @@ class E2ELocationTrackLocationInfobox(elementFetch: ElementFetch) : E2EInfoBox(e
 
     fun save(): E2ELocationTrackLocationInfobox = apply {
         clickButtonByText("Valmis")
-        waitAndClearToastByContent("Raiteen päätepisteet päivitetty")
+        waitAndClearToast("location-track-endpoints-updated")
     }
 
     fun cancel(): E2ELocationTrackLocationInfobox = apply {
