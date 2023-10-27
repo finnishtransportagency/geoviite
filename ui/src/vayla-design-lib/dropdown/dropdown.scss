@@ -133,6 +133,7 @@ $dropdown-border-error: 1.5px;
 
 .dropdown--searchable .dropdown__input {
     opacity: 1;
+    width: 100%;
 }
 
 .dropdown__current-value {
@@ -164,7 +165,7 @@ $dropdown-border-error: 1.5px;
     display: flex;
     flex-direction: column;
     margin-top: 2px;
-    max-height: 250px;
+    max-height: 270px;
     border-radius: 4px;
     background: colors.$color-white-default;
 }

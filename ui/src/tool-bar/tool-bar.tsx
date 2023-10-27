@@ -282,6 +282,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     onChange={onItemSelected}
                     size={DropdownSize.STRETCH}
                     wideList
+                    wide
                     qa-id="search-box"
                 />
                 <MapLayerMenu
