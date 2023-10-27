@@ -7,7 +7,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { TrackMeter as TrackMeterModel } from 'common/common-model';
+import { compareTrackMeterStrings, TrackMeter as TrackMeterModel } from 'common/common-model';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
@@ -20,17 +20,13 @@ import {
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import {
-    InitialSplit,
-    Split,
-    SplitDuplicate,
-    SwitchOnLocationTrack,
-} from 'tool-panel/location-track/split-store';
+import { InitialSplit, Split, SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
 import {
     useLocationTrack,
     useLocationTrackStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
+import { formatTrackMeter } from 'utils/geography-utils';
 
 type LocationTrackInfoboxSplittingProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -42,7 +38,7 @@ type LocationTrackInfoboxSplittingProps = {
     removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrackId: string;
     cancelSplitting: () => void;
-    setSplitDuplicate: (splitDuplicate: SplitDuplicate | undefined) => void;
+    updateSplit: (updatedSplit: Split | InitialSplit) => void;
 };
 
 type EndpointProps = {
@@ -54,7 +50,7 @@ type SplitProps = EndpointProps & {
     switchId?: LayoutSwitchId;
     onRemove?: (switchId: LayoutSwitchId) => void;
     duplicateLocationTracks?: LocationTrackDuplicate[];
-    setSplitDuplicate: (splitDuplicate: SplitDuplicate | undefined) => void;
+    updateSplit: (updateSplit: Split | InitialSplit) => void;
     duplicateOf: LocationTrackId | undefined;
 };
 
@@ -63,17 +59,29 @@ const Split: React.FC<SplitProps> = ({
     switchId,
     isInitial,
     onRemove,
-    setSplitDuplicate,
+    updateSplit,
     duplicateOf,
     duplicateLocationTracks = [],
 }) => {
+    const { t } = useTranslation();
     const [name, setName] = React.useState<string>('');
     const [descriptionBase, setDescriptionBase] = React.useState<string>('');
     const [suffixMode, setSuffixMode] = React.useState<LocationTrackDescriptionSuffixMode>('NONE');
+
     React.useEffect(() => {
         const duplicateId = duplicateLocationTracks.find((lt) => lt.name === name)?.id;
-        setSplitDuplicate({ splitId: switchId, duplicateOf: duplicateId });
-    }, [name, duplicateLocationTracks]);
+        const updatedSwitchBase = {
+            name,
+            descriptionBase,
+            suffixMode,
+            duplicateOf: duplicateId,
+        };
+        const finalUpdatedSwitch = switchId
+            ? { ...updatedSwitchBase, switchId }
+            : updatedSwitchBase;
+        updateSplit(finalUpdatedSwitch);
+    }, [name, descriptionBase, suffixMode, duplicateLocationTracks]);
+
     const duplicateLocationTrack = useLocationTrack(
         duplicateOf,
         'DRAFT',
@@ -87,12 +95,16 @@ const Split: React.FC<SplitProps> = ({
             <div className={styles['location-track-infobox__split-fields-container']}>
                 <div>
                     <InfoboxField
-                        label={isInitial ? 'Alkusijainti (km+m)' : 'Katkaisukohta (km+m)'}>
+                        label={
+                            isInitial
+                                ? t('tool-panel.location-track.splitting.start-address')
+                                : t('tool-panel.location-track.splitting.split-address')
+                        }>
                         <TrackMeter value={location} />
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        label={'Sijaintiraidetunnus'}>
+                        label={t('tool-panel.location-track.track-name')}>
                         <TextField
                             value={name}
                             onChange={(e) => {
@@ -105,12 +117,14 @@ const Split: React.FC<SplitProps> = ({
                         <InfoboxField
                             className={styles['location-track-infobox__split-replaces-duplicate']}
                             label={''}>
-                            <InfoboxText value={'Korvaa duplikaattiraiteen'} />
+                            <InfoboxText
+                                value={t('tool-panel.location-track.splitting.replaces-duplicate')}
+                            />
                         </InfoboxField>
                     )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        label={'Kuvauksen perusosa'}>
+                        label={t('tool-panel.location-track.description-base')}>
                         <TextField
                             value={
                                 duplicateLocationTrack
@@ -123,7 +137,7 @@ const Split: React.FC<SplitProps> = ({
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        label={'Kuvauksen lisäosa'}>
+                        label={t('tool-panel.location-track.description-suffix')}>
                         <DescriptionSuffixDropdown
                             suffixMode={
                                 duplicateLocationTrack
@@ -153,15 +167,27 @@ const Split: React.FC<SplitProps> = ({
 };
 
 const Endpoint: React.FC<EndpointProps> = ({ location }) => {
+    const { t } = useTranslation();
     return (
         <div className={styles['location-track-infobox__split-container']}>
             <div className={styles['location-track-infobox__split-item-ball']} />
-            <InfoboxField label={'Loppusijainti (km+m)'}>
+            <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
                 <TrackMeter value={location} />
             </InfoboxField>
         </div>
     );
 };
+
+const sortSplitsBySwitchLocation = (splits: Split[], allowedSwitches: SwitchOnLocationTrack[]) =>
+    [...splits].sort((a, b) => {
+        const aAddress = allowedSwitches.find((sw) => sw.switchId === a.switchId)?.address;
+        const bAddress = allowedSwitches.find((sw) => sw.switchId === b.switchId)?.address;
+        if (aAddress && bAddress) {
+            return compareTrackMeterStrings(formatTrackMeter(aAddress), formatTrackMeter(bAddress));
+        } else if (aAddress) return 1;
+        else if (bAddress) return -1;
+        else return 0;
+    });
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplittingProps> = ({
     duplicateLocationTracks,
@@ -173,7 +199,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
     allowedSwitches,
     removeSplit,
     cancelSplitting,
-    setSplitDuplicate,
+    updateSplit,
 }) => {
     const { t } = useTranslation();
     const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
@@ -181,20 +207,22 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
     const getSplitLocation = (split: Split) =>
         allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
 
+    const sortedSplits = sortSplitsBySwitchLocation(splits, allowedSwitches);
+
     return (
         <Infobox
             contentVisible={visibilities.splitting}
             onContentVisibilityChange={() => visibilityChange('splitting')}
-            title={'Raiteen jakaminen osiin'}>
+            title={t('tool-panel.location-track.splitting.title')}>
             <InfoboxContent className={styles['location-track-infobox__split']}>
                 <Split
                     location={startAndEnd?.start?.address}
                     isInitial={true}
                     duplicateLocationTracks={duplicateLocationTracks}
-                    setSplitDuplicate={setSplitDuplicate}
+                    updateSplit={updateSplit}
                     duplicateOf={initialSplit.duplicateOf}
                 />
-                {splits.map((split, index) => {
+                {sortedSplits.map((split, index) => {
                     return (
                         <Split
                             key={index.toString()}
@@ -203,7 +231,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                             switchId={split.switchId}
                             onRemove={removeSplit}
                             duplicateLocationTracks={duplicateLocationTracks}
-                            setSplitDuplicate={setSplitDuplicate}
+                            updateSplit={updateSplit}
                             duplicateOf={split.duplicateOf}
                         />
                     );
@@ -212,7 +240,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                 {splits.length === 0 && (
                     <InfoboxContentSpread>
                         <MessageBox>
-                            {t('Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan')}
+                            {t('tool-panel.location-track.splitting.splitting-guide')}
                         </MessageBox>
                     </InfoboxContentSpread>
                 )}
@@ -223,7 +251,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                         onClick={cancelSplitting}>
                         {t('button.cancel')}
                     </Button>
-                    <Button size={ButtonSize.SMALL}>{t('Suorita jako')}</Button>
+                    <Button size={ButtonSize.SMALL}>
+                        {t('tool-panel.location-track.splitting.confirm-split')}
+                    </Button>
                 </InfoboxButtons>
             </InfoboxContent>
         </Infobox>

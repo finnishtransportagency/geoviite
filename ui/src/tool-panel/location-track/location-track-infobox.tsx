@@ -333,7 +333,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     }}
                     allowedSwitches={splittingState.allowedSwitches}
                     duplicateLocationTracks={extraInfo?.duplicates || []}
-                    setSplitDuplicate={delegates.setSplitDuplicate}
+                    updateSplit={delegates.updateSplit}
                 />
             )}
             {startAndEndPoints && coordinateSystem && (

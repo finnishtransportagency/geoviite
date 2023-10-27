@@ -581,7 +581,16 @@
             "start-switch": "Vaihde raiteen alussa",
             "end-switch": "Vaihde raiteen lopussa",
             "no-start-or-end-switch": "Ei vaihdetta",
-            "unset": "Ei asetettu"
+            "unset": "Ei asetettu",
+            "splitting": {
+                "title": "Raiteen jakaminen osiin",
+                "confirm-split": "Suorita jako",
+                "splitting-guide": "Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan.",
+                "start-address": "Alkusijainti (km + m)",
+                "split-address": "Katkaisukohta (km + m)",
+                "end-address": "Loppusijainti (km + m)",
+                "replaces-duplicate": "Korvaa duplikaattiraiteen"
+            }
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
