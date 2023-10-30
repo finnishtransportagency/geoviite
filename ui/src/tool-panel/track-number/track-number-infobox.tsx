@@ -133,7 +133,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
-    const handleTrackNumberSave = refreshTrackNumberSelection(onSelect, onUnselect);
+    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
 
     return (
         <React.Fragment>

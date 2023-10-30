@@ -293,13 +293,14 @@ export function usePvDocumentHeader(
 }
 
 export function refreshTrackNumberSelection(
+    publicationState: PublishType,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutTrackNumberId) => void {
     return (id) => {
         Promise.all([updateTrackNumberChangeTime(), updateReferenceLineChangeTime()]).then(
             ([ts, _]) => {
-                getTrackNumberById(id, 'DRAFT', ts).then((tn) => {
+                getTrackNumberById(id, publicationState, ts).then((tn) => {
                     if (tn) onSelect({ trackNumbers: [id] });
                     else onUnselect({ trackNumbers: [id] });
                 });
@@ -309,12 +310,13 @@ export function refreshTrackNumberSelection(
 }
 
 export function refreshLocationTrackSelection(
+    publicationState: PublishType,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LocationTrackId) => void {
     return (id) => {
         updateLocationTrackChangeTime().then((ts) => {
-            getLocationTrack(id, 'DRAFT', ts).then((lt) => {
+            getLocationTrack(id, publicationState, ts).then((lt) => {
                 if (lt) onSelect({ locationTracks: [id] });
                 else onUnselect({ locationTracks: [id] });
             });
@@ -323,12 +325,13 @@ export function refreshLocationTrackSelection(
 }
 
 export function refreshSwitchSelection(
+    publicationState: PublishType,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutSwitchId) => void {
     return (id) => {
         updateSwitchChangeTime().then((ts) => {
-            getSwitch(id, 'DRAFT', ts).then((s) => {
+            getSwitch(id, publicationState, ts).then((s) => {
                 if (s) onSelect({ switches: [id] });
                 else onUnselect({ switches: [id] });
             });
@@ -337,12 +340,13 @@ export function refreshSwitchSelection(
 }
 
 export function refereshKmPostSelection(
+    publicationState: PublishType,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutKmPostId) => void {
     return (id) => {
         updateKmPostChangeTime().then((ts) => {
-            getKmPost(id, 'DRAFT', ts).then((kmp) => {
+            getKmPost(id, publicationState, ts).then((kmp) => {
                 if (kmp) onSelect({ kmPosts: [id] });
                 else onUnselect({ kmPosts: [id] });
             });

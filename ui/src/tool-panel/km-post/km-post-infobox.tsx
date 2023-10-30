@@ -86,7 +86,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
-    const handleKmPostSave = refereshKmPostSelection(onSelect, onUnselect);
+    const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
 
     return (
         <React.Fragment>

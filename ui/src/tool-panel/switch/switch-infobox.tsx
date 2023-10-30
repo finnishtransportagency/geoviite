@@ -191,7 +191,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const visibilityChange = (key: keyof SwitchInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
-    const handleSwitchSave = refreshSwitchSelection(onSelect, onUnselect);
+    const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
 
     return (
         <React.Fragment>

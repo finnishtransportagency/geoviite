@@ -140,7 +140,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         onDataChange();
     }
 
-    const handleLocationTrackSave = refreshLocationTrackSelection(onSelect, onUnselect);
+    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
 
     function getSwitchLink(sw?: LayoutSwitchIdAndName) {
         if (sw) {

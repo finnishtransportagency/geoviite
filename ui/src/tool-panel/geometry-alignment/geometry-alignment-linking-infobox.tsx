@@ -181,8 +181,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         });
     }, [planId, publishType, locationTrackChangeTime]);
 
-    const handleTrackNumberSave = refreshTrackNumberSelection(onSelect, onUnselect);
-    const handleLocationTrackSave = refreshLocationTrackSelection(onSelect, onUnselect);
+    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
+    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
 
     function lockAlignment() {
         const selectedAlignment = selectedLayoutLocationTrack || selectedLayoutReferenceLine;

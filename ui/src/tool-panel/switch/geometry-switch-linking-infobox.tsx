@@ -145,7 +145,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         }
     }
 
-    const handleSwitchSave = refreshSwitchSelection(onSelect, onUnselect);
+    const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
 
     async function link() {
         if (linkingState?.suggestedSwitch && linkingState.layoutSwitchId) {

@@ -111,7 +111,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         }
     }
 
-    const handleKmPostSave = refereshKmPostSelection(onSelect, onUnselect);
+    const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
 
     return (
         <React.Fragment>
