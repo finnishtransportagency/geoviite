@@ -9,7 +9,6 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
-import { getChangeTimes } from 'common/change-time-api';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 
 type HighlightedItemBase = {
