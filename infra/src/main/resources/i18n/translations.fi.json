@@ -585,6 +585,7 @@
             "end-switch": "Vaihde raiteen lopussa",
             "no-start-or-end-switch": "Ei vaihdetta",
             "unset": "Ei asetettu",
+            "start-splitting": "Aloita raiteen jakaminen",
             "splitting": {
                 "title": "Raiteen jakaminen osiin",
                 "confirm-split": "Suorita jako",

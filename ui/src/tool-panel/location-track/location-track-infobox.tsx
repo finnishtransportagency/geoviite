@@ -412,7 +412,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                     });
                                                 }
                                             }}>
-                                            Aloita raiteen jakaminen
+                                            {t('tool-panel.location-track.start-splitting')}
                                         </Button>
                                     )}
                                 </InfoboxButtons>
