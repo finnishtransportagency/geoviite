@@ -124,7 +124,7 @@ const Split: React.FC<SplitProps> = ({
                     )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        label={t('tool-panel.location-track.description-base')}>
+                        label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
                             value={
                                 duplicateLocationTrack
@@ -137,7 +137,7 @@ const Split: React.FC<SplitProps> = ({
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        label={t('tool-panel.location-track.description-suffix')}>
+                        label={t('tool-panel.location-track.splitting.description-suffix')}>
                         <DescriptionSuffixDropdown
                             suffixMode={
                                 duplicateLocationTrack

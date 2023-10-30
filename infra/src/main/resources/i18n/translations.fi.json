@@ -592,7 +592,9 @@
                 "start-address": "Alkusijainti (km + m)",
                 "split-address": "Katkaisukohta (km + m)",
                 "end-address": "Loppusijainti (km + m)",
-                "replaces-duplicate": "Korvaa duplikaattiraiteen"
+                "replaces-duplicate": "Korvaa duplikaattiraiteen",
+                "description-base": "Kuvauksen perusosa",
+                "description-suffix": "Kuvauksen lisäosa"
             }
         },
         "disabled": {
