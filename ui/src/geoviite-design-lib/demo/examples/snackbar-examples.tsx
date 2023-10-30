@@ -8,15 +8,15 @@ export const SnackbarExamples: React.FC = () => {
     const [body, setBody] = React.useState<string>('');
 
     const infoSnackbar = () => {
-        Snackbar.info(header, { body });
+        Snackbar.info(header, body);
     };
 
     const successSnackbar = () => {
-        Snackbar.success(header, { body });
+        Snackbar.success(header, body);
     };
 
     const errorSnackbar = () => {
-        Snackbar.error(header, { body });
+        Snackbar.error(header, body);
     };
 
     return (

@@ -82,7 +82,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             ).rowVersion
         )
 
-        val result = kmPostService.getByKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber)
+        val result = kmPostService.getByKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber, true)
         assertNotNull(result)
         assertMatches(kmPost, result)
     }
@@ -98,7 +98,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             )
         )
 
-        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumberId, KmNumber(2)))
+        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumberId, KmNumber(2), true))
     }
 
     @Test
@@ -115,7 +115,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             ).rowVersion
         )
 
-        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumber2Id, kmPost.kmNumber))
+        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumber2Id, kmPost.kmNumber, true))
     }
 
     @Test

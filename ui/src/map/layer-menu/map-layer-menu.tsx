@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerMenuItem } from 'map/map-model';
+import {
+    MapLayerMenuChange,
+    MapLayerMenuGroups,
+    MapLayerMenuItem,
+    MapLayerName,
+} from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -7,11 +12,13 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
+import { isLayerEnabledByProxy } from 'map/map-store';
 
 type MapLayerMenuProps = {
     onMenuChange: (change: MapLayerMenuChange) => void;
     onClose?: () => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
+    visibleLayers: MapLayerName[];
 };
 
 type MapLayerProps = {
@@ -24,7 +31,8 @@ type MapLayerProps = {
 
 type MapLayerGroupProps = {
     title: string;
-    visibilities: MapLayerMenuItem[];
+    menuItemVisibilities: MapLayerMenuItem[];
+    mapLayerVisibilities: MapLayerName[];
     onMenuChange: (change: MapLayerMenuChange) => void;
 };
 
@@ -54,17 +62,24 @@ const MapLayer: React.FC<MapLayerProps> = ({
     );
 };
 
-const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMenuChange }) => {
+const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
+    title,
+    menuItemVisibilities,
+    mapLayerVisibilities,
+    onMenuChange,
+}) => {
     const { t } = useTranslation();
     return (
         <React.Fragment>
             <div className={styles['map-layer-menu__title']}>{title}</div>
-            {visibilities.flatMap((setting) => {
+            {menuItemVisibilities.flatMap((setting) => {
+                const enabledByProxy = isLayerEnabledByProxy(setting.name, mapLayerVisibilities);
                 return [
                     <MapLayer
                         key={setting.name}
                         label={t(`map-layer-menu.${setting.name}`)}
-                        visible={setting.visible}
+                        visible={enabledByProxy || setting.visible}
+                        disabled={enabledByProxy}
                         onChange={() =>
                             onMenuChange({
                                 name: setting.name,
@@ -73,12 +88,16 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMe
                         }
                     />,
                     setting.subMenu?.map((subSetting) => {
+                        const enabledByProxy = isLayerEnabledByProxy(
+                            subSetting.name,
+                            mapLayerVisibilities,
+                        );
                         return (
                             <MapLayer
                                 key={subSetting.name}
                                 label={t(`map-layer-menu.${subSetting.name}`)}
-                                visible={subSetting.visible}
-                                disabled={!setting.visible}
+                                visible={enabledByProxy || subSetting.visible}
+                                disabled={enabledByProxy || !setting.visible}
                                 indented={true}
                                 onChange={() =>
                                     onMenuChange({
@@ -101,6 +120,7 @@ const layerOffset = 48;
 export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
     mapLayerMenuGroups,
     onMenuChange,
+    visibleLayers,
 }: MapLayerMenuProps) => {
     const { t } = useTranslation();
     const [showMapLayerMenu, setShowMapLayerMenu] = React.useState(false);
@@ -134,19 +154,22 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
 
                     <MapLayerGroup
                         title={t('map-layer-menu.layout-title')}
-                        visibilities={mapLayerMenuGroups.layout}
+                        menuItemVisibilities={mapLayerMenuGroups.layout}
                         onMenuChange={onMenuChange}
+                        mapLayerVisibilities={visibleLayers}
                     />
                     <MapLayerGroup
                         title={t('map-layer-menu.geometry-title')}
-                        visibilities={mapLayerMenuGroups.geometry}
+                        menuItemVisibilities={mapLayerMenuGroups.geometry}
                         onMenuChange={onMenuChange}
+                        mapLayerVisibilities={visibleLayers}
                     />
                     <EnvRestricted restrictTo="dev">
                         <MapLayerGroup
                             title={t('map-layer-menu.debug-title')}
-                            visibilities={mapLayerMenuGroups.debug}
+                            menuItemVisibilities={mapLayerMenuGroups.debug}
                             onMenuChange={onMenuChange}
+                            mapLayerVisibilities={visibleLayers}
                         />
                     </EnvRestricted>
                 </CloseableModal>

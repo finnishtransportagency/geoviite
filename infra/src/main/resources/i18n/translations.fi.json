@@ -384,12 +384,15 @@
                 "general-title": "Tasakmpisteen perustiedot",
                 "km-post": "Tasakmpistetunnus",
                 "track-number": "Ratanumero",
+                "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
                 "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
-                "delete-draft": "Poista luonnos"
+                "delete-draft": "Poista luonnos",
+                "no-kilometer-length": "Pituutta ei voida laskea",
+                "negative-kilometer-length": "Virheellinen sijainti"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -1194,7 +1197,7 @@
                 "not-continuous": "Sijaintiraiteen {{locationTrack}} osoitteet eivät ole jatkuvia, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "start-outside-reference-line": "Pituusmittauslinja {{referenceLine}} on sijaintiraiteelle {{locationTrack}} liian lyhyt, eikä kata sen alkua",
                 "end-outside-reference-line": "Pituusmittauslinja {{referenceLine}} on sijaintiraiteelle {{locationTrack}} liian lyhyt, eikä kata sen loppua",
-                "km-post-too-long": "Tasakilometripiste {{kmNumber}} on liian kaukana seuraavasta",
+                "km-post-too-long": "Tasakilometripiste {{kmNumber}} on liian kaukana edellisestä tasakilometripisteestä",
                 "km-post-no-location": "Tasakilometripisteeltä ({{kmNumber}}) puuttuu sijainti",
                 "km-post-rejected": "Tasakilometripisteitä ({{kmNumber}}) ei voitu sijoittaa ratanumeron {{trackNumber}} pituusmittauslinjalle",
                 "km-post-outside-line-before": "Tasakilometripiste ({{kmNumber}}) sijaitsee ennen linjaa {{trackNumber}}",
@@ -1363,15 +1366,17 @@
         "info-from-linking": "Linkityksestä tulevat tiedot",
         "location": "Sijainti (km + m)",
         "coordinate-system": "Koordinaattijärjestelmä",
-        "created-successfully": "Uusi tasakilometripiste lisätty rekisteriin",
-        "adding-failed": "Tasakilometripisteen lisäys epäonnistui",
         "error-mandatory-field": "Pakollinen kenttä",
         "error-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
         "error-km-number-already-in-use": "Tunnus on jo käytössä valitulla ratanumerolla",
-        "modified-successfully": "Tasakilometripisteen tiedot päivitetty",
-        "deleted-successfully": "Tasakilometripiste poistettu",
+        "insert-succeeded": "Uusi tasakilometripiste lisätty rekisteriin",
+        "insert-failed": "Tasakilometripisteen lisäys epäonnistui",
+        "modify-succeeded": "Tasakilometripisteen tiedot päivitetty",
+        "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
+        "delete-successfully": "Tasakilometripiste poistettu",
         "delete-draft": "Poista luonnos",
-        "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu"
+        "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}"
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",
@@ -1382,7 +1387,7 @@
         "delete-draft-confirm": "Poistetaanko luonnos?",
         "can-be-deleted": "Tätä tasakilometripistettä ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa tasakilometripistettä.",
         "delete-succeeded": "Tasakilometripiste poistettu.",
-        "delete-failed": "Poisto epäonnistui."
+        "delete-failed": "Tasakilometripisteen poisto epäonnistui."
     },
     "switch-dialog": {
         "title-new": "Uusi vaihde",

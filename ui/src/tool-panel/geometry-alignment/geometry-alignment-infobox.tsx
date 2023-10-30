@@ -15,7 +15,7 @@ import {
     LinkingState,
     LinkingType,
 } from 'linking/linking-model';
-import { OnSelectOptions } from 'selection/selection-model';
+import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
@@ -25,6 +25,7 @@ import { GeometryAlignmentVerticalGeometryInfobox } from 'tool-panel/geometry-al
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     geometryAlignment: AlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
@@ -46,6 +47,7 @@ type GeometryAlignmentInfoboxProps = {
 
 const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     onSelect,
+    onUnselect,
     geometryAlignment,
     selectedLayoutLocationTrack,
     selectedLayoutReferenceLine,
@@ -110,6 +112,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     contentVisible={visibilities.linking}
                     onContentVisibilityChange={() => visibilityChange('linking')}
                     onSelect={onSelect}
+                    onUnselect={onUnselect}
                     geometryAlignment={geometryAlignment}
                     selectedLayoutLocationTrack={selectedLayoutLocationTrack}
                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}

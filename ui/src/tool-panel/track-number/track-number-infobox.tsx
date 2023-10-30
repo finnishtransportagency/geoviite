@@ -13,6 +13,7 @@ import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
+    refreshTrackNumberSelection,
     useCoordinateSystem,
     useReferenceLineChangeTimes,
     useReferenceLineStartAndEnd,
@@ -39,6 +40,7 @@ import { WriteAccessRequired } from 'user/write-access-required';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -46,7 +48,8 @@ type TrackNumberInfoboxProps = {
     publishType: PublishType;
     linkingState?: LinkingState;
     showArea: (area: BoundingBox) => void;
-    onUnselect: () => void;
+    onSelect: OnSelectFunction;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onStartReferenceLineGeometryChange: (alignment: LinkInterval) => void;
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
@@ -62,6 +65,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     publishType,
     linkingState,
     showArea,
+    onSelect,
+    onUnselect,
     onStartReferenceLineGeometryChange,
     onEndReferenceLineGeometryChange,
     viewport,
@@ -117,28 +122,18 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 max: state.layoutAlignmentInterval.end.m,
             })
                 .then(() => {
-                    Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
+                    Snackbar.success('tool-panel.reference-line.end-points-updated');
                     onEndReferenceLineGeometryChange();
                 })
                 .finally(() => setUpdatingLength(false));
         }
     };
 
-    const showLocationTrackDeleteConfirmation = () => {
-        setConfirmingDraftDelete(true);
-    };
-
-    const closeLocationTrackDeleteConfirmation = () => {
-        setConfirmingDraftDelete(false);
-    };
-
-    const closeConfirmationAndUnselect = () => {
-        closeLocationTrackDeleteConfirmation();
-    };
-
     const visibilityChange = (key: keyof TrackNumberInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
+
+    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
 
     return (
         <React.Fragment>
@@ -319,7 +314,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         {isDeletable && (
                             <InfoboxButtons>
                                 <Button
-                                    onClick={() => showLocationTrackDeleteConfirmation()}
+                                    onClick={() => setConfirmingDraftDelete(true)}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}
                                     size={ButtonSize.SMALL}>
@@ -333,14 +328,15 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             {confirmingDraftDelete && (
                 <TrackNumberDeleteConfirmationDialog
                     id={trackNumber.id}
-                    onClose={closeConfirmationAndUnselect}
-                    onCancel={closeLocationTrackDeleteConfirmation}
+                    onClose={() => setConfirmingDraftDelete(false)}
+                    onSave={handleTrackNumberSave}
                 />
             )}
             {showEditDialog && (
                 <TrackNumberEditDialogContainer
                     editTrackNumberId={trackNumber.id}
                     onClose={() => setShowEditDialog(false)}
+                    onSave={handleTrackNumberSave}
                 />
             )}
         </React.Fragment>

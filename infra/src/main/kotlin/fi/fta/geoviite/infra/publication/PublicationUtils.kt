@@ -237,7 +237,7 @@ fun getSwitchLinksChangedRemark(
     val commonNames = removed.values.map { it.name }.intersect(added.values.map { it.name }.toSet())
 
     fun remarkOnIds(ids: SwitchChangeIds) =
-        if (commonNames.contains(ids.name)) "${ids.name} (${ids.externalId})" else ids.name
+        if (commonNames.contains(ids.name) && ids.externalId != null) "${ids.name} (${ids.externalId})" else ids.name
 
     val remarkRemoved = publicationChangeRemark(
         translation,

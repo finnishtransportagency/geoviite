@@ -57,10 +57,12 @@ export async function getKmPostByNumber(
     publishType: PublishType,
     trackNumberId: LayoutTrackNumberId,
     kmNumber: KmNumber,
+    includeDeleted: boolean,
 ): Promise<LayoutKmPost | undefined> {
     const params = queryParams({
         trackNumberId: trackNumberId,
         kmNumber: kmNumber,
+        includeDeleted: includeDeleted,
     });
     return getNullable<LayoutKmPost>(`${layoutUri('km-posts', publishType)}${params}`);
 }

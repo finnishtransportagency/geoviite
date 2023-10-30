@@ -25,6 +25,20 @@ export function getEmptyShownItems(): ShownItems {
     };
 }
 
+export const isLayerEnabledByProxy = (
+    menuItemName: MapLayerMenuItemName,
+    visibleLayers: MapLayerName[],
+): boolean => {
+    const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
+    const key = Object.keys(relatedMapLayers).find(
+        (key) =>
+            relatedMapLayers[key as MapLayerName]?.find((layer) =>
+                layersFromMenuItem.includes(layer),
+            ),
+    );
+    return visibleLayers.some((layer) => layer === key);
+};
+
 const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
 const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {

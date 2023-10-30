@@ -56,7 +56,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val mapScale: MapScale
         get() {
             val scale = childText(By.className("ol-scale-line-inner"))
-            return MapScale.values().first { it.value == scale }
+            return MapScale.entries.first { it.value == scale }
         }
 
     companion object {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import {
     booleanToTrapPoint,
@@ -28,7 +28,7 @@ import {
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';
@@ -39,18 +39,14 @@ export type SwitchDialogProps = {
     switchId?: LayoutSwitchId;
     prefilledSwitchStructureId?: SwitchStructureId;
     onClose: () => void;
-    onInsert?: (switchId: LayoutSwitchId) => void;
-    onUpdate?: () => void;
-    onDelete?: () => void;
+    onSave?: (switchId: LayoutSwitchId) => void;
 };
 
 export const SwitchEditDialog = ({
     switchId,
     prefilledSwitchStructureId,
     onClose,
-    onInsert,
-    onUpdate,
-    onDelete,
+    onSave,
 }: SwitchDialogProps) => {
     const { t } = useTranslation();
     const [showStructureChangeConfirmationDialog, setShowStructureChangeConfirmationDialog] =
@@ -157,8 +153,12 @@ export const SwitchEditDialog = ({
     }
 
     function saveOrConfirm() {
-        if (switchStateCategory === 'NOT_EXISTING') setShowDeleteOfficialConfirmDialog(true);
-        else if (switchStructureChanged) {
+        if (
+            switchStateCategory === 'NOT_EXISTING' &&
+            existingSwitch?.stateCategory !== 'NOT_EXISTING'
+        ) {
+            setShowDeleteOfficialConfirmDialog(true);
+        } else if (switchStructureChanged) {
             setShowStructureChangeConfirmationDialog(true);
         } else {
             save();
@@ -186,15 +186,16 @@ export const SwitchEditDialog = ({
                 .then((result) => {
                     result
                         .map((switchId) => {
-                            onInsert && onInsert(switchId);
-                            Snackbar.success(t('switch-dialog.new-switch-added'));
+                            onSave && onSave(switchId);
+                            onClose();
+                            Snackbar.success('switch-dialog.new-switch-added');
                         })
                         .mapErr((_err) => {
-                            Snackbar.error(t('switch-dialog.adding-switch-failed'));
+                            Snackbar.error('switch-dialog.adding-switch-failed');
                         });
                 })
                 .catch(() => {
-                    Snackbar.error(t('switch-dialog.adding-switch-failed'));
+                    Snackbar.error('switch-dialog.adding-switch-failed');
                 });
         }
         //save updated switch here
@@ -217,15 +218,16 @@ export const SwitchEditDialog = ({
                 .then((result) => {
                     result
                         .map(() => {
-                            onUpdate && onUpdate();
-                            Snackbar.success(t('switch-dialog.modified-successfully'));
+                            onSave && onSave(existingSwitch.id);
+                            onClose();
+                            Snackbar.success('switch-dialog.modified-successfully');
                         })
                         .mapErr((_err) => {
-                            Snackbar.error(t('switch-dialog.modify-failed'));
+                            Snackbar.error('switch-dialog.modify-failed');
                         });
                 })
                 .catch(() => {
-                    Snackbar.error(t('switch-dialog.modify-failed'));
+                    Snackbar.error('switch-dialog.modify-failed');
                 });
         }
     }
@@ -291,8 +293,8 @@ export const SwitchEditDialog = ({
     }
 
     function handleOnDelete() {
-        setShowDeleteDraftConfirmDialog(false);
-        onDelete && onDelete();
+        onSave && switchId && onSave(switchId);
+        onClose();
     }
 
     return (
@@ -302,18 +304,15 @@ export const SwitchEditDialog = ({
                     isExistingSwitch ? t('switch-dialog.title-edit') : t('switch-dialog.title-new')
                 }
                 onClose={onClose}
-                width={DialogWidth.WIDE}
                 footerContent={
                     <React.Fragment>
                         {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
-                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
-                                <Button
-                                    onClick={() => setShowDeleteDraftConfirmDialog(true)}
-                                    icon={Icons.Delete}
-                                    variant={ButtonVariant.WARNING}>
-                                    {t('tool-panel.switch.layout.delete-draft')}
-                                </Button>
-                            </div>
+                            <Button
+                                onClick={() => setShowDeleteDraftConfirmDialog(true)}
+                                icon={Icons.Delete}
+                                variant={ButtonVariant.WARNING}>
+                                {t('tool-panel.switch.layout.delete-draft')}
+                            </Button>
                         )}
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
@@ -484,8 +483,8 @@ export const SwitchEditDialog = ({
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteDialog
                     switchId={switchId}
-                    onDelete={handleOnDelete}
-                    onCancel={() => setShowDeleteDraftConfirmDialog(false)}
+                    onSave={handleOnDelete}
+                    onClose={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}
         </React.Fragment>

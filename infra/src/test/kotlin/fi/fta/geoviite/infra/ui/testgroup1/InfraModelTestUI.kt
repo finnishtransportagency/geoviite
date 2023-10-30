@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
-import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
@@ -54,7 +53,7 @@ class InfraModelTestUI @Autowired constructor(
         projektinTiedot.selectNewProject(newProjectName)
 
         infraModelEditPage.save(true)
-        waitAndClearToastByContent("InfraModel-tiedosto tallennettu")
+        waitAndClearToast("infra-model.edit.success")
 
         val uploadedPlanRow = infraModelPage.infraModelsList.getRow(projectName = newProjectName)
         assertNotNull(uploadedPlanRow)
@@ -143,7 +142,7 @@ class InfraModelTestUI @Autowired constructor(
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
 
         uploadForm.save(true)
-        waitAndClearToast("infra-model-import-upload__success-toast")
+        waitAndClearToast("infra-model.upload.success")
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 

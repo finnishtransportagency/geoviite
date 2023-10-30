@@ -28,11 +28,12 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addIfExists, subtract } from 'utils/array-utils';
+import { addIfExists } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
+import { subtractPublishRequestIds } from 'publication/publication-utils';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -383,24 +384,10 @@ const trackLayoutSlice = createSlice({
         ): void {
             const stateCandidates = state.stagedPublicationRequestIds;
             const toRemove = action.payload;
-            const trackNumbers = subtract(stateCandidates.trackNumbers, toRemove.trackNumbers);
-            const referenceLines = subtract(
-                stateCandidates.referenceLines,
-                toRemove.referenceLines,
+            state.stagedPublicationRequestIds = subtractPublishRequestIds(
+                stateCandidates,
+                toRemove,
             );
-            const locationTracks = subtract(
-                stateCandidates.locationTracks,
-                toRemove.locationTracks,
-            );
-            const switches = subtract(stateCandidates.switches, toRemove.switches);
-            const kmPosts = subtract(stateCandidates.kmPosts, toRemove.kmPosts);
-            state.stagedPublicationRequestIds = {
-                trackNumbers,
-                referenceLines,
-                locationTracks,
-                switches,
-                kmPosts,
-            };
         },
 
         onHighlightItems: function (

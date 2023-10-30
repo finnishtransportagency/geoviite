@@ -65,12 +65,12 @@ class E2EMetaFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) 
 
     fun selectNewProject(newProject: String): E2EMetaFormGroup = apply {
         selectNewDropdownValue("Projektin nimi", listOf(newProject))
-        waitAndClearToastByContent("Uusi projekti luotu onnistuneesti")
+        waitAndClearToast("new-project-created")
     }
 
     fun selectNewAuthor(newAuthor: String): E2EMetaFormGroup = apply {
         selectNewDropdownValue("Suunnitteluyritys", listOf(newAuthor))
-        waitAndClearToastByContent("Uusi suunnitteluyritys luotu onnistuneesti")
+        waitAndClearToast("new-author-created")
     }
 }
 
@@ -87,7 +87,7 @@ class E2ELocationFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFet
 
     fun selectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
         selectNewDropdownValue("Ratanumero", listOf(trackNumber, description))
-        waitAndClearToastByContent("Ratanumero tallennettu")
+        waitAndClearToast("track-number-edit.result.succeeded")
         clickEditIcon("Ratanumero")
     }
 

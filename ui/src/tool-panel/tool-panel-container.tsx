@@ -75,6 +75,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             publishType={store.publishType}
             suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
             onDataChange={typeChange}
+            onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
             setSelectedAsset={delegates.setToolPanelTab}
             selectedAsset={store.selectedToolPanelTab}

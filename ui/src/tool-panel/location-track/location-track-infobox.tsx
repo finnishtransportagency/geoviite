@@ -14,6 +14,7 @@ import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linki
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import {
+    refreshLocationTrackSelection,
     useCoordinateSystem,
     useLocationTrack,
     useLocationTrackChangeTimes,
@@ -41,7 +42,7 @@ import {
 } from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
-import { OnSelectFunction } from 'selection/selection-model';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/topological-connectivity-label';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
@@ -75,8 +76,8 @@ type LocationTrackInfoboxProps = {
     onDataChange: () => void;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
-    onUnselect: (track: LayoutLocationTrack) => void;
     onSelect: OnSelectFunction;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
@@ -95,6 +96,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onDataChange,
     publishType,
     locationTrackChangeTime,
+    onSelect,
     onUnselect,
     viewport,
     visibilities,
@@ -150,30 +152,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         onDataChange();
     }
 
-    function handleLocationTrackUpdate() {
-        closeEditLocationTrackDialog();
-    }
+    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
 
-    const showLocationTrackDeleteConfirmation = () => {
-        setConfirmingDraftDelete(true);
-    };
-
-    const closeLocationTrackDeleteConfirmation = () => {
-        setConfirmingDraftDelete(false);
-    };
-
-    const closeConfirmationAndUnselect = (track: LayoutLocationTrack) => {
-        closeLocationTrackDeleteConfirmation();
-        onUnselect(track);
-    };
-
-    function showLocationTrackPushDialog() {
-        setShowRatkoPushDialog(true);
-    }
-
-    function closeLocationTrackPushDialog() {
-        setShowRatkoPushDialog(false);
-    }
     function getSwitchLink(sw?: LayoutSwitchIdAndName) {
         if (sw) {
             const switchId = sw.id;
@@ -206,9 +186,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 max: state.layoutAlignmentInterval.end.m,
             })
                 .then(() => {
-                    Snackbar.success(
-                        t('tool-panel.location-track.location-track-endpoints-updated'),
-                    );
+                    Snackbar.success('tool-panel.location-track.location-track-endpoints-updated');
                     onEndLocationTrackGeometryChange();
                 })
                 .finally(() => setUpdatingLength(false));
@@ -517,7 +495,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         {officialLocationTrack === undefined && (
                             <InfoboxButtons>
                                 <Button
-                                    onClick={() => showLocationTrackDeleteConfirmation()}
+                                    onClick={() => setConfirmingDraftDelete(true)}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}
                                     size={ButtonSize.SMALL}>
@@ -539,7 +517,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         <InfoboxContent>
                             <InfoboxButtons>
                                 <Button
-                                    onClick={() => showLocationTrackPushDialog()}
+                                    onClick={() => setShowRatkoPushDialog(true)}
                                     variant={ButtonVariant.SECONDARY}
                                     size={ButtonSize.SMALL}>
                                     {t('tool-panel.location-track.push-to-ratko')}
@@ -553,7 +531,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             {showRatkoPushDialog && (
                 <LocationTrackRatkoPushDialog
                     locationTrackId={locationTrack.id}
-                    onClose={closeLocationTrackPushDialog}
+                    onClose={() => setShowRatkoPushDialog(false)}
                     locationTrackChangeTime={locationTrackChangeTime}
                 />
             )}
@@ -561,19 +539,17 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             {confirmingDraftDelete && (
                 <LocationTrackDeleteConfirmationDialog
                     id={locationTrack.id}
-                    onClose={() => closeConfirmationAndUnselect(locationTrack)}
-                    onCancel={closeLocationTrackDeleteConfirmation}
+                    onSave={handleLocationTrackSave}
+                    onClose={() => setConfirmingDraftDelete(false)}
                 />
             )}
 
             {showEditDialog && (
                 <LocationTrackEditDialog
                     onClose={closeEditLocationTrackDialog}
-                    onUpdate={handleLocationTrackUpdate}
+                    onSave={handleLocationTrackSave}
                     locationTrack={locationTrack}
-                    publishType={publishType}
                     locationTrackChangeTime={locationTrackChangeTime}
-                    onUnselect={() => onUnselect(locationTrack)}
                 />
             )}
         </React.Fragment>

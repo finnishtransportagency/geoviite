@@ -118,24 +118,13 @@ class LayoutSwitchService @Autowired constructor(
         return listInternal(publishType, false).filter(filter)
     }
 
-    fun list(publishType: PublishType, searchTerm: FreeText, limit: Int?): List<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
-        )
-        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            listInternal(publishType, true).filter { switch ->
-                idMatches(term, switch) || contentMatches(
-                    term, switch
-                )
-            }.sortedBy(TrackLayoutSwitch::name).let { list -> if (limit != null) list.take(limit) else list }
-        } ?: listOf()
-    }
+    override fun sortSearchResult(list: List<TrackLayoutSwitch>) = list.sortedBy(TrackLayoutSwitch::name)
 
-    private fun idMatches(term: String, switch: TrackLayoutSwitch) =
-        switch.externalId.toString() == term || switch.id.toString() == term
+    override fun idMatches(term: String, item: TrackLayoutSwitch) =
+        item.externalId.toString() == term || item.id.toString() == term
 
-    private fun contentMatches(term: String, switch: TrackLayoutSwitch) =
-        switch.exists && switch.name.toString().replace("  ", " ").contains(term, true)
+    override fun contentMatches(term: String, item: TrackLayoutSwitch) =
+        item.exists && item.name.toString().replace("  ", " ").contains(term, true)
 
     fun pageSwitches(
         switches: List<TrackLayoutSwitch>,

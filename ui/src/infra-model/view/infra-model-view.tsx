@@ -9,12 +9,12 @@ import {
 import { OnSelectFunction } from 'selection/selection-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { Prop } from 'utils/type-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
 import { FileMenuOption, InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
