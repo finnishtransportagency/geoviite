@@ -31,74 +31,74 @@ export function createGeometrySwitchLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const visibleSwitches = manuallySetPlan
-        ? manuallySetPlan.switches.map((s) => s.sourceId)
-        : selection.visiblePlans.flatMap((p) => p.switches);
+    const shownSwitches = () => {
+        if (resolution <= Limits.SWITCH_SHOW) {
+            return manuallySetPlan
+                ? manuallySetPlan.switches.map((s) => s.sourceId)
+                : selection.visiblePlans.flatMap((p) => p.switches);
+        } else {
+            return selection.selectedItems.geometrySwitchIds.map((s) => s.geometryId);
+        }
+    };
 
-    let inFlight = false;
-    if (resolution <= Limits.SWITCH_SHOW) {
-        inFlight = true;
-        const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-        const showLabels = resolution <= Limits.SWITCH_LABELS;
-        const isSelected = (switchItem: LayoutSwitch) => {
-            return selection.selectedItems.geometrySwitchIds.some(
-                ({ geometryId }) => geometryId === switchItem.sourceId,
-            );
-        };
+    const visibleSwitches = shownSwitches();
 
-        const isHighlighted = (switchItem: LayoutSwitch) => {
-            return selection.highlightedItems.geometrySwitchIds.some(
-                ({ geometryId }) => geometryId === switchItem.sourceId,
-            );
-        };
+    let inFlight = true;
+    const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+    const showLabels = resolution <= Limits.SWITCH_LABELS;
+    const isSelected = (switchItem: LayoutSwitch) => {
+        return selection.selectedItems.geometrySwitchIds.some(
+            ({ geometryId }) => geometryId === switchItem.sourceId,
+        );
+    };
 
-        const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
-            ? getManualPlanWithStatus(manuallySetPlan, publishType)
-            : getVisiblePlansWithStatus(selection.visiblePlans, publishType, changeTimes);
+    const isHighlighted = (switchItem: LayoutSwitch) => {
+        return selection.highlightedItems.geometrySwitchIds.some(
+            ({ geometryId }) => geometryId === switchItem.sourceId,
+        );
+    };
 
-        Promise.all([getSwitchStructures(), plansPromise])
-            .then(([switchStructures, planStatuses]) => {
-                if (layerId !== newestLayerId) return;
+    const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
+        ? getManualPlanWithStatus(manuallySetPlan, publishType)
+        : getVisiblePlansWithStatus(selection.visiblePlans, publishType, changeTimes);
 
-                const features = planStatuses.flatMap(({ status, plan }) => {
-                    const switchLinkedStatus = status
-                        ? new Map(
-                              status.switches
-                                  .filter((s) => visibleSwitches.includes(s.id))
-                                  .map((switchItem) => [switchItem.id, switchItem.isLinked]),
-                          )
-                        : undefined;
+    Promise.all([getSwitchStructures(), plansPromise])
+        .then(([switchStructures, planStatuses]) => {
+            if (layerId !== newestLayerId) return;
 
-                    const isSwitchLinked = (switchItem: LayoutSwitch) =>
-                        (switchItem.sourceId && switchLinkedStatus?.get(switchItem.sourceId)) ||
-                        false;
+            const features = planStatuses.flatMap(({ status, plan }) => {
+                const switchLinkedStatus = status
+                    ? new Map(
+                          status.switches
+                              .filter((s) => visibleSwitches.includes(s.id))
+                              .map((switchItem) => [switchItem.id, switchItem.isLinked]),
+                      )
+                    : undefined;
 
-                    return createSwitchFeatures(
-                        plan.switches.filter(
-                            (s) => s.sourceId && visibleSwitches.includes(s.sourceId),
-                        ),
-                        isSelected,
-                        isHighlighted,
-                        isSwitchLinked,
-                        showLargeSymbols,
-                        showLabels,
-                        plan.planId,
-                        switchStructures,
-                    );
-                });
+                const isSwitchLinked = (switchItem: LayoutSwitch) =>
+                    (switchItem.sourceId && switchLinkedStatus?.get(switchItem.sourceId)) || false;
 
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
+                return createSwitchFeatures(
+                    plan.switches.filter((s) => s.sourceId && visibleSwitches.includes(s.sourceId)),
+                    isSelected,
+                    isHighlighted,
+                    isSwitchLinked,
+                    showLargeSymbols,
+                    showLabels,
+                    plan.planId,
+                    switchStructures,
+                );
             });
-    } else {
-        vectorSource.clear();
-    }
+
+            clearFeatures(vectorSource);
+            vectorSource.addFeatures(features);
+        })
+        .catch(() => {
+            if (layerId === newestLayerId) clearFeatures(vectorSource);
+        })
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'geometry-switch-layer',
