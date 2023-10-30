@@ -1,4 +1,5 @@
 import * as React from 'react';
+import '';
 import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
@@ -9,7 +10,6 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
-import { getChangeTimes } from 'common/change-time-api';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 
 type HighlightedItemBase = {
@@ -43,7 +43,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
-    const _changeTimes = getChangeTimes();
 
     function isVisible(planId: GeometryPlanId) {
         return visiblePlans.some((plan) => plan.id == planId);
@@ -59,13 +58,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
             kmPosts: [],
             alignments: alignmentId ? [alignmentId] : [],
         });
-    }
-
-    function locateOnMap(section: AlignmentPlanSection) {
-        if (section.start && section.end) {
-            // Point coordinates are needed to locate on map
-            //            delegates.showArea(boundingBoxAroundPoints([section.start, section.end));
-        }
     }
 
     const errorFragment = (errorMessage = '') => (
@@ -156,9 +148,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             )}
                         </div>
                         <div className="infobox__list-cell">
-                            <div
-                                className={styles['alignment-plan-section-infobox__meters']}
-                                onClick={() => locateOnMap(section)}>
+                            <div className={styles['alignment-plan-section-infobox__meters']}>
                                 <span>
                                     {section.start
                                         ? formatTrackMeterWithoutMeters(section.start.address)
