@@ -100,11 +100,16 @@ class LayoutKmPostController(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
+        @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): ResponseEntity<TrackLayoutKmPost> {
         logger.apiCall(
-            "getKmPostOnTrack", "publishType" to publishType, "trackNumberId" to trackNumberId, "kmNumber" to kmNumber
+            "getKmPostOnTrack",
+            "publishType" to publishType,
+            "trackNumberId" to trackNumberId,
+            "kmNumber" to kmNumber,
+            "includeDeleted" to includeDeleted,
         )
-        return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber))
+        return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber, includeDeleted))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

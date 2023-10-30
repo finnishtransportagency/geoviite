@@ -119,10 +119,6 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const closeNonDraftDeleteConfirmation = () => {
         setNonDraftDeleteConfirmationVisible(false);
     };
-    const onTrackNumberDeleted = () => {
-        closeDraftDeleteConfirmation();
-        onClose && onClose();
-    };
 
     const saveOrConfirm = () => {
         if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
@@ -367,8 +363,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             {inEditTrackNumber && draftDeleteConfirmationVisible && (
                 <TrackNumberDeleteConfirmationDialog
                     id={inEditTrackNumber.id}
-                    onCancel={closeDraftDeleteConfirmation}
-                    onClose={onTrackNumberDeleted}
+                    onClose={closeDraftDeleteConfirmation}
+                    onSave={onSave}
                 />
             )}
         </React.Fragment>

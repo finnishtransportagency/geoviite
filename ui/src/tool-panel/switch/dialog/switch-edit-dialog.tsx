@@ -39,18 +39,14 @@ export type SwitchDialogProps = {
     switchId?: LayoutSwitchId;
     prefilledSwitchStructureId?: SwitchStructureId;
     onClose: () => void;
-    onInsert?: (switchId: LayoutSwitchId) => void;
-    onUpdate?: () => void;
-    onDelete?: () => void;
+    onSave?: (switchId: LayoutSwitchId) => void;
 };
 
 export const SwitchEditDialog = ({
     switchId,
     prefilledSwitchStructureId,
     onClose,
-    onInsert,
-    onUpdate,
-    onDelete,
+    onSave,
 }: SwitchDialogProps) => {
     const { t } = useTranslation();
     const [showStructureChangeConfirmationDialog, setShowStructureChangeConfirmationDialog] =
@@ -157,8 +153,12 @@ export const SwitchEditDialog = ({
     }
 
     function saveOrConfirm() {
-        if (switchStateCategory === 'NOT_EXISTING') setShowDeleteOfficialConfirmDialog(true);
-        else if (switchStructureChanged) {
+        if (
+            switchStateCategory === 'NOT_EXISTING' &&
+            existingSwitch?.stateCategory !== 'NOT_EXISTING'
+        ) {
+            setShowDeleteOfficialConfirmDialog(true);
+        } else if (switchStructureChanged) {
             setShowStructureChangeConfirmationDialog(true);
         } else {
             save();
@@ -186,7 +186,8 @@ export const SwitchEditDialog = ({
                 .then((result) => {
                     result
                         .map((switchId) => {
-                            onInsert && onInsert(switchId);
+                            onSave && onSave(switchId);
+                            onClose();
                             Snackbar.success('switch-dialog.new-switch-added');
                         })
                         .mapErr((_err) => {
@@ -217,7 +218,8 @@ export const SwitchEditDialog = ({
                 .then((result) => {
                     result
                         .map(() => {
-                            onUpdate && onUpdate();
+                            onSave && onSave(existingSwitch.id);
+                            onClose();
                             Snackbar.success('switch-dialog.modified-successfully');
                         })
                         .mapErr((_err) => {
@@ -291,8 +293,8 @@ export const SwitchEditDialog = ({
     }
 
     function handleOnDelete() {
-        setShowDeleteDraftConfirmDialog(false);
-        onDelete && onDelete();
+        onSave && switchId && onSave(switchId);
+        onClose();
     }
 
     return (
@@ -481,8 +483,8 @@ export const SwitchEditDialog = ({
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteDialog
                     switchId={switchId}
-                    onDelete={handleOnDelete}
-                    onCancel={() => setShowDeleteDraftConfirmDialog(false)}
+                    onSave={handleOnDelete}
+                    onClose={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}
         </React.Fragment>

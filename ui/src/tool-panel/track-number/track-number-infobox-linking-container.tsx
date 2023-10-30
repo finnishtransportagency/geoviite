@@ -9,7 +9,7 @@ import {
 import { PublishType } from 'common/common-model';
 import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-utils';
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
-import { OptionalUnselectableItemCollections } from 'selection/selection-model';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { MapViewport } from 'map/map-model';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
@@ -19,6 +19,7 @@ type TrackNumberInfoboxLinkingContainerProps = {
     linkingState?: LinkingState;
     publishType: PublishType;
     changeTimes: ChangeTimes;
+    onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
     visibilities: TrackNumberInfoboxVisibilities;
@@ -31,6 +32,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     linkingState,
     publishType,
     changeTimes,
+    onSelect,
     onUnselect,
     viewport,
     visibilities,
@@ -63,12 +65,8 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             changeTimes={changeTimes}
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}
-            onUnselect={() =>
-                onUnselect({
-                    trackNumbers: [trackNumber.id],
-                    referenceLines: referenceLine ? [referenceLine.id] : [],
-                })
-            }
+            onSelect={onSelect}
+            onUnselect={onUnselect}
             onHighlightItem={onHoverOverPlanSection}
         />
     );

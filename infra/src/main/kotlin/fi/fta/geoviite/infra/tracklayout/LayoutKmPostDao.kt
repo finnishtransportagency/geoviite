@@ -87,12 +87,13 @@ class LayoutKmPostDao(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
+        includeDeleted: Boolean,
     ): RowVersion<TrackLayoutKmPost>? {
         val sql = """
             select km_post.row_id, km_post.row_version 
             from layout.km_post_publication_view km_post
             where :publication_state = any(km_post.publication_states)
-              and km_post.state != 'DELETED'
+              and (:include_deleted or km_post.state != 'DELETED')
               and km_post.track_number_id = :track_number_id
               and km_post.km_number = :km_number
         """.trimIndent()
@@ -100,6 +101,7 @@ class LayoutKmPostDao(
             "track_number_id" to trackNumberId.intValue,
             "km_number" to kmNumber.toString(),
             "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
         )
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")
@@ -148,7 +150,8 @@ class LayoutKmPostDao(
             from layout.km_post
         """.trimIndent()
 
-        val posts = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
+        val posts = jdbcTemplate
+            .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
             .associateBy(TrackLayoutKmPost::version)
         logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
         cache.putAll(posts)

@@ -19,6 +19,7 @@ export const TrackLayoutContainer: React.FC = () => {
             publishType={trackLayoutState.publishType}
             mapLayerMenuGroups={trackLayoutState.map.layerMenu}
             onSelect={delegates.onSelect}
+            onUnselect={delegates.onUnselect}
             onPublishTypeChange={delegates.onPublishTypeChange}
             onLayoutModeChange={delegates.onLayoutModeChange}
             showArea={delegates.showArea}

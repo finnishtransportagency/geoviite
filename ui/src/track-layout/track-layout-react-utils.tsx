@@ -48,6 +48,14 @@ import {
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import {
+    updateReferenceLineChangeTime,
+    updateTrackNumberChangeTime,
+    updateKmPostChangeTime,
+    updateSwitchChangeTime,
+    updateLocationTrackChangeTime,
+} from 'common/change-time-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -282,4 +290,66 @@ export function usePvDocumentHeader(
         () => (id ? getPVDocument(changeTime, id).then((v) => v || undefined) : undefined),
         [id, changeTime],
     );
+}
+
+export function refreshTrackNumberSelection(
+    publicationState: PublishType,
+    onSelect: OnSelectFunction,
+    onUnselect: (items: OptionalUnselectableItemCollections) => void,
+): (id: LayoutTrackNumberId) => void {
+    return (id) => {
+        Promise.all([updateTrackNumberChangeTime(), updateReferenceLineChangeTime()]).then(
+            ([ts, _]) => {
+                getTrackNumberById(id, publicationState, ts).then((tn) => {
+                    if (tn) onSelect({ trackNumbers: [id] });
+                    else onUnselect({ trackNumbers: [id] });
+                });
+            },
+        );
+    };
+}
+
+export function refreshLocationTrackSelection(
+    publicationState: PublishType,
+    onSelect: OnSelectFunction,
+    onUnselect: (items: OptionalUnselectableItemCollections) => void,
+): (id: LocationTrackId) => void {
+    return (id) => {
+        updateLocationTrackChangeTime().then((ts) => {
+            getLocationTrack(id, publicationState, ts).then((lt) => {
+                if (lt) onSelect({ locationTracks: [id] });
+                else onUnselect({ locationTracks: [id] });
+            });
+        });
+    };
+}
+
+export function refreshSwitchSelection(
+    publicationState: PublishType,
+    onSelect: OnSelectFunction,
+    onUnselect: (items: OptionalUnselectableItemCollections) => void,
+): (id: LayoutSwitchId) => void {
+    return (id) => {
+        updateSwitchChangeTime().then((ts) => {
+            getSwitch(id, publicationState, ts).then((s) => {
+                if (s) onSelect({ switches: [id] });
+                else onUnselect({ switches: [id] });
+            });
+        });
+    };
+}
+
+export function refereshKmPostSelection(
+    publicationState: PublishType,
+    onSelect: OnSelectFunction,
+    onUnselect: (items: OptionalUnselectableItemCollections) => void,
+): (id: LayoutKmPostId) => void {
+    return (id) => {
+        updateKmPostChangeTime().then((ts) => {
+            getKmPost(id, publicationState, ts).then((kmp) => {
+                if (kmp) onSelect({ kmPosts: [id] });
+                else onUnselect({ kmPosts: [id] });
+            });
+        });
+    };
 }

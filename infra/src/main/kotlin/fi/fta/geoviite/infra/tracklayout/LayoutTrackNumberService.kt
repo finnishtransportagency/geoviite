@@ -183,13 +183,9 @@ class LayoutTrackNumberService(
         publishType: PublishType,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): String {
-        val kmLengths = trackNumberIds
-            .parallelStream()
-            .flatMap { trackNumberId ->
-                (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream()
-            }
-            .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
-            .collect(Collectors.toList())
+        val kmLengths = trackNumberIds.parallelStream().flatMap { trackNumberId ->
+            (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream()
+        }.sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber }).collect(Collectors.toList())
 
         return asCsvFile(kmLengths)
     }
@@ -215,18 +211,19 @@ class LayoutTrackNumberService(
             "publishType" to publishType,
             "boundingBox" to boundingBox
         )
-        val trackNumber = getOrThrow(publishType, trackNumberId)
-        val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
-            ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
-        val geocodingContext = geocodingService.getGeocodingContext(publishType, trackNumberId)
-        return if (geocodingContext != null && referenceLine.alignmentVersion != null) {
-            alignmentService.getGeometryMetadataSections(
-                referenceLine.alignmentVersion,
-                trackNumber.externalId,
-                boundingBox,
-                geocodingContext,
-            )
-        } else listOf()
+        return get(publishType, trackNumberId)?.let { trackNumber ->
+            val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
+                ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+            val geocodingContext = geocodingService.getGeocodingContext(publishType, trackNumberId)
+            if (geocodingContext != null && referenceLine.alignmentVersion != null) {
+                alignmentService.getGeometryMetadataSections(
+                    referenceLine.alignmentVersion,
+                    trackNumber.externalId,
+                    boundingBox,
+                    geocodingContext,
+                )
+            } else null
+        } ?: listOf()
     }
 
     fun officialDuplicateNameExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {

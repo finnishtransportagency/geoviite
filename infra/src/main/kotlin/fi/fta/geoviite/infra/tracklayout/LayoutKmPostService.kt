@@ -41,15 +41,19 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
 
     override fun createPublished(item: TrackLayoutKmPost) = published(item)
 
-    fun list(publicationState: PublishType, filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?): List<TrackLayoutKmPost> {
+    fun list(
+        publicationState: PublishType,
+        filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?,
+    ): List<TrackLayoutKmPost> {
         logger.serviceCall("list", "publicationState" to publicationState, "filter" to (filter != null))
         val all = listInternal(publicationState, false)
         return filter?.let(all::filter) ?: all
     }
 
     fun list(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
-        logger.serviceCall("list",
-            "publicationState" to publicationState, "trackNumberId" to trackNumberId)
+        logger.serviceCall(
+            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId
+        )
         return listInternal(publicationState, false, trackNumberId)
     }
 
@@ -61,19 +65,27 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     ) = dao.fetchVersions(publicationState, includeDeleted, trackNumberId, boundingBox).map(dao::fetch)
 
     fun list(publicationState: PublishType, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
-        logger.serviceCall("getKmPosts",
-            "publicationState" to publicationState, "boundingBox" to boundingBox, "step" to step)
-        return listInternal(publicationState, false, boundingBox = boundingBox)
-            .filter { p -> (step <= 1 || (p.kmNumber.isPrimary() && p.kmNumber.number % step == 0)) }
+        logger.serviceCall(
+            "getKmPosts", "publicationState" to publicationState, "boundingBox" to boundingBox, "step" to step
+        )
+        return listInternal(
+            publicationState, false, boundingBox = boundingBox
+        ).filter { p -> (step <= 1 || (p.kmNumber.isPrimary() && p.kmNumber.number % step == 0)) }
     }
 
     fun getByKmNumber(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
+        includeDeleted: Boolean,
     ): TrackLayoutKmPost? {
-        logger.serviceCall("getByKmNumber", "trackNumberId" to trackNumberId, "kmNumber" to kmNumber)
-        return dao.fetchVersion(publishType, trackNumberId, kmNumber)?.let(dao::fetch)
+        logger.serviceCall(
+            "getByKmNumber",
+            "trackNumberId" to trackNumberId,
+            "kmNumber" to kmNumber,
+            "includeDeleted" to includeDeleted
+        )
+        return dao.fetchVersion(publishType, trackNumberId, kmNumber, includeDeleted)?.let(dao::fetch)
     }
 
     fun listNearbyOnTrackPaged(

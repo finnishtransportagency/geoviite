@@ -9,21 +9,18 @@ import { deleteDraftSwitch } from 'track-layout/layout-switch-api';
 
 type SwitchDeleteDialogProps = {
     switchId: LayoutSwitchId;
-    onDelete: () => void;
-    onCancel: () => void;
+    onSave: (id: LayoutSwitchId) => void;
+    onClose: () => void;
 };
 
-const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({
-    switchId,
-    onDelete,
-    onCancel,
-}) => {
+const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({ switchId, onSave, onClose }) => {
     const { t } = useTranslation();
     const deleteSwitch = () => {
-        deleteDraftSwitch(switchId).then((r) => {
-            if (r) {
+        deleteDraftSwitch(switchId).then((id) => {
+            if (id) {
                 Snackbar.success('switch-delete-dialog.success');
-                onDelete();
+                onSave(id);
+                onClose();
             }
         });
     };
@@ -35,7 +32,7 @@ const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>
+                    <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('button.cancel')}
                     </Button>
                     <Button onClick={deleteSwitch}>{t('button.delete')}</Button>
