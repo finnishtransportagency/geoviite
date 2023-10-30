@@ -17,7 +17,7 @@ import { getChangeTimes, updateLocationTrackChangeTime } from 'common/change-tim
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
 
@@ -36,6 +36,7 @@ type PlanSectionPoint = {
 export type AlignmentPlanSection = {
     planId: GeometryPlanId | undefined;
     planName: string | undefined;
+    alignmentId: GeometryAlignmentId | undefined;
     alignmentName: string | undefined;
     isLinked: boolean;
     start: PlanSectionPoint | undefined;

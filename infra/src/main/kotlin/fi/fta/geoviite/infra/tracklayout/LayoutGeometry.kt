@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.*
@@ -24,6 +25,7 @@ fun emptyAlignment() = LayoutAlignment(segments = listOf())
 data class SegmentGeometryAndMetadata(
     val planId: IntId<GeometryPlan>?,
     val fileName: FileName?,
+    val alignmentId: IntId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
     val startPoint: IPoint?,
     val endPoint: IPoint?,
@@ -39,6 +41,7 @@ data class PlanSectionPoint(
 data class AlignmentPlanSection(
     val planId: IntId<GeometryPlan>?,
     val planName: FileName?,
+    val alignmentId: IntId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
     val isLinked: Boolean,
     val start: PlanSectionPoint,

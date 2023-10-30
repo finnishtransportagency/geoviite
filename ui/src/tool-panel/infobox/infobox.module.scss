@@ -88,6 +88,35 @@
     }
 }
 
+.infobox__list {
+    display: flex;
+    flex-direction: column;
+}
+
+.infobox__list-row {
+    display: flex;
+    flex-direction: row;
+    margin: 6px 0;
+}
+
+.infobox__list-cell {
+    @include vayla-design.typography-caption-strong;
+
+    &:not(:last-child) {
+        margin-right: 8px;
+    }
+}
+
+.infobox__list-cell--label {
+    font-weight: 400;
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-black-light;
+}
+
+.infobox__list-cell--stretch {
+    flex: 1;
+}
+
 .infobox-tabs {
     top: 0;
     background: vayla-design.$color-white-default;
