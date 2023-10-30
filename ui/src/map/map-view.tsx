@@ -65,6 +65,7 @@ import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-secti
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 declare global {
     interface Window {
@@ -77,6 +78,7 @@ export type MapViewProps = {
     selection: Selection;
     publishType: PublishType;
     linkingState: LinkingState | undefined;
+    splittingState: SplittingState | undefined;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
@@ -135,6 +137,7 @@ const MapView: React.FC<MapViewProps> = ({
     selection,
     publishType,
     linkingState,
+    splittingState,
     changeTimes,
     onSelect,
     onViewportUpdate,
@@ -410,6 +413,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
+                            splittingState,
                             publishType,
                             changeTimes,
                             olView,
@@ -501,6 +505,7 @@ const MapView: React.FC<MapViewProps> = ({
         changeTimes,
         publishType,
         linkingState,
+        splittingState,
         map.layerSettings,
         hoveredOverPlanSection,
         manuallySetPlan,
