@@ -36,11 +36,6 @@ export type SwitchOnLocationTrack = {
     address: TrackMeter | undefined;
 };
 
-export type SplitDuplicate = {
-    splitId: LayoutSwitchId | undefined;
-    duplicateOf: LocationTrackId | undefined;
-};
-
 export const splitReducers = {
     onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
         state.splittingState = {

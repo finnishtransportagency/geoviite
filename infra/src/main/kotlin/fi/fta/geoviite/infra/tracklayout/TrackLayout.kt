@@ -129,6 +129,11 @@ data class SwitchValidationWithSuggestedSwitch(
     val suggestedSwitch: SuggestedSwitch?,
 )
 
+data class SwitchOnLocationTrack(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val address: TrackMeter?,
+)
+
 data class LocationTrack(
     val name: AlignmentName,
     val descriptionBase: FreeText,

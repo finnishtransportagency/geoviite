@@ -23,11 +23,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
-data class SwitchOnLocationTrack(
-    val switchId: IntId<TrackLayoutSwitch>,
-    val address: TrackMeter?,
-)
-
 @RestController
 @RequestMapping("/track-layout/location-tracks")
 class LocationTrackController(
@@ -36,7 +31,6 @@ class LocationTrackController(
     private val publicationService: PublicationService,
     private val switchService: LayoutSwitchService,
     private val switchLinkingService: SwitchLinkingService,
-    private val switchLibraryService: SwitchLibraryService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -173,8 +167,8 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions =
-            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds.distinct()
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
+            switchIds.distinct()
                 .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
