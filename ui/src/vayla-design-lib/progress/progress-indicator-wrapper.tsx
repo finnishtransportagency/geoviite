@@ -12,15 +12,18 @@ export type ProgressIndicatorWrapperProps = {
     indicator?: ProgressIndicatorType;
     inProgress?: boolean;
     children?: React.ReactNode;
+    inline?: boolean;
 };
 
 export const ProgressIndicatorWrapper: React.FC<ProgressIndicatorWrapperProps> = ({
     indicator = ProgressIndicatorType.Default,
     inProgress = false,
     children,
+    inline = true,
 }: ProgressIndicatorWrapperProps) => {
     const className = createClassName(
         styles['progress-indicator-wrapper'],
+        inline && styles['progress-indicator-wrapper--inline'],
         indicator == ProgressIndicatorType.Default &&
             styles['progress-indicator-wrapper--default-indicator'],
         indicator == ProgressIndicatorType.Subtle &&

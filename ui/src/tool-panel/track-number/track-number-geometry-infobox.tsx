@@ -67,7 +67,8 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 />
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
-                    inProgress={elementFetchStatus !== LoaderStatus.Ready}>
+                    inProgress={elementFetchStatus !== LoaderStatus.Ready}
+                    inline={false}>
                     {sections && sections.length == 0 ? (
                         <p className={'infobox__text'}>
                             {t(
