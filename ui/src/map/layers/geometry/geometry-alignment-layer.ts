@@ -73,7 +73,7 @@ function createAlignmentFeature(
         ({ geometryId }) => geometryId == alignment.header.id,
     );
 
-    const cacheKey = `${alignment.header.id}-${resolution}-${isAlignmentSelected}`;
+    const cacheKey = `${alignment.header.id}-${resolution}-${isAlignmentSelected}-${alignment.linked}`;
     return alignmentFeatureCache.getOrCreate(cacheKey, () => {
         const styles: Style[] = [];
 

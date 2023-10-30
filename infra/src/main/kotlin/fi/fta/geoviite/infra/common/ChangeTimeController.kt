@@ -23,6 +23,7 @@ data class CollectedChangeTimes(
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
     val project: Instant,
+    val author: Instant,
     val publication: Instant,
     val ratkoPush: Instant,
     val pvDocument: Instant,
@@ -56,6 +57,7 @@ class ChangeTimeController(
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             project = geometryService.getProjectChangeTime(),
+            author = geometryService.getAuthorChangeTime(),
             publication = publicationService.getChangeTime(),
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
             pvDocument = pvDocumentService.getDocumentChangeTime(),
@@ -109,6 +111,13 @@ class ChangeTimeController(
     fun getProjectChangeTime(): Instant {
         logger.apiCall("getProjectChangeTime")
         return geometryService.getProjectChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/authors")
+    fun getAuthorChangeTime(): Instant {
+        logger.apiCall("getAuthorChangeTime")
+        return geometryService.getAuthorChangeTime()
     }
 
     @PreAuthorize(AUTH_ALL_READ)

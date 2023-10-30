@@ -17,12 +17,13 @@ export const EntireRailNetworkElementListing = () => {
                 {t('data-products.element-list.entire-rail-network-length-warning')}
             </p>
             <div className={styles['data-products__search']}>
-                <Button
-                    className={styles['element-list__download-button--left-aligned']}
-                    onClick={() => (location.href = getEntireRailNetworkElementsCsvUrl())}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                <a qa-id={'element-list-csv-download'} href={getEntireRailNetworkElementsCsvUrl()}>
+                    <Button
+                        className={`${styles['element-list__download-button--left-aligned']} ${styles['element-list__download-button']}`}
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

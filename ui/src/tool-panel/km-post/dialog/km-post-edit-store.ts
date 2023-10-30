@@ -1,11 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { KmPostSaveRequest } from 'linking/linking-model';
-import {
-    LayoutKmPost,
-    LayoutKmPostId,
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-} from 'track-layout/track-layout-model';
+import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { GeometryTrackNumberId } from 'geometry/geometry-model';
 import {
     isPropEditFieldCommitted,
@@ -15,23 +10,16 @@ import {
 } from 'utils/validation-utils';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { KmNumber } from 'common/common-model';
 
 export type KmPostEditState = {
     isNewKmPost: boolean;
     existingKmPost?: LayoutKmPost;
+    trackNumberKmPost?: LayoutKmPost;
     kmPost: KmPostSaveRequest;
-    loading: {
-        trackNumbers: boolean;
-        kmPost: boolean;
-    };
     isSaving: boolean;
-    trackNumbers: LayoutTrackNumber[];
     validationErrors: ValidationError<KmPostSaveRequest>[];
     committedFields: (keyof KmPostSaveRequest)[];
     allFieldsCommitted: boolean;
-    baselineKmNumber: KmNumber | undefined;
-    baselineTrackNumberId: LayoutTrackNumberId | undefined;
 };
 
 export const initialKmPostEditState: KmPostEditState = {
@@ -40,17 +28,10 @@ export const initialKmPostEditState: KmPostEditState = {
     kmPost: {
         kmNumber: '',
     },
-    loading: {
-        trackNumbers: false,
-        kmPost: false,
-    },
     isSaving: false,
-    trackNumbers: [],
     validationErrors: [],
     committedFields: [],
     allFieldsCommitted: false,
-    baselineKmNumber: undefined,
-    baselineTrackNumberId: undefined,
 };
 
 function newLinkingKmPost(trackNumberId: GeometryTrackNumberId | undefined): KmPostSaveRequest {
@@ -61,11 +42,11 @@ function newLinkingKmPost(trackNumberId: GeometryTrackNumberId | undefined): KmP
     };
 }
 
-function validateLinkingKmPost(kmPost: KmPostSaveRequest): ValidationError<KmPostSaveRequest>[] {
-    const errors = [
+function validateLinkingKmPost(state: KmPostEditState): ValidationError<KmPostSaveRequest>[] {
+    let errors = [
         ...['kmNumber', 'state', 'trackNumberId']
             .map((prop: keyof KmPostSaveRequest) => {
-                if (isNilOrBlank(kmPost[prop])) {
+                if (isNilOrBlank(state.kmPost[prop])) {
                     return {
                         field: prop,
                         reason: 'error-mandatory-field',
@@ -76,10 +57,14 @@ function validateLinkingKmPost(kmPost: KmPostSaveRequest): ValidationError<KmPos
             .filter(filterNotEmpty),
     ];
 
-    if (kmPost.kmNumber.length > 0) {
-        if (!isValidKmNumber(kmPost.kmNumber)) {
-            return [...errors, ...getKmNumberDoesntMatchRegExpError()];
+    if (state.kmPost.kmNumber.length > 0) {
+        if (!isValidKmNumber(state.kmPost.kmNumber)) {
+            errors = [...errors, ...getKmNumberDoesntMatchRegExpError()];
         }
+    }
+
+    if (state.trackNumberKmPost && state.existingKmPost?.id !== state.trackNumberKmPost?.id) {
+        errors = [...errors, ...getErrorForKmPostExistsOnTrack()];
     }
 
     return errors;
@@ -111,13 +96,22 @@ const kmPostEditSlice = createSlice({
     name: 'kmPostEdit',
     initialState: initialKmPostEditState,
     reducers: {
+        init: (): KmPostEditState => initialKmPostEditState,
         initWithNewKmPost: (
             state: KmPostEditState,
             { payload: trackNumberId }: PayloadAction<GeometryTrackNumberId | undefined>,
         ): void => {
             state.isNewKmPost = true;
             state.kmPost = newLinkingKmPost(trackNumberId);
-            state.validationErrors = validateLinkingKmPost(state.kmPost);
+            state.validationErrors = validateLinkingKmPost(state);
+        },
+        onKmPostLoaded: (
+            state: KmPostEditState,
+            { payload: existingKmPost }: PayloadAction<LayoutKmPost>,
+        ): void => {
+            state.existingKmPost = existingKmPost;
+            state.kmPost = existingKmPost;
+            state.validationErrors = validateLinkingKmPost(state);
         },
         onUpdateProp: function <TKey extends keyof KmPostSaveRequest>(
             state: KmPostEditState,
@@ -125,7 +119,7 @@ const kmPostEditSlice = createSlice({
         ) {
             if (state.kmPost) {
                 state.kmPost[propEdit.key] = propEdit.value;
-                state.validationErrors = validateLinkingKmPost(state.kmPost);
+                state.validationErrors = validateLinkingKmPost(state);
 
                 if (
                     isPropEditFieldCommitted(
@@ -139,40 +133,10 @@ const kmPostEditSlice = createSlice({
                 }
             }
         },
-        onStartLoadingTrackNumbers: (state: KmPostEditState) => {
-            state.loading.trackNumbers = true;
-        },
-        onTrackNumbersLoaded: (
-            state: KmPostEditState,
-            { payload: trackNumbers }: PayloadAction<LayoutTrackNumber[]>,
-        ): void => {
-            state.loading.trackNumbers = false;
-            state.trackNumbers = trackNumbers;
-        },
-        onStartLoadingKmPost: (state: KmPostEditState) => {
-            state.isNewKmPost = false;
-            state.loading.kmPost = true;
-        },
-        onKmPostLoaded: (
-            state: KmPostEditState,
-            { payload: existingKmPost }: PayloadAction<LayoutKmPost>,
-        ): void => {
-            state.existingKmPost = existingKmPost;
-            state.kmPost = existingKmPost;
-
-            state.baselineKmNumber = existingKmPost.kmNumber;
-            state.baselineTrackNumberId = existingKmPost.trackNumberId;
-
-            state.validationErrors = validateLinkingKmPost(state.kmPost);
-            state.loading.kmPost = false;
-        },
         onStartSaving: (state: KmPostEditState): void => {
             state.isSaving = true;
         },
-        onSaveSucceed: (
-            state: KmPostEditState,
-            { payload: _kmPostId }: PayloadAction<LayoutKmPostId>,
-        ): void => {
+        onEndSaving: (state: KmPostEditState): void => {
             state.isSaving = false;
         },
         onCommitField: function <TKey extends keyof KmPostSaveRequest>(
@@ -183,18 +147,16 @@ const kmPostEditSlice = createSlice({
         },
         validate: (state: KmPostEditState): void => {
             if (state.kmPost) {
-                state.validationErrors = validateLinkingKmPost(state.kmPost);
+                state.validationErrors = validateLinkingKmPost(state);
                 state.allFieldsCommitted = true;
             }
         },
-        onSaveFailed: (state: KmPostEditState): void => {
-            state.isSaving = false;
-        },
-        onKmNumberExistsOnTrack: (state: KmPostEditState): void => {
-            state.validationErrors = [
-                ...state.validationErrors,
-                ...getErrorForKmPostExistsOnTrack(),
-            ];
+        onTrackNumberKmPostFound: (
+            state: KmPostEditState,
+            { payload: tnKmPost }: PayloadAction<LayoutKmPost | undefined>,
+        ): void => {
+            state.trackNumberKmPost = tnKmPost;
+            state.validationErrors = validateLinkingKmPost(state);
         },
     },
 });

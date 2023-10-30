@@ -1,9 +1,9 @@
 import React from 'react';
 import { PublishType } from 'common/common-model';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 
 export type PublishTypeHandlingDialogProps = {
     onPublishTypeChange: (publishType: PublishType) => void;

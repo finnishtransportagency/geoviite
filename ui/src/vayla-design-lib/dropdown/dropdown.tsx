@@ -43,6 +43,7 @@ export type DropdownProps<TItemValue> = {
     hasError?: boolean;
     onAddClick?: () => void;
     wideList?: boolean;
+    qaId?: string;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled'>;
 
 function isOptionsArray<TItemValue>(
@@ -108,14 +109,6 @@ export const Dropdown = function <TItemValue>({
 
     function focusInput() {
         inputRef.current?.focus();
-    }
-
-    function toggleList() {
-        if (open) {
-            closeList();
-        } else {
-            openList();
-        }
     }
 
     function openList() {
@@ -201,7 +194,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
         if (!searchable && e.code == 'Space') {
-            toggleList();
+            openList();
             e.preventDefault();
         }
     }
@@ -309,14 +302,19 @@ export const Dropdown = function <TItemValue>({
     }, [options]);
 
     return (
-        <div className={className} ref={menuRef} onMouseDown={() => handleRootMouseDown()}>
+        <div
+            qa-id={props.qaId}
+            className={className}
+            ref={menuRef}
+            onMouseDown={() => handleRootMouseDown()}>
             <div
                 className={styles['dropdown__header']}
                 role="button"
-                onClick={() => {
+                onClick={(e) => {
                     if (!props.disabled) {
+                        e.stopPropagation();
                         focusInput();
-                        toggleList();
+                        open ? closeList() : openList();
                     }
                 }}
                 title={selectedName}>
@@ -324,8 +322,8 @@ export const Dropdown = function <TItemValue>({
                     <input
                         className={styles['dropdown__input']}
                         ref={inputRef}
-                        onFocus={() => handleInputFocus()}
-                        onBlur={() => handleInputBlur()}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
@@ -363,7 +361,7 @@ export const Dropdown = function <TItemValue>({
                         {showEmptyOption && (
                             <li
                                 className={getItemClassName(undefined, -1)}
-                                onClick={() => unselect()}
+                                onClick={unselect}
                                 title={props.unselectText || 'Ei valittu'}
                                 ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>

@@ -9,6 +9,7 @@ import { createEmptyItemCollections } from 'selection/selection-store';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { LoaderStatus } from 'utils/react-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { useTranslation } from 'react-i18next';
 
 export type TrackNumberLinkContainerProps = {
     trackNumberId?: LayoutTrackNumberId;
@@ -50,16 +51,23 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
     changeTime,
     onClick,
 }: TrackNumberLinkProps) => {
+    const { t } = useTranslation();
     const [trackNumber, status] = useTrackNumberWithStatus(
         publicationType,
         trackNumberId,
         changeTime,
     );
     const clickAction = onClick || createSelectAction();
+    const name = trackNumber?.number || '';
     return status === LoaderStatus.Ready ? (
-        <Link onClick={() => trackNumber && clickAction(trackNumber.id)}>
-            {trackNumber?.number || ''}
-        </Link>
+        <React.Fragment>
+            <Link onClick={() => trackNumber && clickAction(trackNumber.id)}>{name}</Link>
+            {trackNumber?.state === 'DELETED' ? (
+                <span>&nbsp;({t('enum.layout-state.DELETED')})</span>
+            ) : (
+                ''
+            )}
+        </React.Fragment>
     ) : (
         <Spinner />
     );

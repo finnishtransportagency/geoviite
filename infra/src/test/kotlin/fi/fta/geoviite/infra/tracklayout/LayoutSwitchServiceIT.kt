@@ -273,6 +273,11 @@ class LayoutSwitchServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `Getting location tracks of switches returns empty list if argument is an empty list`() {
+        assertTrue(switchDao.findLocationTracksLinkedToSwitches(OFFICIAL, emptyList()).isEmpty())
+    }
+
+    @Test
     fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val trackNumberId = trackNumber.id as IntId
@@ -359,8 +364,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val switchVersion = switchDao.insert(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            getUnusedTrackNumberId(),
-            segment(joint1Point - 1.0, joint1Point)
+            getUnusedTrackNumberId(), segment(joint1Point - 1.0, joint1Point)
         )
         val locationTrackVersion = locationTrackService.saveDraft(
             locationTrack.copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))),

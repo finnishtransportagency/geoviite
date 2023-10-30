@@ -2,7 +2,7 @@ import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
-import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
+//import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,11 @@ import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type Link = {
     link: string;
@@ -42,6 +47,11 @@ export const AppBar: React.FC = () => {
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
     const exclamationPointVisibility = !!pvDocumentCounts && pvDocumentCounts?.suggested > 0;
+    const [showMenu, setShowMenu] = React.useState(false);
+    const [showLogoutConfirmation, setShowLogoutConfirmation] = React.useState(false);
+    const menuRef = React.useRef(null);
+    const menuOffsetX = 0;
+    const menuOffsetY = 50;
 
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
@@ -107,11 +117,57 @@ export const AppBar: React.FC = () => {
                     <DataProductsMenu />
                 </li>
             </ul>
-            <img
+            {
+                // TODO Re-add logo when it has been specified where it should go
+                /*<img
                 className={styles['app-bar__vayla-logo']}
                 src={vaylaLogo}
                 alt="Väylävirasto logo"
-            />
+            />*/
+            }
+            <ul className={styles['app-bar__links']}>
+                <li
+                    ref={menuRef}
+                    title={t('app-bar.more')}
+                    className={styles['app-bar__link']}
+                    onClick={() => setShowMenu(!showMenu)}>
+                    <Icons.Menu color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
+                </li>
+            </ul>
+            {showMenu && (
+                <CloseableModal
+                    positionRef={menuRef}
+                    onClickOutside={() => setShowMenu(false)}
+                    offsetX={menuOffsetX}
+                    offsetY={menuOffsetY}
+                    className={styles['app-bar__menu']}>
+                    <div className={styles['app-bar__menu-item']}>
+                        <a onClick={() => setShowLogoutConfirmation(true)}>{t('app-bar.logout')}</a>
+                    </div>
+                </CloseableModal>
+            )}
+            {showLogoutConfirmation && (
+                <Dialog
+                    title={t('app-bar.logout')}
+                    allowClose={false}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={() => setShowLogoutConfirmation(false)}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                qa-id="confirm-logout"
+                                onClick={() => (window.location.href = '/sso/logout?auth=1')}
+                                variant={ButtonVariant.PRIMARY}>
+                                {t('button.ok')}
+                            </Button>
+                        </div>
+                    }>
+                    {t('app-bar.logout-confirm')}
+                </Dialog>
+            )}
         </nav>
     );
 };

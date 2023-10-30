@@ -4,7 +4,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
-import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { publishCandidates } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
@@ -14,7 +14,7 @@ import {
     updateSwitchChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { PublishType } from 'common/common-model';
 import {
     PublishCandidates,
@@ -113,9 +113,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             .then((r) => {
                 if (r.isOk()) {
                     const result = r.unwrapOr(undefined);
-                    Snackbar.success(t('publish.publish-success'), {
-                        body: describeResult(result),
-                    });
+                    Snackbar.success('publish.publish-success', describeResult(result));
                     updateChangeTimes(result);
                     props.onPublish();
                 }

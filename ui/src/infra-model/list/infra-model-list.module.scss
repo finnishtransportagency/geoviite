@@ -4,7 +4,6 @@
 .infra-model-list {
     display: flex;
     flex-direction: column;
-    padding: 20px;
 }
 
 .infra-model-list__search-form {
@@ -25,6 +24,7 @@
 
 .infra-model-list-search-result__count {
     flex: 1;
+    padding-left: 20px;
 
     & > * {
         margin-right: 6px;
@@ -43,6 +43,11 @@
 }
 
 .infra-model-list-search-result {
+    &__table {
+        overflow: auto;
+        padding-left: 20px;
+    }
+
     &__project-name {
         min-width: 440px;
     }
@@ -98,6 +103,10 @@
 .infra-model-search-form {
     display: flex;
     align-items: flex-end;
+
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 20px;
 }
 
 .infra-model-search-form__auto-complete {

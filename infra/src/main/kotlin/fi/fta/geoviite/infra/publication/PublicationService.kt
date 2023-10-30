@@ -17,14 +17,15 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.roundTo1Decimal
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
 import org.postgresql.util.PSQLException
 import org.slf4j.Logger
@@ -37,6 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 
 @Service
@@ -171,35 +173,44 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun validateSwitch(
-        switchId: IntId<TrackLayoutSwitch>,
+    fun validateSwitches(
+        switchIds: List<IntId<TrackLayoutSwitch>>,
         publishType: PublishType,
-    ): ValidatedAsset<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "validateSwitch", "switchId" to switchId, "publishType" to publishType
-        )
-
-        val layoutSwitch = switchService.getOrThrow(publishType, switchId)
-        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map { it.rowVersion }
+    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        val switches = switchService.getMany(publishType, switchIds)
+        val locationTracks =
+            switchDao.findLocationTracksLinkedToSwitches(publishType, switchIds).map { it.rowVersion }.distinct()
 
         val previouslyLinkedTracks =
-            if (publishType == DRAFT) switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId)
+            if (publishType == DRAFT) switchDao.findLocationTracksLinkedToSwitches(OFFICIAL, switchIds)
                 .mapNotNull { lt -> locationTrackDao.fetchDraftVersion(lt.rowVersion.id) }
-                .filterNot(locationTracks::contains)
-            else emptyList()
+                .distinct()
+                .filterNot(locationTracks::contains) else emptyList()
 
-        val versions = toValidationVersions(
-            switches = listOf(layoutSwitch),
-            locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
+        val validationVersions = toValidationVersions(
+            switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
         val linkedTracks =
-            publicationDao.fetchLinkedLocationTracks(listOf(switchId), DRAFT).getOrDefault(switchId, setOf())
-        return ValidatedAsset(
-            validateSwitch(toValidationVersion(layoutSwitch), versions, linkedTracks),
-            switchId,
-        )
+            publicationDao.fetchLinkedLocationTracks(switchIds, DRAFT).mapValues { (_, tracks) -> tracks.toSet() }
+        val allOfficialSwitches = switchService.listOfficial()
+        return switches.map { switch ->
+            ValidatedAsset(
+                validateSwitch(
+                    version = toValidationVersion(switch),
+                    validationVersions = validationVersions,
+                    linkedTracks = linkedTracks.getOrDefault(switch.id, setOf()),
+                    allOfficialSwitches = allOfficialSwitches,
+                ),
+                switch.id as IntId,
+            )
+        }
     }
+
+    fun validateSwitch(
+        switchId: IntId<TrackLayoutSwitch>,
+        publishType: PublishType,
+    ): ValidatedAsset<TrackLayoutSwitch> = validateSwitches(listOf(switchId), publishType).single()
 
     fun validateKmPost(
         kmPostId: IntId<TrackLayoutKmPost>,
@@ -447,7 +458,7 @@ class PublicationService @Autowired constructor(
     private inline fun <reified T> assertNoErrors(
         version: ValidationVersion<T>, errors: List<PublishValidationError>,
     ) {
-        val severeErrors = errors.filter { error -> error.type == PublishValidationErrorType.ERROR }
+        val severeErrors = errors.filter { error -> error.type == ERROR }
         if (severeErrors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$severeErrors")
             throw PublicationFailureException(
@@ -542,14 +553,10 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_TRACK_NUMBER.duplicate-name-official",
-                mapOf("trackNumber" to trackNumber.number)
+                ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-official", mapOf("trackNumber" to trackNumber.number)
             ) else null,
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_TRACK_NUMBER.duplicate-name-draft",
-                mapOf("trackNumber" to trackNumber.number)
+                ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-draft", mapOf("trackNumber" to trackNumber.number)
             ) else null,
         )
     }
@@ -579,6 +586,7 @@ class PublicationService @Autowired constructor(
         version: ValidationVersion<TrackLayoutSwitch>,
         validationVersions: ValidationVersions,
         linkedTracks: Set<RowVersion<LocationTrack>>,
+        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
     ): List<PublishValidationError> {
         val switch = switchDao.fetch(version.validatedAssetVersion)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
@@ -594,17 +602,19 @@ class PublicationService @Autowired constructor(
             validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
         }
 
-        val duplicationErrors =
-            if (switch.exists) validateSwitchNameDuplication(switch, validationVersions) else emptyList()
+        val duplicationErrors = if (switch.exists) validateSwitchNameDuplication(
+            switch, validationVersions, allOfficialSwitches
+        ) else emptyList()
         return fieldErrors + referenceErrors + structureErrors + duplicationErrors
     }
 
     private fun validateSwitchNameDuplication(
         switch: TrackLayoutSwitch,
         versions: ValidationVersions,
+        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
     ): List<PublishValidationError> {
         val drafts = versions.switches.map { it.officialId to switchService.get(it.validatedAssetVersion) }
-        val officials = switchDao.fetchVersions(OFFICIAL, false).map(switchService::get).filterNot { official ->
+        val officials = allOfficialSwitches.filterNot { official ->
             drafts.map { draft -> draft.first }.contains(official.id)
         }
         val officialDuplicateExists =
@@ -614,14 +624,10 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_SWITCH.duplicate-name-official",
-                mapOf("switch" to switch.name)
+                ERROR, "$VALIDATION_SWITCH.duplicate-name-official", mapOf("switch" to switch.name)
             ) else null,
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_SWITCH.duplicate-name-draft",
-                mapOf("switch" to switch.name)
+                ERROR, "$VALIDATION_SWITCH.duplicate-name-draft", mapOf("switch" to switch.name)
             ) else null,
         )
     }
@@ -718,11 +724,11 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(
             if (stagedDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
+                ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-draft",
                 mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null, if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                PublishValidationErrorType.ERROR,
+                ERROR,
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-official",
                 mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null
@@ -764,16 +770,6 @@ class PublicationService @Autowired constructor(
         officials = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
         validations = versions.locationTracks
     ).map(locationTrackDao::fetch).filter { lt -> lt.trackNumberId == trackNumberId }
-
-    private fun <T> combineVersions(
-        officials: List<RowVersion<T>>,
-        validations: List<ValidationVersion<T>>,
-    ): Collection<RowVersion<T>> {
-        val officialVersions = officials.filterNot { officialId -> validations.any { v -> v.officialId == officialId } }
-        val validationVersions = validations.map { it.validatedAssetVersion }
-
-        return (officialVersions + validationVersions).distinct()
-    }
 
     private fun getReferenceLineAndAlignment(version: RowVersion<ReferenceLine>) =
         referenceLineWithAlignment(referenceLineDao, alignmentDao, version)
@@ -820,12 +816,14 @@ class PublicationService @Autowired constructor(
         translation: Translation,
     ): List<PublicationTableItem> {
         logger.serviceCall("getPublicationDetailsAsTableRows", "id" to id)
-        val geocodingContextCache = mutableMapOf<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>()
+        val geocodingContextCache =
+            ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
         return getPublicationDetails(id).let { publication ->
             val previousPublication = publicationDao.fetchPublicationTimes().entries.sortedByDescending { it.key }
                 .find { it.key < publication.publicationTime }
             mapToPublicationTableItems(translation,
                 publication,
+                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(publication.id),
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
                     getOrPutGeocodingContext(
@@ -869,20 +867,26 @@ class PublicationService @Autowired constructor(
             "order" to order,
         )
 
+        val switchLinkChanges = publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, from, to)
+
         return fetchPublicationDetailsBetweenInstants(from, to).sortedBy { it.publicationTime }.let { publications ->
             val geocodingContextCache =
-                mutableMapOf<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>()
+                ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
             val trackNumbersCache = trackNumberDao.fetchTrackNumberNames()
             val getGeocodingContextOrNull = { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
                 getOrPutGeocodingContext(geocodingContextCache, trackNumberId, timestamp)
             }
 
-            publications.flatMapIndexed { index: Int, publicationDetails: PublicationDetails ->
+            publications.mapIndexed { index, publicationDetails ->
                 val previousPublication = publications.getOrNull(index - 1)
+                publicationDetails to (previousPublication?.publicationTime
+                    ?: publicationDetails.publicationTime.minusMillis(1))
+            }.flatMap { (publicationDetails, timeDiff) ->
                 mapToPublicationTableItems(
                     translation,
                     publicationDetails,
-                    previousPublication?.publicationTime ?: publicationDetails.publicationTime.minusMillis(1),
+                    switchLinkChanges[publicationDetails.id] ?: mapOf(),
+                    timeDiff,
                     getGeocodingContextOrNull,
                     trackNumbersCache,
                 )
@@ -921,6 +925,7 @@ class PublicationService @Autowired constructor(
     }
 
     fun diffTrackNumber(
+        translation: Translation,
         trackNumberChanges: TrackNumberChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
@@ -950,22 +955,23 @@ class PublicationService @Autowired constructor(
                 { it.toString() },
                 PropKey("start-address"),
                 remark = getAddressMovedRemarkOrNull(
-                    trackNumberChanges.startAddress.old, trackNumberChanges.startAddress.new
+                    translation, trackNumberChanges.startAddress.old, trackNumberChanges.startAddress.new
                 )
             ),
-            compareChange(
-                { oldEndAddress != newEndAddress },
+            compareChange({ oldEndAddress != newEndAddress },
                 oldEndAddress,
                 newEndAddress,
                 { it.toString() },
                 PropKey("end-address"),
-                remark = getAddressMovedRemarkOrNull(oldEndAddress, newEndAddress)
+                remark = getAddressMovedRemarkOrNull(translation, oldEndAddress, newEndAddress)
             ),
         )
     }
 
     fun diffLocationTrack(
+        translation: Translation,
         locationTrackChanges: LocationTrackChanges,
+        switchLinkChanges: LocationTrackPublicationSwitchLinkChanges?,
         publicationTime: Instant,
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
@@ -996,12 +1002,11 @@ class PublicationService @Autowired constructor(
             }
         } else null
 
-        return listOfNotNull(
-            compareChangeValues(
-                locationTrackChanges.trackNumberId,
-                { trackNumberCache.findLast { it.id == locationTrackChanges.trackNumberId.new && it.changeTime <= publicationTime }?.number },
-                PropKey("track-number"),
-            ),
+        return listOfNotNull(compareChangeValues(
+            locationTrackChanges.trackNumberId,
+            { trackNumberCache.findLast { it.id == locationTrackChanges.trackNumberId.new && it.changeTime <= publicationTime }?.number },
+            PropKey("track-number"),
+        ),
             compareChangeValues(
                 locationTrackChanges.name, { it }, PropKey("location-track")
             ),
@@ -1020,8 +1025,7 @@ class PublicationService @Autowired constructor(
                 PropKey("description-suffix"),
                 enumLocalizationKey = "location-track-description-suffix"
             ),
-            compareChange(
-                { oldAndTime.first != newAndTime.first },
+            compareChange({ oldAndTime.first != newAndTime.first },
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
@@ -1035,7 +1039,9 @@ class PublicationService @Autowired constructor(
                 DISTANCE_CHANGE_THRESHOLD,
                 ::roundTo1Decimal,
                 PropKey("length"),
-                getLengthChangedRemarkOrNull(locationTrackChanges.length.old, locationTrackChanges.length.new)
+                getLengthChangedRemarkOrNull(
+                    translation, locationTrackChanges.length.old, locationTrackChanges.length.new
+                )
             ),
             compareChange(
                 { !pointsAreSame(locationTrackChanges.startPoint.old, locationTrackChanges.startPoint.new) },
@@ -1043,7 +1049,9 @@ class PublicationService @Autowired constructor(
                 locationTrackChanges.startPoint.new,
                 ::formatLocation,
                 PropKey("start-location"),
-                getPointMovedRemarkOrNull(locationTrackChanges.startPoint.old, locationTrackChanges.startPoint.new)
+                getPointMovedRemarkOrNull(
+                    translation, locationTrackChanges.startPoint.old, locationTrackChanges.startPoint.new
+                )
             ),
             compareChange(
                 { oldStartPointAndM?.address != newStartPointAndM?.address },
@@ -1051,7 +1059,9 @@ class PublicationService @Autowired constructor(
                 newStartPointAndM?.address,
                 { it.toString() },
                 PropKey("start-address"),
-                remark = getAddressMovedRemarkOrNull(oldStartPointAndM?.address, newStartPointAndM?.address)
+                remark = getAddressMovedRemarkOrNull(
+                    translation, oldStartPointAndM?.address, newStartPointAndM?.address
+                )
             ),
             compareChange(
                 { !pointsAreSame(locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new) },
@@ -1059,7 +1069,9 @@ class PublicationService @Autowired constructor(
                 locationTrackChanges.endPoint.new,
                 ::formatLocation,
                 PropKey("end-location"),
-                getPointMovedRemarkOrNull(locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new)
+                getPointMovedRemarkOrNull(
+                    translation, locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new
+                )
             ),
             compareChange(
                 { oldEndPointAndM?.address != newEndPointAndM?.address },
@@ -1067,22 +1079,33 @@ class PublicationService @Autowired constructor(
                 newEndPointAndM?.address,
                 { it.toString() },
                 PropKey("end-address"),
-                remark = getAddressMovedRemarkOrNull(oldEndPointAndM?.address, newEndPointAndM?.address)
+                remark = getAddressMovedRemarkOrNull(translation, oldEndPointAndM?.address, newEndPointAndM?.address)
             ),
             if (changedKmNumbers.isNotEmpty()) {
-                PublicationChange(
-                    PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(changedKmNumbers)
-                )
+                PublicationChange(PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
+                    translation, changedKmNumbers
+                ))
             } else null,
+            if (switchLinkChanges == null) null else compareChange({ switchLinkChanges.old != switchLinkChanges.new },
+                null,
+                null,
+                { it },
+                PropKey("linked-switches"),
+                getSwitchLinksChangedRemark(
+                    translation, switchLinkChanges
+                )
+            )
             // TODO owner
         )
     }
 
     fun diffReferenceLine(
+        translation: Translation,
         changes: ReferenceLineChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
         changedKmNumbers: Set<KmNumber>,
+        getGeocodingContext: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         return listOfNotNull(
             compareLength(
@@ -1090,7 +1113,7 @@ class PublicationService @Autowired constructor(
                 DISTANCE_CHANGE_THRESHOLD,
                 ::roundTo1Decimal,
                 PropKey("length"),
-                getLengthChangedRemarkOrNull(changes.length.old, changes.length.new),
+                getLengthChangedRemarkOrNull(translation, changes.length.old, changes.length.new),
             ),
             compareChange(
                 { !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
@@ -1098,7 +1121,7 @@ class PublicationService @Autowired constructor(
                 changes.startPoint.new,
                 ::formatLocation,
                 PropKey("start-location"),
-                getPointMovedRemarkOrNull(changes.startPoint.old, changes.startPoint.new)
+                getPointMovedRemarkOrNull(translation, changes.startPoint.old, changes.startPoint.new)
             ),
             compareChange(
                 { !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
@@ -1106,19 +1129,20 @@ class PublicationService @Autowired constructor(
                 changes.endPoint.new,
                 ::formatLocation,
                 PropKey("end-location"),
-                getPointMovedRemarkOrNull(changes.endPoint.old, changes.endPoint.new)
+                getPointMovedRemarkOrNull(translation, changes.endPoint.old, changes.endPoint.new)
             ),
             if (changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
-                    PropKey(LocalizationKey("geometry")),
-                    ChangeValue(null, null),
-                    getKmNumbersChangedRemarkOrNull(changedKmNumbers)
+                    PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
+                        translation, changedKmNumbers
+                    )
                 )
             } else null,
         )
     }
 
     fun diffKmPost(
+        translation: Translation,
         changes: KmPostChanges,
         publicationTime: Instant,
         previousPublicationTime: Instant,
@@ -1135,7 +1159,7 @@ class PublicationService @Autowired constructor(
             changes.location,
             ::formatLocation,
             PropKey("location"),
-            remark = getPointMovedRemarkOrNull(changes.location.old, changes.location.new)
+            remark = getPointMovedRemarkOrNull(translation, changes.location.old, changes.location.new)
         ),
     )
 
@@ -1156,8 +1180,11 @@ class PublicationService @Autowired constructor(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
             val jointPropKeyParams =
-                mapOf("trackNumber" to trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
-                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
+                LocalizationParams(
+                    "trackNumber" to trackNumberCache
+                        .findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
+                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) }
+                )
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(
                     joint.trackNumberId, oldTimestamp
@@ -1171,15 +1198,14 @@ class PublicationService @Autowired constructor(
                     joint.point,
                     ::formatLocation,
                     PropKey("switch-joint-location", jointPropKeyParams),
-                    getPointMovedRemarkOrNull(oldLocation, joint.point),
+                    getPointMovedRemarkOrNull(translation, oldLocation, joint.point),
                     null
-                ), compareChange(
-                    { oldAddress != joint.address },
+                ), compareChange({ oldAddress != joint.address },
                     oldAddress,
                     joint.address,
                     { it.toString() },
                     PropKey("switch-track-address", jointPropKeyParams),
-                    getAddressMovedRemarkOrNull(oldAddress, joint.address)
+                    getAddressMovedRemarkOrNull(translation, oldAddress, joint.address)
                 )
             )
             list
@@ -1208,18 +1234,20 @@ class PublicationService @Autowired constructor(
     }
 
     private fun getOrPutGeocodingContext(
-        caches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, GeocodingContext>>,
+        caches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         timestamp: Instant,
-    ) = (caches[timestamp] ?: caches.put(timestamp, mutableMapOf()))?.let { cache -> cache[trackNumberId] }
-        ?: geocodingService.getGeocodingContextAtMoment(
-            trackNumberId, timestamp
-        ).also { geocodingContext -> geocodingContext?.let { caches[timestamp]?.put(trackNumberId, geocodingContext) } }
+    ) = caches.getOrPut(timestamp) { ConcurrentHashMap() }.getOrPut(trackNumberId) {
+        Optional.ofNullable(
+            geocodingService.getGeocodingContextAtMoment(
+                trackNumberId, timestamp
+            )
+        )
+    }.orElse(null)
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
         cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)
-            ?.let { context -> validateGeocodingContext(context) }
-            ?: listOf(noGeocodingContext(localizationKey))
+            ?.let { context -> validateGeocodingContext(context) } ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
         trackNumber: TrackLayoutTrackNumber,
@@ -1274,14 +1302,12 @@ class PublicationService @Autowired constructor(
     }
 
     private fun collectCacheKeys(versions: ValidationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
-        val trackNumberIds =
-            (versions.trackNumbers.map { version -> version.officialId } + versions.kmPosts.mapNotNull { v ->
-                kmPostDao.fetch(v.validatedAssetVersion).trackNumberId
-            } + versions.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion).trackNumberId } + versions.referenceLines.map { v ->
-                referenceLineDao.fetch(
-                    v.validatedAssetVersion
-                ).trackNumberId
-            }).toSet()
+        val trackNumberIds = listOf(
+            versions.trackNumbers.map { version -> version.officialId },
+            versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId },
+            versions.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion).trackNumberId },
+            versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId },
+        ).flatten().toSet()
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 
@@ -1297,6 +1323,7 @@ class PublicationService @Autowired constructor(
     private fun mapToPublicationTableItems(
         translation: Translation,
         publication: PublicationDetails,
+        switchLinkChanges: Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>,
         previousComparisonTime: Instant,
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
         trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(),
@@ -1316,6 +1343,7 @@ class PublicationService @Autowired constructor(
                 operation = tn.operation,
                 publication = publication,
                 propChanges = diffTrackNumber(
+                    translation,
                     publicationTrackNumberChanges.getOrElse(tn.version.id) { error("Track number changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1335,10 +1363,12 @@ class PublicationService @Autowired constructor(
                 operation = rl.operation,
                 publication = publication,
                 propChanges = diffReferenceLine(
+                    translation,
                     publicationReferenceLineChanges.getOrElse(rl.version.id) { error("Reference line changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
                     rl.changedKmNumbers,
+                    geocodingContextGetter,
                 ),
             )
         }
@@ -1353,7 +1383,9 @@ class PublicationService @Autowired constructor(
                 operation = lt.operation,
                 publication = publication,
                 propChanges = diffLocationTrack(
+                    translation,
                     publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
+                    switchLinkChanges[lt.version.id],
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
@@ -1393,6 +1425,7 @@ class PublicationService @Autowired constructor(
                 operation = kp.operation,
                 publication = publication,
                 propChanges = diffKmPost(
+                    translation,
                     publicationKmPostChanges.getOrElse(kp.version.id) { error("KM Post changes not found") },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1411,7 +1444,9 @@ class PublicationService @Autowired constructor(
                 operation = Operation.CALCULATED,
                 publication = publication,
                 propChanges = diffLocationTrack(
+                    translation,
                     publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
+                    switchLinkChanges[lt.version.id],
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,

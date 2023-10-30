@@ -5,6 +5,7 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 export type CheckboxProps = {
     foo?: string;
+    qaId?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const Checkbox: React.FC<CheckboxProps> = ({ children, ...props }: CheckboxProps) => {
@@ -16,7 +17,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({ children, ...props }: Checkb
             className={className}
             onClick={() => {
                 setTouched(true);
-            }}>
+            }}
+            {...(props.qaId && { 'qa-id': props.qaId })}>
             <input {...props} type="checkbox" className={styles.checkbox__input} />
             <span className={styles.checkbox__visualization}>
                 <span className={styles['checkbox__checked-icon']}>

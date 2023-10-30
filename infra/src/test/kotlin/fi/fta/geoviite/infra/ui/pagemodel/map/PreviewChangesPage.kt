@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
@@ -31,7 +31,7 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
         E2EPreviewChangesSaveOrDiscardDialog().confirm()
 
-        waitAndClearToastByContent("Muutokset julkaistu paikannuspohjaan")
+        waitAndClearToast("publish-success")
 
         return E2ETrackLayoutPage()
     }
@@ -57,7 +57,7 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
         logger.info("Reverting change $name")
         changesTable.rows.filter { it.name == name }.forEach { changesTable.revertChange(it) }
 
-        waitAndClearToastByContent("Luonnosmuutokset peruttu")
+        waitAndClearToast("revert-success")
     }
 
     fun goToTrackLayout(): E2ETrackLayoutPage {

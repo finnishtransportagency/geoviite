@@ -1,5 +1,5 @@
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import * as React from 'react';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';

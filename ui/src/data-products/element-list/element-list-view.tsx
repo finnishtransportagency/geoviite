@@ -27,16 +27,19 @@ const ElementListView = () => {
                 <div>
                     <span className={styles['data-product-view__radio-layout']}>
                         <Radio
+                            qaId={'select-layout-geometry'}
                             onChange={() => handleRadioClick('LOCATION_TRACK')}
                             checked={state.selectedSearch === 'LOCATION_TRACK'}>
                             {t('data-products.element-list.location-track-geometry')}
                         </Radio>
                         <Radio
+                            qaId={'select-plan-geometry'}
                             onChange={() => handleRadioClick('PLAN')}
                             checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.element-list.plan-geometry')}
                         </Radio>
                         <Radio
+                            qaId={'select-entire-rail-network'}
                             onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
                             checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
                             {t('data-products.element-list.entire-rail-network-geometry')}

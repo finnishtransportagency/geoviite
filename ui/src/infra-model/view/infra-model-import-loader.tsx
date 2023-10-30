@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
 import { getValidationErrorsForPVDocument, importPVDocument } from 'infra-model/infra-model-api';
@@ -43,7 +43,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
         onValidate();
     }, [overrideParams]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         onInit();
     }, [pvDocumentId]);
 
@@ -54,5 +54,5 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
         props.setLoading(false);
         return !!response;
     };
-    return <InfraModelView {...props} onSave={onSave} onValidate={onValidate} />;
+    return <InfraModelView {...props} onSave={onSave} />;
 };

@@ -53,16 +53,26 @@ class LayoutAlignmentService(
             "boundingBox" to boundingBox
         )
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
+        val alignment = dao.fetch(alignmentVersion)
         return sections.mapNotNull { section ->
-            val start = if (section.startPoint != null) context.getAddressAndM(section.startPoint)?.let { (address, distance, _) ->
-                PlanSectionPoint(
-                    address = address,
-                    m = distance,
-                )
-            } else null
-            val end = if (section.endPoint != null) context.getAddressAndM(section.endPoint)?.let {
-                (address, distance) -> PlanSectionPoint(address = address, m = distance)
-            } else null
+            val start = if (section.startPoint != null) context.getAddressAndM(section.startPoint)
+                ?.let { (address, distance, _) ->
+                    PlanSectionPoint(
+                        address = address,
+                        m = alignment.getClosestPointM(section.startPoint)?.first ?: throw IllegalArgumentException(
+                            "Could not find closest point for ${section.startPoint}"
+                        )
+                    )
+                } else null
+            val end =
+                if (section.endPoint != null) context.getAddressAndM(section.endPoint)?.let { (address, distance) ->
+                    PlanSectionPoint(
+                        address = address,
+                        m = alignment.getClosestPointM(section.endPoint)?.first ?: throw IllegalArgumentException(
+                            "Could not find closest point for ${section.endPoint}"
+                        )
+                    )
+                } else null
 
             if (start != null && end != null) AlignmentPlanSection(
                 planId = section.planId,
@@ -78,6 +88,5 @@ class LayoutAlignmentService(
     }
 }
 
-private fun asNew(alignment: LayoutAlignment) =
-    if (alignment.dataType == TEMP) alignment
-    else alignment.copy(id = StringId(), dataType = TEMP)
+private fun asNew(alignment: LayoutAlignment) = if (alignment.dataType == TEMP) alignment
+else alignment.copy(id = StringId(), dataType = TEMP)

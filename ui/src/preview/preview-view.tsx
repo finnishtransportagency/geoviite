@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useRef } from 'react';
 import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
 import { useLoader } from 'utils/react-utils';
@@ -40,6 +41,11 @@ import { debounceAsync } from 'utils/async-utils';
 import { BoundingBox } from 'model/geometry';
 import { MapContext } from 'map/map-store';
 import { MapViewContainer } from 'map/map-view-container';
+import {
+    addPublishRequestIds,
+    dropIdsFromPublishCandidates,
+    intersectPublishRequestIds,
+} from 'publication/publication-utils';
 
 type Candidate = {
     id: AssetId;
@@ -268,43 +274,47 @@ const getCalculatedChangesDebounced = debounceAsync(
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
-    // Explanation for update token: The base data set for both the staged and unstaged change
-    // tables comes from the backend while staged changes are always only stored in the front end.
-    // This lead to situations where reverting a staged change would remove the row from staged
-    // changes (a front-end only operation) while the  fetch for a new change set (a backend
-    // operation) had not yet finished. The reverted row would thus pop up as an unstaged change
-    // for this time before disappearing completely. Thus redraw needs to be controlled manually,
-    // instead of relying on React's dependency-based redraw.
-    const [changeTableUpdateToken, setChangeTableUpdateToken] = React.useState<number>();
-    const updateChangeTables = () => setChangeTableUpdateToken(Date.now());
+    const revertedCandidatesSoFar = useRef(publishCandidateIds(emptyChanges));
+
     const [onlyShowMine, setOnlyShowMine] = React.useState(false);
     const user = useLoader(getOwnUser, []);
 
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const validatedChangeset = useLoader(
         () =>
-            validateDebounced(props.selectedPublishCandidateIds).then(
-                (validatedPublishCandidates) => {
-                    updateChangeTables();
-                    return validatedPublishCandidates;
-                },
-            ),
+            validateDebounced(props.selectedPublishCandidateIds).then((validated) => {
+                if (validated !== undefined) {
+                    // forget any reversions that the backend acknowledged, in case the user is working on multiple tabs
+                    // and might re-draft an object after reverting it
+                    revertedCandidatesSoFar.current = intersectPublishRequestIds(
+                        revertedCandidatesSoFar.current,
+                        publishCandidateIds(validated.allChangesValidated),
+                    );
+                }
+                return validated;
+            }),
         [props.selectedPublishCandidateIds],
     );
     const unstagedChanges = validatedChangeset
         ? getUnstagedChanges(
-              validatedChangeset?.allChangesValidated,
+              dropIdsFromPublishCandidates(
+                  validatedChangeset.allChangesValidated,
+                  revertedCandidatesSoFar.current,
+              ),
               props.selectedPublishCandidateIds,
           )
         : undefined;
     const stagedChangesValidated = validatedChangeset
         ? getStagedChanges(
-              validatedChangeset.validatedAsPublicationUnit,
+              dropIdsFromPublishCandidates(
+                  validatedChangeset.validatedAsPublicationUnit,
+                  revertedCandidatesSoFar.current,
+              ),
               props.selectedPublishCandidateIds,
           )
         : undefined;
 
-    const unstagedPreviewChanges: PreviewCandidates = React.useMemo(() => {
+    const unstagedPreviewChanges: PreviewCandidates = (() => {
         const allUnstagedChangesValidated = unstagedChanges
             ? {
                   trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
@@ -317,19 +327,16 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         return user && onlyShowMine
             ? previewCandidatesByUser(user, allUnstagedChangesValidated)
             : allUnstagedChangesValidated;
-    }, [changeTableUpdateToken]);
+    })();
 
-    const stagedPreviewChanges: PreviewCandidates = React.useMemo(
-        () =>
-            stagedChangesValidated && entireChangeset
-                ? previewChanges(
-                      stagedChangesValidated,
-                      props.selectedPublishCandidateIds,
-                      entireChangeset,
-                  )
-                : emptyChanges,
-        [changeTableUpdateToken],
-    );
+    const stagedPreviewChanges: PreviewCandidates =
+        stagedChangesValidated && entireChangeset
+            ? previewChanges(
+                  stagedChangesValidated,
+                  props.selectedPublishCandidateIds,
+                  entireChangeset,
+              )
+            : emptyChanges;
 
     const calculatedChanges = useLoader(
         () => getCalculatedChangesDebounced(props.selectedPublishCandidateIds),
@@ -361,7 +368,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         revertCandidates(changesBeingReverted.changeIncludingDependencies)
             .then((r) => {
                 if (r.isOk()) {
-                    Snackbar.success(t('publish.revert-success'));
+                    Snackbar.success('publish.revert-success');
+                    revertedCandidatesSoFar.current = addPublishRequestIds(
+                        revertedCandidatesSoFar.current,
+                        changesBeingReverted.changeIncludingDependencies,
+                    );
                     props.onPublishPreviewRemove(changesBeingReverted.changeIncludingDependencies);
                 }
             })
@@ -375,12 +386,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         props.onPublishPreviewRemove(
             singleRowPublishRequestOfSelectedPublishChange(selectedChange),
         );
-        updateChangeTables();
     };
 
     const onPreviewSelect = (selectedChange: SelectedPublishChange): void => {
         props.onPreviewSelect(selectedChange);
-        updateChangeTables();
     };
 
     return (
@@ -399,7 +408,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                         checked={onlyShowMine}
                                         onChange={(e) => {
                                             setOnlyShowMine(e.target.checked);
-                                            updateChangeTables();
                                         }}>
                                         {t('preview-view.show-only-mine')}
                                     </Checkbox>
@@ -411,6 +419,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                     onShowOnMap={props.onShowOnMap}
+                                    changeTimes={props.changeTimes}
                                 />
                             </section>
 
@@ -425,6 +434,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                     onShowOnMap={props.onShowOnMap}
+                                    changeTimes={props.changeTimes}
                                 />
                             </section>
 

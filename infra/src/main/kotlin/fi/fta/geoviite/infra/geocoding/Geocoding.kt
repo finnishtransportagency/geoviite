@@ -72,11 +72,11 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
-typealias KmPostsWithRejectReason = List<Pair<TrackLayoutKmPost, KmPostRejectedReason>>
+data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedReason: KmPostRejectedReason)
 
 data class GeocodingContextCreateResult(
     val geocodingContext: GeocodingContext,
-    val rejectedKmPosts: KmPostsWithRejectReason,
+    val rejectedKmPosts: List<KmPostWithRejectedReason>,
 )
 
 enum class KmPostRejectedReason {
@@ -112,6 +112,18 @@ data class GeocodingContext(
                 .all { TrackMeter.isMetersValid(it) }
         ) {
             "Reference points are too far apart from each other, trackNumber=${trackNumber.number}"
+        }
+
+        require(kmPosts.none { it.location == null }) {
+            "Geocoding context created with kmPosts without location ${
+                kmPosts.filter { it.location == null }
+            }}"
+        }
+
+        require(kmPosts.distinctBy { it.kmNumber }.size == kmPosts.size) {
+            "There are km posts with duplicate km number, ${
+                kmPosts.groupingBy { it.kmNumber }.eachCount().filter { it.value > 1 }
+            }}"
         }
     }
 
@@ -168,20 +180,27 @@ data class GeocodingContext(
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContextCreateResult {
-            val (validKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
+            val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
-            val referencePoints = createReferencePoints(startAddress, validKmPosts, referenceLineGeometry)
-            val (validReferencePoints, rejectedKmPosts) = validateReferencePoints(referencePoints, validKmPosts)
+            val (validReferencePoints, kmPostsOutsideGeometry) = createReferencePoints(
+                startAddress,
+                validatedKmPosts,
+                referenceLineGeometry
+            )
+
+            val validKmPosts = validatedKmPosts.filterNot { vkp ->
+                kmPostsOutsideGeometry.any { kp -> kp.kmPost.id == vkp.id }
+            }
 
             return GeocodingContextCreateResult(
                 geocodingContext = GeocodingContext(
                     trackNumber = trackNumber,
-                    kmPosts = kmPosts,
+                    kmPosts = validKmPosts,
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
                     startAddress = startAddress
                 ),
-                rejectedKmPosts = rejectedKmPosts + invalidKmPosts
+                rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry
             )
         }
 
@@ -189,21 +208,21 @@ data class GeocodingContext(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
             referenceLineGeometry: IAlignment,
-        ): List<GeocodingReferencePoint> {
-            val kpReferencePoints = kmPosts
-                .mapNotNull { post ->
-                    post.location?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
-                }
+        ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
+            val kpReferencePoints = kmPosts.mapNotNull { post ->
+                post.location?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
+            }
 
             val firstPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
+            val referencePoints = listOf(firstPoint) + kpReferencePoints
 
-            return listOf(firstPoint) + kpReferencePoints
+            return validateReferencePoints(referencePoints, kmPosts)
         }
 
         private fun validateKmPosts(
             kmPosts: List<TrackLayoutKmPost>,
             startAddress: TrackMeter,
-        ): Pair<List<TrackLayoutKmPost>, KmPostsWithRejectReason> {
+        ): Pair<List<TrackLayoutKmPost>, List<KmPostWithRejectedReason>> {
             val (withoutLocations, withLocations) = kmPosts.partition { it.location == null }
 
             val (invalidStartAddresses, validKmPosts) = withLocations.partition {
@@ -213,13 +232,13 @@ data class GeocodingContext(
             val rejectedKmPosts = withoutLocations.map { it to KmPostRejectedReason.NO_LOCATION } +
                     invalidStartAddresses.map { it to KmPostRejectedReason.IS_BEFORE_START_ADDRESS }
 
-            return validKmPosts to rejectedKmPosts
+            return validKmPosts to rejectedKmPosts.map { (kp, reason) -> KmPostWithRejectedReason(kp, reason) }
         }
 
         private fun validateReferencePoints(
             referencePoints: List<GeocodingReferencePoint>,
             kmPosts: List<TrackLayoutKmPost>,
-        ): Pair<List<GeocodingReferencePoint>, KmPostsWithRejectReason> {
+        ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val (withinPoints, beforePoints, afterPoints) = referencePoints
                 .groupBy { it.intersectType }
                 .let { byIntersect ->
@@ -245,7 +264,8 @@ data class GeocodingContext(
 
             val rejectedKmPosts = (beforePoints + afterPoints + invalidPoints).map { (rp, reason) ->
                 val kp = kmPosts.first { k -> k.kmNumber == rp.kmNumber }
-                kp to reason
+
+                KmPostWithRejectedReason(kp, reason)
             }
 
             return validPoints.distinctBy { it.distance } to rejectedKmPosts
@@ -284,8 +304,9 @@ data class GeocodingContext(
     }
 
     val referenceLineAddresses by lazy {
-        getAddressPoints(referenceLineGeometry)
-            ?: throw IllegalStateException("Can't resolve reference line addresses")
+        checkNotNull(getAddressPoints(referenceLineGeometry)) {
+            "Can't resolve reference line addresses"
+        }
     }
 
     private fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
@@ -568,8 +589,8 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
             // Direction for projection lines from the edge: 90 degrees turned from own direction
             val direction = PI / 2 +
                     if (segment.source != GeometrySource.GENERATED) directionBetweenPoints(previous, point)
-                    // Generated connection segments can have a sideways offset, but the real line doesn't change direction
-                    // To compensate, we want to project with the direction of previous/next segments
+                    // Generated connection segments can have a sideways offset, but the real line doesn't
+                    // change direction. To compensate, we want to project with the direction of previous/next segments
                     else if (prevDir == null || nextDir == null) prevDir ?: nextDir ?: directionBetweenPoints(
                         previous,
                         point

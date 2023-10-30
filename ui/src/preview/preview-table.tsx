@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
-    LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
@@ -33,6 +32,8 @@ import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
+import { useLoader } from 'utils/react-utils';
+import { ChangeTimes } from 'common/common-slice';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -63,6 +64,7 @@ type PreviewTableProps = {
     staged: boolean;
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
+    changeTimes: ChangeTimes;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -72,12 +74,14 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     staged,
     changesBeingReverted,
     onShowOnMap,
+    changeTimes,
 }) => {
     const { t } = useTranslation();
-    const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
-    React.useEffect(() => {
-        getTrackNumbers('DRAFT').then((trackNumbers) => setTrackNumbers(trackNumbers));
-    }, []);
+    const trackNumbers =
+        useLoader(
+            () => getTrackNumbers('DRAFT', changeTimes.layoutTrackNumber, true),
+            [changeTimes.layoutTrackNumber],
+        ) || [];
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 

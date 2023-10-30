@@ -219,20 +219,20 @@ class ReferenceLineDao(
     ): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
-              rl.row_id, 
+              rl.row_id,
               rl.row_version
-              from layout.reference_line_publication_view rl
-                inner join layout.segment_version s on rl.alignment_id = s.alignment_id 
-                  and rl.alignment_version = s.alignment_version
-                inner join layout.segment_geometry sg on s.geometry_id = sg.id
-                  and postgis.st_intersects(
-                    postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                    sg.bounding_box
-                  )
-                left join layout.track_number_publication_view tn
-                  on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
-              where :publication_state = any(rl.publication_states) 
-                and tn.state != 'DELETED'
+              from (
+                select distinct alignment_id, alignment_version
+                  from layout.segment_geometry
+                    join layout.segment_version on segment_geometry.id = geometry_id
+                  where postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                                              bounding_box)
+              ) sv
+                join layout.reference_line_publication_view rl using (alignment_id, alignment_version)
+                join layout.track_number_publication_view tn on rl.track_number_id = tn.official_id
+              where :publication_state = any (rl.publication_states)
+                and :publication_state = any (tn.publication_states)
+                and tn.state != 'DELETED';
         """.trimIndent()
 
         val params = mapOf(

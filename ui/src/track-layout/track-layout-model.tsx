@@ -105,11 +105,6 @@ export type LayoutLocationTrack = {
     topologyEndSwitch?: TopologyLocationTrackSwitch;
 };
 
-export const locationTrackDescription = (lt: {
-    descriptionBase?: string;
-    descriptionSuffix?: string;
-}) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
-
 export type LocationTrackDuplicate = {
     id: LocationTrackId;
     name: string;
@@ -277,7 +272,7 @@ export type SwitchJointTrackMeter = {
     jointNumber: JointNumber;
     locationTrackId: LocationTrackId;
     locationTrackName: string;
-    trackMeter: TrackMeter;
+    trackMeter: TrackMeter | undefined;
 };
 
 export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {

@@ -26,7 +26,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     source,
 }) => {
     const { t } = useTranslation();
-    const hasLocation = locationE && locationN;
+    const hasLocation = locationE !== undefined && locationN !== undefined;
 
     return (
         <React.Fragment>

@@ -7,7 +7,7 @@ import org.openqa.selenium.WebElement
 abstract class E2ETable<T>(
     tableFetch: ElementFetch,
     rowsBy: By = By.tagName("tr"),
-    private val headersBy: By = By.tagName("th"),
+    protected open val headersBy: By = By.tagName("th"),
 ) : E2EList<T>(tableFetch, rowsBy) {
     val rows: List<T> get() = items
 

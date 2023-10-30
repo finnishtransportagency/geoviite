@@ -19,6 +19,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 
 @ActiveProfiles("dev", "test")
@@ -106,9 +107,9 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
         val changeTimeAfterUpdate = locationTrackService.getChangeTime()
 
-        val trackChangeTimes = locationTrackService.getChangeTimes(id)
-        assertEquals(changeTimeAfterInsert, trackChangeTimes.created)
-        assertEquals(changeTimeAfterUpdate, trackChangeTimes.draftChanged)
+        val changeInfo = locationTrackService.getDraftableChangeInfo(id)
+        assertEquals(changeTimeAfterInsert, changeInfo.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
     }
 
     @Test
@@ -424,6 +425,35 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `getLocationTrackSwitches finds both topology and segment switches`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val topologyStartSwitchId = insertAndFetch(switch()).id as IntId
+        val topologyEndSwitchId = insertAndFetch(switch()).id as IntId
+        val segmentSwitchId = insertAndFetch(switch()).id as IntId
+
+        val (track, _) = insertAndFetch(
+            locationTrack(trackNumberId).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+            ),
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0),
+                    switchId = segmentSwitchId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2)
+                )
+            ),
+        )
+
+        val switches = locationTrackService.getSwitchesForLocationTrack(track.id as IntId, DRAFT)
+        assertContains(switches, topologyEndSwitchId)
+        assertContains(switches, topologyStartSwitchId)
+        assertContains(switches, segmentSwitchId)
+    }
+
+    @Test
     fun fetchDuplicatesIsVersioned() {
         val trackNumberId = getUnusedTrackNumberId()
         val originalLocationTrackId = locationTrackService.insert(saveRequest(trackNumberId, 1)).id
@@ -460,10 +490,7 @@ class LocationTrackServiceIT @Autowired constructor(
                 alignmentDao.insert(alignment(segment(Point(xCoord, 0.0), Point(xCoord + 10.0, 0.0))))
             locationTrackDao.insert(
                 locationTrack(
-                    trackNumberId,
-                    name = name,
-                    alignmentVersion = duplicateAlignment,
-                    duplicateOf = fullTrack.id
+                    trackNumberId, name = name, alignmentVersion = duplicateAlignment, duplicateOf = fullTrack.id
                 )
             )
         }
@@ -474,7 +501,7 @@ class LocationTrackServiceIT @Autowired constructor(
         makeDuplicateAt(20.0, "dupD")
 
         val extras = locationTrackService.getInfoboxExtras(OFFICIAL, fullTrack.id)
-        assertEquals(listOf("dupB", "dupD",  "dupA", "dupC"), extras?.duplicates?.map { dup -> dup.name.toString() })
+        assertEquals(listOf("dupB", "dupD", "dupA", "dupC"), extras?.duplicates?.map { dup -> dup.name.toString() })
     }
 
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =
@@ -570,7 +597,8 @@ class LocationTrackServiceIT @Autowired constructor(
         topologicalConnectivity = TopologicalConnectivityType.START_AND_END
     )
 
-    private fun publish(id: IntId<LocationTrack>) = locationTrackDao.fetchPublicationVersions(listOf(id))
+    private fun publish(id: IntId<LocationTrack>) = locationTrackDao
+        .fetchPublicationVersions(listOf(id))
         .first()
         .let { version -> locationTrackService.publish(version) }
 }

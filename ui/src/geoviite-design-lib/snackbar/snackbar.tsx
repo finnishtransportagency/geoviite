@@ -6,8 +6,9 @@ import './snackbar.scss';
 import styles from './snackbar.scss';
 import i18n from 'i18next';
 
-let id = 0;
-let snacksInQueue: { header: string; body?: string; id: number }[] = [];
+type ToastId = string | number;
+
+let snacksInQueue: ToastId[] = [];
 let blockToasts = false;
 
 type SnackbarButtonOptions = {
@@ -15,32 +16,35 @@ type SnackbarButtonOptions = {
     onClick: () => void;
 };
 
-function addToQueue(header: string, body?: string) {
-    const similarExists = snacksInQueue.some(
-        (s) => s.header == header && (!body || s.body == body),
-    );
+type ToastOpts = {
+    toastId?: ToastId;
+    className?: string;
+};
+
+function addToQueue(toastId: ToastId): (() => void) | undefined {
+    const similarExists = snacksInQueue.includes(toastId);
 
     if (!similarExists) {
-        id++;
-        snacksInQueue.push({ id, header, body });
-        return removeFromQueue(id);
+        snacksInQueue.push(toastId);
+        return () => {
+            snacksInQueue = snacksInQueue.filter((id) => id !== toastId);
+        };
     }
 }
 
-function removeFromQueue(id: number) {
-    return () => {
-        snacksInQueue = snacksInQueue.filter((s) => s.id != id);
-    };
+function getToastId(header: string, body?: string): string {
+    return `toast-${header}${body ? '-' + body : ''}`;
 }
 
-function getToastBody(
-    header: string,
-    body?: string,
-    qaId?: string,
-    button?: SnackbarButtonOptions,
-) {
+function getToast(headerKey: string, bodyKey?: string, button?: SnackbarButtonOptions) {
+    const t = i18n.t;
+
+    const header = t(headerKey);
+    const body = bodyKey ? t(bodyKey) : undefined;
+    const buttonText = button ? t(button.text) : undefined;
+
     return (
-        <div className={styles['Toastify__toast-content']} qa-id={qaId}>
+        <div className={styles['Toastify__toast-content']}>
             <div className={styles['Toastify__toast-text']}>
                 <span className={styles['Toastify__toast-header']} title={header}>
                     {header}
@@ -55,8 +59,8 @@ function getToastBody(
                 <div
                     className={styles['Toastify__button']}
                     onClick={button.onClick}
-                    title={button.text}>
-                    {button.text}
+                    title={buttonText}>
+                    {buttonText}
                 </div>
             )}
         </div>
@@ -69,50 +73,53 @@ const CloseButton = ({ closeToast }: never) => (
     </button>
 );
 
-type ToastOpts = {
-    body?: string;
-    qaId?: string;
-    className?: string;
-};
+export function info(header: string, body?: string, opts?: ToastOpts) {
+    const { toastId: id, ...options } = opts ?? {};
 
-export function info(header: string, opts?: ToastOpts) {
-    const { body, qaId, ...toastOpts } = opts ?? {};
-    const removeFunction = addToQueue(header, body);
+    const toastId = id ?? getToastId(header, body);
+    const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.warn(getToastBody(header, body, qaId), {
+        toast.warn(getToast(header, body), {
+            toastId: toastId,
             onClose: removeFunction,
             icon: <Icons.Info />,
-            ...toastOpts,
+            ...options,
         });
     }
 }
 
-export function success(header: string, opts?: ToastOpts) {
-    const { body, qaId, ...toastOpts } = opts ?? {};
-    const removeFunction = addToQueue(header, body);
+export function success(header: string, body?: string, opts?: ToastOpts) {
+    const { toastId: id, ...options } = opts ?? {};
+
+    const toastId = id ?? getToastId(header, body);
+    const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.success(getToastBody(header, body, qaId), {
+        toast.success(getToast(header, body), {
+            toastId: toastId,
             onClose: removeFunction,
             icon: <Icons.Selected />,
-            ...toastOpts,
+            ...options,
         });
     }
 }
 
-export function error(header: string, opts?: ToastOpts) {
-    const { body, qaId, ...toastOpts } = opts ?? {};
-    const removeFunction = addToQueue(header, body);
+export function error(header: string, body?: string, opts?: ToastOpts) {
+    const { toastId: id, ...options } = opts ?? {};
+
+    const toastId = id ?? getToastId(header, body);
+    const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.error(getToastBody(header, body, qaId), {
+        toast.error(getToast(header, body), {
+            toastId: toastId,
             autoClose: false,
             closeOnClick: false,
             closeButton: CloseButton,
             onClose: removeFunction,
             icon: <Icons.StatusError />,
-            ...toastOpts,
+            ...options,
         });
     }
 }
@@ -126,8 +133,8 @@ export function sessionExpired() {
         toast.clearWaitingQueue();
 
         toast.error(
-            getToastBody(i18n.t('unauthorized-request.title'), undefined, undefined, {
-                text: i18n.t('unauthorized-request.button'),
+            getToast('unauthorized-request.title', undefined, {
+                text: 'unauthorized-request.button',
                 onClick: () => location.reload(),
             }),
             {
