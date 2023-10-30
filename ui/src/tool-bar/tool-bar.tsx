@@ -2,12 +2,7 @@ import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
-import { getSwitch } from 'track-layout/layout-switch-api';
-import { getKmPost } from 'track-layout/layout-km-post-api';
-import {
-    getLocationTrackDescriptions,
-} from 'track-layout/layout-location-track-api';
+import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import {
     LayoutLocationTrack,
     LayoutSwitch,
@@ -199,11 +194,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 return onSelect({ switches: [item.layoutSwitch.id] });
 
             case 'trackNumberSearchItem':
-                getTrackNumberReferenceLine(item.trackNumber.id, publishType).then((referenceLine) => {
-                    if (referenceLine?.boundingBox) {
-                        showArea(referenceLine.boundingBox);
-                    }
-                });
+                getTrackNumberReferenceLine(item.trackNumber.id, publishType).then(
+                    (referenceLine) => {
+                        if (referenceLine?.boundingBox) {
+                            showArea(referenceLine.boundingBox);
+                        }
+                    },
+                );
 
                 return onSelect({ trackNumbers: [item.trackNumber.id] });
 

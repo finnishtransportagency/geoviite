@@ -10,11 +10,11 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import {
-    KmPostEditState,
     actions,
     canSaveKmPost,
     initialKmPostEditState,
     isValidKmNumber,
+    KmPostEditState,
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostSaveRequest } from 'linking/linking-model';
@@ -191,7 +191,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         {state.existingKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
                             <Button
                                 onClick={() =>
-                                    props.kmPostId ? setDraftDeleteConfirmationVisible(true) : undefined
+                                    props.kmPostId
+                                        ? setDraftDeleteConfirmationVisible(true)
+                                        : undefined
                                 }
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
