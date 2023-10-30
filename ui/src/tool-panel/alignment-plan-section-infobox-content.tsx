@@ -42,7 +42,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
-    const _changeTimes = getChangeTimes();
 
     function isVisible(planId: GeometryPlanId) {
         return visiblePlans.some((plan) => plan.id == planId);
