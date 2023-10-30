@@ -86,18 +86,21 @@ module.exports = (env) => {
                         return '';
                     },
                 },
-                '/location-map/': {
-                    target: process.env.MML_MAP_URL,
-                    logLevel: 'debug',
-                    pathRewrite: { '^/location-map': '' },
-                    changeOrigin: true,
-                    headers: {
-                        'X-API-Key': process.env.MML_MAP_API_KEY,
+                ...(process.env.MML_MAP_IN_USE === 'true' && {
+                    '/location-map/': {
+                        target: process.env.MML_MAP_URL,
+                        logLevel: 'debug',
+                        pathRewrite: { '^/location-map': '' },
+                        changeOrigin: true,
+                        headers: {
+                            'X-API-Key': process.env.MML_MAP_API_KEY,
+                        },
+                        onProxyRes: (proxyRes) => {
+                            proxyRes.headers['Cache-Control'] =
+                                'public, max-age=86400, no-transform';
+                        },
                     },
-                    onProxyRes: (proxyRes) => {
-                        proxyRes.headers['Cache-Control'] = 'public, max-age=86400, no-transform';
-                    },
-                },
+                }),
             },
         },
         output: {
