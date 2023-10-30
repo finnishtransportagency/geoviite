@@ -50,10 +50,9 @@ export function createSwitchLayer(
         }
     }
 
-    let inFlight = false;
+    let inFlight = true;
     const resolution = olView.getResolution() || 0;
 
-    inFlight = true;
     Promise.all([getSwitchesFromApi(), getSwitchStructures()])
         .then(([switches, switchStructures]) => {
             if (layerId !== newestLayerId) return;
