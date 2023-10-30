@@ -24,15 +24,14 @@ class LayoutSwitchService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     fun pageSwitchesByFilter(
         publishType: PublishType,
         filter: (TrackLayoutSwitch) -> Boolean,
         offset: Int?,
         limit: Int?,
         comparisonPoint: Point?,
-    ): List<TrackLayoutSwitch> =
-        pageSwitches(list(publishType, filter), offset ?: 0, limit, comparisonPoint)
+    ): List<TrackLayoutSwitch> = pageSwitches(list(publishType, filter), offset ?: 0, limit, comparisonPoint)
 
     @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
@@ -107,6 +106,11 @@ class LayoutSwitchService @Autowired constructor(
     fun getPresentationJoint(switch: TrackLayoutSwitch): TrackLayoutSwitchJoint? {
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         return switch.getJoint(structure.presentationJointNumber)
+    }
+
+    fun getPresentationJointOrThrow(switch: TrackLayoutSwitch): TrackLayoutSwitchJoint {
+        return getPresentationJoint(switch)
+            ?: throw IllegalArgumentException("Switch ${switch.id} has no presentation joint")
     }
 
     fun list(publishType: PublishType, filter: (switch: TrackLayoutSwitch) -> Boolean): List<TrackLayoutSwitch> {

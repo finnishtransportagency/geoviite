@@ -19,6 +19,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 
 @ActiveProfiles("dev", "test")
@@ -421,6 +422,35 @@ class LocationTrackServiceIT @Autowired constructor(
         val updatedTrack = locationTrackService.updateTopology(track, alignment)
         assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(3)), updatedTrack.topologyStartSwitch)
         assertEquals(null, updatedTrack.topologyEndSwitch)
+    }
+
+    @Test
+    fun `getLocationTrackSwitches finds both topology and segment switches`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val topologyStartSwitchId = insertAndFetch(switch()).id as IntId
+        val topologyEndSwitchId = insertAndFetch(switch()).id as IntId
+        val segmentSwitchId = insertAndFetch(switch()).id as IntId
+
+        val (track, _) = insertAndFetch(
+            locationTrack(trackNumberId).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+            ),
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0),
+                    switchId = segmentSwitchId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2)
+                )
+            ),
+        )
+
+        val switches = locationTrackService.getSwitchesForLocationTrack(track.id as IntId, DRAFT)
+        assertContains(switches, topologyEndSwitchId)
+        assertContains(switches, topologyStartSwitchId)
+        assertContains(switches, segmentSwitchId)
     }
 
     @Test

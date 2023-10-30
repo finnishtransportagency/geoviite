@@ -708,6 +708,20 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `Validating multiple switches should work`() {
+        val switchId = switchDao.insert(switch(123)).id
+        val switchId2 = switchDao.insert(switch(234)).id
+        val switchId3 = switchDao.insert(switch(456)).id
+
+        val validationIds =
+            publicationService.validateSwitches(listOf(switchId, switchId2, switchId3), OFFICIAL).map { it.id }
+        assertEquals(3, validationIds.size)
+        assertContains(validationIds, switchId)
+        assertContains(validationIds, switchId2)
+        assertContains(validationIds, switchId3)
+    }
+
+    @Test
     fun `Validating official km post should work`() {
         val kmPostId = kmPostDao.insert(kmPost(insertOfficialTrackNumber(), km = KmNumber.ZERO)).id
 
@@ -1390,12 +1404,10 @@ class PublicationServiceIT @Autowired constructor(
             locationTrackDao.fetch(locationTrackDao.fetchVersion(originalLocationTrack.id, OFFICIAL)!!).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
-            ),
-            alignmentWithSwitchLinks(
+            ), alignmentWithSwitchLinks(
                 switchAddedToAlignment.id,
                 switchMerelyRenamed.id,
-                newSwitchReplacingOldWithSameName.id,
-                null
+                newSwitchReplacingOldWithSameName.id, null
             )
         )
         publish(
