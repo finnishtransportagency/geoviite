@@ -27,6 +27,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { formatTrackMeter } from 'utils/geography-utils';
+import { Point } from 'model/geometry';
 
 type LocationTrackInfoboxSplittingProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -42,10 +43,12 @@ type LocationTrackInfoboxSplittingProps = {
 };
 
 type EndpointProps = {
-    location: TrackMeterModel | undefined;
+    address: TrackMeterModel | undefined;
 };
 
 type SplitProps = EndpointProps & {
+    location: Point;
+    distance: number;
     isInitial: boolean;
     switchId?: LayoutSwitchId;
     onRemove?: (switchId: LayoutSwitchId) => void;
@@ -55,7 +58,9 @@ type SplitProps = EndpointProps & {
 };
 
 const Split: React.FC<SplitProps> = ({
+    address,
     location,
+    distance,
     switchId,
     isInitial,
     onRemove,
@@ -74,6 +79,8 @@ const Split: React.FC<SplitProps> = ({
             name,
             descriptionBase,
             suffixMode,
+            location,
+            distance,
             duplicateOf: duplicateId,
         };
         const finalUpdatedSwitch = switchId
@@ -100,7 +107,7 @@ const Split: React.FC<SplitProps> = ({
                                 ? t('tool-panel.location-track.splitting.start-address')
                                 : t('tool-panel.location-track.splitting.split-address')
                         }>
-                        <TrackMeter value={location} />
+                        <TrackMeter value={address} />
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
@@ -166,13 +173,13 @@ const Split: React.FC<SplitProps> = ({
     );
 };
 
-const Endpoint: React.FC<EndpointProps> = ({ location }) => {
+const Endpoint: React.FC<EndpointProps> = ({ address }) => {
     const { t } = useTranslation();
     return (
         <div className={styles['location-track-infobox__split-container']}>
             <div className={styles['location-track-infobox__split-item-ball']} />
             <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
-                <TrackMeter value={location} />
+                <TrackMeter value={address} />
             </InfoboxField>
         </div>
     );
@@ -210,52 +217,60 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
     const sortedSplits = sortSplitsBySwitchLocation(splits, allowedSwitches);
 
     return (
-        <Infobox
-            contentVisible={visibilities.splitting}
-            onContentVisibilityChange={() => visibilityChange('splitting')}
-            title={t('tool-panel.location-track.splitting.title')}>
-            <InfoboxContent className={styles['location-track-infobox__split']}>
-                <Split
-                    location={startAndEnd?.start?.address}
-                    isInitial={true}
-                    duplicateLocationTracks={duplicateLocationTracks}
-                    updateSplit={updateSplit}
-                    duplicateOf={initialSplit.duplicateOf}
-                />
-                {sortedSplits.map((split, index) => {
-                    return (
+        <React.Fragment>
+            {startAndEnd?.start && startAndEnd?.end && (
+                <Infobox
+                    contentVisible={visibilities.splitting}
+                    onContentVisibilityChange={() => visibilityChange('splitting')}
+                    title={t('tool-panel.location-track.splitting.title')}>
+                    <InfoboxContent className={styles['location-track-infobox__split']}>
                         <Split
-                            key={index.toString()}
-                            location={getSplitLocation(split)}
-                            isInitial={false}
-                            switchId={split.switchId}
-                            onRemove={removeSplit}
+                            address={startAndEnd?.start?.address}
+                            location={startAndEnd?.start?.point}
+                            distance={startAndEnd?.start?.point?.m}
+                            isInitial={true}
                             duplicateLocationTracks={duplicateLocationTracks}
                             updateSplit={updateSplit}
-                            duplicateOf={split.duplicateOf}
+                            duplicateOf={initialSplit.duplicateOf}
                         />
-                    );
-                })}
-                <Endpoint location={startAndEnd?.end?.address} />
-                {splits.length === 0 && (
-                    <InfoboxContentSpread>
-                        <MessageBox>
-                            {t('tool-panel.location-track.splitting.splitting-guide')}
-                        </MessageBox>
-                    </InfoboxContentSpread>
-                )}
-                <InfoboxButtons>
-                    <Button
-                        variant={ButtonVariant.SECONDARY}
-                        size={ButtonSize.SMALL}
-                        onClick={cancelSplitting}>
-                        {t('button.cancel')}
-                    </Button>
-                    <Button size={ButtonSize.SMALL}>
-                        {t('tool-panel.location-track.splitting.confirm-split')}
-                    </Button>
-                </InfoboxButtons>
-            </InfoboxContent>
-        </Infobox>
+                        {sortedSplits.map((split, index) => {
+                            return (
+                                <Split
+                                    key={index.toString()}
+                                    address={getSplitLocation(split)}
+                                    isInitial={false}
+                                    switchId={split.switchId}
+                                    location={split.location}
+                                    distance={split.distance}
+                                    onRemove={removeSplit}
+                                    duplicateLocationTracks={duplicateLocationTracks}
+                                    updateSplit={updateSplit}
+                                    duplicateOf={split.duplicateOf}
+                                />
+                            );
+                        })}
+                        <Endpoint address={startAndEnd.end.address} />
+                        {splits.length === 0 && (
+                            <InfoboxContentSpread>
+                                <MessageBox>
+                                    {t('tool-panel.location-track.splitting.splitting-guide')}
+                                </MessageBox>
+                            </InfoboxContentSpread>
+                        )}
+                        <InfoboxButtons>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                onClick={cancelSplitting}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button size={ButtonSize.SMALL}>
+                                {t('tool-panel.location-track.splitting.confirm-split')}
+                            </Button>
+                        </InfoboxButtons>
+                    </InfoboxContent>
+                </Infobox>
+            )}
+        </React.Fragment>
     );
 };

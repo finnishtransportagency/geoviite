@@ -84,6 +84,8 @@ export const initialMapState: Map = {
         'geometry-alignment-layer',
         'geometry-switch-layer',
         'geometry-km-post-layer',
+        'location-track-split-location-layer',
+        'duplicate-split-section-highlight-layer',
     ],
     layerMenu: {
         layout: [

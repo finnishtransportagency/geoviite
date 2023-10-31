@@ -1,25 +1,30 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     LayoutLocationTrack,
+    LayoutPoint,
     LayoutSwitchId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { TrackMeter } from 'common/common-model';
+import { Point } from 'model/geometry';
 
 export type InitialSplit = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
     duplicateOf?: LocationTrackId;
+    location: Point;
 };
 
 export type Split = InitialSplit & {
     switchId: LayoutSwitchId;
+    distance: number;
 };
 
 export type SplittingState = {
+    endLocation: LayoutPoint;
     originLocationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
     initialSplit: InitialSplit;
@@ -29,11 +34,15 @@ export type SplittingState = {
 type SplitStart = {
     locationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
+    startLocation: LayoutPoint;
+    endLocation: LayoutPoint;
 };
 
 export type SwitchOnLocationTrack = {
     switchId: LayoutSwitchId;
     address: TrackMeter | undefined;
+    location: Point | undefined;
+    distance: number | undefined;
 };
 
 export const splitReducers = {
@@ -42,10 +51,12 @@ export const splitReducers = {
             originLocationTrack: payload.locationTrack,
             allowedSwitches: payload.allowedSwitches,
             splits: [],
+            endLocation: payload.endLocation,
             initialSplit: {
                 name: '',
                 descriptionBase: '',
                 suffixMode: 'NONE',
+                location: payload.startLocation,
             },
         };
     },
@@ -53,9 +64,13 @@ export const splitReducers = {
         state.splittingState = undefined;
     },
     addSplit: (state: TrackLayoutState, { payload }: PayloadAction<LayoutSwitchId>): void => {
+        const allowedSwitch = state.splittingState?.allowedSwitches?.find(
+            (sw) => sw.switchId == payload,
+        );
         if (
             state.splittingState &&
-            state.splittingState.allowedSwitches.some((sw) => sw.switchId == payload) &&
+            allowedSwitch?.location &&
+            allowedSwitch?.distance &&
             !state.splittingState.splits.some((split) => split.switchId === payload)
         ) {
             state.splittingState.splits = state.splittingState.splits.concat([
@@ -64,6 +79,8 @@ export const splitReducers = {
                     name: '',
                     descriptionBase: '',
                     suffixMode: 'NONE',
+                    location: allowedSwitch.location,
+                    distance: allowedSwitch.distance,
                 },
             ]);
         }

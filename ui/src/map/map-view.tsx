@@ -66,6 +66,8 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
+import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
 
 declare global {
     interface Window {
@@ -462,6 +464,20 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             linkingState as LinkingSwitch | undefined,
+                        );
+                    case 'location-track-split-location-layer':
+                        return createLocationTrackSplitLocationLayer(
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            splittingState,
+                        );
+                    case 'duplicate-split-section-highlight-layer':
+                        return createDuplicateSplitSectionHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                            splittingState,
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(

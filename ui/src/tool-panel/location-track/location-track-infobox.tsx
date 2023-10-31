@@ -409,6 +409,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                         locationTrack: locationTrack,
                                                         allowedSwitches:
                                                             allowedSwitchesForSplitting || [],
+                                                        startLocation:
+                                                            startAndEndPoints.start.point,
+                                                        endLocation: startAndEndPoints.end.point,
                                                     });
                                                 }
                                             }}>

@@ -27,14 +27,19 @@ export const mapLayerZIndexes = [
     'geometry-switch-layer',
     'alignment-linking-layer',
     'switch-linking-layer',
+    'duplicate-split-section-highlight-layer',
+    'location-track-split-location-layer',
     'plan-area-layer',
     'debug-1m-points-layer',
     'debug-layer',
-].reduce((acc, layer, idx) => {
-    acc[layer as MapLayerName] = idx;
+].reduce(
+    (acc, layer, idx) => {
+        acc[layer as MapLayerName] = idx;
 
-    return acc;
-}, {} as Record<MapLayerName, number>);
+        return acc;
+    },
+    {} as Record<MapLayerName, number>,
+);
 
 // Geometry
 export const GEOMETRY_TICKS = 5.0;
