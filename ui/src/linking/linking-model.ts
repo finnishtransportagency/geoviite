@@ -43,7 +43,7 @@ export type LocationTrackSaveRequest = {
     trackNumberId?: LayoutTrackNumberId;
     duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;
-    ownerId: LocationTrackOwnerId;
+    ownerId?: LocationTrackOwnerId;
 };
 
 export type LocationTrackSaveError = {

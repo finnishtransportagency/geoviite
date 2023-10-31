@@ -92,6 +92,6 @@ insert into common.location_track_owner(name)
     ('Varkauden kaupunki'),
     ('Versowood Oy'),
     ('Viking Malt Oy'),
-    ('Väylävirasto'),
     ('Walki Oy'),
     ('Yara Suomi Oy')
+on conflict (name) do nothing;
