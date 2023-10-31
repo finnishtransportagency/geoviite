@@ -40,24 +40,17 @@ class LayoutSwitchController(
     ): List<TrackLayoutSwitch> {
         logger.apiCall(
             "getTrackLayoutSwitches",
-            "publishType" to publishType, "bbox" to bbox, "name" to name, "offset" to offset,
-            "limit" to limit, "comparisonPoint" to comparisonPoint, "switchType" to switchType
+            "publishType" to publishType,
+            "bbox" to bbox,
+            "name" to name,
+            "offset" to offset,
+            "limit" to limit,
+            "comparisonPoint" to comparisonPoint,
+            "switchType" to switchType
         )
         val filter = switchService.switchFilter(name, switchType, bbox, includeSwitchesWithNoJoints)
         return switchService.pageSwitchesByFilter(publishType, filter, offset, limit, comparisonPoint)
     }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}", params = ["searchTerm", "limit"])
-    fun searchSwitches(
-        @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("searchTerm", required = true) searchTerm: FreeText,
-        @RequestParam("limit", required = true) limit: Int,
-    ): List<TrackLayoutSwitch> {
-        logger.apiCall("searchSwitches", "searchTerm" to searchTerm, "limit" to limit)
-        return switchService.list(publishType, searchTerm, limit)
-    }
-
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/{id}")
@@ -125,8 +118,8 @@ class LayoutSwitchController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getSwitchChangeTimes(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): ChangeTimes {
+    fun getSwitchChangeInfo(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): DraftableChangeInfo {
         logger.apiCall("getSwitchChangeTimes", "id" to switchId)
-        return switchService.getChangeTimes(switchId)
+        return switchService.getDraftableChangeInfo(switchId)
     }
 }

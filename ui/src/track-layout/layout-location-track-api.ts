@@ -5,7 +5,7 @@ import {
     LocationTrackId,
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
+import { DraftableChangeInfo, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
@@ -17,7 +17,7 @@ import { getChangeTimes, updateLocationTrackChangeTime } from 'common/change-tim
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
 
@@ -36,6 +36,7 @@ type PlanSectionPoint = {
 export type AlignmentPlanSection = {
     planId: GeometryPlanId | undefined;
     planName: string | undefined;
+    alignmentId: GeometryAlignmentId | undefined;
     alignmentName: string | undefined;
     isLinked: boolean;
     start: PlanSectionPoint | undefined;
@@ -201,8 +202,8 @@ export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[
 
 export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
-): Promise<ChangeTimes | undefined> => {
-    return getNullable<ChangeTimes>(changeTimeUri('location-tracks', id));
+): Promise<DraftableChangeInfo | undefined> => {
+    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id));
 };
 
 export const getLocationTrackSectionsByPlan = async (

@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -90,6 +91,14 @@ class LayoutTrackNumberService(
         }
     }
 
+    override fun sortSearchResult(list: List<TrackLayoutTrackNumber>) = list.sortedBy(TrackLayoutTrackNumber::number)
+
+    override fun idMatches(term: String, item: TrackLayoutTrackNumber) =
+        item.externalId.toString() == term || item.id.toString() == term
+
+    override fun contentMatches(term: String, item: TrackLayoutTrackNumber) =
+        item.exists && item.number.toString().replace("  ", " ").contains(term, true)
+
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }
 
     fun mapByNumber(publishType: PublishType) = list(publishType).associateBy(TrackLayoutTrackNumber::number)
@@ -129,7 +138,7 @@ class LayoutTrackNumberService(
                     locationSource = GeometrySource.GENERATED,
                     location = startPoint.point.toPoint()
                 )
-            ) + distances.sortedBy { it.second }.mapIndexed { index, (kmPost, startM) ->
+            ) + distances.mapIndexed { index, (kmPost, startM) ->
                 val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
                 TrackLayoutKmLengthDetails(
@@ -174,13 +183,9 @@ class LayoutTrackNumberService(
         publishType: PublishType,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): String {
-        val kmLengths = trackNumberIds
-            .parallelStream()
-            .flatMap { trackNumberId ->
-                (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream()
-            }
-            .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
-            .collect(Collectors.toList())
+        val kmLengths = trackNumberIds.parallelStream().flatMap { trackNumberId ->
+            (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream()
+        }.sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber }).collect(Collectors.toList())
 
         return asCsvFile(kmLengths)
     }
@@ -206,18 +211,19 @@ class LayoutTrackNumberService(
             "publishType" to publishType,
             "boundingBox" to boundingBox
         )
-        val trackNumber = getOrThrow(publishType, trackNumberId)
-        val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
-            ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
-        val geocodingContext = geocodingService.getGeocodingContext(publishType, trackNumberId)
-        return if (geocodingContext != null && referenceLine.alignmentVersion != null) {
-            alignmentService.getGeometryMetadataSections(
-                referenceLine.alignmentVersion,
-                trackNumber.externalId,
-                boundingBox,
-                geocodingContext,
-            )
-        } else listOf()
+        return get(publishType, trackNumberId)?.let { trackNumber ->
+            val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
+                ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+            val geocodingContext = geocodingService.getGeocodingContext(publishType, trackNumberId)
+            if (geocodingContext != null && referenceLine.alignmentVersion != null) {
+                alignmentService.getGeometryMetadataSections(
+                    referenceLine.alignmentVersion,
+                    trackNumber.externalId,
+                    boundingBox,
+                    geocodingContext,
+                )
+            } else null
+        } ?: listOf()
     }
 
     fun officialDuplicateNameExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {

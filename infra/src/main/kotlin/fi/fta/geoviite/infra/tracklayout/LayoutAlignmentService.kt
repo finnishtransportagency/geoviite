@@ -77,6 +77,7 @@ class LayoutAlignmentService(
             if (start != null && end != null) AlignmentPlanSection(
                 planId = section.planId,
                 planName = section.fileName,
+                alignmentId = section.alignmentId,
                 alignmentName = section.alignmentName,
                 start = start,
                 end = end,

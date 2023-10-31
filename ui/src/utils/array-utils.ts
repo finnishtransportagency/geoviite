@@ -8,6 +8,30 @@ export function filterNotEmpty<TValue>(value: TValue | undefined): value is TVal
     return value !== undefined;
 }
 
+export function filterIn<T>(others: T[]): (item: T) => boolean {
+    return filterByIdInOrNotIn(others, (id) => id, true);
+}
+
+export function filterNotIn<T>(others: T[]): (item: T) => boolean {
+    return filterByIdNotIn(others, (id) => id);
+}
+
+export function filterByIdNotIn<T, Id>(
+    others: Id[],
+    getId: (thing: T) => Id,
+): (item: T) => boolean {
+    return filterByIdInOrNotIn(others, getId, false);
+}
+
+function filterByIdInOrNotIn<T, Id>(
+    others: Id[],
+    getId: (thing: T) => Id,
+    yesIn: boolean,
+): (item: T) => boolean {
+    const othersSet = new Set(others);
+    return (item: T) => yesIn == othersSet.has(getId(item));
+}
+
 /**
  * Usage:
  * persons.filter(filterUniqueById((person) => person.id))
@@ -129,10 +153,13 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce((acc, item) => {
-        (acc[getKey(item)] ||= []).push(item);
-        return acc;
-    }, {} as Record<K, T[]>);
+    return array.reduce(
+        (acc, item) => {
+            (acc[getKey(item)] ||= []).push(item);
+            return acc;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 /**
@@ -163,6 +190,16 @@ export function itemsEqual<T>(
     );
 }
 
+export function minOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
+    return values.reduce<T | undefined>((old, candidate, index) => {
+        if (index == 0 || comparator(old as T, candidate) > 0) {
+            return candidate;
+        } else {
+            return old;
+        }
+    }, undefined);
+}
+
 export function maxOf<T>(values: T[], comparator: (v1: T, v2: T) => number): T | undefined {
     return values.reduce<T | undefined>((old, candidate, index) => {
         if (index == 0 || comparator(old as T, candidate) < 0) {
@@ -189,14 +226,6 @@ export function first<T>(array: T[]): T {
 
 export function last<T>(array: T[]): T {
     return array[array.length - 1];
-}
-
-export function subtract<T>(originalCollection: T[], valuesToRemove: T[]): T[] {
-    if (valuesToRemove.length === 0) {
-        return originalCollection;
-    }
-    const setToRemove = new Set(valuesToRemove);
-    return originalCollection.filter((x) => !setToRemove.has(x));
 }
 
 export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | undefined) {

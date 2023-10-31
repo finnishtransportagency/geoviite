@@ -5,7 +5,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { PublishType } from 'common/common-model';
+import { PublishType, TimeStamp } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
@@ -25,6 +25,7 @@ type TrackNumberGeometryInfoboxProps = {
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    changeTime: TimeStamp;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
@@ -34,6 +35,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     contentVisible,
     onContentVisibilityChange,
     onHighlightItem,
+    changeTime,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -45,7 +47,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 trackNumberId,
                 useBoundingBox ? viewport.area : undefined,
             ),
-        [trackNumberId, publishType, viewportDep],
+        [trackNumberId, publishType, viewportDep, changeTime],
     );
 
     return (
@@ -65,7 +67,8 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 />
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
-                    inProgress={elementFetchStatus !== LoaderStatus.Ready}>
+                    inProgress={elementFetchStatus !== LoaderStatus.Ready}
+                    inline={false}>
                     {sections && sections.length == 0 ? (
                         <p className={'infobox__text'}>
                             {t(

@@ -41,7 +41,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetch(version: RowVersion<T>): T
 
     fun fetchChangeTime(): Instant
-    fun fetchChangeTimes(id: IntId<T>): ChangeTimes
+    fun fetchDraftableChangeInfo(id: IntId<T>): DraftableChangeInfo
 
     fun fetchAllVersions(): List<RowVersion<T>>
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
@@ -123,7 +123,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
 
-    override fun fetchChangeTimes(id: IntId<T>): ChangeTimes {
+    override fun fetchDraftableChangeInfo(id: IntId<T>): DraftableChangeInfo {
         val sql = """
             select
               greatest(main_row.change_time, draft_row.change_time) as change_time,
@@ -137,7 +137,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
               and (main_row.id = :id or draft_row.id = :id)
         """.trimMargin()
         return jdbcTemplate.queryForObject(sql, mapOf("id" to id.intValue)) { rs, _ ->
-            ChangeTimes(
+            DraftableChangeInfo(
                 created = rs.getInstant("creation_time"),
                 changed = rs.getInstant("change_time"),
                 officialChanged = rs.getInstantOrNull("official_change_time"),

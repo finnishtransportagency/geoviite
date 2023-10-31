@@ -1,13 +1,27 @@
 @use 'vayla-design-lib' as vayla-design;
 
 .alignment-plan-section-infobox__plan-name {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.alignment-plan-section-infobox__plan-link-content {
+    display: inline-block;
 }
 
 .alignment-plan-section-infobox__no-plan-icon {
     fill: vayla-design.$color-red-dark;
+    display: block;
+    transform: translate(0, 1px);
+}
+
+.alignment-plan-section-infobox__show-plan-icon {
+    display: block;
+    transform: translate(0, -3px);
+    cursor: pointer;
+    fill: vayla-design.$color-white-darker;
+    padding: 0 2px;
+    line-height: 0;
 }
 
 .alignment-plan-section-infobox__meters {
@@ -15,4 +29,5 @@
     grid-template-columns: repeat(2, 50%);
     grid-column-gap: 6px;
     width: 100%;
+    cursor: pointer;
 }

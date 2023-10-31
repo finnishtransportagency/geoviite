@@ -1,6 +1,5 @@
 import * as React from 'react';
-import LocationTrackInfobox from 'tool-panel/location-track/location-track-infobox';
-import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
 import {
@@ -11,13 +10,13 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { MapViewport } from 'map/map-model';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import LocationTrackInfobox from './location-track-infobox';
 
 type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
     linkingState?: LinkingState;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
-    onUnselect: (track: LayoutLocationTrack) => void;
     onDataChange: () => void;
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
@@ -31,7 +30,6 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     linkingState,
     publishType,
     locationTrackChangeTime,
-    onUnselect,
     onDataChange,
     viewport,
     visibilities,
@@ -62,8 +60,8 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 showArea={delegates.showArea}
                 publishType={publishType}
                 locationTrackChangeTime={locationTrackChangeTime}
-                onUnselect={onUnselect}
                 onSelect={delegates.onSelect}
+                onUnselect={delegates.onUnselect}
                 viewport={viewport}
                 onVerticalGeometryDiagramVisibilityChange={
                     delegates.onVerticalGeometryDiagramVisibilityChange

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
@@ -59,10 +59,10 @@ export const NewAuthorDialog: React.FC<NewAuthorDialogProps> = ({ authors, onClo
             setSaveInProgress(false);
 
             if (a) {
-                Snackbar.success(t('im-form.new-author-created'));
+                Snackbar.success('im-form.new-author-created');
                 onSave(a);
             } else {
-                Snackbar.error(t('im-form.new-author-creation-failed'));
+                Snackbar.error('im-form.new-author-creation-failed');
             }
         });
     };

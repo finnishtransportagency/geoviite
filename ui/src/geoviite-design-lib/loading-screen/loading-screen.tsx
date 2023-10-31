@@ -5,7 +5,7 @@ import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 export const LoadingScreen: React.FC = () => {
     return (
         <div className={styles['loading-screen']}>
-            <img src={geoviiteLogo} alt="Geoviitettä ladataan" />
+            <img src={geoviiteLogo} alt="Ladataan" />
         </div>
     );
 };

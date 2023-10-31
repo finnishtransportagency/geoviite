@@ -1,16 +1,15 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -104,12 +103,29 @@ private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
-    Operation.CREATE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"), emptyMap())
-    Operation.MODIFY -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"), emptyMap())
-    Operation.DELETE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"), emptyMap())
-    Operation.RESTORE -> translation.t(enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"), emptyMap())
+    Operation.CREATE -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"),
+        LocalizationParams.empty()
+    )
+
+    Operation.MODIFY -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"),
+        LocalizationParams.empty()
+    )
+
+    Operation.DELETE -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"),
+        LocalizationParams.empty()
+    )
+
+    Operation.RESTORE -> translation.t(
+        enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"),
+        LocalizationParams.empty()
+    )
+
     Operation.CALCULATED -> translation.t(
-        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"), emptyMap()
+        enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
+        LocalizationParams.empty()
     )
 }
 
@@ -211,27 +227,31 @@ fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter
     )
     else null
 
+
 fun getSwitchLinksChangedRemark(
     translation: Translation,
-    locationTrackChanges: LocationTrackChanges,
+    switchLinkChanges: LocationTrackPublicationSwitchLinkChanges,
 ): String {
-    val old = HashSet(locationTrackChanges.linkedSwitches.old ?: listOf())
-    val new = HashSet(locationTrackChanges.linkedSwitches.new ?: listOf())
-    val removed = old.minus(new)
-    val added = new.minus(old)
+    val removed = switchLinkChanges.old.minus(switchLinkChanges.new.keys)
+    val added = switchLinkChanges.new.minus(switchLinkChanges.old.keys)
+    val commonNames = removed.values.map { it.name }.intersect(added.values.map { it.name }.toSet())
+
+    fun remarkOnIds(ids: SwitchChangeIds) =
+        if (commonNames.contains(ids.name) && ids.externalId != null) "${ids.name} (${ids.externalId})" else ids.name
+
     val remarkRemoved = publicationChangeRemark(
         translation,
         if (removed.size > 1) "switch-link-removed-plural" else "switch-link-removed-singular",
-        removed.sorted().joinToString()
+        removed.values.map(::remarkOnIds).sorted().joinToString()
     )
     val remarkAdded = publicationChangeRemark(
         translation,
         if (added.size > 1) "switch-link-added-plural" else "switch-link-added-singular",
-        added.sorted().joinToString()
+        added.values.map(::remarkOnIds).sorted().joinToString()
     )
     return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
-        else if (removed.isNotEmpty()) remarkRemoved
-        else remarkAdded
+    else if (removed.isNotEmpty()) remarkRemoved
+    else remarkAdded
 }
 
 fun <T, U> compareChangeValues(
@@ -311,41 +331,12 @@ data class GeometryChangeSummary(
 
 fun getKmNumbersChangedRemarkOrNull(
     translation: Translation,
-    oldAlignment: LayoutAlignment?,
-    newAlignment: LayoutAlignment?,
-    geocodingContext: GeocodingContext,
     changedKmNumbers: Set<KmNumber>,
-): String {
-    val summaries = if (oldAlignment != null && newAlignment != null) summarizeAlignmentChanges(
-        geocodingContext,
-        oldAlignment,
-        newAlignment
-    ) else null
-
-    return if (summaries.isNullOrEmpty()) {
-        publicationChangeRemark(
-            translation,
-            if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
-            formatChangedKmNumbers(changedKmNumbers.toList())
-        )
-    } else summaries.joinToString { summary ->
-        val key =
-            "publication-details-table.remark.geometry-changed${if (summary.startKm == summary.endKm) "" else "-many-km"}"
-        translation.t(
-            key,
-            mapOf(
-                "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
-                "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
-                "addressRange" to
-                        if (summary.startKm == summary.endKm) summary.startKm.toString()
-                        else "${summary.startKm}-${summary.endKm}"
-            )
-        )
-    }
-}
-
-private fun isContiguous(numbers: List<Int>) =
-    numbers.zipWithNext { a, b -> a + 1 == b}.all { it }
+): String = publicationChangeRemark(
+    translation,
+    if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+    formatChangedKmNumbers(changedKmNumbers.toList())
+)
 
 private data class ComparisonPoints(
     val oldPoint: LayoutPoint,
@@ -402,7 +393,7 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 }
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
-    translation.t("publication-details-table.remark.$key", if (value != null) mapOf("value" to value) else mapOf())
-
-fun publicationChangeRemark(translation: Translation, key: String, params: Map<String, String>) =
-    translation.t("publication-details-table.remark.$key", params)
+    translation.t(
+        "publication-details-table.remark.$key",
+        LocalizationParams("value" to value)
+    )

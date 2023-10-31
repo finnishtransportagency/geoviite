@@ -1,6 +1,4 @@
-@use '@fontsource/open-sans/scss/mixins';
-
-$font-family: 'Open Sans';
+$font-family: 'Open Sans', sans-serif;
 
 @mixin typography-title {
     font-family: $font-family;

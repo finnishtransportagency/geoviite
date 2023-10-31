@@ -24,7 +24,6 @@ import {
 } from './projektivelho/pv-model';
 import { asyncCache } from 'cache/cache';
 import { Oid, TimeStamp } from 'common/common-model';
-import i18n from 'i18next';
 
 export interface InsertResponse {
     message: string;
@@ -97,9 +96,7 @@ export const saveInfraModelFile = async (
     const formData = createFormData(file, extraParameters, overrideParameters);
     const response = await postFormIgnoreError<InsertResponse>(INFRAMODEL_URI, formData);
     if (response) {
-        Snackbar.success(i18n.t('infra-model.upload.success'), {
-            qaId: 'infra-model-import-upload__success-toast',
-        });
+        Snackbar.success('infra-model.upload.success');
         updatePlanChangeTime();
     }
     return response;
@@ -116,7 +113,7 @@ export async function updateGeometryPlan(
         formData,
     );
     if (response) {
-        Snackbar.success(i18n.t('infra-model.edit.success'));
+        Snackbar.success('infra-model.edit.success');
         updatePlanChangeTime();
     }
     return response;
@@ -174,7 +171,7 @@ export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined>
         `${PROJEKTIVELHO_URI}/documents/${ids}/status`,
         'REJECTED',
     ).then((ids) => {
-        Snackbar.success(i18n.t('projektivelho.file-list.reject-success'));
+        Snackbar.success('projektivelho.file-list.reject-success');
         return ids;
     });
 }
@@ -184,7 +181,7 @@ export async function restorePVDocuments(id: PVDocumentId[]): Promise<undefined>
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
     ).then((id) => {
-        Snackbar.success(i18n.t('projektivelho.file-list.restore-success'));
+        Snackbar.success('projektivelho.file-list.restore-success');
         return id;
     });
 }
@@ -210,9 +207,7 @@ export async function importPVDocument(
     const url = `${PROJEKTIVELHO_URI}/documents/${id}`;
     const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
     if (response) {
-        Snackbar.success(i18n.t('infra-model.import.success'), {
-            qaId: 'infra-model-import-upload__success-toast',
-        });
+        Snackbar.success('infra-model.import.success');
         updatePlanChangeTime();
     }
     return response;

@@ -21,7 +21,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Oid, TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import { WriteAccessRequired } from 'user/write-access-required';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
     getPVSortInfoForProp,
     PVTableSortField,
@@ -30,7 +30,7 @@ import {
 } from 'infra-model/projektivelho/pv-file-list-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { Menu } from 'vayla-design-lib/menu/menu';
-import dialogStyles from '../../vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';

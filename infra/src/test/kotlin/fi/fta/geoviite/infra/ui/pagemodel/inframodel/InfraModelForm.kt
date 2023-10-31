@@ -9,7 +9,7 @@ class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form
     fun saveAsNew() {
         logger.info("Saving infra model to database...")
         save(true)
-        waitAndClearToast("infra-model-import-upload__success-toast")
+        waitAndClearToast("infra-model.upload.success")
     }
 
     fun save(expectConfirm: Boolean = false) {

@@ -3,13 +3,13 @@ package fi.fta.geoviite.infra.publication
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.error.LocalizationParams
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
@@ -64,9 +64,12 @@ data class PublicationChange<T>(
 
 data class PropKey(
     val key: LocalizationKey,
-    val params: LocalizationParams = emptyMap(),
+    val params: LocalizationParams = LocalizationParams.empty(),
 ) {
-    constructor(key: String, params: LocalizationParams = emptyMap()) : this(LocalizationKey(key), params)
+    constructor(key: String, params: LocalizationParams = LocalizationParams.empty()) : this(
+        LocalizationKey(key),
+        params
+    )
 }
 
 open class Publication(
@@ -245,13 +248,13 @@ enum class PublishValidationErrorType { ERROR, WARNING }
 data class PublishValidationError(
     val type: PublishValidationErrorType,
     val localizationKey: LocalizationKey,
-    val params: LocalizationParams = emptyMap(),
+    val params: LocalizationParams = LocalizationParams.empty(),
 ) {
     constructor(
         type: PublishValidationErrorType,
         key: String,
-        params: Map<String, CharSequence?> = emptyMap(),
-    ) : this(type, LocalizationKey(key), params.mapValues { (_, v) -> v.toString() })
+        params: Map<String, Any?> = emptyMap(),
+    ) : this(type, LocalizationKey(key), LocalizationParams(params))
 }
 
 interface PublishCandidate<T> {
@@ -362,7 +365,6 @@ data class LocationTrackChanges(
     val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
-    val linkedSwitches: Change<List<String>>,
 )
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
@@ -424,4 +426,11 @@ fun toValidationVersions(
     kmPosts = kmPosts.map(::toValidationVersion),
     locationTracks = locationTracks.map(::toValidationVersion),
     switches = switches.map(::toValidationVersion)
+)
+
+data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>?)
+
+data class LocationTrackPublicationSwitchLinkChanges(
+    val old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+    val new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
 )

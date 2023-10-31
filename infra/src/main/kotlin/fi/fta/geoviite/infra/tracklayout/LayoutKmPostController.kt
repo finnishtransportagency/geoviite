@@ -58,7 +58,7 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}", params=["bbox", "step"])
+    @GetMapping("/{publishType}", params = ["bbox", "step"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox,
@@ -69,7 +69,7 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}", params=["location", "offset", "limit"])
+    @GetMapping("/{publishType}", params = ["location", "offset", "limit"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>?,
@@ -79,8 +79,11 @@ class LayoutKmPostController(
     ): List<TrackLayoutKmPost> {
         logger.apiCall(
             "getNearbyKmPostsOnTrack",
-            "publishType" to publishType, "trackNumberId" to trackNumberId,
-            "location" to location, "offset" to offset, "limit" to limit
+            "publishType" to publishType,
+            "trackNumberId" to trackNumberId,
+            "location" to location,
+            "offset" to offset,
+            "limit" to limit
         )
         return kmPostService.listNearbyOnTrackPaged(
             publicationState = publishType,
@@ -92,17 +95,21 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}", params=["trackNumberId", "kmNumber"])
+    @GetMapping("/{publishType}", params = ["trackNumberId", "kmNumber"])
     fun getKmPost(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
+        @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): ResponseEntity<TrackLayoutKmPost> {
         logger.apiCall(
             "getKmPostOnTrack",
-            "publishType" to publishType, "trackNumberId" to trackNumberId, "kmNumber" to kmNumber
+            "publishType" to publishType,
+            "trackNumberId" to trackNumberId,
+            "kmNumber" to kmNumber,
+            "includeDeleted" to includeDeleted,
         )
-        return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber))
+        return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber, includeDeleted))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -141,8 +148,8 @@ class LayoutKmPostController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getKmPostChangeTimes(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): ChangeTimes {
+    fun getKmPostChangeInfo(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): DraftableChangeInfo {
         logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
-        return kmPostService.getChangeTimes(kmPostId)
+        return kmPostService.getDraftableChangeInfo(kmPostId)
     }
 }

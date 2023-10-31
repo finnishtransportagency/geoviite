@@ -2,15 +2,12 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import browser
 import childExists
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import tryWait
 import waitAndClick
 import waitUntilNotExist
-
-private val logger: Logger = LoggerFactory.getLogger(E2EToast::class.java)
 
 enum class ToastType {
     SUCCESS,
@@ -20,20 +17,16 @@ enum class ToastType {
 
 private val contentBy: By = By.className("Toastify__toast-text-body")
 private val headerBy: By = By.className("Toastify__toast-header")
-private val qaIdBy: By = By.className("Toastify__toast-content")
 private val toasterBy: By = By.className("Toastify__toast")
 
 data class E2EToast(
     val header: String,
     val content: String?,
     val type: ToastType,
-    val qaId: String?,
 ) {
-
     constructor(element: WebElement) : this(
         header = element.findElement(headerBy).text,
         content = if (element.childExists(contentBy)) element.findElement(contentBy).text else null,
-        qaId = element.findElement(qaIdBy).getAttribute("qa-id"),
         type = getToastType(element)
     )
 }
@@ -47,10 +40,8 @@ private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) 
     }
 }
 
-private fun getToasts(): List<Pair<E2EToast, WebElement>> {
-    return browser().findElements(toasterBy).map { e ->
-        E2EToast(e) to e
-    }
+private fun getToasts(): List<String> {
+    return browser().findElements(toasterBy).map { it.getAttribute("id") }
 }
 
 private fun clearToast(toast: WebElement) {
@@ -58,22 +49,10 @@ private fun clearToast(toast: WebElement) {
     toast.waitUntilNotExist()
 }
 
-fun waitAndClearToastByContent(content: String): E2EToast {
-    val (toast, element) = tryWait<Pair<E2EToast, WebElement>>(
-        { getToasts().firstOrNull { (t, _) -> t.content == content || t.header == content } },
-        { "None of the toasts matched with content [$content]. Toasts that were visible: ${getToasts().map { it.first }}" }
-    )
-
-    clearToast(element)
-
-    return toast
-}
-
-fun waitAndClearToast(qaId: String): E2EToast {
-    val (toast, element) = tryWait<Pair<E2EToast, WebElement>>(
-        { getToasts().firstOrNull { (t, _) -> t.qaId == qaId } },
-        { "None of the toasts matched with qa-id [$qaId]. Toasts that were visible: ${getToasts().map { it.first }}" }
-    )
+fun waitAndClearToast(id: String): E2EToast {
+    val (element, toast) = getElementWhenVisible(
+        By.xpath("//div[starts-with(@id, 'toast') and contains(@id, '$id')]")
+    ).let { it to E2EToast(it) }
 
     clearToast(element)
 
@@ -81,11 +60,11 @@ fun waitAndClearToast(qaId: String): E2EToast {
 }
 
 fun <R> expectToast(fn: () -> R) {
-    val oldToasts = getToasts().map { it.first }
+    val oldToasts = getToasts()
     fn()
 
     tryWait(
-        { getToasts().any { (nt, _) -> !oldToasts.contains(nt) } },
+        { getToasts().any { !oldToasts.contains(it) } },
         { "Expected a new toast but nothing appeared" }
     )
 }

@@ -208,7 +208,7 @@ class GeometryDaoIT @Autowired constructor(
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))
-        val trackChangeTime = locationTrackService.getChangeTimes(trackVersion.id).officialChanged!!
+        val trackChangeTime = locationTrackService.getDraftableChangeInfo(trackVersion.id).officialChanged!!
 
         val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName("TEST_USER")), true)
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))

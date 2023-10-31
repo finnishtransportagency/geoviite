@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
@@ -28,10 +29,29 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         return listInternal(publishType, includeDeleted)
     }
 
+    fun list(
+        publishType: PublishType,
+        searchTerm: FreeText,
+        limit: Int?,
+    ): List<ObjectType> {
+        logger.serviceCall(
+            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+        )
+
+        return searchTerm.toString().trim().takeIf(String::isNotEmpty)
+            ?.let { term -> listInternal(publishType, true)
+                .filter { item ->
+                    idMatches(term, item) ||
+                    contentMatches(term, item)
+                }
+                .let { list -> sortSearchResult(list)}
+                .let { list -> if (limit != null) list.take(limit) else list }
+            } ?: listOf()
+    }
+
     fun getOfficial(id: IntId<ObjectType>) = get(OFFICIAL, id)
 
     fun getDraft(id: IntId<ObjectType>) = get(DRAFT, id)
-
 
     fun get(publishType: PublishType, id: IntId<ObjectType>): ObjectType? {
         logger.serviceCall("get", "publishType" to publishType, "id" to id)
@@ -66,9 +86,9 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         return dao.fetchChangeTime()
     }
 
-    fun getChangeTimes(id: IntId<ObjectType>): ChangeTimes {
+    fun getDraftableChangeInfo(id: IntId<ObjectType>): DraftableChangeInfo {
         logger.serviceCall("getChangeTimes", "id" to id)
-        return dao.fetchChangeTimes(id)
+        return dao.fetchDraftableChangeInfo(id)
     }
 
     fun draftExists(id: IntId<ObjectType>): Boolean {
@@ -99,6 +119,12 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
     protected abstract fun createDraft(item: ObjectType): ObjectType
 
     protected abstract fun createPublished(item: ObjectType): ObjectType
+
+    protected open fun sortSearchResult(list: List<ObjectType>): List<ObjectType> = list
+
+    protected open fun idMatches(term: String, item: ObjectType): Boolean = false
+
+    protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
     open fun saveDraft(draft: ObjectType): DaoResponse<ObjectType> {

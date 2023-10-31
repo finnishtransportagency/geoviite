@@ -4,7 +4,7 @@ import {
     LayoutTrackNumberId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
+import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
 import { getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { BoundingBox } from 'model/geometry';
@@ -87,6 +87,6 @@ export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[
 
 export const getReferenceLineChangeTimes = (
     id: ReferenceLineId,
-): Promise<ChangeTimes | undefined> => {
-    return getNullable<ChangeTimes>(changeTimeUri('reference-lines', id));
+): Promise<DraftableChangeInfo | undefined> => {
+    return getNullable<DraftableChangeInfo>(changeTimeUri('reference-lines', id));
 };
