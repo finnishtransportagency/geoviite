@@ -36,7 +36,7 @@ private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) 
         contains("Toastify__toast--success") -> ToastType.SUCCESS
         contains("Toastify__toast--error") -> ToastType.ERROR
         contains("Toastify__toast--warning") -> ToastType.INFO
-        else -> throw IllegalStateException("Could not determine toast type")
+        else -> error("Could not determine toast type")
     }
 }
 

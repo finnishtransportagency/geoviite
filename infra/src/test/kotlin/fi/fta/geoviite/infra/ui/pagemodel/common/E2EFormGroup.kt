@@ -56,8 +56,9 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         clickEditIcon(label)
     }
 
-    private fun getFieldValueElement(fieldName: String) =
-        childElement(By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__field-value']"))
+    private fun getFieldValueElement(fieldName: String) = childElement(
+        By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__field-value']")
+    )
 
 
     protected fun clickEditIcon(fieldName: String): E2EFormGroup = apply {

@@ -10,9 +10,10 @@ import waitAndClick
 import waitUntilNotVisible
 import waitUntilVisible
 
+val CONTAINER_BY: By = By.className("dropdown__list-container")
+
 class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
-    private val CONTAINER_BY: By = By.className("dropdown__list-container")
 
     private val input: E2ETextInput get() = childTextInput(By.tagName("input"))
     private val currentValueHolder: WebElement get() = childElement(By.className("dropdown__current-value"))

@@ -119,7 +119,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         try {
             waitUntilValueIsNot(childElement(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
-            logger.warn("Zoom out failed")
+            logger.warn("Zoom out failed, cause: $ex")
         }
     }
 
@@ -129,7 +129,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         try {
             waitUntilValueIsNot(childElement(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
-            logger.warn("Zoom in failed")
+            logger.warn("Zoom in failed, cause: $ex")
         }
     }
 

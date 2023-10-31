@@ -56,7 +56,8 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     val curve: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.curve")
     val clothoid: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.clothoid")
     val missingGeometry: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.missing-section")
-    val downloadUrl: String get() = childElement(byQaId("location-track-element-list-csv-download")).getAttribute("href")
+    val downloadUrl: String
+        get() = childElement(byQaId("location-track-element-list-csv-download")).getAttribute("href")
     val resultList: E2EDataProductLayoutElementList get() = E2EDataProductLayoutElementList()
 
     fun selectLocationTrack(searchString: String) {
@@ -76,11 +77,13 @@ abstract class E2EDataProductElementList<Item : E2EDataProductElementListItem> :
 )
 
 class E2EDataProductLayoutElementList : E2EDataProductElementList<E2EDataProductLayoutElementListItem>() {
-    override fun getRowContent(row: WebElement) = E2EDataProductLayoutElementListItem(row.findElements(By.tagName("td")), headerElements)
+    override fun getRowContent(row: WebElement) =
+        E2EDataProductLayoutElementListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
 class E2EDataProductPlanElementList : E2EDataProductElementList<E2EDataProductPlanElementListItem>() {
-    override fun getRowContent(row: WebElement) = E2EDataProductPlanElementListItem(row.findElements(By.tagName("td")), headerElements)
+    override fun getRowContent(row: WebElement) =
+        E2EDataProductPlanElementListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
 abstract class E2EDataProductElementListItem(
@@ -96,7 +99,11 @@ abstract class E2EDataProductElementListItem(
         trackNumber = getColumnContent("data-products.element-list.element-list-table.track-number", columns, headers),
         alignment = getColumnContent("data-products.element-list.element-list-table.alignment", columns, headers),
         elementType = getColumnContent("data-products.element-list.element-list-table.element-type", columns, headers),
-        locationStartE = getColumnContent("data-products.element-list.element-list-table.location-start-e", columns, headers),
+        locationStartE = getColumnContent(
+            "data-products.element-list.element-list-table.location-start-e",
+            columns,
+            headers,
+        ),
         length = getColumnContent("data-products.element-list.element-list-table.length", columns, headers),
         plan = getColumnContent("data-products.element-list.element-list-table.plan", columns, headers),
         source = getColumnContent("data-products.element-list.element-list-table.source", columns, headers),
@@ -112,5 +119,9 @@ data class E2EDataProductLayoutElementListItem(
     private val columns: List<WebElement>,
     private val headers: List<WebElement>,
 ) : E2EDataProductElementListItem(columns, headers) {
-    val locationTrack = getColumnContent("data-products.element-list.element-list-table.location-track", columns, headers)
+    val locationTrack = getColumnContent(
+        "data-products.element-list.element-list-table.location-track",
+        columns,
+        headers,
+    )
 }

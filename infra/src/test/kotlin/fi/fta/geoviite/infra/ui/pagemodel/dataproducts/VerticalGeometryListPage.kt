@@ -34,10 +34,11 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
 
     val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
 
-    val downloadUrl: String get() {
-        val text = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
-        return URLDecoder.decode(text, StandardCharsets.UTF_8)
-    }
+    val downloadUrl: String
+        get() {
+            val text = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
+            return URLDecoder.decode(text, StandardCharsets.UTF_8)
+        }
 
     fun selectPlan(searchString: String) {
         plan.selectFromDynamicByName(searchString)
@@ -70,12 +71,16 @@ abstract class E2EDataProductVerticalGeometryList<Item : E2EDataProductVerticalG
     override val headersBy: By = By.cssSelector("thead tr:nth-child(2) th")
 }
 
-class E2EDataProductLayoutVerticalGeometryList : E2EDataProductVerticalGeometryList<E2EDataProductLayoutVerticalGeometryListItem>() {
-    override fun getRowContent(row: WebElement) = E2EDataProductLayoutVerticalGeometryListItem(row.findElements(By.tagName("td")), headerElements)
+class E2EDataProductLayoutVerticalGeometryList :
+    E2EDataProductVerticalGeometryList<E2EDataProductLayoutVerticalGeometryListItem>() {
+    override fun getRowContent(row: WebElement) =
+        E2EDataProductLayoutVerticalGeometryListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
-class E2EDataProductPlanVerticalGeometryList : E2EDataProductVerticalGeometryList<E2EDataProductPlanVerticalGeometryListItem>() {
-    override fun getRowContent(row: WebElement) = E2EDataProductPlanVerticalGeometryListItem(row.findElements(By.tagName("td")), headerElements)
+class E2EDataProductPlanVerticalGeometryList :
+    E2EDataProductVerticalGeometryList<E2EDataProductPlanVerticalGeometryListItem>() {
+    override fun getRowContent(row: WebElement) =
+        E2EDataProductPlanVerticalGeometryListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
 abstract class E2EDataProductVerticalGeometryListItem(
@@ -86,7 +91,11 @@ abstract class E2EDataProductVerticalGeometryListItem(
     constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
         plan = getColumnContent("data-products.vertical-geometry.table.plan", columns, headers),
         pviPointHeight = getColumnContent("data-products.vertical-geometry.table.pvi-point-height", columns, headers),
-        pviPointLocationE = getColumnContent("data-products.vertical-geometry.table.pvi-point-location-e", columns, headers),
+        pviPointLocationE = getColumnContent(
+            "data-products.vertical-geometry.table.pvi-point-location-e",
+            columns,
+            headers,
+        ),
     )
 }
 

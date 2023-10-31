@@ -38,7 +38,8 @@ class LocationTrackKilometerLengthsList: E2ETable<LocationTrackKilometerLengthsL
     tableFetch = fetch(By.className("data-product-table__table-container")),
     rowsBy = By.cssSelector("tbody tr")
 ) {
-    override fun getRowContent(row: WebElement) = LocationTrackKilometerLengthsListItem(row.findElements(By.tagName("td")), headerElements)
+    override fun getRowContent(row: WebElement) =
+        LocationTrackKilometerLengthsListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
 class LocationTrackKilometerLengthsListItem(val stationStart: String) {
@@ -52,5 +53,3 @@ class EntireNetworkKilometerLengthsListPage : KilometerLengthsListPage() {
     val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
 
 }
-
-
