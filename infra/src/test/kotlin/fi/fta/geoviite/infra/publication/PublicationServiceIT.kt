@@ -1489,7 +1489,7 @@ class PublicationServiceIT @Autowired constructor(
         ) { _, _ -> null }
         print(diff)
         assertEquals(1, diff.size)
-        assertEquals("Muuttunut kilometriltä 0000, laajuus 8.0 m, poikkeama 10.0 m", diff[0].remark)
+        assertEquals("Muuttunut kilometriltä 0000. Sivuttaissiirtymää laajuudella 8.0 m, maksimipoikkeama 10.0 m", diff[0].remark)
     }
 
     @Test
