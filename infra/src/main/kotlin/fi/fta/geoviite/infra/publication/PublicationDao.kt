@@ -367,19 +367,6 @@ class PublicationDao(
         }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    fun saveLocationTrackChangeRemark(publicationId: IntId<Publication>, locationTrackId: IntId<LocationTrack>, remark: String) {
-        val sql = """
-            update publication.location_track
-            set remark = :remark
-            where publication_id = :publication_id and location_track_id = :location_track_id
-        """.trimIndent()
-
-        jdbcTemplate.execute(sql, mapOf(
-            "publication_id" to publicationId,
-            "location_track_id" to locationTrackId,
-        )) { it.execute() }
-    }
-
     //Inclusive from/start time, but exclusive to/end time
     fun fetchLatestPublications(count: Int): List<Publication> {
         val sql = """
