@@ -14,7 +14,7 @@ let newestLayerId = 0;
 const splitPointStyle = new Style({
     image: new Circle({
         radius: 8,
-        fill: new Fill({ color: mapStyles.selectedAlignmentLine }),
+        fill: new Fill({ color: mapStyles.splitPointCircleColor }),
         stroke: new Stroke({ color: mapStyles.alignmentBadgeWhite, width: 2 }),
     }),
 });

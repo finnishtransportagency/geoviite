@@ -41,3 +41,10 @@ export const blueHighlightStyle = new Style({
         width: 12,
     }),
 });
+
+export const redHighlightStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentRedHighlight,
+        width: 12,
+    }),
+});

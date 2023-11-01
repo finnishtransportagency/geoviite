@@ -9,7 +9,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
-import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
+import { redHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import { getPartialPolyLine } from 'utils/math-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
@@ -27,7 +27,7 @@ function createFeatures(
                 const lineString = new LineString(polyline);
                 const feature = new Feature({ geometry: lineString });
 
-                feature.setStyle(blueHighlightStyle);
+                feature.setStyle(redHighlightStyle);
 
                 return feature;
             }),
