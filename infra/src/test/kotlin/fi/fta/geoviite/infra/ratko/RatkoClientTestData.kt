@@ -39,6 +39,7 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
         topologicalConnectivity = TopologicalConnectivityType.NONE,
         topologyStartSwitch = null,
         topologyEndSwitch = null,
+        ownerId = IntId(1)
     ) to alignment
 }
 

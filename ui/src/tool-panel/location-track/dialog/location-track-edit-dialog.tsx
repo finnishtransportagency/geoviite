@@ -49,6 +49,8 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { getLocationTrackOwners } from 'common/common-api';
+import { useLoader } from 'utils/react-utils';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -92,6 +94,27 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
         .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
 
+    const locationTrackOwners = useLoader(
+        () =>
+            getLocationTrackOwners().then((owners) =>
+                owners
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((owner) => ({ name: owner.name, value: owner.id })),
+            ),
+        [],
+    );
+    React.useEffect(() => {
+        if (
+            locationTrackOwners !== undefined &&
+            state.isNewLocationTrack &&
+            !state.locationTrack.ownerId
+        ) {
+            const vayla = locationTrackOwners.find((o) => o.name === 'Väylävirasto');
+            if (vayla !== undefined) {
+                updateProp('ownerId', vayla.value);
+            }
+        }
+    }, [locationTrackOwners]);
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
@@ -491,18 +514,21 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         />
 
                         <FieldLayout
-                            label={t('location-track-dialog.owner')}
+                            label={`${t('location-track-dialog.owner')} * `}
                             value={
-                                <Dropdown
-                                    value={undefined}
-                                    options={[]}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                    searchable
-                                />
+                                locationTrackOwners && (
+                                    <Dropdown
+                                        value={state.locationTrack.ownerId}
+                                        options={locationTrackOwners}
+                                        onChange={(value) => value && updateProp('ownerId', value)}
+                                        onBlur={() => stateActions.onCommitField('ownerId')}
+                                        hasError={hasErrors('ownerId')}
+                                        wide
+                                        searchable
+                                    />
+                                )
                             }
+                            errors={getVisibleErrorsByProp('ownerId')}
                         />
 
                         <Heading size={HeadingSize.SUB}>

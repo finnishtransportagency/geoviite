@@ -148,6 +148,7 @@ data class LocationTrack(
     val topologicalConnectivity: TopologicalConnectivityType,
     val topologyStartSwitch: TopologyLocationTrackSwitch?,
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
+    val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val draft: Draft<LocationTrack>? = null,
 ) : Draftable<LocationTrack> {

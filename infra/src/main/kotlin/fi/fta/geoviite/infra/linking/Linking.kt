@@ -47,6 +47,7 @@ data class LocationTrackSaveRequest(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
+    val ownerId: IntId<LocationTrackOwner>,
 ) {
     init {
         require(descriptionBase.length in 4..256) {

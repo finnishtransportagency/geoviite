@@ -41,6 +41,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
         type: undefined,
         descriptionBase: '',
         duplicateOf: undefined,
+        ownerId: '',
     },
     validationErrors: [],
     committedFields: [],
@@ -60,16 +61,14 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
         trackNumberId: undefined,
         topologicalConnectivity: undefined,
         duplicateOf: undefined,
+        ownerId: '',
     };
 }
 
 function validateLinkingLocationTrack(
     saveRequest: LocationTrackSaveRequest,
 ): ValidationError<LocationTrackSaveRequest>[] {
-    let errors: ValidationError<LocationTrackSaveRequest>[] = [];
-
-    errors = [
-        ...errors,
+    const errors: ValidationError<LocationTrackSaveRequest>[] = [
         ...[
             'name',
             'trackNumberId',
@@ -78,6 +77,7 @@ function validateLinkingLocationTrack(
             'descriptionBase',
             'descriptionSuffix',
             'topologicalConnectivity',
+            'ownerId',
         ]
             .map((prop: keyof LocationTrackSaveRequest) => {
                 if (isNilOrBlank(saveRequest[prop])) {
@@ -102,6 +102,7 @@ function validateLinkingLocationTrack(
             })
             .filter(filterNotEmpty),
     ];
+
     if (
         saveRequest.descriptionBase &&
         (saveRequest.descriptionBase.length < 4 || saveRequest.descriptionBase.length > 256)
