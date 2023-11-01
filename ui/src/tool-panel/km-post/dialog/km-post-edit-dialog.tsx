@@ -236,17 +236,20 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('kmNumber')}></FieldLayout>
-                        {state.trackNumberKmPost &&
-                            state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                <Link
-                                    className="move-to-edit-link"
-                                    onClick={() => props.onEditKmPost(state.trackNumberKmPost?.id)}>
-                                    {t('km-post-dialog.move-to-edit', {
-                                        number: state.trackNumberKmPost.kmNumber,
-                                    })}
-                                </Link>
-                            )}
+                            errors={getVisibleErrorsByProp('kmNumber')}>
+                            {state.trackNumberKmPost &&
+                                state.trackNumberKmPost.id !== state.existingKmPost?.id && (
+                                    <Link
+                                        className="move-to-edit-link"
+                                        onClick={() =>
+                                            props.onEditKmPost(state.trackNumberKmPost?.id)
+                                        }>
+                                        {t('km-post-dialog.move-to-edit', {
+                                            number: state.trackNumberKmPost.kmNumber,
+                                        })}
+                                    </Link>
+                                )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('km-post-dialog.track-number')} *`}
                             value={

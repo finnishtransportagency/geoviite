@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -147,9 +146,9 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
-            switchIds.distinct()
-                .let { swId -> switchService.getMany(publishType, swId) })
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds
+            .distinct()
+            .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
@@ -209,11 +208,11 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publicationState}/by-tracknumber/{tracknumber-id}/locationtracks")
+    @GetMapping("/{publicationState}/by-tracknumber/{trackNumberId}")
     fun getTrackNumberTracksByName(
         @PathVariable("publicationState") publicationState: PublishType,
-        @PathVariable("tracknumber-id") trackNumberId: IntId<TrackLayoutTrackNumber>,
-        @RequestParam("locationtrack-name") name: AlignmentName,
+        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("locationTrackName") name: AlignmentName,
     ): List<LocationTrack> {
         logger.apiCall(
             "getTrackNumberTracksByName",

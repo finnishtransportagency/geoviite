@@ -326,7 +326,9 @@
         "buffer": "Puskin",
         "description-base": "Kuvauksen perusosa",
         "description-suffix": "Kuvauksen lisäosa",
-        "full-description": "Valmis kuvaus"
+        "full-description": "Valmis kuvaus",
+        "name-in-use": "Ratanumerolla on toinen sijaintiraide samalla nimellä",
+        "move-to-edit": "Siirry muokkaamaan raidetta {{name}}"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",

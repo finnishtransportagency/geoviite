@@ -19,7 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
-import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
+import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
@@ -328,7 +328,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 />
             )}
             {showAddLocationTrackDialog && (
-                <LocationTrackEditDialog
+                <LocationTrackEditDialogContainer
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
                     locationTrackChangeTime={changeTimes.layoutLocationTrack}
