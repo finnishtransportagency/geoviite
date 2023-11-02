@@ -23,6 +23,7 @@ import {
     initialLocationTrackEditState,
     isProcessing,
     reducer,
+    setVaylavirastoOwnerIdFrom,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
@@ -97,9 +98,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const locationTrackOwners = useLoader(
         () =>
             getLocationTrackOwners().then((owners) =>
-                owners
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((owner) => ({ name: owner.name, value: owner.id })),
+                owners.sort((a, b) => a.name.localeCompare(b.name)),
             ),
         [],
     );
@@ -109,12 +108,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             state.isNewLocationTrack &&
             !state.locationTrack.ownerId
         ) {
-            const vayla = locationTrackOwners.find((o) => o.name === 'Väylävirasto');
-            if (vayla !== undefined) {
-                updateProp('ownerId', vayla.value);
-            }
+            setVaylavirastoOwnerIdFrom(locationTrackOwners, (id) => updateProp('ownerId', id));
         }
-    }, [locationTrackOwners]);
+    }, [locationTrackOwners, state.isNewLocationTrack]);
+
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
@@ -139,7 +136,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 },
             );
         } else {
-            stateActions.initWithNewLocationTrack();
+            stateActions.initWithNewLocationTrack(locationTrackOwners);
             firstInputRef.current?.focus();
         }
     }, [props.locationTrack?.id]);
@@ -518,8 +515,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 locationTrackOwners && (
                                     <Dropdown
+                                        qaId={'location-track-dialog.owner'}
                                         value={state.locationTrack.ownerId}
-                                        options={locationTrackOwners}
+                                        options={locationTrackOwners.map((owner) => ({
+                                            name: owner.name,
+                                            value: owner.id,
+                                        }))}
                                         onChange={(value) => value && updateProp('ownerId', value)}
                                         onBlur={() => stateActions.onCommitField('ownerId')}
                                         hasError={hasErrors('ownerId')}

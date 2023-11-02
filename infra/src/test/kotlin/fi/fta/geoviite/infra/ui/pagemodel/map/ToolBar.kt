@@ -53,6 +53,11 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
         clickChild(By.xpath(".//button[span[text() = 'Luonnostila']]"))
     }
 
+    fun createNewLocationTrack(): E2ELocationTrackEditDialog {
+        clickChild(byQaId("tool-bar.new"))
+        getElementWhenVisible(byQaId("tool-bar.new-location-track")).click()
+        return E2ELocationTrackEditDialog()
+    }
 }
 
 class E2EMapLayerPanel(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
