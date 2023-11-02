@@ -216,6 +216,13 @@ export function useRateLimitedEffect(
     const lastDestructor = useRef<void | (() => void)>();
 
     useEffect(() => {
+        // always reset the next wakeup: If we are firing the effect, then we don't want to keep the wakeup around,
+        // and if we're delaying, we still want the last version of the effect
+        if (nextWakeup.current !== undefined) {
+            clearTimeout(nextWakeup.current);
+            nextWakeup.current = undefined;
+        }
+
         const now = Date.now();
         if (
             lastFireTime.current === undefined ||
@@ -225,10 +232,6 @@ export function useRateLimitedEffect(
             lastFireTime.current = now;
             return effect();
         } else {
-            // always reset the wakeup, so we call the latest version of the effect closure
-            if (nextWakeup.current !== undefined) {
-                clearTimeout(nextWakeup.current);
-            }
             nextWakeup.current = setTimeout(
                 () => {
                     lastDestructor.current = effect();
