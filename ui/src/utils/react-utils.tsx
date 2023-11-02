@@ -234,6 +234,7 @@ export function useRateLimitedEffect(
         } else {
             nextWakeup.current = setTimeout(
                 () => {
+                    lastFireTime.current = Date.now();
                     lastDestructor.current = effect();
                     nextWakeup.current = undefined;
                 },
