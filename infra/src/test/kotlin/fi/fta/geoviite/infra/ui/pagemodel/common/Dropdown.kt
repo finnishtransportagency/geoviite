@@ -25,8 +25,9 @@ class E2EDropdown(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
 
     val value: String
         get() {
-            logger.info("Current value ${input.value}")
-            return input.value
+            val value = currentValueHolder.text
+            logger.info("Current value $value")
+            return value
         }
 
     fun open(): E2EDropdown = apply {
