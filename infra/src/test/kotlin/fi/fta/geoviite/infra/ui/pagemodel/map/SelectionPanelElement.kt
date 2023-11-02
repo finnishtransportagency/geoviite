@@ -55,7 +55,7 @@ private class E2EGeometryPlanItemAccordion(
     val items: E2ETextList get() = open().let { _items }
 
     fun selectItem(name: String) {
-        items.selectByTextWhenMatches(name)
+        items.selectByText(name)
     }
 }
 
@@ -104,10 +104,7 @@ class E2EKmPostSelectionList(parentBy: By) : E2ESelectionList<E2EKmPostSelection
 class E2ELocationTrackSelectionList(parentBy: By) : E2ESelectionList<E2ELocationTrackSelectionListItem>(
     listBy = ByChained(parentBy, byQaId("location-tracks-list")),
     getContent = { e -> E2ELocationTrackSelectionListItem(e) }
-) {
-    override fun isSelected(element: WebElement): Boolean =
-        element.findElement(By.xpath("./*[1]")).getAttribute("class").contains("selected")
-}
+)
 
 class E2ETrackNumberSelectionList(parentBy: By) : E2ESelectionList<E2ETrackNumberSelectionListItem>(
     listBy = ByChained(parentBy, By.className("track-number-panel__track-numbers")),

@@ -1,49 +1,52 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilNotExist
 
 val DIALOG_BY: By = By.className("dialog")
-private val CONTENT_BY: By = By.className("dialog__content")
 
 open class E2EDialog(val dialogBy: By = DIALOG_BY) : E2EViewFragment(dialogBy) {
 
-    private val titleElement: WebElement get() = childElement(By.className("dialog__title"))
-    private val contentElement: WebElement get() = childElement(CONTENT_BY)
+    val title: String get() = childText(By.className("dialog__title"))
 
-    val title: String get() = titleElement.text
-
-    val content: E2EFormLayout get() = childComponent(CONTENT_BY, ::E2EFormLayout)
-
-    init {
-        logger.info("Title: $title \n Content: ${contentElement.text}")
-    }
+    val content: E2EFormLayout = childComponent(By.className("dialog__content"), ::E2EFormLayout)
 
     fun clickPrimaryButton() {
+        logger.info("Click primary button")
+
         clickButton(By.cssSelector("button.button--primary"))
     }
 
     fun clickPrimaryWarningButton() {
+        logger.info("Click primary warning button")
+
         clickButton(By.cssSelector("button.button--primary-warning"))
     }
 
     fun clickSecondaryButton() {
+        logger.info("Click secondary button")
+
         clickButton(By.cssSelector("button.button--secondary"))
     }
 
     fun clickWarningButton() {
+        logger.info("Click warning button")
+
         clickButton(By.cssSelector("button.button--warning"))
     }
 
     fun <T> waitUntilClosed(fn: () -> T): Unit = fn().run {
+        logger.info("Waiting for dialog to disappear")
+
         waitUntilNotExist(dialogBy)
     }
 }
 
 class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     fun inputValue(value: String, textFieldIdx: Int = 0): E2EDialog = apply {
+        logger.info("Input field $textFieldIdx with value $value")
+
         childTextInput(
             ByChained(
                 By.className("dialog__content"),
@@ -55,7 +58,7 @@ class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     }
 
     fun inputValues(values: List<String>): E2EDialog = apply {
-        logger.info("Input text fields [$values]")
+        logger.info("Input values $values")
 
         values.forEachIndexed { index, value ->
             inputValue(value, index)

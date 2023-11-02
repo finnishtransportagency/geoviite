@@ -22,16 +22,22 @@ class E2EAppBar(appbarBy: By = By.className("app-bar")) : E2EViewFragment(appbar
     private fun goto(to: NavLink) = clickChild(byQaId(to.qaId))
 
     fun goToMap(): E2ETrackLayoutPage {
+        logger.info("Open map view")
+
         goto(NavLink.MAP)
         return E2ETrackLayoutPage()
     }
 
     fun goToInfraModel(): E2EInfraModelPage {
+        logger.info("Open infra model view")
+
         goto(NavLink.INFRA_MODEL)
         return E2EInfraModelPage()
     }
 
     fun goToFrontPage(): E2EFrontPage {
+        logger.info("Open front page")
+
         goto(NavLink.FRONT_PAGE)
         return E2EFrontPage()
     }
@@ -48,16 +54,22 @@ class E2EAppBar(appbarBy: By = By.className("app-bar")) : E2EViewFragment(appbar
     }
 
     fun goToElementListPage(): E2EDataProductLayoutElementListPage {
+        logger.info("Open geometry list view")
+
         goToDataProductPage(DataProductNavLink.ELEMENT_LIST)
         return E2EDataProductLayoutElementListPage()
     }
 
     fun goToVerticalGeometryListPage(): E2EDataProductLayoutVerticalGeometryListPage {
+        logger.info("Open vertical geometry view")
+
         goToDataProductPage(DataProductNavLink.VERTICAL_GEOMETRY)
         return E2EDataProductLayoutVerticalGeometryListPage()
     }
 
     fun goToKilometerLengthsPage(): LocationTrackKilometerLengthsListPage {
+        logger.info("Open km length view")
+
         goToDataProductPage(DataProductNavLink.KILOMETER_LENGTHS)
         return LocationTrackKilometerLengthsListPage()
     }

@@ -56,9 +56,11 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun childTexts(by: By, timeout: Duration = defaultWait): List<String> =
         childElements(by, timeout).map(WebElement::getText)
 
+    //This will not check for element's visibility
     protected fun findElement(by: By, timeout: Duration = defaultWait): WebElement =
         getElementWhenExists(by, timeout)
 
+    //This will not check for elements' visibility
     protected fun findElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
         getElementsWhenExists(by, timeout)
 

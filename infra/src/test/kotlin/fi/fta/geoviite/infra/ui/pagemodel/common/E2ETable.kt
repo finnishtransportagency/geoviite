@@ -28,6 +28,7 @@ abstract class E2ETable<T>(
     }
 }
 
+@Deprecated("Use qa-ids instead", ReplaceWith("getColumnIndex(qaId, headers)"))
 fun getColumnIndexByText(
     columnName: String,
     headers: List<WebElement>,

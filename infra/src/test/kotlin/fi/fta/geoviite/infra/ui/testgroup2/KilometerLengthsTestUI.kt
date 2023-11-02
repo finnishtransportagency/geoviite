@@ -46,7 +46,7 @@ class KilometerLengthsTestUI @Autowired constructor(
         val kmLengthsPage = navigationBar.goToKilometerLengthsPage()
         kmLengthsPage.selectLocationTrack("foo")
         val results = kmLengthsPage.resultList
-        results.waitUntilCount(4)
+        results.waitUntilItemCount(4)
         val items = results.items
         assertEquals(listOf("0.000", "900.000", "2000.000", "3000.000"), items.map { it.stationStart })
 

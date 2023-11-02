@@ -117,39 +117,23 @@ fun clickWhenClickable(by: By, timeout: Duration = defaultWait) {
 fun exists(by: By): Boolean = getElements(by).isNotEmpty()
 
 fun <T> tryWait(
-    condition: ExpectedCondition<T>,
+    condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
 ) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
 
 fun <T> tryWait(
     timeout: Duration = defaultWait,
-    condition: ExpectedCondition<T>,
+    condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
 ) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
 
 fun <T> tryWait(
     timeout: Duration = defaultWait,
     pollInterval: Duration = defaultPoll,
-    condition: ExpectedCondition<T>,
+    condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
 ): T = try {
-    WebDriverWait(browser(), timeout, pollInterval).until(condition)
-} catch (e: Exception) {
-    logger.warn("${lazyErrorMessage()} cause=${e.message}")
-    throw e
-}
-
-@Deprecated(
-    "Use tryWait with ExpectedCondition",
-    ReplaceWith("tryWait(timeout, pollInterval, condition, lazyErrorMessage)")
-)
-fun <T> tryWait(
-    timeout: Duration = defaultWait,
-    pollInterval: Duration = defaultPoll,
-    condition: () -> T?,
-    lazyErrorMessage: () -> String,
-): T = try {
-    WebDriverWait(browser(), timeout, pollInterval).until<T> { _ -> condition() }
+    WebDriverWait(browser(), timeout, pollInterval).until<T>(condition)
 } catch (e: Exception) {
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e

@@ -5,11 +5,7 @@ import org.openqa.selenium.By
 open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
     enum class Toggle { OPEN, CLOSE }
 
-    val header: String
-        get() {
-            logger.info("Get header")
-            return childText(By.className("accordion__header-title"))
-        }
+    val header: String get() = childText(By.className("accordion__header-title"))
 
     fun toggleVisibility(): E2EAccordion = apply {
         logger.info("Toggle visibility")
@@ -25,7 +21,7 @@ open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
     }
 
     fun clickHeader(): E2EAccordion = apply {
-        logger.info("Click header")
+        logger.info("Click on header")
         clickChild(By.className("accordion__header-title"))
     }
 
@@ -37,7 +33,7 @@ open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
         }
     }
 
-    private fun close(): E2EAccordion = apply {
+    fun close(): E2EAccordion = apply {
         logger.info("Close accordion")
         if (childExists(By.className("accordion__body"))) {
             clickChild(By.cssSelector(".accordion-toggle svg"))

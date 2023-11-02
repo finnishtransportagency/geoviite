@@ -5,25 +5,21 @@ import org.openqa.selenium.support.pagefactory.ByChained
 
 abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
 
-    init {
-        logger.info("${this.javaClass} loaded")
-    }
-
     protected val title: String get() = childText(By.className("formgroup__title"))
 
     protected fun getValueForField(fieldName: String): String {
-        logger.info("Get field [$fieldName]")
+        logger.info("Get value for field [$fieldName]")
+
         val formBy = getFormBy(fieldName)
         val fieldBy = ByChained(formBy, By.className("field-layout__value"))
         val valueBy = if (childExists(fieldBy)) fieldBy else formBy
 
-        return childText(valueBy).also { v ->
-            logger.info("field [$fieldName]=[${v}]")
-        }
+        return childText(valueBy)
     }
 
     protected fun selectDropdownValues(label: String, values: List<String>): E2EFormGroup = apply {
         logger.info("Change dropdown field [$label] to [$values]")
+
         clickEditIcon(label)
 
         values.forEachIndexed { index, value ->
@@ -38,6 +34,7 @@ abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
 
     protected fun selectNewDropdownValue(label: String, values: List<String>): E2EFormGroup = apply {
         logger.info("Add and change dropdown value field [$label] to [$values]")
+
         clickEditIcon(label)
 
         childComponent(ByChained(getFormBy(label), By.className("dropdown")), ::E2EDropdown)
@@ -53,14 +50,23 @@ abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
         clickEditIcon(label)
     }
 
+    //todo Replace this with common component or with qaIds
     private fun getFormBy(fieldName: String) =
-        By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__field-value']")
+        By.xpath(
+            ".//div[@class='formgroup__field' and div[text() = '$fieldName']]" +
+                    "/div[@class='formgroup__field-value']"
+        )
 
 
+    //todo Replace this with common component or with qaIds
     protected fun clickEditIcon(fieldName: String): E2EFormGroup = apply {
-        logger.info("Click edit icon in field $fieldName")
+        logger.info("Enable editing in field $fieldName")
+
         clickChild(
-            By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__edit-icon']/div")
+            By.xpath(
+                ".//div[@class='formgroup__field' and div[text() = '$fieldName']]" +
+                        "/div[@class='formgroup__edit-icon']/div"
+            )
         )
     }
 }

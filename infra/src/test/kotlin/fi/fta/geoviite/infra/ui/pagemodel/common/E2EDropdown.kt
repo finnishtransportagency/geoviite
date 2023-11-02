@@ -3,7 +3,9 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import clickWhenClickable
 import exists
 import org.openqa.selenium.By
-import org.openqa.selenium.WebElement
+import org.openqa.selenium.support.pagefactory.ByChained
+import org.openqa.selenium.support.ui.ExpectedConditions
+import tryWait
 import waitUntilNotVisible
 import waitUntilVisible
 
@@ -11,8 +13,7 @@ private val CONTAINER_BY: By = By.className("dropdown__list-container")
 
 class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
-    private val input: E2ETextInput get() = childTextInput(By.tagName("input"))
-    private val currentValueHolder: WebElement get() = childElement(By.className("dropdown__current-value"))
+    private val input: E2ETextInput = childTextInput(By.tagName("input"))
 
     private val optionsList: E2ETextList by lazy {
         E2ETextList(CONTAINER_BY, By.className("dropdown__list-item"))
@@ -20,11 +21,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
     val options: List<E2ETextListItem> get() = optionsList.items
 
-    val value: String
-        get() {
-            logger.info("Current value ${input.value}")
-            return input.value
-        }
+    val value: String get() = input.value
 
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
@@ -37,32 +34,46 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
     fun select(name: String): E2EDropdown = apply {
         logger.info("Select item $name")
+
         open()
-        optionsList.selectByTextWhenContains(name)
+        optionsList.selectByText(name)
         waitUntilNotVisible(CONTAINER_BY)
     }
 
     fun selectFromDynamicByName(name: String): E2EDropdown = apply {
         logger.info("Select item $name from dynamic dropdown")
+
         input.inputValue(name)
-        // can't use optionsList directly, as it contains a loading placeholder element that goes stale once the list
-        // has loaded
-        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
-        optionsList.selectByTextWhenContains(name)
+        // Can't use optionsList directly, as it comes and goes for a while before it's stable
+        // This can be removed once the dropdown component itself has been fixed
+        tryWait(
+            ExpectedConditions.textToBePresentInElementLocated(
+                ByChained(CONTAINER_BY, By.className("dropdown__list-item"), By.className("dropdown__list-item-text")),
+                name
+            )
+        ) { "Option list does not contain item $name" }
+
+        optionsList.selectByText(name)
     }
 
-    fun new() {
+    fun new() = apply {
         logger.info("Add new item")
+
         open()
         clickWhenClickable(By.cssSelector(".dropdown__add-new-container > button"))
     }
 
     fun inputValue(text: String): E2EDropdown = apply {
         logger.info("Input text $text")
+
         input.inputValue(text)
     }
 
     fun clearInput(): E2EDropdown = apply {
+        logger.info("Clear input")
+
+        val currentValueHolder = childElement(By.className("dropdown__current-value"))
+
         if (!currentValueHolder.isDisplayed) {
             input.clear()
         }
