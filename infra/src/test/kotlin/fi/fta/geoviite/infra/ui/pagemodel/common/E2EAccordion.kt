@@ -1,13 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.util.ElementFetch
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 
-open class E2EAccordion(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
     enum class Toggle { OPEN, CLOSE }
-
-    constructor(by: By) : this(fetch(by))
 
     val header: String
         get() {
@@ -17,7 +13,7 @@ open class E2EAccordion(elementFetch: ElementFetch) : E2EViewFragment(elementFet
 
     fun toggleVisibility(): E2EAccordion = apply {
         logger.info("Toggle visibility")
-        clickButton(By.className("accordion__visibility"))
+        clickChild(By.className("accordion__visibility"))
     }
 
     fun toggleAccordion(toggle: Toggle = Toggle.OPEN): E2EAccordion = apply {
@@ -37,7 +33,7 @@ open class E2EAccordion(elementFetch: ElementFetch) : E2EViewFragment(elementFet
         logger.info("Open accordion")
         if (!childExists(By.className("accordion__body"))) {
             clickChild(By.cssSelector(".accordion-toggle svg"))
-            waitChildVisible(By.className("accordion__body"))
+            waitUntilChildVisible(By.className("accordion__body"))
         }
     }
 
@@ -45,7 +41,7 @@ open class E2EAccordion(elementFetch: ElementFetch) : E2EViewFragment(elementFet
         logger.info("Close accordion")
         if (childExists(By.className("accordion__body"))) {
             clickChild(By.cssSelector(".accordion-toggle svg"))
-            waitChildNotVisible(By.className("accordion__body"))
+            waitUntilChildNotVisible(By.className("accordion__body"))
         }
     }
 }

@@ -3,26 +3,23 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
-import getElementWhenVisible
 import org.openqa.selenium.By
 import waitUntilNotVisible
 import waitUntilVisible
 
-class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch, By.className("tool-bar"))) {
+class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-bar")) {
     private val searchDropdown: E2EDropdown by lazy {
-        E2EDropdown(fetch(elementFetch, By.cssSelector(".tool-bar__left-section .dropdown")))
+        childDropdown(By.cssSelector(".tool-bar__left-section .dropdown"))
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {
         logger.info("Open map layers")
         clickChild(byQaId("map-layers-button"))
 
-        waitChildVisible(By.className("map-layer-menu"))
+        waitUntilChildVisible(By.className("map-layer-menu"))
 
-        E2EMapLayerPanel { getElementWhenVisible(By.className("map-layer-menu")) }
+        E2EMapLayerPanel(By.className("map-layer-menu"))
     }
 
     fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
@@ -55,7 +52,7 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
 
 }
 
-class E2EMapLayerPanel(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {
     enum class MapLayer(val uiText: String) {
         BACKGROUND("Taustakartta"),
         REFERENCE_LINES("Pituusmittauslinjat"),

@@ -1,14 +1,13 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 abstract class E2ETable<T>(
-    tableFetch: ElementFetch,
+    tableBy: By = By.tagName("table"),
     rowsBy: By = By.tagName("tr"),
     protected open val headersBy: By = By.tagName("th"),
-) : E2EList<T>(tableFetch, rowsBy) {
+) : E2EList<T>(tableBy, rowsBy) {
     val rows: List<T> get() = items
 
     protected val headerElements: List<WebElement> get() = childElements(headersBy)
@@ -25,7 +24,7 @@ abstract class E2ETable<T>(
     }
 
     fun waitUntilReady(): E2ETable<T> = apply {
-        waitChildNotVisible(By.className("table--loading"))
+        waitUntilChildNotVisible(By.className("table--loading"))
     }
 }
 

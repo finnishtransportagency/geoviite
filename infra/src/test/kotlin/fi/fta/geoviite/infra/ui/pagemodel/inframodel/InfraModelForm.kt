@@ -13,7 +13,7 @@ class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form
     }
 
     fun save(expectConfirm: Boolean = false) {
-        clickButtonByQaId("infra-model-save-button")
+        clickChild(byQaId("infra-model-save-button"))
         if (expectConfirm) confirmSaving()
     }
 

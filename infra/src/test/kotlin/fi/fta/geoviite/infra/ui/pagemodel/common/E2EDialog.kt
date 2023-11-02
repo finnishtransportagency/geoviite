@@ -1,18 +1,21 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import exists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
+import org.openqa.selenium.support.pagefactory.ByChained
+import waitUntilNotExist
 
-val defaultDialogBy: By = By.className("dialog")
+val DIALOG_BY: By = By.className("dialog")
+private val CONTENT_BY: By = By.className("dialog__content")
 
-open class E2EDialog(val by: By = defaultDialogBy) : E2EViewFragment(by) {
+open class E2EDialog(val dialogBy: By = DIALOG_BY) : E2EViewFragment(dialogBy) {
 
     private val titleElement: WebElement get() = childElement(By.className("dialog__title"))
-    private val contentElement: WebElement get() = childElement(By.className("dialog__content"))
+    private val contentElement: WebElement get() = childElement(CONTENT_BY)
 
     val title: String get() = titleElement.text
-    val content: E2EFormLayout get() = E2EFormLayout { contentElement }
+
+    val content: E2EFormLayout get() = childComponent(CONTENT_BY, ::E2EFormLayout)
 
     init {
         logger.info("Title: $title \n Content: ${contentElement.text}")
@@ -34,14 +37,19 @@ open class E2EDialog(val by: By = defaultDialogBy) : E2EViewFragment(by) {
         clickButton(By.cssSelector("button.button--warning"))
     }
 
-    fun <R> waitUntilClosed(fn: () -> R) = webElement.let { el ->
-        fn().also { !el.exists() }
+    fun <T> waitUntilClosed(fn: () -> T): Unit = fn().run {
+        waitUntilNotExist(dialogBy)
     }
 }
 
-class E2EDialogWithTextField(by: By = defaultDialogBy) : E2EDialog(by) {
+class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     fun inputValue(value: String, textFieldIdx: Int = 0): E2EDialog = apply {
-        childComponents(By.cssSelector("input.text-field__input-element"), ::E2ETextInput)[textFieldIdx]
+        childTextInput(
+            ByChained(
+                By.className("dialog__content"),
+                By.xpath("(//*[@class='text-field__input-element'])[${textFieldIdx + 1}]")
+            )
+        )
             .clear()
             .inputValue(value)
     }

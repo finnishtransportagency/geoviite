@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import browser
 import childExists
+import clickWhenClickable
 import getElementWhenVisible
+import getElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import tryWait
-import waitAndClick
 import waitUntilNotExist
 
 enum class ToastType {
@@ -41,22 +41,20 @@ private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) 
 }
 
 private fun getToasts(): List<String> {
-    return browser().findElements(toasterBy).map { it.getAttribute("id") }
+    return getElements(toasterBy).map { it.getAttribute("id") }
 }
 
-private fun clearToast(toast: WebElement) {
-    toast.waitAndClick()
-    toast.waitUntilNotExist()
+private fun clearToast(toastBy: By) {
+    clickWhenClickable(toastBy)
+    waitUntilNotExist(toastBy)
 }
 
 fun waitAndClearToast(id: String): E2EToast {
-    val (element, toast) = getElementWhenVisible(
-        By.xpath("//div[starts-with(@id, 'toast') and contains(@id, '$id')]")
-    ).let { it to E2EToast(it) }
+    val toastBy = By.xpath("//div[starts-with(@id, 'toast') and contains(@id, '$id')]")
 
-    clearToast(element)
-
-    return toast
+    return getElementWhenVisible(toastBy)
+        .let(::E2EToast)
+        .also { clearToast(toastBy) }
 }
 
 fun <R> expectToast(fn: () -> R) {

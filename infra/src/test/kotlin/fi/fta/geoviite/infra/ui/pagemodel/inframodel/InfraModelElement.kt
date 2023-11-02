@@ -1,22 +1,20 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
-import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
-import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
-import fi.fta.geoviite.infra.ui.util.ElementFetch
-import getChildElements
+import fi.fta.geoviite.infra.ui.util.localDateFromString
+import fi.fta.geoviite.infra.ui.util.localDateTimeFromString
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import java.time.LocalDateTime
 
 
-class E2EInfraModelTable(tableFetch: ElementFetch) : E2ETable<E2EInfraModelTableRow>(
-    tableFetch = tableFetch,
+class E2EInfraModelTable(tableBy: By) : E2ETable<E2EInfraModelTableRow>(
+    tableBy = tableBy,
     headersBy = By.cssSelector("thead th"),
     rowsBy = By.cssSelector("tbody tr"),
 ) {
     override fun getRowContent(row: WebElement): E2EInfraModelTableRow {
-        return E2EInfraModelTableRow(row.getChildElements(By.tagName("td")), headerElements)
+        return E2EInfraModelTableRow(row.findElements(By.tagName("td")), headerElements)
     }
 
     fun getRow(projectName: String? = null, fileName: String? = null): E2EInfraModelTableRow? {
@@ -59,7 +57,7 @@ data class E2EInfraModelTableRow(
     )
 }
 
-class E2EMetaFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+class E2EMetaFormGroup(formBy: By) : E2EFormGroup(formBy) {
     val projectName: String get() = getValueForField("Projektin nimi")
     val author: String get() = getValueForField("Suunnitteluyritys")
 
@@ -74,7 +72,7 @@ class E2EMetaFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) 
     }
 }
 
-class E2ELocationFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+class E2ELocationFormGroup(formBy: By) : E2EFormGroup(formBy) {
     val trackNumber: String get() = getValueForField("Ratanumero")
     val kmNumberRange: String get() = getValueForField("Ratakilometriväli")
     val coordinateSystem: String get() = getValueForField("Koordinaattijärjestelmä")
@@ -100,7 +98,7 @@ class E2ELocationFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFet
     }
 }
 
-class E2EQualityFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+class E2EQualityFormGroup(formBy: By) : E2EFormGroup(formBy) {
     val planPhase: String get() = getValueForField("Suunnitteluvaihe")
     val decisionPhase: String get() = getValueForField("Vaiheen tarkennus")
     val measurementMethod: String get() = getValueForField("Laatu")
@@ -124,7 +122,7 @@ class E2EQualityFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetc
     }
 }
 
-class E2ELogFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
+class E2ELogFormGroup(formBy: By) : E2EFormGroup(formBy) {
     val planTime: String get() = getValueForField("Laadittu")
     fun setPlanTime(month: String, year: String): E2ELogFormGroup = apply {
         selectDropdownValues("Laadittu", listOf(month, year))
@@ -134,7 +132,7 @@ class E2ELogFormGroup(elementFetch: ElementFetch) : E2EFormGroup(elementFetch) {
 class E2EConfirmDialog : E2EDialog() {
     fun confirm() {
         waitUntilClosed {
-            clickButtonByText("Tallenna")
+            clickChildByText("Tallenna")
         }
     }
 }

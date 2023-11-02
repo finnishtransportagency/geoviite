@@ -1,11 +1,10 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.util.ElementFetch
-import waitAndClick
+import clickWhenClickable
+import org.openqa.selenium.By
 
-class E2ECheckbox(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+class E2ECheckbox(val checkboxBy: By) {
     fun click(): E2ECheckbox = apply {
-        logger.info("Click button '${webElement.text}'")
-        webElement.waitAndClick()
+        clickWhenClickable(checkboxBy)
     }
 }

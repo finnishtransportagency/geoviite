@@ -4,20 +4,19 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import java.time.Duration
 
 class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
     val changesTable: E2EChangePreviewTable by lazy {
-        waitChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
-        E2EChangePreviewTable(fetch(elementFetch, By.cssSelector("[qa-id='unstaged-changes'] table")))
+        waitUntilChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+        E2EChangePreviewTable(childBy(By.cssSelector("[qa-id='unstaged-changes'] table")))
     }
 
     val stagedChangesTable: E2EChangePreviewTable by lazy {
-        waitChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
-        E2EChangePreviewTable(fetch(elementFetch, By.cssSelector("[qa-id='staged-changes'] table")))
+        waitUntilChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+        E2EChangePreviewTable(childBy(By.cssSelector("[qa-id='staged-changes'] table")))
     }
 
     fun publish(): E2ETrackLayoutPage {
@@ -28,7 +27,6 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
         }
 
         clickChild(By.cssSelector(".preview-footer__action-buttons button"))
-
         E2EPreviewChangesSaveOrDiscardDialog().confirm()
 
         waitAndClearToast("publish-success")
@@ -76,7 +74,7 @@ class E2EPreviewChangesSaveOrDiscardDialog : E2EDialog() {
     fun confirm() {
         waitUntilClosed {
             childTextInput(byQaId("publication-message")).inputValue("test")
-            clickButtonByQaId("publication-confirm")
+            clickChild(byQaId("publication-confirm"))
         }
     }
 

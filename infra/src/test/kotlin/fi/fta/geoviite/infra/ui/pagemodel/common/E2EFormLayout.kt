@@ -1,24 +1,21 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import childExists
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getChildElement
-import getChildElements
 import org.openqa.selenium.By
+import org.openqa.selenium.support.pagefactory.ByChained
 
-open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+open class E2EFormLayout(formBy: By) : E2EViewFragment(formBy) {
 
     fun getValueForFieldByLabel(fieldName: String): String {
         logger.info("Get field $fieldName")
-        val fieldValueElement = getFieldValueElement(fieldName)
-        val value =
-            if (fieldValueElement.childExists(By.className("field-layout__value"))) {
-                fieldValueElement.getChildElement(By.className("field-layout__value")).text
-            } else fieldValueElement.text
 
-        logger.info("Field value [$fieldName]=[$value]")
-        return value
+        val nameBy = getFieldValueBy(fieldName)
+        val fieldBy = ByChained(nameBy, By.className("field-layout__value"))
+        val valueBy = if (childExists(fieldBy)) fieldBy else nameBy
+
+        return childText(valueBy).also { v ->
+            logger.info("Field value [$fieldName]=[$v]")
+        }
     }
 
     fun inputFieldValueByLabel(label: String, value: String): E2EFormLayout = apply {
@@ -32,11 +29,8 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
         getTextInputForField(label).clear()
     }
 
-    // TODO: GVT-1947 use qa-ids to find fields
-    private fun getFieldValueElement(fieldName: String) = childElement(
-        By.xpath(
-            ".//div[contains(@class, 'field-layout') and div[contains(text(), '$fieldName')]]/div[@class='field-layout__value']"
-        )
+    private fun getFieldValueBy(fieldName: String) = By.xpath(
+        ".//div[contains(@class, 'field-layout') and div[contains(text(), '$fieldName')]]/div[@class='field-layout__value']"
     )
 
     private fun getTextInputForField(fieldName: String) = childTextInput(
@@ -45,17 +39,15 @@ open class E2EFormLayout(elementFetch: ElementFetch) : E2EViewFragment(elementFe
         )
     )
 
-    fun dropdownByQaId(qaId: String) = E2EDropdown { childElement(byQaId(qaId)) }
-    fun textInputByQaId(qaId: String) = E2ETextInput { childElement(byQaId(qaId)) }
+    fun dropdownByQaId(qaId: String) = childDropdown(byQaId((qaId)))
 
-    fun checkBoxByQaId(qaId: String) = E2ECheckbox { childElement(byQaId(qaId)) }
+    fun textInputByQaId(qaId: String) = childTextInput(byQaId(qaId))
 
-    fun selectDropdownValueByLabel(label: String, value: String) = selectDropdownValuesByLabel(label, listOf(value))
+    fun checkBoxByQaId(qaId: String) = childCheckbox(byQaId(qaId))
 
-    fun selectDropdownValuesByLabel(label: String, values: List<String>): E2EFormLayout = apply {
-        logger.info("Change dropdown $label to [$values]")
-        values.forEachIndexed { index, value ->
-            E2EDropdown { getFieldValueElement(label).getChildElements(By.className("dropdown"))[index] }.select(value)
-        }
+    fun selectDropdownValueByLabel(label: String, value: String) {
+        logger.info("Change dropdown $label to [$value]")
+        childDropdown(ByChained(getFieldValueBy(label), By.className("dropdown")))
+            .select(value)
     }
 }

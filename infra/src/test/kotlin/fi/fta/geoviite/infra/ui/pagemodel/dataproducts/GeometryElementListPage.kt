@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import java.net.URLDecoder
@@ -10,24 +9,23 @@ import java.nio.charset.StandardCharsets
 
 abstract class E2EElementListPage : E2EViewFragment(By.className("data-product-view")) {
     fun layoutListPage(): E2EDataProductLayoutElementListPage {
-        childElement(byQaId("select-layout-geometry")).click()
+        clickChild(byQaId("select-layout-geometry"))
         return E2EDataProductLayoutElementListPage()
     }
+
     fun planListPage(): E2EDataProductPlanElementListPage {
-        childElement(byQaId("select-plan-geometry")).click()
+        clickChild(byQaId("select-plan-geometry"))
         return E2EDataProductPlanElementListPage()
     }
 
     fun entireNetworkPage(): E2EDataProductEntireNetworkElementListPage {
-        childElement(byQaId("select-entire-rail-network")).click()
+        clickChild(byQaId("select-entire-rail-network"))
         return E2EDataProductEntireNetworkElementListPage()
     }
 }
 
 class E2EDataProductPlanElementListPage : E2EElementListPage() {
-    private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
-
-    val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
+    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
     val resultList: E2EDataProductPlanElementList get() = E2EDataProductPlanElementList()
 
     val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
@@ -46,9 +44,7 @@ class E2EDataProductPlanElementListPage : E2EElementListPage() {
 }
 
 class E2EDataProductLayoutElementListPage : E2EElementListPage() {
-    private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
-
-    val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
+    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
     val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-location-track")
     val startAddress: E2ETextInput get() = searchForm.textInputByQaId("data-products-search-start-km")
     val endAddress: E2ETextInput get() = searchForm.textInputByQaId("data-products-search-end-km")
@@ -72,7 +68,7 @@ class E2EDataProductEntireNetworkElementListPage : E2EElementListPage() {
 
 
 abstract class E2EDataProductElementList<Item : E2EDataProductElementListItem> : E2ETable<Item>(
-    tableFetch = fetch(By.className("data-product-table__table-container")),
+    tableBy = By.className("data-product-table__table-container"),
     rowsBy = By.cssSelector("tbody tr")
 )
 

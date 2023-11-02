@@ -1,13 +1,12 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 open class E2EMenu(
     menuBy: By = By.className("menu"),
     itemsBy: By = By.tagName("li"),
-) : E2EList<E2EMenuItem>(fetch(menuBy), itemsBy) {
+) : E2EList<E2EMenuItem>(menuBy, itemsBy) {
     override fun getItemContent(item: WebElement) = E2EMenuItem(item)
 
 }

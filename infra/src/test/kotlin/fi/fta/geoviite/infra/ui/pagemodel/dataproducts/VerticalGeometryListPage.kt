@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import java.net.URLDecoder
@@ -11,25 +10,24 @@ import java.nio.charset.StandardCharsets
 
 abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.className("data-product-view"))  {
     fun layoutListPage(): E2EDataProductLayoutVerticalGeometryListPage {
-        childElement(byQaId("select-layout-geometry")).click()
+        clickChild(byQaId("select-layout-geometry"))
         return E2EDataProductLayoutVerticalGeometryListPage()
     }
 
     fun planListPage(): E2EDataProductPlanVerticalGeometryListPage {
-        childElement(byQaId("select-plan-geometry")).click()
+        clickChild(byQaId("select-plan-geometry"))
         return E2EDataProductPlanVerticalGeometryListPage()
     }
 
     fun entireNetworkPage(): E2EDataProductEntireNetworkVerticalGeometryListPage {
-        childElement(byQaId("select-entire-rail-network")).click()
+        clickChild(byQaId("select-entire-rail-network"))
         return E2EDataProductEntireNetworkVerticalGeometryListPage()
     }
 }
 
 class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
-    private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
 
-    val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
+    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
     val resultList: E2EDataProductPlanVerticalGeometryList get() = E2EDataProductPlanVerticalGeometryList()
 
     val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
@@ -46,9 +44,7 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
 }
 
 class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
-    private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
-
-    val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
+    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
     val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-location-track")
     val resultList: E2EDataProductLayoutVerticalGeometryList get() = E2EDataProductLayoutVerticalGeometryList()
@@ -65,7 +61,7 @@ class E2EDataProductEntireNetworkVerticalGeometryListPage : E2EDataProductVertic
 }
 
 abstract class E2EDataProductVerticalGeometryList<Item : E2EDataProductVerticalGeometryListItem> : E2ETable<Item>(
-    tableFetch = fetch(By.className("data-product-table__table-container")),
+    tableBy = By.className("data-product-table__table-container"),
     rowsBy = By.cssSelector("tbody tr"),
 ) {
     override val headersBy: By = By.cssSelector("thead tr:nth-child(2) th")

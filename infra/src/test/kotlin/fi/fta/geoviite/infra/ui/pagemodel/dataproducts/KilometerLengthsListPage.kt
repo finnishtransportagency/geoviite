@@ -2,14 +2,13 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 
 abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-product-view")) {
     fun locationTrackPage(): LocationTrackKilometerLengthsListPage {
-        childElement(byQaId("select-location-track-km-lengths")).click()
+        clickChild(byQaId("select-location-track-km-lengths"))
         return LocationTrackKilometerLengthsListPage()
     }
 
@@ -20,8 +19,7 @@ abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-pro
 }
 
 class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
-    private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
-    val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
+    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
     val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("km-lengths-search-location-track")
     val startKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-start-km")
     val endKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-end-km")
@@ -35,7 +33,7 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
 }
 
 class LocationTrackKilometerLengthsList: E2ETable<LocationTrackKilometerLengthsListItem>(
-    tableFetch = fetch(By.className("data-product-table__table-container")),
+    tableBy = By.className("data-product-table__table-container"),
     rowsBy = By.cssSelector("tbody tr")
 ) {
     override fun getRowContent(row: WebElement) =

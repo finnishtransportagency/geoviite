@@ -312,7 +312,8 @@ class LinkingTestUI @Autowired constructor(
             .setName(newKmPostNumber)
             .selectState(E2EKmPostEditDialog.State.IN_USE)
             .save()
-        waitAndClearToast("created-successfully")
+
+        waitAndClearToast("insert-succeeded")
 
         kmPostLinkingInfoBox.link()
         waitAndClearToast("linking-succeed-msg")

@@ -1,25 +1,36 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import fi.fta.geoviite.infra.ui.pagemodel.common.DIALOG_BY
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
-import fi.fta.geoviite.infra.ui.pagemodel.common.defaultDialogBy
 import fi.fta.geoviite.infra.ui.pagemodel.common.expectToast
+import fi.fta.geoviite.infra.ui.util.byText
 import org.openqa.selenium.By
 
-class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
+class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     enum class State(val uiText: String) {
-        IN_USE("Käytössä"), NOT_IN_USE("Käytöstä poistettu"), DELETED("Poistettu")
+        IN_USE("Käytössä"),
+        NOT_IN_USE("Käytöstä poistettu"),
+        DELETED("Poistettu")
     }
 
     enum class Type(val uiText: String) {
-        MAIN("Pääraide"), SIDE("Sivuraide"), TRAP("Turvaraide"), CHORD("Kujaraide"),
+        MAIN("Pääraide"),
+        SIDE("Sivuraide"),
+        TRAP("Turvaraide"),
+        CHORD("Kujaraide"),
     }
 
     enum class TopologicalConnectivity(val uiText: String) {
-        NONE("Ei kytketty"), START("Raiteen alku"), END("Raiteen loppu"), START_AND_END("Raiteen alku ja loppu")
+        NONE("Ei kytketty"),
+        START("Raiteen alku"),
+        END("Raiteen loppu"),
+        START_AND_END("Raiteen alku ja loppu")
     }
 
     enum class DescriptionSuffix(val uiText: String) {
-        NONE("Ei lisäosaa"), SWITCH_TO_SWITCH("Vaihde alussa - vaihde lopussa"), SWITCH_TO_BUFFER("Vaihde - Puskin")
+        NONE("Ei lisäosaa"),
+        SWITCH_TO_SWITCH("Vaihde alussa - vaihde lopussa"),
+        SWITCH_TO_BUFFER("Vaihde - Puskin")
     }
 
     fun setName(name: String): E2ELocationTrackEditDialog = apply {
@@ -69,9 +80,11 @@ class E2ELocationTrackEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 }
 
-class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
+class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     enum class State(val uiText: String) {
-        IN_USE("Käytössä"), NOT_IN_USE("Käytöstä poistettu"), DELETED("Poistettu")
+        IN_USE("Käytössä"),
+        NOT_IN_USE("Käytöstä poistettu"),
+        DELETED("Poistettu")
     }
 
     fun setName(name: String): E2ETrackNumberEditDialog = apply {
@@ -88,7 +101,7 @@ class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
     fun save() = waitUntilClosed {
         val isDeleted = content.getValueForFieldByLabel("Tila") == E2ELocationTrackEditDialog.State.DELETED.uiText
-        clickButtonByText("Tallenna")
+        clickButton(byText("Tallenna"))
 
         if (isDeleted) {
             clickChild(
@@ -98,10 +111,12 @@ class E2ETrackNumberEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 }
 
-class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
+class E2EKmPostEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
     enum class State(val uiText: String) {
-        PLANNED("Suunniteltu"), IN_USE("Käytössä"), NOT_IN_USE("Käytöstä poistettu"),
+        PLANNED("Suunniteltu"),
+        IN_USE("Käytössä"),
+        NOT_IN_USE("Käytöstä poistettu"),
     }
 
     fun setName(name: String): E2EKmPostEditDialog = apply {
@@ -114,7 +129,7 @@ class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
 
     fun save() = expectToast {
         waitUntilClosed {
-            clickButtonByText("Tallenna")
+            clickButton(byText("Tallenna"))
         }
     }
 
@@ -123,10 +138,11 @@ class E2EKmPostEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     }
 }
 
-class E2ELayoutSwitchEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
+class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
     enum class StateCategory(val uiText: String) {
-        NOT_EXISTING("Poistunut kohde"), EXISTING("Olemassa oleva kohde")
+        NOT_EXISTING("Poistunut kohde"),
+        EXISTING("Olemassa oleva kohde")
     }
 
     fun setName(name: String): E2ELayoutSwitchEditDialog = apply {
@@ -140,7 +156,7 @@ class E2ELayoutSwitchEditDialog(by: By = defaultDialogBy) : E2EDialog(by) {
     fun save() = expectToast {
         waitUntilClosed {
             val isNotExisting = content.getValueForFieldByLabel("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
-            clickButtonByText("Tallenna")
+            clickButton(byText("Tallenna"))
 
             if (isNotExisting) {
                 clickChild(

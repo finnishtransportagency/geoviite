@@ -1,12 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import childExists
-import fi.fta.geoviite.infra.ui.util.ElementFetch
-import getChildElement
-import getChildElements
 import org.openqa.selenium.By
+import org.openqa.selenium.support.pagefactory.ByChained
 
-abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
 
     init {
         logger.info("${this.javaClass} loaded")
@@ -16,15 +13,12 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
 
     protected fun getValueForField(fieldName: String): String {
         logger.info("Get field [$fieldName]")
-        val fieldValueElement = getFieldValueElement(fieldName)
-        val hasFieldLayoutValue = fieldValueElement.childExists(By.className("field-layout__value"))
-        return if (hasFieldLayoutValue) {
-            val fieldLayoutValueElement = fieldValueElement.getChildElement(By.className("field-layout__value"))
-            logger.info("field [$fieldName]=[${fieldLayoutValueElement.text}]")
-            fieldLayoutValueElement.text
-        } else {
-            logger.info("field [$fieldName]=[${fieldValueElement.text}]")
-            fieldValueElement.text
+        val formBy = getFormBy(fieldName)
+        val fieldBy = ByChained(formBy, By.className("field-layout__value"))
+        val valueBy = if (childExists(fieldBy)) fieldBy else formBy
+
+        return childText(valueBy).also { v ->
+            logger.info("field [$fieldName]=[${v}]")
         }
     }
 
@@ -33,7 +27,10 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         clickEditIcon(label)
 
         values.forEachIndexed { index, value ->
-            E2EDropdown { getFieldValueElement(label).getChildElements(By.className("dropdown"))[index] }.select(value)
+            childComponent(
+                ByChained(getFormBy(label), By.cssSelector(".dropdown:nth-child(${index + 1})")),
+                ::E2EDropdown
+            ).select(value)
         }
 
         clickEditIcon(label)
@@ -43,7 +40,7 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         logger.info("Add and change dropdown value field [$label] to [$values]")
         clickEditIcon(label)
 
-        E2EDropdown { getFieldValueElement(label).getChildElement(By.className("dropdown")) }
+        childComponent(ByChained(getFormBy(label), By.className("dropdown")), ::E2EDropdown)
             .open()
             .new()
 
@@ -56,9 +53,8 @@ abstract class E2EFormGroup(elementFetch: ElementFetch) : E2EViewFragment(elemen
         clickEditIcon(label)
     }
 
-    private fun getFieldValueElement(fieldName: String) = childElement(
+    private fun getFormBy(fieldName: String) =
         By.xpath(".//div[@class='formgroup__field' and div[text() = '$fieldName']]/div[@class='formgroup__field-value']")
-    )
 
 
     protected fun clickEditIcon(fieldName: String): E2EFormGroup = apply {

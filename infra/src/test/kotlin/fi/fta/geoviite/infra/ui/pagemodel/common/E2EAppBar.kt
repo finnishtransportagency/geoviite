@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import clickWhenClickable
 import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EDataProductLayoutElementListPage
 import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EDataProductLayoutVerticalGeometryListPage
 import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.LocationTrackKilometerLengthsListPage
@@ -7,10 +8,9 @@ import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 
-class E2EAppBar(by: By = By.className("app-bar")) : E2EViewFragment(by) {
+class E2EAppBar(appbarBy: By = By.className("app-bar")) : E2EViewFragment(appbarBy) {
 
     enum class NavLink(val qaId: String) {
         FRONT_PAGE("frontpage-link"),
@@ -44,7 +44,7 @@ class E2EAppBar(by: By = By.className("app-bar")) : E2EViewFragment(by) {
 
     private fun goToDataProductPage(link: DataProductNavLink) {
         goto(NavLink.DATA_PRODUCT)
-        fetch(byQaId(link.qaId))().click()
+        clickWhenClickable(byQaId(link.qaId))
     }
 
     fun goToElementListPage(): E2EDataProductLayoutElementListPage {
