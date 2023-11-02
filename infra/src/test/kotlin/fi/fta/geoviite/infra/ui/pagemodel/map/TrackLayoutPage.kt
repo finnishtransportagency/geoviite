@@ -53,6 +53,8 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val selectionPanel: E2ESelectionPanel by lazy { E2ESelectionPanel(this.elementFetch) }
     val appBar: E2EAppBar by lazy { E2EAppBar() }
     val toolBar: E2EToolBar by lazy { E2EToolBar(this.elementFetch) }
+    val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this.elementFetch) }
+
     val mapScale: MapScale
         get() {
             val scale = childText(By.className("ol-scale-line-inner"))
