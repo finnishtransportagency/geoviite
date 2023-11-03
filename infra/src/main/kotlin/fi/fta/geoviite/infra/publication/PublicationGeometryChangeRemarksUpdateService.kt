@@ -48,10 +48,11 @@ class PublicationGeometryChangeRemarksUpdateService constructor(
         }
     }
 
-    private fun processBatch(unprocessedBatch:  List<PublicationDao.UnprocessedGeometryChange>) {
-        logger.info("processing ${unprocessedBatch.size} geometry change remarks")
+    private fun processBatch(unprocessedBatch: List<PublicationDao.UnprocessedGeometryChange>) {
+        val range = " ${unprocessedBatch.first().publicationId}-${unprocessedBatch.last().publicationId}"
+        logger.info("processing geometry change remarks for publicationIds $range")
         unprocessedBatch.forEach(::processOne)
-        logger.info("finished processing ${unprocessedBatch.size} geometry change remarks")
+        logger.info("finished processing geometry change remarks for publicationIds $range")
     }
 
     private fun processOne(unprocessedChange: PublicationDao.UnprocessedGeometryChange) {

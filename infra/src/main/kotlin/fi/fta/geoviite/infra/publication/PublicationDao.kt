@@ -679,7 +679,7 @@ class PublicationDao(
         val publicationTime: Instant,
     )
 
-    fun fetchUnprocessedGeometryChangeRemarks(publicationId: IntId<Publication>?): List<UnprocessedGeometryChange> {
+    fun fetchUnprocessedGeometryChangeRemarks(publicationId: IntId<Publication>?, maxCount: Int? = 10): List<UnprocessedGeometryChange> {
         val sql = """
             select
               publication_id,
@@ -698,8 +698,13 @@ class PublicationDao(
                 on plt.location_track_id = old_ltv.id and plt.location_track_version = old_ltv.version + 1 and not old_ltv.draft
             where not geometry_change_summary_computed
               and (:publicationId::int is null or publication_id = :publicationId)
+            order by publication_id, location_track_id
+            limit :maxCount
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("publicationId" to publicationId?.intValue)) { rs, _ ->
+        return jdbcTemplate.query(
+            sql,
+            mapOf("publicationId" to publicationId?.intValue, "maxCount" to maxCount)
+        ) { rs, _ ->
             UnprocessedGeometryChange(
                 publicationId = rs.getIntId("publication_id"),
                 locationTrackId = rs.getIntId("location_track_id"),
