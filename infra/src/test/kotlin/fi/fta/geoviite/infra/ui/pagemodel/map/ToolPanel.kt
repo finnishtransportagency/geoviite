@@ -37,6 +37,10 @@ class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By
         infoBox("location-track-location-infobox", ::E2ELocationTrackLocationInfobox)
     }
 
+    val locationTrackVerticalGeometry: E2ELocationTrackVerticalGeometryInfoBox by lazy {
+        infoBox("location-track-vertical-geometry-infobox", ::E2ELocationTrackVerticalGeometryInfoBox)
+    }
+
     val locationTrackLog: E2ELocationTrackLogInfoBox by lazy {
         infoBox("location-track-log-infobox", ::E2ELocationTrackLogInfoBox)
     }

@@ -100,6 +100,10 @@ class E2ELocationTrackGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     }
 }
 
+class E2ELocationTrackVerticalGeometryInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
+    fun toggleVerticalGeometryDiagram() =
+        clickButton(byQaId("tool-panel.location-track.vertical-geometry.diagram-visibility"))
+}
 
 class E2ELocationTrackLogInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val created: String get() = getValueForField("Luotu")

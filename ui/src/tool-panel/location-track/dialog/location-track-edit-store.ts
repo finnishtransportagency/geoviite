@@ -9,6 +9,7 @@ import {
     ValidationError,
     ValidationErrorType,
 } from 'utils/validation-utils';
+import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -41,6 +42,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
         type: undefined,
         descriptionBase: '',
         duplicateOf: undefined,
+        ownerId: '',
     },
     validationErrors: [],
     committedFields: [],
@@ -60,16 +62,14 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
         trackNumberId: undefined,
         topologicalConnectivity: undefined,
         duplicateOf: undefined,
+        ownerId: undefined,
     };
 }
 
 function validateLinkingLocationTrack(
     saveRequest: LocationTrackSaveRequest,
 ): ValidationError<LocationTrackSaveRequest>[] {
-    let errors: ValidationError<LocationTrackSaveRequest>[] = [];
-
-    errors = [
-        ...errors,
+    const errors: ValidationError<LocationTrackSaveRequest>[] = [
         ...[
             'name',
             'trackNumberId',
@@ -78,6 +78,7 @@ function validateLinkingLocationTrack(
             'descriptionBase',
             'descriptionSuffix',
             'topologicalConnectivity',
+            'ownerId',
         ]
             .map((prop: keyof LocationTrackSaveRequest) => {
                 if (isNilOrBlank(saveRequest[prop])) {
@@ -102,6 +103,7 @@ function validateLinkingLocationTrack(
             })
             .filter(filterNotEmpty),
     ];
+
     if (
         saveRequest.descriptionBase &&
         (saveRequest.descriptionBase.length < 4 || saveRequest.descriptionBase.length > 256)
@@ -122,14 +124,31 @@ function getErrorForInvalidDescription(): ValidationError<LocationTrackSaveReque
     ];
 }
 
+const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
+export function setVaylavirastoOwnerIdFrom(
+    owners: LocationTrackOwner[] | undefined,
+    set: (vaylaId: LocationTrackOwnerId) => void,
+) {
+    if (owners !== undefined) {
+        const vayla = owners.find((owner) => owner.name === VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME);
+        if (vayla !== undefined) {
+            set(vayla.id);
+        }
+    }
+}
+
 const locationTrackEditSlice = createSlice({
     name: 'locationTrackEdit',
     initialState: initialLocationTrackEditState,
     reducers: {
-        initWithNewLocationTrack: (state: LocationTrackEditState): void => {
+        initWithNewLocationTrack: (
+            state: LocationTrackEditState,
+            { payload: owners }: PayloadAction<LocationTrackOwner[] | undefined>,
+        ): void => {
             state.isNewLocationTrack = true;
             state.locationTrack = newLinkingLocationTrack();
             state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+            setVaylavirastoOwnerIdFrom(owners, (id) => (state.locationTrack.ownerId = id));
         },
         onStartLoadingTrackNumbers: (state: LocationTrackEditState) => {
             state.loading.trackNumbers = true;

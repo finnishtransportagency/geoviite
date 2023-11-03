@@ -558,6 +558,7 @@
             "start-location": "Alkusijainti (km + m)",
             "end-location": "Loppusijainti (km + m)",
             "true-length": "Todellinen pituus (m)",
+            "owner": "Omistaja",
             "delete-draft": "Poista luonnos",
             "delete-dialog": {
                 "delete-draft-confirm": "Poistetaanko luonnos?",

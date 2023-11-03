@@ -6,12 +6,15 @@ import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import org.openqa.selenium.support.ui.ExpectedConditions
 import tryWait
+import waitUntilHasValue
 import waitUntilNotVisible
 import waitUntilVisible
 
 private val CONTAINER_BY: By = By.className("dropdown__list-container")
 
 class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
+
+    private val valueBy: By = By.className("dropdown__current-value")
 
     private val input: E2ETextInput = childTextInput(By.tagName("input"))
 
@@ -21,7 +24,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
     val options: List<E2ETextListItem> get() = optionsList.items
 
-    val value: String get() = input.value
+    val value: String get() = childText(valueBy)
 
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
@@ -72,10 +75,17 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
     fun clearSearch(): E2EDropdown = apply {
         logger.info("Clear dropdown input")
 
-        val currentValueHolder = childElement(By.className("dropdown__current-value"))
+        val currentValueHolder = childElement(valueBy)
 
         if (!currentValueHolder.isDisplayed) {
             input.clear()
         }
+    }
+
+    fun waitForValue(): E2EDropdown = apply {
+        logger.info("Wait for dropdown value")
+
+        waitUntilHasValue(childBy(valueBy))
+
     }
 }

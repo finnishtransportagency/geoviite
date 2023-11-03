@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import clickWhenClickable
 import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
@@ -53,6 +54,13 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
         clickChild(By.xpath(".//button[span[text() = 'Luonnostila']]"))
     }
 
+    fun createNewLocationTrack(): E2ELocationTrackEditDialog {
+        logger.info("Create new location track")
+
+        clickChild(byQaId("tool-bar.new"))
+        clickWhenClickable(byQaId("tool-bar.new-location-track"))
+        return E2ELocationTrackEditDialog()
+    }
 }
 
 class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {

@@ -581,6 +581,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(saveRequest.state, locationTrack.state)
         assertEquals(saveRequest.type, locationTrack.type)
         assertEquals(saveRequest.topologicalConnectivity, locationTrack.topologicalConnectivity)
+        assertEquals(saveRequest.ownerId, locationTrack.ownerId)
     }
 
     private fun saveRequest(
@@ -594,7 +595,8 @@ class LocationTrackServiceIT @Autowired constructor(
         state = getSomeValue(seed),
         trackNumberId = trackNumberId,
         duplicateOf = null,
-        topologicalConnectivity = TopologicalConnectivityType.START_AND_END
+        topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+        ownerId = IntId(1)
     )
 
     private fun publish(id: IntId<LocationTrack>) = locationTrackDao

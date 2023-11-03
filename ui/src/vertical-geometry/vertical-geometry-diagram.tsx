@@ -220,7 +220,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                     coordinates={coordinates}
                 />
             )}
-            <svg height="100%" width="100%">
+            <svg height="100%" width="100%" qa-id="vertical-geometry-diagram-proper">
                 <>
                     <HeightLines coordinates={coordinates} />
                     <LabeledTicks

@@ -13,6 +13,7 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import waitUntilExists
 import waitUntilNotVisible
 import waitUntilVisible
 import java.time.Duration
@@ -69,6 +70,10 @@ abstract class E2EViewFragment(protected val viewBy: By) {
 
     fun waitUntilChildNotVisible(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilNotVisible(childBy(by), timeout)
+
+    //Thils will not check for child's visibility
+    fun waitUntilChildExists(by: By, timeout: Duration = defaultWait): Unit =
+        waitUntilExists(childBy(by), timeout)
 
     protected fun childExists(by: By) = exists(childBy(by))
 

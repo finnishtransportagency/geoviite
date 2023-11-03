@@ -90,6 +90,12 @@ fun waitUntilElementIsStale(by: By, timeout: Duration = defaultWait) {
     }
 }
 
+fun waitUntilHasValue(by: By, timeout: Duration = defaultWait) {
+    tryWait(timeout, { getElement(by).text.isNotEmpty() }) {
+        "Wait for element to have value, by:$by"
+    }
+}
+
 fun waitUntilValueIs(by: By, value: String, timeout: Duration = defaultWait) {
     tryWait(timeout, textToBe(by, value)) {
         "Wait for element value 'to be x' failed: expected=$value by:$by"
