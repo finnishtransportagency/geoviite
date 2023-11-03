@@ -4,13 +4,11 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
-import getChildElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 class E2EProjektiVelhoPage : E2ETable<E2EProjektiVelhoListItem>(
-    tableFetch = fetch(byQaId("main-content-container")),
+    tableBy = byQaId("main-content-container"),
     rowsBy = By.cssSelector(".projektivelho-file-list table tbody tr"),
 ) {
     fun goToInfraModelList(): E2EInfraModelPage {
@@ -42,7 +40,7 @@ class E2EProjektiVelhoPage : E2ETable<E2EProjektiVelhoListItem>(
     }
 
     override fun getRowContent(row: WebElement): E2EProjektiVelhoListItem {
-        return E2EProjektiVelhoListItem(row.getChildElements(By.tagName("td")), headerElements)
+        return E2EProjektiVelhoListItem(row.findElements(By.tagName("td")), headerElements)
     }
 }
 

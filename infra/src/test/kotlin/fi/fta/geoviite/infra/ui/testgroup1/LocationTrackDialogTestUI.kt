@@ -17,12 +17,17 @@ class LocationTrackDialogTestUI @Autowired constructor() : SeleniumTest() {
         val page = goToMap().switchToDraftMode()
         val firstLoad = page.toolBar.createNewLocationTrack()
         assertEquals(
-            "Väylävirasto", firstLoad.content.dropdownByQaId("location-track-dialog.owner").value
+            "Väylävirasto",
+            firstLoad.content.dropdownByQaId("location-track-dialog.owner").waitForValue().value
         )
         firstLoad.cancel()
         assertEquals(
             "Väylävirasto",
-            page.toolBar.createNewLocationTrack().content.dropdownByQaId("location-track-dialog.owner").value
+            page
+                .toolBar.createNewLocationTrack()
+                .content.dropdownByQaId("location-track-dialog.owner")
+                .waitForValue()
+                .value
         )
     }
 }

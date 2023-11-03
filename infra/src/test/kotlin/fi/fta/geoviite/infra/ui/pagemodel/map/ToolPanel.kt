@@ -2,13 +2,14 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 
-class E2EToolPanel(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-panel")) {
 
     fun selectToolPanelTab(tabName: String) {
+        logger.info("Select tab $tabName")
+
         clickChild(By.xpath("//div[@qa-id='tool-panel-tabs']/button[span[text() = '$tabName']]"))
     }
 
@@ -93,6 +94,6 @@ class E2EToolPanel(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
         infoBox("geometry-plan-quality-infobox", ::E2EGeometryPlanQualityInfobox)
     }
 
-    private fun <T : E2EInfoBox> infoBox(qaId: String, creator: (ElementFetch) -> T) =
+    private fun <T : E2EInfoBox> infoBox(qaId: String, creator: (By) -> T) =
         childComponent(byQaId(qaId), creator).also { it.waitUntilLoaded() }
 }
