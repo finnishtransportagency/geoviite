@@ -25,6 +25,7 @@ export const LocationTrackVerticalGeometryInfobox: React.FC<
     return (
         <Infobox
             title={t('tool-panel.location-track.vertical-geometry.heading')}
+            qa-id={'location-track-vertical-geometry-infobox'}
             contentVisible={contentVisible}
             onContentVisibilityChange={onContentVisibilityChange}>
             <InfoboxContent>
@@ -32,6 +33,7 @@ export const LocationTrackVerticalGeometryInfobox: React.FC<
                     label={t('tool-panel.location-track.vertical-geometry.diagram-visibility')}
                     value={
                         <Switch
+                            qaId={'tool-panel.location-track.vertical-geometry.diagram-visibility'}
                             checked={verticalGeometryDiagramVisible}
                             onCheckedChange={onVerticalGeometryDiagramVisibilityChange}
                         />

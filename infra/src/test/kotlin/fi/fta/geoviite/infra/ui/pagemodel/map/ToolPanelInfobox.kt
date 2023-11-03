@@ -102,6 +102,9 @@ class E2ELocationTrackGeneralInfoBox(elementFetch: ElementFetch) : E2EInfoBox(el
     }
 }
 
+class E2ELocationTrackVerticalGeometryInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
+    fun toggleVerticalGeometryDiagram() = clickButtonByQaId("tool-panel.location-track.vertical-geometry.diagram-visibility")
+}
 
 class E2ELocationTrackLogInfoBox(elementFetch: ElementFetch) : E2EInfoBox(elementFetch) {
     val created: String get() = getValueForField("Luotu")
