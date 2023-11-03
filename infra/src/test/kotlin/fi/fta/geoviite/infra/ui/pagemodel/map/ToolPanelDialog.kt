@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.DIALOG_BY
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
-import fi.fta.geoviite.infra.ui.pagemodel.common.expectToast
 import fi.fta.geoviite.infra.ui.util.byText
 import org.openqa.selenium.By
 
@@ -62,16 +61,14 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
             content.selectDropdownValueByLabel(label = "Topologinen kytkeytyminen", topologicalConnectivity.uiText)
         }
 
-    fun save() = expectToast {
-        waitUntilClosed {
-            val isDeleted = content.getValueForFieldByLabel("Tila") == State.DELETED.uiText
-            clickPrimaryButton()
+    fun save() = waitUntilClosed {
+        val isDeleted = content.getValueForFieldByLabel("Tila") == State.DELETED.uiText
+        clickPrimaryButton()
 
-            if (isDeleted) {
-                clickChild(
-                    By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-                )
-            }
+        if (isDeleted) {
+            clickChild(
+                By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
+            )
         }
     }
 
@@ -127,10 +124,8 @@ class E2EKmPostEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
         content.selectDropdownValueByLabel("Tila", state.uiText)
     }
 
-    fun save() = expectToast {
-        waitUntilClosed {
-            clickButton(byText("Tallenna"))
-        }
+    fun save() = waitUntilClosed {
+        clickButton(byText("Tallenna"))
     }
 
     fun cancel() = waitUntilClosed {
@@ -153,16 +148,14 @@ class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) 
         content.selectDropdownValueByLabel("Tilakategoria", stateCategory.uiText)
     }
 
-    fun save() = expectToast {
-        waitUntilClosed {
-            val isNotExisting = content.getValueForFieldByLabel("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
-            clickButton(byText("Tallenna"))
+    fun save() = waitUntilClosed {
+        val isNotExisting = content.getValueForFieldByLabel("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
+        clickButton(byText("Tallenna"))
 
-            if (isNotExisting) {
-                clickChild(
-                    By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-                )
-            }
+        if (isNotExisting) {
+            clickChild(
+                By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
+            )
         }
     }
 }

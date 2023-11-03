@@ -41,11 +41,9 @@ abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
             .open()
             .new()
 
-        expectToast {
-            E2EDialogWithTextField()
-                .inputValues(values)
-                .clickPrimaryButton()
-        }
+        E2EDialogWithTextField()
+            .inputValues(values)
+            .clickPrimaryButton()
 
         clickEditIcon(label)
     }

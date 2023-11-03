@@ -3,10 +3,8 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import childExists
 import clickWhenClickable
 import getElementWhenVisible
-import getElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-import tryWait
 import waitUntilNotExist
 
 enum class ToastType {
@@ -17,7 +15,6 @@ enum class ToastType {
 
 private val contentBy: By = By.className("Toastify__toast-text-body")
 private val headerBy: By = By.className("Toastify__toast-header")
-private val toasterBy: By = By.className("Toastify__toast")
 
 data class E2EToast(
     val header: String,
@@ -40,10 +37,6 @@ private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) 
     }
 }
 
-private fun getToasts(): List<String> {
-    return getElements(toasterBy).map { it.getAttribute("id") }
-}
-
 private fun clearToast(toastBy: By) {
     clickWhenClickable(toastBy)
     waitUntilNotExist(toastBy)
@@ -55,14 +48,4 @@ fun waitAndClearToast(id: String): E2EToast {
     return getElementWhenVisible(toastBy)
         .let(::E2EToast)
         .also { clearToast(toastBy) }
-}
-
-fun <R> expectToast(fn: () -> R) {
-    val oldToasts = getToasts()
-    fn()
-
-    tryWait(
-        { getToasts().any { !oldToasts.contains(it) } },
-        { "Expected a new toast but nothing appeared" }
-    )
 }

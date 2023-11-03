@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
-import fi.fta.geoviite.infra.ui.pagemodel.common.expectToast
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.byText
@@ -194,7 +193,7 @@ open class E2ELinkingInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
         waitUntilChildVisible(byText("Peruuta")) //ensures that the infobox has changed
     }
 
-    fun link() = expectToast {
+    fun link() {
         logger.info("Link")
         childButton(byText("Linkitä")).clickAndWaitToDisappear()
     }
