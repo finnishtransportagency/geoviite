@@ -21,12 +21,8 @@ import java.math.BigDecimal
 @SpringBootTest
 class VerticalGeometryDiagramTestUI @Autowired constructor(
     private val referenceLineService: ReferenceLineService,
-    private val testGeometryPlanService: TestGeometryPlanService,
-    private val switchDao: LayoutSwitchDao,
-    private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val locationTrackService: LocationTrackService,
-    private val alignmentDao: LayoutAlignmentDao,
     private val geometryDao: GeometryDao,
 ) : SeleniumTest() {
 
