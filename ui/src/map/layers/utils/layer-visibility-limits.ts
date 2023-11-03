@@ -29,6 +29,7 @@ export const mapLayerZIndexes = [
     'switch-linking-layer',
     'duplicate-split-section-highlight-layer',
     'location-track-split-location-layer',
+    'location-track-split-harpag-layer',
     'plan-area-layer',
     'debug-1m-points-layer',
     'debug-layer',

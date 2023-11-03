@@ -53,6 +53,7 @@ export function createReferenceLineAlignmentLayer(
                 selection,
                 linkingState,
                 false,
+                undefined,
             );
 
             clearFeatures(vectorSource);

@@ -36,6 +36,7 @@ export type MapLayerName =
     | 'alignment-linking-layer'
     | 'switch-linking-layer'
     | 'duplicate-split-section-highlight-layer'
+    | 'location-track-duplicate-endpoint-address-layer'
     | 'location-track-split-location-layer'
     | 'plan-area-layer'
     | 'debug-1m-points-layer'

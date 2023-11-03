@@ -68,6 +68,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
+import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
 
 declare global {
     interface Window {
@@ -344,6 +345,7 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             publishType,
                             linkingState,
+                            splittingState,
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
@@ -474,6 +476,15 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDuplicateSplitSectionHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                            splittingState,
+                        );
+                    case 'location-track-duplicate-endpoint-address-layer':
+                        return createDuplicateTrackEndpointAddressLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             publishType,
                             changeTimes,
                             resolution,

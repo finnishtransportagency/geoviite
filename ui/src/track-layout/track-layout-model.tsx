@@ -246,6 +246,7 @@ export type AddressPoint = {
 };
 
 export type AlignmentStartAndEnd = {
+    id: AlignmentId;
     start?: AddressPoint;
     end?: AddressPoint;
 };

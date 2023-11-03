@@ -17,6 +17,7 @@ import { cache } from 'cache/cache';
 
 const tickImageCache = cache<string, RegularShape>();
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 const locationTrackStyle = new Style({
     stroke: new Stroke({
@@ -38,6 +39,14 @@ const selectedLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
+    }),
+    zIndex: 2,
+});
+
+const splittingLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 4,
     }),
     zIndex: 2,
 });
@@ -159,6 +168,7 @@ export function createAlignmentFeatures(
     selection: Selection,
     linkingState: LinkingState | undefined,
     showEndTicks: boolean,
+    splittingState: SplittingState | undefined,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) => {
         const { selected, isLinking, highlighted } = getAlignmentHeaderStates(
@@ -175,7 +185,9 @@ export function createAlignmentFeatures(
 
         const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
 
-        if (selected || isLinking) {
+        if (splittingState?.originLocationTrack.id === alignment.header.id) {
+            alignmentFeature.setStyle(splittingLocationTrackStyle);
+        } else if (selected || isLinking) {
             alignmentFeature.setStyle(
                 isReferenceLine ? selectedReferenceLineStyle : selectedLocationTrackStyle,
             );

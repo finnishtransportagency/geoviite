@@ -108,6 +108,29 @@ export async function fetchStartAndEnd(
     );
 }
 
+export async function getManyStartsAndEnds(
+    locationTrackIds: LocationTrackId[],
+    publishType: PublishType,
+    changeTime: TimeStamp,
+): Promise<AlignmentStartAndEnd[]> {
+    return locationTrackStartAndEndCache
+        .getMany(
+            changeTime,
+            locationTrackIds,
+            (id) => cacheKey(id, publishType),
+            (ids) =>
+                getNonNull<AlignmentStartAndEnd[]>(
+                    `${layoutUri('location-tracks', publishType)}/start-and-end${queryParams({
+                        ids,
+                    })}`,
+                ).then((startsAndEnds) => {
+                    const startAndEndMap = indexIntoMap(startsAndEnds);
+                    return (id) => startAndEndMap.get(id);
+                }),
+        )
+        .then((startsAndEnds) => startsAndEnds.filter(filterNotEmpty));
+}
+
 export async function getLocationTrackStartAndEnd(
     locationTrackId: LocationTrackId,
     publishType: PublishType,

@@ -13,7 +13,6 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
     LayoutSwitchId,
-    LocationTrackDescriptionSuffixMode,
     LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -27,7 +26,6 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { Point } from 'model/geometry';
 
 type LocationTrackInfoboxSplittingProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -47,10 +45,8 @@ type EndpointProps = {
 };
 
 type SplitProps = EndpointProps & {
-    location: Point;
-    distance: number;
-    isInitial: boolean;
-    switchId?: LayoutSwitchId;
+    split: Split | InitialSplit;
+    address: TrackMeter | undefined;
     onRemove?: (switchId: LayoutSwitchId) => void;
     duplicateLocationTracks?: LocationTrackDuplicate[];
     updateSplit: (updateSplit: Split | InitialSplit) => void;
@@ -58,36 +54,15 @@ type SplitProps = EndpointProps & {
 };
 
 const Split: React.FC<SplitProps> = ({
+    split,
     address,
-    location,
-    distance,
-    switchId,
-    isInitial,
     onRemove,
     updateSplit,
     duplicateOf,
     duplicateLocationTracks = [],
 }) => {
     const { t } = useTranslation();
-    const [name, setName] = React.useState<string>('');
-    const [descriptionBase, setDescriptionBase] = React.useState<string>('');
-    const [suffixMode, setSuffixMode] = React.useState<LocationTrackDescriptionSuffixMode>('NONE');
-
-    React.useEffect(() => {
-        const duplicateId = duplicateLocationTracks.find((lt) => lt.name === name)?.id;
-        const updatedSwitchBase = {
-            name,
-            descriptionBase,
-            suffixMode,
-            location,
-            distance,
-            duplicateOf: duplicateId,
-        };
-        const finalUpdatedSwitch = switchId
-            ? { ...updatedSwitchBase, switchId }
-            : updatedSwitchBase;
-        updateSplit(finalUpdatedSwitch);
-    }, [name, descriptionBase, suffixMode, duplicateLocationTracks]);
+    const switchId = 'switchId' in split ? split.switchId : undefined;
 
     const duplicateLocationTrack = useLocationTrack(
         duplicateOf,
@@ -103,7 +78,7 @@ const Split: React.FC<SplitProps> = ({
                 <div>
                     <InfoboxField
                         label={
-                            isInitial
+                            'switchId' in split
                                 ? t('tool-panel.location-track.splitting.start-address')
                                 : t('tool-panel.location-track.splitting.split-address')
                         }>
@@ -113,10 +88,16 @@ const Split: React.FC<SplitProps> = ({
                         className={styles['location-track-infobox__split-item-field-label']}
                         label={t('tool-panel.location-track.track-name')}>
                         <TextField
-                            value={name}
+                            value={split.name}
                             onChange={(e) => {
-                                const newName = e.target.value;
-                                setName(newName);
+                                const duplicateId = duplicateLocationTracks.find(
+                                    (lt) => lt.name === split.name,
+                                )?.id;
+                                updateSplit({
+                                    ...split,
+                                    name: e.target.value,
+                                    duplicateOf: duplicateId,
+                                });
                             }}
                         />
                     </InfoboxField>
@@ -136,10 +117,12 @@ const Split: React.FC<SplitProps> = ({
                             value={
                                 duplicateLocationTrack
                                     ? duplicateLocationTrack.descriptionBase
-                                    : descriptionBase
+                                    : split.descriptionBase
                             }
                             disabled={!!duplicateOf}
-                            onChange={(e) => setDescriptionBase(e.target.value)}
+                            onChange={(e) =>
+                                updateSplit({ ...split, descriptionBase: e.target.value })
+                            }
                         />
                     </InfoboxField>
                     <InfoboxField
@@ -149,10 +132,10 @@ const Split: React.FC<SplitProps> = ({
                             suffixMode={
                                 duplicateLocationTrack
                                     ? duplicateLocationTrack.descriptionSuffix
-                                    : suffixMode
+                                    : split.suffixMode
                             }
                             onChange={(mode) => {
-                                setSuffixMode(mode);
+                                updateSplit({ ...split, suffixMode: mode });
                             }}
                             onBlur={() => {}}
                             disabled={!!duplicateOf}
@@ -225,10 +208,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                     title={t('tool-panel.location-track.splitting.title')}>
                     <InfoboxContent className={styles['location-track-infobox__split']}>
                         <Split
+                            split={initialSplit}
                             address={startAndEnd?.start?.address}
-                            location={startAndEnd?.start?.point}
-                            distance={startAndEnd?.start?.point?.m}
-                            isInitial={true}
                             duplicateLocationTracks={duplicateLocationTracks}
                             updateSplit={updateSplit}
                             duplicateOf={initialSplit.duplicateOf}
@@ -237,11 +218,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                             return (
                                 <Split
                                     key={index.toString()}
+                                    split={split}
                                     address={getSplitLocation(split)}
-                                    isInitial={false}
-                                    switchId={split.switchId}
-                                    location={split.location}
-                                    distance={split.distance}
                                     onRemove={removeSplit}
                                     duplicateLocationTracks={duplicateLocationTracks}
                                     updateSplit={updateSplit}

@@ -18,6 +18,7 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 let shownLocationTracksCompare = '';
 let newestLayerId = 0;
@@ -28,6 +29,7 @@ export function createLocationTrackAlignmentLayer(
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
+    splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -71,6 +73,7 @@ export function createLocationTrackAlignmentLayer(
                 selection,
                 linkingState,
                 showEndPointTicks,
+                splittingState,
             );
 
             clearFeatures(vectorSource);

@@ -647,7 +647,7 @@ class GeometryService @Autowired constructor(
                 geocodingContext.getAddress(point)?.let { address -> address.first to boundary.segmentIndex }
             }
         }.groupBy({ (trackMeter) -> trackMeter.kmNumber },
-                { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex })
+            { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex })
 
         val (alignmentStart, alignmentEnd) = geocodingContext.getStartAndEnd(alignment).let { startAndEnd ->
             (startAndEnd.start ?: return null) to (startAndEnd.end ?: return null)

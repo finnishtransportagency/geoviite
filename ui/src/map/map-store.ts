@@ -86,6 +86,7 @@ export const initialMapState: Map = {
         'geometry-km-post-layer',
         'location-track-split-location-layer',
         'duplicate-split-section-highlight-layer',
+        'location-track-duplicate-endpoint-address-layer',
     ],
     layerMenu: {
         layout: [
