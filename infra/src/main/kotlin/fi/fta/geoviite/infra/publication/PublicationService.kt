@@ -481,9 +481,8 @@ class PublicationService @Autowired constructor(
         )
 
         try {
-            val rv = transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
+            return transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
                 ?: throw Exception("unexpected null from publishChangesTransaction")
-            return rv
         } catch (exception: DataIntegrityViolationException) {
             enrichDuplicateNameExceptionOrRethrow(exception)
         }
