@@ -32,16 +32,22 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By) : E2EViewFragment(listBy)
     protected abstract fun getItemContent(item: WebElement): T
 
     fun waitUntilItemMatches(check: (T) -> Boolean): E2EList<T> = apply {
+        logger.info("Wait until item matches")
+
         getItemWhenMatches(check)
     }
 
     fun waitUntilItemCount(count: Int): E2EList<T> = apply {
+        logger.info("Wait until item count is $count")
+
         tryWait(numberOfElementsToBe(childBy(itemsBy), count)) {
             "Count did not become $count. Count: ${items.count()}"
         }
     }
 
     fun waitUntilItemNotExist(check: (T) -> Boolean) = apply {
+        logger.info("Wait until item doesn't exist")
+
         tryWait(not { itemElements.firstOrNull { (_, item) -> check(item) } }) {
             "Item still exists"
         }
@@ -57,10 +63,14 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By) : E2EViewFragment(listBy)
     fun select(check: (T) -> Boolean) = select(getItemWhenMatches(check))
 
     open fun select(item: T): E2EList<T> = apply {
+        logger.info("Select item $item")
+
         getElementWhenMatches { it == item }.first.click()
     }
 
     open fun selectBy(item: T, by: By): E2EList<T> = apply {
+        logger.info("Select item $item")
+
         getElementWhenMatches { it == item }.first.findElement(by).click()
     }
 }

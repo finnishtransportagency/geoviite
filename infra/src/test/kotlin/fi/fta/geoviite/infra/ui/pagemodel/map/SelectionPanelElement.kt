@@ -19,9 +19,9 @@ class E2EGeometryPlanAccordion(accordionBy: By) : E2EAccordion(accordionBy) {
     private val kmPostsAccordion by lazy { subAccordion(KM_POST_ACCORDION_QA_ID) }
     private val switchesAccordion by lazy { subAccordion(SWITCHES_ACCORDION_QA_ID) }
 
-    val kmPostsList: E2ETextList get() = open().let { kmPostsAccordion.items }
-    val alignmentsList: E2ETextList get() = open().let { alignmentsAccordion.items }
-    val switchesList: E2ETextList get() = open().let { switchesAccordion.items }
+    val kmPostsList: E2ETextList = open().let { kmPostsAccordion.items }
+    val alignmentsList: E2ETextList = open().let { alignmentsAccordion.items }
+    val switchesList: E2ETextList = open().let { switchesAccordion.items }
 
     fun selectAlignment(alignment: String) {
         logger.info("Select geometry alignment $alignment")

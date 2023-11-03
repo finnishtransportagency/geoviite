@@ -24,6 +24,8 @@ abstract class E2ETable<T>(
     }
 
     fun waitUntilReady(): E2ETable<T> = apply {
+        logger.info("Wait until table has finished loading")
+
         waitUntilChildNotVisible(By.className("table--loading"))
     }
 }

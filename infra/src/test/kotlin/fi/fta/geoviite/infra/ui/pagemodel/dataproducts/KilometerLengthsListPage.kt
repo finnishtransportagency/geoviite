@@ -8,24 +8,34 @@ import org.openqa.selenium.WebElement
 
 abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-product-view")) {
     fun locationTrackPage(): LocationTrackKilometerLengthsListPage {
+        logger.info("Open per location track tab")
+
         clickChild(byQaId("select-location-track-km-lengths"))
         return LocationTrackKilometerLengthsListPage()
     }
 
     fun entireNetworkPage(): EntireNetworkKilometerLengthsListPage {
-        childElement(byQaId("select-entire-rail-network")).click()
+        logger.info("Open entire network tab")
+
+        clickChild(byQaId("select-entire-rail-network"))
         return EntireNetworkKilometerLengthsListPage()
     }
 }
 
 class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
-    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
-    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("km-lengths-search-location-track")
-    val startKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-start-km")
-    val endKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-end-km")
+    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val resultList: LocationTrackKilometerLengthsList get() = LocationTrackKilometerLengthsList()
-    fun selectLocationTrack(searchString: String) {
+    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("km-lengths-search-location-track")
+
+    val startKm: E2ETextInput = searchForm.textInputByQaId("km-lengths-search-start-km")
+
+    val endKm: E2ETextInput = searchForm.textInputByQaId("km-lengths-search-end-km")
+
+    val resultList: LocationTrackKilometerLengthsList = LocationTrackKilometerLengthsList()
+
+    fun selectLocationTrack(searchString: String) = apply {
+        logger.info("Select location track $searchString")
+
         locationTrack.selectFromDynamicByName(searchString)
     }
 

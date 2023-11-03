@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
@@ -14,17 +15,19 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {
-        logger.info("Open map layers")
-        clickChild(byQaId("map-layers-button"))
-
-        waitUntilChildVisible(By.className("map-layer-menu"))
+        if (!exists(By.className("map-layer-menu"))) {
+            clickChild(byQaId("map-layers-button"))
+            waitUntilChildVisible(By.className("map-layer-menu"))
+        }
 
         E2EMapLayerPanel(By.className("map-layer-menu"))
     }
 
     fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
-        if (clear) searchDropdown.clearInput()
-        searchDropdown.inputValue(value)
+        logger.info("Search for $value")
+
+        if (clear) searchDropdown.clearSearch()
+        searchDropdown.search(value)
         waitUntilVisible(By.className("dropdown__loading-indicator"))
         waitUntilNotVisible(By.className("dropdown__loading-indicator"))
     }
@@ -37,7 +40,7 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
     }
 
     fun goToPreview(): E2EPreviewChangesPage {
-        logger.info("To preview changes page")
+        logger.info("Go to preview changes page")
         clickChild(By.xpath(".//button[span[text() = 'Esikatselu']]"))
 
         waitUntilVisible(byQaId("preview-content"))
@@ -71,24 +74,34 @@ class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {
     }
 
     fun showLayer(layer: MapLayer): E2EMapLayerPanel = apply {
-        logger.info("Show layer ${layer.uiText}")
+        logger.info("Show map layer ${layer.uiText}")
         if (!isSelected(layer)) {
             toggleLayer(layer)
         }
     }
 
     fun hideLayer(layer: MapLayer): E2EMapLayerPanel = apply {
-        logger.info("Hide layer ${layer.uiText}")
+        logger.info("Hide map layer ${layer.uiText}")
         if (isSelected(layer)) {
             toggleLayer(layer)
         }
     }
 
     private fun isSelected(mapLayer: MapLayer): Boolean {
-        return childElement(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${mapLayer.uiText}']]//input']")).isSelected
+        return childElement(
+            By.xpath(
+                "//label[@class='map-layer-menu__layer-visibility ' " +
+                        "and span[text() = '${mapLayer.uiText}']]//input']"
+            )
+        ).isSelected
     }
 
     private fun toggleLayer(mapLayer: MapLayer) {
-        clickChild(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${mapLayer.uiText}']]/label[@class='switch']"))
+        clickChild(
+            By.xpath(
+                "//label[@class='map-layer-menu__layer-visibility ' " +
+                        "and span[text() = '${mapLayer.uiText}']]/label[@class='switch']"
+            )
+        )
     }
 }

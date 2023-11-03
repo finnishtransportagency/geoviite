@@ -36,7 +36,7 @@ class E2EAppBar(appbarBy: By = By.className("app-bar")) : E2EViewFragment(appbar
     }
 
     fun goToFrontPage(): E2EFrontPage {
-        logger.info("Open front page")
+        logger.info("Open frontpage")
 
         goto(NavLink.FRONT_PAGE)
         return E2EFrontPage()

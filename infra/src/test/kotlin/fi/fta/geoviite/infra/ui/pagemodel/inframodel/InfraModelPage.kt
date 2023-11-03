@@ -13,25 +13,30 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
     }
 
     fun upload(file: String): E2EInfraModelForm {
-        logger.info("Upload IM file $file")
+        logger.info("Upload infra model file $file")
         findElement(By.className("file-input__file-input")).sendKeys(file)
 
         return waitForInfraModelForm()
     }
 
     fun openInfraModel(fileName: String): E2EInfraModelForm {
+        logger.info("Open infra model $fileName")
+
         infraModelsList.select { it.fileName == fileName }
 
         return waitForInfraModelForm()
     }
 
     fun search(query: String): E2EInfraModelPage = apply {
-        logger.info("Search '$query'")
+        logger.info("Search infra models $query")
+
         waitUntilChildVisible(By.className("infra-model-list-search-result__table"))
         childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).clear().inputValue(query)
     }
 
     fun openVelhoWaitingForApprovalList(): E2EProjektiVelhoPage {
+        logger.info("Open Velho waiting tab")
+
         clickChild(byQaId("infra-model-nav-tab-waiting"))
 
         waitUntilChildVisible(By.className("projektivelho-file-list"))

@@ -94,13 +94,14 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     fun switchToDraftMode(): E2ETrackLayoutPage = apply {
+        logger.info("Switch to draft")
         toolBar.switchToDraft()
     }
 
     fun goToPreview() = toolBar.goToPreview()
 
     fun zoomToScale(targetScale: MapScale): E2ETrackLayoutPage = apply {
-        logger.info("Zooming map to scale $targetScale")
+        logger.info("Zoom map to scale $targetScale")
 
         if (targetScale.ordinal >= mapScale.ordinal) {
             while (targetScale != mapScale) zoomOut()

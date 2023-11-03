@@ -21,15 +21,21 @@ class E2EChangePreviewTable(
     fun hasWarnings(): Boolean = warningRows.isNotEmpty()
 
     fun stageChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+        logger.info("Stage change $change")
+
         selectBy(change, byQaId("stage-change-button"))
     }
 
     fun revertChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+        logger.info("Revert change $change")
+
         openMenu(change).select(E2EMenuItem("Hylkää muutos"))
         E2EPreviewChangesSaveOrDiscardDialog().reject()
     }
 
     fun openMenu(change: E2EChangePreviewRow): E2EMenu {
+        logger.info("Open more menu for change $change")
+
         selectBy(change, byQaId("menu-button"))
         return E2EMenu()
     }

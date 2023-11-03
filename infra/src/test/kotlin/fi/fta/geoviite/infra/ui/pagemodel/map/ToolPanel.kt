@@ -8,6 +8,8 @@ import org.openqa.selenium.By
 class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-panel")) {
 
     fun selectToolPanelTab(tabName: String) {
+        logger.info("Select tab $tabName")
+
         clickChild(By.xpath("//div[@qa-id='tool-panel-tabs']/button[span[text() = '$tabName']]"))
     }
 

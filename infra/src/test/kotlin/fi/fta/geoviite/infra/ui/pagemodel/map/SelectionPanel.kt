@@ -59,14 +59,20 @@ class E2ESelectionPanel(
     }
 
     fun selectPlanAlignment(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName alignment $name")
+
         geometryPlanByName(planName).selectAlignment(name)
     }
 
     fun selectPlanSwitch(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName switch $name")
+
         geometryPlanByName(planName).selectSwitch(name)
     }
 
     fun selectPlanKmPost(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName km post $name")
+
         geometryPlanByName(planName).selectKmPost(name)
     }
 

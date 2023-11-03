@@ -10,7 +10,7 @@ import waitUntilExists
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
     fun openNthPublication(nth: Int): E2EPublicationDetailsPage {
-        logger.info("Open publication index=$nth")
+        logger.info("Open publication nth=$nth")
 
         clickChild(
             ByChained(
@@ -23,10 +23,14 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
     }
 
     fun openLatestPublication(): E2EPublicationDetailsPage {
-        return openNthPublication(0)
+        logger.info("Open latest publication")
+
+        return openNthPublication(1)
     }
 
     fun pushToRatko(): E2EFrontPage = apply {
+        logger.info("Push to Ratko")
+
         clickChild(byQaId("publish-to-ratko"))
         E2EDialog().clickPrimaryButton()
     }
@@ -34,6 +38,8 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
 class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")) : E2EViewFragment(pageBy) {
     fun returnToFrontPage(): E2EFrontPage {
+        logger.info("Go to front page")
+
         clickChild(ByChained(By.className("publication-details__title"), By.tagName("a")))
         waitUntilExists(By.className("frontpage"))
 
@@ -42,7 +48,6 @@ class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")
 
     val rows: List<E2EPublicationDetailRow>
         get() {
-            logger.info("Read publication detail rows")
             val headers = childElements(By.tagName("th"))
 
             return childElements(By.className("publication-table__row")).map { e ->

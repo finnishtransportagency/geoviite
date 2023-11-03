@@ -11,13 +11,13 @@ class E2EButton(val buttonBy: By) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun click(): E2EButton = apply {
-        logger.info("Click")
+        logger.info("Click on button")
 
         clickWhenClickable(buttonBy)
     }
 
     fun clickAndWaitToDisappear() {
-        logger.info("Click and wait to disappear")
+        logger.info("Click and wait for button to disappear")
 
         click()
         waitUntilNotExist(buttonBy)

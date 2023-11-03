@@ -10,7 +10,7 @@ class E2ECheckbox(val checkboxBy: By) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun click(): E2ECheckbox = apply {
-        logger.info("Click")
+        logger.info("Click checkbox")
 
         clickWhenClickable(checkboxBy)
     }

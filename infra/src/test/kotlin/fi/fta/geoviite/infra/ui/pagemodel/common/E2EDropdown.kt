@@ -57,20 +57,20 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
     }
 
     fun new() = apply {
-        logger.info("Add new item")
+        logger.info("Add new option")
 
         open()
         clickWhenClickable(By.cssSelector(".dropdown__add-new-container > button"))
     }
 
-    fun inputValue(text: String): E2EDropdown = apply {
-        logger.info("Input text $text")
+    fun search(text: String): E2EDropdown = apply {
+        logger.info("Search options with text $text")
 
         input.inputValue(text)
     }
 
-    fun clearInput(): E2EDropdown = apply {
-        logger.info("Clear input")
+    fun clearSearch(): E2EDropdown = apply {
+        logger.info("Clear dropdown input")
 
         val currentValueHolder = childElement(By.className("dropdown__current-value"))
 

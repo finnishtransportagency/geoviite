@@ -10,16 +10,22 @@ import java.nio.charset.StandardCharsets
 
 abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.className("data-product-view"))  {
     fun layoutListPage(): E2EDataProductLayoutVerticalGeometryListPage {
+        logger.info("Open layout geometry tab")
+
         clickChild(byQaId("select-layout-geometry"))
         return E2EDataProductLayoutVerticalGeometryListPage()
     }
 
     fun planListPage(): E2EDataProductPlanVerticalGeometryListPage {
+        logger.info("Open plan geometry tab")
+
         clickChild(byQaId("select-plan-geometry"))
         return E2EDataProductPlanVerticalGeometryListPage()
     }
 
     fun entireNetworkPage(): E2EDataProductEntireNetworkVerticalGeometryListPage {
+        logger.info("Open entire network tab")
+
         clickChild(byQaId("select-entire-rail-network"))
         return E2EDataProductEntireNetworkVerticalGeometryListPage()
     }
@@ -27,10 +33,11 @@ abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.class
 
 class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
 
-    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
-    val resultList: E2EDataProductPlanVerticalGeometryList get() = E2EDataProductPlanVerticalGeometryList()
+    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
+    val resultList: E2EDataProductPlanVerticalGeometryList = E2EDataProductPlanVerticalGeometryList()
+
+    val plan: E2EDropdown = searchForm.dropdownByQaId("data-products-search-plan")
 
     val downloadUrl: String
         get() {
@@ -38,20 +45,25 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
             return URLDecoder.decode(text, StandardCharsets.UTF_8)
         }
 
-    fun selectPlan(searchString: String) {
+    fun selectPlan(searchString: String) = apply {
+        logger.info("Select plan $searchString")
+
         plan.selectFromDynamicByName(searchString)
     }
 }
 
 class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
-    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
+    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-location-track")
-    val resultList: E2EDataProductLayoutVerticalGeometryList get() = E2EDataProductLayoutVerticalGeometryList()
+    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("data-products-search-location-track")
+
+    val resultList: E2EDataProductLayoutVerticalGeometryList = E2EDataProductLayoutVerticalGeometryList()
 
     val downloadUrl: String get() = childElement(byQaId("vertical-geometry-csv-download")).getAttribute("href")
 
-    fun selectLocationTrack(searchString: String) {
+    fun selectLocationTrack(searchString: String) = apply {
+        logger.info("Select location track $searchString")
+
         locationTrack.selectFromDynamicByName(searchString)
     }
 }

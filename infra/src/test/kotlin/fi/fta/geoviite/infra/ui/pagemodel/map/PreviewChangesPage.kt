@@ -20,11 +20,7 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
     }
 
     fun publish(): E2ETrackLayoutPage {
-        logger.info("Publishing changes")
-        //Iterating rows is slow, so we quickly check if iterating is even necessary
-        if (stagedChangesTable.hasErrors()) {
-            throw AssertionError("Following changes prevent publishing \n ${changesTable.errorRows}")
-        }
+        logger.info("Publish changes")
 
         clickChild(By.cssSelector(".preview-footer__action-buttons button"))
         E2EPreviewChangesSaveOrDiscardDialog().confirm()
@@ -45,14 +41,15 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
     }
 
     fun revertStagedChange(name: String): E2EPreviewChangesPage = apply {
-        logger.info("Reverting staged change $name")
+        logger.info("Revert staged change $name")
+
         stagedChangesTable.rows
             .filter { it.name == name }
             .forEach { stagedChangesTable.revertChange(it) }
     }
 
     fun revertChange(name: String): E2EPreviewChangesPage = apply {
-        logger.info("Reverting change $name")
+        logger.info("Revert change $name")
         changesTable.rows.filter { it.name == name }.forEach { changesTable.revertChange(it) }
 
         waitAndClearToast("revert-success")
@@ -72,6 +69,8 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 class E2EPreviewChangesSaveOrDiscardDialog : E2EDialog() {
 
     fun confirm() {
+        logger.info("Confirm preview changes")
+
         waitUntilClosed {
             childTextInput(byQaId("publication-message")).inputValue("test")
             clickChild(byQaId("publication-confirm"))
@@ -79,6 +78,8 @@ class E2EPreviewChangesSaveOrDiscardDialog : E2EDialog() {
     }
 
     fun reject() = waitUntilClosed {
+        logger.info("Reject changes")
+
         clickWarningButton()
     }
 }

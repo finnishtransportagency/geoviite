@@ -9,54 +9,79 @@ import java.nio.charset.StandardCharsets
 
 abstract class E2EElementListPage : E2EViewFragment(By.className("data-product-view")) {
     fun layoutListPage(): E2EDataProductLayoutElementListPage {
+        logger.info("Open layout element tab")
+
         clickChild(byQaId("select-layout-geometry"))
         return E2EDataProductLayoutElementListPage()
     }
 
     fun planListPage(): E2EDataProductPlanElementListPage {
+        logger.info("Open geometry element tab")
+
         clickChild(byQaId("select-plan-geometry"))
         return E2EDataProductPlanElementListPage()
     }
 
     fun entireNetworkPage(): E2EDataProductEntireNetworkElementListPage {
+        logger.info("Open entire rail network tab")
+
         clickChild(byQaId("select-entire-rail-network"))
         return E2EDataProductEntireNetworkElementListPage()
     }
 }
 
 class E2EDataProductPlanElementListPage : E2EElementListPage() {
-    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
-    val resultList: E2EDataProductPlanElementList get() = E2EDataProductPlanElementList()
+    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val plan: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-plan")
+    val resultList: E2EDataProductPlanElementList = E2EDataProductPlanElementList()
 
-    val line: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.line")
-    val curve: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.curve")
-    val clothoid: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.clothoid")
-    val downloadUrl: String get() {
-        val text = childElement(byQaId("plan-element-list-csv-download")).getAttribute("href")
-        return URLDecoder.decode(text, StandardCharsets.UTF_8)
-    }
+    val plan: E2EDropdown = searchForm.dropdownByQaId("data-products-search-plan")
 
-    fun selectPlan(searchString: String) {
+    val line: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.line")
+
+    val curve: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.curve")
+
+    val clothoid: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.clothoid")
+
+    val downloadUrl: String
+        get() {
+            val text = childElement(byQaId("plan-element-list-csv-download")).getAttribute("href")
+            return URLDecoder.decode(text, StandardCharsets.UTF_8)
+        }
+
+    fun selectPlan(searchString: String) = apply {
+        logger.info("Select plan $searchString")
+
         plan.selectFromDynamicByName(searchString)
     }
 }
 
 class E2EDataProductLayoutElementListPage : E2EElementListPage() {
-    val searchForm: E2EFormLayout get() = childComponent(By.className("data-products__search"), ::E2EFormLayout)
-    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("data-products-search-location-track")
-    val startAddress: E2ETextInput get() = searchForm.textInputByQaId("data-products-search-start-km")
-    val endAddress: E2ETextInput get() = searchForm.textInputByQaId("data-products-search-end-km")
-    val line: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.line")
-    val curve: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.curve")
-    val clothoid: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.clothoid")
-    val missingGeometry: E2ECheckbox get() = searchForm.checkBoxByQaId("data-products.search.missing-section")
+    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
+
+    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("data-products-search-location-track")
+
+    val startAddress: E2ETextInput = searchForm.textInputByQaId("data-products-search-start-km")
+
+    val endAddress: E2ETextInput = searchForm.textInputByQaId("data-products-search-end-km")
+
+    val line: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.line")
+
+    val curve: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.curve")
+
+    val clothoid: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.clothoid")
+
+    val missingGeometry: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.missing-section")
+
+    val resultList: E2EDataProductLayoutElementList = E2EDataProductLayoutElementList()
+
     val downloadUrl: String
         get() = childElement(byQaId("location-track-element-list-csv-download")).getAttribute("href")
-    val resultList: E2EDataProductLayoutElementList get() = E2EDataProductLayoutElementList()
 
-    fun selectLocationTrack(searchString: String) {
+
+    fun selectLocationTrack(searchString: String) = apply {
+        logger.info("Select location track $searchString")
+
         locationTrack.selectFromDynamicByName(searchString)
     }
 }
