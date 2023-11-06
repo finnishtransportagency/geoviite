@@ -59,13 +59,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         });
     }
 
-    function locateOnMap(section: AlignmentPlanSection) {
-        if (section.start && section.end) {
-            // Point coordinates are needed to locate on map
-            //            delegates.showArea(boundingBoxAroundPoints([section.start, section.end));
-        }
-    }
-
     const errorFragment = (errorMessage = '') => (
         <span
             title={errorMessage}
@@ -154,9 +147,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             )}
                         </div>
                         <div className="infobox__list-cell">
-                            <div
-                                className={styles['alignment-plan-section-infobox__meters']}
-                                onClick={() => locateOnMap(section)}>
+                            <div className={styles['alignment-plan-section-infobox__meters']}>
                                 <span>
                                     {section.start
                                         ? formatTrackMeterWithoutMeters(section.start.address)

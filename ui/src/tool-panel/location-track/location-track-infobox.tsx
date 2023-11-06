@@ -32,7 +32,7 @@ import { useTranslation } from 'react-i18next';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LocationTrackOwnerId, PublishType, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
@@ -65,6 +65,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { LocationTrackSplittingInfobox } from 'tool-panel/location-track/location-track-splitting-infobox';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { getLocationTrackOwners } from 'common/common-api';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -127,6 +128,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             ),
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );
+    const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
     const allowedSwitchesForSplitting = useLoader(
         () => getSwitchesOnLocationTrack(publishType, locationTrack.id),
         [publishType, locationTrack],
@@ -153,6 +155,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     }
 
     const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
+
+    function getLocationTrackOwnerName(ownerId: LocationTrackOwnerId) {
+        const name = locationTrackOwners?.find((o) => o.id == ownerId)?.name;
+        return name ?? '-';
+    }
 
     function getSwitchLink(sw?: LayoutSwitchIdAndName) {
         if (sw) {
@@ -275,6 +282,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 topologicalConnectivity={locationTrack.topologicalConnectivity}
                             />
                         }
+                        onEdit={openEditLocationTrackDialog}
+                        iconDisabled={isOfficial()}
+                    />
+                    <InfoboxField
+                        label={t('tool-panel.location-track.owner')}
+                        value={getLocationTrackOwnerName(locationTrack.ownerId)}
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={isOfficial()}
                     />

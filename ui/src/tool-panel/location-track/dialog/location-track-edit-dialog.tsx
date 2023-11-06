@@ -23,6 +23,7 @@ import {
     initialLocationTrackEditState,
     isProcessing,
     reducer,
+    setVaylavirastoOwnerIdFrom,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
@@ -49,6 +50,8 @@ import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
+import { getLocationTrackOwners } from 'common/common-api';
+import { useLoader } from 'utils/react-utils';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -92,6 +95,23 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
         .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
 
+    const locationTrackOwners = useLoader(
+        () =>
+            getLocationTrackOwners().then((owners) =>
+                owners.sort((a, b) => a.name.localeCompare(b.name)),
+            ),
+        [],
+    );
+    React.useEffect(() => {
+        if (
+            locationTrackOwners !== undefined &&
+            state.isNewLocationTrack &&
+            !state.locationTrack.ownerId
+        ) {
+            setVaylavirastoOwnerIdFrom(locationTrackOwners, (id) => updateProp('ownerId', id));
+        }
+    }, [locationTrackOwners, state.isNewLocationTrack]);
+
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
@@ -116,7 +136,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 },
             );
         } else {
-            stateActions.initWithNewLocationTrack();
+            stateActions.initWithNewLocationTrack(locationTrackOwners);
             firstInputRef.current?.focus();
         }
     }, [props.locationTrack?.id]);
@@ -487,18 +507,25 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         />
 
                         <FieldLayout
-                            label={t('location-track-dialog.owner')}
+                            label={`${t('location-track-dialog.owner')} * `}
                             value={
-                                <Dropdown
-                                    value={undefined}
-                                    options={[]}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                    searchable
-                                />
+                                locationTrackOwners && (
+                                    <Dropdown
+                                        qaId={'location-track-dialog.owner'}
+                                        value={state.locationTrack.ownerId}
+                                        options={locationTrackOwners.map((owner) => ({
+                                            name: owner.name,
+                                            value: owner.id,
+                                        }))}
+                                        onChange={(value) => value && updateProp('ownerId', value)}
+                                        onBlur={() => stateActions.onCommitField('ownerId')}
+                                        hasError={hasErrors('ownerId')}
+                                        wide
+                                        searchable
+                                    />
+                                )
                             }
+                            errors={getVisibleErrorsByProp('ownerId')}
                         />
 
                         <Heading size={HeadingSize.SUB}>

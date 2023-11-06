@@ -18,6 +18,8 @@ export type SwitchProps = {
      * of layout.
      */
     children?: React.ReactNode;
+
+    qaId?: string;
 };
 
 export const Switch: React.FC<SwitchProps> = ({
@@ -37,7 +39,7 @@ export const Switch: React.FC<SwitchProps> = ({
     );
 
     return (
-        <label className={className}>
+        <label className={className} qa-id={props.qaId}>
             <input
                 className={styles.switch__checkbox}
                 type="checkbox"

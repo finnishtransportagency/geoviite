@@ -158,7 +158,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
     const newMenuItems = [
         { value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number') },
-        { value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track') },
+        {
+            value: NewMenuItems.locationTrack,
+            name: t('tool-bar.new-location-track'),
+            qaId: 'tool-bar.new-location-track',
+        },
         { value: NewMenuItems.switch, name: t('tool-bar.new-switch') },
         { value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post') },
     ];
@@ -263,7 +267,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     mapLayerMenuGroups={mapLayerMenuGroups}
                     visibleLayers={visibleLayers}
                 />
-                <div className={styles['tool-bar__new-menu-button']}>
+                <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
                     <WriteAccessRequired>
                         <Button
                             ref={menuRef}

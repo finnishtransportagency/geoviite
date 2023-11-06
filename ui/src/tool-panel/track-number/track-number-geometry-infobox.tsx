@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus, useRateLimitedLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
@@ -40,13 +40,14 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
     const viewportDep = useBoundingBox && viewport;
-    const [sections, elementFetchStatus] = useLoaderWithStatus(
+    const [sections, elementFetchStatus] = useRateLimitedLoaderWithStatus(
         () =>
             getTrackNumberReferenceLineSectionsByPlan(
                 publishType,
                 trackNumberId,
                 useBoundingBox ? viewport.area : undefined,
             ),
+        1000,
         [trackNumberId, publishType, viewportDep, changeTime],
     );
 

@@ -19,12 +19,12 @@ import java.time.Instant
 
 @Service
 class LocationTrackService(
-    dao: LocationTrackDao,
+    locationTrackDao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
-) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
+) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
@@ -47,6 +47,7 @@ class LocationTrackService(
             topologicalConnectivity = request.topologicalConnectivity,
             topologyStartSwitch = null,
             topologyEndSwitch = null,
+            ownerId = request.ownerId,
         )
         return saveDraftInternal(locationTrack)
     }
@@ -64,6 +65,7 @@ class LocationTrackService(
             trackNumberId = request.trackNumberId,
             duplicateOf = request.duplicateOf,
             topologicalConnectivity = request.topologicalConnectivity,
+            ownerId = request.ownerId,
         )
 
         return if (locationTrack.state != LayoutState.DELETED) {
@@ -397,6 +399,11 @@ class LocationTrackService(
     fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
         logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
         return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
+    }
+
+    fun getLocationTrackOwners(): List<LocationTrackOwner> {
+        logger.serviceCall("getLocationTrackOwners")
+        return dao.fetchLocationTrackOwners()
     }
 
     fun getSwitchesForLocationTrack(

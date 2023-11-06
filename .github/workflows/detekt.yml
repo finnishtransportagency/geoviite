@@ -1,0 +1,60 @@
+name: "Detekt"
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  without-type-resolution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Download detekt
+        run: |
+          curl -sSL -o /tmp/detekt.jar \
+          https://github.com/detekt/detekt/releases/download/v1.23.1/detekt-cli-1.23.1-all.jar
+
+      - name: Checkout the branch that triggered the workflow
+        uses: actions/checkout@v4
+
+      - name: Copy the detekt config from the branch that triggered the workflow
+        run: |
+          cp infra/detekt.yml /tmp/detekt-config.yml
+
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Run detekt to create a baseline from the main branch
+        run: |
+          java -jar /tmp/detekt.jar \
+          --config /tmp/detekt-config.yml \
+          --base-path ${{ github.workspace }} \
+          --input ${{ github.workspace }}/infra \
+          --create-baseline \
+          --baseline /tmp/detekt-baseline.xml
+
+      - name: Checkout the branch that triggered the workflow
+        uses: actions/checkout@v4
+
+      - name: Run detekt again to check for errors created by the branch that triggered the workflow
+        run: |
+          java -jar /tmp/detekt.jar \
+          --config /tmp/detekt-config.yml \
+          --base-path ${{ github.workspace }} \
+          --input ${{ github.workspace }}/infra \
+          --baseline /tmp/detekt-baseline.xml \
+          --report sarif:${{ github.workspace }}/infra/build/reports/detekt/detekt.sarif
+
+      - name: Upload SARIF file to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        if: success() || failure()
+        with:
+          sarif_file: ${{ github.workspace }}/infra/build/reports/detekt/detekt.sarif

@@ -51,7 +51,7 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     fun goToInfraModelPage() = navigationBar.goToInfraModel()
 
     protected fun clearAllTestData() {
-       deleteFromTables(
+        deleteFromTables(
             schema = "publication", tables = arrayOf(
                 "km_post",
                 "location_track",

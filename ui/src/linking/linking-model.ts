@@ -24,12 +24,13 @@ import {
     JointNumber,
     KmNumber,
     LocationAccuracy,
+    LocationTrackOwnerId,
     LocationTrackPointUpdateType,
+    Range,
     SwitchAlignmentId,
     SwitchOwnerId,
     SwitchStructure,
     SwitchStructureId,
-    Range,
     TrackMeter,
 } from 'common/common-model';
 
@@ -42,6 +43,7 @@ export type LocationTrackSaveRequest = {
     trackNumberId?: LayoutTrackNumberId;
     duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;
+    ownerId?: LocationTrackOwnerId;
 };
 
 export type LocationTrackSaveError = {

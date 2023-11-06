@@ -2,32 +2,40 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 
 abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-product-view")) {
     fun locationTrackPage(): LocationTrackKilometerLengthsListPage {
-        childElement(byQaId("select-location-track-km-lengths")).click()
+        logger.info("Open per location track tab")
+
+        clickChild(byQaId("select-location-track-km-lengths"))
         return LocationTrackKilometerLengthsListPage()
     }
 
     fun entireNetworkPage(): EntireNetworkKilometerLengthsListPage {
-        childElement(byQaId("select-entire-rail-network")).click()
+        logger.info("Open entire network tab")
+
+        clickChild(byQaId("select-entire-rail-network"))
         return EntireNetworkKilometerLengthsListPage()
     }
 }
 
 class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
-    private val searchFormElement: WebElement get() = childElement(By.className("data-products__search"))
-    val searchForm: E2EFormLayout get() = E2EFormLayout { searchFormElement }
-    val locationTrack: E2EDropdown get() = searchForm.dropdownByQaId("km-lengths-search-location-track")
-    val startKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-start-km")
-    val endKm: E2ETextInput get() = searchForm.textInputByQaId("km-lengths-search-end-km")
+    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val resultList: LocationTrackKilometerLengthsList get() = LocationTrackKilometerLengthsList()
-    fun selectLocationTrack(searchString: String) {
+    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("km-lengths-search-location-track")
+
+    val startKm: E2ETextInput = searchForm.textInputByQaId("km-lengths-search-start-km")
+
+    val endKm: E2ETextInput = searchForm.textInputByQaId("km-lengths-search-end-km")
+
+    val resultList: LocationTrackKilometerLengthsList = LocationTrackKilometerLengthsList()
+
+    fun selectLocationTrack(searchString: String) = apply {
+        logger.info("Select location track $searchString")
+
         locationTrack.selectFromDynamicByName(searchString)
     }
 
@@ -35,10 +43,11 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
 }
 
 class LocationTrackKilometerLengthsList: E2ETable<LocationTrackKilometerLengthsListItem>(
-    tableFetch = fetch(By.className("data-product-table__table-container")),
+    tableBy = By.className("data-product-table__table-container"),
     rowsBy = By.cssSelector("tbody tr")
 ) {
-    override fun getRowContent(row: WebElement) = LocationTrackKilometerLengthsListItem(row.findElements(By.tagName("td")), headerElements)
+    override fun getRowContent(row: WebElement) =
+        LocationTrackKilometerLengthsListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
 class LocationTrackKilometerLengthsListItem(val stationStart: String) {
@@ -52,5 +61,3 @@ class EntireNetworkKilometerLengthsListPage : KilometerLengthsListPage() {
     val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
 
 }
-
-

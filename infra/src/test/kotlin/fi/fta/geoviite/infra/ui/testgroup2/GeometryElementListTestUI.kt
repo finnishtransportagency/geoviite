@@ -46,20 +46,20 @@ class GeometryElementListTestUI @Autowired constructor(
         elementListPage.selectLocationTrack("foo")
 
         val results = elementListPage.resultList
-        results.waitUntilCount(5)
+        results.waitUntilItemCount(5)
         val firstRow = results.items[0]
         assertEquals("foo test track", firstRow.locationTrack)
         assertEquals("1.000", firstRow.locationStartE)
 
         elementListPage.line.click()
-        results.waitUntilCount(3)
+        results.waitUntilItemCount(3)
         elementListPage.line.click()
         elementListPage.clothoid.click()
         elementListPage.curve.click()
         elementListPage.missingGeometry.click()
-        results.waitUntilCount(2)
+        results.waitUntilItemCount(2)
         elementListPage.missingGeometry.click()
-        results.waitUntilCount(3)
+        results.waitUntilItemCount(3)
     }
 
     @Test
@@ -69,12 +69,12 @@ class GeometryElementListTestUI @Autowired constructor(
         val planListPage = navigationBar.goToElementListPage().planListPage()
         planListPage.selectPlan("testfile")
         val results = planListPage.resultList
-        results.waitUntilCount(4)
+        results.waitUntilItemCount(4)
         planListPage.clothoid.click()
-        results.waitUntilCount(3)
+        results.waitUntilItemCount(3)
         planListPage.clothoid.click()
         planListPage.line.click()
-        results.waitUntilCount(2)
+        results.waitUntilItemCount(2)
         val resultItems = results.items
         assertEquals("Siirtymäkaari", resultItems[0].elementType)
         assertEquals("3.606", resultItems[0].length)

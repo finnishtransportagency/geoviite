@@ -31,6 +31,7 @@ const layoutLocationTrack: LayoutLocationTrack = {
     topologicalConnectivity: 'NONE',
     topologyStartSwitch: undefined,
     topologyEndSwitch: undefined,
+    ownerId: '',
 };
 const kmPost = {
     id: '',
