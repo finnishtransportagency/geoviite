@@ -9,23 +9,32 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
-import { redHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
+import {
+    blueSplitSectionStyle,
+    redSplitSectionStyle,
+} from 'map/layers/utils/highlight-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackInfoboxExtras } from 'track-layout/layout-location-track-api';
+import { filterNotEmpty } from 'utils/array-utils';
 
 function createFeatures(
     alignments: AlignmentDataHolder[],
     duplicateIds: LocationTrackId[],
+    linkedDuplicates: LocationTrackId[],
 ): Feature<LineString>[] {
     return alignments
         .filter((alignment) => duplicateIds.includes(alignment.header.id))
-        .flatMap(({ points }) => {
+        .flatMap(({ points, header }) => {
             const polyline = points.map(pointToCoords);
             const lineString = new LineString(polyline);
             const feature = new Feature({ geometry: lineString });
-
-            feature.setStyle(redHighlightStyle);
+            console.log(linkedDuplicates, header.id);
+            if (linkedDuplicates.includes(header.id)) {
+                feature.setStyle(blueSplitSectionStyle);
+            } else {
+                feature.setStyle(redSplitSectionStyle);
+            }
 
             return feature;
         });
@@ -49,6 +58,10 @@ export function createDuplicateSplitSectionHighlightLayer(
     let inFlight = false;
     if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
         inFlight = true;
+        const linkedDuplicates = splittingState.splits
+            .map((split) => split.duplicateOf)
+            .concat(splittingState.initialSplit.duplicateOf)
+            .filter(filterNotEmpty);
         getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType)
             .then((extras) => {
                 getMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then((alignments) => {
@@ -56,6 +69,7 @@ export function createDuplicateSplitSectionHighlightLayer(
                         const features = createFeatures(
                             alignments,
                             extras?.duplicates.map((dupe) => dupe.id) || [],
+                            linkedDuplicates,
                         );
 
                         clearFeatures(vectorSource);

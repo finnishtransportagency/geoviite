@@ -31,9 +31,11 @@ function createDuplicateTrackEndpointAddressFeature(
     name: string,
     trackMeter: TrackMeter | undefined,
     endpointType: EndpointType,
+    zIndex: number,
 ): Feature<OlPoint> {
     const feature = new Feature({
         geometry: new OlPoint(pointToCoords(point)),
+        zIndex,
     });
 
     const { rotation, positiveXOffset } =
@@ -48,6 +50,7 @@ function createDuplicateTrackEndpointAddressFeature(
         const lineDash = [12, 6];
         const textBackgroundHeight = (fontSize + 4) * pixelRatio;
         const dashedLineWidth = 1 * pixelRatio;
+        const lineHeight = (fontSize + 3) * pixelRatio;
 
         const ctx = context;
 
@@ -61,7 +64,6 @@ function createDuplicateTrackEndpointAddressFeature(
         const nameText = name;
         const nameTextWidth = ctx.measureText(nameText).width;
         const nameTextXEndPosition = x - lineWidth * (positiveXOffset ? 1 : -1);
-        const lineHeight = (fontSize + 3) * pixelRatio;
         const nameTextYEndPosition = y - lineHeight + textPositionOffset;
 
         const trackMeterText = trackMeter ? formatTrackMeter(trackMeter) : '';
@@ -118,6 +120,9 @@ function createDuplicateTrackEndpointAddressFeature(
     return feature;
 }
 
+const calculateZIndexForTrackMeter = (trackMeter: TrackMeter): number =>
+    Math.floor(parseInt(trackMeter.kmNumber.substring(0, 4)) * 10000 + trackMeter.meters);
+
 function createFeatures(
     alignments: AlignmentDataHolder[],
     duplicates: LocationTrackDuplicate[],
@@ -135,6 +140,9 @@ function createFeatures(
                 header.name,
                 startAndEnd?.start?.address,
                 'START',
+                startAndEnd?.start?.address
+                    ? calculateZIndexForTrackMeter(startAndEnd.start.address)
+                    : 0,
             );
             const endFeature = createDuplicateTrackEndpointAddressFeature(
                 points[points.length - 1],
@@ -142,6 +150,9 @@ function createFeatures(
                 header.name,
                 startAndEnd?.end?.address,
                 'END',
+                startAndEnd?.end?.address
+                    ? calculateZIndexForTrackMeter(startAndEnd.end.address)
+                    : 0,
             );
 
             return [startFeature, endFeature];

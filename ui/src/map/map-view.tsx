@@ -69,6 +69,7 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
 import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
+import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 
 declare global {
     interface Window {
@@ -317,7 +318,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
                             publishType,
-                            linkingState,
                             changeTimes,
                             onShownLayerItemsChange,
                         );
@@ -344,8 +344,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
                             publishType,
-                            linkingState,
-                            splittingState,
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
@@ -489,6 +487,17 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             splittingState,
+                        );
+                    case 'location-track-selected-alignment-layer':
+                        return createLocationTrackSelectedAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            linkingState,
+                            splittingState,
+                            changeTimes,
+                            olView,
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(

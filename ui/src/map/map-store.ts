@@ -87,6 +87,7 @@ export const initialMapState: Map = {
         'location-track-split-location-layer',
         'duplicate-split-section-highlight-layer',
         'location-track-duplicate-endpoint-address-layer',
+        'location-track-selected-alignment-layer',
     ],
     layerMenu: {
         layout: [

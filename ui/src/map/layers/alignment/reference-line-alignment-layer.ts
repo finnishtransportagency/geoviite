@@ -2,7 +2,6 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
-import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
@@ -25,7 +24,6 @@ export function createReferenceLineAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
-    linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
@@ -48,13 +46,7 @@ export function createReferenceLineAlignmentLayer(
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 
-            const features = createAlignmentFeatures(
-                referenceLines,
-                selection,
-                linkingState,
-                false,
-                undefined,
-            );
+            const features = createAlignmentFeatures(referenceLines, selection, false);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

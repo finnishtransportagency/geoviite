@@ -6,7 +6,6 @@ import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
-import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
@@ -18,7 +17,6 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { SplittingState } from 'tool-panel/location-track/split-store';
 
 let shownLocationTracksCompare = '';
 let newestLayerId = 0;
@@ -28,8 +26,6 @@ export function createLocationTrackAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
-    linkingState: LinkingState | undefined,
-    splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -68,13 +64,7 @@ export function createLocationTrackAlignmentLayer(
 
             const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-            const features = createAlignmentFeatures(
-                locationTracks,
-                selection,
-                linkingState,
-                showEndPointTicks,
-                splittingState,
-            );
+            const features = createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);
