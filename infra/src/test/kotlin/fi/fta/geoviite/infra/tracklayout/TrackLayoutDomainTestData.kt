@@ -212,6 +212,7 @@ fun locationTrack(
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
+    ownerId: IntId<LocationTrackOwner> = IntId(1),
 ) = LocationTrack(
     name = AlignmentName(name),
     descriptionBase = FreeText(description),
@@ -230,6 +231,7 @@ fun locationTrack(
     topologyStartSwitch = topologyStartSwitch,
     topologyEndSwitch = topologyEndSwitch,
     alignmentVersion = alignmentVersion,
+    ownerId = ownerId
 ).let { lt -> if (id != null) lt.copy(id = id) else lt }
 
 fun <T> someOid() = Oid<T>(

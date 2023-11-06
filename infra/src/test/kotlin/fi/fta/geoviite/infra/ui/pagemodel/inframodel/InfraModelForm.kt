@@ -7,13 +7,16 @@ import org.openqa.selenium.By
 
 class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form-column")) {
     fun saveAsNew() {
-        logger.info("Saving infra model to database...")
+        logger.info("Save new infra model")
+
         save(true)
         waitAndClearToast("infra-model.upload.success")
     }
 
     fun save(expectConfirm: Boolean = false) {
-        clickButtonByQaId("infra-model-save-button")
+        logger.info("Save infra model")
+
+        clickChild(byQaId("infra-model-save-button"))
         if (expectConfirm) confirmSaving()
     }
 

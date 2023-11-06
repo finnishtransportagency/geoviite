@@ -110,6 +110,7 @@ export type SwitchStructureId = string;
 export type SwitchAlignmentId = string;
 export type VerticalCoordinateSystem = string;
 export type SwitchOwnerId = string;
+export type LocationTrackOwnerId = string;
 
 export type CoordinateSystem = {
     srid: Srid;
@@ -146,6 +147,11 @@ export type SwitchStructure = {
 };
 
 export type SwitchOwner = {
+    id: string;
+    name: string;
+};
+
+export type LocationTrackOwner = {
     id: string;
     name: string;
 };

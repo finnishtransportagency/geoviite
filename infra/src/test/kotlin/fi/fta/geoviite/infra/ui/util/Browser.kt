@@ -76,15 +76,6 @@ const val DEV_DEBUG = false
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
-    //when (System.getProperty("browser.name")) {
-    //    "chrome" -> PageModel.setBrowser(openChromeBrowser(headless))
-    //    "firefox" -> PageModel.setBrowser(openFireFox(headless))
-    //    else -> {
-    //        //PageModel.setBrowser(openChromeBrowser(headless))
-    //        PageModel.setBrowser(openFireFox(headless))
-    //    }
-    //}
-
 //    openFirefox(headless)
     openChrome(headless)
     logger.info("Webdriver initialized")

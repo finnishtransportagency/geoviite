@@ -48,7 +48,7 @@ class VerticalGeometryElementListTestUI
         val page = navigationBar.goToVerticalGeometryListPage().planListPage()
         page.selectPlan("goodplan")
         val results = page.resultList
-        results.waitUntilCount(2)
+        results.waitUntilItemCount(2)
         val resultItems = results.items
         assertEquals(listOf("5.280", "5.240"), resultItems.map { it.pviPointHeight })
         assertEquals(listOf("385808.877", "385943.755"), resultItems.map { it.pviPointLocationE })
@@ -70,7 +70,7 @@ class VerticalGeometryElementListTestUI
         val page = navigationBar.goToVerticalGeometryListPage()
         page.selectLocationTrack("foo test track")
         val results = page.resultList
-        results.waitUntilCount(2)
+        results.waitUntilItemCount(2)
         val resultItems = results.items
         assertEquals(listOf("5.280", "5.240"), resultItems.map { it.pviPointHeight })
         assertEquals(listOf("385808.877", "385943.755"), resultItems.map { it.pviPointLocationE })

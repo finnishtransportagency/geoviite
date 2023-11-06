@@ -65,10 +65,10 @@ class FrontPageTestUI @Autowired constructor(
         // two publications; an original one that succeeded (with the original name), then a new one above it that
         // failed
         E2EFrontPage()
-            .openNthPublication(1)
+            .openNthPublication(2)
             .apply { assertEquals(rows.first().trackNumbers, "original name") }
             .returnToFrontPage()
-            .openNthPublication(0)
+            .openNthPublication(1)
             .apply {
                 rows.first().also { r ->
                     assertEquals(r.trackNumbers, "updated name")
