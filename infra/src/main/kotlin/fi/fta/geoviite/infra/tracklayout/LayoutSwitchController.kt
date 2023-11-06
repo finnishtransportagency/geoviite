@@ -4,13 +4,13 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -50,6 +50,22 @@ class LayoutSwitchController(
         )
         val filter = switchService.switchFilter(name, switchType, bbox, includeSwitchesWithNoJoints)
         return switchService.pageSwitchesByFilter(publishType, filter, offset, limit, comparisonPoint)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publicationState}/by-name")
+    fun getSwitchesByName(
+        @PathVariable("publicationState") publicationState: PublishType,
+        @RequestParam("name") name: SwitchName,
+        @RequestParam("includeDeleted") includeDeleted: Boolean,
+    ): List<TrackLayoutSwitch> {
+        logger.apiCall(
+            "getSwitchesByName",
+            "publicationState" to "publicationState",
+            "name" to name,
+            "includeDeleted" to includeDeleted,
+        )
+        return switchService.getSwitchesByName(publicationState, name, includeDeleted)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

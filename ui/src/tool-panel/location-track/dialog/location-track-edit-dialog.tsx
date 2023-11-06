@@ -87,7 +87,7 @@ type LocationTrackDialogProps = {
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
-    onEditTrack: (LocationTrackId: LocationTrackId) => void;
+    onEditTrack: (id: LocationTrackId) => void;
 };
 
 const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);

@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
-import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
+import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
@@ -336,7 +336,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             )}
 
             {showAddSwitchDialog && (
-                <SwitchEditDialog
+                <SwitchEditDialogContainer
                     onClose={() => setShowAddSwitchDialog(false)}
                     onSave={handleSwitchSave}
                 />
