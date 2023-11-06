@@ -10,7 +10,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
+import { redHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 
@@ -20,7 +20,7 @@ function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature
         .flatMap(({ points }) => {
             const feature = new Feature({ geometry: new LineString(points.map(pointToCoords)) });
 
-            feature.setStyle(blueHighlightStyle);
+            feature.setStyle(redHighlightStyle);
 
             return feature;
         });
