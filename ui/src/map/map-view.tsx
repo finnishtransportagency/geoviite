@@ -317,6 +317,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
+                            !!splittingState,
                             publishType,
                             changeTimes,
                             onShownLayerItemsChange,
@@ -325,6 +326,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createReferenceLineBackgroundLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            !!splittingState,
                             publishType,
                             changeTimes,
                         );
@@ -343,6 +345,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
+                            !!splittingState,
                             publishType,
                             changeTimes,
                             olView,
@@ -356,6 +359,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             selection,
+                            !!splittingState,
                         );
                     case 'location-track-badge-layer':
                         return createLocationTrackBadgeLayer(

@@ -10,6 +10,8 @@ import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-ap
 import {
     createAlignmentFeatures,
     findMatchingAlignments,
+    NORMAL_ALIGNMENT_OPACITY,
+    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
@@ -23,6 +25,7 @@ export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
+    isSplitting: boolean,
     publishType: PublishType,
     changeTimes: ChangeTimes,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -31,6 +34,9 @@ export function createReferenceLineAlignmentLayer(
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    layer.setOpacity(
+        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
+    );
 
     function updateShownReferenceLines(referenceLineIds: ReferenceLineId[]) {
         const compare = referenceLineIds.sort().join();

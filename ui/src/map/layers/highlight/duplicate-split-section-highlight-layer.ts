@@ -16,12 +16,11 @@ import {
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackInfoboxExtras } from 'track-layout/layout-location-track-api';
-import { filterNotEmpty } from 'utils/array-utils';
 
 function createFeatures(
     alignments: AlignmentDataHolder[],
     duplicateIds: LocationTrackId[],
-    linkedDuplicates: LocationTrackId[],
+    linkedDuplicates: (LocationTrackId | undefined)[],
 ): Feature<LineString>[] {
     return alignments
         .filter((alignment) => duplicateIds.includes(alignment.header.id))
@@ -29,7 +28,7 @@ function createFeatures(
             const polyline = points.map(pointToCoords);
             const lineString = new LineString(polyline);
             const feature = new Feature({ geometry: lineString });
-            console.log(linkedDuplicates, header.id);
+
             if (linkedDuplicates.includes(header.id)) {
                 feature.setStyle(blueSplitSectionStyle);
             } else {
@@ -60,8 +59,7 @@ export function createDuplicateSplitSectionHighlightLayer(
         inFlight = true;
         const linkedDuplicates = splittingState.splits
             .map((split) => split.duplicateOf)
-            .concat(splittingState.initialSplit.duplicateOf)
-            .filter(filterNotEmpty);
+            .concat(splittingState.initialSplit.duplicateOf);
         getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType)
             .then((extras) => {
                 getMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then((alignments) => {

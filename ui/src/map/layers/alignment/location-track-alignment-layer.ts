@@ -11,6 +11,8 @@ import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentFeatures,
     findMatchingAlignments,
+    NORMAL_ALIGNMENT_OPACITY,
+    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
@@ -25,6 +27,7 @@ export function createLocationTrackAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
+    isSplitting: boolean,
     publishType: PublishType,
     changeTimes: ChangeTimes,
     olView: OlView,
@@ -34,6 +37,9 @@ export function createLocationTrackAlignmentLayer(
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    layer.setOpacity(
+        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
+    );
 
     const resolution = olView.getResolution() || 0;
 
