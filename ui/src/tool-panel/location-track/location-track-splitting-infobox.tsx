@@ -91,7 +91,7 @@ const Split: React.FC<SplitProps> = ({
                             value={split.name}
                             onChange={(e) => {
                                 const duplicateId = duplicateLocationTracks.find(
-                                    (lt) => lt.name === split.name,
+                                    (lt) => lt.name === e.target.value,
                                 )?.id;
                                 updateSplit({
                                     ...split,

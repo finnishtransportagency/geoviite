@@ -47,6 +47,7 @@ export type SwitchOnLocationTrack = {
 
 export const splitReducers = {
     onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
+        state.publishType = 'DRAFT';
         state.splittingState = {
             originLocationTrack: payload.locationTrack,
             allowedSwitches: payload.allowedSwitches,

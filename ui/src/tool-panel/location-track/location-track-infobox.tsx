@@ -409,7 +409,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     </React.Fragment>
                                 )}
                                 <InfoboxButtons>
-                                    {!splittingState && (
+                                    {!linkingState && !splittingState && (
                                         <Button
                                             variant={ButtonVariant.SECONDARY}
                                             size={ButtonSize.SMALL}
