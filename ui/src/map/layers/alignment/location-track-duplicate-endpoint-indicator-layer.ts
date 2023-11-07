@@ -10,7 +10,16 @@ import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { AlignmentStartAndEnd, LocationTrackDuplicate } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { getRotation } from 'map/layers/utils/dashed-line-indicator-utils';
+import {
+    DASHED_LINE_INDICATOR_FONT_SIZE,
+    getRotation,
+    indicatorDashedLineWidth,
+    indicatorLineDash,
+    indicatorLineHeight,
+    indicatorLineWidth,
+    indicatorTextBackgroundHeight,
+    indicatorTextPadding,
+} from 'map/layers/utils/dashed-line-indicator-utils';
 import mapStyles from 'map/map.module.scss';
 import { Point as OlPoint } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
@@ -24,6 +33,7 @@ import {
 import { Point } from 'model/geometry';
 
 type EndpointType = 'START' | 'END';
+const BLACK = '#000000';
 
 function createDuplicateTrackEndpointAddressFeature(
     point: Point,
@@ -44,33 +54,31 @@ function createDuplicateTrackEndpointAddressFeature(
             : getRotation(pointToCoords(controlPoint), pointToCoords(point));
 
     const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
-        const fontSize = 12;
-        const lineWidth = 120 * pixelRatio;
-        const textPadding = 3 * pixelRatio;
-        const lineDash = [12, 6];
-        const textBackgroundHeight = (fontSize + 4) * pixelRatio;
-        const dashedLineWidth = 1 * pixelRatio;
-        const lineHeight = (fontSize + 3) * pixelRatio;
-
         const ctx = context;
 
-        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${pixelRatio * fontSize}px ${
-            mapStyles['alignmentBadge-font-family']
-        }`;
+        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
+            pixelRatio * DASHED_LINE_INDICATOR_FONT_SIZE
+        }px ${mapStyles['alignmentBadge-font-family']}`;
 
         ctx.save();
-        const textPositionOffset = endpointType === 'START' ? 0 : 2 * textBackgroundHeight;
+        const textPositionOffset =
+            endpointType === 'START' ? 0 : 2 * indicatorTextBackgroundHeight(pixelRatio);
 
         const nameText = name;
         const nameTextWidth = ctx.measureText(nameText).width;
-        const nameTextXEndPosition = x - lineWidth * (positiveXOffset ? 1 : -1);
-        const nameTextYEndPosition = y - lineHeight + textPositionOffset;
+        const nameTextXEndPosition =
+            x - indicatorLineWidth(pixelRatio) * (positiveXOffset ? 1 : -1);
+        const nameTextYEndPosition = y - indicatorLineHeight(pixelRatio) + textPositionOffset;
 
         const trackMeterText = trackMeter ? formatTrackMeter(trackMeter) : '';
         const trackMeterTextWidth = ctx.measureText(trackMeterText).width;
-        const trackMeterTextXEndPosition = x - lineWidth * (positiveXOffset ? 1 : -1);
+        const trackMeterTextXEndPosition =
+            x - indicatorLineWidth(pixelRatio) * (positiveXOffset ? 1 : -1);
         const trackMeterTextYEndPosition =
-            y - lineHeight + textBackgroundHeight + textPositionOffset;
+            y -
+            indicatorLineHeight(pixelRatio) +
+            indicatorTextBackgroundHeight(pixelRatio) +
+            textPositionOffset;
 
         ctx.translate(x, y);
         ctx.rotate(rotation);
@@ -79,37 +87,40 @@ function createDuplicateTrackEndpointAddressFeature(
         ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
         ctx.fillRect(
             nameTextXEndPosition,
-            endpointType === 'START' ? y - textBackgroundHeight * 2 : y,
-            nameTextWidth + textPadding * 2,
-            textBackgroundHeight,
+            endpointType === 'START' ? y - indicatorTextBackgroundHeight(pixelRatio) * 2 : y,
+            nameTextWidth + indicatorTextPadding(pixelRatio) * 2,
+            indicatorTextBackgroundHeight(pixelRatio),
         );
         ctx.fillRect(
             trackMeterTextXEndPosition,
-            endpointType === 'START' ? y - textBackgroundHeight : y + textBackgroundHeight,
-            trackMeterTextWidth + textPadding * 2,
-            textBackgroundHeight,
+            endpointType === 'START'
+                ? y - indicatorTextBackgroundHeight(pixelRatio)
+                : y + indicatorTextBackgroundHeight(pixelRatio),
+            trackMeterTextWidth + indicatorTextPadding(pixelRatio) * 2,
+            indicatorTextBackgroundHeight(pixelRatio),
         );
 
         //Dashed line
         ctx.beginPath();
-        ctx.lineWidth = dashedLineWidth;
-        ctx.strokeStyle = '#000000';
-        ctx.setLineDash(lineDash);
+        ctx.lineWidth = indicatorDashedLineWidth(pixelRatio);
+        ctx.strokeStyle = BLACK;
+        ctx.setLineDash(indicatorLineDash);
         ctx.moveTo(x, y);
         ctx.lineTo(nameTextXEndPosition, y);
         ctx.stroke();
 
-        ctx.fillStyle = '#000000';
+        ctx.fillStyle = BLACK;
         ctx.textAlign = positiveXOffset ? 'left' : 'right';
         ctx.textBaseline = 'bottom';
         ctx.fillText(
             nameText,
-            nameTextXEndPosition - textPadding * (positiveXOffset ? -1 : 1),
+            nameTextXEndPosition - indicatorTextPadding(pixelRatio) * (positiveXOffset ? -1 : 1),
             nameTextYEndPosition,
         );
         ctx.fillText(
             trackMeterText,
-            trackMeterTextXEndPosition - textPadding * (positiveXOffset ? -1 : 1),
+            trackMeterTextXEndPosition -
+                indicatorTextPadding(pixelRatio) * (positiveXOffset ? -1 : 1),
             trackMeterTextYEndPosition,
         );
 
@@ -129,7 +140,11 @@ function createFeatures(
     startsAndEnds: AlignmentStartAndEnd[],
 ): Feature<OlPoint>[] {
     return alignments
-        .filter((alignment) => duplicates.map((d) => d.id).includes(alignment.header.id))
+        .filter(
+            (alignment) =>
+                duplicates.map((d) => d.id).includes(alignment.header.id) &&
+                alignment.points.length >= 2,
+        )
         .flatMap(({ points, header }) => {
             const startAndEnd = startsAndEnds.find(
                 (idToStartAndEnd) => idToStartAndEnd.id === header.id,

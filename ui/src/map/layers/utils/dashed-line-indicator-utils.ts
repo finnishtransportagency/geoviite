@@ -1,5 +1,15 @@
 import { Coordinate } from 'ol/coordinate';
 
+export const DASHED_LINE_INDICATOR_FONT_SIZE = 12;
+export const indicatorLineWidth = (pixelRatio: number) => 120 * pixelRatio;
+export const indicatorTextPadding = (pixelRatio: number) => 3 * pixelRatio;
+export const indicatorLineDash = [12, 6];
+export const indicatorTextBackgroundHeight = (pixelRatio: number) =>
+    (DASHED_LINE_INDICATOR_FONT_SIZE + 4) * pixelRatio;
+export const indicatorDashedLineWidth = (pixelRatio: number) => pixelRatio;
+export const indicatorLineHeight = (pixelRatio: number) =>
+    (DASHED_LINE_INDICATOR_FONT_SIZE + 3) * pixelRatio;
+
 export function getRotation(start: Coordinate, end: Coordinate) {
     const dx = end[0] - start[0];
     const dy = end[1] - start[1];
