@@ -22,6 +22,7 @@ export const mapLayerZIndexes = [
     'location-track-selected-alignment-layer',
     'location-track-badge-layer',
     'reference-line-badge-layer',
+    'location-track-split-badge-layer',
     'km-post-layer',
     'switch-layer',
     'track-number-addresses-layer',

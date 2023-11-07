@@ -321,6 +321,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     removeSplit={delegates.removeSplit}
                     cancelSplitting={() => {
                         delegates.cancelSplitting();
+                        delegates.hideLayers(['location-track-split-location-layer']);
                     }}
                     allowedSwitches={splittingState.allowedSwitches}
                     duplicateLocationTracks={extraInfo?.duplicates || []}
@@ -426,6 +427,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                             startAndEndPoints.start.point,
                                                         endLocation: startAndEndPoints.end.point,
                                                     });
+                                                    delegates.showLayers([
+                                                        'location-track-split-location-layer',
+                                                    ]);
                                                 }
                                             }}>
                                             {t('tool-panel.location-track.start-splitting')}

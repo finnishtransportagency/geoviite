@@ -19,12 +19,12 @@ type MapAlignmentBadgePoint = {
     nextPoint: number[];
 };
 
-enum AlignmentBadgeColor {
+export enum AlignmentBadgeColor {
     LIGHT,
     DARK,
 }
 
-function createBadgeFeatures(
+export function createBadgeFeatures(
     name: string,
     points: MapAlignmentBadgePoint[],
     color: AlignmentBadgeColor,
@@ -157,7 +157,10 @@ function getBadgeRotation(start: Coordinate, end: Coordinate) {
     };
 }
 
-function getBadgePoints(points: LayoutPoint[], drawDistance: number): MapAlignmentBadgePoint[] {
+export function getBadgePoints(
+    points: LayoutPoint[],
+    drawDistance: number,
+): MapAlignmentBadgePoint[] {
     if (points.length < 3) return [];
 
     const start = Math.ceil(points[1].m / drawDistance);

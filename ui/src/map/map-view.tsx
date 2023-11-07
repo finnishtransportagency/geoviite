@@ -70,6 +70,7 @@ import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/loca
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
 import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
+import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 
 declare global {
     interface Window {
@@ -491,6 +492,15 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             splittingState,
+                        );
+                    case 'location-track-split-badge-layer':
+                        return createLocationTrackSplitBadgeLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            publishType,
+                            splittingState,
+                            changeTimes,
+                            resolution,
                         );
                     case 'location-track-selected-alignment-layer':
                         return createLocationTrackSelectedAlignmentLayer(
