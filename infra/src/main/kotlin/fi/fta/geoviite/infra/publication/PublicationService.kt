@@ -313,12 +313,12 @@ class PublicationService @Autowired constructor(
 
         val draftOnlyTrackNumbers =
             publishRequestIds.trackNumbers.filter { id -> !trackNumberDao.officialExists(id) }.toSet()
-        val locationTracks = publishRequestIds.locationTracks.toSet() + locationTrackService.list(DRAFT)
-            .filter { lt -> draftOnlyTrackNumbers.contains(lt.trackNumberId) }
-            .map { lt -> lt.id as IntId }
-        val kmPosts = publishRequestIds.kmPosts.toSet() + kmPostService.list(DRAFT)
-            .filter { kp -> draftOnlyTrackNumbers.contains(kp.trackNumberId) }
-            .map { kp -> kp.id as IntId }
+        val locationTracks = publishRequestIds.locationTracks.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
+            locationTrackDao.fetchOnlyDraftVersions(false, trackNumberId)
+        }.map { lt -> lt.id }
+        val kmPosts = publishRequestIds.kmPosts.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
+            kmPostDao.fetchOnlyDraftVersions(false, trackNumberId)
+        }.map { kp -> kp.id }
 
         val switches = publishRequestIds.switches.toSet()
         val (allLocationTracks, allSwitches) = getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
