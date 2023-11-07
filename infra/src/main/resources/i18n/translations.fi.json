@@ -233,6 +233,7 @@
             "vertical-geometry": "Pystygeometria",
             "km-lengths": "Ratakilometrien pituudet"
         },
+        "licenses": "Lisenssitiedot",
         "vertical-geometry-diagram-demo": "Korkeuskaavio-demo",
         "more": "Lisää",
         "logout": "Kirjaudu ulos",
@@ -1460,5 +1461,14 @@
             "invalid-startAddress": "Virheellinen ratanumeron alkuosoite",
             "duplicate-number": "Ratanumeron tunnus on jo käytössä"
         }
+    },
+    "licenses-page": {
+        "title": "Lisenssitiedot",
+        "third-party-licenses-title": "Avoimen lähdekoodin lisenssit",
+        "name": "Kirjasto",
+        "version": "Versio",
+        "author": "Kehittäjä",
+        "repository": "Lähdekoodi",
+        "license": "Lisenssi"
     }
 }
