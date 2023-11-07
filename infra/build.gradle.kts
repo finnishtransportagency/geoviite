@@ -40,9 +40,10 @@ dependencies {
     implementation("org.hsqldb", "hsqldb").version {
         strictly("[2.7.1,2.8.0)")
     }
+
     // For spring-boot-starter-actuator & aws-java-sdk-cloudfront
     implementation("org.yaml", "snakeyaml").version {
-        strictly("[1.33,2.0)")
+        strictly("[2.0,)")
     }
 
     // Actual deps
