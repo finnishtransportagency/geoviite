@@ -649,6 +649,22 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun kmPostsAndLocationTracksDependOnTheirTrackNumber() {
+        val trackNumber = insertDraftTrackNumber()
+        val locationTrack = locationTrackService.saveDraft(locationTrack(trackNumber)).id
+        val kmPost = kmPostService.saveDraft(kmPost(trackNumber, KmNumber(0))).id
+        val all = publishRequest(
+            trackNumbers = listOf(trackNumber),
+            locationTracks = listOf(locationTrack),
+            kmPosts = listOf(kmPost)
+        )
+        assertEquals(
+            all,
+            publicationService.getRevertRequestDependencies(publishRequest(trackNumbers = listOf(trackNumber)))
+        )
+    }
+
+    @Test
     fun `should sort publications by publication time in descending order`() {
         val trackNumber1Id = insertDraftTrackNumber()
         val trackNumber2Id = insertDraftTrackNumber()

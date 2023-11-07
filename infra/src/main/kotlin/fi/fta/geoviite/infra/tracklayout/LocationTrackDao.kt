@@ -414,4 +414,21 @@ class LocationTrackDao(
         return locationTrackOwners
     }
 
+    fun fetchOnlyDraftVersions(includeDeleted: Boolean, trackNumberId: IntId<TrackLayoutTrackNumber>? = null): List<RowVersion<LocationTrack>> {
+        val sql = """
+            select id, version
+            from layout.location_track
+            where draft
+              and (:includeDeleted or state != 'DELETED')
+              and (:trackNumberId::int is null or track_number_id = :trackNumberId)
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("includeDeleted" to includeDeleted, "trackNumberId" to trackNumberId?.intValue)
+        ) { rs, _ ->
+            rs.getRowVersion<LocationTrack>("id", "version")
+        }.also { ids ->
+            logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
+        }
+    }
 }

@@ -311,28 +311,32 @@ class PublicationService @Autowired constructor(
     fun getRevertRequestDependencies(publishRequestIds: PublishRequestIds): PublishRequestIds {
         logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to publishRequestIds)
 
-        val newTrackNumbers = publishRequestIds.referenceLines.mapNotNull { id -> referenceLineService.get(DRAFT, id) }
-            .map { rl -> rl.trackNumberId }
-            .filter(trackNumberService::draftExists)
+        val draftOnlyTrackNumbers =
+            publishRequestIds.trackNumbers.filter { id -> !trackNumberDao.officialExists(id) }.toSet()
+        val locationTracks = publishRequestIds.locationTracks.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
+            locationTrackDao.fetchOnlyDraftVersions(false, trackNumberId)
+        }.map { lt -> lt.id }
+        val kmPosts = publishRequestIds.kmPosts.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
+            kmPostDao.fetchOnlyDraftVersions(false, trackNumberId)
+        }.map { kp -> kp.id }
 
-        val newReferenceLines =
-            publishRequestIds.trackNumbers.mapNotNull { id -> referenceLineService.getByTrackNumber(DRAFT, id) }
-                .filter { line -> line.draft != null }
-                .map { line -> line.id as IntId }
-        val allTrackNumbers = publishRequestIds.trackNumbers.toSet() + newTrackNumbers.toSet()
-        val allReferenceLines = publishRequestIds.referenceLines.toSet() + newReferenceLines.toSet()
-        val locationTracks = publishRequestIds.locationTracks.toSet()
         val switches = publishRequestIds.switches.toSet()
         val (allLocationTracks, allSwitches) = getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
             locationTracks, locationTracks, switches, switches
         )
+        val trackNumbers = (publishRequestIds.trackNumbers + publishRequestIds.referenceLines.mapNotNull { id ->
+            referenceLineService.get(DRAFT, id)
+        }.map { rl -> rl.trackNumberId }.filter(trackNumberService::draftExists)).distinct()
+        val referenceLines = (publishRequestIds.referenceLines + publishRequestIds.trackNumbers.mapNotNull { id ->
+            referenceLineService.getByTrackNumber(DRAFT, id)
+        }.filter { line -> line.draft != null }.map { line -> line.id as IntId }).distinct()
 
         return PublishRequestIds(
-            trackNumbers = allTrackNumbers.toList(),
-            referenceLines = allReferenceLines.toList(),
+            trackNumbers = trackNumbers,
+            referenceLines = referenceLines,
             locationTracks = allLocationTracks.toList(),
             switches = allSwitches.toList(),
-            kmPosts = publishRequestIds.kmPosts
+            kmPosts = kmPosts.toList()
         )
     }
 

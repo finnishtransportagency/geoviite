@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.KmPostError
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -260,5 +261,22 @@ class LayoutKmPostDao(
         } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, rowId)
         return response
+    }
+
+    fun fetchOnlyDraftVersions(includeDeleted: Boolean, trackNumberId: IntId<TrackLayoutTrackNumber>? = null): List<RowVersion<TrackLayoutKmPost>> {
+        val sql = """
+            select id, version
+            from layout.km_post
+            where draft
+              and (:include_deleted or state != 'DELETED')
+              and (:trackNumberId::int is null or track_number_id = :trackNumberId)
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql, mapOf("include_deleted" to includeDeleted, "trackNumberId" to trackNumberId?.intValue)
+        ) { rs, _ ->
+            rs.getRowVersion<TrackLayoutKmPost>("id", "version")
+        }.also { ids ->
+            logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
+        }
     }
 }
