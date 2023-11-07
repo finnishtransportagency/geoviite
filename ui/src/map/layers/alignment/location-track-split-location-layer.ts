@@ -9,8 +9,6 @@ import mapStyles from 'map/map.module.scss';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 
-let newestLayerId = 0;
-
 const splitPointStyle = new Style({
     image: new Circle({
         radius: 8,
@@ -23,8 +21,6 @@ export const createLocationTrackSplitLocationLayer = (
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     splittingState: SplittingState | undefined,
 ): MapLayer => {
-    const _layerId = ++newestLayerId;
-
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     if (splittingState) {
