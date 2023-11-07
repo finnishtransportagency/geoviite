@@ -44,6 +44,7 @@ export const Menu = function <TValue>({
                         <li
                             key={`${index}_${i.name}`}
                             qa-id={i.qaId}
+                            title={`${i.name}`}
                             className={createClassName(
                                 styles['menu__item'],
                                 i.disabled && styles['menu__item--disabled'],
