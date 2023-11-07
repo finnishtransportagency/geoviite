@@ -177,6 +177,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             return { name: tn.number + note, value: tn.id };
         });
 
+    const moveToEditLinkText = (kmp: LayoutKmPost) => {
+        const state = kmp.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        return t('km-post-dialog.move-to-edit', {
+            number: kmp.kmNumber + state,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -244,9 +251,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>
-                                        {t('km-post-dialog.move-to-edit', {
-                                            number: state.trackNumberKmPost.kmNumber,
-                                        })}
+                                        {moveToEditLinkText(state.trackNumberKmPost)}
                                     </Link>
                                 )}
                         </FieldLayout>

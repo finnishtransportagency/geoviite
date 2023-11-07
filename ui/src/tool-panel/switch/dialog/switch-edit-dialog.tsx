@@ -294,6 +294,16 @@ export const SwitchEditDialog = ({
         onClose();
     }
 
+    const moveToEditLinkText = (s: LayoutSwitch) => {
+        const state =
+            s.stateCategory === 'NOT_EXISTING'
+                ? ` (${t('enum.layout-state-category.NOT_EXISTING')})`
+                : '';
+        return t('switch-dialog.move-to-edit', {
+            name: s.name + state,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -348,9 +358,7 @@ export const SwitchEditDialog = ({
                                     <Link
                                         className="move-to-edit-link"
                                         onClick={() => onEdit(conflictingSwitch.id)}>
-                                        {t('switch-dialog.move-to-edit', {
-                                            name: conflictingSwitch.name,
-                                        })}
+                                        {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
                                 </>
                             )}

@@ -304,6 +304,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             return { name: tn.number + note, value: tn.id };
         });
 
+    const moveToEditLinkText = (track: LayoutLocationTrack) => {
+        const state = track.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        return t('location-track-dialog.move-to-edit', {
+            name: track.name + state,
+        });
+    };
     return (
         <React.Fragment>
             <Dialog
@@ -377,9 +383,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     <Link
                                         className="move-to-edit-link"
                                         onClick={() => props.onEditTrack(trackWithSameName.id)}>
-                                        {t('location-track-dialog.move-to-edit', {
-                                            name: trackWithSameName.name,
-                                        })}
+                                        {moveToEditLinkText(trackWithSameName)}
                                     </Link>
                                 </>
                             )}

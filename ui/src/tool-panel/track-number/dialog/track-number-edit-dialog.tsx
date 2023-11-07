@@ -162,6 +162,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             tn.id !== inEditTrackNumber?.id,
     );
 
+    const moveToEditLinkText = (tn: LayoutTrackNumber) => {
+        const state = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        return t('track-number-edit.action.move-to-edit', {
+            number: tn.number + state,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -230,9 +237,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 <Link
                                     className="move-to-edit-link"
                                     onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
-                                    {t('track-number-edit.action.move-to-edit', {
-                                        number: otherTrackNumber.number,
-                                    })}
+                                    {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}
                         </FieldLayout>
