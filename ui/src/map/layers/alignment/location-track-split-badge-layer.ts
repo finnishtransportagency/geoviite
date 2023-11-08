@@ -17,11 +17,17 @@ import {
     AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
-import { SplittingState } from 'tool-panel/location-track/split-store';
+import { sortSplitsByDistance, SplittingState } from 'tool-panel/location-track/split-store';
 import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 
 let newestLayerId = 0;
+
+type SplitBoundsAndName = {
+    start: number;
+    end: number;
+    name: string;
+};
 
 const createSplitBadgeFeatures = (
     alignment: AlignmentDataHolder,
@@ -30,35 +36,30 @@ const createSplitBadgeFeatures = (
 ) =>
     splits.flatMap((split) => {
         const badgePoints = getBadgePoints(
-            alignment.points.filter(
-                (point) => point.m >= split.startPoint && point.m <= split.endPoint,
-            ),
+            alignment.points.filter((point) => point.m >= split.start && point.m <= split.end),
             badgeDrawDistance,
         );
 
         return createBadgeFeatures(split.name, badgePoints, AlignmentBadgeColor.LIGHT, true);
     });
 
-type SplitBoundsAndName = {
-    startPoint: number;
-    endPoint: number;
-    name: string;
-};
-
-const splits = (
+const calculateSplitBounds = (
     splittingState: SplittingState,
     originalStartAndEnd: AlignmentStartAndEnd,
 ): SplitBoundsAndName[] => {
-    const splitsSorted = [...splittingState.splits].sort((a, b) => a.distance - b.distance);
+    const splitsSorted = sortSplitsByDistance(splittingState.splits);
     return [
         {
-            startPoint: 0,
-            endPoint: splitsSorted[0].distance,
+            start: originalStartAndEnd.start?.point.m || 0,
+            end: splitsSorted[0]?.distance || originalStartAndEnd.end?.point?.m || 0,
             name: splittingState.initialSplit.name,
         },
         ...splitsSorted.map((split, index) => ({
-            startPoint: split.distance,
-            endPoint: splitsSorted[index + 1]?.distance || originalStartAndEnd.end?.point?.m || 0,
+            start: split.distance,
+            end:
+                splitsSorted[index + 1]?.distance ||
+                originalStartAndEnd.end?.point?.m ||
+                split.distance,
             name: split.name,
         })),
     ].filter((split) => split.name);
@@ -87,33 +88,33 @@ export function createLocationTrackSplitBadgeLayer(
             mapTiles,
             publishType,
             splittingState.originLocationTrack.id,
-        ).then((locationTracks) => {
-            getLocationTrackStartAndEnd(
-                splittingState.originLocationTrack.id,
-                publishType,
-                changeTimes.layoutLocationTrack,
-            )
-                .then((startAndEnd) => {
+        )
+            .then((locationTracks) => {
+                getLocationTrackStartAndEnd(
+                    splittingState.originLocationTrack.id,
+                    publishType,
+                    changeTimes.layoutLocationTrack,
+                ).then((startAndEnd) => {
                     if (layerId !== newestLayerId || !startAndEnd) return;
-                    const lt = locationTracks.filter(
-                        (lt) => lt.header.id === splittingState.originLocationTrack.id,
-                    )[0];
 
-                    const features = createSplitBadgeFeatures(
-                        lt,
-                        splits(splittingState, startAndEnd),
-                        badgeDrawDistance,
+                    const alignmentDataHolders = locationTracks.filter(
+                        ({ header }) => header.id === splittingState.originLocationTrack.id,
+                    );
+
+                    const splitBounds = calculateSplitBounds(splittingState, startAndEnd);
+                    const features = alignmentDataHolders.flatMap((alignment) =>
+                        createSplitBadgeFeatures(alignment, splitBounds, badgeDrawDistance),
                     );
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
-                })
-                .catch(() => {
-                    if (layerId === newestLayerId) clearFeatures(vectorSource);
-                })
-                .finally(() => {
-                    inFlight = false;
                 });
-        });
+            })
+            .catch(() => {
+                if (layerId === newestLayerId) clearFeatures(vectorSource);
+            })
+            .finally(() => {
+                inFlight = false;
+            });
     } else {
         clearFeatures(vectorSource);
     }

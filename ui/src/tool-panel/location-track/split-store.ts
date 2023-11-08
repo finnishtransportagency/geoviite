@@ -45,6 +45,9 @@ export type SwitchOnLocationTrack = {
     distance: number | undefined;
 };
 
+export const sortSplitsByDistance = (splits: Split[]) =>
+    [...splits].sort((a, b) => a.distance - b.distance);
+
 export const splitReducers = {
     onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
         state.publishType = 'DRAFT';

@@ -62,7 +62,7 @@ const relatedMapLayers: LayerCollection = {
     ],
 };
 
-const inverseRelatedMapLayers: LayerCollection = {
+const layersToHideByProxy: LayerCollection = {
     'location-track-split-location-layer': ['location-track-badge-layer'],
 };
 
@@ -170,7 +170,7 @@ export const mapReducers = {
             ...layers,
             ...collectRelatedLayers(layers),
         ]);
-        const layersHiddenByProxy = collectLayersToHide(newVisibleLayers);
+        const layersHiddenByProxy = collectLayersHiddenByProxy(newVisibleLayers);
         state.visibleLayers = newVisibleLayers.filter(
             (layer) => !layersHiddenByProxy.includes(layer),
         );
@@ -187,7 +187,7 @@ export const mapReducers = {
         const visibleLayers = state.visibleLayers
             .filter((l) => !relatedLayers.includes(l) && !layers.includes(l))
             .concat(layersByMenu);
-        const layersHiddenByProxy = collectLayersToHide(visibleLayers);
+        const layersHiddenByProxy = collectLayersHiddenByProxy(visibleLayers);
 
         state.visibleLayers = deduplicate([
             ...alwaysOnLayers,
@@ -274,17 +274,16 @@ function collectChangedLayers(
     });
 }
 
-function collectLayers(layers: LayerCollection, items: MapLayerMenuItem[]): MapLayerName[] {
+function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
     return items.flatMap((i) =>
         i.visible
-            ? [...layerMenuItemMapLayers[i.name], ...collectLayers(layers, i.subMenu ?? [])]
+            ? [...layerMenuItemMapLayers[i.name], ...collectVisibleLayers(i.subMenu ?? [])]
             : [],
     );
 }
 
-const collectVisibleLayers = (items: MapLayerMenuItem[]) => collectLayers(relatedMapLayers, items);
-const collectLayersToHide = (items: MapLayerName[]) =>
-    deduplicate(items.flatMap((i) => inverseRelatedMapLayers[i]).filter(filterNotEmpty));
+const collectLayersHiddenByProxy = (items: MapLayerName[]) =>
+    deduplicate(items.flatMap((i) => layersToHideByProxy[i]).filter(filterNotEmpty));
 
 function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
     const relatedLayers = layers.flatMap((l) => relatedMapLayers[l]).filter(filterNotEmpty);

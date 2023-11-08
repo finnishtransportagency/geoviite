@@ -7,7 +7,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { compareTrackMeterStrings, TrackMeter as TrackMeterModel } from 'common/common-model';
+import { TrackMeter as TrackMeterModel } from 'common/common-model';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
@@ -19,13 +19,17 @@ import {
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import { InitialSplit, Split, SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
+import {
+    InitialSplit,
+    sortSplitsByDistance,
+    Split,
+    SwitchOnLocationTrack,
+} from 'tool-panel/location-track/split-store';
 import {
     useLocationTrack,
     useLocationTrackStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
-import { formatTrackMeter } from 'utils/geography-utils';
 
 type LocationTrackInfoboxSplittingProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -168,17 +172,6 @@ const Endpoint: React.FC<EndpointProps> = ({ address }) => {
     );
 };
 
-const sortSplitsBySwitchLocation = (splits: Split[], allowedSwitches: SwitchOnLocationTrack[]) =>
-    [...splits].sort((a, b) => {
-        const aAddress = allowedSwitches.find((sw) => sw.switchId === a.switchId)?.address;
-        const bAddress = allowedSwitches.find((sw) => sw.switchId === b.switchId)?.address;
-        if (aAddress && bAddress) {
-            return compareTrackMeterStrings(formatTrackMeter(aAddress), formatTrackMeter(bAddress));
-        } else if (aAddress) return 1;
-        else if (bAddress) return -1;
-        else return 0;
-    });
-
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplittingProps> = ({
     duplicateLocationTracks,
     visibilities,
@@ -197,7 +190,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
     const getSplitLocation = (split: Split) =>
         allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
 
-    const sortedSplits = sortSplitsBySwitchLocation(splits, allowedSwitches);
+    const sortedSplits = sortSplitsByDistance(splits);
 
     return (
         <React.Fragment>
