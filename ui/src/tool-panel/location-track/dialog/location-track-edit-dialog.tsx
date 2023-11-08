@@ -331,7 +331,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
                                 onClick={() => cancelSave()}>
-                                {t('button.return')}
+                                {t('button.cancel')}
                             </Button>
                             <Button
                                 disabled={!canSaveLocationTrack(state)}

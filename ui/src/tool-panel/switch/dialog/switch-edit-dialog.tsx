@@ -314,9 +314,14 @@ export const SwitchEditDialog = ({
                                 {t('tool-panel.switch.layout.delete-draft')}
                             </Button>
                         )}
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                        <div
+                            className={
+                                existingSwitch?.draftType === 'NEW_DRAFT'
+                                    ? dialogStyles['dialog__footer-content--right-aligned']
+                                    : dialogStyles['dialog__footer-content--centered']
+                            }>
                             <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
-                                {t('button.return')}
+                                {t('button.cancel')}
                             </Button>
                             <Button
                                 disabled={validationErrors.length > 0 || isSaving}
