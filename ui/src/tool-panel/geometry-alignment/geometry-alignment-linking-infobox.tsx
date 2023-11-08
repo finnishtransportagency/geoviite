@@ -368,7 +368,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={linkingCallInProgress}
                                 onClick={startLinking}>
-                                {t('tool-panel.alignment.geometry.cancel')}
+                                {t('tool-panel.alignment.geometry.return')}
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
