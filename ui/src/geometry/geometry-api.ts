@@ -53,7 +53,7 @@ export const GEOMETRY_URI = `${API_URI}/geometry`;
 
 const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | undefined>();
 const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | undefined>();
-const geometryPlanAreaCache = asyncCache<GeometryPlanId, PlanArea[]>();
+const geometryPlanAreaCache = asyncCache<string, PlanArea[]>(); // map tile ID => plan area[]
 
 const projectCache = asyncCache<undefined, Project[]>();
 
@@ -271,16 +271,6 @@ export async function getTrackLayoutPlan(
     const url = `${GEOMETRY_URI}/plans/${planId}/layout?includeGeometryData=${includeGeometryData}`;
     const key = `${planId}-${includeGeometryData}`;
     return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
-}
-
-export async function getTrackLayoutPlans(
-    planIds: GeometryPlanId[],
-    includeGeometryData = true,
-): Promise<GeometryPlanLayout[]> {
-    const changeTime = getChangeTimes().geometryPlan;
-    return Promise.all(
-        planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
-    ).then((plans) => plans.filter(filterNotEmpty));
 }
 
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {

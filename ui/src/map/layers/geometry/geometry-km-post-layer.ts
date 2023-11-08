@@ -18,10 +18,12 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { MapTile } from 'map/map-model';
 
 let newestLayerId = 0;
 
 export function createGeometryKmPostLayer(
+    mapTiles: MapTile[],
     resolution: number,
     existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
@@ -51,7 +53,7 @@ export function createGeometryKmPostLayer(
 
         const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
             ? getManualPlanWithStatus(manuallySetPlan, publishType)
-            : getVisiblePlansWithStatus(selection.visiblePlans, publishType, changeTimes);
+            : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes);
 
         plansPromise
             .then((planStatuses) => {
