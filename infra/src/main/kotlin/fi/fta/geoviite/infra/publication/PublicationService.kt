@@ -1029,6 +1029,11 @@ class PublicationService @Autowired constructor(
                 PropKey("description-suffix"),
                 enumLocalizationKey = "location-track-description-suffix"
             ),
+            compareChangeValues(
+                locationTrackChanges.owner,
+                { locationTrackService.getLocationTrackOwners().find { owner -> owner.id == it }?.name },
+                PropKey("owner")
+            ),
             compareChange({ oldAndTime.first != newAndTime.first },
                 oldAndTime,
                 newAndTime,
@@ -1086,9 +1091,11 @@ class PublicationService @Autowired constructor(
                 remark = getAddressMovedRemarkOrNull(translation, oldEndPointAndM?.address, newEndPointAndM?.address)
             ),
             if (changedKmNumbers.isNotEmpty()) {
-                PublicationChange(PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
-                    translation, changedKmNumbers
-                ))
+                PublicationChange(
+                    PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
+                        translation, changedKmNumbers
+                    )
+                )
             } else null,
             if (switchLinkChanges == null) null else compareChange({ switchLinkChanges.old != switchLinkChanges.new },
                 null,
@@ -1184,11 +1191,8 @@ class PublicationService @Autowired constructor(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
             val jointPropKeyParams =
-                LocalizationParams(
-                    "trackNumber" to trackNumberCache
-                        .findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
-                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) }
-                )
+                LocalizationParams("trackNumber" to trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
+                    "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(
                     joint.trackNumberId, oldTimestamp
