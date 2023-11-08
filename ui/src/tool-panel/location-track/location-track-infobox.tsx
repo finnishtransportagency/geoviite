@@ -25,7 +25,7 @@ import {
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import { formatDateShort } from 'utils/date-utils';
-import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
+import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { BoundingBox } from 'model/geometry';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
@@ -509,10 +509,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             )}
 
             {showEditDialog && (
-                <LocationTrackEditDialog
+                <LocationTrackEditDialogContainer
                     onClose={closeEditLocationTrackDialog}
                     onSave={handleLocationTrackSave}
-                    locationTrack={locationTrack}
+                    locationTrackId={locationTrack.id}
                     locationTrackChangeTime={locationTrackChangeTime}
                 />
             )}

@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -11,7 +12,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.pageToList
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -23,6 +23,21 @@ class LayoutSwitchService @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
+
+    @Transactional(readOnly = true)
+    fun getSwitchesByName(
+        publicationState: PublishType,
+        name: SwitchName,
+        includeDeleted: Boolean,
+    ): List<TrackLayoutSwitch> {
+        logger.serviceCall(
+            "getSwitchByName",
+            "publicationState" to publicationState,
+            "name" to name,
+            "includeDeleted" to includeDeleted,
+        )
+        return dao.fetchVersions(publicationState, includeDeleted = includeDeleted, name = name).map(dao::fetch)
+    }
 
     @Transactional(readOnly = true)
     fun pageSwitchesByFilter(
@@ -160,10 +175,10 @@ class LayoutSwitchService @Autowired constructor(
         return saveDraft(original.copy(externalId = oid))
     }
 
-    private fun switchMatchesName(switch: TrackLayoutSwitch, name: String?) =
-        name?.let { n -> switch.name.contains(n, ignoreCase = true) } ?: true
+    private fun switchMatchesName(switch: TrackLayoutSwitch, searchString: String?) =
+        searchString?.let { n -> switch.name.contains(n, ignoreCase = true) } ?: true
 
-    private fun switchMatchesType(switch: TrackLayoutSwitch, switchType: String?) = switchType?.let { t ->
+    private fun switchMatchesType(switch: TrackLayoutSwitch, searchString: String?) = searchString?.let { t ->
         switchLibraryService.getSwitchType(switch.switchStructureId).typeName.contains(t, ignoreCase = true)
     } ?: true
 

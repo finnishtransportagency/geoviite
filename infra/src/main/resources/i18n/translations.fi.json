@@ -325,7 +325,9 @@
         "buffer": "Puskin",
         "description-base": "Kuvauksen perusosa",
         "description-suffix": "Kuvauksen lisäosa",
-        "full-description": "Valmis kuvaus"
+        "full-description": "Valmis kuvaus",
+        "name-in-use": "Ratanumerolla on toinen sijaintiraide samalla nimellä",
+        "move-to-edit": "Siirry muokkaamaan raidetta {{name}}"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
@@ -1407,7 +1409,9 @@
         "changed-switch-structure-warning": "Vaihteen vaihdetyyppiä on muokattu.",
         "switch-will-be-unlinked": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
-        "confirm-switch-delete": "Haluatko varmasti poistaa vaihteen paikannuspohjasta?"
+        "confirm-switch-delete": "Haluatko varmasti poistaa vaihteen paikannuspohjasta?",
+        "name-in-use": "Paikannuspohjassa on toinen vaihde samalla nimellä",
+        "move-to-edit": "Siirry muokkaamaan vaihdetta {{name}}"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",
