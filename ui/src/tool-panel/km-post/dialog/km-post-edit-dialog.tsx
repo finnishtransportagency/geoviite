@@ -197,7 +197,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 }
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('km-post-dialog.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         )}
                         <div

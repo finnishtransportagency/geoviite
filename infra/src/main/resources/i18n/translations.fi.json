@@ -312,7 +312,6 @@
         "created-successfully": "Uusi sijaintiraide lisätty rekisteriin",
         "modified-successfully": "Sijaintiraiteen tiedot päivitetty",
         "deleted-successfully": "Sijaintiraide poistettu",
-        "delete-draft": "Poista",
         "mandatory-field": "Pakollinen kenttä",
         "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
@@ -390,7 +389,6 @@
                 "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
-                "delete-draft": "Poista",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti"
             },
@@ -425,7 +423,6 @@
                 "owner": "Omistaja",
                 "show-on-map": "Kohdista kartalla",
                 "change-info-heading": "Lokitiedot",
-                "delete-draft": "Poista",
                 "joint-alignments-title": "Vaihteen linja",
                 "joint-alignments-location-tracks-title": "Linjan läpi kulkeva raide",
                 "joint-number-title": "Vaihteen piste",
@@ -559,7 +556,6 @@
             "end-location": "Loppusijainti (km + m)",
             "true-length": "Todellinen pituus (m)",
             "owner": "Omistaja",
-            "delete-draft": "Poista",
             "delete-dialog": {
                 "delete-draft-confirm": "Poistetaanko luonnos?",
                 "can-be-deleted": "Tätä sijaintiraidetta ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa sijaintiraidetta.",
@@ -1366,7 +1362,6 @@
         "modify-succeeded": "Tasakilometripisteen tiedot päivitetty",
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
-        "delete-draft": "Poista",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
         "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}"
     },
@@ -1426,7 +1421,6 @@
             "track-number": "Ratanumero",
             "reference-line": "Pituusmittauslinja",
             "metadata-heading": "Metatiedot",
-            "delete-draft": "Poista",
             "delete-non-draft": "Ratanumeron poistaminen paikannuspohjasta"
         },
         "dialog": {

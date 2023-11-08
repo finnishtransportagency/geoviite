@@ -311,7 +311,7 @@ export const SwitchEditDialog = ({
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('tool-panel.switch.layout.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         )}
                         <div

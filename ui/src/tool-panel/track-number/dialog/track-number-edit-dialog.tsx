@@ -182,7 +182,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     }}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('track-number-edit.title.delete-draft')}
+                                    {t('button.delete')}
                                 </Button>
                             </div>
                         )}

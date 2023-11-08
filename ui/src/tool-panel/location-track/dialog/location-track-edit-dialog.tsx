@@ -322,7 +322,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         }
                                         icon={Icons.Delete}
                                         variant={ButtonVariant.WARNING}>
-                                        {t('location-track-dialog.delete-draft')}
+                                        {t('button.delete')}
                                     </Button>
                                 </div>
                             )}
