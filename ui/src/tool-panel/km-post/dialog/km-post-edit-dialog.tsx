@@ -197,15 +197,20 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 }
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('km-post-dialog.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         )}
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                        <div
+                            className={
+                                state.existingKmPost?.draftType === 'NEW_DRAFT'
+                                    ? dialogStyles['dialog__footer-content--right-aligned']
+                                    : dialogStyles['dialog__footer-content--centered']
+                            }>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
                                 onClick={() => close()}>
-                                {t('button.return')}
+                                {t('button.cancel')}
                             </Button>
                             <span onClick={() => stateActions.validate()}>
                                 <Button

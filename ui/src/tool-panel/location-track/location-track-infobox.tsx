@@ -463,7 +463,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}
                                     size={ButtonSize.SMALL}>
-                                    {t('tool-panel.location-track.delete-draft')}
+                                    {t('button.delete')}
                                 </Button>
                             </InfoboxButtons>
                         )}
