@@ -28,7 +28,7 @@ val segment1 = segment(
     Point(x = 385273.0397969192, y = 6675558.0948048225),
     Point(x = 385216.6663371209, y = 6675701.1816949705),
     Point(x = 385081.84688330034, y = 6675970.204397376),
-    start = 0.0,
+    startM = 0.0,
 )
 val segment2 = segment(
     Point(x = 385081.84688330034, y = 6675970.204397376),
@@ -45,7 +45,7 @@ val segment2 = segment(
     Point(x = 382900.3670653631, y = 6677856.032651512),
     Point(x = 382761.2176702685, y = 6677923.467526838),
     Point(x = 382711.47467736073, y = 6677942.28533952),
-    start = segment1.startM + segment1.length
+    startM = segment1.startM + segment1.length
 )
 val segment3 = segment(
     Point(x = 382711.47467736073, y = 6677942.28533952),
@@ -61,7 +61,7 @@ val segment3 = segment(
     Point(x = 380075.3780522702, y = 6677812.131510135),
     Point(x = 379546.59970029286, y = 6677795.661380321),
     Point(x = 379109.7436289962, y = 6677820.218810541),
-    start = segment2.startM + segment2.length
+    startM = segment2.startM + segment2.length
 )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
@@ -117,11 +117,11 @@ class GeocodingTest {
         val km5LastAddress = getLastAddress(KmNumber(5, "A"))!!
         assertEquals(
             listOf(
-                (startAddress+100.0)..km3LastAddress,
+                (startAddress + 100.0)..km3LastAddress,
                 TrackMeter(KmNumber(5, "A"), 0)..km5LastAddress,
             ),
             context.cutRangeByKms(
-                (startAddress+100.0)..endAddress,
+                (startAddress + 100.0)..endAddress,
                 setOf(startAddress.kmNumber, KmNumber(3), KmNumber(5, "A")),
             ),
         )
@@ -129,10 +129,10 @@ class GeocodingTest {
         assertEquals(
             listOf(
                 TrackMeter(KmNumber(3), 0)..km3LastAddress,
-                TrackMeter(KmNumber(5, "A"), 0)..(endAddress-100.0),
+                TrackMeter(KmNumber(5, "A"), 0)..(endAddress - 100.0),
             ),
             context.cutRangeByKms(
-                startAddress..(endAddress-100.0),
+                startAddress..(endAddress - 100.0),
                 setOf(KmNumber(3), KmNumber(5, "A"), KmNumber(5, "B")),
             ),
         )
@@ -141,9 +141,8 @@ class GeocodingTest {
     @Test
     fun contextDistancesWorkForSegmentEnds() {
         for (segment in alignment.segments) {
-            val startResult = context.getM(segment.points.first())
-            val endResult = context.getM(segment.points.last())
-            println("segment=${segment.id} start=${segment.startM} end=${segment.endM} startDist=$startResult endDist=$endResult")
+            val startResult = context.getM(segment.alignmentPoints.first())
+            val endResult = context.getM(segment.alignmentPoints.last())
             assertEquals(WITHIN, startResult?.second)
             assertEquals(segment.startM, startResult!!.first, DELTA)
             assertEquals(WITHIN, endResult?.second)
@@ -154,8 +153,8 @@ class GeocodingTest {
     @Test
     fun contextDistancesWorkAlongLine() {
         for (segment in alignment.segments) {
-            val midMinusOne = toPoint(segment.points[1])
-            val midPlusOne = toPoint(segment.points[2])
+            val midMinusOne = toPoint(segment.alignmentPoints[1])
+            val midPlusOne = toPoint(segment.alignmentPoints[2])
             val midPoint = (midMinusOne + midPlusOne) / 2.0
 
             val midDistance = context.getM(midPoint)!!.first
@@ -179,22 +178,26 @@ class GeocodingTest {
         val endLength: Double = alignment.length
         assertEquals(
             TrackMeter(lastPoint.kmNumber, endLength - lastPoint.distance, 3),
-            context.getAddress(endLength, 3)
+            context.getAddress(endLength, 3),
         )
 
         for (ap in addressPoints) {
             assertEquals(
                 TrackMeter(ap.kmNumber, ap.meters.toDouble() + 0.0, 3),
-                context.getAddress(ap.distance, 3))
+                context.getAddress(ap.distance, 3),
+            )
             assertEquals(
                 TrackMeter(ap.kmNumber, ap.meters.toDouble() + 10.0, 3),
-                context.getAddress(ap.distance + 10.0, 3))
+                context.getAddress(ap.distance + 10.0, 3),
+            )
             assertEquals(
                 TrackMeter(ap.kmNumber, ap.meters.toDouble() + 100.0, 3),
-                context.getAddress(ap.distance + 100.0, 3))
+                context.getAddress(ap.distance + 100.0, 3),
+            )
             assertEquals(
                 TrackMeter(ap.kmNumber, ap.meters.toDouble() + 300.0, 3),
-                context.getAddress(ap.distance + 300.0, 3))
+                context.getAddress(ap.distance + 300.0, 3),
+            )
         }
     }
 
@@ -203,7 +206,7 @@ class GeocodingTest {
         val projections = (listOf(context.startProjection) + context.projectionLines + listOf(context.endProjection))
         projections.forEachIndexed { index, proj ->
             if (index > 0) assertTrue(
-                projections[index-1].address <= proj.address,
+                projections[index - 1].address <= proj.address,
                 "Projections should be in increasing order: index=$index prev=${projections[index-1].address} next=${proj.address}",
             )
             val decimals = proj.address.decimalCount()
@@ -216,10 +219,10 @@ class GeocodingTest {
     @Test
     fun projectionIsFoundForAddress() {
         listOf(
-            TrackMeter(KmNumber(5,"A"), 0),
-            TrackMeter(KmNumber(5,"A"), 10),
-            TrackMeter(KmNumber(5,"A"), 10.6, 1),
-            TrackMeter(KmNumber(5,"A"), 10.152, 3),
+            TrackMeter(KmNumber(5, "A"), 0),
+            TrackMeter(KmNumber(5, "A"), 10),
+            TrackMeter(KmNumber(5, "A"), 10.6, 1),
+            TrackMeter(KmNumber(5, "A"), 10.152, 3),
         ).forEach { address ->
             val projection = context.getProjectionLine(address)
             assertNotNull(projection)
@@ -233,19 +236,19 @@ class GeocodingTest {
             Point(-0.7, 0.0),
             Point(1.0, 2.0),
             Point(3.0, 4.0),
-            start = 10.0,
+            startM = 10.0,
             source = PLAN,
         )
         val connectSegment = segment(
-            Point(3.0,4.0),
-            Point(3.0,6.0),
-            start = startSegment.startM + startSegment.length,
+            Point(3.0, 4.0),
+            Point(3.0, 6.0),
+            startM = startSegment.startM + startSegment.length,
             source = GENERATED,
         )
         val endSegment = segment(
-            Point(3.0,6.0),
-            Point(7.0,10.0),
-            start = connectSegment.startM + connectSegment.length,
+            Point(3.0, 6.0),
+            Point(7.0, 10.0),
+            startM = connectSegment.startM + connectSegment.length,
             source = PLAN,
         )
         val startAddress = TrackMeter(KmNumber(2), 100)
@@ -256,10 +259,7 @@ class GeocodingTest {
             kmPosts = listOf(),
         ).geocodingContext
 
-        val addressPoints = ctx.getAddressPoints(alignment(segment(
-            Point(7.0, -2.0),
-            Point(7.0, 8.0),
-        )))
+        val addressPoints = ctx.getAddressPoints(alignment(segment(Point(7.0, -2.0), Point(7.0, 8.0))))
         assertNotNull(addressPoints)
 
         assertTrue((Point(7.0, -2.0)).isSame(addressPoints.startPoint.point, 0.0001))
@@ -268,8 +268,8 @@ class GeocodingTest {
         assertEquals(7, addressPoints.midPoints.size)
         addressPoints.midPoints.forEachIndexed { index, ap ->
             assertEquals(7.0, ap.point.x, 0.0001)
-            val previous = addressPoints.midPoints.getOrNull(index-1) ?: addressPoints.startPoint
-            val next = addressPoints.midPoints.getOrNull(index+1) ?: addressPoints.endPoint
+            val previous = addressPoints.midPoints.getOrNull(index - 1) ?: addressPoints.startPoint
+            val next = addressPoints.midPoints.getOrNull(index + 1) ?: addressPoints.endPoint
             assertTrue(ap.point.y > previous.point.y)
             assertTrue(ap.point.y < next.point.y)
             // Verify that the given point also reverse geocodes to the same address
@@ -282,7 +282,7 @@ class GeocodingTest {
         val projection1 = Line(Point(100.0, 100.0), Point(0.0, 200.0))
         val projection2 = Line(Point(60.0, 175.0), Point(80.0, 195.0))
         val projection3 = Line(Point(195.0, 200.0), Point(145.0, 250.0))
-        val points = toTrackLayoutPoints(
+        val points1 = toSegmentPoints(
             Point(0.0, 0.0),
             Point(20.0, 50.0),
             Point(20.0, 100.0),
@@ -290,16 +290,19 @@ class GeocodingTest {
             Point(80.0, 200.0),
             // This interval is where projection2 should hit at 90,205 = 0.25
             Point(120.0, 220.0),
+        )
+        val points2 = toSegmentPoints(
             Point(140.0, 220.0),
             Point(160.0, 230.0),
             // This interval is where projection3 should hit at 170,225 = 0.5
             Point(180.0, 220.0),
         )
-        val edges = points.mapIndexedNotNull { index: Int, point: LayoutPoint ->
+        val points = points1 + points2
+        val edges = points.mapIndexedNotNull { index: Int, point: SegmentPoint ->
             if (index == 0) null else PolyLineEdge(
                 start = points[index - 1],
                 end = point,
-                segmentStart = 0.0,
+                segmentStart = if (index <= points1.lastIndex) 0.0 else points1.last().m,
                 projectionDirection = directionBetweenPoints(points[index - 1], point),
             )
         }
@@ -335,12 +338,12 @@ class GeocodingTest {
     fun projectionLinesAreCreatedCorrectly() {
         val start = Point(385757.97, 6672279.26)
         // Points along rising Y-axis for understandable test calculations
-        val alignment = alignment(segment(
+        val alignment = alignmentFromPoints(
             start,
             start + Point(0.0, 2.0),
             start + Point(0.0, 4.0),
             start + Point(0.0, 6.0),
-        ))
+        )
         val projectionContext = GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
@@ -373,7 +376,7 @@ class GeocodingTest {
             TrackMeter(2, 101.92, 2) to start + Point(0.0, 1.92),
             TrackMeter(2, 101.456, 3) to start + Point(0.0, 1.456),
             TrackMeter(3, 0.12, 2) to start + Point(0.0, 3.12),
-        ).forEach{ (address, point) ->
+        ).forEach { (address, point) ->
             val projectionLine = projectionContext.getProjectionLine(address)
             assertNotNull(projectionLine)
             assertProjectionLineMatches(projectionLine, address, projectionLine(point))
@@ -389,7 +392,7 @@ class GeocodingTest {
             referencePoints = listOf(TrackMeter(2, "0.0") to 5.0),
         )
         // Geocode on 45deg diagonal alignment above the reference line
-        val trackAlignment = alignment(segment(Point(1.1, 1.1), Point(8.9,8.9)))
+        val trackAlignment = alignment(segment(Point(1.1, 1.1), Point(8.9, 8.9)))
 
         // Verify basic ends + 1m points
         val addressPoints = context.getAddressPoints(trackAlignment)
@@ -460,12 +463,11 @@ class GeocodingTest {
         )
     }
 
-
     @Test
     fun projectionsWorkOnVerticalVsDiagonal() {
         val start = Point(428123.459, 7208379.993)
 
-        val verticalPoints = toTrackLayoutPoints((0..3).map { n ->
+        val verticalPoints = toSegmentPoints((0..3).map { n ->
             Point3DM(start.x + 0.0, start.y + 3 * n.toDouble(), 3 * n.toDouble())
         })
         val verticalAlignment = alignment(segment(verticalPoints))
@@ -481,22 +483,17 @@ class GeocodingTest {
                     kmPostOffset = 0.0,
                     intersectType = WITHIN
                 )
-            )
+            ),
         )
-        val diagonalLine = alignment(
-            segment(
-                start + Point(-52.5, 2.5),
-                start + Point(-47.5, 7.5),
-            )
+        val diagonalLine = alignmentFromPoints(
+            start + Point(-52.5, 2.5),
+            start + Point(-47.5, 7.5),
         )
 
         val diagonalCenter = start + Point(-50.0, 5.0)
         assertEquals(5.0, verticalContext.getM(diagonalCenter)!!.first, 0.000001)
         assertEquals(startAddress + 5.0, verticalContext.getAddress(5.0, startAddress.decimalCount()))
 
-        println(verticalContext.startProjection)
-        println(verticalContext.endProjection)
-        println(verticalContext.projectionLines)
         val projectionLine = verticalContext.getProjectionLine(startAddress + 5.0)
         assertEquals(startAddress + 5.0, projectionLine!!.address)
         assertApproximatelyEquals(start + Point(0.0, 5.0), projectionLine.projection.start, 0.000001)
@@ -731,8 +728,11 @@ class GeocodingTest {
 
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
-        assertEquals(expected.size, result.size,
-            "expectedSize=${expected.size} actualSize=${result.size} expected=$expected actual=$result")
+        assertEquals(
+            expected.size,
+            result.size,
+            "expectedSize=${expected.size} actualSize=${result.size} expected=$expected actual=$result",
+        )
         result.forEachIndexed { index, projectionLine ->
             assertProjectionLineMatches(projectionLine, expected[index].first, expected[index].second)
         }

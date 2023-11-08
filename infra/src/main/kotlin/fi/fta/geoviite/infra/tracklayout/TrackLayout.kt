@@ -103,7 +103,7 @@ data class ReferenceLine(
     }
 
     fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        alignmentVersion ?: throw IllegalStateException("ReferenceLine has no an alignment")
+        requireNotNull(alignmentVersion) { "ReferenceLine has no an alignment: id=$id" }
 
     override fun toLog(): String = logFormat(
         "version" to version,

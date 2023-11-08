@@ -44,7 +44,7 @@ class FrontPageTestUI @Autowired constructor(
             trackNumberDao.insert(createTrackLayoutTrackNumber("original name").copy(externalId = Oid("1.2.3.4.5"))).rowVersion
         val trackNumberId = originalTrackNumberVersion.id
         val alignmentVersion =
-            alignmentDao.insert(alignment(segment(toTrackLayoutPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
+            alignmentDao.insert(alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion))
 
         val successfulPublicationId = publicationDao.createPublication("successful")

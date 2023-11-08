@@ -264,21 +264,13 @@ class LocationTrackService(
         publishType: PublishType,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall("getLocationTracksNear", "location" to location)
-        val alignmentSearchAreaSize = 2.0
-        val alignmentSearchArea = BoundingBox(
-            Point(0.0, 0.0), Point(alignmentSearchAreaSize, alignmentSearchAreaSize)
-        ).centerAt(location)
-        val nearbyLocationTracks = listNearWithAlignments(publishType, alignmentSearchArea).filter { (_, alignment) ->
+        val searchAreaSize = 2.0
+        val searchArea = BoundingBox(Point(0.0, 0.0), Point(searchAreaSize, searchAreaSize)).centerAt(location)
+        return listNearWithAlignments(publishType, searchArea).filter { (_, alignment) ->
             alignment.segments.any { segment ->
-                alignmentSearchArea.intersects(segment.boundingBox) && segment.points.any { point ->
-                    alignmentSearchArea.contains(
-                        point
-                    )
-                }
+                searchArea.intersects(segment.boundingBox) && segment.segmentPoints.any(searchArea::contains)
             }
         }
-
-        return nearbyLocationTracks
     }
 
     @Transactional(readOnly = true)
@@ -373,7 +365,7 @@ class LocationTrackService(
 
         val duplicateMValues = duplicates.map { duplicate ->
             duplicate.alignmentVersion?.let { alignmentVersion ->
-                alignmentDao.fetch(alignmentVersion).start?.let(
+                alignmentDao.fetch(alignmentVersion).firstSegmentStart?.let(
                     originalAndAlignment.second::getClosestPointM
                 )?.first
             }
@@ -407,8 +399,8 @@ class LocationTrackService(
         startChanged: Boolean = false,
         endChanged: Boolean = false,
     ): LocationTrack {
-        val startPoint = alignment.start
-        val endPoint = alignment.end
+        val startPoint = alignment.firstSegmentStart
+        val endPoint = alignment.lastSegmentEnd
         val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
 
         val startSwitch = if (!track.exists || startPoint == null) null
@@ -529,12 +521,8 @@ private fun findBestTopologySwitchFromSegments(
     otherAlignment.segments.flatMap { segment ->
         if (segment.switchId !is IntId || ownSwitches.contains(segment.switchId)) listOf()
         else listOfNotNull(
-            segment.startJointNumber?.let { number ->
-                pickIfClose(segment.switchId, number, target, segment.points.first())
-            },
-            segment.endJointNumber?.let { number ->
-                pickIfClose(segment.switchId, number, target, segment.points.last())
-            },
+            segment.startJointNumber?.let { number -> pickIfClose(segment.switchId, number, target, segment.segmentStart) },
+            segment.endJointNumber?.let { number -> pickIfClose(segment.switchId, number, target, segment.segmentEnd) },
         )
     }
 }.minByOrNull { (_, distance) -> distance }?.first
@@ -545,8 +533,8 @@ private fun findBestTopologySwitchFromOtherTopology(
     nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): TopologyLocationTrackSwitch? = nearbyTracks.flatMap { (otherTrack, otherAlignment) ->
     listOfNotNull(
-        pickIfClose(otherTrack.topologyStartSwitch, target, otherAlignment.start, ownSwitches),
-        pickIfClose(otherTrack.topologyEndSwitch, target, otherAlignment.end, ownSwitches),
+        pickIfClose(otherTrack.topologyStartSwitch, target, otherAlignment.firstSegmentStart, ownSwitches),
+        pickIfClose(otherTrack.topologyEndSwitch, target, otherAlignment.lastSegmentEnd, ownSwitches),
     )
 }.minByOrNull { (_, distance) -> distance }?.first
 
@@ -574,10 +562,10 @@ fun getLocationTrackEndpoints(
 ): List<LocationTrackEndpoint> = locationTracks.flatMap { (locationTrack, alignment) ->
     val trackId = locationTrack.id as IntId
     listOfNotNull(
-        alignment.start?.takeIf(bbox::contains)?.let { p ->
+        alignment.firstSegmentStart?.takeIf(bbox::contains)?.let { p ->
             LocationTrackEndpoint(trackId, p.toPoint(), START_POINT)
         },
-        alignment.end?.takeIf(bbox::contains)?.let { p ->
+        alignment.lastSegmentEnd?.takeIf(bbox::contains)?.let { p ->
             LocationTrackEndpoint(trackId, p.toPoint(), END_POINT)
         },
     )

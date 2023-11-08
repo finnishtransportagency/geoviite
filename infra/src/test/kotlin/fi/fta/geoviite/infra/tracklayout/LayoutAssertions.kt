@@ -87,7 +87,7 @@ fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: B
 }
 
 fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(geometry = actual.geometry)
+    val expectedWithSameFloats = expected.copy(geometry = actual.geometry, startM = actual.startM)
     if (idMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
@@ -96,9 +96,9 @@ fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boole
     }
     assertEquals(expected.startM, actual.startM, LENGTH_DELTA)
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
-    assertEquals(expected.points.size, actual.points.size)
+    assertEquals(expected.alignmentPoints.size, actual.alignmentPoints.size)
     assertEquals(expected.resolution, actual.resolution)
-    expected.points.forEachIndexed { index, point -> assertMatches(point, actual.points[index]) }
+    expected.alignmentPoints.forEachIndexed { index, point -> assertMatches(point, actual.alignmentPoints[index]) }
 }
 
 fun assertMatches(expected: LayoutPoint, actual: LayoutPoint) {

@@ -12,9 +12,7 @@ fun moveKmPostLocation(
     location: Point,
     kmPostService: LayoutKmPostService,
 ) = kmPostService.saveDraft(
-    kmPost.copy(
-        location = location
-    )
+    kmPost.copy(location = location)
 )
 
 fun moveLocationTrackGeometryPointsAndUpdate(
@@ -24,7 +22,7 @@ fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(
     locationTrack,
-    moveAlignmentPoints(alignment, moveFunc)
+    moveAlignmentPoints(alignment, moveFunc),
 )
 
 fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
@@ -37,10 +35,10 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     locationTrack.copy(
         topologyEndSwitch = TopologyLocationTrackSwitch(
             switchId = switchId,
-            jointNumber = jointNumber
-        )
+            jointNumber = jointNumber,
+        ),
     ),
-    alignment
+    alignment,
 )
 
 fun removeTopologySwitchesFromLocationTrackAndUpdate(
@@ -50,9 +48,9 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
 ) = locationTrackService.saveDraft(
     locationTrack.copy(
         topologyStartSwitch = null,
-        topologyEndSwitch = null
+        topologyEndSwitch = null,
     ),
-    alignment
+    alignment,
 )
 
 fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
@@ -65,22 +63,18 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     locationTrack.copy(
         topologyStartSwitch = TopologyLocationTrackSwitch(
             switchId = switchId,
-            jointNumber = jointNumber
-        )
+            jointNumber = jointNumber,
+        ),
     ),
-    alignment
+    alignment,
 )
-
 
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment,
     moveFunc: (point: IPoint3DM) -> IPoint,
     referenceLineService: ReferenceLineService,
-) = referenceLineService.saveDraft(
-    referenceLine,
-    moveAlignmentPoints(alignment, moveFunc)
-)
+) = referenceLineService.saveDraft(referenceLine, moveAlignmentPoints(alignment, moveFunc))
 
 fun moveAlignmentPoints(
     alignment: LayoutAlignment,
@@ -90,17 +84,15 @@ fun moveAlignmentPoints(
     return alignment.copy(
         segments = alignment.segments.map { segment ->
             var prevPoint: IPoint3DM? = null
-            val newPoints = segment.points.map { point ->
-                val newPoint = moveFunc(point)
-                point.copy(
-                    x = newPoint.x,
-                    y = newPoint.y,
-                    m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: segmentM,
-                ).also { p -> prevPoint = p }
+            val newPoints = segment.segmentPoints.map { point ->
+                val newPoint = moveFunc(point.toLayoutPoint(segment.startM))
+                val m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
+                point.copy(x = newPoint.x, y = newPoint.y, m = m).also { p -> prevPoint = p }
             }
-            segment.copy(geometry = segment.geometry.withPoints(newPoints, segmentM))
+            segment
+                .withPoints(points = newPoints, newStart = segmentM, newSourceStart = null)
                 .also { newSegment -> segmentM = newSegment.endM }
-        }
+        },
     )
 }
 
@@ -118,5 +110,5 @@ fun moveSwitchPoints(
         joint.copy(
             location = Point(moveFunc(joint.location))
         )
-    }
+    },
 )

@@ -68,14 +68,14 @@ class LocationTrackServiceIT @Autowired constructor(
             trackNumberId, segment(
                 Point(x = 0.0, y = 0.0),
                 Point(x = 5.0, y = 0.0),
-                start = 5.0,
+                startM = 5.0,
             )
         )
         val (trackOutside, alignmentOutside) = locationTrackAndAlignment(
             trackNumberId, segment(
                 Point(x = 20.0, y = 20.0),
                 Point(x = 30.0, y = 20.0),
-                start = 10.0,
+                startM = 10.0,
             )
         )
 
@@ -149,8 +149,8 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
-            alignmentTmp.segments.flatMap(LayoutSegment::points),
-            editedAlignment.segments.flatMap(LayoutSegment::points),
+            alignmentTmp.segments.flatMap(LayoutSegment::alignmentPoints),
+            editedAlignment.segments.flatMap(LayoutSegment::alignmentPoints),
         )
 
         // Creating a draft should duplicate the alignment
@@ -163,8 +163,8 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
-            alignmentTmp2.segments.flatMap(LayoutSegment::points),
-            editedAlignment2.segments.flatMap(LayoutSegment::points),
+            alignmentTmp2.segments.flatMap(LayoutSegment::alignmentPoints),
+            editedAlignment2.segments.flatMap(LayoutSegment::alignmentPoints),
         )
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again

@@ -65,15 +65,15 @@ class LinkingServiceIT @Autowired constructor(
         val start = geometryStart - Point(1.0, 1.5)
         val segment1 = segment(
             start, start + 1.0, start + 2.0, start + 3.0, start + 4.0,
-            start = 0.0,
+            startM = 0.0,
         )
         val segment2 = segment(
             start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0,
-            start = segment1.length,
+            startM = segment1.length,
         )
         val segment3 = segment(
             start + 9.0, start + 10.0, start + 11.0,
-            start = segment2.length,
+            startM = segment2.length,
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
@@ -91,8 +91,8 @@ class LinkingServiceIT @Autowired constructor(
         val geometryInterval = GeometryInterval(
             alignmentId = geometryLayoutAlignment.id as IntId,
             mRange = Range(
-                geometryStartSegment.points.first().m,
-                geometryEndSegment.points.last().m,
+                geometryStartSegment.alignmentPoints.first().m,
+                geometryEndSegment.alignmentPoints.last().m,
             ),
         )
 
@@ -100,8 +100,8 @@ class LinkingServiceIT @Autowired constructor(
         val layoutInterval = LayoutInterval(
             alignmentId = locationTrackId,
             mRange = Range(
-                officialAlignment.segments[0].points.first().m,
-                officialAlignment.segments[1].points[4].m,
+                officialAlignment.segments[0].alignmentPoints.first().m,
+                officialAlignment.segments[1].alignmentPoints[4].m,
             ),
         )
 
@@ -118,12 +118,12 @@ class LinkingServiceIT @Autowired constructor(
         // second segment partially (4 last points)
         // third segment fully
         assertEquals(geometryLayoutAlignment.segments.size + 3, draftAlignment.segments.size)
-        assertEquals(6, draftAlignment.segments[0].points.size)
+        assertEquals(6, draftAlignment.segments[0].alignmentPoints.size)
         for (i in 0..geometryLayoutAlignment.segments.lastIndex) {
-            assertEquals(geometryLayoutAlignment.segments[i].points.size, draftAlignment.segments[i].points.size)
+            assertEquals(geometryLayoutAlignment.segments[i].alignmentPoints.size, draftAlignment.segments[i].alignmentPoints.size)
         }
-        assertEquals(2, draftAlignment.segments[1 + geometryLayoutAlignment.segments.size].points.size)
-        assertEquals(3, draftAlignment.segments[2 + geometryLayoutAlignment.segments.size].points.size)
+        assertEquals(2, draftAlignment.segments[1 + geometryLayoutAlignment.segments.size].alignmentPoints.size)
+        assertEquals(3, draftAlignment.segments[2 + geometryLayoutAlignment.segments.size].alignmentPoints.size)
     }
 
     @Test

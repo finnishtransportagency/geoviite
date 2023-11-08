@@ -375,7 +375,8 @@ fun summarizeAlignmentChanges(
 ): List<GeometryChangeSummary> {
     val changedRanges = getChangedAlignmentRanges(oldAlignment, newAlignment)
     return changedRanges.mapNotNull { oldSegments ->
-        val oldPoints = oldSegments.flatMap { segment -> segment.points }
+        // TODO: GVT-2217 This unnecessarily duplicates all points as LayoutPoint. Refactor.
+        val oldPoints = oldSegments.flatMap { segment -> segment.alignmentPoints }
         val changedPoints = oldPoints.mapIndexedNotNull { index, oldPoint ->
             geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
                 geocodingContext.getTrackLocation(newAlignment, address)?.let { newAddressPoint ->
@@ -388,14 +389,13 @@ fun summarizeAlignmentChanges(
             val startKm = geocodingContext.getAddress(oldPoints[changedPoints.first().oldPointIndex])?.first?.kmNumber
             val endKm = geocodingContext.getAddress(oldPoints[changedPoints.last().oldPointIndex])?.first?.kmNumber
 
-            if (startKm == null || endKm == null) null else {
-                GeometryChangeSummary(
-                    changedPoints.last().mOnReferenceLine - changedPoints.first().mOnReferenceLine,
-                    changedPoints.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
-                    startKm,
-                    endKm,
-                )
-            }
+            if (startKm == null || endKm == null) null
+            else GeometryChangeSummary(
+                changedPoints.last().mOnReferenceLine - changedPoints.first().mOnReferenceLine,
+                changedPoints.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
+                startKm,
+                endKm,
+            )
         }
     }
 }
@@ -412,7 +412,4 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 }
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
-    translation.t(
-        "publication-details-table.remark.$key",
-        LocalizationParams("value" to value)
-    )
+    translation.t("publication-details-table.remark.$key", LocalizationParams("value" to value))

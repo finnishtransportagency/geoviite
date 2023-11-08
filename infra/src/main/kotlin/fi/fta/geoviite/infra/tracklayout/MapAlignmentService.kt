@@ -97,22 +97,13 @@ class MapAlignmentService(
             .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
             .filter { !it.hasProfile }
             .groupBy { it.id }
-            .map {
+            .map { (id, profileInfos) ->
                 MapAlignmentHighlight(
-                    id = it.key,
+                    id = id,
                     type = LOCATION_TRACK,
-                    ranges = it.value.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
-                        if (!acc.contains(info.alignmentId.index - 1)) acc[info.alignmentId.index] =
-                            Range(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart)
-                        else {
-                            val prev = acc.remove(info.alignmentId.index - 1)
-                            prev?.let {
-                                acc.put(
-                                    info.alignmentId.index,
-                                    Range(prev.min, info.points.last().m + info.segmentStart),
-                                )
-                            }
-                        }
+                    ranges = profileInfos.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
+                        val prev = acc.remove(info.alignmentId.index - 1)
+                        acc[info.alignmentId.index] = Range(prev?.min ?: info.segmentStartM, info.segmentEndM)
                         acc
                     }.values.toList()
                 )
@@ -220,6 +211,5 @@ private fun <T> getMissingLinkings(
 private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
     combineContinuous(alignment.segments.filter { s -> s.sourceId == null }.map { s -> Range(s.startM, s.endM) })
 
-private fun getEndPoints(alignment: LayoutAlignment) =
-    (alignment.segments.firstOrNull()?.points?.take(2) ?: listOf()) +
-            (alignment.segments.lastOrNull()?.points?.takeLast(2) ?: listOf())
+private fun getEndPoints(alignment: LayoutAlignment): List<LayoutPoint> =
+    alignment.takeFirst(2) + alignment.takeLast(2)

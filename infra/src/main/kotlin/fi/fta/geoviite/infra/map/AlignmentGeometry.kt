@@ -81,14 +81,14 @@ fun toAlignmentHeader(
     boundingBox = alignment?.boundingBox,
 )
 
-fun getSegmentBorderMValues(alignment: IAlignment) =
+fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
     alignment.segments.map { s -> s.startM } + alignment.length
 
 fun <T> toAlignmentPolyLine(
     id: DomainId<T>,
     type: MapAlignmentType,
     alignment: IAlignment,
-    resolution: Int ? = null,
+    resolution: Int? = null,
     bbox: BoundingBox? = null,
 ) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox))
 
@@ -102,17 +102,21 @@ fun simplify(
         else if (!bbox.intersects(alignment.boundingBox)) listOf()
         else alignment.segments.filter { s -> s.boundingBox?.intersects(bbox) ?: false }
     var previousM = Double.NEGATIVE_INFINITY
-    var previousInBbox = false
-    return segments
-        .flatMap { s -> s.points.filter { p ->
-            val result =
-                (resolution == null || (p.m - previousM).roundToInt() >= resolution || (p.m == alignment.length && previousM < p.m))
-                        && (bbox == null || previousInBbox || bbox.contains(p))
-            if (result) {
-                previousM = p.m
-                previousInBbox = bbox == null || bbox.contains(p)
-            }
-            result
-        } }
-        .let { points -> if (points.size >= 2) points else listOf() }
+    return segments.flatMapIndexed { sIndex, s ->
+        val isLastSegment = sIndex == segments.lastIndex
+        val lastPointIndex = s.segmentPoints.lastIndex
+        val bboxContains = { index: Int -> bbox == null || s.segmentPoints.getOrNull(index)?.let(bbox::contains) ?: false }
+        s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+            val resolutionHit = resolution == null
+                    || ((p.m + s.startM - previousM).roundToInt() >= resolution)
+                    || (isLastSegment && pIndex == lastPointIndex)
+            val bboxHit = bboxContains(pIndex)
+            // Always take the first point on either side of the bbox to extend the line appropriately
+            val outOfBboxExtension = !bboxHit && (bboxContains(pIndex-1) || bboxContains(pIndex+1))
+            if (outOfBboxExtension || (resolutionHit && bboxHit)) {
+                previousM = s.startM + p.m
+                p.toLayoutPoint(s.startM)
+            } else null
+        }
+    }.let { points -> if (points.size >= 2) points else listOf() }
 }

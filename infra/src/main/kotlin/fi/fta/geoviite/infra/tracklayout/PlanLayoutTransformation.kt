@@ -161,15 +161,15 @@ private fun toMapSegments(
     val segments = if (!includeGeometryData) listOf()
     else elements.map { (element, segmentStartLength) ->
         val segmentPoints = toPointList(element, pointListStepLength).map { p ->
-            toTrackLayoutPoint(
-                planToLayoutTransformation.transform(p),
-                segmentStartLength + p.m,
-                alignment.profile,
-                alignment.cant,
-                alignmentStationStart,
-                segmentStartLength,
-                heightTriangles,
-                verticalCoordinateSystem
+            toSegmentGeometryPoint(
+                point = planToLayoutTransformation.transform(p),
+                mValue = p.m,
+                profile = alignment.profile,
+                cant = alignment.cant,
+                alignmentStartStation = alignmentStationStart,
+                segmentStart = segmentStartLength,
+                heightTriangles = heightTriangles,
+                verticalCoordinateSystem = verticalCoordinateSystem,
             )
         }
 
@@ -177,8 +177,9 @@ private fun toMapSegments(
             id = deriveFromSourceId("AS", element.id),
             geometry = SegmentGeometry(
                 resolution = pointListStepLength,
-                points = segmentPoints,
+                segmentPoints = segmentPoints,
             ),
+            startM = segmentStartLength,
             sourceId = element.id,
             sourceStart = 0.0,
             source = GeometrySource.PLAN,
@@ -194,9 +195,6 @@ fun getAlignmentType(typeCode: FeatureTypeCode?): MapAlignmentType = when (typeC
     else -> MapAlignmentType.LOCATION_TRACK
 }
 
-fun filter(boundingBox: BoundingBox, segments: List<LayoutSegment>): List<LayoutSegment> =
-    segments.filter { s -> s.points.any { p -> boundingBox.x.contains(p.x) && boundingBox.y.contains(p.y) } }
-
 fun getLayoutStateOrDefault(planState: PlanState?) = planState?.let { state -> getLayoutState(state) } ?: PLANNED
 fun getLayoutState(planState: PlanState): LayoutState = when (planState) {
     ABANDONED -> DELETED
@@ -205,25 +203,26 @@ fun getLayoutState(planState: PlanState): LayoutState = when (planState) {
     PROPOSED -> NOT_IN_USE
 }
 
-fun toTrackLayoutPoint(
+fun toSegmentGeometryPoint(
     point: Point,
     mValue: Double,
     profile: GeometryProfile?,
     cant: GeometryCant?,
     alignmentStartStation: Double,
     segmentStart: Double,
-    triangles: List<HeightTriangle>,
+    heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
-): LayoutPoint {
+): SegmentPoint {
     // Profile station values are alignment m-values calculated from given station-start
     val heightValue = verticalCoordinateSystem?.let { vcs ->
         if (vcs == VerticalCoordinateSystem.N43) null
-        else profile?.getHeightAt(alignmentStartStation + segmentStart + mValue)
-            ?.let { value -> transformHeightValue(value, point, triangles, vcs) }
+        else profile
+            ?.getHeightAt(alignmentStartStation + segmentStart + mValue)
+            ?.let { value -> transformHeightValue(value, point, heightTriangles, vcs) }
     }
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     val cantValue = cant?.getCantValue(segmentStart + mValue)
-    return LayoutPoint(
+    return SegmentPoint(
         x = point.x,
         y = point.y,
         z = heightValue,

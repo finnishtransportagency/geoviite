@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.PI
@@ -90,9 +89,9 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
     return if (length > tolerance) LayoutSegment(
         geometry = SegmentGeometry(
             resolution = max(length.toInt(), 1),
-            points = listOf(
-                LayoutPoint(start.x, start.y, null, 0.0, null),
-                LayoutPoint(end.x, end.y, null, length, null)
+            segmentPoints = listOf(
+                SegmentPoint(x = start.x, y = start.y, z = null, m = 0.0, cant = null),
+                SegmentPoint(x = end.x, y = end.y, z = null, m = length, cant = null),
             ),
         ),
         sourceId = null,
@@ -101,6 +100,7 @@ private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double
         startJointNumber = null,
         endJointNumber = null,
         source = GeometrySource.GENERATED,
+        startM = 0.0,
     ) else null
 }
 
@@ -114,6 +114,7 @@ private fun toLayoutSegment(segment: ISegment): LayoutSegment =
         startJointNumber = null,
         endJointNumber = null,
         source = segment.source,
+        startM = segment.startM,
     )
 
 private fun tryCreateLinkedAlignment(
@@ -158,15 +159,14 @@ fun sliceSegments(
     } else {
         toLayoutSegment(segment).slice(
             mRange = Range(max(mRange.min, segment.startM), min(mRange.max, segment.endM)),
-            snapDistance = snapDistance
+            snapDistance = snapDistance,
         )
     }
 }
 
-private fun firstPoint(segments: List<LayoutSegment>) = segments.firstOrNull()?.points?.firstOrNull()
+private fun firstPoint(segments: List<LayoutSegment>) = segments.firstOrNull()?.segmentStart
 
-private fun lastPoint(segments: List<LayoutSegment>) = segments.lastOrNull()?.points?.lastOrNull()
-
+private fun lastPoint(segments: List<LayoutSegment>) = segments.lastOrNull()?.segmentEnd
 
 fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<DomainId<TrackLayoutSwitch>>): List<LayoutSegment> =
     segments.map { s -> if (switchIds.contains(s.switchId)) s.withoutSwitch() else s }

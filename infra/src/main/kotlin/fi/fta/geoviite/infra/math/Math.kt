@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.math
 
 import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs
@@ -35,14 +36,21 @@ fun interpolate(value1: Double, value2: Double, portion: Double): Double =
 fun interpolate(value1: IPoint, value2: IPoint, portion: Double): Point =
     Point(x = interpolate(value1.x, value2.x, portion), y = interpolate(value1.y, value2.y, portion))
 
-fun interpolate(value1: LayoutPoint, value2: LayoutPoint, portion: Double) =
-    LayoutPoint(
-        x = interpolate(value1.x, value2.x, portion),
-        y = interpolate(value1.y, value2.y, portion),
-        z = interpolate(value1.z, value2.z, portion),
-        m = interpolate(value1.m, value2.m, portion),
-        cant = interpolate(value1.cant, value2.cant, portion),
-    )
+fun interpolate(value1: SegmentPoint, value2: SegmentPoint, portion: Double) = SegmentPoint(
+    x = interpolate(value1.x, value2.x, portion),
+    y = interpolate(value1.y, value2.y, portion),
+    z = interpolate(value1.z, value2.z, portion),
+    m = interpolate(value1.m, value2.m, portion),
+    cant = interpolate(value1.cant, value2.cant, portion),
+)
+
+fun interpolate(value1: LayoutPoint, value2: LayoutPoint, portion: Double) = LayoutPoint(
+    x = interpolate(value1.x, value2.x, portion),
+    y = interpolate(value1.y, value2.y, portion),
+    z = interpolate(value1.z, value2.z, portion),
+    m = interpolate(value1.m, value2.m, portion),
+    cant = interpolate(value1.cant, value2.cant, portion),
+)
 
 fun isSame(value1: Double?, value2: Double?, delta: Double) =
     (value1 == null && value2 == null) || (value1 != null && value2 != null && isSame(value1, value2, delta))

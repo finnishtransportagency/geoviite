@@ -242,7 +242,7 @@ class GeometryServiceIT @Autowired constructor(
     }
 
     fun yRangeToSegmentPoints(range: IntRange) =
-        toTrackLayoutPoints(to3DMPoints(range.map { i -> Point(0.0, i.toDouble()) }))
+        toSegmentPoints(to3DMPoints(range.map { i -> Point(0.0, i.toDouble()) }))
 
     fun insertPlanWithGeometry(filename: String, trackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan {
         val version = geometryDao.insertPlan(

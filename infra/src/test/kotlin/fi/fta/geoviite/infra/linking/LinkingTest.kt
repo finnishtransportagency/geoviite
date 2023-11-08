@@ -1,16 +1,17 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
-
 
 class LinkingTest {
 
@@ -28,16 +29,18 @@ class LinkingTest {
         assertGeometryChange(
             layoutAlignment,
             replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(0.0, geometryAlignment.length)),
-            geometryAlignment.segments.map { s -> s.points },
+            geometryAlignment.segments.map { s -> s.alignmentPoints },
         )
         // Split so that we skip the first and last points
         assertGeometryChange(
             layoutAlignment,
             replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(3.0, 9.0)),
-            withPointsStartingFrom0(listOf(
-                geometryAlignment.segments[0].points.takeLast(2),
-                geometryAlignment.segments[1].points.take(2),
-            )),
+            withPointsStartingFrom0(
+                listOf(
+                    geometryAlignment.segments[0].alignmentPoints.takeLast(2),
+                    geometryAlignment.segments[1].alignmentPoints.take(2),
+                )
+            ),
         )
         // Split both segments between points
         assertGeometryChange(
@@ -62,15 +65,15 @@ class LinkingTest {
         assertGeometryChange(
             layoutAlignment,
             cutLayoutGeometry(layoutAlignment, Range(0.0, 4.0)),
-            layoutAlignment.segments.map { s -> s.points },
+            layoutAlignment.segments.map { s -> s.alignmentPoints },
         )
         // Cut 1m from start
         assertGeometryChange(
             layoutAlignment,
             cutLayoutGeometry(layoutAlignment, Range(1.0, 4.0)),
             withPointsStartingFrom0(listOf(
-                layoutAlignment.segments[0].points.takeLast(2),
-                layoutAlignment.segments[1].points,
+                layoutAlignment.segments[0].alignmentPoints.takeLast(2),
+                layoutAlignment.segments[1].alignmentPoints,
             )),
         )
         // Cut 1m from end
@@ -78,29 +81,29 @@ class LinkingTest {
             layoutAlignment,
             cutLayoutGeometry(layoutAlignment, Range(0.0, 3.0)),
             withPointsStartingFrom0(listOf(
-                layoutAlignment.segments[0].points,
-                layoutAlignment.segments[1].points.take(2),
+                layoutAlignment.segments[0].alignmentPoints,
+                layoutAlignment.segments[1].alignmentPoints.take(2),
             )),
         )
         // Cut to just 1m in the middle, splitting only a piece of the first segment
         assertGeometryChange(
             layoutAlignment,
             cutLayoutGeometry(layoutAlignment, Range(1.0, 2.0)),
-            withPointsStartingFrom0(listOf(layoutAlignment.segments.first().points.takeLast(2))),
+            withPointsStartingFrom0(listOf(layoutAlignment.segments.first().alignmentPoints.takeLast(2))),
         )
         // Cut to just 1m in the middle, splitting only a piece of the second segment
         assertGeometryChange(
             layoutAlignment,
             cutLayoutGeometry(layoutAlignment, Range(2.0, 3.0)),
-            withPointsStartingFrom0(listOf(layoutAlignment.segments.last().points.take(2))),
+            withPointsStartingFrom0(listOf(layoutAlignment.segments.last().alignmentPoints.take(2))),
         )
         // Cut to just 2m in the middle, splitting a piece of each segment
         assertGeometryChange(
             layoutAlignment,
             cutLayoutGeometry(layoutAlignment, Range(1.0, 3.0)),
             withPointsStartingFrom0(listOf(
-                layoutAlignment.segments.first().points.takeLast(2),
-                layoutAlignment.segments.last().points.take(2),
+                layoutAlignment.segments.first().alignmentPoints.takeLast(2),
+                layoutAlignment.segments.last().alignmentPoints.take(2),
             )),
         )
         // Cut to just 2m in the middle, splitting each segment between-points
@@ -151,20 +154,20 @@ class LinkingTest {
         assertGeometryChange(
             layoutAlignment,
             linkLayoutGeometrySection(layoutAlignment, Range(0.0, 6.0), geometryAlignment, Range(0.0, 6.0)),
-            geometryAlignment.segments.map { s -> s.points },
+            geometryAlignment.segments.map { s -> s.alignmentPoints },
         )
         // Keep start and take the rest from geometry
         assertGeometryChange(
             layoutAlignment,
             linkLayoutGeometrySection(layoutAlignment, Range(2.0, 6.0), geometryAlignment, Range(3.0, 6.0)),
             withPointsStartingFrom0(listOf(
-                layoutAlignment.segments[0].points.take(3),
+                layoutAlignment.segments[0].alignmentPoints.take(3),
                 // Connection segment
                 toTrackLayoutPoints(
                     Point3DM(0.0, 2.0, 0.0),
                     Point3DM(0.1, 3.0, calculateDistance(LAYOUT_SRID, Point(0.0, 2.0), Point(0.1, 3.0)))
                 ),
-                geometryAlignment.segments[1].points,
+                geometryAlignment.segments[1].alignmentPoints,
             )),
         )
         // Keep end and take the start from geometry
@@ -172,13 +175,13 @@ class LinkingTest {
             layoutAlignment,
             linkLayoutGeometrySection(layoutAlignment, Range(0.0, 3.0), geometryAlignment, Range(0.0, 2.0)),
             withPointsStartingFrom0(listOf(
-                geometryAlignment.segments[0].points.take(3),
+                geometryAlignment.segments[0].alignmentPoints.take(3),
                 // Connection segment
                 toTrackLayoutPoints(
                     Point3DM(0.1, 2.0, 0.0),
                     Point3DM(0.0, 3.0, calculateDistance(LAYOUT_SRID, Point(0.1, 2.0), Point(0.0, 3.0))),
                 ),
-                layoutAlignment.segments[1].points,
+                layoutAlignment.segments[1].alignmentPoints,
             ))
         )
         // Keep start and end, taking the middle from geometry
@@ -186,20 +189,20 @@ class LinkingTest {
             layoutAlignment,
             linkLayoutGeometrySection(layoutAlignment, Range(1.0, 5.0), geometryAlignment, Range(2.0, 4.0)),
             withPointsStartingFrom0(listOf(
-                layoutAlignment.segments[0].points.take(2),
+                layoutAlignment.segments[0].alignmentPoints.take(2),
                 // Connection segment
                 toTrackLayoutPoints(
                     Point3DM(0.0, 1.0, 0.0),
                     Point3DM(0.1, 2.0, calculateDistance(LAYOUT_SRID, Point(0.0, 1.0), Point(0.1, 2.0))),
                 ),
-                geometryAlignment.segments[0].points.takeLast(2),
-                geometryAlignment.segments[1].points.take(2),
+                geometryAlignment.segments[0].alignmentPoints.takeLast(2),
+                geometryAlignment.segments[1].alignmentPoints.take(2),
                 // Connection segment
                 toTrackLayoutPoints(
                     Point3DM(0.1, 4.0, 0.0),
                     Point3DM(0.0, 5.0, calculateDistance(LAYOUT_SRID, Point(0.1, 4.0), Point(0.0, 5.0))),
                 ),
-                layoutAlignment.segments[1].points.takeLast(2),
+                layoutAlignment.segments[1].alignmentPoints.takeLast(2),
             ))
         )
         // Keep start and end, taking the middle from geometry but splitting between points
@@ -262,14 +265,14 @@ class LinkingTest {
             withPointsStartingFrom0(
                 listOf(
                     // Extension from geometry
-                    geometryAlignment.segments[0].points.take(3),
+                    geometryAlignment.segments[0].alignmentPoints.take(3),
                     // Connection segment
                     toTrackLayoutPoints(
                         Point3DM(0.1, -1.0, 0.0),
                         Point3DM(0.0, 0.0, calculateDistance(LAYOUT_SRID, Point(0.1, -1.0), Point(0.0, 0.0))),
                     ),
                     // Rest from the layout alignment as-is
-                ) + layoutAlignment.segments.map { s -> s.points },
+                ) + layoutAlignment.segments.map { s -> s.alignmentPoints },
             ),
         )
         // Extend end
@@ -277,7 +280,7 @@ class LinkingTest {
             layoutAlignment,
             linkLayoutGeometrySection(layoutAlignment, Range(4.0, 4.0), geometryAlignment, Range(8.0, 10.0)),
             withPointsStartingFrom0(
-                layoutAlignment.segments.map { s -> s.points } +
+                layoutAlignment.segments.map { s -> s.alignmentPoints } +
                 listOf(
                     // Connection segment
                     toTrackLayoutPoints(
@@ -285,7 +288,7 @@ class LinkingTest {
                         Point3DM(0.1, 5.0, calculateDistance(LAYOUT_SRID, Point(0.0, 4.0), Point(0.1, 5.0))),
                     ),
                     // Extension from geometry
-                    geometryAlignment.segments[2].points.takeLast(3),
+                    geometryAlignment.segments[2].alignmentPoints.takeLast(3),
                 ),
             ),
         )
@@ -412,6 +415,6 @@ private fun assertGeometryChange(
     assertEquals(segmentPointLists.size, newAlignment.segments.size)
     segmentPointLists.forEachIndexed { index, expectedPoints ->
         val segment = newAlignment.segments[index]
-        assertEquals(expectedPoints, segment.points)
+        assertEquals(expectedPoints, segment.alignmentPoints)
     }
 }

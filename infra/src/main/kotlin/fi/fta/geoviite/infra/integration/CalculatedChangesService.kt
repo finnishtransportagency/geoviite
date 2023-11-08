@@ -514,11 +514,11 @@ private fun getTopologySwitchJointDataHolder(
 }
 
 private fun topologySwitchLinks(track: LocationTrack, alignment: LayoutAlignment) = listOfNotNull(
-    switchIdAndLocation(track.topologyStartSwitch, alignment.start),
-    switchIdAndLocation(track.topologyEndSwitch, alignment.end),
+    switchIdAndLocation(track.topologyStartSwitch, alignment.firstSegmentStart),
+    switchIdAndLocation(track.topologyEndSwitch, alignment.lastSegmentEnd),
 )
 
-private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: LayoutPoint?) =
+private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: SegmentPoint?) =
     if (topologySwitch != null && location != null) topologySwitch to location.toPoint()
     else null
 
@@ -588,8 +588,8 @@ private fun findMatchingJoints(
     geocodingContext: GeocodingContext,
 ) = switch.joints.mapNotNull { joint ->
     val segmentPoint = when (joint.number) {
-        segment.startJointNumber -> segment.points.first()
-        segment.endJointNumber -> segment.points.last()
+        segment.startJointNumber -> segment.alignmentStart
+        segment.endJointNumber -> segment.alignmentEnd
         else -> null
     }
 

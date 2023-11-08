@@ -227,9 +227,9 @@ private fun validateFrontJointTopology(
     return validateWithParams(
         connectivityType.frontJoint == null || okFrontJointLinkInNonDuplicates, WARNING
     ) {
-        val key = if (okFrontJointLinkInDuplicates)
-            "$VALIDATION_SWITCH.track-linkage.front-joint-only-duplicate-connected"
-        else "$VALIDATION_SWITCH.track-linkage.front-joint-not-connected"
+        val key =
+            if (okFrontJointLinkInDuplicates) "$VALIDATION_SWITCH.track-linkage.front-joint-only-duplicate-connected"
+            else "$VALIDATION_SWITCH.track-linkage.front-joint-not-connected"
 
         key to LocalizationParams.empty()
     }
@@ -575,7 +575,7 @@ fun validateLocationTrackAlignment(alignment: LayoutAlignment) = validateAlignme
 
 private fun validateAlignment(errorParent: String, alignment: LayoutAlignment) = listOfNotNull(
     validate(alignment.segments.isNotEmpty()) { "$errorParent.empty-segments" },
-    validate(areDirectionsContinuous(alignment.allPoints())) { "$errorParent.points.not-continuous" },
+    validate(alignment.getMaxDirectionDeltaRads() <= MAX_LAYOUT_POINT_ANGLE_CHANGE) { "$errorParent.points.not-continuous" },
 )
 
 private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
@@ -583,8 +583,8 @@ private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segmentGrou
 
 private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: LayoutSegment): Boolean {
     val jointLocations = listOfNotNull(
-        segment.startJointNumber?.let { jn -> segment.points.first() to jn },
-        segment.endJointNumber?.let { jn -> segment.points.last() to jn },
+        segment.startJointNumber?.let { jn -> segment.segmentStart to jn },
+        segment.endJointNumber?.let { jn -> segment.segmentEnd to jn },
     )
     return jointLocations.all { (location, jointNumber) ->
         val joint = switch.getJoint(jointNumber)
@@ -639,19 +639,8 @@ private fun collectJoints(segments: List<LayoutSegment>): List<JointNumber> {
 }
 
 private fun areSegmentsContinuous(segments: List<LayoutSegment>): Boolean = segments.mapIndexed { index, segment ->
-    index == 0 || segments[index - 1].points.last().isSame(segment.points.first(), LAYOUT_COORDINATE_DELTA)
+    index == 0 || segments[index - 1].segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)
 }.all { it }
-
-private fun areDirectionsContinuous(points: List<LayoutPoint>): Boolean {
-    var prevDirection: Double? = null
-    return points.mapIndexed { index, point ->
-        val previous = if (index > 0) points[index - 1] else null
-        val direction = previous?.let { prev -> directionBetweenPoints(prev, point) }
-        val angleOk = isAngleDiffOk(prevDirection, direction)
-        prevDirection = direction
-        angleOk
-    }.all { it }
-}
 
 private fun discontinuousDirectionRangeIndices(points: List<LayoutPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
@@ -692,12 +681,10 @@ data class TopologyEndLink(
 private fun collectTopologyEndLinks(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switch: TrackLayoutSwitch,
-) = locationTracks.map { (track, alignment) ->
+): List<Pair<LocationTrack,List<TopologyEndLink>>> = locationTracks.map { (track, alignment) ->
     track to listOfNotNull(track.topologyStartSwitch?.let { topologySwitch ->
         if (topologySwitch.switchId == switch.id) alignment.start?.let { p ->
-            TopologyEndLink(
-                topologySwitch, p
-            )
+            TopologyEndLink(topologySwitch, p)
         }
         else null
     }, track.topologyEndSwitch?.let { topologySwitch ->
