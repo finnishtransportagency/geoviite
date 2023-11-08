@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -104,7 +105,10 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
             "limit" to limit
         )
         val allPosts = listInternal(publicationState, false, trackNumberId)
-        val postsByDistance = allPosts.map { post -> associateByDistance(post, location) { item -> item.location } }
+        val postsByDistance = allPosts.map { post -> associateByDistance(post, location) }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }
 }
+
+fun associateByDistance(kmPost: TrackLayoutKmPost, comparisonPoint: Point): Pair<TrackLayoutKmPost, Double?> =
+    kmPost to kmPost.location?.let { l -> calculateDistance(LAYOUT_SRID, comparisonPoint, l) }

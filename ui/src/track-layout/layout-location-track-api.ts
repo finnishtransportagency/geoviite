@@ -79,7 +79,7 @@ export async function getLocationTracksByName(
 ): Promise<LayoutLocationTrack[]> {
     const params = queryParams({ locationTrackName });
     return getNonNull<LayoutLocationTrack[]>(
-        `${layoutUri('location-tracks', publishType)}/by-tracknumber/${trackNumberId}${params}`,
+        `${layoutUri('track-numbers', publishType)}/${trackNumberId}/location-tracks${params}`,
     );
 }
 
