@@ -7,7 +7,7 @@ $text-field-input-height: size.$input-height;
 $text-field-input-padding-side: 12px;
 $text-field-input-border-default: 1px;
 $text-field-input-border-thick: 2px;
-$text-field-input-border-error: 1.5px;
+$text-field-input-border-error: 2px;
 
 @mixin text-field-shadow($color, $width, $icon: no-icon) {
     box-shadow: inset 0 0 0 $width $color;
