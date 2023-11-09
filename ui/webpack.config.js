@@ -49,9 +49,6 @@ module.exports = (env) => {
         devServer: {
             port: 9000,
             compress: false,
-            static: {
-                directory: path.join(__dirname, '..'),
-            },
             proxy: {
                 '/api': {
                     target: 'http://127.0.0.1:8080',
@@ -155,12 +152,7 @@ module.exports = (env) => {
                 },
                 {
                     test: /\.css$/i,
-                    include: [
-                        path.join(__dirname, 'node_modules/@fontsource/'),
-                        path.join(__dirname, 'node_modules/normalize.css/'),
-                        path.join(__dirname, 'node_modules/ol/'),
-                        path.join(__dirname, 'node_modules/react-toastify/'),
-                    ],
+                    include: /node_modules/,
                     use: [MiniCssExtractPlugin.loader, 'css-loader'],
                 },
             ],
