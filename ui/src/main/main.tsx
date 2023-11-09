@@ -28,6 +28,7 @@ import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
 import { getOwnUser } from 'user/user-api';
+import Licenses from 'licenses/licenses';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -67,6 +68,7 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
                         path="/data-products/kilometer-lengths"
                         element={<KilometerLengthsView />}
                     />
+                    <Route path="/licenses" element={<Licenses />} />
                 </Routes>
             </div>
             <ToastContainer

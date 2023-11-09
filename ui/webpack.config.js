@@ -49,6 +49,9 @@ module.exports = (env) => {
         devServer: {
             port: 9000,
             compress: false,
+            static: {
+                directory: path.join(__dirname, '..'),
+            },
             proxy: {
                 '/api': {
                     target: 'http://127.0.0.1:8080',
