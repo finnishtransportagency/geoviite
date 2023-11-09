@@ -19,14 +19,16 @@ const Licenses: React.FC = () => {
 
     React.useEffect(() => {
         fetch('oss-licenses.json')
-            .then((r) => r.json())
-            .then(setOssLicenses);
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then(setOssLicenses)
+            .catch(() => setOssLicenses(undefined));
     }, []);
 
     React.useEffect(() => {
         fetch('LICENSE.txt')
-            .then((r) => r.text())
-            .then(setGeoviiteLicense);
+            .then((r) => (r.ok ? r.text() : Promise.reject()))
+            .then(setGeoviiteLicense)
+            .catch(() => setGeoviiteLicense(undefined));
     }, []);
 
     return (
