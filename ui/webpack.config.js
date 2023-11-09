@@ -155,7 +155,12 @@ module.exports = (env) => {
                 },
                 {
                     test: /\.css$/i,
-                    include: /node_modules/,
+                    include: [
+                        path.join(__dirname, 'node_modules/@fontsource/'),
+                        path.join(__dirname, 'node_modules/normalize.css/'),
+                        path.join(__dirname, 'node_modules/ol/'),
+                        path.join(__dirname, 'node_modules/react-toastify/'),
+                    ],
                     use: [MiniCssExtractPlugin.loader, 'css-loader'],
                 },
             ],
