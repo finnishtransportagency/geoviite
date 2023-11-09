@@ -317,6 +317,47 @@ class ElementListingTest {
         assertEquals(SwitchName("Test"), listing[1].connectedSwitchName)
     }
 
+    @Test
+    fun `Elements linked through multiple segments are listed once`() {
+        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val alignment = geometryAlignment(
+            id = IntId(1),
+            trackNumberId = trackNumberId,
+            elements = listOf(
+                minimalLine(id = IndexedId(1,1)),
+                minimalLine(id = IndexedId(1,2)),
+                minimalLine(id = IndexedId(1,3)),
+            ),
+        )
+        val (track, layoutAlignment) = locationTrackAndAlignment(trackNumberId,
+            segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = alignment.elements[2].id),
+            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
+            segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment.elements[0].id),
+            segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment.elements[1].id),
+            segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment.elements[0].id),
+        )
+
+        val planHeader = planHeader(id = IntId(1), trackNumberId = trackNumberId, srid = LAYOUT_SRID)
+        val alignments = listOf(planHeader to alignment)
+
+        val context = geocodingContext(
+            referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
+            trackNumberId = trackNumberId,
+        )
+        val listing = toElementListing(
+            context,
+            getTransformation,
+            track,
+            layoutAlignment,
+            allTrackElementTypes,
+            null,
+            null,
+            { id -> alignments.find { a -> a.second.id == id }!! },
+            { _ -> SwitchName("Test") }
+        )
+        assertEquals(3, listing.size)
+        assertEquals(listOf(3, 1, 2), listing.map { l -> (l.elementId as IndexedId).index })
+    }
 
     private fun createSegments(alignment: GeometryAlignment) =
         if (alignment.id !is IntId) throw IllegalStateException("Alignment must have int-id for element seeking to work")
