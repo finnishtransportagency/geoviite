@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
+import { Dialog, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -36,6 +36,9 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
+import { ChangesBeingReverted } from 'preview/preview-view';
+import { getChangeTimes } from 'common/change-time-api';
+import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -103,26 +106,22 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         : undefined;
 
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
-    const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
-        React.useState<boolean>();
-    const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
-        React.useState<boolean>(false);
+    const [deleting, setDeleting] = React.useState<ChangesBeingReverted>();
 
-    const trackNumberStateOptions = layoutStates.filter((s) => s.value !== 'PLANNED');
+    const trackNumberStateOptions = layoutStates
+        .filter((s) => s.value !== 'PLANNED')
+        .map((s) =>
+            s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
+        );
 
-    const confirmNewDraftDelete = () => {
-        setDraftDeleteConfirmationVisible(true);
-    };
-    const closeDraftDeleteConfirmation = () => {
-        setDraftDeleteConfirmationVisible(false);
-    };
-    const closeNonDraftDeleteConfirmation = () => {
-        setNonDraftDeleteConfirmationVisible(false);
-    };
+    const requestDeletionWithPossibleDependencies = (trackNumber: LayoutTrackNumber) =>
+        onRequestDeleteTrackNumber(trackNumber, setDeleting);
 
     const saveOrConfirm = () => {
         if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
-            setNonDraftDeleteConfirmationVisible(true);
+            if (inEditTrackNumber !== undefined) {
+                requestDeletionWithPossibleDependencies(inEditTrackNumber);
+            }
         } else {
             saveTrackNumber();
         }
@@ -144,7 +143,6 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                 }
             })
             .finally(() => {
-                setNonDraftDeleteConfirmationVisible(false);
                 setSaveInProgress(false);
             });
     };
@@ -185,7 +183,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <div className={styles['dialog__footer-content--left-aligned']}>
                                 <Button
                                     onClick={() => {
-                                        inEditTrackNumber ? confirmNewDraftDelete() : undefined;
+                                        inEditTrackNumber
+                                            ? requestDeletionWithPossibleDependencies(
+                                                  inEditTrackNumber,
+                                              )
+                                            : undefined;
                                     }}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
@@ -342,33 +344,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     </FormLayoutColumn>
                 </FormLayout>
             </Dialog>
-            {nonDraftDeleteConfirmationVisible && (
-                <Dialog
-                    title={t('track-number-edit.title.delete-non-draft')}
-                    variant={DialogVariant.DARK}
-                    allowClose={false}
-                    footerContent={
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
-                            <Button
-                                onClick={closeNonDraftDeleteConfirmation}
-                                variant={ButtonVariant.SECONDARY}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button onClick={saveTrackNumber}>{t('button.delete')}</Button>
-                        </div>
-                    }>
-                    <div className={'dialog__text'}>
-                        {t('track-number-edit.dialog.deleted-track-numbers-not-allowed')}
-                    </div>
-                    <div className={'dialog__text'}>
-                        {t('track-number-edit.dialog.confirm-track-number-delete')}
-                    </div>
-                </Dialog>
-            )}
-            {inEditTrackNumber && draftDeleteConfirmationVisible && (
+            {inEditTrackNumber && deleting && (
                 <TrackNumberDeleteConfirmationDialog
-                    id={inEditTrackNumber.id}
-                    onClose={closeDraftDeleteConfirmation}
+                    changesBeingReverted={deleting}
+                    onClose={() => setDeleting(undefined)}
+                    changeTimes={getChangeTimes()}
                     onSave={onSave}
                 />
             )}

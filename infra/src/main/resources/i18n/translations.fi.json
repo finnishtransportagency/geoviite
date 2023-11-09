@@ -375,7 +375,7 @@
             "start-address": "Alkusijainti (km + m)",
             "delete-dialog": {
                 "delete-draft-confirm": "Poistetaanko luonnos?",
-                "can-be-deleted": "Tätä ratanumeroa ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa ratanumeroa. Ratanumeron poistaminen poistaa myös siihen liittyvän pituusmittauslinjan.",
+                "can-be-deleted": "Tätä ratanumeroa ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa ratanumeroa.",
                 "delete-succeeded": "Ratanumero poistettu.",
                 "delete-failed": "Poisto epäonnistui."
             }
@@ -1441,7 +1441,7 @@
             "track-number": "Ratanumero",
             "reference-line": "Pituusmittauslinja",
             "metadata-heading": "Metatiedot",
-            "delete-non-draft": "Ratanumeron poistaminen paikannuspohjasta"
+            "delete-draft": "Poista luonnos"
         },
         "dialog": {
             "deleted-track-numbers-not-allowed": "Poistettu-tilainen ratanumero ei voi olla osa paikannuspohjaa.",
