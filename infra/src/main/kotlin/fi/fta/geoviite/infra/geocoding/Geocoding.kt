@@ -77,6 +77,7 @@ data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedR
 data class GeocodingContextCreateResult(
     val geocodingContext: GeocodingContext,
     val rejectedKmPosts: List<KmPostWithRejectedReason>,
+    val validKmPosts: List<TrackLayoutKmPost>,
 )
 
 enum class KmPostRejectedReason {
@@ -91,7 +92,6 @@ data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
     val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
-    val kmPosts: List<TrackLayoutKmPost>,
     val referencePoints: List<GeocodingReferencePoint>,
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
     val projectionLineMaxAngleDelta: Double = PROJECTION_LINE_MAX_ANGLE_DELTA,
@@ -112,18 +112,6 @@ data class GeocodingContext(
                 .all { TrackMeter.isMetersValid(it) }
         ) {
             "Reference points are too far apart from each other, trackNumber=${trackNumber.number}"
-        }
-
-        require(kmPosts.none { it.location == null }) {
-            "Geocoding context created with kmPosts without location ${
-                kmPosts.filter { it.location == null }
-            }}"
-        }
-
-        require(kmPosts.distinctBy { it.kmNumber }.size == kmPosts.size) {
-            "There are km posts with duplicate km number, ${
-                kmPosts.groupingBy { it.kmNumber }.eachCount().filter { it.value > 1 }
-            }}"
         }
     }
 
@@ -180,6 +168,7 @@ data class GeocodingContext(
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContextCreateResult {
+            requireKmPostsSanity(kmPosts)
             val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
             val (validReferencePoints, kmPostsOutsideGeometry) = createReferencePoints(
@@ -195,13 +184,21 @@ data class GeocodingContext(
             return GeocodingContextCreateResult(
                 geocodingContext = GeocodingContext(
                     trackNumber = trackNumber,
-                    kmPosts = validKmPosts,
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
                     startAddress = startAddress
                 ),
-                rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry
+                rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
+                validKmPosts = validKmPosts,
             )
+        }
+
+        private fun requireKmPostsSanity(kmPosts: List<TrackLayoutKmPost>) {
+            require(kmPosts.distinctBy { it.kmNumber }.size == kmPosts.size) {
+                "There are km posts with duplicate km number, ${
+                    kmPosts.groupingBy { it.kmNumber }.eachCount().filter { it.value > 1 }
+                }}"
+            }
         }
 
         private fun createReferencePoints(
