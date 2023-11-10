@@ -5,7 +5,12 @@ import { useTranslation } from 'react-i18next';
 import styles from './switch-infobox.scss';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LinkingState, LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
+import {
+    LinkingState,
+    LinkingSwitch,
+    SuggestedSwitch,
+    SwitchLinkingSegment,
+} from 'linking/linking-model';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
@@ -154,7 +159,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                     return {
                         jointNumber: joint.number,
                         location: joint.location,
-                        segments: joint.matches,
+                        segments: joint.matches satisfies SwitchLinkingSegment[],
                         locationAccuracy: joint.locationAccuracy,
                     };
                 }),

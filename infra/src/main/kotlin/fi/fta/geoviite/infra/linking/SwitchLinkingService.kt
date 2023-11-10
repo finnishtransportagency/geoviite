@@ -26,6 +26,8 @@ private const val TOLERANCE_JOINT_LOCATION_SAME_POINT = 0.001
 
 private const val MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS = 5.0
 
+private val temporarySwitchId: IntId<TrackLayoutSwitch> = IntId(-1)
+
 fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
@@ -984,9 +986,57 @@ class SwitchLinkingService @Autowired constructor(
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
         val nearbyLocationTracks = locationTrackService.getLocationTracksNear(location, DRAFT)
 
-        return createSuggestedSwitchByPoint(
+        val suggestedSwitch = createSuggestedSwitchByPoint(
             location, switchStructure, nearbyLocationTracks
         )
+
+        suggestedSwitch
+            ?.let ( ::createTemporarySwitchLinkingParameters)
+            ?.let ( ::calculateModifiedLocationTracksAndAlignments)
+            ?.let ( ::updateTemporarySwitchLinkingToTemporaryLocationTracks)?.asSequence()
+            ?.filter ( ::locationTrackHasTemporaryTopologicalSwitchConnection)
+            ?.mapNotNull( ::topologicalConnectionJointNumberToTemporaryLocationTrackId)
+            ?.groupBy (
+                { (jointNumber, _ ) -> jointNumber },
+                { (_, locationTrackId ) -> locationTrackId },
+            )
+            ?.map { (jointNumber, locationTrackIds) ->
+                TopologicalJointConnection(jointNumber, locationTrackIds)
+            }
+            ?.sortedBy { temporaryTopologicalJointConnection ->
+                temporaryTopologicalJointConnection.jointNumber
+            }
+            ?.let { temporaryTopologicalJointConnections ->
+                return suggestedSwitch.copy(
+                    topologicalJointConnections = temporaryTopologicalJointConnections
+                )
+            }
+
+        return suggestedSwitch
+    }
+
+    private fun updateTemporarySwitchLinkingToTemporaryLocationTracks(
+        locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+    ): List<LocationTrack> {
+        // It is unnecessary to get the original switch bounds as well, as the "temporary" switch
+        // is not linked to anywhere beforehand.
+        val updatedArea = getSwitchBoundsFromTracksAndAlignments(
+            temporarySwitchId,
+            locationTracksAndAlignments,
+        )
+
+        val nearbyTracks =
+            (locationTracksAndAlignments + listDraftTracksNearArea(updatedArea))
+
+        return nearbyTracks
+            .distinctBy { t -> t.first.id }
+            .map { (locationTrack, alignment) ->
+                locationTrackService.calculateLocationTrackTopology(
+                    locationTrack,
+                    alignment,
+                    nearbyTracksForSearch=nearbyTracks
+                )
+            }
     }
 
     @Transactional(readOnly = true)
@@ -1041,12 +1091,16 @@ class SwitchLinkingService @Autowired constructor(
         val originalArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
         switchService.clearSwitchInformationFromSegments(linkingParameters.layoutSwitchId)
         val switchUpdateResponse = updateLayoutSwitch(linkingParameters)
-        updateSwitchLinkingIntoSegments(linkingParameters)
+
+        linkingParameters
+            .let(::calculateModifiedLocationTracksAndAlignments)
+            .let(::saveLocationTracksAndAlignments)
+
         val updatedArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
         val potentiallyChangedTracks =
             (listDraftTracksNearArea(originalArea) + listDraftTracksNearArea(updatedArea)).distinctBy { t -> t.first.id }
         potentiallyChangedTracks.forEach { (locationTrack, alignment) ->
-            val updated = locationTrackService.updateTopology(locationTrack, alignment)
+            val updated = locationTrackService.calculateLocationTrackTopology(locationTrack, alignment)
             if (updated != locationTrack) locationTrackService.saveDraft(updated)
         }
         return switchUpdateResponse
@@ -1055,7 +1109,7 @@ class SwitchLinkingService @Autowired constructor(
     private fun listDraftTracksNearArea(area: BoundingBox?) = if (area == null) listOf()
     else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
 
-    private fun updateLayoutSwitch(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
+    private fun createModifiedLayoutSwitchLinking(linkingParameters: SwitchLinkingParameters): TrackLayoutSwitch {
         val layoutSwitch = switchService.getOrThrow(DRAFT, linkingParameters.layoutSwitchId)
         val newGeometrySwitchId = linkingParameters.geometrySwitchId ?: layoutSwitch.sourceId
         val newJoints = linkingParameters.joints.map { linkingJoint ->
@@ -1065,15 +1119,21 @@ class SwitchLinkingService @Autowired constructor(
                 locationAccuracy = linkingJoint.locationAccuracy
             )
         }
-        val newLayoutSwitch = layoutSwitch.copy(
+
+        return layoutSwitch.copy(
             sourceId = newGeometrySwitchId,
             joints = newJoints,
             source = if (newGeometrySwitchId != null) GeometrySource.PLAN else GeometrySource.GENERATED,
         )
-        return switchService.saveDraft(newLayoutSwitch)
     }
 
-    private fun updateSwitchLinkingIntoSegments(linkingParameters: SwitchLinkingParameters) {
+    private fun updateLayoutSwitch(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
+        return createModifiedLayoutSwitchLinking(linkingParameters).let { modifiedLayoutSwitch ->
+            switchService.saveDraft(modifiedLayoutSwitch)
+        }
+    }
+
+    private fun calculateModifiedLocationTracksAndAlignments(linkingParameters: SwitchLinkingParameters): List<Pair<LocationTrack, LayoutAlignment>> {
         val switchStructure = switchLibraryService.getSwitchStructure(linkingParameters.switchStructureId)
 
         val switchJointsByLocationTrack = linkingParameters.joints
@@ -1084,7 +1144,7 @@ class SwitchLinkingService @Autowired constructor(
             }
             .filter { it.value.isNotEmpty() }
 
-        switchJointsByLocationTrack.forEach { (locationTrackId, switchJoints) ->
+        return switchJointsByLocationTrack.map { (locationTrackId, switchJoints) ->
             val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
 
             val switchJointsWithSlightlyOverlappingSegmentsSnapped = switchJoints.map { switchLinkingJoint ->
@@ -1105,14 +1165,27 @@ class SwitchLinkingService @Autowired constructor(
                 )
             }
 
-            val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
-                alignment = alignment,
-                layoutSwitchId = linkingParameters.layoutSwitchId,
-                matchingJoints = switchJointsWithSlightlyOverlappingSegmentsSnapped,
-            )
-            val updatedLocationTrack = locationTrackService.updateTopology(locationTrack, updatedAlignment)
-            locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
+            val updatedAlignment =
+                updateAlignmentSegmentsWithSwitchLinking(
+                    alignment = alignment,
+                    layoutSwitchId = linkingParameters.layoutSwitchId,
+                    matchingJoints = switchJointsWithSlightlyOverlappingSegmentsSnapped,
+                )
+
+            val locationTrackWithUpdatedTopology =
+                locationTrackService.calculateLocationTrackTopology(locationTrack, updatedAlignment)
+
+            locationTrackWithUpdatedTopology to updatedAlignment
         }
+    }
+
+    private fun saveLocationTracksAndAlignments(
+        locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+    ) {
+        locationTracksAndAlignments
+            .forEach { (updatedLocationTrack, updatedAlignment) ->
+                locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
+            }
     }
 
     private fun findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
@@ -1229,5 +1302,87 @@ class SwitchLinkingService @Autowired constructor(
         if (geometryDao.fetchPlanVersion(id).let(geometryDao::getPlanHeader).isHidden) throw LinkingFailureException(
             message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
         )
+    }
+}
+
+private fun createTemporarySwitchLinkingParameters(
+    suggestedSwitch: SuggestedSwitch,
+): SwitchLinkingParameters {
+    return SwitchLinkingParameters(
+        layoutSwitchId = temporarySwitchId,
+        joints = suggestedSwitch.joints.map { suggestedSwitchJoint ->
+            SwitchLinkingJoint(
+                jointNumber = suggestedSwitchJoint.number,
+                location = suggestedSwitchJoint.location,
+                segments = suggestedSwitchJoint.matches.map { switchJointMatch ->
+                    SwitchLinkingSegment(
+                        locationTrackId = switchJointMatch.locationTrackId as IntId,
+                        segmentIndex = switchJointMatch.segmentIndex,
+                        m = switchJointMatch.m,
+                    )
+                },
+                locationAccuracy = suggestedSwitchJoint.locationAccuracy,
+            )
+        },
+        geometrySwitchId = null,
+        switchStructureId = suggestedSwitch.switchStructure.id as IntId,
+    )
+}
+
+private fun getSwitchBoundsFromTracksAndAlignments(
+    switchId: IntId<TrackLayoutSwitch>,
+    locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+): BoundingBox? {
+    return locationTracksAndAlignments.flatMap { (locationTrack, alignment) ->
+        val lastSegmentIndex = alignment.segments.lastIndex
+
+        alignment.segments
+            .filterIndexed { segmentIndex, layoutSegment ->
+                val layoutSegmentSwitchIdMatches =
+                    layoutSegment.switchId == switchId
+
+                val topologyStartSwitchMatches =
+                    segmentIndex == 0 && locationTrack.topologyStartSwitch?.switchId == switchId
+
+                val topologyEndSwitchMatches =
+                    segmentIndex == lastSegmentIndex && locationTrack.topologyEndSwitch?.switchId == switchId
+
+                layoutSegmentSwitchIdMatches || topologyStartSwitchMatches || topologyEndSwitchMatches
+            }
+            .flatMapIndexed { segmentIndex, layoutSegment ->
+                val startIsJoint =
+                    layoutSegment.switchId == switchId && layoutSegment.startJointNumber != null ||
+                            segmentIndex == 0 && locationTrack.topologyStartSwitch?.switchId == switchId
+
+                val endIsJoint =
+                    layoutSegment.switchId == switchId && layoutSegment.endJointNumber != null ||
+                            segmentIndex == lastSegmentIndex && locationTrack.topologyEndSwitch?.switchId == switchId
+
+                listOfNotNull(
+                    if (startIsJoint) layoutSegment.geometry.points.first() else null,
+                    if (endIsJoint) layoutSegment.geometry.points.last() else null,
+                )
+            }
+    }
+    .let {
+        layoutPoints -> boundingBoxAroundPointsOrNull(layoutPoints)
+    }
+}
+
+private fun locationTrackHasTemporaryTopologicalSwitchConnection(
+    temporaryLocationTrack: LocationTrack,
+): Boolean =
+    temporaryLocationTrack.topologyStartSwitch?.switchId == temporarySwitchId
+    || temporaryLocationTrack.topologyEndSwitch?.switchId == temporarySwitchId
+
+private fun topologicalConnectionJointNumberToTemporaryLocationTrackId(
+    temporaryLocationTrack: LocationTrack,
+): Pair<JointNumber, IntId<LocationTrack>>? {
+    return if (temporaryLocationTrack.topologyStartSwitch?.switchId == temporarySwitchId) {
+        temporaryLocationTrack.topologyStartSwitch.jointNumber to temporaryLocationTrack.id as IntId
+    } else if (temporaryLocationTrack.topologyEndSwitch?.switchId == temporarySwitchId) {
+        temporaryLocationTrack.topologyEndSwitch.jointNumber to temporaryLocationTrack.id as IntId
+    } else {
+        null
     }
 }

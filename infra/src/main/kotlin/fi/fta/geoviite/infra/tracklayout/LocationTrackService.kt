@@ -74,11 +74,11 @@ class LocationTrackService(
         )
 
         return if (locationTrack.state != LayoutState.DELETED) {
-            saveDraft(updateTopology(locationTrack, originalAlignment))
+            saveDraft(calculateLocationTrackTopology(locationTrack, originalAlignment))
         } else {
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
-            saveDraft(updateTopology(locationTrack, newAlignment), newAlignment)
+            saveDraft(calculateLocationTrackTopology(locationTrack, newAlignment), newAlignment)
         }
     }
 
@@ -397,23 +397,26 @@ class LocationTrackService(
     )?.let(switchDao::fetch)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     @Transactional
-    fun updateTopology(
+    fun calculateLocationTrackTopology(
         track: LocationTrack,
         alignment: LayoutAlignment,
         startChanged: Boolean = false,
         endChanged: Boolean = false,
+        nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>? = null,
     ): LocationTrack {
         val startPoint = alignment.firstSegmentStart
         val endPoint = alignment.lastSegmentEnd
         val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
 
-        val startSwitch = if (!track.exists || startPoint == null) null
-        else if (startChanged) findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, null)
-        else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, track.topologyStartSwitch)
+        val startSwitch =
+            if (!track.exists || startPoint == null) null
+            else if (startChanged) findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, null, nearbyTracksForSearch)
+            else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, track.topologyStartSwitch, nearbyTracksForSearch)
 
-        val endSwitch = if (!track.exists || endPoint == null) null
-        else if (endChanged) findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, null)
-        else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, track.topologyEndSwitch)
+        val endSwitch =
+            if (!track.exists || endPoint == null) null
+            else if (endChanged) findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, null, nearbyTracksForSearch)
+            else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, track.topologyEndSwitch, nearbyTracksForSearch)
 
         return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
             track
@@ -426,20 +429,25 @@ class LocationTrackService(
         }
     }
 
-    private fun findBestTopologySwitchMatch(
-        target: IPoint,
-        ownId: DomainId<LocationTrack>,
-        ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
-        currentTopologySwitch: TopologyLocationTrackSwitch?,
+   fun findBestTopologySwitchMatch(
+       target: IPoint,
+       ownId: DomainId<LocationTrack>,
+       ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+       currentTopologySwitch: TopologyLocationTrackSwitch?,
+       nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>?,
     ): TopologyLocationTrackSwitch? {
-        val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> = dao
+        val nearbyTracks = nearbyTracksForSearch ?: dao
             .fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
             .map { version -> getWithAlignmentInternal(version) }
-            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
+            .filter { (track, alignment) ->
+                alignment.segments.isNotEmpty() && track.id != ownId && track.exists
+            }
+
         val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
         else currentTopologySwitch
-        return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracks) ?: defaultSwitch
-        ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
+        return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracks)
+            ?: defaultSwitch
+            ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
     }
 
     @Transactional(readOnly = true)
