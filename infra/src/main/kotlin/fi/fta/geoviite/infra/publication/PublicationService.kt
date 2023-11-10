@@ -13,9 +13,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.integration.CalculatedChanges
-import fi.fta.geoviite.infra.integration.CalculatedChangesService
-import fi.fta.geoviite.infra.integration.RatkoPushStatus
+import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
@@ -63,6 +61,7 @@ class PublicationService @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val geocodingCacheService: GeocodingCacheService,
     private val transactionTemplate: TransactionTemplate,
+    private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -505,6 +504,7 @@ class PublicationService @Autowired constructor(
         val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
         val publishId = publicationDao.createPublication(message)
         publicationDao.insertCalculatedChanges(publishId, calculatedChanges)
+        publicationGeometryChangeRemarksUpdateService.processPublication(publishId)
 
         return PublishResult(
             publishId = publishId,
@@ -1091,11 +1091,9 @@ class PublicationService @Autowired constructor(
                 remark = getAddressMovedRemarkOrNull(translation, oldEndPointAndM?.address, newEndPointAndM?.address)
             ),
             if (changedKmNumbers.isNotEmpty()) {
-                PublicationChange(
-                    PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
-                        translation, changedKmNumbers
-                    )
-                )
+                PublicationChange(PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
+                    translation, changedKmNumbers, locationTrackChanges.geometryChangeSummaries,
+                ))
             } else null,
             if (switchLinkChanges == null) null else compareChange({ switchLinkChanges.old != switchLinkChanges.new },
                 null,
@@ -1144,8 +1142,10 @@ class PublicationService @Autowired constructor(
             ),
             if (changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
-                    PropKey("geometry"), ChangeValue(null, null), getKmNumbersChangedRemarkOrNull(
-                        translation, changedKmNumbers
+                    PropKey("geometry"), ChangeValue(null, null), publicationChangeRemark(
+                        translation,
+                        if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+                        formatChangedKmNumbers(changedKmNumbers.toList())
                     )
                 )
             } else null,

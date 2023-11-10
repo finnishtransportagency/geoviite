@@ -364,6 +364,7 @@ data class LocationTrackChanges(
     val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
+    val geometryChangeSummaries: List<GeometryChangeSummary>?,
     val owner: Change<IntId<LocationTrackOwner>>,
 )
 

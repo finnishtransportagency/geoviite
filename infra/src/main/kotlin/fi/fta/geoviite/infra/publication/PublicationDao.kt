@@ -583,7 +583,8 @@ class PublicationDao(
               postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
               postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
+              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
+              geometry_change_summary_computed
               from publication.location_track
                 join publication.publication on location_track.publication_id = publication.id
                 left join layout.location_track_version ltv
@@ -641,14 +642,128 @@ class PublicationDao(
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
+                geometryChangeSummaries = if (!rs.getBoolean("geometry_change_summary_computed")) null
+                  else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),
                 owner = rs.getChange("owner_id", rs::getIntIdOrNull),
             )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
     }
 
-    private fun parseSwitchChangeReference(str: String): Pair<IntId<TrackLayoutSwitch>, String> {
-        val spaceIndex = str.indexOf(" ")
-        return IntId<TrackLayoutSwitch>(str.substring(0, spaceIndex).toInt()) to str.substring(spaceIndex + 1)
+    fun fetchGeometryChangeSummaries(
+        publicationId: IntId<Publication>,
+        locationTrackId: IntId<LocationTrack>,
+    ): List<GeometryChangeSummary> {
+        val sql = """
+            select changed_length_m, max_distance, start_km, end_km
+            from publication.location_track_geometry_change_summary
+            where publication_id = :publicationId and location_track_id = :locationTrackId
+            order by remark_order
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("publicationId" to publicationId.intValue, "locationTrackId" to locationTrackId.intValue)
+        ) { rs, _ ->
+            GeometryChangeSummary(
+                changedLengthM = rs.getDouble("changed_length_m"),
+                maxDistance = rs.getDouble("max_distance"),
+                startKm = rs.getKmNumber("start_km"),
+                endKm = rs.getKmNumber("end_km"),
+            )
+        }
+    }
+
+    data class UnprocessedGeometryChange(
+        val publicationId: IntId<Publication>,
+        val locationTrackId: IntId<LocationTrack>,
+        val newAlignmentVersion: RowVersion<LayoutAlignment>,
+        val oldAlignmentVersion: RowVersion<LayoutAlignment>?,
+        val trackNumberId: IntId<TrackLayoutTrackNumber>,
+        val publicationTime: Instant,
+    )
+
+    fun fetchUnprocessedGeometryChangeRemarks(publicationId: IntId<Publication>?, maxCount: Int? = 10): List<UnprocessedGeometryChange> {
+        val sql = """
+            select
+              publication_id,
+              location_track_id,
+              new_ltv.alignment_id as new_alignment_id,
+              new_ltv.alignment_version as new_alignment_version,
+              old_ltv.alignment_id as old_alignment_id,
+              old_ltv.alignment_version as old_alignment_version,
+              new_ltv.track_number_id as track_number_id,
+              publication.publication_time
+            from publication.location_track plt
+              join publication.publication on plt.publication_id = publication.id
+              join layout.location_track_version new_ltv
+                on plt.location_track_id = new_ltv.id and plt.location_track_version = new_ltv.version
+              left join layout.location_track_version old_ltv
+                on plt.location_track_id = old_ltv.id and plt.location_track_version = old_ltv.version + 1 and not old_ltv.draft
+            where not geometry_change_summary_computed
+              and (:publicationId::int is null or publication_id = :publicationId)
+            order by publication_id, location_track_id
+            limit :maxCount
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("publicationId" to publicationId?.intValue, "maxCount" to maxCount)
+        ) { rs, _ ->
+            UnprocessedGeometryChange(
+                publicationId = rs.getIntId("publication_id"),
+                locationTrackId = rs.getIntId("location_track_id"),
+                newAlignmentVersion = rs.getRowVersion("new_alignment_id", "new_alignment_version"),
+                oldAlignmentVersion = rs.getRowVersionOrNull<LayoutAlignment>("old_alignment_id", "old_alignment_version"),
+                trackNumberId = rs.getIntId("track_number_id"),
+                publicationTime = rs.getInstant("publication_time"),
+            )
+        }
+    }
+
+    @Transactional
+    fun upsertGeometryChangeSummaries(
+        publicationId: IntId<Publication>,
+        locationTrackId: IntId<LocationTrack>,
+        remarks: List<GeometryChangeSummary>,
+    ) {
+        val deleteOldsSql = """
+            delete from publication.location_track_geometry_change_summary
+            where publication_id = :publicationId and location_track_id = :locationTrackId
+        """.trimIndent()
+        jdbcTemplate.update(
+            deleteOldsSql,
+            mapOf("publicationId" to publicationId.intValue, "locationTrackId" to locationTrackId.intValue)
+        )
+
+        val insertNewsSql = """
+            insert into publication.location_track_geometry_change_summary values (
+              :publicationId,
+              :locationTrackId,
+              :remarkOrder,
+              :changedLengthM,
+              :maxDistance,
+              :startKm,
+              :endKm);
+        """.trimIndent()
+        jdbcTemplate.batchUpdate(insertNewsSql, remarks.mapIndexed { index, remark ->
+            mapOf(
+                "publicationId" to publicationId.intValue,
+                "locationTrackId" to locationTrackId.intValue,
+                "remarkOrder" to index,
+                "changedLengthM" to remark.changedLengthM,
+                "maxDistance" to remark.maxDistance,
+                "startKm" to remark.startKm.toString(),
+                "endKm" to remark.endKm.toString()
+            )
+        }.toTypedArray())
+
+        val updateOkSql = """
+            update publication.location_track
+            set geometry_change_summary_computed = true
+            where publication_id = :publicationId and location_track_id = :locationTrackId
+        """.trimIndent()
+        jdbcTemplate.update(
+            updateOkSql,
+            mapOf("publicationId" to publicationId.intValue, "locationTrackId" to locationTrackId.intValue)
+        )
     }
 
     fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutKmPost>, KmPostChanges> {
@@ -1003,9 +1118,10 @@ class PublicationDao(
                   start_changed,
                   end_changed,
                   location_track_version,
-                  direct_change
+                  direct_change,
+                  geometry_change_summary_computed
                 )
-                select publication.id, location_track.id, :start_changed, :end_changed, location_track.version, :direct_change
+                select publication.id, location_track.id, :start_changed, :end_changed, location_track.version, :direct_change, :geometry_change_summary_computed
                 from publication.publication
                   inner join layout.location_track_at(publication_time) location_track 
                     on location_track.id = :location_track_id
@@ -1018,7 +1134,8 @@ class PublicationDao(
                         "location_track_id" to change.locationTrackId.intValue,
                         "start_changed" to change.isStartChanged,
                         "end_changed" to change.isEndChanged,
-                        "direct_change" to directChange
+                        "direct_change" to directChange,
+                        "geometry_change_summary_computed" to !directChange,
                     )
                 }
             }.toTypedArray()

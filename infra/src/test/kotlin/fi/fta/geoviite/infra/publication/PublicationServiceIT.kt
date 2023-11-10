@@ -28,6 +28,7 @@ import org.springframework.test.context.ActiveProfiles
 import publish
 import publishRequest
 import java.math.BigDecimal
+import kotlin.math.absoluteValue
 import kotlin.test.*
 
 @ActiveProfiles("dev", "test")
@@ -53,6 +54,7 @@ class PublicationServiceIT @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
+        deleteFromTables("publication", "location_track", "location_track_geometry_change_summary")
         deleteFromTables("layout", "switch_joint", "switch", "location_track", "track_number", "reference_line")
         val request = publicationService.collectPublishCandidates().let {
             PublishRequestIds(
@@ -1389,20 +1391,26 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Location track switch link changes are reported`() {
-        val switchUnlinkedFromTopology = switchDao.insert(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1"))
-        val switchUnlinkedFromAlignment = switchDao.insert(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2"))
-        val switchAddedToTopologyStart = switchDao.insert(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3"))
+        val switchUnlinkedFromTopology =
+            switchDao.insert(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1"))
+        val switchUnlinkedFromAlignment =
+            switchDao.insert(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2"))
+        val switchAddedToTopologyStart =
+            switchDao.insert(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3"))
         val switchAddedToTopologyEnd = switchDao.insert(switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4"))
         val switchAddedToAlignment = switchDao.insert(switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5"))
         val switchDeleted = switchDao.insert(switch(name = "sw-deleted", externalId = "1.1.1.1.6"))
         val switchMerelyRenamed = switchDao.insert(switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7"))
-        val originalSwitchReplacedWithNewSameName = switchDao.insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8"))
+        val originalSwitchReplacedWithNewSameName =
+            switchDao.insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8"))
 
         val trackNumberId = getUnusedTrackNumberId()
 
         val originalLocationTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1))),
-            alignmentWithSwitchLinks(
+            locationTrack(
+                trackNumberId,
+                topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1))
+            ), alignmentWithSwitchLinks(
                 switchUnlinkedFromAlignment.id,
                 switchDeleted.id,
                 switchMerelyRenamed.id,
@@ -1414,27 +1422,25 @@ class PublicationServiceIT @Autowired constructor(
             switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
         )
         switchService.saveDraft(
-            switchDao.fetch(originalSwitchReplacedWithNewSameName.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+            switchDao.fetch(originalSwitchReplacedWithNewSameName.rowVersion)
+                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
         )
         switchService.saveDraft(
             switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name"))
         )
-        val newSwitchReplacingOldWithSameName = switchService.saveDraft(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9"))
+        val newSwitchReplacingOldWithSameName =
+            switchService.saveDraft(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9"))
 
         locationTrackService.saveDraft(
             locationTrackDao.fetch(locationTrackDao.fetchVersion(originalLocationTrack.id, OFFICIAL)!!).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
             ), alignmentWithSwitchLinks(
-                switchAddedToAlignment.id,
-                switchMerelyRenamed.id,
-                newSwitchReplacingOldWithSameName.id, null
+                switchAddedToAlignment.id, switchMerelyRenamed.id, newSwitchReplacingOldWithSameName.id, null
             )
         )
         publish(
-            publicationService,
-            locationTracks = listOf(originalLocationTrack.id),
-            switches = listOf(
+            publicationService, locationTracks = listOf(originalLocationTrack.id), switches = listOf(
                 switchDeleted.id,
                 switchMerelyRenamed.id,
                 originalSwitchReplacedWithNewSameName.id,
@@ -1458,13 +1464,49 @@ class PublicationServiceIT @Autowired constructor(
         ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("linked-switches", diff[0].propKey.key.toString())
-        assertEquals("""
+        assertEquals(
+            """
             Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
             sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
             sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
-        """.trimIndent().replace("\n", " "), diff[0].remark)
+        """.trimIndent().replace("\n", " "), diff[0].remark
+        )
     }
 
+    @Test
+    fun `Location track geometry changes are reported`() {
+        val trackNumberId = insertOfficialTrackNumber()
+        fun segmentWithCurveToMaxY(maxY: Double) =
+            segment(*(0..10).map { x -> Point(x.toDouble(), (5.0 - (x.toDouble() - 5.0).absoluteValue) / 10.0 * maxY) }
+                .toTypedArray())
+        val referenceLineAlignment = alignmentDao.insert(alignment(segmentWithCurveToMaxY(0.0)))
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = referenceLineAlignment))
+
+        // track that had bump to y=-10 goes to having a bump to y=10, meaning the length and ends stay the same,
+        // but the geometry changes
+        val originalAlignment = alignment(segmentWithCurveToMaxY(-10.0))
+        val newAlignment = alignment(segmentWithCurveToMaxY(10.0))
+        val originalLocationTrack =
+            locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment)))
+        locationTrackService.saveDraft(draft(locationTrackDao.fetch(originalLocationTrack.rowVersion)), newAlignment)
+        publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
+        val latestPub = publicationService.fetchLatestPublicationDetails(1)[0]
+        val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
+
+        val diff = publicationService.diffLocationTrack(
+            localizationService.getLocalization("fi"),
+            changes.getValue(originalLocationTrack.id),
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+            latestPub.publicationTime,
+            latestPub.publicationTime,
+            trackNumberDao.fetchTrackNumberNames(),
+            false,
+            setOf(KmNumber(0)),
+        ) { _, _ -> null }
+        print(diff)
+        assertEquals(1, diff.size)
+        assertEquals("Muuttunut kilometriltä 0000. Sivuttaissiirtymää laajuudella 8.0 m, maksimipoikkeama 10.0 m", diff[0].remark)
+    }
 
     @Test
     fun `should filter publication details by dates`() {
