@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ForwardedRef, useEffect, useRef, useState } from 'react';
+import { DependencyList, EffectCallback, ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
 import { ValueOf } from './type-utils';
 
@@ -55,28 +55,40 @@ export function useLoaderWithStatus<TEntity>(
     loadFunc: () => Promise<TEntity> | undefined,
     deps: unknown[],
 ): [TEntity | undefined, LoaderStatus] {
+    return useRateLimitedLoaderWithStatus(loadFunc, 0, deps);
+}
+
+export function useRateLimitedLoaderWithStatus<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    minWaitTime: number,
+    deps: unknown[],
+): [TEntity | undefined, LoaderStatus] {
     const [entity, setEntity] = React.useState<TEntity>();
     const [loaderStatus, setLoaderStatus] = React.useState<LoaderStatus>(LoaderStatus.Initialized);
-    React.useEffect(() => {
-        const result = loadFunc();
-        let cancel = false;
-        if (result) {
-            setLoaderStatus(LoaderStatus.Loading);
-            result
-                .then((r) => {
-                    if (!cancel) {
-                        setEntity(r);
-                        setLoaderStatus(LoaderStatus.Ready);
-                    }
-                })
-                .catch((e) => console.log('loader promise rejected', e));
-        } else setEntity(undefined);
+    useRateLimitedEffect(
+        () => {
+            const result = loadFunc();
+            let cancel = false;
+            if (result) {
+                setLoaderStatus(LoaderStatus.Loading);
+                result
+                    .then((r) => {
+                        if (!cancel) {
+                            setEntity(r);
+                            setLoaderStatus(LoaderStatus.Ready);
+                        }
+                    })
+                    .catch((e) => console.log('loader promise rejected', e));
+            } else setEntity(undefined);
 
-        return () => {
-            cancel = true;
-            setLoaderStatus(LoaderStatus.Cancelled);
-        };
-    }, deps);
+            return () => {
+                cancel = true;
+                setLoaderStatus(LoaderStatus.Cancelled);
+            };
+        },
+        minWaitTime,
+        deps,
+    );
     return [entity, loaderStatus];
 }
 
@@ -190,6 +202,54 @@ export function useCloneRef<T>(
     return localRef;
 }
 
+/**
+ * Run an effect at most waitBetweenCalls milliseconds apart, and if there have been changes to the dependencies within
+ * the waiting period, once after that period has passed. If waitBetweenCalls = 0, behaves as useEffect.
+ */
+export function useRateLimitedEffect(
+    effect: EffectCallback,
+    waitBetweenCalls: number,
+    deps?: DependencyList,
+): void {
+    const lastFireTime = useRef<number>();
+    const nextWakeup = useRef<ReturnType<typeof setTimeout>>();
+    const lastDestructor = useRef<void | (() => void)>();
+
+    useEffect(() => {
+        // always reset the next wakeup: If we are firing the effect, then we don't want to keep the wakeup around,
+        // and if we're delaying, we still want the last version of the effect
+        if (nextWakeup.current !== undefined) {
+            clearTimeout(nextWakeup.current);
+            nextWakeup.current = undefined;
+        }
+
+        const now = Date.now();
+        if (
+            lastFireTime.current === undefined ||
+            now < lastFireTime.current || // if time turned back, just run the effect and roll with it
+            now - lastFireTime.current >= waitBetweenCalls
+        ) {
+            lastFireTime.current = now;
+            return effect();
+        } else {
+            nextWakeup.current = setTimeout(
+                () => {
+                    lastFireTime.current = Date.now();
+                    lastDestructor.current = effect();
+                    nextWakeup.current = undefined;
+                },
+                waitBetweenCalls - (now - lastFireTime.current),
+            );
+            return () => {
+                if (lastDestructor.current !== undefined) {
+                    lastDestructor.current();
+                    lastDestructor.current = undefined;
+                }
+            };
+        }
+    }, deps);
+}
+
 export function useMapState<K, V>(
     initial?: Map<K, V> | (() => Map<K, V>),
 ): [
@@ -233,13 +293,16 @@ export function useTraceProps(componentName: string, props: PropsType) {
     const prev = useRef(props);
 
     useEffect(() => {
-        const changedProps = Object.entries(props).reduce((acc, [k, v]) => {
-            if (prev.current[k] !== v) {
-                acc[k] = { old: prev.current[k], new: v };
-            }
+        const changedProps = Object.entries(props).reduce(
+            (acc, [k, v]) => {
+                if (prev.current[k] !== v) {
+                    acc[k] = { old: prev.current[k], new: v };
+                }
 
-            return acc;
-        }, {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } });
+                return acc;
+            },
+            {} as { [key: string]: { old: ValueOf<PropsType>; new: ValueOf<PropsType> } },
+        );
 
         if (Object.keys(changedProps).length > 0) {
             console.log(`[${componentName}] Changed props:`, changedProps);

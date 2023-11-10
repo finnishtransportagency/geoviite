@@ -1,33 +1,30 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.util.ElementFetch
-import fi.fta.geoviite.infra.ui.util.fetch
 import org.openqa.selenium.By
-import tryWait
 
 class E2ESelectionPanel(
-    parentFetch: ElementFetch,
-) : E2EViewFragment(fetch(parentFetch, By.className("track-layout__navi"))) {
+    parentView: E2EViewFragment,
+) : E2EViewFragment(parentView, By.className("track-layout__navi")) {
 
     val trackNumbersList: E2ETrackNumberSelectionList by lazy {
-        E2ETrackNumberSelectionList(this.elementFetch)
+        E2ETrackNumberSelectionList(viewBy)
     }
 
     val kmPostsList: E2EKmPostSelectionList by lazy {
-        E2EKmPostSelectionList(this.elementFetch)
+        E2EKmPostSelectionList(viewBy)
     }
 
     val referenceLinesList: E2EReferenceLineSelectionList by lazy {
-        E2EReferenceLineSelectionList(this.elementFetch)
+        E2EReferenceLineSelectionList(viewBy)
     }
 
     val locationTracksList: E2ELocationTrackSelectionList by lazy {
-        E2ELocationTrackSelectionList(this.elementFetch)
+        E2ELocationTrackSelectionList(viewBy)
     }
 
     val switchesList: E2ESwitchesSelectionList by lazy {
-        E2ESwitchesSelectionList(this.elementFetch)
+        E2ESwitchesSelectionList(viewBy)
     }
 
     val geometryPlans: List<E2EGeometryPlanAccordion> by lazy {
@@ -62,14 +59,20 @@ class E2ESelectionPanel(
     }
 
     fun selectPlanAlignment(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName alignment $name")
+
         geometryPlanByName(planName).selectAlignment(name)
     }
 
     fun selectPlanSwitch(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName switch $name")
+
         geometryPlanByName(planName).selectSwitch(name)
     }
 
     fun selectPlanKmPost(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName km post $name")
+
         geometryPlanByName(planName).selectKmPost(name)
     }
 
@@ -78,10 +81,7 @@ class E2ESelectionPanel(
     }
 
     fun waitUntilSwitchNotVisible(name: String): E2ESelectionPanel = apply {
-        tryWait(
-            { switchesList.items.none { it.name == name } },
-            { "Switch did not disappear from navigation: switch=$name visible=${switchesList.items.map { it.name }}" },
-        )
+        switchesList.waitUntilItemNotExist { it.name == name }
     }
 
     fun waitUntilLocationTrackVisible(name: String): E2ESelectionPanel = apply {

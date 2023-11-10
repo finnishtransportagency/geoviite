@@ -29,17 +29,24 @@ class LayoutSwitchDao(
     override fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
+    ): List<RowVersion<TrackLayoutSwitch>> =
+        fetchVersions(publicationState, includeDeleted, null)
+
+    fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        name: SwitchName? = null,
     ): List<RowVersion<TrackLayoutSwitch>> {
         val sql = """
-            select
-              row_id,
-              row_version
+            select row_id, row_version
             from layout.switch_publication_view 
             where :publication_state = any(publication_states) 
+              and (cast(:name as varchar) is null or lower(name) = lower(:name))
               and (:include_deleted = true or state_category != 'NOT_EXISTING')
         """.trimIndent()
         val params = mapOf(
             "publication_state" to publicationState.name,
+            "name" to name,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -344,7 +351,8 @@ class LayoutSwitchDao(
             group by s.id, s.version
         """.trimIndent()
 
-        val switches = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
+        val switches = jdbcTemplate
+            .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
             .associateBy(TrackLayoutSwitch::version)
         logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.keys)
         cache.putAll(switches)

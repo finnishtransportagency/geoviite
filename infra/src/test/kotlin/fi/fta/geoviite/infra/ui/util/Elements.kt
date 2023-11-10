@@ -1,8 +1,6 @@
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import org.openqa.selenium.By
-import org.openqa.selenium.Keys
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
@@ -14,7 +12,7 @@ import java.time.Duration
 
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
-val defaultWait: Duration = Duration.ofSeconds(5L)
+val defaultWait: Duration = Duration.ofSeconds(10L)
 val defaultPoll: Duration = Duration.ofMillis(100)
 
 fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {
@@ -31,145 +29,117 @@ fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolea
     Thread.sleep(400) //Prevents double-clicking and zooming with map canvas
 }
 
-fun clearInput(inputElement: WebElement) {
-    //CMD+A does nothing in non-mac systems and vice versa
-    inputElement.waitAndClick()
-    inputElement.sendKeys(Keys.chord(Keys.COMMAND, "a"))
-    inputElement.sendKeys(Keys.BACK_SPACE)
-    inputElement.sendKeys(Keys.chord(Keys.CONTROL, "a"))
-    inputElement.sendKeys(Keys.BACK_SPACE)
-}
 
-fun getElementWhenVisible(byCondition: By, timeout: Duration = defaultWait): WebElement {
-    waitUntilVisible(byCondition, timeout)
-    return browser().findElement(byCondition)
-}
-
-fun getElementsWhenVisible(byCondition: By, timeout: Duration = defaultWait): List<WebElement> {
-    waitUntilVisible(byCondition, timeout)
-    return browser().findElements(byCondition)
-}
-
-fun waitUntilExists(byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, presenceOfElementLocated(byCondition)) {
-        "Wait for element exists failed: seekBy=$byCondition"
-    }
-
-fun waitUntilNotExist(byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, not(visibilityOfElementLocated(byCondition))) {
-        "Wait for element disappearing failed: seekBy=$byCondition"
-    }
-
-fun waitUntilVisible(byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, visibilityOfElementLocated(byCondition)) {
-        "Wait for element visible failed: seekBy=$byCondition"
-    }
-
-fun waitUntilNotVisible(byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, not(visibilityOfElementLocated(byCondition))) {
-        "Wait for element to disappear failed: seekBy=$byCondition"
-    }
-
-fun waitUntilElementClickable(byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, elementToBeClickable(byCondition)) {
-        "Wait for element clickable failed: seekBy=$byCondition"
-    }
-
-fun waitUntilElementIsStale(element: WebElement, timeout: Duration = defaultWait) {
-    tryWait(timeout, stalenessOf(element)) {
-        "Wait for element staleness failed: element=${element.getInnerHtml()}"
+fun getElementWhenVisible(by: By, timeout: Duration = defaultWait): WebElement {
+    return tryWait(timeout, visibilityOfElementLocated(by)) {
+        "Wait for element to be visible failed: seekBy=$by"
     }
 }
 
-fun waitUntilValueIs(element: WebElement, value: String, timeout: Duration = defaultWait) =
-    tryWait(timeout, textToBePresentInElement(element, value)) {
-        "Wait for element value 'to be x' failed: expected=$value actual=${element.getInnerHtml()}"
-    }
-
-fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = defaultWait) =
-    tryWait(timeout, not(textToBePresentInElement(element, value))) {
-        "Wait for element value 'to not be x' failed: expectedNot=$value element=${element.getInnerHtml()}"
-    }
-
-fun elementExists(byCondition: By): Boolean {
-    return browser().findElements(byCondition).isNotEmpty()
-}
-
-fun waitUntilChildMatches(
-    parentFetch: ElementFetch,
-    childBy: By,
-    check: (index: Int, child: WebElement) -> Boolean,
-    timeout: Duration = defaultWait,
-) = tryWait(timeout,
-    { parentFetch().getChildElements(childBy).filterIndexed { index, webElement -> check(index, webElement) }.any() },
-    { "Wait for child content to match condition failed: parent=${parentFetch()} childBy=$childBy timeout=$timeout" })
-
-fun getChildWhenMatches(
-    parentFetch: ElementFetch,
-    childBy: By,
-    check: (index: Int, child: WebElement) -> Boolean,
-    timeout: Duration = defaultWait,
-): Pair<Int, WebElement> {
-    waitUntilChildMatches(parentFetch, childBy, { i, c -> check(i, c) }, timeout)
-    return parentFetch().let { parent ->
-        parent.getChildElements(childBy).mapIndexedNotNull { i, e -> if (check(i, e)) i to e else null }.singleOrNull()
-            ?: throw IllegalStateException("No child element found: parent=$parent childBy=$childBy timeout=$timeout")
+fun getElementWhenExists(by: By, timeout: Duration = defaultWait): WebElement {
+    return tryWait(timeout, presenceOfElementLocated(by)) {
+        "Wait for element to exists failed: seekBy=$by"
     }
 }
 
-fun tryWait(
-    condition: ExpectedCondition<*>,
+fun getElementsWhenVisible(by: By, timeout: Duration = defaultWait): List<WebElement> {
+    return tryWait(timeout, visibilityOfAllElementsLocatedBy(by)) {
+        "Wait for elements to be visible failed: seekBy=$by"
+    }
+}
+
+fun getElementsWhenExists(by: By, timeout: Duration = defaultWait): List<WebElement> {
+    return tryWait(timeout, presenceOfAllElementsLocatedBy(by)) {
+        "Wait for elements to exists failed: seekBy=$by"
+    }
+}
+
+fun getElementWhenClickable(by: By, timeout: Duration = defaultWait): WebElement {
+    return tryWait(timeout, elementToBeClickable(by)) {
+        "Wait for element to be clickable, by=$by"
+    }
+}
+
+fun waitUntilExists(by: By, timeout: Duration = defaultWait) {
+    getElementsWhenExists(by, timeout)
+}
+
+fun waitUntilNotExist(by: By, timeout: Duration = defaultWait) {
+    tryWait(timeout, not(visibilityOfElementLocated(by))) {
+        "Wait for element disappearing failed: seekBy=$by"
+    }
+}
+
+fun waitUntilVisible(by: By, timeout: Duration = defaultWait) {
+    getElementWhenVisible(by, timeout)
+}
+
+fun waitUntilNotVisible(by: By, timeout: Duration = defaultWait) {
+    tryWait(timeout, not(visibilityOfElementLocated(by))) {
+        "Wait for element to disappear failed: seekBy=$by"
+    }
+}
+
+fun waitUntilElementClickable(by: By, timeout: Duration = defaultWait) {
+    getElementWhenClickable(by, timeout)
+}
+
+fun waitUntilElementIsStale(by: By, timeout: Duration = defaultWait) {
+    tryWait(timeout, stalenessOf(getElement(by))) {
+        "Wait for element staleness failed, by=$by"
+    }
+}
+
+fun waitUntilHasValue(by: By, timeout: Duration = defaultWait) {
+    tryWait(timeout, { getElement(by).text.isNotEmpty() }) {
+        "Wait for element to have value, by:$by"
+    }
+}
+
+fun waitUntilValueIs(by: By, value: String, timeout: Duration = defaultWait) {
+    tryWait(timeout, textToBe(by, value)) {
+        "Wait for element value 'to be x' failed: expected=$value by:$by"
+    }
+}
+
+fun waitUntilValueIsNot(by: By, value: String, timeout: Duration = defaultWait) {
+    tryWait(timeout, not(textToBe(by, value))) {
+        "Wait for element value 'to not be x' failed: expectedNot=$value by=$by"
+    }
+}
+
+fun getElement(by: By): WebElement {
+    return browser().findElement(by)
+}
+
+fun getElements(by: By): List<WebElement> {
+    return browser().findElements(by)
+}
+
+fun clickWhenClickable(by: By, timeout: Duration = defaultWait) {
+    getElementWhenClickable(by, timeout).click()
+}
+
+fun exists(by: By): Boolean = getElements(by).isNotEmpty()
+
+fun <T> tryWait(
+    condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
 ) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
 
-fun tryWait(
+fun <T> tryWait(
     timeout: Duration = defaultWait,
-    condition: ExpectedCondition<*>,
+    condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
 ) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
 
-fun tryWait(
+fun <T> tryWait(
     timeout: Duration = defaultWait,
     pollInterval: Duration = defaultPoll,
-    condition: ExpectedCondition<*>,
-    lazyErrorMessage: () -> String,
-) = try {
-    WebDriverWait(browser(), timeout, pollInterval).until(condition)
-    Unit
-} catch (e: Exception) {
-    logger.warn("${lazyErrorMessage()} cause=${e.message}")
-    throw e
-}
-
-fun <T> tryWait(
-    condition: () -> T?,
-    lazyErrorMessage: () -> String,
-): T = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
-
-fun tryWait(
-    condition: () -> Boolean,
-    lazyErrorMessage: () -> String,
-) = tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage).let {}
-
-fun <T> tryWait(
-    timeout: Duration,
-    condition: () -> T?,
-    lazyErrorMessage: () -> String,
-): T = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
-
-fun tryWait(
-    timeout: Duration,
-    condition: () -> Boolean,
-    lazyErrorMessage: () -> String,
-) = tryWait(timeout, defaultPoll, condition, lazyErrorMessage).let { }
-
-fun <T> tryWait(
-    timeout: Duration,
-    pollInterval: Duration,
-    condition: () -> T?,
+    condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
 ): T = try {
-    WebDriverWait(browser(), timeout, pollInterval).until<T> { _ -> condition() }
+    WebDriverWait(browser(), timeout, pollInterval).until<T>(condition)
 } catch (e: Exception) {
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e

@@ -52,6 +52,18 @@ export async function getSwitchesByTile(
         getSwitchesByBoundingBox(mapTile.area, publishType),
     );
 }
+export async function getSwitchesByName(
+    publishType: PublishType,
+    name: string,
+): Promise<LayoutSwitch[]> {
+    const params = queryParams({
+        name: name,
+        includeDeleted: true,
+    });
+    return await getNonNull<LayoutSwitch[]>(
+        `${layoutUri('switches', publishType)}/by-name${params}`,
+    );
+}
 
 export async function getSwitch(
     switchId: LayoutSwitchId,

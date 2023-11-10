@@ -9,6 +9,7 @@ import {
     ValidationError,
     ValidationErrorType,
 } from 'utils/validation-utils';
+import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -61,7 +62,7 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
         trackNumberId: undefined,
         topologicalConnectivity: undefined,
         duplicateOf: undefined,
-        ownerId: '',
+        ownerId: undefined,
     };
 }
 
@@ -123,14 +124,31 @@ function getErrorForInvalidDescription(): ValidationError<LocationTrackSaveReque
     ];
 }
 
+const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
+export function setVaylavirastoOwnerIdFrom(
+    owners: LocationTrackOwner[] | undefined,
+    set: (vaylaId: LocationTrackOwnerId) => void,
+) {
+    if (owners !== undefined) {
+        const vayla = owners.find((owner) => owner.name === VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME);
+        if (vayla !== undefined) {
+            set(vayla.id);
+        }
+    }
+}
+
 const locationTrackEditSlice = createSlice({
     name: 'locationTrackEdit',
     initialState: initialLocationTrackEditState,
     reducers: {
-        initWithNewLocationTrack: (state: LocationTrackEditState): void => {
+        initWithNewLocationTrack: (
+            state: LocationTrackEditState,
+            { payload: owners }: PayloadAction<LocationTrackOwner[] | undefined>,
+        ): void => {
             state.isNewLocationTrack = true;
             state.locationTrack = newLinkingLocationTrack();
             state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+            setVaylavirastoOwnerIdFrom(owners, (id) => (state.locationTrack.ownerId = id));
         },
         onStartLoadingTrackNumbers: (state: LocationTrackEditState) => {
             state.loading.trackNumbers = true;

@@ -187,7 +187,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('tool-panel.km-post.layout.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         </InfoboxButtons>
                     )}

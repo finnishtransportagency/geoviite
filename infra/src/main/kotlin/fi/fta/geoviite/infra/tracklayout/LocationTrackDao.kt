@@ -115,7 +115,8 @@ class LocationTrackDao(
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
         """.trimIndent()
 
-        val tracks = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLocationTrack(rs) }
+        val tracks = jdbcTemplate
+            .query(sql, mapOf<String, Any>()) { rs, _ -> getLocationTrack(rs) }
             .associateBy(LocationTrack::version)
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.keys)
         cache.putAll(tracks)
@@ -299,12 +300,14 @@ class LocationTrackDao(
         publicationState: PublishType,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        name: AlignmentName? = null,
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select lt.row_id, lt.row_version 
             from layout.location_track_publication_view lt
             where 
               (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
+              and (cast(:name as varchar) is null or lower(lt.name) = lower(:name))
               and :publication_state = any(lt.publication_states)
               and (:include_deleted = true or state != 'DELETED')
         """.trimIndent()
@@ -312,6 +315,7 @@ class LocationTrackDao(
             "track_number_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
             "include_deleted" to includeDeleted,
+            "name" to name,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
@@ -414,4 +418,21 @@ class LocationTrackDao(
         return locationTrackOwners
     }
 
+    fun fetchOnlyDraftVersions(includeDeleted: Boolean, trackNumberId: IntId<TrackLayoutTrackNumber>? = null): List<RowVersion<LocationTrack>> {
+        val sql = """
+            select id, version
+            from layout.location_track
+            where draft
+              and (:includeDeleted or state != 'DELETED')
+              and (:trackNumberId::int is null or track_number_id = :trackNumberId)
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("includeDeleted" to includeDeleted, "trackNumberId" to trackNumberId?.intValue)
+        ) { rs, _ ->
+            rs.getRowVersion<LocationTrack>("id", "version")
+        }.also { ids ->
+            logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
+        }
+    }
 }

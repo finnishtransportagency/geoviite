@@ -21,7 +21,7 @@ import { useLoader } from 'utils/react-utils';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { SwitchEditDialog } from './dialog/switch-edit-dialog';
+import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
@@ -357,7 +357,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('tool-panel.switch.layout.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         </InfoboxButtons>
                     )}
@@ -372,7 +372,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
             )}
 
             {showEditDialog && (
-                <SwitchEditDialog
+                <SwitchEditDialogContainer
                     switchId={layoutSwitch?.id}
                     onClose={() => setShowEditDialog(false)}
                     onSave={handleSwitchSave}

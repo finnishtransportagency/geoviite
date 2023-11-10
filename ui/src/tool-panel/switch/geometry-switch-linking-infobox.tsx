@@ -7,7 +7,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LinkingState, LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
-import { SwitchEditDialog } from './dialog/switch-edit-dialog';
+import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -275,7 +275,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
             </Infobox>
 
             {selectedSuggestedSwitch && showAddSwitchDialog && (
-                <SwitchEditDialog
+                <SwitchEditDialogContainer
                     onClose={() => setShowAddSwitchDialog(false)}
                     onSave={handleSwitchSave}
                     prefilledSwitchStructureId={selectedSuggestedSwitch.switchStructure.id}

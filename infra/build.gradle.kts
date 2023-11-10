@@ -7,10 +7,10 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "29.2"
-val kotlinVersion = "1.9.10"
+val kotlinVersion = "1.9.20"
 
 plugins {
-    id("org.springframework.boot") version "2.7.16"
+    id("org.springframework.boot") version "2.7.17"
     id("io.spring.dependency-management") version "1.1.3"
     id("com.github.jk1.dependency-license-report") version "2.0"
     kotlin("jvm") version "1.9.10"
@@ -40,9 +40,10 @@ dependencies {
     implementation("org.hsqldb", "hsqldb").version {
         strictly("[2.7.1,2.8.0)")
     }
+
     // For spring-boot-starter-actuator & aws-java-sdk-cloudfront
     implementation("org.yaml", "snakeyaml").version {
-        strictly("[1.33,2.0)")
+        strictly("[2.0,)")
     }
 
     // Actual deps
@@ -75,21 +76,23 @@ dependencies {
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
     implementation("org.apache.commons:commons-csv:1.10.0")
-    implementation("commons-io:commons-io:2.14.0")
+    implementation("commons-io:commons-io:2.15.0")
     implementation("com.auth0:jwks-rsa:0.22.1")
     implementation("com.auth0:java-jwt:4.4.0")
-    implementation("io.netty:netty-resolver-dns-native-macos:4.1.99.Final:osx-aarch_64")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.100.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.6.0")
     implementation("jakarta.activation:jakarta.activation-api:2.1.2")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.1")
     implementation("com.github.davidmoten:rtree2:0.9.3")
     implementation("commons-validator:commons-validator:1.7")
     compileOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.3")
+    runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.4")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.13.0")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.15.0")
+    //Do not update to version 5.15.0 as it causes StackOverflowError.
+    //See: https://github.com/mock-server/mockserver/issues/1660
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.2.1")
 }

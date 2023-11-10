@@ -19,8 +19,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
-import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
-import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
+import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
+import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
@@ -158,7 +158,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
     const newMenuItems = [
         { value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number') },
-        { value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track') },
+        {
+            value: NewMenuItems.locationTrack,
+            name: t('tool-bar.new-location-track'),
+            qaId: 'tool-bar.new-location-track',
+        },
         { value: NewMenuItems.switch, name: t('tool-bar.new-switch') },
         { value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post') },
     ];
@@ -263,7 +267,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     mapLayerMenuGroups={mapLayerMenuGroups}
                     visibleLayers={visibleLayers}
                 />
-                <div className={styles['tool-bar__new-menu-button']}>
+                <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
                     <WriteAccessRequired>
                         <Button
                             ref={menuRef}
@@ -324,7 +328,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 />
             )}
             {showAddLocationTrackDialog && (
-                <LocationTrackEditDialog
+                <LocationTrackEditDialogContainer
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
                     locationTrackChangeTime={changeTimes.layoutLocationTrack}
@@ -332,7 +336,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             )}
 
             {showAddSwitchDialog && (
-                <SwitchEditDialog
+                <SwitchEditDialogContainer
                     onClose={() => setShowAddSwitchDialog(false)}
                     onSave={handleSwitchSave}
                 />

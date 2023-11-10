@@ -1,6 +1,7 @@
 import {
     GeometryAlignmentId,
     GeometryKmPostId,
+    GeometryPlanId,
     GeometryPlanLayoutId,
     GeometrySwitchId,
     GeometryTrackNumberId,
@@ -201,9 +202,8 @@ export type LayoutKmLengthDetails = {
     location?: Point;
 };
 
-export type PlanAreaId = string;
 export type PlanArea = {
-    id: PlanAreaId;
+    id: GeometryPlanId;
     fileName: string;
     polygon: Point[];
 };

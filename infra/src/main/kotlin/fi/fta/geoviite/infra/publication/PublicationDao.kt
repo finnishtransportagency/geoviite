@@ -522,9 +522,7 @@ class PublicationDao(
         )
 
         return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "publicationId" to publicationId?.intValue,
+            sql, mapOf("publicationId" to publicationId?.intValue,
                 "from" to from?.let { Timestamp.from(it) },
                 "to" to to?.let { Timestamp.from(it) })
         ) { rs, _ ->
@@ -576,6 +574,8 @@ class PublicationDao(
               old_ltv.topology_start_switch_id as old_topology_start_switch_id,
               ltv.topology_end_switch_id,
               old_ltv.topology_end_switch_id as old_topology_end_switch_id,
+              ltv.owner_id,
+              old_ltv.owner_id as old_owner_id,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -643,7 +643,9 @@ class PublicationDao(
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
                 geometryChangeSummaries = if (!rs.getBoolean("geometry_change_summary_computed")) null
-                else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")))
+                  else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),
+                owner = rs.getChange("owner_id", rs::getIntIdOrNull),
+            )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
     }
 

@@ -7,7 +7,7 @@
 $dropdown-padding-side: 12px;
 $dropdown-border-default: 1px;
 $dropdown-border-thick: 2px;
-$dropdown-border-error: 1.5px;
+$dropdown-border-error: 2px;
 
 @mixin dropdown-shadow($color, $width, $has-icon) {
     box-shadow: inset 0 0 0 $width $color;

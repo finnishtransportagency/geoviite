@@ -153,6 +153,23 @@ class LocationTrackService(
 
     override fun sortSearchResult(list: List<LocationTrack>) = list.sortedBy (LocationTrack::name)
 
+    fun list(
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        name: AlignmentName,
+    ): List<LocationTrack> {
+        logger.serviceCall(
+            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "name" to name
+        )
+        return dao.fetchVersions(
+            publicationState = publicationState,
+            includeDeleted = true,
+            trackNumberId = trackNumberId,
+            name = name,
+        ).map(dao::fetch)
+
+    }
+
     override fun idMatches(term: String, item: LocationTrack) =
         item.externalId.toString() == term || item.id.toString() == term
 
@@ -318,7 +335,8 @@ class LocationTrackService(
         val duplicateStartAddresses = duplicates.map { duplicate ->
             duplicate.alignmentVersion?.let { alignmentVersion ->
                 alignmentDao.fetch(alignmentVersion).start?.let { startPoint ->
-                    geocodingService.getGeocodingContext(publishType, duplicate.trackNumberId)
+                    geocodingService
+                        .getGeocodingContext(publishType, duplicate.trackNumberId)
                         ?.getAddress(startPoint)?.first
                 }
             }
@@ -381,10 +399,10 @@ class LocationTrackService(
         ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
         currentTopologySwitch: TopologyLocationTrackSwitch?,
     ): TopologyLocationTrackSwitch? {
-        val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> =
-            dao.fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
-                .map { version -> getWithAlignmentInternal(version) }
-                .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
+        val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> = dao
+            .fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
+            .map { version -> getWithAlignmentInternal(version) }
+            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
         val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
         else currentTopologySwitch
         return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracks) ?: defaultSwitch

@@ -50,21 +50,17 @@ $appbar-height: 48px;
             border-bottom-color: vayla-design.$color-blue-light;
         }
     }
+}
 
-    &__menu {
-        @extend .menu;
-        background: vayla-design.$color-blue-darker;
-    }
+.app-bar__more-menu,
+.app-bar__data-products-menu {
+    background: vayla-design.$color-blue-darker;
 
-    &__menu-item {
-        @extend .menu__item;
+    .menu__item {
+        color: vayla-design.$color-white-default;
+        text-decoration: none;
 
-        > a {
-            color: vayla-design.$color-white-default;
-            text-decoration: none;
-        }
-
-        &:hover:not(.menu__item--disabled) {
+        &:hover:not(.menu__item:disabled) {
             background: vayla-design.$color-blue-dark;
             text-decoration: underline vayla-design.$color-blue-dark;
         }
