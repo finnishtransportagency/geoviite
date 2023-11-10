@@ -1,34 +1,36 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import clickWhenClickable
+import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.fetch
-import getElementWhenVisible
 import org.openqa.selenium.By
+import waitUntilNotVisible
 import waitUntilVisible
 
-class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch, By.className("tool-bar"))) {
+class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-bar")) {
     private val searchDropdown: E2EDropdown by lazy {
-        E2EDropdown(fetch(elementFetch, By.cssSelector(".tool-bar__left-section .dropdown")))
+        childDropdown(By.cssSelector(".tool-bar__left-section .dropdown"))
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {
-        logger.info("Open map layers")
-        clickChild(byQaId("map-layers-button"))
+        if (!exists(By.className("map-layer-menu"))) {
+            clickChild(byQaId("map-layers-button"))
+            waitUntilChildVisible(By.className("map-layer-menu"))
+        }
 
-        waitChildVisible(By.className("map-layer-menu"))
-
-        E2EMapLayerPanel { getElementWhenVisible(By.className("map-layer-menu")) }
+        E2EMapLayerPanel(By.className("map-layer-menu"))
     }
 
     fun search(value: String, clear: Boolean = true): E2EToolBar = apply {
-        if (clear) searchDropdown.clearInput()
-        searchDropdown.inputValue(value)
-        waitChildVisible(By.className("dropdown__loading-indicator"))
-        waitChildNotVisible(By.className("dropdown__loading-indicator"))
+        logger.info("Search for $value")
+
+        if (clear) searchDropdown.clearSearch()
+        searchDropdown.search(value)
+        waitUntilVisible(By.className("dropdown__loading-indicator"))
+        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
     }
 
     val searchResults: List<E2ETextListItem> get() = searchDropdown.options
@@ -39,7 +41,7 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
     }
 
     fun goToPreview(): E2EPreviewChangesPage {
-        logger.info("To preview changes page")
+        logger.info("Go to preview changes page")
         clickChild(By.xpath(".//button[span[text() = 'Esikatselu']]"))
 
         waitUntilVisible(byQaId("preview-content"))
@@ -52,9 +54,16 @@ class E2EToolBar(parentFetch: ElementFetch) : E2EViewFragment(fetch(parentFetch,
         clickChild(By.xpath(".//button[span[text() = 'Luonnostila']]"))
     }
 
+    fun createNewLocationTrack(): E2ELocationTrackEditDialog {
+        logger.info("Create new location track")
+
+        clickChild(byQaId("tool-bar.new"))
+        clickWhenClickable(byQaId("tool-bar.new-location-track"))
+        return E2ELocationTrackEditDialog()
+    }
 }
 
-class E2EMapLayerPanel(elementFetch: ElementFetch) : E2EViewFragment(elementFetch) {
+class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {
     enum class MapLayer(val uiText: String) {
         BACKGROUND("Taustakartta"),
         REFERENCE_LINES("Pituusmittauslinjat"),
@@ -73,24 +82,34 @@ class E2EMapLayerPanel(elementFetch: ElementFetch) : E2EViewFragment(elementFetc
     }
 
     fun showLayer(layer: MapLayer): E2EMapLayerPanel = apply {
-        logger.info("Show layer ${layer.uiText}")
+        logger.info("Show map layer ${layer.uiText}")
         if (!isSelected(layer)) {
             toggleLayer(layer)
         }
     }
 
     fun hideLayer(layer: MapLayer): E2EMapLayerPanel = apply {
-        logger.info("Hide layer ${layer.uiText}")
+        logger.info("Hide map layer ${layer.uiText}")
         if (isSelected(layer)) {
             toggleLayer(layer)
         }
     }
 
     private fun isSelected(mapLayer: MapLayer): Boolean {
-        return childElement(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${mapLayer.uiText}']]//input']")).isSelected
+        return childElement(
+            By.xpath(
+                "//label[@class='map-layer-menu__layer-visibility ' " +
+                        "and span[text() = '${mapLayer.uiText}']]//input']"
+            )
+        ).isSelected
     }
 
     private fun toggleLayer(mapLayer: MapLayer) {
-        clickChild(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${mapLayer.uiText}']]/label[@class='switch']"))
+        clickChild(
+            By.xpath(
+                "//label[@class='map-layer-menu__layer-visibility ' " +
+                        "and span[text() = '${mapLayer.uiText}']]/label[@class='switch']"
+            )
+        )
     }
 }

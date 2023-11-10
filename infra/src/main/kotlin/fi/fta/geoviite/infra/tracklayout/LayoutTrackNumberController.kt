@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -37,7 +38,7 @@ class LayoutTrackNumberController(
     @GetMapping("/{publishType}")
     fun getTrackNumbers(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean
+        @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean,
     ): List<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumbers", "publishType" to publishType)
         return trackNumberService.list(publishType, includeDeleted)
@@ -96,8 +97,7 @@ class LayoutTrackNumberController(
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         logger.apiCall(
-            "getTrackSectionsByPlan",
-            "publishType" to publishType, "id" to id, "bbox" to boundingBox
+            "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
         )
         return trackNumberService.getMetadataSections(id, publishType, boundingBox)
     }
@@ -109,9 +109,7 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails> {
         logger.apiCall(
-            "getTrackNumberKmLengths",
-            "publishType" to publishType,
-            "id" to id
+            "getTrackNumberKmLengths", "publishType" to publishType, "id" to id
         )
 
         return trackNumberService.getKmLengths(publishType, id) ?: emptyList()
@@ -134,10 +132,7 @@ class LayoutTrackNumberController(
         )
 
         val csv = trackNumberService.getKmLengthsAsCsv(
-            publishType = publishType,
-            trackNumberId = id,
-            startKmNumber = startKmNumber,
-            endKmNumber = endKmNumber
+            publishType = publishType, trackNumberId = id, startKmNumber = startKmNumber, endKmNumber = endKmNumber
         )
 
         val trackNumber = trackNumberService.getOrThrow(publishType, id)
@@ -155,17 +150,24 @@ class LayoutTrackNumberController(
 
         val csv = trackNumberService.getAllKmLengthsAsCsv(
             publishType = PublishType.OFFICIAL,
-            trackNumberIds = trackNumberService.listOfficial().map {
-                tn -> tn.id as IntId
-            }
-        )
+            trackNumberIds = trackNumberService.listOfficial().map { tn ->
+                tn.id as IntId
+            })
 
         val localization = localizationService.getLocalization(lang)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
-        val fileDescription = localization.t("data-products.km-lengths.entire-rail-network-km-lengths-file-name-without-date")
+        val fileDescription =
+            localization.t("data-products.km-lengths.entire-rail-network-km-lengths-file-name-without-date")
         val fileDate = dateFormatter.format(Instant.now())
 
         return getCsvResponseEntity(csv, FileName("$fileDescription $fileDate.csv"))
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/change-times")
+    fun getTrackNumberChangeInfo(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): DraftableChangeInfo {
+        logger.apiCall("getTrackNumberChangeInfo", "id" to id)
+        return trackNumberService.getDraftableChangeInfo(id)
     }
 }

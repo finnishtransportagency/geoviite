@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { GeometryPlanHeader } from 'geometry/geometry-model';

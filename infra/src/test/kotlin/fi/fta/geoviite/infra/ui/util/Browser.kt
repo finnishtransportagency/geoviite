@@ -6,7 +6,7 @@ import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.devtools.v113.emulation.Emulation
+import org.openqa.selenium.devtools.v117.emulation.Emulation
 import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.firefox.FirefoxOptions
 import org.openqa.selenium.logging.LogEntries
@@ -76,15 +76,6 @@ const val DEV_DEBUG = false
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
-    //when (System.getProperty("browser.name")) {
-    //    "chrome" -> PageModel.setBrowser(openChromeBrowser(headless))
-    //    "firefox" -> PageModel.setBrowser(openFireFox(headless))
-    //    else -> {
-    //        //PageModel.setBrowser(openChromeBrowser(headless))
-    //        PageModel.setBrowser(openFireFox(headless))
-    //    }
-    //}
-
 //    openFirefox(headless)
     openChrome(headless)
     logger.info("Webdriver initialized")

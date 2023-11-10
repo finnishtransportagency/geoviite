@@ -1,9 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {
-    LayoutLocationTrack,
-    LayoutTrackNumber,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -13,6 +9,7 @@ import {
     ValidationError,
     ValidationErrorType,
 } from 'utils/validation-utils';
+import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -45,6 +42,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
         type: undefined,
         descriptionBase: '',
         duplicateOf: undefined,
+        ownerId: '',
     },
     validationErrors: [],
     committedFields: [],
@@ -64,16 +62,14 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
         trackNumberId: undefined,
         topologicalConnectivity: undefined,
         duplicateOf: undefined,
+        ownerId: undefined,
     };
 }
 
 function validateLinkingLocationTrack(
     saveRequest: LocationTrackSaveRequest,
 ): ValidationError<LocationTrackSaveRequest>[] {
-    let errors: ValidationError<LocationTrackSaveRequest>[] = [];
-
-    errors = [
-        ...errors,
+    const errors: ValidationError<LocationTrackSaveRequest>[] = [
         ...[
             'name',
             'trackNumberId',
@@ -82,6 +78,7 @@ function validateLinkingLocationTrack(
             'descriptionBase',
             'descriptionSuffix',
             'topologicalConnectivity',
+            'ownerId',
         ]
             .map((prop: keyof LocationTrackSaveRequest) => {
                 if (isNilOrBlank(saveRequest[prop])) {
@@ -106,6 +103,7 @@ function validateLinkingLocationTrack(
             })
             .filter(filterNotEmpty),
     ];
+
     if (
         saveRequest.descriptionBase &&
         (saveRequest.descriptionBase.length < 4 || saveRequest.descriptionBase.length > 256)
@@ -126,14 +124,31 @@ function getErrorForInvalidDescription(): ValidationError<LocationTrackSaveReque
     ];
 }
 
+const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
+export function setVaylavirastoOwnerIdFrom(
+    owners: LocationTrackOwner[] | undefined,
+    set: (vaylaId: LocationTrackOwnerId) => void,
+) {
+    if (owners !== undefined) {
+        const vayla = owners.find((owner) => owner.name === VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME);
+        if (vayla !== undefined) {
+            set(vayla.id);
+        }
+    }
+}
+
 const locationTrackEditSlice = createSlice({
     name: 'locationTrackEdit',
     initialState: initialLocationTrackEditState,
     reducers: {
-        initWithNewLocationTrack: (state: LocationTrackEditState): void => {
+        initWithNewLocationTrack: (
+            state: LocationTrackEditState,
+            { payload: owners }: PayloadAction<LocationTrackOwner[] | undefined>,
+        ): void => {
             state.isNewLocationTrack = true;
             state.locationTrack = newLinkingLocationTrack();
             state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+            setVaylavirastoOwnerIdFrom(owners, (id) => (state.locationTrack.ownerId = id));
         },
         onStartLoadingTrackNumbers: (state: LocationTrackEditState) => {
             state.loading.trackNumbers = true;
@@ -197,13 +212,7 @@ const locationTrackEditSlice = createSlice({
         onStartSaving: (state: LocationTrackEditState): void => {
             state.isSaving = true;
         },
-        onSaveSucceed: (
-            state: LocationTrackEditState,
-            { payload: _payload }: PayloadAction<LocationTrackId>,
-        ): void => {
-            state.isSaving = false;
-        },
-        onSaveFailed: (state: LocationTrackEditState): void => {
+        onEndSaving: (state: LocationTrackEditState): void => {
             state.isSaving = false;
         },
     },

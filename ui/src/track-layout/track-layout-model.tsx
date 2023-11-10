@@ -1,6 +1,7 @@
 import {
     GeometryAlignmentId,
     GeometryKmPostId,
+    GeometryPlanId,
     GeometryPlanLayoutId,
     GeometrySwitchId,
     GeometryTrackNumberId,
@@ -11,6 +12,7 @@ import {
     JointNumber,
     KmNumber,
     LocationAccuracy,
+    LocationTrackOwnerId,
     Oid,
     Srid,
     SwitchOwnerId,
@@ -73,12 +75,6 @@ export type LayoutReferenceLine = {
     draftType: DraftType;
 };
 
-export type LayoutLocationTrackDuplicate = {
-    name: string;
-    externalId?: Oid;
-    id: LocationTrackId;
-};
-
 export type TopologyLocationTrackSwitch = {
     switchId: LayoutSwitchId;
     joint: JointNumber;
@@ -109,12 +105,22 @@ export type LayoutLocationTrack = {
     topologicalConnectivity: TopologicalConnectivityType;
     topologyStartSwitch?: TopologyLocationTrackSwitch;
     topologyEndSwitch?: TopologyLocationTrackSwitch;
+    ownerId: LocationTrackOwnerId;
 };
 
-export const locationTrackDescription = (lt: {
-    descriptionBase?: string;
-    descriptionSuffix?: string;
-}) => `${lt.descriptionBase}${lt.descriptionSuffix ? ` ${lt.descriptionSuffix}` : ''}`;
+export type LocationTrackDuplicate = {
+    id: LocationTrackId;
+    name: string;
+    externalId: Oid;
+};
+export type LayoutSwitchIdAndName = { id: LayoutSwitchId; name: string };
+
+export type LocationTrackInfoboxExtras = {
+    duplicateOf?: LocationTrackDuplicate;
+    duplicates: LocationTrackDuplicate[];
+    switchAtStart?: LayoutSwitchIdAndName;
+    switchAtEnd?: LayoutSwitchIdAndName;
+};
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 
@@ -196,9 +202,8 @@ export type LayoutKmLengthDetails = {
     location?: Point;
 };
 
-export type PlanAreaId = string;
 export type PlanArea = {
-    id: PlanAreaId;
+    id: GeometryPlanId;
     fileName: string;
     polygon: Point[];
 };
@@ -247,10 +252,6 @@ export type AlignmentStartAndEnd = {
     end?: AddressPoint;
 };
 
-export type SwitchesAtEnds = {
-    start?: LayoutSwitchId;
-    end?: LayoutSwitchId;
-};
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,
     presentationJointNumber: JointNumber,
@@ -273,7 +274,7 @@ export type SwitchJointTrackMeter = {
     jointNumber: JointNumber;
     locationTrackId: LocationTrackId;
     locationTrackName: string;
-    trackMeter: TrackMeter;
+    trackMeter: TrackMeter | undefined;
 };
 
 export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {

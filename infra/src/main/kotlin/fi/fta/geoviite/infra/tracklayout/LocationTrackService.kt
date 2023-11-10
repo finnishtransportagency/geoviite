@@ -10,10 +10,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
-import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
@@ -22,12 +19,12 @@ import java.time.Instant
 
 @Service
 class LocationTrackService(
-    dao: LocationTrackDao,
+    locationTrackDao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
-) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
+) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
@@ -50,6 +47,7 @@ class LocationTrackService(
             topologicalConnectivity = request.topologicalConnectivity,
             topologyStartSwitch = null,
             topologyEndSwitch = null,
+            ownerId = request.ownerId,
         )
         return saveDraftInternal(locationTrack)
     }
@@ -67,6 +65,7 @@ class LocationTrackService(
             trackNumberId = request.trackNumberId,
             duplicateOf = request.duplicateOf,
             topologicalConnectivity = request.topologicalConnectivity,
+            ownerId = request.ownerId,
         )
 
         return if (locationTrack.state != LayoutState.DELETED) {
@@ -152,26 +151,30 @@ class LocationTrackService(
         return listInternal(publishType, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
+    override fun sortSearchResult(list: List<LocationTrack>) = list.sortedBy (LocationTrack::name)
+
     fun list(
-        publishType: PublishType,
-        searchTerm: FreeText,
-        limit: Int?,
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        name: AlignmentName,
     ): List<LocationTrack> {
         logger.serviceCall(
-            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "name" to name
         )
-        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            listInternal(publishType, true).filter { track ->
-                idMatches(term, track) || contentMatches(term, track)
-            }.sortedBy(LocationTrack::name).let { list -> if (limit != null) list.take(limit) else list }
-        } ?: listOf()
+        return dao.fetchVersions(
+            publicationState = publicationState,
+            includeDeleted = true,
+            trackNumberId = trackNumberId,
+            name = name,
+        ).map(dao::fetch)
+
     }
 
-    private fun idMatches(term: String, track: LocationTrack) =
-        track.externalId.toString() == term || track.id.toString() == term
+    override fun idMatches(term: String, item: LocationTrack) =
+        item.externalId.toString() == term || item.id.toString() == term
 
-    private fun contentMatches(term: String, track: LocationTrack) =
-        track.exists && (track.name.contains(term, true) || track.descriptionBase.contains(term, true))
+    override fun contentMatches(term: String, item: LocationTrack) =
+        item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))
 
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
@@ -225,6 +228,29 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun getLocationTracksNear(
+        location: IPoint,
+        publishType: PublishType,
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall("getLocationTracksNear", "location" to location)
+        val alignmentSearchAreaSize = 2.0
+        val alignmentSearchArea = BoundingBox(
+            Point(0.0, 0.0), Point(alignmentSearchAreaSize, alignmentSearchAreaSize)
+        ).centerAt(location)
+        val nearbyLocationTracks = listNearWithAlignments(publishType, alignmentSearchArea).filter { (_, alignment) ->
+            alignment.segments.any { segment ->
+                alignmentSearchArea.intersects(segment.boundingBox) && segment.points.any { point ->
+                    alignmentSearchArea.contains(
+                        point
+                    )
+                }
+            }
+        }
+
+        return nearbyLocationTracks
+    }
+
+    @Transactional(readOnly = true)
     fun getMetadataSections(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
@@ -248,37 +274,35 @@ class LocationTrackService(
         } else listOf()
     }
 
-    fun getSwitchesAtEnds(id: IntId<LocationTrack>, publishType: PublishType): SwitchesAtEnds? {
-        val locationTrackAndAlignment = getWithAlignment(publishType, id)
-        return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            val startSwitchId =
-                if (alignment.segments.firstOrNull()?.startJointNumber == null) locationTrack.topologyStartSwitch?.switchId
-                else alignment.segments.firstOrNull()?.switchId as IntId?
-            val endSwitchId =
-                if (alignment.segments.lastOrNull()?.endJointNumber == null) locationTrack.topologyEndSwitch?.switchId
-                else alignment.segments.lastOrNull()?.switchId as IntId?
-            SwitchesAtEnds(
-                startSwitchId,
-                endSwitchId,
-            )
-        }
-    }
+    private fun getSwitchIdAtStart(alignment: LayoutAlignment, locationTrack: LocationTrack) =
+        if (alignment.segments.firstOrNull()?.startJointNumber == null) locationTrack.topologyStartSwitch?.switchId
+        else alignment.segments.firstOrNull()?.switchId as IntId?
+
+    private fun getSwitchIdAtEnd(alignment: LayoutAlignment, locationTrack: LocationTrack) =
+        if (alignment.segments.lastOrNull()?.endJointNumber == null) locationTrack.topologyEndSwitch?.switchId
+        else alignment.segments.lastOrNull()?.switchId as IntId?
 
     private val BUFFER_TRANSLATION = "Puskin"
 
     fun getFullDescription(publishType: PublishType, locationTrack: LocationTrack): FreeText {
-        val startAndEnd = getSwitchesAtEnds(locationTrack.id as IntId, DRAFT)
-        val startSwitch = startAndEnd?.start?.let {
-            switchDao.fetchVersion(startAndEnd.start, publishType)?.let(switchDao::fetch)
-        }
-        val endSwitch = startAndEnd?.end?.let {
-            switchDao.fetchVersion(startAndEnd.end, publishType)?.let(switchDao::fetch)
-        }
+        val alignmentVersion = locationTrack.alignmentVersion
+        val (startSwitch, endSwitch) = alignmentVersion?.let {
+            val alignment = alignmentDao.fetch(alignmentVersion)
+            getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(
+                alignment, locationTrack
+            )
+        } ?: (null to null)
+
+        fun getSwitchShortName(switchId: IntId<TrackLayoutSwitch>) =
+            switchDao.fetchVersion(switchId, publishType)?.let(switchDao::fetch)?.shortName
+
+        val startSwitchName = startSwitch?.let(::getSwitchShortName)
+        val endSwitchName = endSwitch?.let(::getSwitchShortName)
 
         return when (locationTrack.descriptionSuffix) {
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
-            DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitch?.shortName ?: endSwitch?.shortName ?: "???"} - ${BUFFER_TRANSLATION}")
-            DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText("${locationTrack.descriptionBase} ${startSwitch?.shortName ?: "???"} - ${endSwitch?.shortName ?: "???"}")
+            DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION")
+            DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
         }
     }
 
@@ -288,9 +312,56 @@ class LocationTrackService(
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)
 
-    fun getDuplicates(duplicateOf: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
-        return dao.fetchDuplicates(duplicateOf, publishType)
+    @Transactional(readOnly = true)
+    fun getInfoboxExtras(publishType: PublishType, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
+        val locationTrackAndAlignment = getWithAlignment(publishType, id)
+        return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
+            val duplicateOf = getDuplicateOf(locationTrack, publishType)
+            val sortedDuplicates = getLocationTrackDuplicates(id, publishType)
+            val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
+                ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publishType) }
+            val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
+                ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publishType) }
+            LocationTrackInfoboxExtras(duplicateOf, sortedDuplicates, startSwitch, endSwitch)
+        }
     }
+
+    private fun getLocationTrackDuplicates(
+        id: IntId<LocationTrack>,
+        publishType: PublishType,
+    ): List<LocationTrackDuplicate> {
+        val duplicates = dao.fetchDuplicates(id, publishType).map(dao::fetch)
+
+        val duplicateStartAddresses = duplicates.map { duplicate ->
+            duplicate.alignmentVersion?.let { alignmentVersion ->
+                alignmentDao.fetch(alignmentVersion).start?.let { startPoint ->
+                    geocodingService
+                        .getGeocodingContext(publishType, duplicate.trackNumberId)
+                        ?.getAddress(startPoint)?.first
+                }
+            }
+        }
+        return duplicates.mapIndexed { index, d -> index to d }.sortedWith { a, b ->
+            compareValues(
+                duplicateStartAddresses[a.first], duplicateStartAddresses[b.first]
+            )
+        }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.name, track.externalId) }
+    }
+
+    private fun getDuplicateOf(
+        locationTrack: LocationTrack,
+        publishType: PublishType,
+    ) = locationTrack.duplicateOf?.let { duplicateId ->
+        get(publishType, duplicateId)?.let { dup ->
+            LocationTrackDuplicate(
+                duplicateId, dup.name, dup.externalId
+            )
+        }
+    }
+
+    private fun fetchSwitchAtEndById(id: IntId<TrackLayoutSwitch>, publishType: PublishType) = switchDao.fetchVersion(
+        id, publishType
+    )?.let(switchDao::fetch)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     @Transactional
     fun updateTopology(
@@ -328,10 +399,10 @@ class LocationTrackService(
         ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
         currentTopologySwitch: TopologyLocationTrackSwitch?,
     ): TopologyLocationTrackSwitch? {
-        val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> =
-            dao.fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
-                .map { version -> getWithAlignmentInternal(version) }
-                .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
+        val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> = dao
+            .fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
+            .map { version -> getWithAlignmentInternal(version) }
+            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
         val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
         else currentTopologySwitch
         return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracks) ?: defaultSwitch
@@ -346,6 +417,27 @@ class LocationTrackService(
     fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
         logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
         return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
+    }
+
+    fun getLocationTrackOwners(): List<LocationTrackOwner> {
+        logger.serviceCall("getLocationTrackOwners")
+        return dao.fetchLocationTrackOwners()
+    }
+
+    fun getSwitchesForLocationTrack(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
+    ): List<IntId<TrackLayoutSwitch>> {
+        logger.serviceCall(
+            "getSwitchesForLocationTrack", "locationTrackId" to locationTrackId, "publishType" to publishType
+        )
+        val ltAndAlignment = getWithAlignment(publishType, locationTrackId)
+        val topologySwitches = listOfNotNull(
+            ltAndAlignment?.first?.topologyStartSwitch?.switchId, ltAndAlignment?.first?.topologyEndSwitch?.switchId
+        )
+        val segmentSwitches =
+            ltAndAlignment?.second?.segments?.mapNotNull { segment -> segment.switchId as IntId? } ?: emptyList()
+        return topologySwitches + segmentSwitches
     }
 }
 

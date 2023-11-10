@@ -5,7 +5,7 @@ import {
     LayoutKmPostId,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, KmNumber, PublishType, TimeStamp } from 'common/common-model';
+import { DraftableChangeInfo, KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
@@ -57,10 +57,12 @@ export async function getKmPostByNumber(
     publishType: PublishType,
     trackNumberId: LayoutTrackNumberId,
     kmNumber: KmNumber,
+    includeDeleted: boolean,
 ): Promise<LayoutKmPost | undefined> {
     const params = queryParams({
         trackNumberId: trackNumberId,
         kmNumber: kmNumber,
+        includeDeleted: includeDeleted,
     });
     return getNullable<LayoutKmPost>(`${layoutUri('km-posts', publishType)}${params}`);
 }
@@ -186,7 +188,7 @@ export const getKmLengthsAsCsv = (
 };
 
 export const getKmPostChangeTimes = (id: LayoutKmPostId) =>
-    getNullable<ChangeTimes>(changeTimeUri('km-posts', id));
+    getNullable<DraftableChangeInfo>(changeTimeUri('km-posts', id));
 
 export const getEntireRailNetworkKmLengthsCsvUrl = () =>
     `${TRACK_LAYOUT_URI}/track-numbers/rail-network/km-lengths/file`;

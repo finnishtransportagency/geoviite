@@ -3,7 +3,7 @@ import styles from './menu.scss';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { createClassName } from 'vayla-design-lib/utils';
 
-type MenuOption = { name: string | number; disabled?: boolean };
+type MenuOption = { name: string | number; disabled?: boolean; qaId?: string };
 
 export type MenuValueOption<TValue> = {
     value: TValue;
@@ -43,6 +43,8 @@ export const Menu = function <TValue>({
                     return (
                         <li
                             key={`${index}_${i.name}`}
+                            qa-id={i.qaId}
+                            title={`${i.name}`}
                             className={createClassName(
                                 styles['menu__item'],
                                 i.disabled && styles['menu__item--disabled'],

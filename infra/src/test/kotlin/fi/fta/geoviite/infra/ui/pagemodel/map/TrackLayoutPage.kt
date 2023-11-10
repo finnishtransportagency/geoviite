@@ -4,7 +4,6 @@ import browser
 import clickElementAtPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutPoint
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import javaScriptExecutor
@@ -49,14 +48,14 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         mapScale
     }
 
-    val toolPanel: E2EToolPanel by lazy { E2EToolPanel(this.elementFetch) }
-    val selectionPanel: E2ESelectionPanel by lazy { E2ESelectionPanel(this.elementFetch) }
-    val appBar: E2EAppBar by lazy { E2EAppBar() }
-    val toolBar: E2EToolBar by lazy { E2EToolBar(this.elementFetch) }
+    val toolPanel: E2EToolPanel by lazy { E2EToolPanel(this) }
+    val selectionPanel: E2ESelectionPanel by lazy { E2ESelectionPanel(this) }
+    val toolBar: E2EToolBar by lazy { E2EToolBar(this) }
+    val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
     val mapScale: MapScale
         get() {
             val scale = childText(By.className("ol-scale-line-inner"))
-            return MapScale.values().first { it.value == scale }
+            return MapScale.entries.first { it.value == scale }
         }
 
     companion object {
@@ -96,13 +95,14 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     fun switchToDraftMode(): E2ETrackLayoutPage = apply {
+        logger.info("Switch to draft")
         toolBar.switchToDraft()
     }
 
     fun goToPreview() = toolBar.goToPreview()
 
     fun zoomToScale(targetScale: MapScale): E2ETrackLayoutPage = apply {
-        logger.info("Zooming map to scale $targetScale")
+        logger.info("Zoom map to scale $targetScale")
 
         if (targetScale.ordinal >= mapScale.ordinal) {
             while (targetScale != mapScale) zoomOut()
@@ -117,9 +117,9 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-out"))
         try {
-            waitUntilValueIsNot(childElement(By.className("ol-scale-line-inner")), currentScale)
+            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
-            logger.warn("Zoom out failed")
+            logger.warn("Zoom out failed, cause: $ex")
         }
     }
 
@@ -127,9 +127,9 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-in"))
         try {
-            waitUntilValueIsNot(childElement(By.className("ol-scale-line-inner")), currentScale)
+            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
-            logger.warn("Zoom in failed")
+            logger.warn("Zoom in failed, cause: $ex")
         }
     }
 

@@ -200,11 +200,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
         logger.integrationCall("newAsset", "asset" to asset)
-        data class NewRatkoAssetResponse(val id: String)
 
-        return postWithResponseBody<List<NewRatkoAssetResponse>>(ASSET_URI, asset.withoutGeometries())
-            ?.firstOrNull()
-            ?.let { RatkoOid(it.id) }
+        return postWithResponseBody<String>(ASSET_URI, asset.withoutGeometries())
+            ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
+            ?.let(::RatkoOid)
     }
 
     fun <T : RatkoAsset> replaceAssetLocations(assetOid: RatkoOid<T>, locations: List<RatkoAssetLocation>) {

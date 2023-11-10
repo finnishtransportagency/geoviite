@@ -8,6 +8,7 @@ import java.time.Duration
 
 enum class DatabaseLock {
     PUBLICATION,
+    PUBLICATION_GEOMETRY_CHANGE_CALCULATION,
     RATKO,
     ELEMENT_LIST_GEN,
     VERTICAL_GEOMETRY_LIST_GEN,
@@ -65,4 +66,5 @@ class LockDao @Autowired constructor(
 
         jdbcTemplate.update(sql, mapOf("lock_name" to lockName.name))
     }
+
 }

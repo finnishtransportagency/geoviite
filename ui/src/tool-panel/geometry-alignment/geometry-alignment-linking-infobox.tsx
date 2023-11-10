@@ -7,7 +7,6 @@ import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox
 import {
     LayoutLocationTrack,
     LayoutReferenceLine,
-    LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import {
@@ -21,7 +20,7 @@ import {
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
+import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -39,16 +38,11 @@ import {
 } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
-import {
-    updateLocationTrackChangeTime,
-    updateReferenceLineChangeTime,
-    updateTrackNumberChangeTime,
-} from 'common/change-time-api';
 import LocationTrackNames from './location-track-names';
 import { useLoader } from 'utils/react-utils';
 import ReferenceLineNames from 'tool-panel/geometry-alignment/reference-line-names';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { OnSelectOptions } from 'selection/selection-model';
+import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import {
     GeometryAlignmentLinkingLocationTrackCandidates,
@@ -56,6 +50,10 @@ import {
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
+import {
+    refreshLocationTrackSelection,
+    refreshTrackNumberSelection,
+} from 'track-layout/track-layout-react-utils';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -103,6 +101,7 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
 
 type GeometryAlignmentLinkingInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     geometryAlignment: AlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
@@ -124,6 +123,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
 
 const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxProps> = ({
     onSelect,
+    onUnselect,
     geometryAlignment,
     selectedLayoutLocationTrack,
     selectedLayoutReferenceLine,
@@ -181,15 +181,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         });
     }, [planId, publishType, locationTrackChangeTime]);
 
-    function handleLocationTrackInsert(id: LocationTrackId) {
-        onSelect({ locationTracks: [id] });
-        updateLocationTrackChangeTime();
-    }
-
-    function handleTrackNumberSave(id: LayoutTrackNumberId) {
-        onSelect({ trackNumbers: [id] });
-        updateReferenceLineChangeTime().then(() => updateTrackNumberChangeTime());
-    }
+    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
+    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
 
     function lockAlignment() {
         const selectedAlignment = selectedLayoutLocationTrack || selectedLayoutReferenceLine;
@@ -228,11 +221,11 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     : linkGeometryWithReferenceLine(linkingParameters));
                 if (result) {
                     Snackbar.success(
-                        t('tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked'),
+                        'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
                     );
                     onStopLinking();
                 } else {
-                    Snackbar.error(t('error.linking.generic'));
+                    Snackbar.error('error.linking.generic');
                 }
             } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
@@ -241,10 +234,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     ? linkGeometryWithEmptyLocationTrack(linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(linkingParameters));
                 if (result) {
-                    Snackbar.success(t('tool-panel.alignment.geometry.linking-succeeded'));
+                    Snackbar.success('tool-panel.alignment.geometry.linking-succeeded');
                     onStopLinking();
                 } else {
-                    Snackbar.error(t('error.linking.generic'));
+                    Snackbar.error('error.linking.generic');
                 }
             }
         } finally {
@@ -390,11 +383,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             </Infobox>
 
             {showAddLocationTrackDialog && (
-                <LocationTrackEditDialog
+                <LocationTrackEditDialogContainer
                     onClose={() => setShowAddLocationTrackDialog(false)}
-                    onInsert={handleLocationTrackInsert}
+                    onSave={handleLocationTrackSave}
                     locationTrackChangeTime={locationTrackChangeTime}
-                    publishType={publishType}
                 />
             )}
             {showAddTrackNumberDialog && (

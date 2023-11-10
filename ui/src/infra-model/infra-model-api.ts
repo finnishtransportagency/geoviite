@@ -24,7 +24,6 @@ import {
 } from './projektivelho/pv-model';
 import { asyncCache } from 'cache/cache';
 import { Oid, TimeStamp } from 'common/common-model';
-import i18n from 'i18next';
 
 export interface InsertResponse {
     message: string;
@@ -39,10 +38,10 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/projektivelho`;
+const PROJEKTIVELHO_REDIRECT_URI = '/redirect/projektivelho';
 
 const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | undefined>();
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
-const pvRedirectUrlCache = asyncCache<string, string | undefined>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
@@ -97,9 +96,7 @@ export const saveInfraModelFile = async (
     const formData = createFormData(file, extraParameters, overrideParameters);
     const response = await postFormIgnoreError<InsertResponse>(INFRAMODEL_URI, formData);
     if (response) {
-        Snackbar.success(i18n.t('infra-model.upload.success'), {
-            qaId: 'infra-model-import-upload__success-toast',
-        });
+        Snackbar.success('infra-model.upload.success');
         updatePlanChangeTime();
     }
     return response;
@@ -116,7 +113,7 @@ export async function updateGeometryPlan(
         formData,
     );
     if (response) {
-        Snackbar.success(i18n.t('infra-model.edit.success'));
+        Snackbar.success('infra-model.edit.success');
         updatePlanChangeTime();
     }
     return response;
@@ -140,10 +137,21 @@ export async function getPVDocuments(
     );
 }
 
-export const getPVRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
-    pvRedirectUrlCache.get(changeTime, oid, () =>
-        getNonNull<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
-    );
+export const getPVFilesRedirectUrl = (
+    projectGroupOid?: Oid,
+    projectOid?: Oid,
+    assignmentOid?: Oid,
+    documentOid?: Oid,
+) => {
+    const params = queryParams({
+        projectGroup: projectGroupOid,
+        project: projectOid,
+        assignment: assignmentOid,
+        document: documentOid,
+    });
+
+    return `${PROJEKTIVELHO_REDIRECT_URI}/files${params}`;
+};
 
 export async function getPVDocument(
     changeTime: TimeStamp = getChangeTimes().pvDocument,
@@ -163,17 +171,17 @@ export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined>
         `${PROJEKTIVELHO_URI}/documents/${ids}/status`,
         'REJECTED',
     ).then((ids) => {
-        Snackbar.success(i18n.t('projektivelho.file-list.reject-success'));
+        Snackbar.success('projektivelho.file-list.reject-success');
         return ids;
     });
 }
 
-export async function restorePVDocument(id: PVDocumentId): Promise<undefined> {
+export async function restorePVDocuments(id: PVDocumentId[]): Promise<undefined> {
     return putIgnoreError<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
     ).then((id) => {
-        Snackbar.success(i18n.t('projektivelho.file-list.restore-success'));
+        Snackbar.success('projektivelho.file-list.restore-success');
         return id;
     });
 }
@@ -199,9 +207,7 @@ export async function importPVDocument(
     const url = `${PROJEKTIVELHO_URI}/documents/${id}`;
     const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
     if (response) {
-        Snackbar.success(i18n.t('infra-model.import.success'), {
-            qaId: 'infra-model-import-upload__success-toast',
-        });
+        Snackbar.success('infra-model.import.success');
         updatePlanChangeTime();
     }
     return response;

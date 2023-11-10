@@ -1,13 +1,11 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.util.HttpsUrl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,11 +42,6 @@ class PVDocumentService @Autowired constructor(
     fun getFile(id: IntId<PVDocument>): InfraModelFile? {
         logger.serviceCall("getFile", "id" to id)
         return pvDao.getFileContent(id)
-    }
-
-    fun getLink(oid: Oid<PVApiRedirect>): HttpsUrl {
-        logger.serviceCall("getLink", "oid" to oid)
-        return pvClient.fetchRedirect(oid).targetUrl
     }
 
     @Transactional

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 
 @ActiveProfiles("dev", "test")
@@ -28,6 +29,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
+    private val referenceLineDao: ReferenceLineDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -105,9 +107,9 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
         val changeTimeAfterUpdate = locationTrackService.getChangeTime()
 
-        val trackChangeTimes = locationTrackService.getChangeTimes(id)
-        assertEquals(changeTimeAfterInsert, trackChangeTimes.created)
-        assertEquals(changeTimeAfterUpdate, trackChangeTimes.draftChanged)
+        val changeInfo = locationTrackService.getDraftableChangeInfo(id)
+        assertEquals(changeTimeAfterInsert, changeInfo.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
     }
 
     @Test
@@ -423,6 +425,35 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `getLocationTrackSwitches finds both topology and segment switches`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val topologyStartSwitchId = insertAndFetch(switch()).id as IntId
+        val topologyEndSwitchId = insertAndFetch(switch()).id as IntId
+        val segmentSwitchId = insertAndFetch(switch()).id as IntId
+
+        val (track, _) = insertAndFetch(
+            locationTrack(trackNumberId).copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+            ),
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0),
+                    switchId = segmentSwitchId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2)
+                )
+            ),
+        )
+
+        val switches = locationTrackService.getSwitchesForLocationTrack(track.id as IntId, DRAFT)
+        assertContains(switches, topologyEndSwitchId)
+        assertContains(switches, topologyStartSwitchId)
+        assertContains(switches, segmentSwitchId)
+    }
+
+    @Test
     fun fetchDuplicatesIsVersioned() {
         val trackNumberId = getUnusedTrackNumberId()
         val originalLocationTrackId = locationTrackService.insert(saveRequest(trackNumberId, 1)).id
@@ -438,12 +469,39 @@ class LocationTrackServiceIT @Autowired constructor(
         val draftCopy = locationTrackService.getDraft(draftCopyVersion.id)!!
         assertEquals(
             listOf(asLocationTrackDuplicate(officialCopy.first)),
-            locationTrackService.getDuplicates(originalLocationTrackId, OFFICIAL)
+            locationTrackService.getInfoboxExtras(OFFICIAL, originalLocationTrackId)?.duplicates
         )
         assertEquals(
             listOf(asLocationTrackDuplicate(draftCopy)),
-            locationTrackService.getDuplicates(originalLocationTrackId, DRAFT)
+            locationTrackService.getInfoboxExtras(DRAFT, originalLocationTrackId)?.duplicates
         )
+    }
+
+    @Test
+    fun fetchDuplicatesIsOrderedByTrackAddress() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val fullAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = fullAlignment))
+
+        val fullTrack = locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = fullAlignment))
+
+        fun makeDuplicateAt(xCoord: Double, name: String) {
+            val duplicateAlignment =
+                alignmentDao.insert(alignment(segment(Point(xCoord, 0.0), Point(xCoord + 10.0, 0.0))))
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId, name = name, alignmentVersion = duplicateAlignment, duplicateOf = fullTrack.id
+                )
+            )
+        }
+
+        makeDuplicateAt(30.0, "dupA")
+        makeDuplicateAt(10.0, "dupB")
+        makeDuplicateAt(80.0, "dupC")
+        makeDuplicateAt(20.0, "dupD")
+
+        val extras = locationTrackService.getInfoboxExtras(OFFICIAL, fullTrack.id)
+        assertEquals(listOf("dupB", "dupD", "dupA", "dupC"), extras?.duplicates?.map { dup -> dup.name.toString() })
     }
 
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =
@@ -523,6 +581,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(saveRequest.state, locationTrack.state)
         assertEquals(saveRequest.type, locationTrack.type)
         assertEquals(saveRequest.topologicalConnectivity, locationTrack.topologicalConnectivity)
+        assertEquals(saveRequest.ownerId, locationTrack.ownerId)
     }
 
     private fun saveRequest(
@@ -536,10 +595,12 @@ class LocationTrackServiceIT @Autowired constructor(
         state = getSomeValue(seed),
         trackNumberId = trackNumberId,
         duplicateOf = null,
-        topologicalConnectivity = TopologicalConnectivityType.START_AND_END
+        topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+        ownerId = IntId(1)
     )
 
-    private fun publish(id: IntId<LocationTrack>) = locationTrackDao.fetchPublicationVersions(listOf(id))
+    private fun publish(id: IntId<LocationTrack>) = locationTrackDao
+        .fetchPublicationVersions(listOf(id))
         .first()
         .let { version -> locationTrackService.publish(version) }
 }

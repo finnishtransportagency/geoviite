@@ -8,6 +8,7 @@ export type FieldLayoutProps = {
     help?: React.ReactNode;
     warnings?: string[];
     errors?: string[];
+    children?: React.ReactNode;
 };
 
 export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps) => {
@@ -40,6 +41,8 @@ export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps)
                     ))}
                 </div>
             )}
+
+            {props.children}
         </div>
     );
 };

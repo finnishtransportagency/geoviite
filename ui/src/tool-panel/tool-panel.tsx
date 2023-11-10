@@ -11,7 +11,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import {
     DraftType,
     LayoutKmPostId,
-    LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
@@ -22,6 +21,7 @@ import SwitchInfobox from 'tool-panel/switch/switch-infobox';
 import GeometrySwitchInfobox from 'tool-panel/switch/geometry-switch-infobox';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import {
+    OnSelectOptions,
     OptionalUnselectableItemCollections,
     SelectedGeometryItem,
 } from 'selection/selection-model';
@@ -63,6 +63,7 @@ type ToolPanelProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     onDataChange: () => void;
+    onSelect: (items: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     selectedAsset: ToolPanelAsset | undefined;
     setSelectedAsset: (id: ToolPanelAsset | undefined) => void;
@@ -113,6 +114,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     changeTimes,
     publishType,
     onDataChange,
+    onSelect,
     onUnselect,
     selectedAsset,
     setSelectedAsset,
@@ -132,16 +134,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         [],
     );
 
-    const onUnSelectLocationTracks = React.useCallback((track: LayoutLocationTrack) => {
-        onUnselect({ locationTracks: [track.id] });
-    }, []);
-
-    const onUnSelectSwitches = React.useCallback((switchId: LayoutSwitchId) => {
-        onUnselect({ switches: [switchId] });
-    }, []);
-
     const tracksSwitchesKmPostsPlans = useLoader(() => {
-        const trackNumbersPromise = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
+        const trackNumbersPromise = getTrackNumbers(
+            publishType,
+            changeTimes.layoutTrackNumber,
+            true,
+        );
         const locationTracksPromise = getLocationTracks(locationTrackIds, publishType);
         const switchesPromise = getSwitches(switchIds, publishType);
         const kmPostsPromise = getKmPosts(kmPostIds, publishType);
@@ -244,8 +242,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             trackNumber={t}
                             publishType={publishType}
                             linkingState={linkingState}
+                            onSelect={onSelect}
                             onUnselect={onUnselect}
-                            referenceLineChangeTime={changeTimes.layoutReferenceLine}
+                            changeTimes={changeTimes}
                             viewport={viewport}
                             onHoverOverPlanSection={onHoverOverPlanSection}
                         />
@@ -267,11 +266,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         kmPostChangeTime={changeTimes.layoutKmPost}
                         onDataChange={onDataChange}
                         kmPost={k}
-                        onUnselect={() => {
-                            onUnselect({
-                                kmPosts: [k.id],
-                            });
-                        }}
+                        onSelect={onSelect}
+                        onUnselect={onUnselect}
                         onShowOnMap={() =>
                             k.location &&
                             showArea(calculateBoundingBoxToShowAroundLocation(k.location))
@@ -322,7 +318,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         publishType={publishType}
                         changeTimes={changeTimes}
                         onDataChange={onDataChange}
-                        onUnselect={onUnSelectSwitches}
+                        onSelect={onSelect}
+                        onUnselect={onUnselect}
                         placingSwitchLinkingState={
                             linkingState?.type == LinkingType.PlacingSwitch
                                 ? linkingState
@@ -402,7 +399,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             publishType={publishType}
                             locationTrackChangeTime={changeTimes.layoutLocationTrack}
                             onDataChange={onDataChange}
-                            onUnselect={onUnSelectLocationTracks}
                             viewport={viewport}
                             verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                             onHoverOverPlanSection={onHoverOverPlanSection}

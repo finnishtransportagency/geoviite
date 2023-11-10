@@ -19,7 +19,7 @@ import {
     GeometrySortOrder,
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
-import { useMapState, useSetState } from 'utils/react-utils';
+import { useRateLimitedEffect, useMapState, useSetState } from 'utils/react-utils';
 import { getGeometryPlanHeadersBySearchTerms, getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
@@ -83,23 +83,27 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     const [loadedPlans, setLoadedPlan] = useMapState<GeometryPlanId, LoadedGeometryPlan>();
     const [plansBeingLoaded, startLoadingPlan, finishLoadingPlan] = useSetState<GeometryPlanId>();
 
-    React.useEffect(() => {
-        if (viewport.area) {
-            getGeometryPlanHeadersBySearchTerms(
-                MAX_PLAN_HEADERS,
-                0,
-                viewport.area,
-                ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
-                selectedTrackNumbers,
-                undefined,
-                GeometrySortBy.UPLOADED_AT,
-                GeometrySortOrder.ASCENDING,
-            ).then((page) => {
-                setPlanHeadersInView(page.items);
-                setPlanHeaderCount(page.totalCount);
-            });
-        }
-    }, [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers.sort().join('')]);
+    useRateLimitedEffect(
+        () => {
+            if (viewport.area !== undefined) {
+                getGeometryPlanHeadersBySearchTerms(
+                    MAX_PLAN_HEADERS,
+                    0,
+                    viewport.area,
+                    ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+                    selectedTrackNumbers,
+                    undefined,
+                    GeometrySortBy.UPLOADED_AT,
+                    GeometrySortOrder.ASCENDING,
+                ).then((page) => {
+                    setPlanHeadersInView(page.items);
+                    setPlanHeaderCount(page.totalCount);
+                });
+            }
+        },
+        1000,
+        [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers.sort().join('')],
+    );
 
     React.useEffect(
         () => [...loadedPlans.keys()].forEach(loadPlanLayout),

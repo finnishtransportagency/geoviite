@@ -4,13 +4,13 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -40,24 +40,33 @@ class LayoutSwitchController(
     ): List<TrackLayoutSwitch> {
         logger.apiCall(
             "getTrackLayoutSwitches",
-            "publishType" to publishType, "bbox" to bbox, "name" to name, "offset" to offset,
-            "limit" to limit, "comparisonPoint" to comparisonPoint, "switchType" to switchType
+            "publishType" to publishType,
+            "bbox" to bbox,
+            "name" to name,
+            "offset" to offset,
+            "limit" to limit,
+            "comparisonPoint" to comparisonPoint,
+            "switchType" to switchType
         )
         val filter = switchService.switchFilter(name, switchType, bbox, includeSwitchesWithNoJoints)
         return switchService.pageSwitchesByFilter(publishType, filter, offset, limit, comparisonPoint)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}", params = ["searchTerm", "limit"])
-    fun searchSwitches(
-        @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("searchTerm", required = true) searchTerm: FreeText,
-        @RequestParam("limit", required = true) limit: Int,
+    @GetMapping("/{publicationState}/by-name")
+    fun getSwitchesByName(
+        @PathVariable("publicationState") publicationState: PublishType,
+        @RequestParam("name") name: SwitchName,
+        @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): List<TrackLayoutSwitch> {
-        logger.apiCall("searchSwitches", "searchTerm" to searchTerm, "limit" to limit)
-        return switchService.list(publishType, searchTerm, limit)
+        logger.apiCall(
+            "getSwitchesByName",
+            "publicationState" to "publicationState",
+            "name" to name,
+            "includeDeleted" to includeDeleted,
+        )
+        return switchService.getSwitchesByName(publicationState, name, includeDeleted)
     }
-
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/{id}")
@@ -125,8 +134,8 @@ class LayoutSwitchController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getSwitchChangeTimes(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): ChangeTimes {
+    fun getSwitchChangeInfo(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): DraftableChangeInfo {
         logger.apiCall("getSwitchChangeTimes", "id" to switchId)
-        return switchService.getChangeTimes(switchId)
+        return switchService.getDraftableChangeInfo(switchId)
     }
 }

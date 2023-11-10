@@ -2,7 +2,7 @@ import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
-import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
+//import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import MoreMenu from 'app-bar/more-menu';
 
 type Link = {
     link: string;
@@ -107,11 +108,19 @@ export const AppBar: React.FC = () => {
                     <DataProductsMenu />
                 </li>
             </ul>
-            <img
+            {
+                // TODO Re-add logo when it has been specified where it should go
+                /*<img
                 className={styles['app-bar__vayla-logo']}
                 src={vaylaLogo}
                 alt="Väylävirasto logo"
-            />
+            />*/
+            }
+            <ul className={styles['app-bar__links']}>
+                <li>
+                    <MoreMenu />
+                </li>
+            </ul>
         </nav>
     );
 };

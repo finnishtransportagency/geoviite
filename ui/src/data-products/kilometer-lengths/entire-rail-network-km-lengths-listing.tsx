@@ -14,12 +14,13 @@ export const EntireRailNetworkKmLengthsListing = () => {
                 {t('data-products.km-lengths.legend')}
             </p>
             <div className={styles['data-products__search']}>
-                <Button
-                    className={styles['vertical-geometry-list__download-button--left-aligned']}
-                    onClick={() => (location.href = getEntireRailNetworkKmLengthsCsvUrl())}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
+                <a qa-id="km-lengths-csv-download" href={getEntireRailNetworkKmLengthsCsvUrl()}>
+                    <Button
+                        className={styles['vertical-geometry-list__download-button--left-aligned']}
+                        icon={Icons.Download}>
+                        {t(`data-products.search.download-csv`)}
+                    </Button>
+                </a>
             </div>
         </React.Fragment>
     );

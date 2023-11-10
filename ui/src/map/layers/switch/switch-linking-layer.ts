@@ -14,6 +14,11 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 
+// The older switch linking joint layer (red circles with crosses)
+// should no longer be displayed, but the code regarding it is not
+// yet determined to be removed completely (see GVT-2176).
+const DISPLAY_DEPRECATED_SWITCH_LINKING_JOINTS = false;
+
 let newestLayerId = 0;
 
 function createSwitchFeatures(
@@ -37,7 +42,7 @@ function createSwitchFeatures(
             setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
             features.push(f);
         });
-    } else {
+    } else if (DISPLAY_DEPRECATED_SWITCH_LINKING_JOINTS) {
         const presentationJoint = suggestedSwitch.joints.find(
             (joint) => joint.number == suggestedSwitch.switchStructure.presentationJointNumber,
         );

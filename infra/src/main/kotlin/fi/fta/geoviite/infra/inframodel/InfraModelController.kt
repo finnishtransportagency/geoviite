@@ -3,14 +3,12 @@ package fi.fta.geoviite.infra.inframodel
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkedItems
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.projektivelho.*
-import fi.fta.geoviite.infra.util.HttpsUrl
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -127,13 +125,6 @@ class InfraModelController @Autowired constructor(
     fun getPVDocumentCounts(): PVDocumentCounts {
         logger.apiCall("getPVDocumentCounts")
         return pvDocumentService.getDocumentCounts()
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/projektivelho/redirect/{oid}")
-    fun getPVRedirect(@PathVariable("oid") oid: Oid<PVApiRedirect>): HttpsUrl {
-        logger.apiCall("getPVRedirect")
-        return pvDocumentService.getLink(oid)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

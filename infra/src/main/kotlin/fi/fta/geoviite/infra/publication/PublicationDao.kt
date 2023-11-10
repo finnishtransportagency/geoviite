@@ -349,6 +349,7 @@ class PublicationDao(
             select id, publication_user, publication_time, message
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
+            order by id
         """.trimIndent()
 
         val params = mapOf(
@@ -454,6 +455,96 @@ class PublicationDao(
         }.toMap().also { logger.daoAccess(FETCH, TrackNumberChanges::class, publicationId) }
     }
 
+    fun fetchPublicationLocationTrackSwitchLinkChanges(
+        publicationId: IntId<Publication>,
+    ): Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges> =
+        fetchPublicationLocationTrackSwitchLinkChanges(publicationId, null, null)[publicationId] ?: mapOf()
+
+    fun fetchPublicationLocationTrackSwitchLinkChanges(
+        publicationId: IntId<Publication>?,
+        from: Instant?,
+        to: Instant?,
+    ): Map<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> {
+        val sql = """
+            select
+              change_side,
+              plt.publication_id,
+              location_track_id,
+              switch_version.id as switch_id,
+              switch_version.name as switch_name,
+              switch_version.external_id as switch_oid
+              from publication.publication
+                join publication.location_track plt on publication.id = plt.publication_id
+                join lateral
+                (select 'new' as change_side, topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
+                   from layout.location_track_version ltv
+                   where plt.location_track_id = ltv.id and plt.location_track_version = ltv.version
+                 union all
+                 select 'old', topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
+                   from layout.location_track_version ltv
+                   where plt.location_track_id = ltv.id
+                     and plt.location_track_version = ltv.version + 1
+                     and not ltv.draft) ltvs on (true)
+                join lateral
+                (select distinct switch_id
+                   from (
+                     select ltvs.topology_start_switch_id as switch_id
+                     union all
+                     select ltvs.topology_end_switch_id
+                     union all
+                     select switch_id
+                       from layout.segment_version
+                       where segment_version.alignment_id = ltvs.alignment_id
+                         and segment_version.alignment_version = ltvs.alignment_version
+                   ) s
+                   where switch_id is not null) switch_ids on (true)
+                join layout.switch_version on switch_ids.switch_id = switch_version.id and not switch_version.draft
+              where direct_change
+                and not exists(
+                  select *
+                  from publication.switch psw
+                  where psw.switch_id = switch_version.id
+                    and direct_change
+                    and (psw.switch_version = switch_version.version and psw.publication_id > plt.publication_id
+                      or psw.switch_version > switch_version.version and psw.publication_id <= plt.publication_id))
+                and (:publicationId::integer is null or :publicationId = publication.id)
+                and (:from::timestamptz is null or :from <= publication_time)
+                and (:to::timestamptz is null or :to >= publication_time)
+        """.trimIndent()
+
+        data class ResultRow(
+            val changeSide: String,
+            val publicationId: IntId<Publication>,
+            val locationTrackId: IntId<LocationTrack>,
+            val switchId: IntId<TrackLayoutSwitch>,
+            val switchName: String,
+            val switchOid: Oid<TrackLayoutSwitch>?,
+        )
+
+        return jdbcTemplate.query(
+            sql, mapOf("publicationId" to publicationId?.intValue,
+                "from" to from?.let { Timestamp.from(it) },
+                "to" to to?.let { Timestamp.from(it) })
+        ) { rs, _ ->
+            ResultRow(
+                rs.getString("change_side"),
+                rs.getIntId("publication_id"),
+                rs.getIntId("location_track_id"),
+                rs.getIntId("switch_id"),
+                rs.getString("switch_name"),
+                rs.getOidOrNull("switch_oid"),
+            )
+        }.groupBy { it.publicationId }.mapValues { (_, publicationResults) ->
+            publicationResults.groupBy { it.locationTrackId }.mapValues { (_, locationTrackResults) ->
+                val (olds, news) = locationTrackResults.partition { it.changeSide == "old" }
+                LocationTrackPublicationSwitchLinkChanges(
+                    old = olds.associateBy({ it.switchId }, { SwitchChangeIds(it.switchName, it.switchOid) }),
+                    new = news.associateBy({ it.switchId }, { SwitchChangeIds(it.switchName, it.switchOid) }),
+                )
+            }
+        }
+    }
+
     fun fetchPublicationLocationTrackChanges(publicationId: IntId<Publication>): Map<IntId<LocationTrack>, LocationTrackChanges> {
         val sql = """
             select
@@ -475,6 +566,16 @@ class PublicationDao(
               old_av.length as old_length,
               ltv.track_number_id as track_number_id,
               old_ltv.track_number_id as old_track_number_id,
+              ltv.alignment_id,
+              old_ltv.alignment_id as old_alignment_id,
+              ltv.alignment_version,
+              old_ltv.alignment_version as old_alignment_version,
+              ltv.topology_start_switch_id,
+              old_ltv.topology_start_switch_id as old_topology_start_switch_id,
+              ltv.topology_end_switch_id,
+              old_ltv.topology_end_switch_id as old_topology_end_switch_id,
+              ltv.owner_id,
+              old_ltv.owner_id as old_owner_id,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -482,8 +583,10 @@ class PublicationDao(
               postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
               postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
+              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
+              geometry_change_summary_computed
               from publication.location_track
+                join publication.publication on location_track.publication_id = publication.id
                 left join layout.location_track_version ltv
                           on location_track.location_track_id = ltv.id and location_track.location_track_version = ltv.version
                 left join layout.alignment_version av
@@ -538,8 +641,129 @@ class PublicationDao(
                 duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
+                alignmentVersion = rs.getChangeRowVersion<LayoutAlignment>("alignment_id", "alignment_version"),
+                geometryChangeSummaries = if (!rs.getBoolean("geometry_change_summary_computed")) null
+                  else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),
+                owner = rs.getChange("owner_id", rs::getIntIdOrNull),
             )
         }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
+    }
+
+    fun fetchGeometryChangeSummaries(
+        publicationId: IntId<Publication>,
+        locationTrackId: IntId<LocationTrack>,
+    ): List<GeometryChangeSummary> {
+        val sql = """
+            select changed_length_m, max_distance, start_km, end_km
+            from publication.location_track_geometry_change_summary
+            where publication_id = :publicationId and location_track_id = :locationTrackId
+            order by remark_order
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("publicationId" to publicationId.intValue, "locationTrackId" to locationTrackId.intValue)
+        ) { rs, _ ->
+            GeometryChangeSummary(
+                changedLengthM = rs.getDouble("changed_length_m"),
+                maxDistance = rs.getDouble("max_distance"),
+                startKm = rs.getKmNumber("start_km"),
+                endKm = rs.getKmNumber("end_km"),
+            )
+        }
+    }
+
+    data class UnprocessedGeometryChange(
+        val publicationId: IntId<Publication>,
+        val locationTrackId: IntId<LocationTrack>,
+        val newAlignmentVersion: RowVersion<LayoutAlignment>,
+        val oldAlignmentVersion: RowVersion<LayoutAlignment>?,
+        val trackNumberId: IntId<TrackLayoutTrackNumber>,
+        val publicationTime: Instant,
+    )
+
+    fun fetchUnprocessedGeometryChangeRemarks(publicationId: IntId<Publication>?, maxCount: Int? = 10): List<UnprocessedGeometryChange> {
+        val sql = """
+            select
+              publication_id,
+              location_track_id,
+              new_ltv.alignment_id as new_alignment_id,
+              new_ltv.alignment_version as new_alignment_version,
+              old_ltv.alignment_id as old_alignment_id,
+              old_ltv.alignment_version as old_alignment_version,
+              new_ltv.track_number_id as track_number_id,
+              publication.publication_time
+            from publication.location_track plt
+              join publication.publication on plt.publication_id = publication.id
+              join layout.location_track_version new_ltv
+                on plt.location_track_id = new_ltv.id and plt.location_track_version = new_ltv.version
+              left join layout.location_track_version old_ltv
+                on plt.location_track_id = old_ltv.id and plt.location_track_version = old_ltv.version + 1 and not old_ltv.draft
+            where not geometry_change_summary_computed
+              and (:publicationId::int is null or publication_id = :publicationId)
+            order by publication_id, location_track_id
+            limit :maxCount
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf("publicationId" to publicationId?.intValue, "maxCount" to maxCount)
+        ) { rs, _ ->
+            UnprocessedGeometryChange(
+                publicationId = rs.getIntId("publication_id"),
+                locationTrackId = rs.getIntId("location_track_id"),
+                newAlignmentVersion = rs.getRowVersion("new_alignment_id", "new_alignment_version"),
+                oldAlignmentVersion = rs.getRowVersionOrNull<LayoutAlignment>("old_alignment_id", "old_alignment_version"),
+                trackNumberId = rs.getIntId("track_number_id"),
+                publicationTime = rs.getInstant("publication_time"),
+            )
+        }
+    }
+
+    @Transactional
+    fun upsertGeometryChangeSummaries(
+        publicationId: IntId<Publication>,
+        locationTrackId: IntId<LocationTrack>,
+        remarks: List<GeometryChangeSummary>,
+    ) {
+        val deleteOldsSql = """
+            delete from publication.location_track_geometry_change_summary
+            where publication_id = :publicationId and location_track_id = :locationTrackId
+        """.trimIndent()
+        jdbcTemplate.update(
+            deleteOldsSql,
+            mapOf("publicationId" to publicationId.intValue, "locationTrackId" to locationTrackId.intValue)
+        )
+
+        val insertNewsSql = """
+            insert into publication.location_track_geometry_change_summary values (
+              :publicationId,
+              :locationTrackId,
+              :remarkOrder,
+              :changedLengthM,
+              :maxDistance,
+              :startKm,
+              :endKm);
+        """.trimIndent()
+        jdbcTemplate.batchUpdate(insertNewsSql, remarks.mapIndexed { index, remark ->
+            mapOf(
+                "publicationId" to publicationId.intValue,
+                "locationTrackId" to locationTrackId.intValue,
+                "remarkOrder" to index,
+                "changedLengthM" to remark.changedLengthM,
+                "maxDistance" to remark.maxDistance,
+                "startKm" to remark.startKm.toString(),
+                "endKm" to remark.endKm.toString()
+            )
+        }.toTypedArray())
+
+        val updateOkSql = """
+            update publication.location_track
+            set geometry_change_summary_computed = true
+            where publication_id = :publicationId and location_track_id = :locationTrackId
+        """.trimIndent()
+        jdbcTemplate.update(
+            updateOkSql,
+            mapOf("publicationId" to publicationId.intValue, "locationTrackId" to locationTrackId.intValue)
+        )
     }
 
     fun fetchPublicationKmPostChanges(publicationId: IntId<Publication>): Map<IntId<TrackLayoutKmPost>, KmPostChanges> {
@@ -588,6 +812,10 @@ class PublicationDao(
               old_reference_line_version.track_number_id as old_track_number_id,
               av.length,
               old_av.length as old_length,
+              reference_line_version.alignment_id,
+              old_reference_line_version.alignment_id as old_alignment_id,
+              reference_line_version.alignment_version,
+              old_reference_line_version.alignment_version as old_alignment_version,
               postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
               postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
@@ -633,7 +861,8 @@ class PublicationDao(
                 trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                 length = rs.getChange("length", rs::getDoubleOrNull),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
-                endPoint = rs.getChangePoint("end_x", "end_y")
+                endPoint = rs.getChangePoint("end_x", "end_y"),
+                alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
             )
         }.toMap().also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
     }
@@ -889,9 +1118,10 @@ class PublicationDao(
                   start_changed,
                   end_changed,
                   location_track_version,
-                  direct_change
+                  direct_change,
+                  geometry_change_summary_computed
                 )
-                select publication.id, location_track.id, :start_changed, :end_changed, location_track.version, :direct_change
+                select publication.id, location_track.id, :start_changed, :end_changed, location_track.version, :direct_change, :geometry_change_summary_computed
                 from publication.publication
                   inner join layout.location_track_at(publication_time) location_track 
                     on location_track.id = :location_track_id
@@ -904,7 +1134,8 @@ class PublicationDao(
                         "location_track_id" to change.locationTrackId.intValue,
                         "start_changed" to change.isStartChanged,
                         "end_changed" to change.isEndChanged,
-                        "direct_change" to directChange
+                        "direct_change" to directChange,
+                        "geometry_change_summary_computed" to !directChange,
                     )
                 }
             }.toTypedArray()

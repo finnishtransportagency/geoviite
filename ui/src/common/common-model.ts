@@ -91,9 +91,11 @@ export type ElementLocation = {
     cant?: number;
 };
 
-export type ChangeTimes = {
-    changed: Date;
-    created: Date;
+export type DraftableChangeInfo = {
+    created: TimeStamp;
+    changed: TimeStamp;
+    officialChanged?: TimeStamp;
+    draftChanged?: TimeStamp;
 };
 
 export type Message = string;
@@ -108,6 +110,7 @@ export type SwitchStructureId = string;
 export type SwitchAlignmentId = string;
 export type VerticalCoordinateSystem = string;
 export type SwitchOwnerId = string;
+export type LocationTrackOwnerId = string;
 
 export type CoordinateSystem = {
     srid: Srid;
@@ -144,6 +147,11 @@ export type SwitchStructure = {
 };
 
 export type SwitchOwner = {
+    id: string;
+    name: string;
+};
+
+export type LocationTrackOwner = {
     id: string;
     name: string;
 };

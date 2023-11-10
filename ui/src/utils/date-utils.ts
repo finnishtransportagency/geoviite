@@ -1,5 +1,5 @@
 import { TimeStamp } from 'common/common-model';
-import { maxOf } from 'utils/array-utils';
+import { maxOf, minOf } from 'utils/array-utils';
 import { format, getYear, startOfToday } from 'date-fns';
 
 export const currentDay = startOfToday();
@@ -46,6 +46,10 @@ export function toDateOrUndefined(timestampStr: TimeStamp): Date | undefined {
 export function compareTimestamps(t1: TimeStamp, t2: TimeStamp): number {
     const d1 = toDateOrUndefined(t1);
     const d2 = toDateOrUndefined(t2);
+    return compareDates(d1, d2);
+}
+
+export function compareDates(d1: Date | undefined, d2: Date | undefined): number {
     if (!d1 && !d2) {
         return 0;
     } else if (!d1) {
@@ -61,6 +65,10 @@ export function compareTimestamps(t1: TimeStamp, t2: TimeStamp): number {
     }
     // should never happen, compiler does not understand this
     throw new Error('Logic of compareTimestamps fails!');
+}
+
+export function getMinTimestamp(time1: TimeStamp, ...others: TimeStamp[]) {
+    return minOf([time1, ...others], compareTimestamps) as TimeStamp;
 }
 
 export function getMaxTimestamp(time1: TimeStamp, ...others: TimeStamp[]) {

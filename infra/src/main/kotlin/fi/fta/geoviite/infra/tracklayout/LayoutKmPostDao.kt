@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.KmPostError
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -87,12 +88,13 @@ class LayoutKmPostDao(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
+        includeDeleted: Boolean,
     ): RowVersion<TrackLayoutKmPost>? {
         val sql = """
             select km_post.row_id, km_post.row_version 
             from layout.km_post_publication_view km_post
             where :publication_state = any(km_post.publication_states)
-              and km_post.state != 'DELETED'
+              and (:include_deleted or km_post.state != 'DELETED')
               and km_post.track_number_id = :track_number_id
               and km_post.km_number = :km_number
         """.trimIndent()
@@ -100,6 +102,7 @@ class LayoutKmPostDao(
             "track_number_id" to trackNumberId.intValue,
             "km_number" to kmNumber.toString(),
             "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
         )
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")
@@ -148,7 +151,8 @@ class LayoutKmPostDao(
             from layout.km_post
         """.trimIndent()
 
-        val posts = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
+        val posts = jdbcTemplate
+            .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
             .associateBy(TrackLayoutKmPost::version)
         logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
         cache.putAll(posts)
@@ -257,5 +261,22 @@ class LayoutKmPostDao(
         } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, rowId)
         return response
+    }
+
+    fun fetchOnlyDraftVersions(includeDeleted: Boolean, trackNumberId: IntId<TrackLayoutTrackNumber>? = null): List<RowVersion<TrackLayoutKmPost>> {
+        val sql = """
+            select id, version
+            from layout.km_post
+            where draft
+              and (:include_deleted or state != 'DELETED')
+              and (:trackNumberId::int is null or track_number_id = :trackNumberId)
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql, mapOf("include_deleted" to includeDeleted, "trackNumberId" to trackNumberId?.intValue)
+        ) { rs, _ ->
+            rs.getRowVersion<TrackLayoutKmPost>("id", "version")
+        }.also { ids ->
+            logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
+        }
     }
 }

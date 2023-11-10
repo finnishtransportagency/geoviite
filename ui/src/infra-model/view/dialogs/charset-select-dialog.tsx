@@ -1,10 +1,10 @@
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { XmlCharset } from 'infra-model/infra-model-slice';
 import React from 'react';
 import styles from '../form/infra-model-form.module.scss';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
 
 const xmlEncodingOptions: Item<XmlCharset>[] = [

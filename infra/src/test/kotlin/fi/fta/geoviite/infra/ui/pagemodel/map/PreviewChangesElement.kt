@@ -5,15 +5,13 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenu
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenuItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByText
-import fi.fta.geoviite.infra.ui.util.ElementFetch
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getChildElements
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
 class E2EChangePreviewTable(
-    tableFetch: ElementFetch,
-) : E2ETable<E2EChangePreviewRow>(tableFetch, By.cssSelector("tbody tr")) {
+    tableBy: By,
+) : E2ETable<E2EChangePreviewRow>(tableBy, By.cssSelector("tbody tr")) {
     val errorRows: List<E2EChangePreviewRow> get() = rows.filter { it.state == E2EChangePreviewRow.State.ERROR }
 
     val warningRows: List<E2EChangePreviewRow> get() = rows.filter { it.state == E2EChangePreviewRow.State.WARNING }
@@ -23,22 +21,27 @@ class E2EChangePreviewTable(
     fun hasWarnings(): Boolean = warningRows.isNotEmpty()
 
     fun stageChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
+        logger.info("Stage change $change")
+
         selectBy(change, byQaId("stage-change-button"))
     }
 
     fun revertChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
-        openMenu(change)
-            .select(E2EMenuItem("Hylkää muutos"))
+        logger.info("Revert change $change")
+
+        openMenu(change).select(E2EMenuItem("Hylkää muutos"))
         E2EPreviewChangesSaveOrDiscardDialog().reject()
     }
 
     fun openMenu(change: E2EChangePreviewRow): E2EMenu {
+        logger.info("Open more menu for change $change")
+
         selectBy(change, byQaId("menu-button"))
         return E2EMenu()
     }
 
     override fun getRowContent(row: WebElement): E2EChangePreviewRow {
-        return E2EChangePreviewRow(row, row.getChildElements(By.tagName("td")), headerElements)
+        return E2EChangePreviewRow(row, row.findElements(By.tagName("td")), headerElements)
     }
 }
 

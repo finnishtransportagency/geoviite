@@ -2,12 +2,14 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.*
-import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
+import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -26,6 +28,8 @@ class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
     private val publicationService: PublicationService,
+    private val switchService: LayoutSwitchService,
+    private val switchLinkingService: SwitchLinkingService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -71,16 +75,6 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/duplicate-of")
-    fun getLocationTrackDuplicateOfList(
-        @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<LocationTrack>,
-    ): List<LocationTrackDuplicate> {
-        logger.apiCall("getLocationTrack", "id" to id, "publishType" to publishType, "id" to id)
-        return locationTrackService.getDuplicates(id, publishType)
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/{id}/start-and-end")
     fun getLocationTrackStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
@@ -96,13 +90,13 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/switches-at-ends")
-    fun getLocationTrackSwitchesAtEnds(
+    @GetMapping("/{publishType}/{id}/infobox-extras")
+    fun getLocationTrackInfoboxExtras(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<SwitchesAtEnds> {
-        logger.apiCall("getLocationTrackSwitchesAtEnds", "publishType" to publishType, "id" to id)
-        return toResponse(locationTrackService.getSwitchesAtEnds(id, publishType))
+    ): ResponseEntity<LocationTrackInfoboxExtras> {
+        logger.apiCall("getLocationTrackInfoboxExtras", "publishType" to publishType, "id" to id)
+        return toResponse(locationTrackService.getInfoboxExtras(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -143,6 +137,25 @@ class LocationTrackController(
         return publicationService.validateLocationTrack(id, publishType)
     }
 
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/{id}/validation/switches")
+    fun validateLocationTrackSwitches(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<SwitchValidationWithSuggestedSwitch> {
+        logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
+        val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
+        val switchValidation = publicationService.validateSwitches(switchIds, publishType)
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds
+            .distinct()
+            .let { swId -> switchService.getMany(publishType, swId) })
+        return switchValidation.map { validatedAsset ->
+            SwitchValidationWithSuggestedSwitch(
+                validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
+            )
+        }
+    }
+
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/draft")
     fun insertLocationTrack(@RequestBody request: LocationTrackSaveRequest): IntId<LocationTrack> {
@@ -176,9 +189,9 @@ class LocationTrackController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/change-times")
-    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): ChangeTimes {
+    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): DraftableChangeInfo {
         logger.apiCall("getLocationTrackChangeInfo", "id" to id)
-        return locationTrackService.getChangeTimes(id)
+        return locationTrackService.getDraftableChangeInfo(id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -192,5 +205,28 @@ class LocationTrackController(
             "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
         )
         return locationTrackService.getMetadataSections(id, publishType, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publicationState}/by-tracknumber/{trackNumberId}")
+    fun getTrackNumberTracksByName(
+        @PathVariable("publicationState") publicationState: PublishType,
+        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("locationTrackName") name: AlignmentName,
+    ): List<LocationTrack> {
+        logger.apiCall(
+            "getTrackNumberTracksByName",
+            "publicationState" to publicationState,
+            "trackNumberId" to trackNumberId,
+            "name" to name,
+        )
+        return locationTrackService.list(publicationState, trackNumberId, name)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/location-track-owners")
+    fun getLocationTrackOwners(): List<LocationTrackOwner> {
+        logger.apiCall("getLocationTrackOwners")
+        return locationTrackService.getLocationTrackOwners()
     }
 }

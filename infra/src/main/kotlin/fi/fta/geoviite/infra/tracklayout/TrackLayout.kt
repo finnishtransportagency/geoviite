@@ -6,8 +6,10 @@ import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FreeText
@@ -112,6 +114,21 @@ enum class DescriptionSuffixType {
     NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER
 }
 
+data class LayoutSwitchIdAndName(val id: IntId<TrackLayoutSwitch>, val name: SwitchName)
+
+data class LocationTrackInfoboxExtras(
+    val duplicateOf: LocationTrackDuplicate?,
+    val duplicates: List<LocationTrackDuplicate>,
+    val switchAtStart: LayoutSwitchIdAndName?,
+    val switchAtEnd: LayoutSwitchIdAndName?,
+)
+
+data class SwitchValidationWithSuggestedSwitch(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val switchValidation: ValidatedAsset<TrackLayoutSwitch>,
+    val suggestedSwitch: SuggestedSwitch?,
+)
+
 data class LocationTrack(
     val name: AlignmentName,
     val descriptionBase: FreeText,
@@ -131,6 +148,7 @@ data class LocationTrack(
     val topologicalConnectivity: TopologicalConnectivityType,
     val topologyStartSwitch: TopologyLocationTrackSwitch?,
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
+    val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val draft: Draft<LocationTrack>? = null,
 ) : Draftable<LocationTrack> {
@@ -219,15 +237,6 @@ data class TrackLayoutKmLengthDetails(
     val location: Point?,
 ) {
     val length = endM - startM
-
-    init {
-        require(endM >= startM) {
-            "Km post is wrong way around (endM is smaller than startM), trackNumber=$trackNumber kmNumber=$kmNumber startM=$startM endM=$endM"
-        }
-        require(length >= BigDecimal.ZERO) {
-            "Km post cannot have negative length, trackNumber=$trackNumber kmNumber=$kmNumber length=$length"
-        }
-    }
 }
 
 data class TrackLayoutSwitchJointMatch(
@@ -260,7 +269,7 @@ data class TrackLayoutSwitchJointConnection(
     }
 }
 
-data class ChangeTimes(
+data class DraftableChangeInfo(
     val created: Instant,
     val changed: Instant,
     val officialChanged: Instant?,
@@ -271,11 +280,6 @@ data class TrackNumberAndChangeTime(
     val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val changeTime: Instant,
-)
-
-data class SwitchesAtEnds(
-    val start: IntId<TrackLayoutSwitch>?,
-    val end: IntId<TrackLayoutSwitch>?,
 )
 
 fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""

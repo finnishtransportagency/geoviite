@@ -211,6 +211,8 @@ fun locationTrack(
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
+    duplicateOf: IntId<LocationTrack>? = null,
+    ownerId: IntId<LocationTrackOwner> = IntId(1),
 ) = LocationTrack(
     name = AlignmentName(name),
     descriptionBase = FreeText(description),
@@ -224,11 +226,12 @@ fun locationTrack(
     segmentCount = alignment?.segments?.size ?: 0,
     length = alignment?.length ?: 0.0,
     draft = draft,
-    duplicateOf = null,
+    duplicateOf = duplicateOf,
     topologicalConnectivity = TopologicalConnectivityType.START,
     topologyStartSwitch = topologyStartSwitch,
     topologyEndSwitch = topologyEndSwitch,
     alignmentVersion = alignmentVersion,
+    ownerId = ownerId
 ).let { lt -> if (id != null) lt.copy(id = id) else lt }
 
 fun <T> someOid() = Oid<T>(
@@ -628,11 +631,13 @@ fun switch(
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
     joints: List<TrackLayoutSwitchJoint> = joints(seed),
     name: String = "TV$seed",
+    externalId: String? = null,
+    stateCategory: LayoutStateCategory = getSomeValue(seed),
 ) = TrackLayoutSwitch(
-    externalId = null,
+    externalId = if (externalId != null) Oid(externalId) else null,
     sourceId = null,
     name = SwitchName(name),
-    stateCategory = getSomeValue(seed),
+    stateCategory = stateCategory,
     joints = joints,
     switchStructureId = structureId,
     trapPoint = false,

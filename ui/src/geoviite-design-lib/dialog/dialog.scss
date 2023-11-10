@@ -1,0 +1,144 @@
+@use 'vayla-design-lib/colors';
+@use 'vayla-design-lib/typography';
+@use 'vayla-design-lib/shadows';
+@use 'vayla-design-lib/layers';
+
+$dialog-padding-horizontal: 24px;
+$dialog-padding-vertical: 16px;
+$dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
+
+.dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    margin: 0;
+    background: rgba(colors.$color-black-lighter, 0.5);
+    z-index: layers.$layer-popup;
+}
+
+.dialog__popup {
+    @include shadows.shadow-8dp;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    background: colors.$color-white-default;
+    min-height: 200px;
+    max-height: 100%;
+
+    &--moving {
+        user-select: none;
+    }
+
+    &--normal {
+        min-width: 420px;
+        max-width: 420px;
+    }
+
+    &--two-columns {
+        min-width: 780px;
+        max-width: 780px;
+    }
+
+    &--dark {
+        background: colors.$color-blue-darker;
+        color: colors.$color-white-default;
+        fill: colors.$color-white-default;
+
+        .dialog__content {
+            background: colors.$color-blue-darker;
+        }
+
+        .dialog__footer {
+            border: none;
+        }
+
+        .dialog__close {
+            fill: colors.$color-white-default;
+        }
+    }
+
+    &--light {
+        background: colors.$color-white-default;
+        color: colors.$color-black-default;
+
+        .dialog__content {
+            background: colors.$color-white-default;
+        }
+
+        .dialog__footer {
+            border: none;
+        }
+    }
+}
+
+.dialog__header {
+    display: flex;
+    align-items: center;
+    padding: $dialog-padding;
+    cursor: grab;
+
+    .dialog__close {
+        fill: colors.$color-blue-dark;
+        cursor: pointer;
+        line-height: 0;
+    }
+
+    .dialog__title {
+        @include typography.typography-heading-small;
+        flex: 1;
+        margin-right: 40px;
+    }
+}
+
+.dialog__content {
+    flex: 1;
+    overflow-y: auto;
+    background: colors.$color-white-default;
+    padding: 0 $dialog-padding-horizontal;
+    min-height: 120px;
+
+    .dialog__text {
+        margin-bottom: 14px;
+    }
+
+    &--spread {
+        margin: 0 (-$dialog-padding-horizontal);
+    }
+}
+
+.dialog__footer {
+    display: flex;
+    padding: $dialog-padding;
+    border-top: 1px solid colors.$color-white-darker;
+
+    .dialog__footer-content {
+        @mixin footer-content {
+            display: grid;
+            grid-auto-flow: column;
+            column-gap: 12px;
+        }
+
+        &--left-aligned {
+            @include footer-content;
+
+            position: absolute;
+        }
+
+        &--centered {
+            @include footer-content;
+
+            margin: auto;
+        }
+
+        &--right-aligned {
+            @include footer-content;
+
+            position: absolute;
+            right: 0;
+            padding-right: inherit;
+        }
+    }
+}

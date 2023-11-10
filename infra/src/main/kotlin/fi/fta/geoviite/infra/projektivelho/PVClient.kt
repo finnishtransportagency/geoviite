@@ -127,11 +127,6 @@ class PVClient @Autowired constructor(
             }
         }
 
-    fun fetchRedirect(oid: Oid<PVApiRedirect>): PVApiRedirect {
-        logger.integrationCall("fetchRedirect", "oid" to oid)
-        return getMandatory<PVApiRedirect>("$REDIRECT_PATH/$oid")
-    }
-
     fun fetchProject(oid: Oid<PVProject>): PVApiProject? {
         logger.integrationCall("fetchProject", "oid" to oid)
         return getOptional<PVApiProject>("$PROJECT_PATH/$oid", get404toNull("oid=$oid"))

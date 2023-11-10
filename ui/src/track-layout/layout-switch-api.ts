@@ -1,5 +1,5 @@
 import { BoundingBox, Point } from 'model/geometry';
-import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
+import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
 import {
     LayoutSwitch,
     LayoutSwitchId,
@@ -42,18 +42,6 @@ export async function getSwitchesByBoundingBox(
     return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
-export async function getSwitchesBySearchTerm(
-    searchTerm: string,
-    publishType: PublishType,
-    limit: number,
-): Promise<LayoutSwitch[]> {
-    const params = queryParams({
-        searchTerm: searchTerm,
-        limit: limit,
-    });
-    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
-}
-
 export async function getSwitchesByTile(
     changeTime: TimeStamp,
     mapTile: MapTile,
@@ -62,6 +50,18 @@ export async function getSwitchesByTile(
     const tileKey = `${mapTile.id}_${publishType}`;
     return switchGroupsCache.get(changeTime, tileKey, () =>
         getSwitchesByBoundingBox(mapTile.area, publishType),
+    );
+}
+export async function getSwitchesByName(
+    publishType: PublishType,
+    name: string,
+): Promise<LayoutSwitch[]> {
+    const params = queryParams({
+        name: name,
+        includeDeleted: true,
+    });
+    return await getNonNull<LayoutSwitch[]>(
+        `${layoutUri('switches', publishType)}/by-name${params}`,
     );
 }
 
@@ -154,6 +154,8 @@ export async function getSwitchValidation(
     return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }
 
-export const getSwitchChangeTimes = (id: LayoutSwitchId): Promise<ChangeTimes | undefined> => {
-    return getNonNull<ChangeTimes>(changeTimeUri('switches', id));
+export const getSwitchChangeTimes = (
+    id: LayoutSwitchId,
+): Promise<DraftableChangeInfo | undefined> => {
+    return getNonNull<DraftableChangeInfo>(changeTimeUri('switches', id));
 };

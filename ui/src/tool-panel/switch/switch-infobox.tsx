@@ -21,7 +21,7 @@ import { useLoader } from 'utils/react-utils';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { SwitchEditDialog } from './dialog/switch-edit-dialog';
+import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
@@ -41,7 +41,11 @@ import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { formatDateShort } from 'utils/date-utils';
-import { useSwitchChangeTimes } from 'track-layout/track-layout-react-utils';
+import {
+    refreshSwitchSelection,
+    useSwitchChangeTimes,
+} from 'track-layout/track-layout-react-utils';
+import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -49,7 +53,8 @@ type SwitchInfoboxProps = {
     onDataChange: () => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
-    onUnselect: (switchId: LayoutSwitchId) => void;
+    onSelect: (options: OnSelectOptions) => void;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     placingSwitchLinkingState?: PlacingSwitch;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     stopLinking: () => void;
@@ -60,7 +65,7 @@ type SwitchInfoboxProps = {
 const mapToSwitchJointTrackMeter = (
     jointNumber: JointNumber,
     locationTrack: LayoutLocationTrack,
-    trackMeter: TrackMeter,
+    trackMeter: TrackMeter | undefined,
 ): SwitchJointTrackMeter => {
     return {
         locationTrackId: locationTrack.id,
@@ -92,9 +97,7 @@ const getTrackMeterForPoint = async (
         location,
     );
 
-    return trackMeter
-        ? mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter)
-        : undefined;
+    return mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter);
 };
 
 const getSwitchJointTrackMeters = async (
@@ -125,6 +128,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     onDataChange,
     changeTimes,
     publishType,
+    onSelect,
     onUnselect,
     placingSwitchLinkingState,
     startSwitchPlacing,
@@ -139,7 +143,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitch(switchId, publishType),
         [switchId, changeTimes.layoutSwitch, publishType],
     );
-    const switchStructure = switchStructures?.find(
+    const structure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
     const switchJointConnections = useLoader(
@@ -154,12 +158,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
             : undefined;
     }, [switchJointConnections, publishType, changeTimes]);
 
-    const SwitchImage =
-        switchStructure && makeSwitchImage(switchStructure.baseType, switchStructure.hand);
+    const SwitchImage = structure && makeSwitchImage(structure.baseType, structure.hand);
     const switchLocation =
-        switchStructure &&
+        structure &&
         layoutSwitch &&
-        getSwitchPresentationJoint(layoutSwitch, switchStructure.presentationJointNumber)?.location;
+        getSwitchPresentationJoint(layoutSwitch, structure.presentationJointNumber)?.location;
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -172,16 +175,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     function openEditSwitchDialog() {
         setShowEditDialog(true);
         onDataChange();
-    }
-
-    function closeEditSwitchDialog() {
-        setShowEditDialog(false);
-    }
-
-    function handleSwitchDelete() {
-        setShowDeleteDialog(false);
-        setShowEditDialog(false);
-        onUnselect(switchId);
     }
 
     function getOwnerName(ownerId: SwitchOwnerId | undefined) {
@@ -198,6 +191,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const visibilityChange = (key: keyof SwitchInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
+    const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
 
     return (
         <React.Fragment>
@@ -214,7 +208,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 (switchJointTrackMeters && (
                                     <SwitchInfoboxTrackMeters
                                         jointTrackMeters={switchJointTrackMeters}
-                                        presentationJoint={switchStructure?.presentationJointNumber}
+                                        presentationJoint={structure?.presentationJointNumber}
                                     />
                                 )) || <Spinner />
                             }
@@ -257,13 +251,13 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 title={t('tool-panel.switch.layout.structure-heading')}
                 qa-id="switch-structure-infobox">
                 <InfoboxContent>
-                    <p>{switchStructure ? switchStructure.type : ''}</p>
+                    <p>{structure ? structure.type : ''}</p>
                     {SwitchImage && (
                         <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                     )}
                     <InfoboxField
                         label={t('tool-panel.switch.layout.hand')}
-                        value={switchStructure && <SwitchHand hand={switchStructure.hand} />}
+                        value={structure && <SwitchHand hand={structure.hand} />}
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
@@ -284,9 +278,9 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         label={t('tool-panel.switch.layout.coordinates')}
                         value={switchLocation ? formatToTM35FINString(switchLocation) : '-'}
                     />
-                    {switchStructure && switchJointConnections && (
+                    {structure && switchJointConnections && (
                         <SwitchJointInfobox
-                            switchAlignments={switchStructure.alignments}
+                            switchAlignments={structure.alignments}
                             jointConnections={switchJointConnections}
                             publishType={publishType}
                         />
@@ -363,7 +357,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('tool-panel.switch.layout.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         </InfoboxButtons>
                     )}
@@ -372,17 +366,16 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
             {showDeleteDialog && (
                 <SwitchDeleteDialog
                     switchId={switchId}
-                    onDelete={handleSwitchDelete}
-                    onCancel={() => setShowDeleteDialog(false)}
+                    onClose={() => setShowDeleteDialog(false)}
+                    onSave={handleSwitchSave}
                 />
             )}
 
             {showEditDialog && (
-                <SwitchEditDialog
+                <SwitchEditDialogContainer
                     switchId={layoutSwitch?.id}
-                    onClose={closeEditSwitchDialog}
-                    onUpdate={closeEditSwitchDialog}
-                    onDelete={handleSwitchDelete}
+                    onClose={() => setShowEditDialog(false)}
+                    onSave={handleSwitchSave}
                 />
             )}
         </React.Fragment>

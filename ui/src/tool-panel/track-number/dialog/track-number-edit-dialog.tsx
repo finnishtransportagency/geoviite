@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -10,7 +10,7 @@ import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-
 import {
     useReferenceLineStartAndEnd,
     useTrackNumberReferenceLine,
-    useTrackNumbers,
+    useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import {
@@ -31,10 +31,11 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
-import styles from 'vayla-design-lib/dialog/dialog.scss';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import styles from 'geoviite-design-lib/dialog/dialog.scss';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import { Link } from 'vayla-design-lib/link/link';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -49,6 +50,7 @@ type TrackNumberEditDialogProps = {
     trackNumbers: LayoutTrackNumber[];
     onClose: () => void;
     onSave?: (trackNumberId: LayoutTrackNumberId) => void;
+    onEditTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
 };
 
 export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogContainerProps> = ({
@@ -56,19 +58,23 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     onClose,
     onSave,
 }: TrackNumberEditDialogContainerProps) => {
-    const trackNumbers = useTrackNumbers('DRAFT');
-    const editReferenceLine = useTrackNumberReferenceLine(editTrackNumberId, 'DRAFT');
+    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT');
+    const [trackNumberId, setTrackNumberId] = React.useState<LayoutTrackNumberId | undefined>(
+        editTrackNumberId,
+    );
+    const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, 'DRAFT');
     const isDeletable = editReferenceLine?.draftType === 'NEW_DRAFT';
 
-    if (trackNumbers !== undefined && (!editTrackNumberId || editReferenceLine)) {
+    if (trackNumbers !== undefined && trackNumberId == editReferenceLine?.trackNumberId) {
         return (
             <TrackNumberEditDialog
-                inEditTrackNumber={trackNumbers.find((tn) => tn.id == editTrackNumberId)}
+                inEditTrackNumber={trackNumbers.find((tn) => tn.id == trackNumberId)}
                 inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
                 isNewDraft={isDeletable}
                 onClose={onClose}
                 onSave={onSave}
+                onEditTrackNumber={setTrackNumberId}
             />
         );
     } else {
@@ -83,6 +89,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     isNewDraft,
     onClose,
     onSave,
+    onEditTrackNumber,
 }: TrackNumberEditDialogProps) => {
     const { t } = useTranslation();
 
@@ -112,13 +119,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const closeNonDraftDeleteConfirmation = () => {
         setNonDraftDeleteConfirmationVisible(false);
     };
-    const onTrackNumberDeleted = () => {
-        closeDraftDeleteConfirmation();
-        onClose && onClose();
-    };
 
     const saveOrConfirm = () => {
-        if (state.request?.state === 'DELETED') {
+        if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
             setNonDraftDeleteConfirmationVisible(true);
         } else {
             saveTrackNumber();
@@ -133,11 +136,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         operation
             .then((tn) => {
                 if (tn) {
-                    Snackbar.success(t('track-number-edit.result.succeeded'));
+                    Snackbar.success('track-number-edit.result.succeeded');
                     if (onSave) onSave(tn);
                     onClose();
                 } else {
-                    Snackbar.error(t('track-number-edit.result.failed'));
+                    Snackbar.error('track-number-edit.result.failed');
                 }
             })
             .finally(() => {
@@ -153,6 +156,19 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const descriptionErrors = getErrors(state, 'description');
     const startAddressErrors = getErrors(state, 'startAddress');
 
+    const otherTrackNumber = trackNumbers.find(
+        (tn) =>
+            tn.number.toLowerCase() === state.request.number.toLowerCase() &&
+            tn.id !== inEditTrackNumber?.id,
+    );
+
+    const moveToEditLinkText = (tn: LayoutTrackNumber) => {
+        const state = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        return t('track-number-edit.action.move-to-edit', {
+            number: tn.number + state,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -162,7 +178,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         : 'track-number-edit.title.create',
                 )}
                 onClose={onClose}
-                width={DialogWidth.ULTRA_WIDE}
+                width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
                         {isNewDraft && inEditTrackNumber && (
@@ -173,7 +189,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     }}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('track-number-edit.title.delete-draft')}
+                                    {t('button.delete')}
                                 </Button>
                             </div>
                         )}
@@ -182,7 +198,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={saveInProgress}
                                 onClick={onClose}>
-                                {t('track-number-edit.action.cancel')}
+                                {t('button.cancel')}
                             </Button>
                             <Button
                                 disabled={hasErrors || saveInProgress}
@@ -193,7 +209,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         </div>
                     </React.Fragment>
                 }>
-                <FormLayout isProcessing={saveInProgress} doubleColumn>
+                <FormLayout isProcessing={saveInProgress} dualColumn>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('track-number-edit.title.track-number')}
@@ -216,8 +232,15 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={numberErrors.map((e) => t(e.reason))}
-                        />
+                            errors={numberErrors.map((e) => t(e.reason))}>
+                            {otherTrackNumber && (
+                                <Link
+                                    className="move-to-edit-link"
+                                    onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                    {moveToEditLinkText(otherTrackNumber)}
+                                </Link>
+                            )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('track-number-edit.field.state')} *`}
                             value={
@@ -345,8 +368,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             {inEditTrackNumber && draftDeleteConfirmationVisible && (
                 <TrackNumberDeleteConfirmationDialog
                     id={inEditTrackNumber.id}
-                    onCancel={closeDraftDeleteConfirmation}
-                    onClose={onTrackNumberDeleted}
+                    onClose={closeDraftDeleteConfirmation}
+                    onSave={onSave}
                 />
             )}
         </React.Fragment>

@@ -6,18 +6,20 @@ import {
     trackLayoutActionCreators as TrackLayoutActions,
     TrackNumberInfoboxVisibilities,
 } from 'track-layout/track-layout-slice';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-utils';
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
-import { OptionalUnselectableItemCollections } from 'selection/selection-model';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { MapViewport } from 'map/map-model';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { ChangeTimes } from 'common/common-slice';
 
 type TrackNumberInfoboxLinkingContainerProps = {
     trackNumber: LayoutTrackNumber;
     linkingState?: LinkingState;
     publishType: PublishType;
-    referenceLineChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
+    onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
     visibilities: TrackNumberInfoboxVisibilities;
@@ -29,7 +31,8 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     trackNumber,
     linkingState,
     publishType,
-    referenceLineChangeTime,
+    changeTimes,
+    onSelect,
     onUnselect,
     viewport,
     visibilities,
@@ -40,7 +43,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     const referenceLine = useTrackNumberReferenceLine(
         trackNumber.id,
         publishType,
-        referenceLineChangeTime,
+        changeTimes.layoutReferenceLine,
     );
 
     return (
@@ -59,15 +62,11 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             showArea={delegates.showArea}
             publishType={publishType}
             viewport={viewport}
-            referenceLineChangeTime={referenceLineChangeTime}
+            changeTimes={changeTimes}
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}
-            onUnselect={() =>
-                onUnselect({
-                    trackNumbers: [trackNumber.id],
-                    referenceLines: referenceLine ? [referenceLine.id] : [],
-                })
-            }
+            onSelect={onSelect}
+            onUnselect={onUnselect}
             onHighlightItem={onHoverOverPlanSection}
         />
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant, DialogWidth } from 'vayla-design-lib/dialog/dialog';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import {
     booleanToTrapPoint,
@@ -28,29 +28,61 @@ import {
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
-import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import {
+    getSwitch,
+    getSwitchesByName,
+    insertSwitch,
+    updateSwitch,
+} from 'track-layout/layout-switch-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';
+import { useLoader } from 'utils/react-utils';
+import { Link } from 'vayla-design-lib/link/link';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
-export type SwitchDialogProps = {
+type SwitchDialogContainerProps = {
     switchId?: LayoutSwitchId;
     prefilledSwitchStructureId?: SwitchStructureId;
     onClose: () => void;
-    onInsert?: (switchId: LayoutSwitchId) => void;
-    onUpdate?: () => void;
-    onDelete?: () => void;
+    onSave?: (switchId: LayoutSwitchId) => void;
+};
+
+export const SwitchEditDialogContainer = ({
+    switchId,
+    prefilledSwitchStructureId,
+    onClose,
+    onSave,
+}: SwitchDialogContainerProps) => {
+    const [editSwitchId, setEditSwitchId] = React.useState<LayoutSwitchId | undefined>(switchId);
+    return (
+        <SwitchEditDialog
+            switchId={editSwitchId}
+            prefilledSwitchStructureId={
+                switchId === editSwitchId ? prefilledSwitchStructureId : undefined
+            }
+            onClose={onClose}
+            onSave={onSave}
+            onEdit={(id) => setEditSwitchId(id)}
+        />
+    );
+};
+
+type SwitchDialogProps = {
+    switchId?: LayoutSwitchId;
+    prefilledSwitchStructureId?: SwitchStructureId;
+    onClose: () => void;
+    onSave?: (switchId: LayoutSwitchId) => void;
+    onEdit: (id: LayoutSwitchId) => void;
 };
 
 export const SwitchEditDialog = ({
     switchId,
     prefilledSwitchStructureId,
     onClose,
-    onInsert,
-    onUpdate,
-    onDelete,
+    onSave,
+    onEdit,
 }: SwitchDialogProps) => {
     const { t } = useTranslation();
     const [showStructureChangeConfirmationDialog, setShowStructureChangeConfirmationDialog] =
@@ -64,9 +96,6 @@ export const SwitchEditDialog = ({
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
         prefilledSwitchStructureId,
     );
-    const [validationErrors, setValidationErrors] = React.useState<
-        ValidationError<TrackLayoutSwitchSaveRequest>[]
-    >([]);
     const [visitedFields, setVisitedFields] = React.useState<string[]>([]);
     const [isSaving, setIsSaving] = React.useState(false);
     const [switchStructures, setSwitchStructures] = React.useState<SwitchStructure[]>([]);
@@ -83,6 +112,14 @@ export const SwitchEditDialog = ({
         .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
         .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
 
+    const conflictingSwitch = useLoader(async () => {
+        if (validateSwitchName(switchName).length == 0) {
+            const switches = await getSwitchesByName('DRAFT', switchName);
+            return switches.find((s) => s.id != existingSwitch?.id);
+        } else {
+            return undefined;
+        }
+    }, [switchName, existingSwitch?.id]);
     React.useEffect(() => {
         if (isExistingSwitch) {
             getSwitch(switchId, 'DRAFT').then((s) => {
@@ -121,10 +158,6 @@ export const SwitchEditDialog = ({
         }
     }, [switchOwners, existingSwitch]);
 
-    React.useEffect(() => {
-        validateLinkingSwitch();
-    }, [switchName, switchStructureId, switchStateCategory, switchOwnerId, visitedFields]);
-
     function visitField(fieldName: string) {
         if (!visitedFields.includes(fieldName)) {
             setVisitedFields([...visitedFields, fieldName]);
@@ -157,8 +190,12 @@ export const SwitchEditDialog = ({
     }
 
     function saveOrConfirm() {
-        if (switchStateCategory === 'NOT_EXISTING') setShowDeleteOfficialConfirmDialog(true);
-        else if (switchStructureChanged) {
+        if (
+            switchStateCategory === 'NOT_EXISTING' &&
+            existingSwitch?.stateCategory !== 'NOT_EXISTING'
+        ) {
+            setShowDeleteOfficialConfirmDialog(true);
+        } else if (switchStructureChanged) {
             setShowStructureChangeConfirmationDialog(true);
         } else {
             save();
@@ -186,15 +223,16 @@ export const SwitchEditDialog = ({
                 .then((result) => {
                     result
                         .map((switchId) => {
-                            onInsert && onInsert(switchId);
-                            Snackbar.success(t('switch-dialog.new-switch-added'));
+                            onSave && onSave(switchId);
+                            onClose();
+                            Snackbar.success('switch-dialog.new-switch-added');
                         })
                         .mapErr((_err) => {
-                            Snackbar.error(t('switch-dialog.adding-switch-failed'));
+                            Snackbar.error('switch-dialog.adding-switch-failed');
                         });
                 })
                 .catch(() => {
-                    Snackbar.error(t('switch-dialog.adding-switch-failed'));
+                    Snackbar.error('switch-dialog.adding-switch-failed');
                 });
         }
         //save updated switch here
@@ -217,18 +255,26 @@ export const SwitchEditDialog = ({
                 .then((result) => {
                     result
                         .map(() => {
-                            onUpdate && onUpdate();
-                            Snackbar.success(t('switch-dialog.modified-successfully'));
+                            onSave && onSave(existingSwitch.id);
+                            onClose();
+                            Snackbar.success('switch-dialog.modified-successfully');
                         })
                         .mapErr((_err) => {
-                            Snackbar.error(t('switch-dialog.modify-failed'));
+                            Snackbar.error('switch-dialog.modify-failed');
                         });
                 })
                 .catch(() => {
-                    Snackbar.error(t('switch-dialog.modify-failed'));
+                    Snackbar.error('switch-dialog.modify-failed');
                 });
         }
     }
+
+    const validationErrors = [
+        ...validateSwitchName(switchName),
+        ...validateSwitchStateCategory(switchStateCategory),
+        ...validateSwitchStructureId(switchStructureId),
+        ...validateSwitchOwnerId(switchOwnerId),
+    ];
 
     function hasErrors(prop: keyof TrackLayoutSwitchSaveRequest) {
         return getVisibleErrorsByProp(prop).length > 0;
@@ -238,62 +284,25 @@ export const SwitchEditDialog = ({
         if (visitedFields.includes(prop)) {
             return validationErrors
                 .filter((error) => error.field == prop)
-                .map((error) => error.reason);
+                .map((error) => t(error.reason));
         }
         return [];
     }
 
-    function validateLinkingSwitch() {
-        const errors: ValidationError<TrackLayoutSwitchSaveRequest>[] = [];
-        if (!switchName) {
-            errors.push({
-                field: 'name',
-                reason: t('switch-dialog.validation-error-mandatory-field'),
-                type: ValidationErrorType.ERROR,
-            });
-        }
-        if (switchName.length > 20) {
-            errors.push({
-                field: 'name',
-                reason: t('switch-dialog.name-max-limit'),
-                type: ValidationErrorType.ERROR,
-            });
-        }
-        if (!switchName.match(SWITCH_NAME_REGEX)) {
-            errors.push({
-                field: 'name',
-                reason: t('switch-dialog.invalid-name'),
-                type: ValidationErrorType.ERROR,
-            });
-        }
-        if (!switchStateCategory) {
-            errors.push({
-                field: 'stateCategory',
-                reason: t('switch-dialog.validation-error-mandatory-field'),
-                type: ValidationErrorType.ERROR,
-            });
-        }
-        if (!switchStructureId) {
-            errors.push({
-                field: 'switchStructureId',
-                reason: t('switch-dialog.validation-error-mandatory-field'),
-                type: ValidationErrorType.ERROR,
-            });
-        }
-        if (!switchOwnerId) {
-            errors.push({
-                field: 'ownerId',
-                reason: t('switch-dialog.validation-error-mandatory-field'),
-                type: ValidationErrorType.ERROR,
-            });
-        }
-        setValidationErrors(errors);
+    function handleOnDelete() {
+        onSave && switchId && onSave(switchId);
+        onClose();
     }
 
-    function handleOnDelete() {
-        setShowDeleteDraftConfirmDialog(false);
-        onDelete && onDelete();
-    }
+    const moveToEditLinkText = (s: LayoutSwitch) => {
+        const state =
+            s.stateCategory === 'NOT_EXISTING'
+                ? ` (${t('enum.layout-state-category.NOT_EXISTING')})`
+                : '';
+        return t('switch-dialog.move-to-edit', {
+            name: s.name + state,
+        });
+    };
 
     return (
         <React.Fragment>
@@ -302,22 +311,24 @@ export const SwitchEditDialog = ({
                     isExistingSwitch ? t('switch-dialog.title-edit') : t('switch-dialog.title-new')
                 }
                 onClose={onClose}
-                width={DialogWidth.ULTRA_WIDE}
                 footerContent={
                     <React.Fragment>
                         {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
-                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
-                                <Button
-                                    onClick={() => setShowDeleteDraftConfirmDialog(true)}
-                                    icon={Icons.Delete}
-                                    variant={ButtonVariant.WARNING}>
-                                    {t('tool-panel.switch.layout.delete-draft')}
-                                </Button>
-                            </div>
+                            <Button
+                                onClick={() => setShowDeleteDraftConfirmDialog(true)}
+                                icon={Icons.Delete}
+                                variant={ButtonVariant.WARNING}>
+                                {t('button.delete')}
+                            </Button>
                         )}
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                        <div
+                            className={
+                                existingSwitch?.draftType === 'NEW_DRAFT'
+                                    ? dialogStyles['dialog__footer-content--right-aligned']
+                                    : dialogStyles['dialog__footer-content--centered']
+                            }>
                             <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
-                                {t('button.return')}
+                                {t('button.cancel')}
                             </Button>
                             <Button
                                 disabled={validationErrors.length > 0 || isSaving}
@@ -345,8 +356,18 @@ export const SwitchEditDialog = ({
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('name')}
-                        />
+                            errors={getVisibleErrorsByProp('name')}>
+                            {conflictingSwitch && (
+                                <>
+                                    <div>{t('switch-dialog.name-in-use')}</div>
+                                    <Link
+                                        className="move-to-edit-link"
+                                        onClick={() => onEdit(conflictingSwitch.id)}>
+                                        {moveToEditLinkText(conflictingSwitch)}
+                                    </Link>
+                                </>
+                            )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('switch-dialog.state-category')} *`}
                             value={
@@ -484,10 +505,78 @@ export const SwitchEditDialog = ({
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteDialog
                     switchId={switchId}
-                    onDelete={handleOnDelete}
-                    onCancel={() => setShowDeleteDraftConfirmDialog(false)}
+                    onSave={handleOnDelete}
+                    onClose={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}
         </React.Fragment>
     );
 };
+
+function validateSwitchName(name: string): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+    const errors: ValidationError<TrackLayoutSwitchSaveRequest>[] = [];
+    if (!name) {
+        errors.push({
+            field: 'name',
+            reason: 'switch-dialog.validation-error-mandatory-field',
+            type: ValidationErrorType.ERROR,
+        });
+    }
+    if (name.length > 20) {
+        errors.push({
+            field: 'name',
+            reason: 'switch-dialog.name-max-limit',
+            type: ValidationErrorType.ERROR,
+        });
+    }
+    if (!name.match(SWITCH_NAME_REGEX)) {
+        errors.push({
+            field: 'name',
+            reason: 'switch-dialog.invalid-name',
+            type: ValidationErrorType.ERROR,
+        });
+    }
+    return errors;
+}
+
+function validateSwitchStateCategory(
+    stateCategory?: LayoutStateCategory,
+): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+    if (!stateCategory)
+        return [
+            {
+                field: 'stateCategory',
+                reason: 'switch-dialog.validation-error-mandatory-field',
+                type: ValidationErrorType.ERROR,
+            },
+        ];
+    else return [];
+}
+
+function validateSwitchStructureId(
+    structureId?: SwitchStructureId,
+): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+    if (!structureId)
+        return [
+            {
+                field: 'switchStructureId',
+                reason: 'switch-dialog.validation-error-mandatory-field',
+                type: ValidationErrorType.ERROR,
+            },
+        ];
+    else return [];
+}
+
+function validateSwitchOwnerId(
+    ownerId?: SwitchStructureId,
+): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+    if (!ownerId)
+        return [
+            {
+                field: 'ownerId',
+                reason: 'switch-dialog.validation-error-mandatory-field',
+                type: ValidationErrorType.ERROR,
+            },
+        ];
+    else return [];
+}

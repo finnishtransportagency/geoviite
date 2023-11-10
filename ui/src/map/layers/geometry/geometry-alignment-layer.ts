@@ -9,11 +9,10 @@ import {
     LayoutPoint,
     PlanLayoutAlignment,
 } from 'track-layout/track-layout-model';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { clearFeatures, getVisiblePlans, pointToCoords } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
-import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-map-api';
@@ -28,6 +27,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
+import { MapTile } from 'map/map-model';
 
 const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
 
@@ -73,7 +73,7 @@ function createAlignmentFeature(
         ({ geometryId }) => geometryId == alignment.header.id,
     );
 
-    const cacheKey = `${alignment.header.id}-${resolution}-${isAlignmentSelected}`;
+    const cacheKey = `${alignment.header.id}-${resolution}-${isAlignmentSelected}-${alignment.linked}`;
     return alignmentFeatureCache.getOrCreate(cacheKey, () => {
         const styles: Style[] = [];
 
@@ -142,6 +142,7 @@ type PlanAlignments = {
     alignments: AlignmentWithLinking[];
 };
 export function createGeometryAlignmentLayer(
+    mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     selection: Selection,
     publishType: PublishType,
@@ -161,11 +162,8 @@ export function createGeometryAlignmentLayer(
 
     const plansPromise: Promise<GeometryPlanLayout[]> = manuallySetPlan
         ? Promise.resolve([manuallySetPlan])
-        : Promise.all(
-              selection.visiblePlans.map((p) =>
-                  getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
-              ),
-          ).then((plans) => plans.filter(filterNotEmpty).filter((p) => !p.planHidden));
+        : getVisiblePlans(selection.visiblePlans, mapTiles, changeTimes);
+
     const planAlignmentsPromise: Promise<PlanAlignments[]> = plansPromise.then((plans) =>
         Promise.all(
             plans.map((plan: GeometryPlanLayout) => {

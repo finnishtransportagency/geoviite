@@ -3,7 +3,7 @@ import OlView from 'ol/View';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
-import { getSwitchesByTile } from 'track-layout/layout-switch-api';
+import { getSwitches, getSwitchesByTile } from 'track-layout/layout-switch-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
@@ -31,9 +31,11 @@ export function createSwitchLayer(
 ): MapLayer {
     const layerId = ++newestLayerId;
     const getSwitchesFromApi = () => {
-        return Promise.all(
-            mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
-        ).then((switchGroups) => switchGroups.flat().filter(filterUniqueById((s) => s.id)));
+        return resolution <= Limits.SWITCH_SHOW
+            ? Promise.all(
+                  mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
+              ).then((switchGroups) => switchGroups.flat().filter(filterUniqueById((s) => s.id)))
+            : getSwitches(selection.selectedItems.switches, publishType);
     };
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
@@ -48,58 +50,53 @@ export function createSwitchLayer(
         }
     }
 
-    let inFlight = false;
+    let inFlight = true;
     const resolution = olView.getResolution() || 0;
-    if (resolution <= Limits.SWITCH_SHOW) {
-        inFlight = true;
-        Promise.all([getSwitchesFromApi(), getSwitchStructures()])
-            .then(([switches, switchStructures]) => {
-                if (layerId !== newestLayerId) return;
 
-                const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-                const showLabels = resolution <= Limits.SWITCH_LABELS;
-                const isSelected = (switchItem: LayoutSwitch) => {
-                    return selection.selectedItems.switches.some((s) => s === switchItem.id);
-                };
+    Promise.all([getSwitchesFromApi(), getSwitchStructures()])
+        .then(([switches, switchStructures]) => {
+            if (layerId !== newestLayerId) return;
 
-                const isHighlighted = (switchItem: LayoutSwitch) => {
-                    return selection.highlightedItems.switches.some((s) => s === switchItem.id);
-                };
+            const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+            const showLabels = resolution <= Limits.SWITCH_LABELS;
+            const isSelected = (switchItem: LayoutSwitch) => {
+                return selection.selectedItems.switches.some((s) => s === switchItem.id);
+            };
 
-                const features = createSwitchFeatures(
-                    switches,
-                    isSelected,
-                    isHighlighted,
-                    () => false,
-                    largeSymbols,
-                    showLabels,
-                    undefined,
-                    switchStructures,
-                );
+            const isHighlighted = (switchItem: LayoutSwitch) => {
+                return selection.highlightedItems.switches.some((s) => s === switchItem.id);
+            };
 
+            const features = createSwitchFeatures(
+                switches,
+                isSelected,
+                isHighlighted,
+                () => false,
+                largeSymbols,
+                showLabels,
+                undefined,
+                switchStructures,
+            );
+
+            clearFeatures(vectorSource);
+            vectorSource.addFeatures(features);
+
+            const visibleSwitches = findMatchingSwitches(
+                fromExtent(olView.calculateExtent()),
+                vectorSource,
+                {},
+            ).map((s) => s.switch.id);
+            updateShownSwitches(visibleSwitches);
+        })
+        .catch(() => {
+            if (layerId === newestLayerId) {
                 clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-
-                const visibleSwitches = findMatchingSwitches(
-                    fromExtent(olView.calculateExtent()),
-                    vectorSource,
-                    {},
-                ).map((s) => s.switch.id);
-                updateShownSwitches(visibleSwitches);
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) {
-                    clearFeatures(vectorSource);
-                    updateShownSwitches([]);
-                }
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-        updateShownSwitches([]);
-    }
+                updateShownSwitches([]);
+            }
+        })
+        .finally(() => {
+            inFlight = false;
+        });
 
     return {
         name: 'switch-layer',

@@ -225,6 +225,9 @@ fun <T> ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<
 fun ResultSet.getChangePoint(nameX: String, nameY: String) =
     Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
+fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
+    Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
+
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
 

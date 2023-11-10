@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
 import org.junit.jupiter.api.Assertions.*
@@ -208,22 +209,22 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
         assertEquals(3, segmentGeometriesAndPlanMetadatas.size)
 
-        assertEquals(points.first(), segmentGeometriesAndPlanMetadatas[0].startPoint)
-        assertEquals(points2.last(), segmentGeometriesAndPlanMetadatas[0].endPoint)
+        assertApproximatelyEquals(points.first(), segmentGeometriesAndPlanMetadatas[0].startPoint!!)
+        assertApproximatelyEquals(points2.last(), segmentGeometriesAndPlanMetadatas[0].endPoint!!)
         assertEquals(true, segmentGeometriesAndPlanMetadatas[0].isLinked)
         assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[0].planId)
         assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[0].fileName)
         assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[0].alignmentName)
 
-        assertEquals(points3.first(), segmentGeometriesAndPlanMetadatas[1].startPoint)
-        assertEquals(points4.last(), segmentGeometriesAndPlanMetadatas[1].endPoint)
+        assertApproximatelyEquals(points3.first(), segmentGeometriesAndPlanMetadatas[1].startPoint!!)
+        assertApproximatelyEquals(points4.last(), segmentGeometriesAndPlanMetadatas[1].endPoint!!)
         assertEquals(false, segmentGeometriesAndPlanMetadatas[1].isLinked)
         assertEquals(null, segmentGeometriesAndPlanMetadatas[1].planId)
         assertEquals(null, segmentGeometriesAndPlanMetadatas[1].fileName)
         assertEquals(null, segmentGeometriesAndPlanMetadatas[1].alignmentName)
 
-        assertEquals(points5.first(), segmentGeometriesAndPlanMetadatas[2].startPoint)
-        assertEquals(points5.last(), segmentGeometriesAndPlanMetadatas[2].endPoint)
+        assertApproximatelyEquals(points5.first(), segmentGeometriesAndPlanMetadatas[2].startPoint!!)
+        assertApproximatelyEquals(points5.last(), segmentGeometriesAndPlanMetadatas[2].endPoint!!)
         assertEquals(true, segmentGeometriesAndPlanMetadatas[2].isLinked)
         assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[2].planId)
         assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[2].fileName)

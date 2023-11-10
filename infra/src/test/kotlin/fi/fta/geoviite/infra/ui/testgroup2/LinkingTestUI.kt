@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.geometry.TestGeometryPlanService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToastByContent
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2EKmPostEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELayoutSwitchEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
@@ -16,7 +16,8 @@ import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.testdata.locationTrack
 import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
 import fi.fta.geoviite.infra.ui.testdata.referenceLine
-import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil
+import fi.fta.geoviite.infra.ui.util.metersToDouble
+import fi.fta.geoviite.infra.ui.util.pointToCoordinateString
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -87,11 +88,11 @@ class LinkingTestUI @Autowired constructor(
         val geometryTrackEndPoint = alignmentA.elements.last().end
         val locationTrackLocationInfoBox = toolPanel.locationTrackLocation
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryTrackStartPoint),
+            pointToCoordinateString(geometryTrackStartPoint),
             locationTrackLocationInfoBox.startCoordinates
         )
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryTrackEndPoint), locationTrackLocationInfoBox.endCoordinates
+            pointToCoordinateString(geometryTrackEndPoint), locationTrackLocationInfoBox.endCoordinates
         )
     }
 
@@ -146,7 +147,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(locationTrackStartPoint)
 
         linkingBox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
         toolPanel.selectToolPanelTab("replacement alignment")
 
         assertEquals("Kyllä", toolPanel.geometryAlignmentLinking.linked)
@@ -159,11 +160,11 @@ class LinkingTestUI @Autowired constructor(
         Assertions.assertThat(locationTrackLengthAfterLinking).isLessThan(locationTrackLengthBeforeLinking)
 
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryTrackStartPoint),
+            pointToCoordinateString(geometryTrackStartPoint),
             toolPanel.locationTrackLocation.startCoordinates
         )
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryTrackEndPoint),
+            pointToCoordinateString(geometryTrackEndPoint),
             toolPanel.locationTrackLocation.endCoordinates
         )
     }
@@ -203,8 +204,8 @@ class LinkingTestUI @Autowired constructor(
 
         locationInfoBox.save()
 
-        assertEquals(CommonUiTestUtil.pointToCoordinateString(startPoint), locationInfoBox.startCoordinates)
-        locationInfoBox.waitForEndCoordinatesChange(CommonUiTestUtil.pointToCoordinateString(newEndPoint))
+        assertEquals(pointToCoordinateString(startPoint), locationInfoBox.startCoordinates)
+        locationInfoBox.waitForEndCoordinatesChange(pointToCoordinateString(newEndPoint))
     }
 
     @Test
@@ -238,8 +239,8 @@ class LinkingTestUI @Autowired constructor(
 
         locationInfoBox.save()
 
-        locationInfoBox.waitForStartCoordinatesChange(CommonUiTestUtil.pointToCoordinateString(newStartPoint))
-        assertEquals(CommonUiTestUtil.pointToCoordinateString(endPoint), locationInfoBox.endCoordinates)
+        locationInfoBox.waitForStartCoordinatesChange(pointToCoordinateString(newStartPoint))
+        assertEquals(pointToCoordinateString(endPoint), locationInfoBox.endCoordinates)
     }
 
 
@@ -249,7 +250,9 @@ class LinkingTestUI @Autowired constructor(
         kmPostDao.insert(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0)))
         kmPostDao.insert(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0)))
 
-        testGeometryPlanService.buildPlan(trackNumberId).alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+        testGeometryPlanService
+            .buildPlan(trackNumberId)
+            .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
             .kmPost("0123G", Point(4.0, 4.0))
             .kmPost("0124G", Point(14.0, 14.0))
             .kmPost("0125G", Point(24.0, 21.0))
@@ -273,7 +276,7 @@ class LinkingTestUI @Autowired constructor(
 
         kmPostLinkingInfoBox.linkTo(firstTrackLayoutKmPost)
         kmPostLinkingInfoBox.link()
-        waitAndClearToastByContent("Tasakilometripiste linkitetty onnistuneesti")
+        waitAndClearToast("linking-succeed-msg")
 
         assertEquals("KYLLÄ", toolPanel.geometryKmPostLinking.linked)
         toolPanel.selectToolPanelTab("0123")
@@ -285,7 +288,9 @@ class LinkingTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
         val lastKmPostLocation = Point(34.0, 30.0)
 
-        testGeometryPlanService.buildPlan(trackNumberId).alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
+        testGeometryPlanService
+            .buildPlan(trackNumberId)
+            .alignment("foo bar", Point(4.0, 4.0), Point(14.0, 14.0), Point(58.0, 51.0))
             .kmPost("0123", Point(4.0, 4.0))
             .kmPost("0124", Point(14.0, 14.0))
             .kmPost("0125", Point(24.0, 21.0))
@@ -307,16 +312,17 @@ class LinkingTestUI @Autowired constructor(
             .setName(newKmPostNumber)
             .selectState(E2EKmPostEditDialog.State.IN_USE)
             .save()
-        waitAndClearToastByContent("Uusi tasakilometripiste lisätty rekisteriin")
+
+        waitAndClearToast("insert-succeeded")
 
         kmPostLinkingInfoBox.link()
-        waitAndClearToastByContent("Tasakilometripiste linkitetty onnistuneesti")
+        waitAndClearToast("linking-succeed-msg")
         geometryPlan.selectKmPost("0126")
 
         selectionPanel.selectKmPost(newKmPostNumber)
         val layoutKmPost0003TLCoordinates = toolPanel.layoutKmPostLocation.coordinates
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(lastKmPostLocation + DEFAULT_BASE_POINT),
+            pointToCoordinateString(lastKmPostLocation + DEFAULT_BASE_POINT),
             layoutKmPost0003TLCoordinates
         )
     }
@@ -324,7 +330,9 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Link geometry switch to new location tracks and layout switch`() {
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
-        val plan = testGeometryPlanService.buildPlan(trackNumberId).switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))
+        val plan = testGeometryPlanService
+            .buildPlan(trackNumberId)
+            .switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))
             .switch("unrelated switch", "YV54-200N-1:9-O", Point(15.0, 15.0))
             // switch to link is at (5, 5); the switch's alignment on the through track lies flat on the X axis from
             // 0 to 28.3, with the math point at 11.077, while the branching track goes down to (28.195, -1.902)
@@ -367,11 +375,11 @@ class LinkingTestUI @Autowired constructor(
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.EXISTING)
             .save()
 
-        waitAndClearToastByContent("Uusi vaihde lisätty rekisteriin")
+        waitAndClearToast("new-switch-added")
 
         switchLinkingInfoBox.linkTo(layoutSwitchName)
         switchLinkingInfoBox.link()
-        waitAndClearToastByContent("Vaihde linkitetty onnistuneesti")
+        waitAndClearToast("linking-succeed-msg")
         toolPanel.selectToolPanelTab(layoutSwitchName)
 
         val layoutSwitchInfoBox = toolPanel.layoutSwitchStructureGeneralInfo
@@ -383,7 +391,7 @@ class LinkingTestUI @Autowired constructor(
         val geoSwitchLocation = getGeometrySwitchFromPlan("switch to link", plan).getJoint(JointNumber(1))?.location
         val layoutSwitchLocationInfoBox = toolPanel.layoutSwitchLocation
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geoSwitchLocation!!), layoutSwitchLocationInfoBox.coordinates
+            pointToCoordinateString(geoSwitchLocation!!), layoutSwitchLocationInfoBox.coordinates
         )
 
         val switchLinesAndTracks = layoutSwitchLocationInfoBox.jointAlignments
@@ -398,7 +406,9 @@ class LinkingTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan =
-            testGeometryPlanService.buildPlan(trackNumberId).alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
+            testGeometryPlanService
+                .buildPlan(trackNumberId)
+                .alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
                 .alignment("unrelated track", Point(0.0, 10.0), Point(10.0, 3.0), Point(10.0, 1.0))
                 .save()
 
@@ -420,7 +430,7 @@ class LinkingTestUI @Autowired constructor(
 
         trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to extend")
         val locationTrackLocationInfobox = toolPanel.locationTrackLocation
-        val locationTrackLengthBeforeLinking = CommonUiTestUtil.metersToDouble(locationTrackLocationInfobox.trueLength)
+        val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
         val locationTrackStartBeforeLinking = locationTrackLocationInfobox.startCoordinates
         val locationTrackEndBeforeLinking = locationTrackLocationInfobox.endCoordinates
         toolPanel.locationTrackGeneralInfo.zoomTo()
@@ -437,9 +447,9 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
 
         alignmentLinkinInfobox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
         toolPanel.selectToolPanelTab("lt-track to extend")
-        val lengthAfterLinking = CommonUiTestUtil.metersToDouble(locationTrackLocationInfobox.trueLength)
+        val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
 
         Assertions.assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
         val editedLocationTrack = getLocationTrackAndAlignment(PublishType.DRAFT, originalLocationTrack.id)
@@ -455,7 +465,7 @@ class LinkingTestUI @Autowired constructor(
 
         assertNotEquals(locationTrackStartBeforeLinking, locationTrackLocationInfobox.startCoordinates)
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryAlignment.elements.first().start),
+            pointToCoordinateString(geometryAlignment.elements.first().start),
             locationTrackLocationInfobox.startCoordinates
         )
         assertEquals(locationTrackEndBeforeLinking, locationTrackLocationInfobox.endCoordinates)
@@ -466,7 +476,9 @@ class LinkingTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan =
-            testGeometryPlanService.buildPlan(trackNumberId).alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
+            testGeometryPlanService
+                .buildPlan(trackNumberId)
+                .alignment("extending track", Point(0.0, 0.0), Point(4.0, 6.0), Point(4.0, 2.0))
                 .alignment("unrelated track", Point(0.0, 10.0), Point(10.0, 3.0), Point(10.0, 1.0))
                 .save()
 
@@ -490,7 +502,7 @@ class LinkingTestUI @Autowired constructor(
 
         trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to extend")
         val locationTrackLocationInfobox = toolPanel.locationTrackLocation
-        val locationTrackLengthBeforeLinking = CommonUiTestUtil.metersToDouble(locationTrackLocationInfobox.trueLength)
+        val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
         val locationTrackEndBeforeLinking = locationTrackLocationInfobox.endCoordinates
         toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_10)
@@ -506,16 +518,16 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().points.first())
         trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().points.last())
         alignmentLinkinInfobox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
         val locationTrackAfterLinking = getLocationTrackAndAlignment(PublishType.DRAFT, originalLocationTrack.id)
 
         toolPanel.selectToolPanelTab("lt-track to extend")
-        val lengthAfterLinking = CommonUiTestUtil.metersToDouble(locationTrackLocationInfobox.trueLength)
+        val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
 
         Assertions.assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryAlignmentStart),
+            pointToCoordinateString(geometryAlignmentStart),
             locationTrackLocationInfobox.startCoordinates
         )
         assertEquals(locationTrackEndBeforeLinking, locationTrackLocationInfobox.endCoordinates)
@@ -573,7 +585,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(referenceLineEndPoint)
 
         alignmentLinkingInfobox.link()
-        waitAndClearToastByContent("Raide linkitetty ja vanhentuneen geometrian linkitys purettu.")
+        waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
         assertEquals("foo tracknumber", alignmentLinkingInfobox.trackNumber)
         toolPanel.selectToolPanelTab("foo tracknumber")
@@ -581,11 +593,11 @@ class LinkingTestUI @Autowired constructor(
         val referenceLineLocationInfobox = toolPanel.referenceLineLocation
 
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryTrackStartPoint),
+            pointToCoordinateString(geometryTrackStartPoint),
             referenceLineLocationInfobox.startCoordinates
         )
         assertEquals(
-            CommonUiTestUtil.pointToCoordinateString(geometryTrackEndPoint), referenceLineLocationInfobox.endCoordinates
+            pointToCoordinateString(geometryTrackEndPoint), referenceLineLocationInfobox.endCoordinates
         )
     }
 
@@ -618,7 +630,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.toolPanel.locationTrackGeneralInfo.edit()
             .selectState(E2ELocationTrackEditDialog.State.DELETED)
             .save()
-        waitAndClearToastByContent("Sijaintiraide poistettu")
+        waitAndClearToast("deleted-successfully")
 
         assertTrue(trackLayoutPage.selectionPanel.locationTracksList.items.none { it.name == "lt-track to delete" })
 
@@ -667,7 +679,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.toolPanel.layoutSwitchGeneralInfo.edit()
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.NOT_EXISTING)
             .save()
-        waitAndClearToastByContent("Vaihteen tiedot päivitetty")
+        waitAndClearToast("modified-successfully")
 
         trackLayoutPage.selectionPanel.waitUntilSwitchNotVisible("switch to delete")
 
@@ -706,7 +718,7 @@ class LinkingTestUI @Autowired constructor(
             .selectTopologicalConnectivity(E2ELocationTrackEditDialog.TopologicalConnectivity.NONE)
             .save()
 
-        waitAndClearToastByContent("Uusi sijaintiraide lisätty rekisteriin")
+        waitAndClearToast("created-successfully")
 
         alignmentLinkingInfoBox.linkTo(locationTrackName)
         alignmentLinkingInfoBox.lock()
@@ -714,7 +726,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.last().end)
         alignmentLinkingInfoBox.link()
-        waitAndClearToastByContent("Raide linkitetty")
+        waitAndClearToast("linking-succeeded")
     }
 
     private fun createAndInsertCommonReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): LayoutAlignment {
@@ -754,7 +766,9 @@ class LinkingTestUI @Autowired constructor(
         return locationTrack to alignment
     }
 
-    private fun saveLocationTrackWithAlignment(locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>): RowVersion<LocationTrack> {
+    private fun saveLocationTrackWithAlignment(
+        locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
+    ): RowVersion<LocationTrack> {
         return locationTrackDao.insert(
             locationTrackAndAlignment.first.copy(
                 alignmentVersion = alignmentDao.insert(

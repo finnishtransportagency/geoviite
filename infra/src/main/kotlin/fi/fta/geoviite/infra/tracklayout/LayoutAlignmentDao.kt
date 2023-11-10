@@ -346,6 +346,8 @@ class LayoutAlignmentDao(
                   segment.segment_index,
                   segment.geometry_id,
                   segment.source,
+                  segment.start,
+                  geom_alignment.id as geom_alignment_id,
                   geom_alignment.id is not null as is_linked,
                   coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
                   coalesce(plan_file.name, orig_metadata.plan_file_name) as file_name,
@@ -379,16 +381,20 @@ class LayoutAlignmentDao(
                   is_linked,
                   plan_id,
                   file_name,
-                  alignment_name
+                  geom_alignment_id,
+                  alignment_name,
+                  min(start) as start
                 from segments
-                group by alignment_id, alignment_version, is_linked, grp, plan_id, file_name, alignment_name
+                group by alignment_id, alignment_version, is_linked, grp, plan_id, file_name, geom_alignment_id, alignment_name
               )
             select
               segment.*,
               postgis.st_x(postgis.st_startpoint(start_geom.geometry)) as start_x,
               postgis.st_y(postgis.st_startpoint(start_geom.geometry)) as start_y,
+              postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + segment.start as start_m,
               postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y
+              postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
+              postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + segment.start as end_m
             from segment_range range
               inner join metadata_segments segment on
                   range.alignment_id = segment.alignment_id and range.alignment_version = segment.alignment_version
@@ -412,12 +418,21 @@ class LayoutAlignmentDao(
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
             val fromSegment = rs.getInt("from_segment")
             val toSegment = rs.getInt("to_segment")
+            val startPoint = rs.getDoubleOrNull("start_m")?.let { m ->
+                rs.getPointOrNull("start_x", "start_y")?.let { point ->
+                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+            }
+            val endPoint = rs.getDoubleOrNull("end_m")?.let { m ->
+                rs.getPointOrNull("end_x", "end_y")?.let { point ->
+                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+            }
             SegmentGeometryAndMetadata(
                 planId = rs.getIntIdOrNull("plan_id"),
                 fileName = rs.getFileNameOrNull("file_name"),
+                alignmentId = rs.getIntIdOrNull("geom_alignment_id"),
                 alignmentName = rs.getString("alignment_name")?.let(::AlignmentName),
-                startPoint = rs.getPointOrNull("start_x", "start_y"),
-                endPoint = rs.getPointOrNull("end_x", "end_y"),
+                startPoint = startPoint,
+                endPoint = endPoint,
                 isLinked = rs.getBoolean("is_linked"),
                 id = StringId("${alignmentVersion.id.intValue}_${fromSegment}_${toSegment}")
             )

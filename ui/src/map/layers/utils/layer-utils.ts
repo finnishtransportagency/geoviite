@@ -8,12 +8,13 @@ import proj4 from 'proj4';
 import { coordsToPoint, Point, Rectangle } from 'model/geometry';
 import { register } from 'ol/proj/proj4';
 import VectorSource from 'ol/source/Vector';
-import { avg, filterNotEmpty } from 'utils/array-utils';
+import { avg, filterNotEmpty, filterUnique } from 'utils/array-utils';
 import { distToSegmentSquared } from 'utils/math-utils';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { PublishType } from 'common/common-model';
-import { getTrackLayoutPlan } from 'geometry/geometry-api';
+import { getPlanAreasByTile, getTrackLayoutPlan } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
+import { MapTile } from 'map/map-model';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -208,21 +209,53 @@ export async function getManualPlanWithStatus(
     return getPlanAndStatus(plan, publishType).then((status) => (status ? [status] : []));
 }
 
+async function getTilesPlanIds(
+    visiblePlans: VisiblePlanLayout[],
+    mapTiles: MapTile[],
+    changeTimes: ChangeTimes,
+) {
+    const visibleIds = new Set(visiblePlans.map((vp) => vp.id));
+    return (
+        await Promise.all(
+            mapTiles.map((tile) => getPlanAreasByTile(tile, changeTimes.geometryPlan)),
+        )
+    )
+        .flat()
+        .map((plan) => plan.id)
+        .filter((planId) => visibleIds.has(planId))
+        .filter(filterUnique);
+}
+
 export async function getVisiblePlansWithStatus(
     visiblePlans: VisiblePlanLayout[],
+    mapTiles: MapTile[],
     publishType: PublishType,
     changeTimes: ChangeTimes,
 ): Promise<PlanAndStatus[]> {
-    const planPromises = visiblePlans.map((p) =>
-        getTrackLayoutPlan(p.id, changeTimes.geometryPlan, true),
-    );
-    return Promise.all(
-        planPromises.map((planPromise) =>
-            planPromise.then((plan) =>
+    const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
+    const withStatuses = await Promise.all(
+        planIds.map((planId) =>
+            getTrackLayoutPlan(planId, changeTimes.geometryPlan, true).then((plan) =>
                 plan && !plan.planHidden ? getPlanAndStatus(plan, publishType) : undefined,
             ),
         ),
-    ).then((plans) => plans.filter(filterNotEmpty));
+    );
+    return withStatuses.filter(filterNotEmpty);
+}
+
+export async function getVisiblePlans(
+    visiblePlans: VisiblePlanLayout[],
+    mapTiles: MapTile[],
+    changeTimes: ChangeTimes,
+): Promise<GeometryPlanLayout[]> {
+    const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
+    return (
+        await Promise.all(
+            planIds.map((planId) => getTrackLayoutPlan(planId, changeTimes.geometryPlan, true)),
+        )
+    )
+        .filter(filterNotEmpty)
+        .filter((plan) => !plan.planHidden);
 }
 
 export async function getPlanAndStatus(
