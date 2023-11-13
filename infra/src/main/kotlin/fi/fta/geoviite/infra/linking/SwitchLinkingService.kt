@@ -991,11 +991,11 @@ class SwitchLinkingService @Autowired constructor(
         )
 
         suggestedSwitch
-            ?.let ( ::createTemporarySwitchLinkingParameters)
-            ?.let ( ::calculateModifiedLocationTracksAndAlignments)
-            ?.let ( ::updateTemporarySwitchLinkingToTemporaryLocationTracks)?.asSequence()
-            ?.filter ( ::locationTrackHasTemporaryTopologicalSwitchConnection)
-            ?.mapNotNull( ::topologicalConnectionJointNumberToTemporaryLocationTrackId)
+            ?.let (::createTemporarySwitchLinkingParameters)
+            ?.let (::calculateModifiedLocationTracksAndAlignments)
+            ?.let (::updateTemporarySwitchLinkingToTemporaryLocationTracks)?.asSequence()
+            ?.filter (::locationTrackHasTemporaryTopologicalSwitchConnection)
+            ?.mapNotNull(::topologicalConnectionJointNumberToTemporaryLocationTrackId)
             ?.groupBy (
                 { (jointNumber, _ ) -> jointNumber },
                 { (_, locationTrackId ) -> locationTrackId },
