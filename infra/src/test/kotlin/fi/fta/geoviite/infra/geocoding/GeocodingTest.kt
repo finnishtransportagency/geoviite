@@ -611,27 +611,6 @@ class GeocodingTest {
     }
 
     @Test
-    fun `should throw an exception when geocoding context is created with km posts without location`() {
-        val trackNumber = trackNumber(TrackNumber("T001"))
-        val startAddress = TrackMeter(KmNumber(10), 100)
-
-        val startAlignment = LayoutAlignment(
-            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        )
-
-        val referencePoints = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
-
-        assertThrows<IllegalArgumentException>("Geocoding context created with kmPosts without location") {
-            GeocodingContext(
-                trackNumber = trackNumber,
-                startAddress = startAddress,
-                referenceLineGeometry = startAlignment,
-                referencePoints = listOf(referencePoints),
-            )
-        }
-    }
-
-    @Test
     fun `should reject km posts without location`() {
         val trackNumber = trackNumber(TrackNumber("T001"))
         val startAlignment = LayoutAlignment(
