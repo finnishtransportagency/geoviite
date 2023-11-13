@@ -67,8 +67,7 @@ data class PropKey(
     val params: LocalizationParams = LocalizationParams.empty(),
 ) {
     constructor(key: String, params: LocalizationParams = LocalizationParams.empty()) : this(
-        LocalizationKey(key),
-        params
+        LocalizationKey(key), params
     )
 }
 
@@ -365,6 +364,8 @@ data class LocationTrackChanges(
     val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<TrackLayoutTrackNumber>>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
+    val geometryChangeSummaries: List<GeometryChangeSummary>?,
+    val owner: Change<IntId<LocationTrackOwner>>,
 )
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well

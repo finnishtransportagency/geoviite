@@ -125,11 +125,17 @@ class GeocodingService(
     fun getGeocodingContext(geocodingContextCacheKey: GeocodingContextCacheKey) =
         geocodingCacheService.getGeocodingContext(geocodingContextCacheKey)
 
+    fun getGeocodingContextCreateResult(
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ): GeocodingContextCreateResult? = geocodingDao.getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)
+        ?.let(geocodingCacheService::getGeocodingContextWithReasons)
+
     fun getGeocodingContext(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): GeocodingContext? = geocodingDao.getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)
-        ?.let(geocodingCacheService::getGeocodingContext)
+    ): GeocodingContext? = getGeocodingContextCreateResult(publicationState, trackNumberId)
+        ?.geocodingContext
 
     fun getGeocodingContextAtMoment(
         trackNumberId: IntId<TrackLayoutTrackNumber>,

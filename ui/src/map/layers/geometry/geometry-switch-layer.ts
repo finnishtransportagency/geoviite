@@ -16,9 +16,11 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { MapTile } from 'map/map-model';
 
 let newestLayerId = 0;
 export function createGeometrySwitchLayer(
+    mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
@@ -60,7 +62,7 @@ export function createGeometrySwitchLayer(
 
     const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
         ? getManualPlanWithStatus(manuallySetPlan, publishType)
-        : getVisiblePlansWithStatus(selection.visiblePlans, publishType, changeTimes);
+        : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes);
 
     Promise.all([getSwitchStructures(), plansPromise])
         .then(([switchStructures, planStatuses]) => {

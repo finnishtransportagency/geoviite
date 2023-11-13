@@ -162,6 +162,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             tn.id !== inEditTrackNumber?.id,
     );
 
+    const moveToEditLinkText = (tn: LayoutTrackNumber) => {
+        const state = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        return t('track-number-edit.action.move-to-edit', {
+            number: tn.number + state,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -182,7 +189,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     }}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('track-number-edit.title.delete-draft')}
+                                    {t('button.delete')}
                                 </Button>
                             </div>
                         )}
@@ -191,7 +198,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={saveInProgress}
                                 onClick={onClose}>
-                                {t('track-number-edit.action.cancel')}
+                                {t('button.cancel')}
                             </Button>
                             <Button
                                 disabled={hasErrors || saveInProgress}
@@ -230,9 +237,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 <Link
                                     className="move-to-edit-link"
                                     onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
-                                    {t('track-number-edit.action.move-to-edit', {
-                                        number: otherTrackNumber.number,
-                                    })}
+                                    {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}
                         </FieldLayout>

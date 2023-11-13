@@ -1,6 +1,7 @@
 import {
     AlignmentStartAndEnd,
     LayoutLocationTrack,
+    LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
@@ -69,6 +70,17 @@ export async function getLocationTrackInfoboxExtras(
         getNullable<LocationTrackInfoboxExtras>(
             `${layoutUri('location-tracks', publishType, id)}/infobox-extras`,
         ),
+    );
+}
+
+export async function getLocationTracksByName(
+    trackNumberId: LayoutTrackNumberId,
+    locationTrackName: string,
+    publishType: PublishType,
+): Promise<LayoutLocationTrack[]> {
+    const params = queryParams({ locationTrackName });
+    return getNonNull<LayoutLocationTrack[]>(
+        `${layoutUri('location-tracks', publishType)}/by-tracknumber/${trackNumberId}${params}`,
     );
 }
 

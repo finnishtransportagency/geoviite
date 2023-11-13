@@ -37,6 +37,7 @@ import {
     getLocationTrackChangeTimes,
     getLocationTrackInfoboxExtras,
     getLocationTracks,
+    getLocationTracksByName,
     getLocationTrackStartAndEnd,
 } from 'track-layout/layout-location-track-api';
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
@@ -57,6 +58,7 @@ import {
     updateSwitchChangeTime,
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
+import { isNilOrBlank } from 'utils/string-utils';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -218,6 +220,22 @@ export function useLocationTrackInfoboxExtras(
     return useLoaderWithStatus(
         () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
         [id, publishType],
+    );
+}
+export function useConflictingTrack(
+    trackNumberId: LayoutTrackNumberId | undefined,
+    trackName: string | undefined,
+    trackId: LocationTrackId | undefined,
+    publishType: PublishType,
+): LayoutLocationTrack | undefined {
+    return useLoader(
+        () =>
+            trackNumberId === undefined || trackName === undefined || isNilOrBlank(trackName)
+                ? undefined
+                : getLocationTracksByName(trackNumberId, trackName, publishType).then((tracks) =>
+                      tracks.find((t) => t.id !== trackId),
+                  ),
+        [trackNumberId, trackName, trackId, publishType],
     );
 }
 

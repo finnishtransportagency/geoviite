@@ -177,6 +177,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             return { name: tn.number + note, value: tn.id };
         });
 
+    const moveToEditLinkText = (kmp: LayoutKmPost) => {
+        const state = kmp.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+        return t('km-post-dialog.move-to-edit', {
+            number: kmp.kmNumber + state,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -197,15 +204,20 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 }
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('km-post-dialog.delete-draft')}
+                                {t('button.delete')}
                             </Button>
                         )}
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                        <div
+                            className={
+                                state.existingKmPost?.draftType === 'NEW_DRAFT'
+                                    ? dialogStyles['dialog__footer-content--right-aligned']
+                                    : dialogStyles['dialog__footer-content--centered']
+                            }>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
                                 onClick={() => close()}>
-                                {t('button.return')}
+                                {t('button.cancel')}
                             </Button>
                             <span onClick={() => stateActions.validate()}>
                                 <Button
@@ -236,17 +248,18 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('kmNumber')}></FieldLayout>
-                        {state.trackNumberKmPost &&
-                            state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                <Link
-                                    className="move-to-edit-link"
-                                    onClick={() => props.onEditKmPost(state.trackNumberKmPost?.id)}>
-                                    {t('km-post-dialog.move-to-edit', {
-                                        number: state.trackNumberKmPost.kmNumber,
-                                    })}
-                                </Link>
-                            )}
+                            errors={getVisibleErrorsByProp('kmNumber')}>
+                            {state.trackNumberKmPost &&
+                                state.trackNumberKmPost.id !== state.existingKmPost?.id && (
+                                    <Link
+                                        className="move-to-edit-link"
+                                        onClick={() =>
+                                            props.onEditKmPost(state.trackNumberKmPost?.id)
+                                        }>
+                                        {moveToEditLinkText(state.trackNumberKmPost)}
+                                    </Link>
+                                )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('km-post-dialog.track-number')} *`}
                             value={

@@ -428,6 +428,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'geometry-alignment-layer':
                         return createGeometryAlignmentLayer(
+                            mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             publishType,
@@ -437,6 +438,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
+                            mapTiles,
                             resolution,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
@@ -446,6 +448,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'geometry-switch-layer':
                         return createGeometrySwitchLayer(
+                            mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             publishType,

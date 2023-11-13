@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
@@ -181,8 +182,9 @@ class LocationTrackController(
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
         val switchSuggestions =
-            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds.distinct()
-                .let { swId -> switchService.getMany(publishType, swId) })
+            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds
+            .distinct()
+            .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
@@ -239,6 +241,22 @@ class LocationTrackController(
             "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
         )
         return locationTrackService.getMetadataSections(id, publishType, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publicationState}/by-tracknumber/{trackNumberId}")
+    fun getTrackNumberTracksByName(
+        @PathVariable("publicationState") publicationState: PublishType,
+        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("locationTrackName") name: AlignmentName,
+    ): List<LocationTrack> {
+        logger.apiCall(
+            "getTrackNumberTracksByName",
+            "publicationState" to publicationState,
+            "trackNumberId" to trackNumberId,
+            "name" to name,
+        )
+        return locationTrackService.list(publicationState, trackNumberId, name)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
