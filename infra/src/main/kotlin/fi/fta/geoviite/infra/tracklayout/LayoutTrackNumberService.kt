@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -122,8 +121,9 @@ class LayoutTrackNumberService(
             "publishType" to publishType,
         )
 
-        return geocodingService.getGeocodingContext(publishType, trackNumberId)?.let { context ->
-            val distances = getKmPostDistances(context)
+        return geocodingService.getGeocodingContextCreateResult(publishType, trackNumberId)?.let { contextResult ->
+            val context = contextResult.geocodingContext
+            val distances = getKmPostDistances(context, contextResult.validKmPosts)
             val referenceLineLength = context.referenceLineGeometry.length
             val trackNumber = context.trackNumber
             val startPoint = context.referenceLineAddresses.startPoint
@@ -190,7 +190,7 @@ class LayoutTrackNumberService(
         return asCsvFile(kmLengths)
     }
 
-    private fun getKmPostDistances(context: GeocodingContext) = context.kmPosts.map { kmPost ->
+    private fun getKmPostDistances(context: GeocodingContext, kmPosts: List<TrackLayoutKmPost>) = kmPosts.map { kmPost ->
         val distance = kmPost.location?.let { loc ->
             context.getM(loc)?.first
         }
