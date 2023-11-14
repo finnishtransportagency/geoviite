@@ -1108,7 +1108,7 @@ class GeometryDao @Autowired constructor(
                         name = PlanElementName(name),
                         description = PlanElementName(rs.getString("cant_description")),
                         gauge = rs.getBigDecimal("cant_gauge"),
-                        rotationPoint = rs.getEnum("cant_rotation_point"),
+                        rotationPoint = rs.getEnumOrNull<CantRotationPoint>("cant_rotation_point"),
                         points = fetchCantPoints(alignmentId),
                     )
                 },

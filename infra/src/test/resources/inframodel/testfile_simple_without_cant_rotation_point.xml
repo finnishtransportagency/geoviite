@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.inframodel.fi/inframodel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.inframodel.fi/inframodel https://buildingsmart.fi/infra/schema/4.0.3/inframodel.xsd"
+         date="2022-11-02" time="00:00:01" version="1.2" language="finnish" readOnly="false">
+  <FeatureDictionary name="inframodel" version="4.0.3">
+    <DocFileRef name="Inframodel extensions"
+                location="https://buildingsmart.fi/infra/inframodel/pages/extensions.html"/>
+  </FeatureDictionary>
+  <Units>
+    <Metric areaUnit="squareMeter" linearUnit="meter" volumeUnit="cubicMeter" temperatureUnit="celsius"
+            pressureUnit="HPA" diameterUnit="meter" widthUnit="meter" heightUnit="meter"
+            velocityUnit="kilometersPerHour" angularUnit="grads" directionUnit="grads"
+            elevationUnit="meter"></Metric>
+  </Units>
+  <CoordinateSystem name="ETRS89 / GK25FIN" rotationAngle="0" verticalCoordinateSystemName="N2000" epsgCode="2392"/>
+  <Project name="Geoviite test" desc="Test data">
+    <Feature code="IM_codings" source="inframodel" name="classcodings">
+      <Property label="terrainCoding" value="InfraBIM"></Property>
+      <Property label="infraCoding" value="InfraBIM"></Property>
+    </Feature>
+  </Project>
+  <Application name="Geoviite Test" desc="Test data for Geoviite"
+               manufacturer="Geoviite" manufacturerURL="https://vayla.fi"
+               version="01.01.01.01.01.01.1">
+    <Author createdBy="Geoviite Test Author" createdByEmail="example@vayla.fi" company="Test"
+            companyURL="vayla.fi" timeStamp="2022-11-02T13:37:00"></Author>
+  </Application>
+  <Alignments name="001" desc="Test data" state="proposed">
+    <Alignment name="T1" desc="T1" oID="11" state="proposed" staStart="0.000000" length="2372.489079">
+      <CoordGeom>
+        <Line dir="387.284143" length="617.216021" staStart="0.000000" name="S01" oID="209">
+          <Start>6673718.296540 25496706.966606</Start>
+          <End>6674323.241168 25496584.501863</End>
+        </Line>
+        <Curve rot="cw" length="17.269938" radius="1360.000000" chord="17.269822" staStart="617.216021"
+               name="S02" oID="210">
+          <Start>6674323.241168 25496584.501863</Start>
+          <Center>6674593.085184 25497917.462556</Center>
+          <End>6674340.189049 25496581.182815</End>
+        </Curve>
+        <Curve rot="ccw" length="30.346722" radius="820.000000" chord="30.344990" staStart="634.485959"
+               name="S03" oID="211">
+          <Start>6674340.189049 25496581.182815</Start>
+          <Center>6674187.707556 25495775.484736</Center>
+          <End>6674369.895268 25496574.989356</End>
+        </Curve>
+      </CoordGeom>
+      <StaEquation staBack="NaN" staAhead="-698.486000" staInternal="-698.486000" desc="0">
+      </StaEquation>
+      <StaEquation staBack="1003.440785" staAhead="304.954785" staInternal="304.954785" desc="1">
+        <Feature code="IM_kmPostCoords">
+          <Property label="kmPostN" value="6674007.758000"></Property>
+          <Property label="kmPostE" value="25496599.876000"></Property>
+        </Feature>
+      </StaEquation>
+      <StaEquation staBack="1000.857732" staAhead="1305.812517" staInternal="1305.812517" desc="2">
+        <Feature code="IM_kmPostCoords">
+          <Property label="kmPostN" value="6674997.738000"></Property>
+          <Property label="kmPostE" value="25496445.248000"></Property>
+        </Feature>
+      </StaEquation>
+      <StaEquation staBack="995.988593" staAhead="2301.801110" staInternal="2301.801110" desc="3">
+        <Feature code="IM_kmPostCoords">
+          <Property label="kmPostN" value="6675977.135000"></Property>
+          <Property label="kmPostE" value="25496371.135000"></Property>
+        </Feature>
+      </StaEquation>
+      <Cant name="LR" desc="LR" gauge="1.524">
+        <CantStation station="918.909756" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="2273.658159" appliedCant="0.000000" curvature="ccw"/>
+      </Cant>
+      <Profile>
+        <ProfAlign name="LR_profAlign">
+          <PVI desc="LR_profAlign/2">0.000000 3.480000</PVI>
+          <CircCurve desc="LR_profAlign/3" length="258.842157" radius="50000.000000">169.514000 3.480000</CircCurve>
+          <CircCurve desc="LR_profAlign/24" length="27.241469" radius="-10000.000000">2247.612517 21.937000</CircCurve>
+          <PVI desc="LR_profAlign/25">2372.489079 22.889808</PVI>
+          <Feature code="IM_PVIHorizontalStation">
+            <Property label="VerticalIntersectionDesc" value="LR_profAlign/24"></Property>
+            <Property label="PVIKmStation" value="2+941.800"></Property>
+          </Feature>
+        </ProfAlign>
+        <Feature code="IM_ProfileGroup">
+          <Property label="ProfAlignName" value="LR_profAlign"></Property>
+          <Property label="ProfAlignGroupNumber" value="1"></Property>
+          <Property label="ProfAlignTrackSerialNumberInGroup" value="1"></Property>
+        </Feature>
+        <Feature code="IM_ProfileGroupData">
+          <Property label="ProfAlignName"
+                    value="LR_profAlign"></Property>
+          <Property label="ProfAlignGroupStartingGradient" value="0.000000"></Property>
+          <Property label="ProfAlignGroupEndingGradient" value="0.007630"></Property>
+        </Feature>
+      </Profile>
+      <Feature source="inframodel" code="IM_coding">
+        <Property label="terrainCoding" value="111"/>
+        <Property label="terrainCodingDesc" value="Pituusmittausraide"/>
+      </Feature>
+    </Alignment>
+  </Alignments>
+</LandXML>

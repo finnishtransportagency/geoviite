@@ -141,6 +141,25 @@ class ValidationTest {
     }
 
     @Test
+    fun validationFindsMissingCantRotationPoint() {
+        val alignment = geometryAlignment(
+            cant = cant(
+                points = listOf(
+                    cantPoint(0.0, 0.2, CW),
+                    cantPoint(1.1, 0.1, CW),
+                    cantPoint(2.1, 0.15, CCW)
+                ),
+                rotationPoint = null,
+            )
+        )
+
+        assertValidationErrors(
+            validateAlignmentCant(alignment),
+            listOf("$VALIDATION_ALIGNMENT.cant-rotation-point-undefined"),
+        )
+    }
+
+    @Test
     fun validationFindsCantOverGauge() {
         val points = listOf(
             cantPoint(1.0, 0.1, CCW),
@@ -235,12 +254,15 @@ class ValidationTest {
         return VIPoint(PlanElementName("Test Point"), Point(station, height))
     }
 
-    private fun cant(points: List<GeometryCantPoint>): GeometryCant {
+    private fun cant(
+        points: List<GeometryCantPoint>,
+        rotationPoint: CantRotationPoint? = INSIDE_RAIL,
+    ): GeometryCant {
         return GeometryCant(
             PlanElementName("TC001"),
             PlanElementName("Test Cant"),
             FINNISH_RAIL_GAUGE,
-            INSIDE_RAIL,
+            rotationPoint,
             points
         )
     }
