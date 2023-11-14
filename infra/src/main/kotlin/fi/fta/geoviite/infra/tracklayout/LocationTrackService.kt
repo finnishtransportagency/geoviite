@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
@@ -333,21 +332,19 @@ class LocationTrackService(
         id: IntId<LocationTrack>,
         publishType: PublishType,
     ): List<LocationTrackDuplicate> {
+        val originalAndAlignment = getWithAlignmentOrThrow(publishType, id)
         val duplicates = dao.fetchDuplicates(id, publishType).map(dao::fetch)
 
-        // @TODO vois vaan käyttää m-arvoja sen sijasta että haetaan osotteet
-        val duplicateStartAddresses = duplicates.map { duplicate ->
+        val duplicateMValues = duplicates.map { duplicate ->
             duplicate.alignmentVersion?.let { alignmentVersion ->
-                alignmentDao.fetch(alignmentVersion).start?.let { startPoint ->
-                    geocodingService
-                        .getGeocodingContext(publishType, duplicate.trackNumberId)
-                        ?.getAddress(startPoint)?.first
-                }
+                alignmentDao.fetch(alignmentVersion).start?.let(
+                    originalAndAlignment.second::getClosestPointM
+                )?.first
             }
         }
         return duplicates.mapIndexed { index, d -> index to d }.sortedWith { a, b ->
             compareValues(
-                duplicateStartAddresses[a.first], duplicateStartAddresses[b.first]
+                duplicateMValues[a.first], duplicateMValues[b.first]
             )
         }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.name, track.externalId) }
     }
