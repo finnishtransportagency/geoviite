@@ -131,7 +131,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
     const splitInitializationParameters = useLoader(
         () => getSplittingInitializationParameters(publishType, locationTrack.id),
-        [],
+        [publishType, locationTrack.id],
     );
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
