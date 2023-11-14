@@ -25,7 +25,7 @@ class LayoutTrackNumberService(
 
     @Transactional
     fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("insert", "trackNumber" to saveRequest.number)
+        logger.serviceCall("insert", "trackNumber" to saveRequest)
         val draftSaveResponse = saveDraftInternal(
             TrackLayoutTrackNumber(
                 number = saveRequest.number,
@@ -43,7 +43,7 @@ class LayoutTrackNumberService(
         id: IntId<TrackLayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("update", "trackNumber" to saveRequest.number)
+        logger.serviceCall("update", "trackNumber" to saveRequest)
         val original = dao.getOrThrow(DRAFT, id)
         val draftSaveResponse = saveDraftInternal(
             original.copy(
@@ -197,7 +197,7 @@ class LayoutTrackNumberService(
             "getSectionsByPlan",
             "trackNumberId" to trackNumberId,
             "publishType" to publishType,
-            "boundingBox" to boundingBox
+            "boundingBox" to boundingBox,
         )
         return get(publishType, trackNumberId)?.let { trackNumber ->
             val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)

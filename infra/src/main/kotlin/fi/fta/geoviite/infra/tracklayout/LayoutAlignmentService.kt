@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutAlignmentService(
     private val dao: LayoutAlignmentDao,
 ) {
-    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 

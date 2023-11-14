@@ -88,7 +88,7 @@ class LayoutKmPostController(
         return kmPostService.listNearbyOnTrackPaged(
             publicationState = publishType,
             location = location,
-            trackNumberId = if (trackNumberId is IntId) trackNumberId else null,
+            trackNumberId = trackNumberId,
             offset = offset,
             limit = limit,
         )

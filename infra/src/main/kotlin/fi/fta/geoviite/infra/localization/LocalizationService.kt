@@ -29,7 +29,6 @@ constructor(@JsonValue val params: Map<String, Any?>) {
     companion object {
         fun empty() = LocalizationParams()
     }
-
 }
 
 data class Translation(val lang: String, val localization: String) {

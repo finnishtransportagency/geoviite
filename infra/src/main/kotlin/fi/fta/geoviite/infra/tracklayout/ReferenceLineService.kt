@@ -62,7 +62,7 @@ class ReferenceLineService(
 
     @Transactional
     fun saveDraft(draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
-        logger.serviceCall("save", "locationTrack" to draft.id, "alignment" to alignment.id)
+        logger.serviceCall("save", "locationTrack" to draft, "alignment" to alignment)
         return saveDraftInternal(draft, alignment)
     }
 

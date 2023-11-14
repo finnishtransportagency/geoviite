@@ -38,7 +38,6 @@ import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-
 @Service
 class PublicationService @Autowired constructor(
     private val publicationDao: PublicationDao,
@@ -180,6 +179,8 @@ class PublicationService @Autowired constructor(
         switchIds: List<IntId<TrackLayoutSwitch>>,
         publishType: PublishType,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        logger.serviceCall("validateSwitches", "switchIds" to switchIds, "publishType" to publishType)
+
         val switches = switchService.getMany(publishType, switchIds)
         val locationTracks =
             switchDao.findLocationTracksLinkedToSwitches(publishType, switchIds).map { it.rowVersion }.distinct()
@@ -222,9 +223,8 @@ class PublicationService @Autowired constructor(
         kmPostId: IntId<TrackLayoutKmPost>,
         publishType: PublishType,
     ): ValidatedAsset<TrackLayoutKmPost> {
-        logger.serviceCall(
-            "validateKmPost", "kmPostId" to kmPostId, "publishType" to publishType
-        )
+        logger.serviceCall("validateKmPost", "kmPostId" to kmPostId, "publishType" to publishType)
+
         val kmPost = kmPostService.getOrThrow(publishType, kmPostId)
         val trackNumber = kmPost.trackNumberId?.let { trackNumberId ->
             trackNumberService.getOrThrow(publishType, trackNumberId)
@@ -853,7 +853,7 @@ class PublicationService @Autowired constructor(
         id: IntId<Publication>,
         translation: Translation,
     ): List<PublicationTableItem> {
-        logger.serviceCall("getPublicationDetailsAsTableRows", "id" to id)
+        logger.serviceCall("getPublicationDetailsAsTableItems", "id" to id)
         val geocodingContextCache =
             ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
         return getPublicationDetails(id).let { publication ->
@@ -1317,7 +1317,6 @@ class PublicationService @Autowired constructor(
     }
 
     private fun getSegmentSwitches(alignment: LayoutAlignment, versions: ValidationVersions): List<SegmentSwitch> {
-
         val segmentsBySwitch =
             alignment.segments.mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
                 .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
@@ -1394,8 +1393,9 @@ class PublicationService @Autowired constructor(
         }
 
         val referenceLines = publication.referenceLines.map { rl ->
-            val tn =
-                trackNumberNamesCache.findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }?.number
+            val tn = trackNumberNamesCache.findLast {
+                it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime
+            }?.number
 
             mapToPublicationTableItem(
                 name = "${translation.t("publication-table.reference-line")} $tn",
@@ -1415,8 +1415,9 @@ class PublicationService @Autowired constructor(
         }
 
         val locationTracks = publication.locationTracks.map { lt ->
-            val tn =
-                trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
+            val tn = trackNumberNamesCache.findLast {
+                it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime
+            }?.number
             mapToPublicationTableItem(
                 name = "${translation.t("publication-table.location-track")} ${lt.name}",
                 trackNumbers = setOfNotNull(tn),
@@ -1430,7 +1431,7 @@ class PublicationService @Autowired constructor(
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
-                    publicationTrackNumberChanges.any { trackNumberInPublication -> trackNumberInPublication.key == lt.trackNumberId },
+                    publicationTrackNumberChanges.any { tn -> tn.key == lt.trackNumberId },
                     lt.changedKmNumbers,
                     geocodingContextGetter,
                 ),

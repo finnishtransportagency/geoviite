@@ -95,7 +95,7 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
 
     @Transactional
     open fun saveDraft(draft: ObjectType): DaoResponse<ObjectType> {
-        logger.serviceCall("saveDraft", "id" to draft.id)
+        logger.serviceCall("saveDraft", "draft" to draft)
         return saveDraftInternal(draft)
     }
 

@@ -91,7 +91,7 @@ class LocationTrackService(
 
     @Transactional
     fun saveDraft(draft: LocationTrack, alignment: LayoutAlignment): DaoResponse<LocationTrack> {
-        logger.serviceCall("save", "locationTrack" to draft.id, "alignment" to alignment.id)
+        logger.serviceCall("save", "locationTrack" to draft, "alignment" to alignment)
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
             if (draft.dataType == TEMP || draft.draft == null) {

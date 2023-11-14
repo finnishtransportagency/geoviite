@@ -71,6 +71,8 @@ data class TrackLayoutTrackNumber(
         require(description.isNotBlank()) { "TrackNumber should have a non-blank description" }
         require(description.length < 100) { "TrackNumber description too long: ${description.length}>100" }
     }
+
+    override fun toLog(): String = logFormat("version" to version, "draft" to getDraftType(), "number" to number)
 }
 
 enum class LocationTrackType {
@@ -102,6 +104,13 @@ data class ReferenceLine(
 
     fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
         alignmentVersion ?: throw IllegalStateException("ReferenceLine has no an alignment")
+
+    override fun toLog(): String = logFormat(
+        "version" to version,
+        "draft" to getDraftType(),
+        "trackNumber" to trackNumberId,
+        "alignment" to alignmentVersion,
+    )
 }
 
 data class TopologyLocationTrackSwitch(
@@ -193,9 +202,16 @@ data class LocationTrack(
     }
 
     fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        alignmentVersion ?: throw IllegalStateException("LocationTrack has no alignment")
-}
+        requireNotNull(alignmentVersion) { "LocationTrack has no alignment: version=$version" }
 
+    override fun toLog(): String = logFormat(
+        "version" to version,
+        "draft" to getDraftType(),
+        "name" to name,
+        "trackNumber" to trackNumberId,
+        "alignment" to alignmentVersion,
+    )
+}
 
 data class TrackLayoutSwitch(
     val name: SwitchName,
@@ -227,6 +243,14 @@ data class TrackLayoutSwitch(
         joints.find { j -> j.location.isSame(location, delta) }
 
     fun getJoint(number: JointNumber): TrackLayoutSwitchJoint? = joints.find { j -> j.number == number }
+
+    override fun toLog(): String = logFormat(
+        "version" to version,
+        "draft" to getDraftType(),
+        "source" to source,
+        "name" to name,
+        "joints" to joints.map { j -> j.number.intValue },
+    )
 }
 
 data class TrackLayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
@@ -248,6 +272,13 @@ data class TrackLayoutKmPost(
     fun getAsIntegral(): IntegralTrackLayoutKmPost? =
         if (state != LayoutState.IN_USE || location == null || trackNumberId == null) null
         else IntegralTrackLayoutKmPost(kmNumber, location, trackNumberId)
+
+    override fun toLog(): String = logFormat(
+        "version" to version,
+        "draft" to getDraftType(),
+        "kmNumber" to kmNumber,
+        "trackNumber" to trackNumberId,
+    )
 }
 
 data class IntegralTrackLayoutKmPost(

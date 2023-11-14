@@ -8,8 +8,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import org.springframework.stereotype.Service
 
-
-fun addressPointsAreEqual(point1: AddressPoint?, point2: AddressPoint?) =
+fun addressPointsAreEqual(point1: AddressPoint?, point2: AddressPoint?): Boolean =
     if (point1 == null && point2 == null) true
     else if (point1 == null || point2 == null) false
     else point1.isSame(point2)
@@ -50,7 +49,6 @@ private fun findDiffAddresses(
             if (points2Index != null) points2Index++
             points1Index++
         }
-
     }
     return differences
 }
@@ -90,10 +88,9 @@ class AddressChangesService(val geocodingService: GeocodingService) {
             )
         }
 
-    private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?) =
+    private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?): AlignmentAddresses? =
         if (track == null || contextKey == null || !track.exists) null
         else geocodingService.getAddressPoints(contextKey, track.getAlignmentVersionOrThrow())
-
 }
 
 fun getAddressChanges(

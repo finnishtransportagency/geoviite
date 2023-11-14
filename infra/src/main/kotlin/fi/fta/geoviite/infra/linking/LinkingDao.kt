@@ -95,7 +95,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publishType.name
+            "publication_state" to publishType.name,
         )
 
         val elements = jdbcTemplate.query(sql, params) { rs, _ ->
@@ -128,7 +128,10 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                plan_id=:plan_id
               group by geometry_km_post.id
         """.trimIndent()
-        val params = mapOf("plan_id" to planId.intValue, "publication_state" to publishType.name)
+        val params = mapOf(
+            "plan_id" to planId.intValue,
+            "publication_state" to publishType.name,
+        )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             GeometryKmPostLinkStatus(
@@ -172,7 +175,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publishType.name
+            "publication_state" to publishType.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

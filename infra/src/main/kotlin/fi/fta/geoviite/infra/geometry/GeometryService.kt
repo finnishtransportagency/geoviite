@@ -323,9 +323,8 @@ class GeometryService @Autowired constructor(
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
 
-    fun getVerticalGeometryListing(
-        planId: IntId<GeometryPlan>,
-    ): List<VerticalGeometryListing> {
+
+    fun getVerticalGeometryListing(planId: IntId<GeometryPlan>): List<VerticalGeometryListing> {
         logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
@@ -336,9 +335,7 @@ class GeometryService @Autowired constructor(
         )
     }
 
-    fun getVerticalGeometryListingCsv(
-        planId: IntId<GeometryPlan>,
-    ): Pair<FileName, ByteArray> {
+    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
         val verticalGeometryListing = getVerticalGeometryListing(planId)

@@ -630,6 +630,8 @@ private data class CroppedAlignment(
     override val boundingBox: BoundingBox? by lazy {
         boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox))
     }
+
+    override fun toLog(): String = logFormat("id" to id, "segments" to segments.map(ISegment::id))
 }
 
 private data class TrackIntersection(
@@ -747,11 +749,9 @@ fun findFarthestJoint(
     joint: SwitchJoint,
     switchAlignment: SwitchAlignment,
 ): SwitchJoint {
-    val jointNumber = switchAlignment.jointNumbers.maxByOrNull { jointNumber ->
-        lineLength(
-            joint.location, switchStructure.getJointLocation(jointNumber)
-        )
-    } ?: throw IllegalStateException("Cannot find farthest joint!")
+    val jointNumber = requireNotNull(switchAlignment.jointNumbers.maxByOrNull { jointNumber ->
+        lineLength(joint.location, switchStructure.getJointLocation(jointNumber))
+    }) { "Cannot find farthest joint: joints=${switchAlignment.jointNumbers}" }
     return switchStructure.getJoint(jointNumber)
 }
 
@@ -839,14 +839,15 @@ fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchJoint, Li
         }
     }
 
-    val (sharedSwitchJoint, switchAlignmentsContainingCommonJoint) = sortedSwitchJoints.firstNotNullOfOrNull { joint ->
-        val alignmentsContainingJoint = switchStructure.alignments.filter { alignment ->
-            alignment.jointNumbers.contains(joint.number)
+    val (sharedSwitchJoint, switchAlignmentsContainingCommonJoint) = requireNotNull(
+        sortedSwitchJoints.firstNotNullOfOrNull { joint ->
+            val alignmentsContainingJoint = switchStructure.alignments.filter { alignment ->
+                alignment.jointNumbers.contains(joint.number)
+            }
+            if (alignmentsContainingJoint.size >= 2) joint to alignmentsContainingJoint
+            else null
         }
-        if (alignmentsContainingJoint.size >= 2) joint to alignmentsContainingJoint
-        else null
-    }
-        ?: throw IllegalStateException("Switch structure ${switchStructure.type} does not contain shared switch joint and that is weird!")
+    ) { "Switch structure ${switchStructure.type} does not contain shared switch joint and that is weird!" }
 
     return sharedSwitchJoint to switchAlignmentsContainingCommonJoint
 }
@@ -975,6 +976,7 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
+        logger.serviceCall("getSuggestedSwitch", "location" to location, "switchStructureId" to switchStructureId)
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
         val nearbyLocationTracks = locationTrackService.getLocationTracksNear(location, DRAFT)
 
@@ -1010,7 +1012,7 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSuggestedSwitchesAtPresentationJointLocations(switches: List<TrackLayoutSwitch>): List<Pair<DomainId<TrackLayoutSwitch>, SuggestedSwitch?>> {
-        logger.serviceCall("getSuggestedSwitchesAtPresentationJointLocations", "switches" to switches)
+        logger.serviceCall("getSuggestedSwitchesAtPresentationJointLocations", "switches" to switches.map(TrackLayoutSwitch::toLog))
         val switchSuggestionCalculationData = switches.map { switch ->
             val location = switchService.getPresentationJointOrThrow(switch).location
             val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
@@ -1029,6 +1031,7 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional
     fun saveSwitchLinking(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
+        logger.serviceCall("saveSwitchLinking", "linkingParameters" to linkingParameters)
         linkingParameters.geometryPlanId?.let(::verifyPlanNotHidden)
         val originalArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
         switchService.clearSwitchInformationFromSegments(linkingParameters.layoutSwitchId)

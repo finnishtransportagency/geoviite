@@ -59,7 +59,7 @@ class InfraModelService @Autowired constructor(
     ): RowVersion<GeometryPlan> {
         logger.serviceCall(
             "saveInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+            "file" to file, "overrides" to overrides, "extraInfo" to extraInfo
         )
 
         val geometryPlan = parseInfraModel(file, overrides, extraInfo)
@@ -80,7 +80,7 @@ class InfraModelService @Autowired constructor(
     ): GeometryPlan {
         logger.serviceCall(
             "parseInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+            "file" to file, "overrides" to overrides, "extraInfo" to extraInfo
         )
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
         val trackNumberIdsByNumber = trackNumberService.list(OFFICIAL).associate { tn -> tn.number to tn.id as IntId }
@@ -117,7 +117,7 @@ class InfraModelService @Autowired constructor(
     ): ValidationResponse {
         logger.serviceCall(
             "validateInfraModelFile",
-            "file.name" to file.name, "overrideParameters" to overrideParameters
+            "file" to file, "overrideParameters" to overrideParameters
         )
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
@@ -161,6 +161,7 @@ class InfraModelService @Autowired constructor(
     ): GeometryPlan {
         logger.serviceCall(
             "updateInfraModel",
+            "planId" to planId,
             "overrideParameters" to overrideParameters,
             "extraInfoParameters" to extraInfoParameters,
         )
