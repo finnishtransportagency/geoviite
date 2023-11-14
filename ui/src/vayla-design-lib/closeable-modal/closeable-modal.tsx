@@ -11,23 +11,35 @@ type CloseableModalProps = {
     className?: string;
     useRefWidth?: boolean;
     refWidthOffset?: number;
+    maxHeight?: number;
 };
 
 const WINDOW_MARGIN = 6;
+
+type ModalPosition = {
+    top: number;
+    left: number;
+};
+
+type ModalSize = {
+    width?: number;
+    maxHeight?: number;
+};
 
 export const CloseableModal: React.FC<CloseableModalProps> = ({
     positionRef,
     onClickOutside,
     children,
     className,
+    maxHeight,
     offsetX = 0,
     offsetY = 0,
     refWidthOffset = 0,
     useRefWidth = false,
 }: CloseableModalProps) => {
-    const [x, setX] = React.useState<number>();
-    const [y, setY] = React.useState<number>();
-    const [width, setWidth] = React.useState<number | undefined>();
+    const [modalPosition, setModalPosition] = React.useState<ModalPosition>();
+    const [modalSize, setModalSize] = React.useState<ModalSize>();
+    const [refPosition, setRefPosition] = React.useState<ModalPosition>();
     const modalRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -45,43 +57,50 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     }, [positionRef]);
 
     React.useEffect(() => {
-        const ref = modalRef.current;
-        if (ref) {
-            const {
-                x: trueX,
-                y: trueY,
-                width: trueWidth,
-                height: trueHeight,
-            } = ref.getBoundingClientRect();
+        if (refPosition && modalRef.current) {
+            const windowHeight = window.innerHeight;
+            const windowWidth = window.innerWidth;
 
-            const maxHeight = window.innerHeight;
-            const maxWidth = window.innerWidth;
+            const x = refPosition.left + offsetX;
+            const y = refPosition.top + offsetY;
 
-            const heightOverflow = trueHeight + trueY - maxHeight + WINDOW_MARGIN;
-            const widthOverflow = trueWidth + trueX - maxWidth + WINDOW_MARGIN;
+            const calculatedMaxHeight = windowHeight - y - WINDOW_MARGIN;
 
-            if (heightOverflow > 0 && trueHeight < maxHeight) {
-                setY(trueY - offsetY - heightOverflow);
+            const modalWidth = modalSize?.width ?? 0;
+            const widthOverflow = x + modalWidth + WINDOW_MARGIN - windowWidth;
+
+            const newPosition: ModalPosition = { left: x, top: y };
+
+            setModalSize({
+                ...modalSize,
+                maxHeight:
+                    maxHeight === undefined || maxHeight <= calculatedMaxHeight
+                        ? maxHeight
+                        : calculatedMaxHeight,
+            });
+
+            if (modalWidth < windowWidth) {
+                if (widthOverflow > 0) {
+                    newPosition.left -= widthOverflow;
+                } else if (x < 0) {
+                    newPosition.left -= x - WINDOW_MARGIN;
+                }
             }
 
-            if (widthOverflow > 0 && trueWidth < maxWidth) {
-                setX(trueX - offsetX - widthOverflow);
-            }
+            setModalPosition(newPosition);
         }
-    }, [x, y, width]);
+    }, [refPosition?.top, refPosition?.left, modalRef]);
 
     useResizeObserver({
         ref: document.body,
         onResize: () => {
             const ref = positionRef.current;
             if (ref) {
-                const { x: newX, y: newY, width: newWidth } = ref.getBoundingClientRect();
-
-                setX(newX);
-                setY(newY);
+                const { x, y, width } = ref.getBoundingClientRect();
+                setRefPosition({ left: x, top: y });
 
                 if (useRefWidth) {
-                    setWidth(newWidth ? newWidth + refWidthOffset : undefined);
+                    setModalSize({ ...modalSize, width: width + refWidthOffset });
                 }
             }
         },
@@ -91,11 +110,11 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
         <div
             ref={modalRef}
             style={{
-                top: (y ?? 0) + offsetY,
-                left: (x ?? 0) + offsetX,
                 position: 'absolute',
-                width: width,
-                visibility: x === undefined || y === undefined ? 'hidden' : undefined,
+                overflowY: 'auto',
+                visibility: modalPosition === undefined ? 'hidden' : undefined,
+                ...modalPosition,
+                ...modalSize,
             }}
             className={className}
             onClick={(e) => e.stopPropagation()}>
