@@ -1,4 +1,5 @@
 import {
+    AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutTrackNumberId,
@@ -44,6 +45,19 @@ export type AlignmentPlanSection = {
     start: PlanSectionPoint | undefined;
     end: PlanSectionPoint | undefined;
     id: string;
+};
+
+export type SplitDuplicate = {
+    id: LocationTrackId;
+    name: string;
+    start: AddressPoint;
+    end: AddressPoint;
+};
+
+export type SplitInitializationParameters = {
+    id: LocationTrackId;
+    switches: SwitchOnLocationTrack[];
+    duplicates: SplitDuplicate[];
 };
 
 const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;
@@ -165,14 +179,6 @@ export async function getLocationTracksNear(
     );
 }
 
-export const getSwitchesOnLocationTrack = async (
-    publishType: PublishType,
-    locationTrackId: LocationTrackId,
-) =>
-    getNonNull<SwitchOnLocationTrack[]>(
-        `${layoutUri('location-tracks', publishType, locationTrackId)}/switches`,
-    );
-
 export async function insertLocationTrack(
     locationTrack: LocationTrackSaveRequest,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
@@ -258,6 +264,15 @@ export const getLocationTrackSectionsByPlan = async (
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNullable<AlignmentPlanSection[]>(
         `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+    );
+};
+
+export const getSplittingInitializationParameters = async (
+    publishType: PublishType,
+    id: LocationTrackId,
+): Promise<SplitInitializationParameters> => {
+    return getNonNull<SplitInitializationParameters>(
+        `${layoutUri('location-tracks', publishType, id)}/splitting-initialization-parameters`,
     );
 };
 

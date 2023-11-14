@@ -9,6 +9,10 @@ import {
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { TrackMeter } from 'common/common-model';
 import { Point } from 'model/geometry';
+import { SplitDuplicate } from 'track-layout/layout-location-track-api';
+import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
+
+const DUPLICATE_MAX_DISTANCE = 1.0;
 
 export type InitialSplit = {
     name: string;
@@ -27,6 +31,7 @@ export type SplittingState = {
     endLocation: LayoutPoint;
     originLocationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
+    duplicateTracks: SplitDuplicate[];
     initialSplit: InitialSplit;
     splits: Split[];
 };
@@ -34,6 +39,7 @@ export type SplittingState = {
 type SplitStart = {
     locationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
+    duplicateTracks: SplitDuplicate[];
     startLocation: LayoutPoint;
     endLocation: LayoutPoint;
 };
@@ -48,16 +54,41 @@ export type SwitchOnLocationTrack = {
 export const sortSplitsByDistance = (splits: Split[]) =>
     [...splits].sort((a, b) => a.distance - b.distance);
 
+const findClosestDuplicate = (duplicates: SplitDuplicate[], otherPoint: Point) =>
+    duplicates
+        .map((dupe) => ({
+            distance: getPlanarDistanceUnwrapped(
+                dupe.start.point.x,
+                dupe.start.point.y,
+                otherPoint.x,
+                otherPoint.y,
+            ),
+            duplicate: dupe,
+        }))
+        .sort((a, b) => a.distance - b.distance)[0];
+
 export const splitReducers = {
     onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
+        const duplicateTrackClosestToStart = findClosestDuplicate(
+            payload.duplicateTracks,
+            payload.startLocation,
+        );
         state.publishType = 'DRAFT';
         state.splittingState = {
             originLocationTrack: payload.locationTrack,
             allowedSwitches: payload.allowedSwitches,
+            duplicateTracks: payload.duplicateTracks,
             splits: [],
             endLocation: payload.endLocation,
             initialSplit: {
-                name: '',
+                name:
+                    duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
+                        ? duplicateTrackClosestToStart.duplicate.name
+                        : '',
+                duplicateOf:
+                    duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
+                        ? duplicateTrackClosestToStart.duplicate.id
+                        : undefined,
                 descriptionBase: '',
                 suffixMode: 'NONE',
                 location: payload.startLocation,
@@ -77,10 +108,21 @@ export const splitReducers = {
             allowedSwitch?.distance &&
             !state.splittingState.splits.some((split) => split.switchId === payload)
         ) {
+            const closestDupe = findClosestDuplicate(
+                state.splittingState.duplicateTracks,
+                allowedSwitch.location,
+            );
             state.splittingState.splits = state.splittingState.splits.concat([
                 {
                     switchId: payload,
-                    name: '',
+                    name:
+                        closestDupe.distance <= DUPLICATE_MAX_DISTANCE
+                            ? closestDupe.duplicate.name
+                            : '',
+                    duplicateOf:
+                        closestDupe.distance <= DUPLICATE_MAX_DISTANCE
+                            ? closestDupe.duplicate.id
+                            : undefined,
                     descriptionBase: '',
                     suffixMode: 'NONE',
                     location: allowedSwitch.location,

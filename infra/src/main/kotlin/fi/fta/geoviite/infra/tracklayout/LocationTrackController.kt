@@ -116,25 +116,6 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/switches")
-    fun getSwitchesOnLocationTrack(
-        @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<LocationTrack>,
-    ): List<SwitchOnLocationTrack> {
-        logger.apiCall("getSwitchesOnLocationTrack", "publishType" to publishType, "id" to id)
-        val locationTrack = locationTrackService.getOrThrow(publishType, id)
-        return locationTrackService.getSwitchesForLocationTrack(id, publishType).map { switchId ->
-            val presentationJoint = switchService.get(publishType, switchId)?.let(switchService::getPresentationJoint)
-            val addressAndM =
-                geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-                    presentationJoint?.let { context.getAddressAndM(presentationJoint.location) }
-                }
-            requireNotNull(addressAndM)
-            SwitchOnLocationTrack(switchId, addressAndM.address, presentationJoint?.location, addressAndM.m)
-        }
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/description")
     fun getDescription(
         @PathVariable("publishType") publishType: PublishType,
@@ -181,10 +162,10 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions =
-            switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds
-            .distinct()
-            .let { swId -> switchService.getMany(publishType, swId) })
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
+            switchIds
+                .distinct()
+                .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
@@ -264,5 +245,19 @@ class LocationTrackController(
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         logger.apiCall("getLocationTrackOwners")
         return locationTrackService.getLocationTrackOwners()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/splitting-initialization-parameters")
+    fun getSplittingInitializationParameters(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): SplittingInitializationParameters {
+        logger.apiCall(
+            "getSplittingInitializationParameters",
+            "publishType" to publishType,
+            "id" to id,
+        )
+        return locationTrackService.getSplittingInitializationParameters(id, publishType)
     }
 }
