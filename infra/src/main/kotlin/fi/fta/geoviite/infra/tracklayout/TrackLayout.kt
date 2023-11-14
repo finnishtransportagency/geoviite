@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
@@ -131,9 +132,23 @@ data class SwitchValidationWithSuggestedSwitch(
 
 data class SwitchOnLocationTrack(
     val switchId: IntId<TrackLayoutSwitch>,
+    val name: SwitchName,
     val address: TrackMeter?,
     val location: Point?,
     val distance: Double?,
+)
+
+data class SplitDuplicateTrack(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val start: AddressPoint,
+    val end: AddressPoint,
+)
+
+data class SplittingInitializationParameters(
+    val id: IntId<LocationTrack>,
+    val switches: List<SwitchOnLocationTrack>,
+    val duplicates: List<SplitDuplicateTrack>,
 )
 
 data class LocationTrack(

@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +25,7 @@ class LocationTrackService(
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
+    private val switchLibraryService: SwitchLibraryService,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
@@ -151,7 +153,7 @@ class LocationTrackService(
         return listInternal(publishType, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
-    override fun sortSearchResult(list: List<LocationTrack>) = list.sortedBy (LocationTrack::name)
+    override fun sortSearchResult(list: List<LocationTrack>) = list.sortedBy(LocationTrack::name)
 
     fun list(
         publicationState: PublishType,
@@ -330,20 +332,19 @@ class LocationTrackService(
         id: IntId<LocationTrack>,
         publishType: PublishType,
     ): List<LocationTrackDuplicate> {
+        val originalAndAlignment = getWithAlignmentOrThrow(publishType, id)
         val duplicates = dao.fetchDuplicates(id, publishType).map(dao::fetch)
 
-        val duplicateStartAddresses = duplicates.map { duplicate ->
+        val duplicateMValues = duplicates.map { duplicate ->
             duplicate.alignmentVersion?.let { alignmentVersion ->
-                alignmentDao.fetch(alignmentVersion).start?.let { startPoint ->
-                    geocodingService
-                        .getGeocodingContext(publishType, duplicate.trackNumberId)
-                        ?.getAddress(startPoint)?.first
-                }
+                alignmentDao.fetch(alignmentVersion).start?.let(
+                    originalAndAlignment.second::getClosestPointM
+                )?.first
             }
         }
         return duplicates.mapIndexed { index, d -> index to d }.sortedWith { a, b ->
             compareValues(
-                duplicateStartAddresses[a.first], duplicateStartAddresses[b.first]
+                duplicateMValues[a.first], duplicateMValues[b.first]
             )
         }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.name, track.externalId) }
     }
@@ -422,6 +423,51 @@ class LocationTrackService(
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         logger.serviceCall("getLocationTrackOwners")
         return dao.fetchLocationTrackOwners()
+    }
+
+    fun getSplittingInitializationParameters(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
+    ): SplittingInitializationParameters {
+        logger.serviceCall(
+            "getSplittingInitializationParameters",
+            "locationTrackId" to locationTrackId,
+            "publishType" to publishType,
+        )
+        val locationTrack = getOrThrow(publishType, locationTrackId)
+        val switches = getSwitchesForLocationTrack(locationTrackId, publishType)
+            .mapNotNull { switchDao.fetchVersion(it, publishType) }
+            .map { switchDao.fetch(it) }
+            .mapNotNull { switch ->
+                switchLibraryService.getSwitchStructure(switch.switchStructureId).let { structure ->
+                    val presentationJointLocation = switch.getJoint(structure.presentationJointNumber)?.location
+                    if (presentationJointLocation != null) {
+                        switch to presentationJointLocation
+                    } else null
+                }
+            }
+            .map { (switch, location) ->
+                val address = geocodingService
+                    .getGeocodingContext(publishType, locationTrack.trackNumberId)
+                    ?.getAddressAndM(location)
+                SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, address?.m)
+            }
+
+        val duplicateTracks = getLocationTrackDuplicates(locationTrackId, publishType).mapNotNull { duplicate ->
+            getWithAlignmentOrThrow(publishType, duplicate.id).let { (dupe, alignment) ->
+                geocodingService.getLocationTrackStartAndEnd(publishType, dupe, alignment)
+            }?.let { (start, end) ->
+                if (start != null && end != null) {
+                    SplitDuplicateTrack(
+                        duplicate.id, duplicate.name, start, end
+                    )
+                } else null
+            }
+        }
+
+        return SplittingInitializationParameters(
+            locationTrackId, switches, duplicateTracks
+        )
     }
 
     fun getSwitchesForLocationTrack(
