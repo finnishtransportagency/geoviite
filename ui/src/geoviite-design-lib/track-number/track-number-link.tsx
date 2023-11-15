@@ -31,14 +31,15 @@ function createSelectAction() {
         });
 }
 
-export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> = (
-    props: TrackNumberLinkContainerProps,
-) => {
+export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> = ({
+    trackNumberId,
+}) => {
     const publicationType = useTrackLayoutAppSelector((state) => state.publishType);
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutTrackNumber);
+
     return (
         <TrackNumberLink
-            trackNumberId={props.trackNumberId}
+            trackNumberId={trackNumberId}
             publicationType={publicationType}
             changeTime={changeTime}
         />
@@ -57,12 +58,13 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
         trackNumberId,
         changeTime,
     );
+
     const clickAction = onClick || createSelectAction();
-    const name = trackNumber?.number || '';
-    return status === LoaderStatus.Ready ? (
+
+    return status === LoaderStatus.Ready && trackNumber ? (
         <React.Fragment>
-            <Link onClick={() => trackNumber && clickAction(trackNumber.id)}>{name}</Link>
-            {trackNumber?.state === 'DELETED' ? (
+            <Link onClick={() => clickAction(trackNumber.id)}>{trackNumber.number}</Link>
+            {trackNumber.state === 'DELETED' ? (
                 <span>&nbsp;({t('enum.layout-state.DELETED')})</span>
             ) : (
                 ''
