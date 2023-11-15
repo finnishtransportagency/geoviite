@@ -59,7 +59,6 @@ class GeometryService @Autowired constructor(
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val localization = localizationService.getLocalization("fi")
 
     private fun runElementListGeneration(op: () -> Unit) {
         MDC.put(USER_HEADER, ELEMENT_LISTING_GENERATION_USER)
@@ -436,13 +435,14 @@ class GeometryService @Autowired constructor(
         return header to geometryAlignment
     }
 
-    fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =
-        if (sortOrder == SortOrder.ASCENDING) getComparator(sortField)
-        else getComparator(sortField).reversed()
+    fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder, lang: String): Comparator<GeometryPlanHeader> =
+        if (sortOrder == SortOrder.ASCENDING) getComparator(sortField, lang)
+        else getComparator(sortField, lang).reversed()
 
-    private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
+    private fun getComparator(sortField: GeometryPlanSortField, lang: String): Comparator<GeometryPlanHeader> {
         val trackNumbers by lazy { trackNumberService.mapById(PublishType.DRAFT) }
         val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
+        val translation = localizationService.getLocalization(lang)
         return when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
@@ -458,9 +458,8 @@ class GeometryService @Autowired constructor(
                     a.kmNumberRange?.max, b.kmNumberRange?.max
                 )
             }
-
-            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> localization.t("enum.plan-phase.${h.planPhase?.name}") }
-            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> localization.t("enum.plan-decision.${h.decisionPhase?.name}") }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> translation.t("enum.plan-phase.${h.planPhase?.name}") }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> translation.t("enum.plan-decision.${h.decisionPhase?.name}") }
             GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }

@@ -48,6 +48,7 @@ import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
+import i18next from 'i18next';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -110,6 +111,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
             typeof sortOrder === 'undefined' || sortField === GeometrySortBy.NO_SORTING
                 ? undefined
                 : GeometrySortOrder[sortOrder],
+        lang: i18next.language,
     });
 
     return getNonNull<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`);
