@@ -1,31 +1,39 @@
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { deleteTrackNumber } from 'track-layout/layout-track-number-api';
+import { ChangesBeingReverted } from 'preview/preview-view';
+import {
+    onlyDependencies,
+    PublicationRequestDependencyList,
+} from 'preview/publication-request-dependency-list';
+import { ChangeTimes } from 'common/common-slice';
+import { revertCandidates } from 'publication/publication-api';
+import { getChangeTimes } from 'common/change-time-api';
 
 type TrackNumberDeleteConfirmationDialogProps = {
-    id: LayoutTrackNumberId;
+    changesBeingReverted: ChangesBeingReverted;
     onSave?: (trackNumberId: LayoutTrackNumberId) => void;
     onClose: () => void;
+    changeTimes: ChangeTimes;
 };
 
 const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmationDialogProps> = ({
-    id,
+    changesBeingReverted,
     onSave,
     onClose,
 }: TrackNumberDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
 
-    const deleteDraftLocationTrack = (id: LocationTrackId) => {
-        deleteTrackNumber(id).then((result) => {
+    const deleteDraftLocationTrack = () => {
+        revertCandidates(changesBeingReverted.changeIncludingDependencies).then((result) => {
             result
-                .map((trackNumberId) => {
+                .map(() => {
                     Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
-                    onSave && onSave(trackNumberId);
+                    onSave && onSave(changesBeingReverted.requestedRevertChange.id);
                     onClose();
                 })
                 .mapErr(() => {
@@ -44,12 +52,14 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                     <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('button.cancel')}
                     </Button>
-                    <Button onClick={() => deleteDraftLocationTrack(id)}>
-                        {t('button.delete')}
-                    </Button>
+                    <Button onClick={deleteDraftLocationTrack}>{t('button.delete')}</Button>
                 </div>
             }>
             <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>
+            <PublicationRequestDependencyList
+                changeTimes={getChangeTimes()}
+                dependencies={onlyDependencies(changesBeingReverted)}
+            />
         </Dialog>
     );
 };

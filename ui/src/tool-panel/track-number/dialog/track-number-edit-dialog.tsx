@@ -36,6 +36,9 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
+import { ChangesBeingReverted } from 'preview/preview-view';
+import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
+import { getChangeTimes } from 'common/change-time-api';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -103,18 +106,21 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         : undefined;
 
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
-    const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
-        React.useState<boolean>();
+    const [deletingDraft, setDeletingDraft] = React.useState<ChangesBeingReverted>();
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
-    const trackNumberStateOptions = layoutStates.filter((s) => s.value !== 'PLANNED');
+    const trackNumberStateOptions = layoutStates
+        .filter((s) => s.value !== 'PLANNED')
+        .map((s) =>
+            s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
+        );
 
     const confirmNewDraftDelete = () => {
-        setDraftDeleteConfirmationVisible(true);
+        inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
     };
     const closeDraftDeleteConfirmation = () => {
-        setDraftDeleteConfirmationVisible(false);
+        setDeletingDraft(undefined);
     };
     const closeNonDraftDeleteConfirmation = () => {
         setNonDraftDeleteConfirmationVisible(false);
@@ -122,7 +128,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 
     const saveOrConfirm = () => {
         if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
-            setNonDraftDeleteConfirmationVisible(true);
+            if (inEditTrackNumber?.draftType === 'NEW_DRAFT') {
+                confirmNewDraftDelete();
+            } else {
+                setNonDraftDeleteConfirmationVisible(true);
+            }
         } else {
             saveTrackNumber();
         }
@@ -365,9 +375,10 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     </div>
                 </Dialog>
             )}
-            {inEditTrackNumber && draftDeleteConfirmationVisible && (
+            {inEditTrackNumber && deletingDraft && (
                 <TrackNumberDeleteConfirmationDialog
-                    id={inEditTrackNumber.id}
+                    changesBeingReverted={deletingDraft}
+                    changeTimes={getChangeTimes()}
                     onClose={closeDraftDeleteConfirmation}
                     onSave={onSave}
                 />
