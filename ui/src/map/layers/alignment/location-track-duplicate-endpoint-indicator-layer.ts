@@ -52,6 +52,9 @@ function createDuplicateTrackEndpointAddressFeature(
         endpointType === 'START'
             ? getRotation(pointToCoords(point), pointToCoords(controlPoint))
             : getRotation(pointToCoords(controlPoint), pointToCoords(point));
+    const textBelowLine =
+        (endpointType === 'START' && positiveXOffset) ||
+        (endpointType === 'END' && !positiveXOffset);
 
     const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
         const ctx = context;
@@ -61,8 +64,9 @@ function createDuplicateTrackEndpointAddressFeature(
         }px ${mapStyles['alignmentBadge-font-family']}`;
 
         ctx.save();
-        const textPositionOffset =
-            endpointType === 'START' ? 0 : 2 * indicatorTextBackgroundHeight(pixelRatio);
+        const textPositionOffset = textBelowLine
+            ? 0
+            : 2 * indicatorTextBackgroundHeight(pixelRatio);
 
         const nameText = name;
         const nameTextWidth = ctx.measureText(nameText).width;
@@ -86,14 +90,16 @@ function createDuplicateTrackEndpointAddressFeature(
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
         ctx.fillRect(
-            nameTextXEndPosition,
-            endpointType === 'START' ? y - indicatorTextBackgroundHeight(pixelRatio) * 2 : y,
+            nameTextXEndPosition -
+                (positiveXOffset ? 0 : nameTextWidth + indicatorTextPadding(pixelRatio) * 2),
+            textBelowLine ? y - indicatorTextBackgroundHeight(pixelRatio) * 2 : y,
             nameTextWidth + indicatorTextPadding(pixelRatio) * 2,
             indicatorTextBackgroundHeight(pixelRatio),
         );
         ctx.fillRect(
-            trackMeterTextXEndPosition,
-            endpointType === 'START'
+            trackMeterTextXEndPosition -
+                (positiveXOffset ? 0 : trackMeterTextWidth + indicatorTextPadding(pixelRatio) * 2),
+            textBelowLine
                 ? y - indicatorTextBackgroundHeight(pixelRatio)
                 : y + indicatorTextBackgroundHeight(pixelRatio),
             trackMeterTextWidth + indicatorTextPadding(pixelRatio) * 2,
