@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -43,7 +42,7 @@ class ReferenceLineService(
     ): DaoResponse<ReferenceLine>? {
         logger.serviceCall("updateTrackNumberStart",
             "trackNumberId" to trackNumberId, "startAddress" to startAddress)
-        val originalVersion = dao.fetchVersion(DRAFT, trackNumberId)
+        val originalVersion = dao.fetchVersionByTrackNumberId(DRAFT, trackNumberId)
             ?: throw IllegalStateException("Track number should have a reference line")
         val original = dao.fetch(originalVersion)
         return if (original.startAddress != startAddress) {
@@ -105,57 +104,55 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun deleteUnpublishedDraft(id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
-        val draft = getInternalOrThrow(DRAFT, id)
-        val deletedVersion = super.deleteUnpublishedDraft(id)
+    override fun deleteDraft(id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
+        val draft = dao.getOrThrow(DRAFT, id)
+        val deletedVersion = super.deleteDraft(id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
+    }
+
+    @Transactional
+    fun deleteDraftByTrackNumberId(trackNumberId: IntId<TrackLayoutTrackNumber>): DaoResponse<ReferenceLine>? {
+        logger.serviceCall("deleteDraftByTrackNumberId", "trackNumberId" to trackNumberId)
+        val referenceLine = requireNotNull(referenceLineDao.getByTrackNumber(DRAFT, trackNumberId)) {
+            "Found Track Number without Reference Line $trackNumberId"
+        }
+        return if (referenceLine.getDraftType() != DraftType.OFFICIAL) deleteDraft(referenceLine.id as IntId) else null
     }
 
     override fun createDraft(item: ReferenceLine) = draft(item)
 
     override fun createPublished(item: ReferenceLine) = published(item)
 
-    @Transactional
-    fun deleteDraftOnlyReferenceLine(referenceLine: ReferenceLine): DaoResponse<ReferenceLine> {
-        if (referenceLine.getDraftType() != DraftType.NEW_DRAFT)
-            throw DeletingFailureException("Trying to delete non-draft Reference Line")
-        require(referenceLine.id is IntId) { "Trying to delete or reset reference line not yet saved to database" }
-
-        val response = referenceLine.draft?.draftRowId.let { draftRowId ->
-            require(draftRowId is IntId) { "Trying to delete draft Reference Line that isn't yet stored in database" }
-            referenceLineDao.deleteDraft(draftRowId)
-        }
-
-        referenceLine.alignmentVersion?.id?.let(alignmentDao::delete)
-        return response
-    }
-
     fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
         logger.serviceCall("getByTrackNumber",
             "publishType" to publishType, "trackNumberId" to trackNumberId)
-        return dao.fetchVersion(publishType, trackNumberId)?.let(dao::fetch)
+        return dao.getByTrackNumber(publishType, trackNumberId)
     }
 
+    @Transactional(readOnly = true)
     fun getByTrackNumberWithAlignment(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): Pair<ReferenceLine,LayoutAlignment>? {
         logger.serviceCall("getByTrackNumberWithAlignment",
             "publishType" to publishType, "trackNumberId" to trackNumberId)
-        return dao.fetchVersion(publishType, trackNumberId)?.let(::getWithAlignmentInternal)
+        return dao.fetchVersionByTrackNumberId(publishType, trackNumberId)?.let(::getWithAlignmentInternal)
     }
 
+    @Transactional(readOnly = true)
     fun getWithAlignmentOrThrow(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return getWithAlignmentInternalOrThrow(publishType, id)
     }
 
+    @Transactional(readOnly = true)
     fun getWithAlignment(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return getWithAlignmentInternal(publishType, id)
     }
 
+    @Transactional(readOnly = true)
     fun getWithAlignment(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "version" to version)
         return getWithAlignmentInternal(version)

@@ -60,17 +60,20 @@ class MapAlignmentService(
         return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
     }
 
+    @Transactional(readOnly = true)
     fun getAlignmentPolyline(
         id: IntId<LocationTrack>,
         publishType: PublishType,
         bbox: BoundingBox,
         resolution: Int,
     ): AlignmentPolyLine<LocationTrack>? {
-        return locationTrackService.get(publishType, id)
+        return locationTrackService
+            .get(publishType, id)
             ?.takeIf { t -> t.state != LayoutState.DELETED }
             ?.let { toAlignmentPolyLine(it.id, LOCATION_TRACK, it.alignmentVersion, bbox, resolution) }
     }
 
+    @Transactional(readOnly = true)
     fun getSectionsWithoutLinking(
         publishType: PublishType,
         bbox: BoundingBox,
@@ -88,6 +91,7 @@ class MapAlignmentService(
         return referenceLines + locationTracks
     }
 
+    @Transactional(readOnly = true)
     fun getSectionsWithoutProfile(
         publishType: PublishType,
         bbox: BoundingBox,
@@ -117,6 +121,7 @@ class MapAlignmentService(
             ) }
     }
 
+    @Transactional(readOnly = true)
     fun getReferenceLineHeaders(
         publishType: PublishType,
         referenceLineIds: List<IntId<ReferenceLine>>,
@@ -133,6 +138,7 @@ class MapAlignmentService(
         }
     }
 
+    @Transactional(readOnly = true)
     fun getLocationTrackHeaders(
         publishType: PublishType,
         locationTrackIds: List<IntId<LocationTrack>>,
@@ -170,9 +176,12 @@ class MapAlignmentService(
         publishType: PublishType,
         bbox: BoundingBox,
         resolution: Int,
-    ) = locationTrackService.list(publishType).filter(LocationTrack::exists).mapNotNull { locationTrack ->
-        toAlignmentPolyLine(locationTrack.id, LOCATION_TRACK, locationTrack.alignmentVersion, bbox, resolution)
-    }
+    ): List<AlignmentPolyLine<LocationTrack>> = locationTrackService
+        .list(publishType)
+        .filter(LocationTrack::exists)
+        .mapNotNull { locationTrack ->
+            toAlignmentPolyLine(locationTrack.id, LOCATION_TRACK, locationTrack.alignmentVersion, bbox, resolution)
+        }
 
     private fun getReferenceLinePolyLines(
         publishType: PublishType,

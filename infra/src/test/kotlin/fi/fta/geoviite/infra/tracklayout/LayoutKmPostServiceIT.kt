@@ -26,7 +26,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun nearbyKmPostsAreReturnedInOrder() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost1 = kmPostService.get(
+        val kmPost1 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -35,7 +35,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 )
             ).rowVersion
         )
-        val kmPost2 = kmPostService.get(
+        val kmPost2 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -44,7 +44,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 )
             ).rowVersion
         )
-        val kmPost3 = kmPostService.get(
+        val kmPost3 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -72,7 +72,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun findsKmPostAtKmNumber() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost = kmPostService.get(
+        val kmPost = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -105,7 +105,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun doesntFindKmPostOnWrongTrack() {
         val trackNumber1Id = insertOfficialTrackNumber()
         val trackNumber2Id = insertOfficialTrackNumber()
-        val kmPost = kmPostService.get(
+        val kmPost = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumber1Id,
@@ -124,11 +124,11 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val kmPost = TrackLayoutKmPost(KmNumber(7654), Point(123.4, 234.5), LayoutState.IN_USE, trackNumberId, null)
 
         val draftId = kmPostService.saveDraft(draft(kmPost)).id
-        val draftFromDb = kmPostService.getDraft(draftId)
+        val draftFromDb = kmPostService.get(DRAFT, draftId)
 
         assertEquals(1, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
 
-        kmPostService.deleteUnpublishedDraft(draftId)
+        kmPostService.deleteDraft(draftId)
 
         assertEquals(0, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
     }
@@ -143,8 +143,8 @@ class LayoutKmPostServiceIT @Autowired constructor(
         )
         val kmPostId = kmPostService.insertKmPost(kmPost)
 
-        val fetchedKmPost = kmPostService.getDraft(kmPostId)!!
-        assertNull(kmPostService.getOfficial(kmPostId))
+        val fetchedKmPost = kmPostService.get(DRAFT, kmPostId)!!
+        assertNull(kmPostService.get(OFFICIAL, kmPostId))
 
         assertEquals(DataType.STORED, fetchedKmPost.dataType)
         assertEquals(kmPost.kmNumber, fetchedKmPost.kmNumber)

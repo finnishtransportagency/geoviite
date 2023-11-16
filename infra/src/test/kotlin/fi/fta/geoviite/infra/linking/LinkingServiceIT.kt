@@ -131,7 +131,7 @@ class LinkingServiceIT @Autowired constructor(
 
         val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber())
         val kmPostId = kmPostDao.insert(kmPost).id
-        val officialKmPost = kmPostService.getOfficial(kmPostId)
+        val officialKmPost = kmPostService.get(OFFICIAL, kmPostId)
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId))
 
@@ -149,7 +149,7 @@ class LinkingServiceIT @Autowired constructor(
 
         linkingService.saveKmPostLinking(kmPostLinkingParameters)
 
-        assertEquals(officialKmPost, kmPostService.getOfficial(kmPostId))
+        assertEquals(officialKmPost, kmPostService.get(OFFICIAL, kmPostId))
 
         val draftKmPost = kmPostService.getOrThrow(DRAFT, kmPostId)
 

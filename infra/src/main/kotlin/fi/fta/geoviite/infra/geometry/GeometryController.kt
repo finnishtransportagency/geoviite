@@ -119,7 +119,6 @@ class GeometryController @Autowired constructor(
         return geometryService.getGeometryElement(geometryElementId)
     }
 
-
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/projects")
     fun getProjects(): List<Project> {
@@ -136,7 +135,7 @@ class GeometryController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/projects")
-    fun createProject(@RequestBody project: Project): Project {
+    fun createProject(@RequestBody project: Project): IntId<Project> {
         log.apiCall("createProject", "project" to project)
         return geometryService.createProject(project)
     }

@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
-import fi.fta.geoviite.infra.geometry.KmPostError
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -26,6 +25,13 @@ class LayoutKmPostDao(
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null, null)
+
+    fun list(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        bbox: BoundingBox? = null,
+    ): List<TrackLayoutKmPost> = fetchVersions(publicationState, includeDeleted, trackNumberId, bbox).map(::fetch)
 
     fun fetchVersions(
         publicationState: PublishType,

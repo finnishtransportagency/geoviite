@@ -296,6 +296,13 @@ class LocationTrackDao(
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
 
+    fun list(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        name: AlignmentName? = null,
+    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, name).map(::fetch)
+
     fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
@@ -344,6 +351,8 @@ class LocationTrackDao(
             rs.getRowVersion("row_id", "row_version")
         }
     }
+    fun listNear(publicationState: PublishType, bbox: BoundingBox): List<LocationTrack> =
+        fetchVersionsNear(publicationState, bbox).map(::fetch)
 
     fun fetchVersionsNear(publicationState: PublishType, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
         val sql = """
@@ -377,26 +386,6 @@ class LocationTrackDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
-    }
-
-    fun duplicateNameExistsForPublicationCandidate(locationTrackId: IntId<LocationTrack>): Boolean {
-        val sql = """
-            select
-              exists(
-                  select *
-                    from layout.location_track this_track
-                      join layout.location_track duplicate_track
-                           on this_track.name = duplicate_track.name
-                             and this_track.track_number_id = duplicate_track.track_number_id
-                             and this_track.id != duplicate_track.id
-                             and this_track.draft_of_location_track_id is distinct from duplicate_track.id
-                    where duplicate_track.state != 'DELETED'
-                      and this_track.id = :locationTrackId)
-        """.trimIndent()
-
-        return jdbcTemplate.queryForObject(
-            sql, mapOf("locationTrackId" to locationTrackId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
 
     @Cacheable(CACHE_COMMON_LOCATION_TRACK_OWNER, sync = true)

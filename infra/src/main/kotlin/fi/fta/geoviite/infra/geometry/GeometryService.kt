@@ -36,10 +36,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
-
 const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
 const val VERTICAL_GEOMETRY_LISTING_GENERATION_USER = "VERT_GEOM_LIST_GEN"
-
 
 @Service
 class GeometryService @Autowired constructor(
@@ -94,6 +92,7 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchPlanAreas(boundingBox)
     }
 
+    @Transactional(readOnly = true)
     fun getPlanHeaders(
         sources: List<PlanSource> = listOf(),
         bbox: BoundingBox? = null,
@@ -109,12 +108,12 @@ class GeometryService @Autowired constructor(
 
     fun getPlanHeader(planId: IntId<GeometryPlan>): GeometryPlanHeader {
         logger.serviceCall("getPlanHeader", "planId" to planId)
-        return geometryDao.fetchPlanVersion(planId).let(geometryDao::getPlanHeader)
+        return geometryDao.getPlanHeader(planId)
     }
 
     fun getManyPlanHeaders(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanHeader> {
         logger.serviceCall("getManyPlanHeaders", "planIds" to planIds)
-        return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::getPlanHeader)
+        return geometryDao.getPlanHeaders(planIds)
     }
 
     fun getGeometryElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {
@@ -122,6 +121,7 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchElement(geometryElementId)
     }
 
+    @Transactional(readOnly = true)
     fun getGeometryPlan(planId: IntId<GeometryPlan>): GeometryPlan {
         logger.serviceCall("getGeometryPlan", "planId" to planId)
         return geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
@@ -152,10 +152,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getProject(id)
     }
 
-    fun createProject(project: Project): Project {
+    fun createProject(project: Project): IntId<Project> {
         logger.serviceCall("createProject", "project" to project)
-        val projectId = geometryDao.insertProject(project)
-        return geometryDao.getProject(projectId.id)
+        return geometryDao.insertProject(project).id
     }
 
     fun getAuthors(): List<Author> {
@@ -219,6 +218,7 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
     }
 
+    @Transactional(readOnly = true)
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
         logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
         val planVersion = geometryDao.fetchPlanVersion(planId)
@@ -231,6 +231,7 @@ class GeometryService @Autowired constructor(
         ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
     }
 
+    @Transactional(readOnly = true)
     fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): ElementListingFile {
         logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
         val plan = getPlanHeader(planId)
@@ -240,6 +241,7 @@ class GeometryService @Autowired constructor(
         return ElementListingFile(FileName("$ELEMENT_LISTING ${plan.fileName}"), csvFileContent)
     }
 
+    @Transactional(readOnly = true)
     fun getElementListing(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
@@ -258,6 +260,7 @@ class GeometryService @Autowired constructor(
         ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
     }
 
+    @Transactional(readOnly = true)
     fun getElementListing(
         trackId: IntId<LocationTrack>,
         elementTypes: List<TrackGeometryElementType>,
@@ -282,6 +285,7 @@ class GeometryService @Autowired constructor(
         ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
     }
 
+    @Transactional(readOnly = true)
     fun getElementListingCsv(
         trackId: IntId<LocationTrack>,
         elementTypes: List<TrackGeometryElementType>,
@@ -301,9 +305,10 @@ class GeometryService @Autowired constructor(
 
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
+    @Transactional
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
+        val trackNumberAndGeocodingContextCache = trackNumberService.list(OFFICIAL).associate { tn ->
             tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
         }
         val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
@@ -326,7 +331,6 @@ class GeometryService @Autowired constructor(
     }
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
-
 
     fun getVerticalGeometryListing(
         planId: IntId<GeometryPlan>,
@@ -352,6 +356,7 @@ class GeometryService @Autowired constructor(
         return FileName("$VERTICAL_GEOMETRY ${plan.fileName}") to csvFileContent.toByteArray()
     }
 
+    @Transactional(readOnly = true)
     fun getVerticalGeometryListing(
         publicationType: PublishType,
         locationTrackId: IntId<LocationTrack>,
@@ -373,7 +378,7 @@ class GeometryService @Autowired constructor(
             endAddress,
             geocodingContext,
             coordinateTransformationService::getLayoutTransformation,
-            ::getHeaderAndAlignment
+            ::getHeaderAndAlignment,
         )
     }
 
@@ -397,9 +402,10 @@ class GeometryService @Autowired constructor(
 
     @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
+    @Transactional
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
         logger.serviceCall("makeVerticalGeometryListingCsv")
-        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().associate { tn ->
+        val trackNumberAndGeocodingContextCache = trackNumberService.list(OFFICIAL).associate { tn ->
             tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
         }
         val verticalGeometryListingWithTrackNumbers =
@@ -510,6 +516,7 @@ class GeometryService @Autowired constructor(
         }
     }
 
+    @Transactional(readOnly = true)
     fun getLocationTrackGeometryLinkingSummary(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
@@ -533,6 +540,7 @@ class GeometryService @Autowired constructor(
             }
     }
 
+    @Transactional(readOnly = true)
     fun getLocationTrackHeights(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
@@ -582,6 +590,7 @@ class GeometryService @Autowired constructor(
         }
     }
 
+    @Transactional(readOnly = true)
     fun getPlanAlignmentStartAndEnd(
         planId: IntId<GeometryPlan>,
         planAlignmentId: IntId<GeometryAlignment>,
@@ -596,6 +605,7 @@ class GeometryService @Autowired constructor(
         return geocodingContext.getStartAndEnd(alignment)
     }
 
+    @Transactional(readOnly = true)
     fun getPlanAlignmentHeights(
         planId: IntId<GeometryPlan>,
         planAlignmentId: IntId<GeometryAlignment>,

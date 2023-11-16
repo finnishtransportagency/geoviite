@@ -88,5 +88,6 @@ class LayoutAlignmentService(
     }
 }
 
-private fun asNew(alignment: LayoutAlignment) = if (alignment.dataType == TEMP) alignment
-else alignment.copy(id = StringId(), dataType = TEMP)
+private fun asNew(alignment: LayoutAlignment) =
+    if (alignment.dataType == TEMP) alignment
+    else alignment.copy(id = StringId(), dataType = TEMP)

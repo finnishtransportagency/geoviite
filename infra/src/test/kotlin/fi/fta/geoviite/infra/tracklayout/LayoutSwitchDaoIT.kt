@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -87,7 +88,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val (insertedId, insertedVersion) = switchDao.insert(draftSwitch)
         val insertedSwitch = switchDao.fetch(insertedVersion)
 
-        val deletedId = switchDao.deleteUnpublishedDraft(insertedId)
+        val deletedId = switchDao.deleteDraft(insertedId)
         assertEquals(insertedId, deletedId.id)
         assertFalse(switchDao.fetchAllVersions().any { id -> id == insertedId })
 
@@ -100,8 +101,8 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val switch = switch(1)
         val insertedSwitch = switchDao.insert(switch)
 
-        assertThrows<NoSuchEntityException> {
-            switchDao.deleteUnpublishedDraft(insertedSwitch.id)
+        assertThrows<DeletingFailureException> {
+            switchDao.deleteDraft(insertedSwitch.id)
         }
     }
 
