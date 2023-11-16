@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -906,6 +907,55 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals("error.publication.duplicate-name-on.switch", exception.localizedMessageKey.toString())
         assertEquals(mapOf("name" to "SW123"), exception.localizedMessageParams.params)
     }
+
+    @Test
+    fun `Publication validation rejects duplication by another referencing track`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"))).id
+        val dummyAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
+        // small wants to duplicate middle, middle initially duplicates nothing but wants to duplicate big
+        val middleTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "middle track", alignmentVersion = dummyAlignment))
+        val smallTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "small track", duplicateOf = middleTrack.id, alignmentVersion = dummyAlignment))
+        val bigTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment))
+        locationTrackService.saveDraft(locationTrackDao.fetch(middleTrack.rowVersion).copy(duplicateOf = bigTrack.id))
+
+        fun getPublishingDuplicateWhileDuplicatedValidationError(vararg publishableTracks: IntId<LocationTrack>): PublishValidationError? {
+            val validation = publicationService.validatePublishCandidates(
+                publicationService.collectPublishCandidates(), PublishRequestIds(
+                    trackNumbers = listOf(),
+                    locationTracks = listOf(*publishableTracks),
+                    kmPosts = listOf(),
+                    referenceLines = listOf(),
+                    switches = listOf()
+                )
+            )
+            val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].errors
+            return trackErrors.find { error -> error.localizationKey == LocalizationKey("validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated") }
+        }
+
+        // if we're only trying to publish the middle track, but there is an official small track that wants to duplicate
+        // it, we pop
+        val duplicateError = getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id)
+        assertNotNull(duplicateError, "small track duplicates to-be-published middle track which duplicates big track")
+        assertEquals("small track", duplicateError.params.get("otherDuplicates"))
+        assertEquals("big track", duplicateError.params.get("duplicateTrack"))
+
+        // if we have a draft of the small track that is not a duplicate of the middle track, but we're not publishing
+        // it in this unit, that doesn't fix the issue yet
+        locationTrackService.saveDraft(locationTrackDao.fetch(smallTrack.rowVersion).copy(duplicateOf = null))
+        assertNotNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id), "only saving a draft of small track")
+
+        // but if we have the new non-duplicating small track in the same publication unit, it's fine
+        assertNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id), "publishing new small track")
+
+        // finally, if we have a track whose official version doesn't duplicate the middle track, but the draft does,
+        // it's only bad if the draft is in the publication unit
+        val otherSmallTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "other small track", alignmentVersion = dummyAlignment))
+        locationTrackService.saveDraft(locationTrackDao.fetch(otherSmallTrack.rowVersion).copy(duplicateOf = middleTrack.id))
+        assertNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id), "publishing new small track with other small track added")
+        assertNotNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id, otherSmallTrack.id),
+            "publishing new small track with other small track added and in publication unit")
+    }
+
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
         val officialVersion = switchDao.insert(switch(seed)).rowVersion

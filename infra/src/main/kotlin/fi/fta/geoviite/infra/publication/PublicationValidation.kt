@@ -289,6 +289,7 @@ fun validateDuplicateOfState(
     locationTrack: LocationTrack,
     duplicateOfLocationTrack: LocationTrack?,
     publishLocationTrackIds: List<IntId<LocationTrack>>,
+    duplicates: List<LocationTrack>,
 ): List<PublishValidationError> {
     return if (duplicateOfLocationTrack == null) listOf()
     else {
@@ -302,8 +303,16 @@ fun validateDuplicateOfState(
             }, validateWithParams(locationTrack.state.isRemoved() || duplicateOfLocationTrack.state.isLinkable()) {
                 "$VALIDATION_LOCATION_TRACK.duplicate-of.state.${duplicateOfLocationTrack.state}" to duplicateNameParams
             }, validateWithParams(duplicateOfLocationTrack.duplicateOf == null) {
-                "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate" to duplicateNameParams
-            })
+                "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated" to duplicateNameParams
+            }, validateWithParams(duplicates.isEmpty()) {
+                "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-while-duplicated" to LocalizationParams(
+                    mapOf("duplicateTrack" to duplicateOfLocationTrack.name,
+                        "otherDuplicates" to duplicates.map { track -> track.name }
+                            .distinct()
+                            .joinToString { it })
+                )
+            },
+        )
     }
 }
 

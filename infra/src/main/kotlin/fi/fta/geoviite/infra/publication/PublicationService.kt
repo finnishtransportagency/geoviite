@@ -427,7 +427,7 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getValidationVersions(request: PublishRequestIds): ValidationVersions {
-        logger.serviceCall("getPublicationVersions", "request" to request)
+        logger.serviceCall("getValidationVersions", "request" to request)
         return ValidationVersions(
             trackNumbers = trackNumberDao.fetchPublicationVersions(request.trackNumbers),
             referenceLines = referenceLineDao.fetchPublicationVersions(request.referenceLines),
@@ -670,9 +670,6 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         val (locationTrack, alignment) = getLocationTrackAndAlignment(version.validatedAssetVersion)
         val trackNumber = getTrackNumber(locationTrack.trackNumberId, validationVersions)
-        val duplicateOfLocationTrack = locationTrack.duplicateOf?.let { duplicateId ->
-            getLocationTrack(duplicateId, validationVersions)
-        }
         val fieldErrors = validateDraftLocationTrackFields(locationTrack)
         val referenceErrors = validateLocationTrackReference(
             locationTrack,
@@ -688,11 +685,7 @@ class PublicationService @Autowired constructor(
             getTopologicallyConnectedSwitches(locationTrack, validationVersions),
             validationVersions.switches.map { it.officialId },
         )
-        val duplicateErrors = validateDuplicateOfState(
-            locationTrack,
-            duplicateOfLocationTrack,
-            validationVersions.locationTracks.map { it.officialId },
-        )
+        val duplicateErrors = validateDuplicateOf(version, locationTrack, validationVersions)
         val alignmentErrors = if (locationTrack.exists) validateLocationTrackAlignment(alignment)
         else listOf()
         val geocodingErrors = if (locationTrack.exists && trackNumber != null) {
@@ -705,6 +698,41 @@ class PublicationService @Autowired constructor(
         ) else listOf()
 
         return fieldErrors + referenceErrors + switchErrorsSegments + switchErrorsTopological + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
+    }
+
+    private fun validateDuplicateOf(
+        version: ValidationVersion<LocationTrack>,
+        locationTrack: LocationTrack,
+        validationVersions: ValidationVersions,
+    ): List<PublishValidationError> {
+        val duplicatesAfterPublication = locationTrackDao.fetchDuplicates(version.officialId)
+            .map(locationTrackDao::fetch)
+            .mapNotNull { duplicate -> fetchRelevantTrackVersionForDuplicateCheck(validationVersions, duplicate) }
+            .filter { potentialDuplicate -> potentialDuplicate.duplicateOf == version.officialId }
+
+        val duplicateOf = locationTrack.duplicateOf?.let { duplicateId ->
+            getLocationTrack(duplicateId, validationVersions)
+        }
+        return validateDuplicateOfState(
+            locationTrack,
+            duplicateOf,
+            validationVersions.locationTracks.map { it.officialId },
+            duplicatesAfterPublication,
+        )
+    }
+
+    private fun fetchRelevantTrackVersionForDuplicateCheck(
+        validationVersions: ValidationVersions,
+        track: LocationTrack,
+    ): LocationTrack? {
+        val trackIsInPublicationUnit =
+            validationVersions.locationTracks.any { validationVersion -> validationVersion.officialId == track.id }
+
+        return if (trackIsInPublicationUnit && track.getDraftType() == DraftType.OFFICIAL)
+            locationTrackDao.fetchVersion(track.id as IntId, DRAFT)?.let(locationTrackDao::fetch) ?: track
+        else if (!trackIsInPublicationUnit && track.getDraftType() == DraftType.EDITED_DRAFT)
+            locationTrackDao.fetchVersion(track.id as IntId, OFFICIAL)?.let(locationTrackDao::fetch)
+        else track
     }
 
     private fun validateLocationTrackNameDuplication(
