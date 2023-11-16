@@ -34,7 +34,7 @@ type MainProps = {
     layoutMode: LayoutMode;
     version: string | undefined;
 };
-
+//test
 const Main: React.FC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
     return (
