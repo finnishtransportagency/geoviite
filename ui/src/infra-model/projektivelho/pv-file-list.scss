@@ -46,10 +46,8 @@
 }
 
 .projektivelho-file-list__link {
-    display: flex;
     text-decoration: none;
     fill: vayla-design.$color-blue-dark;
-    align-items: center;
 
     :not(:first-child) {
         margin-left: 6px;

@@ -43,12 +43,6 @@ $appbar-height: 48px;
 
     &__menu-button {
         user-select: none;
-
-        &--active {
-            user-select: none;
-            color: vayla-design.$color-blue-light;
-            border-bottom-color: vayla-design.$color-blue-light;
-        }
     }
 }
 
