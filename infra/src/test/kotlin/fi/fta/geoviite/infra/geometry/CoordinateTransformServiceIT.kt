@@ -146,7 +146,7 @@ class CoordinateTransformServiceIT @Autowired constructor(
         val point = Point(731400.669, 6982768.023)
         val transformedPoint = coordinateTransformationService.transformCoordinate(LAYOUT_SRID, KKJ5, point)
         // Expected values are from paikkatietoikkuna
-        Assertions.assertEquals(5426728.7305, transformedPoint.x, 0.001)
+        Assertions.assertEquals(5426728.7305, transformedPoint.y, 0.001)
         Assertions.assertEquals(6978302.5687, transformedPoint.y, 0.001)
     }
 }
