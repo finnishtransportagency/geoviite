@@ -1127,7 +1127,7 @@
                     "not-official": "Raide viittaa duplikaattiraiteen {{duplicateTrack}} luonnosriviin",
                     "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{duplicateTrack}}",
                     "publishing-duplicate-of-duplicated": "Raide on merkitty duplikaatiksi raiteelle {{duplicateTrack}}, joka itse on myös duplikaatti",
-                    "publishing-duplicate-while-duplicated": "Raide on merkitty duplikaatiksi, mutta julkaistut tai julkaistavat raiteet {{otherDuplicates}} ovat tämän raiteen duplikaatteja"
+                    "publishing-duplicate-while-duplicated": "Raide on merkitty duplikaatiksi, mutta raiteet {{otherDuplicates}} ovat tämän raiteen duplikaatteja"
                 },
                 "empty-segments": "Sijaintiraiteella ei ole geometriaa",
                 "points": {
