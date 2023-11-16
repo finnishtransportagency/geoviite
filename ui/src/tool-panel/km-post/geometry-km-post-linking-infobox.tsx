@@ -148,6 +148,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}
+                                    qa-id="start-geometry-km-post-linking"
                                     onClick={() => startLinking(geometryKmPost.id)}>
                                     {t('tool-panel.km-post.geometry.linking.start-linking-command')}
                                 </Button>
@@ -231,6 +232,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                     onClick={() => link()}
                                     isProcessing={linkingCallInProgress}
                                     disabled={!canLink}
+                                    qa-id="link-geometry-km-post"
                                     size={ButtonSize.SMALL}>
                                     {t('tool-panel.km-post.geometry.linking.link-command')}
                                 </Button>

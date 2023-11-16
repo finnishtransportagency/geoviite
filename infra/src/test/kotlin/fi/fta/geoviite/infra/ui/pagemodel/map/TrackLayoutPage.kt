@@ -10,6 +10,7 @@ import javaScriptExecutor
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
+import tryWait
 import waitUntilNotExist
 import waitUntilValueIsNot
 import kotlin.math.roundToInt
@@ -53,10 +54,11 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val toolBar: E2EToolBar by lazy { E2EToolBar(this) }
     val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
     val mapScale: MapScale
-        get() {
+        get() = tryWait({
             val scale = childText(By.className("ol-scale-line-inner"))
-            return MapScale.entries.first { it.value == scale }
-        }
+            MapScale.entries.firstOrNull { it.value == scale }
+        }) { "Invalid map scale" }
+
 
     companion object {
         fun finishLoading() {

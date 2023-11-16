@@ -265,6 +265,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                     size={ButtonSize.SMALL}
                                     disabled={!canLink}
                                     isProcessing={linkingCallInProgress}
+                                    qa-id="link-geometry-switch"
                                     onClick={link}>
                                     {t('tool-panel.switch.geometry.save-link')}
                                 </Button>

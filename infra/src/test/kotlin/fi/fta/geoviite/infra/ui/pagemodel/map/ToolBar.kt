@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
+import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilNotVisible
 import waitUntilVisible
 
@@ -42,7 +43,7 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
 
     fun goToPreview(): E2EPreviewChangesPage {
         logger.info("Go to preview changes page")
-        clickChild(By.xpath(".//button[span[text() = 'Esikatselu']]"))
+        clickChild(byQaId("open-preview-view"))
 
         waitUntilVisible(byQaId("preview-content"))
 
@@ -51,7 +52,7 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
 
     fun switchToDraft(): E2EToolBar = apply {
         logger.info("Enable draft/edit mode")
-        clickChild(By.xpath(".//button[span[text() = 'Luonnostila']]"))
+        clickChild(byQaId("switch-to-draft-mode"))
     }
 
     fun createNewLocationTrack(): E2ELocationTrackEditDialog {
@@ -64,52 +65,40 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
 }
 
 class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {
-    enum class MapLayer(val uiText: String) {
-        BACKGROUND("Taustakartta"),
-        REFERENCE_LINES("Pituusmittauslinjat"),
-        LOCATION_TRACKS("Sijaintairaiteet"),
-        HIGHLIGHT_MISSING_VERTICAL_GEOMETRY("Korosta puuttuva pystygeometria"),
-        HIGHLIGHT_MISSING_LINKING("Korosta puuttuva linkitys"),
-        HIGHLIGHT_DUPLICATE_TRACKS("Korosta duplikaattiraiteet"),
-        SWITCHES("Vaihteet"),
-        KM_POSTS("Tasakilometripisteet"),
-        TRACK_NUMBER_DIAGRAM("Pituusmittausraidekaavio"),
+    enum class MapLayer(val qaId: String) {
+        BACKGROUND("background-map-layer"),
+        REFERENCE_LINES("reference-line-layer"),
+        LOCATION_TRACKS("location-track-layer"),
+        HIGHLIGHT_MISSING_VERTICAL_GEOMETRY("missing-vertical-geometry-layer"),
+        HIGHLIGHT_MISSING_LINKING("missing-linking-layer"),
+        HIGHLIGHT_DUPLICATE_TRACKS("duplicate-tracks-layer"),
+        SWITCHES("switch-layer"),
+        KM_POSTS("km-post-layer"),
+        TRACK_NUMBER_DIAGRAM("track-number-diagram-layer"),
 
-        GEOMETRY_ALIGNMENTS("Suunnitelman raiteet"),
-        GEOMETRY_SWITCHES("Suunnitelman vaiheet"),
-        GEOMETRY_KM_POSTS("Suunnitelman tasakilometripisteet"),
-        PLAN_AREA("Suunnitelman alueet"),
+        GEOMETRY_ALIGNMENTS("geometry-alignment-layer"),
+        GEOMETRY_SWITCHES("geometry-switch-layer"),
+        GEOMETRY_KM_POSTS("geometry-km-post-layer"),
+        PLAN_AREA("geometry-area-layer"),
     }
 
     fun showLayer(layer: MapLayer): E2EMapLayerPanel = apply {
-        logger.info("Show map layer ${layer.uiText}")
+        logger.info("Show map layer $layer")
+
         if (!isSelected(layer)) {
             toggleLayer(layer)
         }
     }
 
     fun hideLayer(layer: MapLayer): E2EMapLayerPanel = apply {
-        logger.info("Hide map layer ${layer.uiText}")
+        logger.info("Hide map layer $layer")
         if (isSelected(layer)) {
             toggleLayer(layer)
         }
     }
 
-    private fun isSelected(mapLayer: MapLayer): Boolean {
-        return childElement(
-            By.xpath(
-                "//label[@class='map-layer-menu__layer-visibility ' " +
-                        "and span[text() = '${mapLayer.uiText}']]//input']"
-            )
-        ).isSelected
-    }
+    private fun isSelected(mapLayer: MapLayer) =
+        childElement(ByChained(byQaId(mapLayer.qaId), By.tagName("input"))).isSelected
 
-    private fun toggleLayer(mapLayer: MapLayer) {
-        clickChild(
-            By.xpath(
-                "//label[@class='map-layer-menu__layer-visibility ' " +
-                        "and span[text() = '${mapLayer.uiText}']]/label[@class='switch']"
-            )
-        )
-    }
+    private fun toggleLayer(mapLayer: MapLayer) = clickChild(byQaId(mapLayer.qaId))
 }

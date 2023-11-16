@@ -99,26 +99,31 @@ export const initialMapState: Map = {
     ],
     layerMenu: {
         layout: [
-            { name: 'map', visible: true },
-            { name: 'reference-line', visible: true },
+            { name: 'map', visible: true, qaId: 'background-nap-layer' },
+            { name: 'reference-line', visible: true, qaId: 'reference-line-layer' },
             {
                 name: 'location-track',
                 visible: true,
+                qaId: 'location-track-layer',
                 subMenu: [
-                    { name: 'missing-vertical-geometry', visible: false },
-                    { name: 'missing-linking', visible: false },
-                    { name: 'duplicate-tracks', visible: false },
+                    {
+                        name: 'missing-vertical-geometry',
+                        visible: false,
+                        qaId: 'missing-vertical-geometry-layer',
+                    },
+                    { name: 'missing-linking', visible: false, qaId: 'missing-linking-layer' },
+                    { name: 'duplicate-tracks', visible: false, qaId: 'duplicate-tracks-layer' },
                 ],
             },
-            { name: 'switch', visible: true },
-            { name: 'km-post', visible: true },
-            { name: 'track-number-diagram', visible: false },
+            { name: 'switch', visible: true, qaId: 'switch-layer' },
+            { name: 'km-post', visible: true, qaId: 'km-post-layer' },
+            { name: 'track-number-diagram', visible: false, qaId: 'track-number-diagram-layer' },
         ],
         geometry: [
-            { name: 'geometry-alignment', visible: true },
-            { name: 'geometry-switch', visible: true },
-            { name: 'geometry-km-post', visible: true },
-            { name: 'plan-area', visible: false },
+            { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },
+            { name: 'geometry-switch', visible: true, qaId: 'geometry-switch-layer' },
+            { name: 'geometry-km-post', visible: true, qaId: 'geometry-km-post-layer' },
+            { name: 'plan-area', visible: false, qaId: 'geometry-area-layer' },
         ],
         debug: [
             { name: 'debug-1m', visible: false },

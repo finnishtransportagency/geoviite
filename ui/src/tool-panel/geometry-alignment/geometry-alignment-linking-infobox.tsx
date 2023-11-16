@@ -335,7 +335,10 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     {linkingState === undefined && (
                         <WriteAccessRequired>
                             <InfoboxButtons>
-                                <Button size={ButtonSize.SMALL} onClick={startLinking}>
+                                <Button
+                                    size={ButtonSize.SMALL}
+                                    onClick={startLinking}
+                                    qa-id="start-alignment-linking">
                                     {t(
                                         `tool-panel.alignment.geometry.${
                                             isLinked ? 'add-linking' : 'start-setup'
@@ -356,7 +359,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             <Button
                                 size={ButtonSize.SMALL}
                                 disabled={!canLockAlignment}
-                                onClick={lockAlignment}>
+                                onClick={lockAlignment}
+                                qa-id="lock-alignment">
                                 {t('tool-panel.alignment.geometry.lock-location-track')}
                             </Button>
                         </InfoboxButtons>
@@ -373,6 +377,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             <Button
                                 size={ButtonSize.SMALL}
                                 isProcessing={linkingCallInProgress}
+                                qa-id="link-geometry-alignment"
                                 disabled={!canLink}
                                 onClick={link}>
                                 {t('tool-panel.alignment.geometry.save-link')}

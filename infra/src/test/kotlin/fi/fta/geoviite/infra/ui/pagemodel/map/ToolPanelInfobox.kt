@@ -200,39 +200,25 @@ class E2EGeometryAlignmentGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) 
     }
 }
 
-open class E2ELinkingInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
+abstract class E2ELinkingInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val linked: String get() = getValueForField("Linkitetty")
 
     val trackNumber: String get() = getValueForField("Pituusmittauslinja")
 
-    fun startLinking() {
-        logger.info("Start linking")
+    abstract fun initiateLinking(): E2ELinkingInfoBox
 
-        clickButton(byText("Aloita linkitys"))
-        waitUntilChildVisible(byText("Peruuta")) //ensures that the infobox has changed
-    }
+    abstract fun link(): E2ELinkingInfoBox
 
-    fun addLinking() {
-        logger.info("Add more linked alignments")
-
-        clickButton(byText("Lisää linkitettäviä"))
-        waitUntilChildVisible(byText("Peruuta")) //ensures that the infobox has changed
-    }
-
-    fun link() {
-        logger.info("Link")
-
-        childButton(byText("Linkitä")).clickAndWaitToDisappear()
-    }
+    abstract fun linkTo(name: String): E2ELinkingInfoBox
 
 }
 
 class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
-    fun linkTo(name: String): E2EGeometryKmPostLinkingInfoBox = apply {
+    override fun linkTo(name: String): E2EGeometryKmPostLinkingInfoBox = apply {
         logger.info("Link km post to $name")
         clickChild(
             By.xpath(
-                ".//li[@class='geometry-km-post-linking-infobox__layout-km-post' and div/span[text() = '$name']]"
+                "//li[@class='geometry-km-post-linking-infobox__layout-km-post' and //span[text() = '$name']]"
             )
         )
     }
@@ -248,15 +234,39 @@ class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
         get() = childTexts(
             By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']")
         )
+
+    override fun initiateLinking(): E2ELinkingInfoBox = apply {
+        logger.info("Initiate linking")
+
+        childButton(byQaId("start-geometry-km-post-linking")).clickAndWaitToDisappear()
+    }
+
+    override fun link(): E2ELinkingInfoBox = apply {
+        logger.info("Link geometry km post")
+
+        childButton(byQaId("link-geometry-km-post")).clickAndWaitToDisappear()
+    }
 }
 
 class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
 
-    fun linkTo(name: String): E2EGeometryAlignmentLinkingInfoBox = apply {
+    override fun linkTo(name: String): E2EGeometryAlignmentLinkingInfoBox = apply {
         logger.info("Link alignment to $name")
         clickChild(
-            By.xpath(".//li[@class='geometry-alignment-infobox__alignment' and div/span[text() = '$name']]")
+            By.xpath("//li[@class='geometry-alignment-infobox__alignment' and div/span[text() = '$name']]")
         )
+    }
+
+    override fun initiateLinking(): E2ELinkingInfoBox = apply {
+        logger.info("Initiate linking")
+
+        childButton(byQaId("start-alignment-linking")).clickAndWaitToDisappear()
+    }
+
+    override fun link(): E2ELinkingInfoBox = apply {
+        logger.info("Link geometry aligment")
+
+        childButton(byQaId("link-geometry-alignment")).clickAndWaitToDisappear()
     }
 
     fun createNewLocationTrack(): E2ELocationTrackEditDialog {
@@ -268,8 +278,7 @@ class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(info
 
     fun lock(): E2EGeometryAlignmentLinkingInfoBox = apply {
         logger.info("Lock location track selection")
-        clickButton(byText("Lukitse valinta"))
-        waitUntilChildVisible(byText("Poista valinta"))
+        childButton(byQaId("lock-alignment")).clickAndWaitToDisappear()
     }
 }
 
@@ -285,12 +294,6 @@ class E2EGeometrySwitchGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2EGeometrySwitchLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
-    fun lock(): E2EGeometrySwitchLinkingInfoBox = apply {
-        logger.info("Lock switch selection")
-        clickButton(byText("Lukitse valinta"))
-        waitUntilChildVisible(byText("Poista valinta"))
-    }
-
     fun createNewTrackLayoutSwitch(): E2ELayoutSwitchEditDialog {
         logger.info("Create new layout switch")
         clickChild(By.cssSelector("div.geometry-switch-infobox__search-container button"))
@@ -298,10 +301,23 @@ class E2EGeometrySwitchLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
         return E2ELayoutSwitchEditDialog()
     }
 
-    fun linkTo(name: String): E2EGeometrySwitchLinkingInfoBox = apply {
+    override fun linkTo(name: String): E2EGeometrySwitchLinkingInfoBox = apply {
         logger.info("Link switch to $name")
+
         clickChild(
-            By.xpath(".//li[@class='geometry-switch-infobox__switch' and span/span[text() = '$name']]")
+            By.xpath("//li[@class='geometry-switch-infobox__switch' and //span[text() = '$name']]")
         )
+    }
+
+    override fun initiateLinking(): E2ELinkingInfoBox = apply {
+        logger.info("Initiate linking")
+
+        childButton(byQaId("start-geometry-switch-linking")).clickAndWaitToDisappear()
+    }
+
+    override fun link(): E2ELinkingInfoBox = apply {
+        logger.info("Link geometry switch")
+
+        childButton(byQaId("link-geometry-switch")).clickAndWaitToDisappear()
     }
 }

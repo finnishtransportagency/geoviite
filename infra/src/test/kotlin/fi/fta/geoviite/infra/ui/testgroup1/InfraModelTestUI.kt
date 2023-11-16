@@ -32,6 +32,7 @@ class InfraModelTestUI @Autowired constructor(
 
     @BeforeAll
     fun clearDb() {
+        initUserMdc()
         clearAllTestData()
     }
 

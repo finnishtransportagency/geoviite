@@ -124,7 +124,7 @@ class LinkingTestUI @Autowired constructor(
         selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
 
         val linkingBox = toolPanel.geometryAlignmentLinking
-        linkingBox.startLinking()
+        linkingBox.initiateLinking()
         linkingBox.linkTo("lt-A")
         linkingBox.lock()
 
@@ -270,7 +270,7 @@ class LinkingTestUI @Autowired constructor(
         selectionPanel.selectPlanKmPost(LINKING_TEST_PLAN_NAME, "0123G")
 
         val kmPostLinkingInfoBox = toolPanel.geometryKmPostLinking
-        kmPostLinkingInfoBox.startLinking()
+        kmPostLinkingInfoBox.initiateLinking()
         val firstTrackLayoutKmPost = kmPostLinkingInfoBox.trackLayoutKmPosts.first()
         assertEquals("012", firstTrackLayoutKmPost.substring(0, 3))
 
@@ -305,7 +305,7 @@ class LinkingTestUI @Autowired constructor(
         geometryPlan.selectKmPost("0126")
 
         val kmPostLinkingInfoBox = toolPanel.geometryKmPostLinking
-        kmPostLinkingInfoBox.startLinking()
+        kmPostLinkingInfoBox.initiateLinking()
 
         val newKmPostNumber = "0003NW"
         kmPostLinkingInfoBox.createNewTrackLayoutKmPost()
@@ -369,7 +369,7 @@ class LinkingTestUI @Autowired constructor(
 
         val layoutSwitchName = "tl-sw-1"
         val switchLinkingInfoBox = toolPanel.geometrySwitchLinking
-        switchLinkingInfoBox.startLinking()
+        switchLinkingInfoBox.initiateLinking()
         switchLinkingInfoBox.createNewTrackLayoutSwitch()
             .setName(layoutSwitchName)
             .selectStateCategory(E2ELayoutSwitchEditDialog.StateCategory.EXISTING)
@@ -438,7 +438,7 @@ class LinkingTestUI @Autowired constructor(
 
         trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking
-        alignmentLinkinInfobox.startLinking()
+        alignmentLinkinInfobox.initiateLinking()
         alignmentLinkinInfobox.linkTo("lt-track to extend")
         alignmentLinkinInfobox.lock()
 
@@ -509,7 +509,7 @@ class LinkingTestUI @Autowired constructor(
 
         trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking
-        alignmentLinkinInfobox.startLinking()
+        alignmentLinkinInfobox.initiateLinking()
         alignmentLinkinInfobox.linkTo("lt-track to extend")
         alignmentLinkinInfobox.lock()
         E2ETrackLayoutPage.finishLoading()
@@ -567,7 +567,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
         val alignmentLinkingInfobox = toolPanel.geometryAlignmentLinking
         toolPanel.geometryAlignmentGeneral.zoomTo()
-        alignmentLinkingInfobox.startLinking()
+        alignmentLinkingInfobox.initiateLinking()
         alignmentLinkingInfobox.linkTo("foo tracknumber")
         alignmentLinkingInfobox.lock()
 
@@ -706,7 +706,7 @@ class LinkingTestUI @Autowired constructor(
         trackLayoutPage.toolPanel.geometryAlignmentGeneral.zoomTo()
         val alignmentLinkingInfoBox = trackLayoutPage.toolPanel.geometryAlignmentLinking
 
-        alignmentLinkingInfoBox.startLinking()
+        alignmentLinkingInfoBox.initiateLinking()
 
         alignmentLinkingInfoBox.createNewLocationTrack()
             .setName(locationTrackName)

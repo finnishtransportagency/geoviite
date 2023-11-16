@@ -77,6 +77,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                 return [
                     <MapLayer
                         key={setting.name}
+                        qa-id={setting.qaId}
                         label={t(`map-layer-menu.${setting.name}`)}
                         visible={enabledByProxy || setting.visible}
                         disabled={enabledByProxy}
@@ -95,6 +96,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                         return (
                             <MapLayer
                                 key={subSetting.name}
+                                qa-id={setting.qaId}
                                 label={t(`map-layer-menu.${subSetting.name}`)}
                                 visible={enabledByProxy || subSetting.visible}
                                 disabled={enabledByProxy || !setting.visible}

@@ -57,7 +57,7 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
     fun goToTrackLayout(): E2ETrackLayoutPage {
         logger.info("Return to draft view")
-        clickChild(By.xpath("//span[text() = 'Palaa luonnostilaan']"))
+        clickChild(byQaId("go-to-track-layout-view"))
         // utter hack: Somehow the map doesn't update the visible items when clicking that in tests; so let's force
         // it to notice something changed by forcefully wiggling it
         return E2ETrackLayoutPage()
