@@ -408,13 +408,11 @@ const PVFileListRow = ({
                 </td>
                 <td>{item.project && item.project.name}</td>
                 <td>
-                    <span>
-                        <Link
-                            className={styles['projektivelho-file-list__link']}
-                            href={projektivelhoDocumentDownloadUri(item.document.id)}>
-                            {item.document.name}
-                        </Link>
-                    </span>
+                    <Link
+                        className={styles['projektivelho-file-list__link']}
+                        href={projektivelhoDocumentDownloadUri(item.document.id)}>
+                        {item.document.name}
+                    </Link>
                 </td>
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
