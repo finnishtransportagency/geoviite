@@ -1441,7 +1441,8 @@
             "track-number": "Ratanumero",
             "reference-line": "Pituusmittauslinja",
             "metadata-heading": "Metatiedot",
-            "delete-draft": "Poista luonnos"
+            "delete-draft": "Poista luonnos",
+            "delete-non-draft": "Ratanumeron poistaminen paikannuspohjasta"
         },
         "dialog": {
             "deleted-track-numbers-not-allowed": "Poistettu-tilainen ratanumero ei voi olla osa paikannuspohjaa.",
