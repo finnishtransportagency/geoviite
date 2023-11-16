@@ -56,7 +56,7 @@ class ElementListingTest {
             assertEquals(CoordinateSystemName("KKJ test-name"), l.coordinateSystemName)
             assertEquals(trackNumberId, l.trackNumberId)
             assertEquals(alignment.id, l.alignmentId)
-            assertEquals(AlignmentName("TSTTrack002"), l.alignmentName)
+            assertEquals(AlignmentName("HELLO"), l.alignmentName)
         }
         assertEquals(listOf(LINE, CURVE, CLOTHOID), listing.map { l -> l.elementType })
         assertEquals(alignment.elements.map(GeometryElement::id), listing.map(ElementListing::elementId))
