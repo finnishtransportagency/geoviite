@@ -21,6 +21,8 @@ import kotlin.test.assertNull
 class LayoutKmPostServiceIT @Autowired constructor(
     private val kmPostService: LayoutKmPostService,
     private val kmPostDao: LayoutKmPostDao,
+    private val trackNumberService: LayoutTrackNumberService,
+    private val referenceLineService: ReferenceLineService,
 ) : DBTestBase() {
 
     @Test
@@ -150,5 +152,31 @@ class LayoutKmPostServiceIT @Autowired constructor(
         assertEquals(kmPost.kmNumber, fetchedKmPost.kmNumber)
         assertEquals(kmPost.state, fetchedKmPost.state)
         assertEquals(kmPost.trackNumberId, fetchedKmPost.trackNumberId)
+    }
+
+    @Test
+    fun kmPostLengthMatchesTrackNumberService() {
+        val trackNumberId = insertDraftTrackNumber()
+        referenceLineService.saveDraft(referenceLine(trackNumberId), alignment(segment(
+            Point(0.0, 0.0),
+            Point(0.0, 5.0),
+            Point(1.0, 10.0),
+            Point(3.0, 15.0),
+            Point(4.0, 20.0)
+        )))
+        val kmPosts = listOf(
+            kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0)),
+            kmPost(trackNumberId, KmNumber(2), Point(0.0, 5.0)),
+            kmPost(trackNumberId, KmNumber(3), null),
+            kmPost(trackNumberId, KmNumber(4), Point(0.0, 6.0), state = LayoutState.NOT_IN_USE),
+            kmPost(trackNumberId, KmNumber(5), Point(0.0, 10.0), state = LayoutState.PLANNED),
+            kmPost(trackNumberId, KmNumber(6, "A"), Point(3.0, 14.0)),
+            kmPost(trackNumberId, KmNumber(6, "AA"), Point(6.0, 18.0)),
+        ).map(kmPostService::saveDraft).map(DaoResponse<TrackLayoutKmPost>::id)
+        // drop(1) because the track number km lengths include the section before the first km post
+        val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)
+        val actual = kmPosts.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
+        assertEquals(expected.size, actual.size)
+        expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
     }
 }

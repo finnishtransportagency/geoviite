@@ -152,4 +152,14 @@ class LayoutKmPostController(
         logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
         return kmPostService.getDraftableChangeInfo(kmPostId)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/km-length")
+    fun getKmLength(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
+    ): TrackLayoutKmPostLength {
+        logger.apiCall("getKmLength", "id" to kmPostId, "publishType" to publishType)
+        return TrackLayoutKmPostLength(kmPostService.getSingleKmPostLength(publishType, kmPostId))
+    }
 }

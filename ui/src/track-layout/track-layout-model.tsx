@@ -202,6 +202,10 @@ export type LayoutKmLengthDetails = {
     location?: Point;
 };
 
+export type TrackLayoutKmPostLength = {
+    length?: number;
+};
+
 export type PlanArea = {
     id: GeometryPlanId;
     fileName: string;

@@ -261,6 +261,10 @@ data class TrackLayoutKmLengthDetails(
     val length = endM - startM
 }
 
+data class TrackLayoutKmPostLength(
+    val length: Double?
+)
+
 data class TrackLayoutSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,
     val location: Point,
