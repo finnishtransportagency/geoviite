@@ -61,14 +61,14 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun findElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
         getElementsWhenExists(by, timeout)
 
-    fun waitUntilChildVisible(by: By, timeout: Duration = defaultWait): Unit =
+    protected fun waitUntilChildVisible(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilVisible(childBy(by), timeout)
 
-    fun waitUntilChildNotVisible(by: By, timeout: Duration = defaultWait): Unit =
+    protected fun waitUntilChildInvisible(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilNotVisible(childBy(by), timeout)
 
     //Thils will not check for child's visibility
-    fun waitUntilChildExists(by: By, timeout: Duration = defaultWait): Unit =
+    protected fun waitUntilChildExists(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilExists(childBy(by), timeout)
 
     protected fun childExists(by: By) = exists(childBy(by))

@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import org.openqa.selenium.By
-import waitUntilValueIs
-import waitUntilValueIsNot
+import waitUntilTextIs
+import waitUntilTextIsNot
 
 abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
@@ -41,14 +41,14 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
         logger.info("Wait for field $fieldName to change value")
 
         val originalValue = getValueForField(fieldName)
-        waitUntilValueIsNot(getFieldValueBy(fieldName), originalValue)
+        waitUntilTextIsNot(getFieldValueBy(fieldName), originalValue)
     }
 
     protected fun waitUntilValueChangesForField(fieldName: String, targetValue: String): E2EInfoBox = apply {
         logger.info("Wait until field $fieldName is $targetValue")
 
-        waitUntilValueIs(getFieldValueBy(fieldName), targetValue)
+        waitUntilTextIs(getFieldValueBy(fieldName), targetValue)
     }
 
-    fun waitUntilLoaded(): E2EInfoBox = apply { waitUntilChildNotVisible(By.className("spinner")) }
+    fun waitUntilLoaded(): E2EInfoBox = apply { waitUntilChildInvisible(By.className("spinner")) }
 }

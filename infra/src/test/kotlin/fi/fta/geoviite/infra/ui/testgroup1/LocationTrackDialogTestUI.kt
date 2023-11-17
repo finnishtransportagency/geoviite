@@ -18,14 +18,14 @@ class LocationTrackDialogTestUI @Autowired constructor() : SeleniumTest() {
         val firstLoad = page.toolBar.createNewLocationTrack()
         assertEquals(
             "Väylävirasto",
-            firstLoad.content.dropdownByQaId("location-track-dialog.owner").waitForValue().value
+            firstLoad.content.dropdown("location-track-dialog.owner").waitForValue().value
         )
         firstLoad.cancel()
         assertEquals(
             "Väylävirasto",
             page
                 .toolBar.createNewLocationTrack()
-                .content.dropdownByQaId("location-track-dialog.owner")
+                .content.dropdown("location-track-dialog.owner")
                 .waitForValue()
                 .value
         )

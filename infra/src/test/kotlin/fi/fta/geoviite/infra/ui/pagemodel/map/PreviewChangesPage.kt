@@ -10,12 +10,12 @@ import java.time.Duration
 class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
     val changesTable: E2EChangePreviewTable by lazy {
-        waitUntilChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+        waitUntilChildInvisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
         E2EChangePreviewTable(childBy(By.cssSelector("[qa-id='unstaged-changes'] table")))
     }
 
     val stagedChangesTable: E2EChangePreviewTable by lazy {
-        waitUntilChildNotVisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+        waitUntilChildInvisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
         E2EChangePreviewTable(childBy(By.cssSelector("[qa-id='staged-changes'] table")))
     }
 

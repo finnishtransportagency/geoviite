@@ -6,8 +6,8 @@ import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import org.openqa.selenium.support.ui.ExpectedConditions
 import tryWait
-import waitUntilHasValue
 import waitUntilNotVisible
+import waitUntilTextExists
 import waitUntilVisible
 
 private val CONTAINER_BY: By = By.className("dropdown__list-container")
@@ -85,7 +85,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
     fun waitForValue(): E2EDropdown = apply {
         logger.info("Wait for dropdown value")
 
-        waitUntilHasValue(childBy(valueBy))
+        waitUntilTextExists(childBy(valueBy))
 
     }
 }

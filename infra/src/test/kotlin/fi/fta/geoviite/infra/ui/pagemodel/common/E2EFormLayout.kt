@@ -44,11 +44,11 @@ open class E2EFormLayout(formBy: By) : E2EViewFragment(formBy) {
         )
     )
 
-    fun dropdownByQaId(qaId: String) = childDropdown(byQaId((qaId)))
+    fun dropdown(qaId: String) = childDropdown(byQaId((qaId)))
 
-    fun textInputByQaId(qaId: String) = childTextInput(byQaId(qaId))
+    fun textInput(qaId: String) = childTextInput(byQaId(qaId))
 
-    fun checkBoxByQaId(qaId: String) = childCheckbox(byQaId(qaId))
+    fun checkbox(qaId: String) = childCheckbox(byQaId(qaId))
 
     fun selectDropdownValueByLabel(label: String, value: String) = apply {
         logger.info("Change dropdown $label to [$value]")

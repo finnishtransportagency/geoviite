@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 
-class E2EAppBar(appbarBy: By = By.className("app-bar")) : E2EViewFragment(appbarBy) {
+class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
 
     enum class NavLink(val qaId: String) {
         FRONT_PAGE("frontpage-link"),

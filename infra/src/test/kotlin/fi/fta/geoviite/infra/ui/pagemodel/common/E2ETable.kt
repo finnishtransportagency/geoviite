@@ -10,7 +10,7 @@ abstract class E2ETable<T>(
 ) : E2EList<T>(tableBy, rowsBy) {
 
     init {
-        waitUntilChildNotVisible(By.className("table--loading"))
+        waitUntilReady()
     }
 
     val rows: List<T> get() = items
@@ -31,7 +31,7 @@ abstract class E2ETable<T>(
     fun waitUntilReady(): E2ETable<T> = apply {
         logger.info("Wait until table has finished loading")
 
-        waitUntilChildNotVisible(By.className("table--loading"))
+        waitUntilChildInvisible(By.className("table--loading"))
     }
 }
 

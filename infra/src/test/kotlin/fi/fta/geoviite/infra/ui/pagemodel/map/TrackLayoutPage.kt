@@ -12,7 +12,7 @@ import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
 import tryWait
 import waitUntilNotExist
-import waitUntilValueIsNot
+import waitUntilTextIsNot
 import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
@@ -119,7 +119,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-out"))
         try {
-            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
+            waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
             logger.warn("Zoom out failed, cause: $ex")
         }
@@ -129,7 +129,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-in"))
         try {
-            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
+            waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
         } catch (ex: TimeoutException) {
             logger.warn("Zoom in failed, cause: $ex")
         }

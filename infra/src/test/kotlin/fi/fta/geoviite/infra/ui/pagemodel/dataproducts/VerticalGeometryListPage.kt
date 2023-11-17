@@ -37,7 +37,7 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
 
     val resultList: E2EDataProductPlanVerticalGeometryList = E2EDataProductPlanVerticalGeometryList()
 
-    val plan: E2EDropdown = searchForm.dropdownByQaId("data-products-search-plan")
+    val plan: E2EDropdown = searchForm.dropdown("data-products-search-plan")
 
     val downloadUrl: String
         get() {
@@ -55,7 +55,7 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
 class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
     val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("data-products-search-location-track")
+    val locationTrack: E2EDropdown = searchForm.dropdown("data-products-search-location-track")
 
     val resultList: E2EDataProductLayoutVerticalGeometryList = E2EDataProductLayoutVerticalGeometryList()
 

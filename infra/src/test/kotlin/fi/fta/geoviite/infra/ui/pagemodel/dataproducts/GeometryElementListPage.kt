@@ -35,13 +35,13 @@ class E2EDataProductPlanElementListPage : E2EElementListPage() {
 
     val resultList: E2EDataProductPlanElementList = E2EDataProductPlanElementList()
 
-    val plan: E2EDropdown = searchForm.dropdownByQaId("data-products-search-plan")
+    val plan: E2EDropdown = searchForm.dropdown("data-products-search-plan")
 
-    val line: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.line")
+    val line: E2ECheckbox = searchForm.checkbox("data-products.search.line")
 
-    val curve: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.curve")
+    val curve: E2ECheckbox = searchForm.checkbox("data-products.search.curve")
 
-    val clothoid: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.clothoid")
+    val clothoid: E2ECheckbox = searchForm.checkbox("data-products.search.clothoid")
 
     val downloadUrl: String
         get() {
@@ -59,19 +59,19 @@ class E2EDataProductPlanElementListPage : E2EElementListPage() {
 class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
 
-    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("data-products-search-location-track")
+    val locationTrack: E2EDropdown = searchForm.dropdown("data-products-search-location-track")
 
-    val startAddress: E2ETextInput = searchForm.textInputByQaId("data-products-search-start-km")
+    val startAddress: E2ETextInput = searchForm.textInput("data-products-search-start-km")
 
-    val endAddress: E2ETextInput = searchForm.textInputByQaId("data-products-search-end-km")
+    val endAddress: E2ETextInput = searchForm.textInput("data-products-search-end-km")
 
-    val line: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.line")
+    val line: E2ECheckbox = searchForm.checkbox("data-products.search.line")
 
-    val curve: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.curve")
+    val curve: E2ECheckbox = searchForm.checkbox("data-products.search.curve")
 
-    val clothoid: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.clothoid")
+    val clothoid: E2ECheckbox = searchForm.checkbox("data-products.search.clothoid")
 
-    val missingGeometry: E2ECheckbox = searchForm.checkBoxByQaId("data-products.search.missing-section")
+    val missingGeometry: E2ECheckbox = searchForm.checkbox("data-products.search.missing-section")
 
     val resultList: E2EDataProductLayoutElementList = E2EDataProductLayoutElementList()
 
