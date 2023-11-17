@@ -35,13 +35,6 @@ abstract class E2ETable<T>(
     }
 }
 
-@Deprecated("Use qa-ids instead", ReplaceWith("getColumnIndex(qaId, headers)"))
-fun getColumnIndexByText(
-    columnName: String,
-    headers: List<WebElement>,
-) = headers.indexOfFirst { it.text == columnName }
-    .also { idx -> check(idx != -1) { "No header with text $columnName. Headers: ${headers.map { it.text }}" } }
-
 fun getColumnIndex(
     qaId: String,
     headers: List<WebElement>,
@@ -59,6 +52,3 @@ fun getColumnContent(
 ): String {
     return columns[getColumnIndex(qaId, headers)].text
 }
-
-fun getColumnContentByText(columnName: String, columns: List<WebElement>, headers: List<WebElement>): String =
-    columns[getColumnIndexByText(columnName, headers)].text

@@ -38,6 +38,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         translationKey: string,
     ) => (
         <Th
+            qa-id={translationKey}
             onClick={() => sortByProp(prop)}
             icon={
                 sortInfo?.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
