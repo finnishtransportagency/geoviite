@@ -24,7 +24,7 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
 
     fun listDraft(): List<ObjectType> = list(DRAFT)
 
-    fun list(publishType: PublishType, includeDeleted: Boolean = false): List<ObjectType> {
+    open fun list(publishType: PublishType, includeDeleted: Boolean = false): List<ObjectType> {
         logger.serviceCall("list", "publishType" to publishType)
         return listInternal(publishType, includeDeleted)
     }

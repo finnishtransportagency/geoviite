@@ -24,6 +24,10 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
 ) : DraftableObjectService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
+    override fun list(publishType: PublishType, includeDeleted: Boolean): List<TrackLayoutTrackNumber> {
+        return super.list(publishType, includeDeleted).sortedBy { it.number }
+    }
+
     @Transactional
     fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.serviceCall("insert", "trackNumber" to saveRequest.number)
