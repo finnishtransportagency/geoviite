@@ -100,6 +100,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
+                                qa-id="zoom-to-geometry-switch"
                                 disabled={!switchLocation}
                                 onClick={() => switchLocation && onShowOnMap(switchLocation)}>
                                 {t('tool-panel.switch.layout.show-on-map')}

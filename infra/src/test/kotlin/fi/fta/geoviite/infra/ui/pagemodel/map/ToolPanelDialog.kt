@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.DIALOG_BY
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
-import fi.fta.geoviite.infra.ui.util.byText
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
@@ -127,7 +127,7 @@ class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
         logger.info("Save track number changes")
 
         val isDeleted = content.getValueForFieldByLabel("Tila") == E2ELocationTrackEditDialog.State.DELETED.uiText
-        clickButton(byText("Tallenna"))
+        clickButton(byQaId("save-track-number-changes"))
 
         if (isDeleted) {
             clickChild(
@@ -163,7 +163,7 @@ class E2EKmPostEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     fun save() = waitUntilClosed {
         logger.info("Save km post changes")
 
-        clickButton(byText("Tallenna"))
+        clickButton(byQaId("save-km-post-changes"))
     }
 
     fun cancel() = waitUntilClosed {
@@ -196,7 +196,7 @@ class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) 
         logger.info("Save switch changes")
 
         val isNotExisting = content.getValueForFieldByLabel("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
-        clickButton(byText("Tallenna"))
+        clickButton(byQaId("save-switch-changes"))
 
         if (isNotExisting) {
             clickChild(

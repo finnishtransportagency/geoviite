@@ -238,6 +238,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 size={ButtonSize.SMALL}
                                 disabled={!switchLocation}
                                 variant={ButtonVariant.SECONDARY}
+                                qa-id="zoom-to-switch"
                                 onClick={() => switchLocation && onShowOnMap(switchLocation)}>
                                 {t('tool-panel.switch.layout.show-on-map')}
                             </Button>

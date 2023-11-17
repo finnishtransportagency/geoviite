@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.ui.util.byText
 import org.openqa.selenium.By
 
 class E2EGeometryPlanGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
@@ -35,7 +34,7 @@ class E2ELayoutKmPostGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun zoomTo(): E2ELayoutKmPostGeneralInfoBox = apply {
         logger.info("Zoom to km post")
 
-        clickButton(byText("Kohdista kartalla")).also { E2ETrackLayoutPage.finishLoading() }
+        clickButton(byQaId("zoom-to-km-post")).also { E2ETrackLayoutPage.finishLoading() }
     }
 }
 
@@ -61,21 +60,14 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun startLinking(): E2ELocationTrackLocationInfobox = apply {
         logger.info("Edit start/end point")
 
-        clickButton(byText("Lyhennä alkua ja/tai loppua"))
-        waitUntilChildVisible(byText("Valmis")) // Ensures that the infobox has changed to edit mode
+        childButton(byQaId("modify-start-or-end")).clickAndWaitToDisappear()
     }
 
     fun save(): E2ELocationTrackLocationInfobox = apply {
         logger.info("Save start/end points")
 
-        clickButton(byText("Valmis"))
+        clickButton(byQaId("save-start-and-end-changes"))
         waitAndClearToast("location-track-endpoints-updated")
-    }
-
-    fun cancel(): E2ELocationTrackLocationInfobox = apply {
-        logger.info("Cancel linking")
-
-        clickButton(byText("Lopeta"))
     }
 }
 
@@ -96,7 +88,7 @@ class E2ELocationTrackGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun zoomTo(): E2ELocationTrackGeneralInfoBox = apply {
         logger.info("Zoom to location track")
 
-        clickButton(byText("Kohdista kartalla")).also { E2ETrackLayoutPage.finishLoading() }
+        clickButton(byQaId("zoom-to-location-track")).also { E2ETrackLayoutPage.finishLoading() }
     }
 }
 
@@ -124,16 +116,16 @@ class E2ETrackNumberGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     }
 }
 
-class E2EReferenceLineLocationInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
+class E2ETrackNumberLocationInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val startLocation: String get() = getValueForField("Alkusijainti (km + m)")
     val endLocation: String get() = getValueForField("Loppusijainti (km + m)")
     val trueLength: String get() = getValueForField("Todellinen pituus (m)")
     val startCoordinates: String get() = getValueForField("Alkukoordinaatit TM35FIN")
     val endCoordinates: String get() = getValueForField("Loppukoordinaatit TM35FIN")
-    fun zoomTo(): E2EReferenceLineLocationInfoBox = apply {
-        logger.info("Zoom to reference line")
+    fun zoomTo(): E2ETrackNumberLocationInfoBox = apply {
+        logger.info("Zoom to track number")
 
-        clickButton(byText("Kohdista kartalla")).also { E2ETrackLayoutPage.finishLoading() }
+        clickButton(byQaId("zoom-to-track-number")).also { E2ETrackLayoutPage.finishLoading() }
     }
 }
 
@@ -157,7 +149,7 @@ class E2ELayoutSwitchGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun zoomTo(): E2ELayoutSwitchGeneralInfoBox = apply {
         logger.info("Zoom to switch")
 
-        clickButton(byText("Kohdista kartalla")).also { E2ETrackLayoutPage.finishLoading() }
+        clickButton(byQaId("zoom-to-switch")).also { E2ETrackLayoutPage.finishLoading() }
     }
 }
 
@@ -196,7 +188,7 @@ class E2EGeometryAlignmentGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) 
     fun zoomTo() = apply {
         logger.info("Zoom to geometry alignment")
 
-        clickButton(byText("Kohdista kartalla")).also { E2ETrackLayoutPage.finishLoading() }
+        clickButton(byQaId("zoom-to-geometry-alignment")).also { E2ETrackLayoutPage.finishLoading() }
     }
 }
 
@@ -288,7 +280,7 @@ class E2EGeometrySwitchGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun zoomTo(): E2EGeometrySwitchGeneralInfoBox = apply {
         logger.info("Zoom to geometry switch")
 
-        clickButton(byText("Kohdista kartalla")).also { E2ETrackLayoutPage.finishLoading() }
+        clickButton(byQaId("zoom-to-geometry-switch")).also { E2ETrackLayoutPage.finishLoading() }
     }
 
 }

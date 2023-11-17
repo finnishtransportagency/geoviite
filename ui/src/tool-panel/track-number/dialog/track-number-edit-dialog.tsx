@@ -203,6 +203,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Button
                                 disabled={hasErrors || saveInProgress}
                                 isProcessing={saveInProgress}
+                                qa-id="save-track-number-changes"
                                 onClick={saveOrConfirm}>
                                 {t('track-number-edit.action.save')}
                             </Button>

@@ -303,6 +303,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
+                            qa-id="zoom-to-location-track"
                             onClick={() =>
                                 locationTrack.boundingBox && showArea(locationTrack.boundingBox)
                             }>
@@ -360,6 +361,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                             <Button
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
+                                                qa-id="modify-start-or-end"
                                                 disabled={
                                                     !startAndEndPoints.start?.point ||
                                                     !startAndEndPoints.end?.point
@@ -401,6 +403,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 size={ButtonSize.SMALL}
                                                 isProcessing={updatingLength}
                                                 disabled={updatingLength || !canUpdate}
+                                                qa-id="save-start-and-end-changes"
                                                 onClick={() => {
                                                     updateAlignment(linkingState);
                                                 }}>

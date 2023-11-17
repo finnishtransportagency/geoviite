@@ -159,7 +159,7 @@ class E2EConfirmDialog : E2EDialog() {
         logger.info("Confirm")
 
         waitUntilClosed {
-            clickChildByText("Tallenna")
+            clickPrimaryButton()
         }
     }
 }

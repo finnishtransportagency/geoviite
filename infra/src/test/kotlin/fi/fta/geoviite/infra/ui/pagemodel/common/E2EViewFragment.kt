@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import clickWhenClickable
 import defaultWait
 import exists
-import fi.fta.geoviite.infra.ui.util.byText
 import getElementWhenExists
 import getElementWhenVisible
 import getElementsWhenExists
@@ -37,9 +36,6 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun childDropdown(by: By) = childComponent(by, ::E2EDropdown)
 
     protected fun childCheckbox(by: By) = childComponent(by, ::E2ECheckbox)
-
-    @Deprecated("Use qaIds instead", ReplaceWith("clickChild(by, timeout)"))
-    protected fun clickChildByText(text: String) = clickChild(byText(text))
 
     protected fun childElement(by: By, timeout: Duration = defaultWait): WebElement =
         getElementWhenVisible(childBy(by), timeout)

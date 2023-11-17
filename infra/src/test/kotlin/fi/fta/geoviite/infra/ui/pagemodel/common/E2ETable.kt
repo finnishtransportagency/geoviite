@@ -8,6 +8,11 @@ abstract class E2ETable<T>(
     rowsBy: By = By.tagName("tr"),
     protected open val headersBy: By = By.tagName("th"),
 ) : E2EList<T>(tableBy, rowsBy) {
+
+    init {
+        waitUntilChildNotVisible(By.className("table--loading"))
+    }
+
     val rows: List<T> get() = items
 
     protected val headerElements: List<WebElement> get() = childElements(headersBy)

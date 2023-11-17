@@ -221,6 +221,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             </Button>
                             <span onClick={() => stateActions.validate()}>
                                 <Button
+                                    qa-id="save-km-post-changes"
                                     disabled={!canSaveKmPost(state)}
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}>

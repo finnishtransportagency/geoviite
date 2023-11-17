@@ -331,6 +331,7 @@ export const SwitchEditDialog = ({
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                qa-id="save-switch-changes"
                                 disabled={validationErrors.length > 0 || isSaving}
                                 isProcessing={isSaving}
                                 onClick={saveOrConfirm}>

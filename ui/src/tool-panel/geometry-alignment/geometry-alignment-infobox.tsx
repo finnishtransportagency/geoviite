@@ -95,6 +95,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
+                            qa-id="zoom-to-geometry-alignment"
                             onClick={() =>
                                 geometryAlignment.boundingBox &&
                                 showArea(geometryAlignment.boundingBox)
