@@ -39,6 +39,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
+import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -284,7 +285,7 @@ export const SwitchEditDialog = ({
         if (visitedFields.includes(prop)) {
             return validationErrors
                 .filter((error) => error.field == prop)
-                .map((error) => t(error.reason));
+                .map(({ reason }) => t(`switch-dialog.${reason}`));
         }
         return [];
     }
@@ -333,7 +334,13 @@ export const SwitchEditDialog = ({
                             <Button
                                 disabled={validationErrors.length > 0 || isSaving}
                                 isProcessing={isSaving}
-                                onClick={saveOrConfirm}>
+                                onClick={saveOrConfirm}
+                                title={getSaveDisabledReasons(
+                                    validationErrors.map((e) => e.reason),
+                                    isSaving,
+                                )
+                                    .map((reason) => t(`switch-dialog.${reason}`))
+                                    .join(', ')}>
                                 {t('button.save')}
                             </Button>
                         </div>
@@ -518,21 +525,21 @@ function validateSwitchName(name: string): ValidationError<TrackLayoutSwitchSave
     if (!name) {
         errors.push({
             field: 'name',
-            reason: 'switch-dialog.validation-error-mandatory-field',
+            reason: 'mandatory-field',
             type: ValidationErrorType.ERROR,
         });
     }
     if (name.length > 20) {
         errors.push({
             field: 'name',
-            reason: 'switch-dialog.name-max-limit',
+            reason: 'name-max-limit',
             type: ValidationErrorType.ERROR,
         });
     }
     if (!name.match(SWITCH_NAME_REGEX)) {
         errors.push({
             field: 'name',
-            reason: 'switch-dialog.invalid-name',
+            reason: 'invalid-name',
             type: ValidationErrorType.ERROR,
         });
     }
@@ -546,7 +553,7 @@ function validateSwitchStateCategory(
         return [
             {
                 field: 'stateCategory',
-                reason: 'switch-dialog.validation-error-mandatory-field',
+                reason: 'mandatory-field',
                 type: ValidationErrorType.ERROR,
             },
         ];
@@ -560,7 +567,7 @@ function validateSwitchStructureId(
         return [
             {
                 field: 'switchStructureId',
-                reason: 'switch-dialog.validation-error-mandatory-field',
+                reason: 'mandatory-field',
                 type: ValidationErrorType.ERROR,
             },
         ];
@@ -574,7 +581,7 @@ function validateSwitchOwnerId(
         return [
             {
                 field: 'ownerId',
-                reason: 'switch-dialog.validation-error-mandatory-field',
+                reason: 'mandatory-field',
                 type: ValidationErrorType.ERROR,
             },
         ];

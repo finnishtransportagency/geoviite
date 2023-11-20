@@ -21,7 +21,7 @@ export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps>
     return (
         <Dropdown
             options={descriptionSuffixModes}
-            value={suffixMode ?? 'NONE'}
+            value={suffixMode}
             onChange={onChange}
             onBlur={onBlur}
             canUnselect={false}

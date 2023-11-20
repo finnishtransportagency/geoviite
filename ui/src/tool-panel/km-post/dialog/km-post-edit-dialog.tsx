@@ -32,7 +32,10 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
-import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
+import {
+    getSaveDisabledReasons,
+    useTrackNumbersIncludingDeleted,
+} from 'track-layout/track-layout-react-utils';
 
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
@@ -223,7 +226,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 <Button
                                     disabled={!canSaveKmPost(state)}
                                     isProcessing={state.isSaving}
-                                    onClick={() => saveOrConfirm()}>
+                                    onClick={() => saveOrConfirm()}
+                                    title={getSaveDisabledReasons(
+                                        state.validationErrors.map((e) => e.reason),
+                                        state.isSaving,
+                                    )
+                                        .map((reason) => t(`km-post-dialog.${reason}`))
+                                        .join(', ')}>
                                     {t('button.save')}
                                 </Button>
                             </span>

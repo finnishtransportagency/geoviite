@@ -82,10 +82,12 @@ export const splitReducers = {
             endLocation: payload.endLocation,
             initialSplit: {
                 name:
+                    duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
                         ? duplicateTrackClosestToStart.duplicate.name
                         : '',
                 duplicateOf:
+                    duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
                         ? duplicateTrackClosestToStart.duplicate.id
                         : undefined,
@@ -116,11 +118,11 @@ export const splitReducers = {
                 {
                     switchId: payload,
                     name:
-                        closestDupe.distance <= DUPLICATE_MAX_DISTANCE
+                        closestDupe && closestDupe.distance <= DUPLICATE_MAX_DISTANCE
                             ? closestDupe.duplicate.name
                             : '',
                     duplicateOf:
-                        closestDupe.distance <= DUPLICATE_MAX_DISTANCE
+                        closestDupe && closestDupe.distance <= DUPLICATE_MAX_DISTANCE
                             ? closestDupe.duplicate.id
                             : undefined,
                     descriptionBase: '',
