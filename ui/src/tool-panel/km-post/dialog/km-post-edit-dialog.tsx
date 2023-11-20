@@ -70,9 +70,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const { t } = useTranslation();
     const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const kmPostStateOptions = layoutStates.filter(
-        (ls) => !state.isNewKmPost || ls.value != 'DELETED',
-    );
+    const kmPostStateOptions = layoutStates
+        .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
+        .map((ls) => ({ ...ls, qaId: ls.value }));
+
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
@@ -241,6 +242,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.km-post')} *`}
                             value={
                                 <TextField
+                                    qa-id="km-post-number"
                                     value={state.kmPost?.kmNumber}
                                     onChange={(e) => updateProp('kmNumber', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('kmNumber')}
@@ -284,6 +286,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="km-post-state"
                                     value={state.kmPost?.state}
                                     options={kmPostStateOptions}
                                     onChange={(value) => value && updateProp('state', value)}

@@ -108,7 +108,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
-    const trackNumberStateOptions = layoutStates.filter((s) => s.value !== 'PLANNED');
+    const trackNumberStateOptions = layoutStates
+        .filter((s) => s.value !== 'PLANNED')
+        .map((t) => ({ ...t, qaId: t.value }));
 
     const confirmNewDraftDelete = () => {
         setDraftDeleteConfirmationVisible(true);
@@ -219,6 +221,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.number')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-name"
                                     value={state.request.number}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({
@@ -246,6 +249,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="track-number-state"
                                     value={state.request.state}
                                     canUnselect={false}
                                     options={trackNumberStateOptions}
@@ -268,6 +272,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.description')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-description"
                                     value={state.request.description}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({

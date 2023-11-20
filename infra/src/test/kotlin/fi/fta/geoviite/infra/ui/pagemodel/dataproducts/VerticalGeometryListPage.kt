@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
@@ -33,11 +36,9 @@ abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.class
 
 class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
 
-    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
-
     val resultList: E2EDataProductPlanVerticalGeometryList = E2EDataProductPlanVerticalGeometryList()
 
-    val plan: E2EDropdown = searchForm.dropdown("data-products-search-plan")
+    val plan: E2EDropdown = childDropdown(byQaId("data-products-search-plan"))
 
     val downloadUrl: String
         get() {
@@ -53,9 +54,7 @@ class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometr
 }
 
 class E2EDataProductLayoutVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {
-    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
-
-    val locationTrack: E2EDropdown = searchForm.dropdown("data-products-search-location-track")
+    val locationTrack: E2EDropdown = childDropdown(byQaId("data-products-search-location-track"))
 
     val resultList: E2EDataProductLayoutVerticalGeometryList = E2EDataProductLayoutVerticalGeometryList()
 

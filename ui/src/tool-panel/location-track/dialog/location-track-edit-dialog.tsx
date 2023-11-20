@@ -121,9 +121,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, 'DRAFT');
 
-    const locationTrackStateOptions = layoutStates
+    const stateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
+        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', qaId: ls.value }));
+
+    const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
+    const topologicalConnectivityOptions = topologicalConnectivityTypes.map((tc) => ({
+        ...tc,
+        qaId: tc.value,
+    }));
 
     const locationTrackOwners = useLoader(
         () =>
@@ -368,6 +374,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.track-logo')} *`}
                             value={
                                 <TextField
+                                    qa-id="location-track-name"
                                     value={state.locationTrack?.name}
                                     onChange={(e) => updateProp('name', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('name')}
@@ -392,6 +399,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.track-number')} *`}
                             value={
                                 <Dropdown
+                                    qaId="location-track-track-number"
                                     value={state.locationTrack?.trackNumberId}
                                     options={trackNumberOptions}
                                     onChange={(value) => updateProp('trackNumberId', value)}
@@ -407,8 +415,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="location-track-state"
                                     value={state.locationTrack?.state}
-                                    options={locationTrackStateOptions}
+                                    options={stateOptions}
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}
@@ -423,7 +432,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <Dropdown
                                     value={state.locationTrack?.type}
-                                    options={locationTrackTypes}
+                                    qaId="location-track-type"
+                                    options={typeOptions}
                                     onChange={(value) => value && updateProp('type', value)}
                                     onBlur={() => stateActions.onCommitField('type')}
                                     hasError={hasErrors('type')}
@@ -442,6 +452,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         label={`${t('location-track-dialog.description-base')} *`}
                                         value={
                                             <TextField
+                                                qa-id="location-track-description-base"
                                                 value={state.locationTrack?.descriptionBase || ''}
                                                 onChange={(e) =>
                                                     updateProp('descriptionBase', e.target.value)
@@ -459,6 +470,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         label={`${t('location-track-dialog.description-suffix')} *`}
                                         value={
                                             <DescriptionSuffixDropdown
+                                                qaId="location-track-description-suffix"
                                                 suffixMode={locationTrackDescriptionSuffixMode}
                                                 onChange={(value) => {
                                                     updateProp('descriptionSuffix', value);
@@ -513,8 +525,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.topological-connectivity')} *`}
                             value={
                                 <Dropdown
+                                    qaId="location-track-topological-connectivity"
                                     value={state.locationTrack?.topologicalConnectivity}
-                                    options={topologicalConnectivityTypes}
+                                    options={topologicalConnectivityOptions}
                                     onChange={(value) =>
                                         value && updateProp('topologicalConnectivity', value)
                                     }

@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import clickWhenClickable
 import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextListItem
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdownListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
@@ -34,11 +34,11 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
         waitUntilNotVisible(By.className("dropdown__loading-indicator"))
     }
 
-    val searchResults: List<E2ETextListItem> get() = searchDropdown.options
+    val searchResults: List<E2EDropdownListItem> get() = searchDropdown.options
 
     fun selectSearchResult(resultContains: String) = apply {
         logger.info("Select result '$resultContains'")
-        searchDropdown.select(resultContains)
+        searchDropdown.selectByName(resultContains)
     }
 
     fun goToPreview(): E2EPreviewChangesPage {

@@ -16,6 +16,11 @@ class E2ETextInput(private val inputBy: By) {
 
     val value: String get() = webElement.getAttribute("value")
 
+    fun replaceValue(text: String): E2ETextInput = apply {
+        clear()
+        inputValue(text)
+    }
+
     fun inputValue(text: String): E2ETextInput = apply {
         logger.info("Input value $text")
 

@@ -97,7 +97,7 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
 
         values.forEachIndexed { index, value ->
             childDropdown(By.cssSelector(".dropdown:nth-child(${index + 1})"))
-                .select(value)
+                .selectByName(value)
         }
 
         toggleEdit()

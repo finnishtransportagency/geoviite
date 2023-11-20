@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import clickWhenClickable
 import exists
 import org.openqa.selenium.By
+import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
 import org.openqa.selenium.support.ui.ExpectedConditions
 import tryWait
@@ -12,19 +13,37 @@ import waitUntilVisible
 
 private val CONTAINER_BY: By = By.className("dropdown__list-container")
 
+data class E2EDropdownListItem(val name: String, val qaId: String?)
+
+class E2EDropdownList : E2EList<E2EDropdownListItem>(CONTAINER_BY, By.className("dropdown__list-item")) {
+    override fun getItemContent(item: WebElement): E2EDropdownListItem {
+        return E2EDropdownListItem(item.text, item.getAttribute("qa-id"))
+    }
+
+    fun selectByQaId(qaId: String) = apply {
+        select { i -> i.qaId == qaId }
+    }
+
+    fun selectByName(name: String) = apply {
+        select { i -> i.name.contains(name) }
+    }
+}
+
 class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
     private val valueBy: By = By.className("dropdown__current-value")
 
     private val input: E2ETextInput = childTextInput(By.tagName("input"))
 
-    private val optionsList: E2ETextList by lazy {
-        E2ETextList(CONTAINER_BY, By.className("dropdown__list-item"))
+    private val optionsList: E2EDropdownList by lazy {
+        E2EDropdownList()
     }
 
-    val options: List<E2ETextListItem> get() = optionsList.items
+    val options: List<E2EDropdownListItem> get() = optionsList.items
 
     val value: String get() = childText(valueBy)
+
+    val qaIdValue: String? get() = childElement(valueBy).getAttribute("qa-id")
 
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
@@ -35,11 +54,19 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
         }
     }
 
-    fun select(name: String): E2EDropdown = apply {
+    fun selectByName(name: String): E2EDropdown = apply {
         logger.info("Select item $name")
 
         open()
-        optionsList.selectByText(name)
+        optionsList.selectByName(name)
+        waitUntilNotVisible(CONTAINER_BY)
+    }
+
+    fun selectByQaId(qaId: String): E2EDropdown = apply {
+        logger.info("Select item $qaId")
+
+        open()
+        optionsList.selectByQaId(qaId)
         waitUntilNotVisible(CONTAINER_BY)
     }
 
@@ -56,7 +83,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
             )
         ) { "Option list does not contain item $name" }
 
-        optionsList.selectByText(name)
+        optionsList.selectByName(name)
     }
 
     fun new() = apply {
