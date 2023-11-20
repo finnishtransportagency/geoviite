@@ -116,23 +116,31 @@ class LayoutKmPostService(
     fun getSingleKmPostLength(
         publishType: PublishType,
         id: IntId<TrackLayoutKmPost>,
+    ): Double? = dao.fetchVersionOrThrow(id, publishType).let(dao::fetch).getAsIntegral()?.let { kmPost ->
+        getReferenceLineAlignment(publishType, kmPost.trackNumberId)?.let { referenceLineAlignment ->
+            val kmPostM = referenceLineAlignment.getClosestPointM(kmPost.location)?.first
+            val kmEndM = getKmEndM(publishType, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
+            if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
+        }
+    }
+
+    private fun getKmEndM(
+        publishType: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        kmNumber: KmNumber,
+        referenceLineAlignment: LayoutAlignment,
     ): Double? {
-        val kmPost = dao.fetchVersion(id, publishType)?.let(dao::fetch) ?: return null
-        if (kmPost.state != LayoutState.IN_USE) return null
-        val kmPostLocation = kmPost.location ?: return null
-        val trackNumberId = kmPost.trackNumberId ?: return null
-        val referenceLineAlignment = referenceLineDao.fetchVersion(publishType, trackNumberId)
+        val nextKmPost = dao
+            .fetchNextWithLocationAfter(trackNumberId, kmNumber, publishType, LayoutState.IN_USE)
+            ?.let(dao::fetch)
+            ?.getAsIntegral()
+        return if (nextKmPost == null) referenceLineAlignment.length
+        else referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
+    }
+
+    private fun getReferenceLineAlignment(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>) =
+        referenceLineDao.fetchVersion(publishType, trackNumberId)
             ?.let(referenceLineDao::fetch)
             ?.let(ReferenceLine::alignmentVersion)
-            ?.let(alignmentDao::fetch) ?: return null
-        val nextKmPost = dao.fetchNextWithLocationAfter(trackNumberId, kmPost.kmNumber, publishType, LayoutState.IN_USE)
-            ?.let(dao::fetch)
-
-        val kmPostM = referenceLineAlignment.getClosestPointM(kmPostLocation)?.first ?: return null
-        val nextM =
-            if (nextKmPost?.location != null) referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
-                ?: return null
-            else referenceLineAlignment.length
-        return nextM - kmPostM
-    }
+            ?.let(alignmentDao::fetch)
 }
