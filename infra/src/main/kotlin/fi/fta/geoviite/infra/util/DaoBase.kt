@@ -20,7 +20,7 @@ enum class FetchType {
 }
 
 fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
-    FetchType.MULTI -> "in (:ids)"
+    MULTI -> "in (:ids)"
     SINGLE -> "= :id"
 }
 
