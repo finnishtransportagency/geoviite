@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-number-api';
 import {
+    getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
     useTrackNumberReferenceLine,
     useTrackNumbersIncludingDeleted,
@@ -84,6 +85,8 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
         return <div />;
     }
 };
+
+const mapError = (errorReason: string) => `track-number-edit.error.${errorReason}`;
 
 export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     inEditTrackNumber,
@@ -213,7 +216,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Button
                                 disabled={hasErrors || saveInProgress}
                                 isProcessing={saveInProgress}
-                                onClick={saveOrConfirm}>
+                                onClick={saveOrConfirm}
+                                title={getSaveDisabledReasons(
+                                    state.validationErrors.map((e) => e.reason),
+                                    saveInProgress,
+                                )
+                                    .map((reason) => t(mapError(reason)))
+                                    .join(', ')}>
                                 {t('track-number-edit.action.save')}
                             </Button>
                         </div>
@@ -242,7 +251,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={numberErrors.map((e) => t(e.reason))}>
+                            errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
                                 <Link
                                     className="move-to-edit-link"
@@ -271,7 +280,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     searchable
                                 />
                             }
-                            errors={stateErrors.map((e) => t(e.reason))}
+                            errors={stateErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                         <FieldLayout
                             label={`${t('track-number-edit.field.description')} *`}
@@ -291,7 +300,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={descriptionErrors.map((e) => t(e.reason))}
+                            errors={descriptionErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                     </FormLayoutColumn>
                     <FormLayoutColumn>
@@ -316,7 +325,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={startAddressErrors.map((e) => t(e.reason))}
+                            errors={startAddressErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                         {startAndEndPoints && (
                             <FieldLayout

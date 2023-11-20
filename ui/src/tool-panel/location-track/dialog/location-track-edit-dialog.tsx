@@ -38,6 +38,7 @@ import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/fo
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
+    getSaveDisabledReasons,
     useConflictingTrack,
     useLocationTrack,
     useLocationTrackInfoboxExtras,
@@ -352,7 +353,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 onClick={() => {
                                     stateActions.validate();
                                     saveOrConfirm();
-                                }}>
+                                }}
+                                title={getSaveDisabledReasons(
+                                    state.validationErrors.map((e) => e.reason),
+                                    state.isSaving,
+                                )
+                                    .map((reason) => t(`location-track-dialog.${reason}`))
+                                    .join(', ')}>
                                 {t('button.save')}
                             </Button>
                         </div>
