@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.map.*
 import fi.fta.geoviite.infra.map.MapAlignmentType.LOCATION_TRACK
@@ -37,7 +36,7 @@ class MapAlignmentService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     fun getAlignmentPolyLines(
         publishType: PublishType,
         bbox: BoundingBox,
@@ -60,7 +59,6 @@ class MapAlignmentService(
         return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
     }
 
-    @Transactional(readOnly = true)
     fun getAlignmentPolyline(
         id: IntId<LocationTrack>,
         publishType: PublishType,
@@ -68,12 +66,11 @@ class MapAlignmentService(
         resolution: Int,
     ): AlignmentPolyLine<LocationTrack>? {
         return locationTrackService
-            .get(publishType, id)
-            ?.takeIf { t -> t.state != LayoutState.DELETED }
-            ?.let { toAlignmentPolyLine(it.id, LOCATION_TRACK, it.alignmentVersion, bbox, resolution) }
+            .getWithAlignment(publishType, id)
+            ?.takeIf { (t, _) -> t.state != LayoutState.DELETED }
+            ?.let { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox) }
     }
 
-    @Transactional(readOnly = true)
     fun getSectionsWithoutLinking(
         publishType: PublishType,
         bbox: BoundingBox,
@@ -91,13 +88,13 @@ class MapAlignmentService(
         return referenceLines + locationTracks
     }
 
-    @Transactional(readOnly = true)
     fun getSectionsWithoutProfile(
         publishType: PublishType,
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
         logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
-        return alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
+        return alignmentDao
+            .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
             .filter { !it.hasProfile }
             .groupBy { it.id }
             .map {
@@ -112,13 +109,14 @@ class MapAlignmentService(
                             prev?.let {
                                 acc.put(
                                     info.alignmentId.index,
-                                    Range(prev.min, info.points.last().m + info.segmentStart)
+                                    Range(prev.min, info.points.last().m + info.segmentStart),
                                 )
                             }
                         }
                         acc
                     }.values.toList()
-            ) }
+                )
+            }
     }
 
     @Transactional(readOnly = true)
@@ -126,26 +124,25 @@ class MapAlignmentService(
         publishType: PublishType,
         referenceLineIds: List<IntId<ReferenceLine>>,
     ): List<AlignmentHeader<ReferenceLine>> {
-        val referenceLines = referenceLineService.getMany(publishType, referenceLineIds)
+        val referenceLines = referenceLineService.getManyWithAlignment(publishType, referenceLineIds)
         val trackNumbers = trackNumberService
-            .getMany(publishType, referenceLines.map(ReferenceLine::trackNumberId))
+            .getMany(publishType, referenceLines.map { (rl, _) -> rl.trackNumberId })
             .associateBy(TrackLayoutTrackNumber::id)
-        return referenceLines.map { line ->
+        return referenceLines.map { (line, alignment) ->
             val trackNumber = requireNotNull(trackNumbers[line.trackNumberId]) {
-                "ReferenceLine in DB must have an existing TrackNumber"
+                "ReferenceLine in DB must have a TrackNumber: line=${line.id} trackNumberId=${line.trackNumberId}"
             }
-            toAlignmentHeader(trackNumber, line, line.alignmentVersion?.let(alignmentDao::fetch))
+            toAlignmentHeader(trackNumber, line, alignment)
         }
     }
 
-    @Transactional(readOnly = true)
     fun getLocationTrackHeaders(
         publishType: PublishType,
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack>> {
-        return locationTrackService.getMany(publishType, locationTrackIds).map { track ->
-            toAlignmentHeader(track, track.alignmentVersion?.let(alignmentDao::fetch))
-        }
+        return locationTrackService
+            .getManyWithAlignment(publishType, locationTrackIds)
+            .map { (track, alignment) -> toAlignmentHeader(track, alignment) }
     }
 
     fun getLocationTrackSegmentMValues(publishType: PublishType, id: IntId<LocationTrack>): List<Double> {
@@ -177,11 +174,8 @@ class MapAlignmentService(
         bbox: BoundingBox,
         resolution: Int,
     ): List<AlignmentPolyLine<LocationTrack>> = locationTrackService
-        .list(publishType)
-        .filter(LocationTrack::exists)
-        .mapNotNull { locationTrack ->
-            toAlignmentPolyLine(locationTrack.id, LOCATION_TRACK, locationTrack.alignmentVersion, bbox, resolution)
-        }
+        .listWithAlignments(publishType, includeDeleted = false)
+        .map { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox) }
 
     private fun getReferenceLinePolyLines(
         publishType: PublishType,
@@ -189,54 +183,43 @@ class MapAlignmentService(
         resolution: Int,
     ): List<AlignmentPolyLine<*>> {
         val trackNumbers = trackNumberService.mapById(publishType)
-        return referenceLineService.list(publishType).mapNotNull { line ->
-            val trackNumber = trackNumbers[line.trackNumberId]
-            if (trackNumber != null && trackNumber.state != LayoutState.DELETED)
-                toAlignmentPolyLine(line.id, REFERENCE_LINE, line.alignmentVersion, bbox, resolution)
-            else null
-        }
-    }
-
-    private fun <T> toAlignmentPolyLine(
-        id: DomainId<T>,
-        type: MapAlignmentType,
-        alignmentVersion: RowVersion<LayoutAlignment>?,
-        bbox: BoundingBox,
-        resolution: Int,
-    ) = alignmentVersion?.let(alignmentDao::fetch)?.let { alignment ->
-        toAlignmentPolyLine(id, type, alignment, resolution, bbox)
+        return referenceLineService
+            .listWithAlignment(publishType, includeDeleted = false)
+            .mapNotNull { (line, alignment) ->
+                val trackNumber = trackNumbers[line.trackNumberId]
+                if (trackNumber != null) toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox)
+                else null
+            }
     }
 
     private fun getLocationTrackMissingLinkings(
         publishType: PublishType,
         bbox: BoundingBox,
-    ): List<MapAlignmentHighlight<LocationTrack>> = locationTrackService.list(publishType)
-        .filter { t -> t.exists && bbox.intersects(t.boundingBox) }
-        .mapNotNull { track -> getMissingLinkings(track.id, LOCATION_TRACK, track.alignmentVersion) }
+    ): List<MapAlignmentHighlight<LocationTrack>> = locationTrackService
+        .listWithAlignments(publishType, boundingBox = bbox, includeDeleted = false)
+        .mapNotNull { (track, alignment) -> getMissingLinkings(track.id, LOCATION_TRACK, alignment) }
 
     private fun getReferenceLineMissingLinkings(
         publishType: PublishType,
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<ReferenceLine>> {
-        val trackNumbers = trackNumberService.mapById(publishType)
-        return referenceLineService.list(publishType)
-            .filter { rl -> trackNumbers[rl.trackNumberId]?.exists ?: false && bbox.intersects(rl.boundingBox) }
-            .mapNotNull { rl -> getMissingLinkings(rl.id, REFERENCE_LINE, rl.alignmentVersion) }
+        return referenceLineService
+            .listWithAlignment(publishType, boundingBox = bbox, includeDeleted = false)
+            .mapNotNull { (line, alignment) -> getMissingLinkings(line.id, REFERENCE_LINE, alignment) }
     }
-
-    private fun <T> getMissingLinkings(
-        id: DomainId<T>,
-        type: MapAlignmentType,
-        alignmentVersion: RowVersion<LayoutAlignment>?,
-    ): MapAlignmentHighlight<T>? {
-        val ranges = alignmentVersion?.let(alignmentDao::fetch)?.let(::getMissingLinkingRanges) ?: listOf()
-        return if (ranges.isEmpty()) null else MapAlignmentHighlight(id as IntId, type, ranges)
-    }
-
-    private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
-        combineContinuous(alignment.segments.filter { s -> s.sourceId == null }.map { s -> Range(s.startM, s.endM) })
-
-    private fun getEndPoints(alignment: LayoutAlignment) =
-        (alignment.segments.firstOrNull()?.points?.take(2) ?: listOf()) +
-                (alignment.segments.lastOrNull()?.points?.takeLast(2) ?: listOf())
 }
+
+private fun <T> getMissingLinkings(
+    id: DomainId<T>,
+    type: MapAlignmentType,
+    alignment: LayoutAlignment,
+): MapAlignmentHighlight<T>? = getMissingLinkingRanges(alignment)
+    .takeIf { list -> list.isNotEmpty() }
+    ?.let { ranges -> MapAlignmentHighlight(id as IntId, type, ranges) }
+
+private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
+    combineContinuous(alignment.segments.filter { s -> s.sourceId == null }.map { s -> Range(s.startM, s.endM) })
+
+private fun getEndPoints(alignment: LayoutAlignment) =
+    (alignment.segments.firstOrNull()?.points?.take(2) ?: listOf()) +
+            (alignment.segments.lastOrNull()?.points?.takeLast(2) ?: listOf())

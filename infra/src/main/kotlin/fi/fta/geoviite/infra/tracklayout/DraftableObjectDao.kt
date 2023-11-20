@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
@@ -108,6 +109,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     protected val cache: Cache<RowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
 
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     override fun fetch(version: RowVersion<T>): T =
         if (cacheEnabled) cache.get(version, ::fetchInternal)
         else fetchInternal(version)

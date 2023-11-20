@@ -182,11 +182,28 @@ class LocationTrackService(
     fun listWithAlignments(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        includeDeleted: Boolean = false,
+        boundingBox: BoundingBox? = null
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall(
-            "listWithAlignments", "publishType" to publishType, "trackNumberId" to trackNumberId
+            "listWithAlignments",
+            "publishType" to publishType,
+            "trackNumberId" to trackNumberId,
+            "includeDeleted" to includeDeleted,
         )
-        return dao.fetchVersions(publishType, false, trackNumberId).map(::getWithAlignmentInternal)
+        return dao
+            .list(publishType, includeDeleted, trackNumberId)
+            .let { list -> filterByBoundingBox(list, boundingBox) }
+            .let(::associateWithAlignments)
+    }
+
+    @Transactional(readOnly = true)
+    fun getManyWithAlignment(
+        publishType: PublishType,
+        ids: List<IntId<LocationTrack>>,
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall("getManyWithAlignment", "publishType" to publishType, "ids" to ids)
+        return dao.getMany(publishType, ids).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
@@ -238,7 +255,7 @@ class LocationTrackService(
         logger.serviceCall(
             "listNearWithAlignments", "publishType" to publishType, "bbox" to bbox
         )
-        return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
+        return dao.listNear(publishType, bbox).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
@@ -326,6 +343,12 @@ class LocationTrackService(
 
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)
+
+    private fun associateWithAlignments(lines: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
+        // This is a little convoluted to avoid extra passes of transaction annotation handling in alignmentDao.fetch
+        val alignments = alignmentDao.fetchMany(lines.map(LocationTrack::getAlignmentVersionOrThrow))
+        return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
+    }
 
     @Transactional(readOnly = true)
     fun getInfoboxExtras(publishType: PublishType, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
@@ -576,3 +599,7 @@ fun getConnectedSwitchIds(locationTrack: LocationTrack, alignment: LayoutAlignme
     )
     return (segmentLinks + topologyLinks).toHashSet()
 }
+
+fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
+    if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) }
+    else list

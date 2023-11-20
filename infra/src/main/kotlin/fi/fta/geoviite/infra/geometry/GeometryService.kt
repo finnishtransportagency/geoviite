@@ -87,7 +87,6 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchPlanAreas(boundingBox)
     }
 
-    @Transactional(readOnly = true)
     fun getPlanHeaders(
         sources: List<PlanSource> = listOf(),
         bbox: BoundingBox? = null,
@@ -96,8 +95,8 @@ class GeometryService @Autowired constructor(
         logger.serviceCall(
             "getPlanHeaders", "sources" to sources, "bbox" to bbox, "filtered" to (filter != null)
         )
-        return geometryDao.fetchPlanVersions(sources = sources, bbox = bbox)
-            .map(geometryDao::getPlanHeader)
+        return geometryDao
+            .fetchPlanHeaders(sources = sources, bbox = bbox)
             .let { all -> filter?.let(all::filter) ?: all }
     }
 
@@ -208,6 +207,7 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
+    @Transactional(readOnly = true)
     fun fetchDuplicateGeometryPlanHeader(newFile: InfraModelFile, source: PlanSource): GeometryPlanHeader? {
         logger.serviceCall("fetchDuplicateGeometryPlanHeader", "newFile" to newFile, "source" to source)
         return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)

@@ -158,6 +158,28 @@ class ReferenceLineService(
         return getWithAlignmentInternal(version)
     }
 
+    @Transactional(readOnly = true)
+    fun getManyWithAlignment(
+        publishType: PublishType,
+        ids: List<IntId<ReferenceLine>>,
+    ): List<Pair<ReferenceLine, LayoutAlignment>> {
+        logger.serviceCall("getManyWithAlignment", "publishType" to publishType, "ids" to ids)
+        return dao.getMany(publishType, ids).let(::associateWithAlignments)
+    }
+
+    @Transactional(readOnly = true)
+    fun listWithAlignment(
+        publishType: PublishType,
+        includeDeleted: Boolean = false,
+        boundingBox: BoundingBox? = null,
+    ): List<Pair<ReferenceLine, LayoutAlignment>> {
+        logger.serviceCall("listWithAlignment", "publishType" to publishType, "includeDeleted" to includeDeleted)
+        return dao
+            .list(publishType, includeDeleted)
+            .let { list -> filterByBoundingBox(list, boundingBox) }
+            .let(::associateWithAlignments)
+    }
+
     private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<ReferenceLine>) =
         getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publishType))
 
@@ -166,6 +188,12 @@ class ReferenceLineService(
 
     private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
         referenceLineWithAlignment(dao, alignmentDao, version)
+
+    private fun associateWithAlignments(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
+        // This is a little convoluted to avoid extra passes of transaction annotation handling in alignmentDao.fetch
+        val alignments = alignmentDao.fetchMany(lines.map(ReferenceLine::getAlignmentVersionOrThrow))
+        return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
+    }
 
     fun listNonLinked(): List<ReferenceLine> {
         logger.serviceCall("listNonLinked")
@@ -185,3 +213,7 @@ fun referenceLineWithAlignment(
 ) = referenceLineDao.fetch(rowVersion).let { track ->
     track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }
+
+fun filterByBoundingBox(list: List<ReferenceLine>, boundingBox: BoundingBox?): List<ReferenceLine> =
+    if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) }
+    else list
