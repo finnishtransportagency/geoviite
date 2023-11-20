@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
+import fi.fta.geoviite.infra.integration.DatabaseLock.ELEMENT_LIST_GEN
+import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -59,29 +61,22 @@ class GeometryService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val localization = localizationService.getLocalization("fi")
 
-    private fun runElementListGeneration(op: () -> Unit) {
-        MDC.put(USER_HEADER, ELEMENT_LISTING_GENERATION_USER)
-        try {
-            lockDao.runWithLock(DatabaseLock.ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
-                val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
-                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
-                    op()
-                }
-            }
-        } finally {
-            MDC.remove(USER_HEADER)
+    private fun runElementListGeneration(op: () -> Unit) =
+        runWithLock(ELEMENT_LISTING_GENERATION_USER, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
+            val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
+            if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
         }
-    }
 
-    private fun runVerticalGeometryListGeneration(op: () -> Unit) {
-        MDC.put(USER_HEADER, VERTICAL_GEOMETRY_LISTING_GENERATION_USER)
+    private fun runVerticalGeometryListGeneration(op: () -> Unit) =
+        runWithLock(VERTICAL_GEOMETRY_LISTING_GENERATION_USER, VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
+            val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
+            if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+        }
+
+    private fun runWithLock(userName: String, lock: DatabaseLock, timeout: Duration, op: () -> Unit) {
+        MDC.put(USER_HEADER, userName)
         try {
-            lockDao.runWithLock(DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
-                val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
-                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) {
-                    op()
-                }
-            }
+            lockDao.runWithLock(lock, timeout) { op() }
         } finally {
             MDC.remove(USER_HEADER)
         }
@@ -304,20 +299,17 @@ class GeometryService @Autowired constructor(
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
-    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
-    @Transactional
+    @Scheduled(initialDelay = 1000 * 3, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val trackNumberAndGeocodingContextCache = trackNumberService.list(OFFICIAL).associate { tn ->
-            tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
-        }
-        val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
+        val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
+        val elementListing = locationTrackService
+            .list(OFFICIAL, includeDeleted = false)
             .sortedBy { locationTrack -> locationTrack.name }
-            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number }
+            .sortedBy { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber?.number }
             .flatMap { locationTrack ->
                 val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId)
-                val geocodingContext = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.second
-                getElementListing(locationTrack, alignment, geocodingContext)
+                getElementListing(locationTrack, alignment, geocodingContexts[locationTrack.trackNumberId])
             }
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
@@ -360,8 +352,8 @@ class GeometryService @Autowired constructor(
     fun getVerticalGeometryListing(
         publicationType: PublishType,
         locationTrackId: IntId<LocationTrack>,
-        startAddress: TrackMeter?,
-        endAddress: TrackMeter?,
+        startAddress: TrackMeter? = null,
+        endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
         logger.serviceCall(
             "getVerticalGeometryListing",
@@ -401,25 +393,24 @@ class GeometryService @Autowired constructor(
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
-    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
-    @Transactional
+    @Scheduled(initialDelay = 1000 * 3, fixedDelay = Long.MAX_VALUE)
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
-        logger.serviceCall("makeVerticalGeometryListingCsv")
-        val trackNumberAndGeocodingContextCache = trackNumberService.list(OFFICIAL).associate { tn ->
-            tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
-        }
+        logger.serviceCall("makeEntireVerticalGeometryListingCsv")
+        val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
         val verticalGeometryListingWithTrackNumbers =
             locationTrackService.list(OFFICIAL, includeDeleted = false).sortedWith(
                 compareBy(
-                    { locationTrack -> trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number },
+                    { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber?.number },
                     { locationTrack -> locationTrack.name },
                 )
             ).flatMap { locationTrack ->
                 val verticalGeometryListingWithoutTrackNumbers =
-                    getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId, null, null)
+                    getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId)
 
                 verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
-                    verticalGeometryListing.copy(trackNumber = trackNumberAndGeocodingContextCache[locationTrack.trackNumberId]?.first?.number)
+                    verticalGeometryListing.copy(
+                        trackNumber = geocodingContexts[locationTrack.trackNumberId]?.trackNumber?.number
+                    )
                 }
             }
 

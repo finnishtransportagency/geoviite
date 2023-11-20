@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 @Service
@@ -118,6 +119,12 @@ class GeocodingService(
         )
         return getGeocodingContext(publicationState, locationTrack.trackNumberId)?.getTrackLocation(alignment, address)
     }
+
+    @Transactional(readOnly = true)
+    fun getGeocodingContexts(publicationState: PublishType): Map<IntId<TrackLayoutTrackNumber>, GeocodingContext?> =
+        geocodingDao
+            .listLayoutGeocodingContextCacheKeys(publicationState)
+            .associate { key -> key.trackNumberVersion.id to geocodingCacheService.getGeocodingContext(key) }
 
     fun getGeocodingContext(
         publicationState: PublishType,
