@@ -781,10 +781,8 @@ class GeometryDao @Autowired constructor(
         )
     }
 
-    fun fetchPlanHeaders(
-        sources: List<PlanSource>,
-        bbox: BoundingBox?,
-    ): List<GeometryPlanHeader> = fetchPlanVersions().map(::getPlanHeader)
+    fun fetchPlanHeaders(sources: List<PlanSource>, bbox: BoundingBox?): List<GeometryPlanHeader> =
+        fetchPlanVersions(sources, bbox).map(::getPlanHeader)
 
     fun fetchPlanVersions(
         sources: List<PlanSource>,
