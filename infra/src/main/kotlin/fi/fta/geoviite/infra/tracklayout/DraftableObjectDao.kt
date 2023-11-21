@@ -272,7 +272,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     @Transactional
     override fun deleteDraft(id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(id).let { r ->
-        if (r.size > 1) throw IllegalStateException("Multiple rows deleted with one ID: type=${table.name} id=$id")
+        if (r.size > 1) error { "Multiple rows deleted with one ID: type=${table.name} id=$id" }
         else if (r.isEmpty()) throw DeletingFailureException("Trying to delete a non-existing draft object: type=${table.name} id=$id")
         else r.first()
     }

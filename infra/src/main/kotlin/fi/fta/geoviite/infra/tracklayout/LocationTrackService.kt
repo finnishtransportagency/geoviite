@@ -198,11 +198,11 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getManyWithAlignment(
+    fun getManyWithAlignments(
         publishType: PublishType,
         ids: List<IntId<LocationTrack>>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        logger.serviceCall("getManyWithAlignment", "publishType" to publishType, "ids" to ids)
+        logger.serviceCall("getManyWithAlignments", "publishType" to publishType, "ids" to ids)
         return dao.getMany(publishType, ids).let(::associateWithAlignments)
     }
 

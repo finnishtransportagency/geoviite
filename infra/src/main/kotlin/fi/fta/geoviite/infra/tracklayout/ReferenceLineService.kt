@@ -159,21 +159,21 @@ class ReferenceLineService(
     }
 
     @Transactional(readOnly = true)
-    fun getManyWithAlignment(
+    fun getManyWithAlignments(
         publishType: PublishType,
         ids: List<IntId<ReferenceLine>>,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        logger.serviceCall("getManyWithAlignment", "publishType" to publishType, "ids" to ids)
+        logger.serviceCall("getManyWithAlignments", "publishType" to publishType, "ids" to ids)
         return dao.getMany(publishType, ids).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
-    fun listWithAlignment(
+    fun listWithAlignments(
         publishType: PublishType,
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        logger.serviceCall("listWithAlignment", "publishType" to publishType, "includeDeleted" to includeDeleted)
+        logger.serviceCall("listWithAlignments", "publishType" to publishType, "includeDeleted" to includeDeleted)
         return dao
             .list(publishType, includeDeleted)
             .let { list -> filterByBoundingBox(list, boundingBox) }

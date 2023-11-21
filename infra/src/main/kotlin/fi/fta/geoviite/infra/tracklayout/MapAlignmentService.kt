@@ -124,7 +124,7 @@ class MapAlignmentService(
         publishType: PublishType,
         referenceLineIds: List<IntId<ReferenceLine>>,
     ): List<AlignmentHeader<ReferenceLine>> {
-        val referenceLines = referenceLineService.getManyWithAlignment(publishType, referenceLineIds)
+        val referenceLines = referenceLineService.getManyWithAlignments(publishType, referenceLineIds)
         val trackNumbers = trackNumberService
             .getMany(publishType, referenceLines.map { (rl, _) -> rl.trackNumberId })
             .associateBy(TrackLayoutTrackNumber::id)
@@ -141,7 +141,7 @@ class MapAlignmentService(
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack>> {
         return locationTrackService
-            .getManyWithAlignment(publishType, locationTrackIds)
+            .getManyWithAlignments(publishType, locationTrackIds)
             .map { (track, alignment) -> toAlignmentHeader(track, alignment) }
     }
 
@@ -184,7 +184,7 @@ class MapAlignmentService(
     ): List<AlignmentPolyLine<*>> {
         val trackNumbers = trackNumberService.mapById(publishType)
         return referenceLineService
-            .listWithAlignment(publishType, includeDeleted = false)
+            .listWithAlignments(publishType, includeDeleted = false)
             .mapNotNull { (line, alignment) ->
                 val trackNumber = trackNumbers[line.trackNumberId]
                 if (trackNumber != null) toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox)
@@ -204,7 +204,7 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<ReferenceLine>> {
         return referenceLineService
-            .listWithAlignment(publishType, boundingBox = bbox, includeDeleted = false)
+            .listWithAlignments(publishType, boundingBox = bbox, includeDeleted = false)
             .mapNotNull { (line, alignment) -> getMissingLinkings(line.id, REFERENCE_LINE, alignment) }
     }
 }

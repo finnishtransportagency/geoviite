@@ -299,7 +299,7 @@ class GeometryService @Autowired constructor(
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
-    @Scheduled(initialDelay = 1000 * 3, fixedDelay = Long.MAX_VALUE)
+    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
         val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
@@ -393,7 +393,7 @@ class GeometryService @Autowired constructor(
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
-    @Scheduled(initialDelay = 1000 * 3, fixedDelay = Long.MAX_VALUE)
+    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
         logger.serviceCall("makeEntireVerticalGeometryListingCsv")
         val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
