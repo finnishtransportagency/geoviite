@@ -7,10 +7,7 @@ import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationExcept
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
-import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
-import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.*
@@ -257,6 +254,7 @@ class PublicationService @Autowired constructor(
     private fun validateAsPublicationUnit(candidates: PublishCandidates): PublishCandidates {
         val versions = candidates.getValidationVersions()
         val cacheKeys = collectCacheKeys(versions)
+        precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
         // TODO: This does not respect the candidate versions
         val switchTrackLinks = publicationDao.fetchLinkedLocationTracks(
             candidates.switches.map { s -> s.id },
@@ -286,6 +284,17 @@ class PublicationService @Autowired constructor(
             },
         )
     }
+
+    private fun precacheLocationTrackAlignmentAddresses(
+        candidates: PublishCandidates,
+        cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
+    ) = candidates.locationTracks.mapNotNull { candidate ->
+        val track = locationTrackDao.fetch(candidate.getPublicationVersion().validatedAssetVersion)
+        val alignmentVersion = track.alignmentVersion
+        val geocodingContextKey = cacheKeys[track.trackNumberId]
+        if (alignmentVersion == null || geocodingContextKey == null) null
+        else geocodingService.collectDataForGetAddressPoints(geocodingContextKey, alignmentVersion)
+    }.parallelStream().forEach { run -> run() }
 
     @Transactional(readOnly = true)
     fun validatePublishRequest(versions: ValidationVersions) {
