@@ -12,7 +12,11 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
+class LayoutKmPostService(
+    dao: LayoutKmPostDao,
+    private val referenceLineDao: ReferenceLineDao,
+    private val alignmentDao: LayoutAlignmentDao,
+) : DraftableObjectService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
     fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
@@ -107,4 +111,36 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
         val postsByDistance = allPosts.map { post -> associateByDistance(post, location) { item -> item.location } }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }
+
+    @Transactional(readOnly = true)
+    fun getSingleKmPostLength(
+        publishType: PublishType,
+        id: IntId<TrackLayoutKmPost>,
+    ): Double? = dao.fetchVersionOrThrow(id, publishType).let(dao::fetch).getAsIntegral()?.let { kmPost ->
+        getReferenceLineAlignment(publishType, kmPost.trackNumberId)?.let { referenceLineAlignment ->
+            val kmPostM = referenceLineAlignment.getClosestPointM(kmPost.location)?.first
+            val kmEndM = getKmEndM(publishType, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
+            if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
+        }
+    }
+
+    private fun getKmEndM(
+        publishType: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        kmNumber: KmNumber,
+        referenceLineAlignment: LayoutAlignment,
+    ): Double? {
+        val nextKmPost = dao
+            .fetchNextWithLocationAfter(trackNumberId, kmNumber, publishType, LayoutState.IN_USE)
+            ?.let(dao::fetch)
+            ?.getAsIntegral()
+        return if (nextKmPost == null) referenceLineAlignment.length
+        else referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
+    }
+
+    private fun getReferenceLineAlignment(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>) =
+        referenceLineDao.fetchVersion(publishType, trackNumberId)
+            ?.let(referenceLineDao::fetch)
+            ?.let(ReferenceLine::alignmentVersion)
+            ?.let(alignmentDao::fetch)
 }

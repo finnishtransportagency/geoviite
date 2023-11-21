@@ -244,7 +244,17 @@ data class TrackLayoutKmPost(
 ) : Draftable<TrackLayoutKmPost> {
     @JsonIgnore
     val exists = !state.isRemoved()
+
+    fun getAsIntegral(): IntegralTrackLayoutKmPost? =
+        if (state != LayoutState.IN_USE || location == null || trackNumberId == null) null
+        else IntegralTrackLayoutKmPost(kmNumber, location, trackNumberId)
 }
+
+data class IntegralTrackLayoutKmPost(
+    val kmNumber: KmNumber,
+    val location: Point,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+)
 
 enum class TrackLayoutKmPostTableColumn {
     TRACK_NUMBER, KILOMETER, START_M, END_M, LENGTH, LOCATION_E, LOCATION_N, WARNING
@@ -260,6 +270,10 @@ data class TrackLayoutKmLengthDetails(
 ) {
     val length = endM - startM
 }
+
+data class TrackLayoutKmPostLength(
+    val length: Double?
+)
 
 data class TrackLayoutSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,
