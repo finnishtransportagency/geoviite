@@ -492,23 +492,4 @@ class LayoutSwitchDao(
             )
         }
     }
-
-    fun duplicateNameExistsForPublicationCandidate(switchId: IntId<TrackLayoutSwitch>): Boolean {
-        val sql = """
-            select
-              exists(
-                  select *
-                    from layout.switch this_switch
-                      join layout.switch duplicate_switch
-                           on this_switch.name = duplicate_switch.name
-                             and this_switch.id != duplicate_switch.id
-                             and this_switch.draft_of_switch_id is distinct from duplicate_switch.id
-                    where duplicate_switch.state_category != 'NOT_EXISTING'
-                      and this_switch.id = :switchId)
-        """.trimIndent()
-
-        return jdbcTemplate.queryForObject(
-            sql, mapOf("switchId" to switchId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
-    }
 }

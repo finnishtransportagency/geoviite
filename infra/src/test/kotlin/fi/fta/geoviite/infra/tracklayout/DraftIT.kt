@@ -4,6 +4,8 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
@@ -83,16 +85,16 @@ class DraftIT @Autowired constructor(
         assertNotEquals(dbDraft.first.draft?.draftRowId, dbDraft.first.id)
 
         assertMatches(
-            dbLineAndAlignment.first, referenceLineService.getOfficial(dbLineAndAlignment.first.id as IntId)!!, true
+            dbLineAndAlignment.first, referenceLineService.get(OFFICIAL, dbLineAndAlignment.first.id as IntId)!!, true
         )
         assertMatches(
             dbLineAndAlignment.first,
-            referenceLineService.getOfficial(dbDraft.first.draft!!.draftRowId as IntId)!!,
+            referenceLineService.get(OFFICIAL, dbDraft.first.draft!!.draftRowId as IntId)!!,
             true
         )
 
-        assertMatches(dbDraft.first, referenceLineService.getDraft(dbDraft.first.id as IntId)!!, true)
-        assertMatches(dbDraft.first, referenceLineService.getDraft(dbDraft.first.draft!!.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.id as IntId)!!, true)
+        assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.draft!!.draftRowId as IntId)!!, true)
     }
 
     @Test
@@ -107,16 +109,16 @@ class DraftIT @Autowired constructor(
         assertNotEquals(dbDraft.first.draft?.draftRowId, dbDraft.first.id)
 
         assertMatches(
-            dbTrackAndAlignment.first, locationTrackService.getOfficial(dbTrackAndAlignment.first.id as IntId)!!, true
+            dbTrackAndAlignment.first, locationTrackService.get(OFFICIAL, dbTrackAndAlignment.first.id as IntId)!!, true
         )
         assertMatches(
             dbTrackAndAlignment.first,
-            locationTrackService.getOfficial(dbDraft.first.draft!!.draftRowId as IntId)!!,
+            locationTrackService.get(OFFICIAL, dbDraft.first.draft!!.draftRowId as IntId)!!,
             true
         )
 
-        assertMatches(dbDraft.first, locationTrackService.getDraft(dbDraft.first.id as IntId)!!, true)
-        assertMatches(dbDraft.first, locationTrackService.getDraft(dbDraft.first.draft!!.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.id as IntId)!!, true)
+        assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.draft!!.draftRowId as IntId)!!, true)
     }
 
     @Test
@@ -125,11 +127,11 @@ class DraftIT @Autowired constructor(
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
         assertNotEquals(dbSwitch, dbDraft)
 
-        assertMatches(dbSwitch, switchService.getOfficial(dbSwitch.id as IntId)!!, true)
-        assertMatches(dbSwitch, switchService.getOfficial(dbDraft.draft!!.draftRowId as IntId)!!, true)
+        assertMatches(dbSwitch, switchService.get(OFFICIAL, dbSwitch.id as IntId)!!, true)
+        assertMatches(dbSwitch, switchService.get(OFFICIAL, dbDraft.draft!!.draftRowId as IntId)!!, true)
 
-        assertMatches(dbDraft, switchService.getDraft(dbDraft.id as IntId)!!, true)
-        assertMatches(dbDraft, switchService.getDraft(dbDraft.draft!!.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.id as IntId)!!, true)
+        assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.draft!!.draftRowId as IntId)!!, true)
     }
 
 
@@ -139,11 +141,11 @@ class DraftIT @Autowired constructor(
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
         assertNotEquals(dbKmPost, dbDraft)
 
-        assertMatches(dbKmPost, kmPostService.getOfficial(dbKmPost.id as IntId)!!, true)
-        assertMatches(dbKmPost, kmPostService.getOfficial(dbDraft.draft!!.draftRowId as IntId)!!, true)
+        assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbKmPost.id as IntId)!!, true)
+        assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbDraft.draft!!.draftRowId as IntId)!!, true)
 
-        assertMatches(dbDraft, kmPostService.getDraft(dbDraft.id as IntId)!!, true)
-        assertMatches(dbDraft, kmPostService.getDraft(dbDraft.draft!!.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.id as IntId)!!, true)
+        assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.draft!!.draftRowId as IntId)!!, true)
     }
 
     @Test
@@ -199,8 +201,8 @@ class DraftIT @Autowired constructor(
         val dbOfficial = insertAndVerifyLine(createReferenceLineAndAlignment())
         val dbDraft = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbOfficial)))
 
-        val officials = referenceLineService.listOfficial()
-        val drafts = referenceLineService.listDraft()
+        val officials = referenceLineService.list(OFFICIAL)
+        val drafts = referenceLineService.list(DRAFT)
 
         assertFalse(officials.contains(dbDraft.first))
         assertFalse(drafts.contains(dbOfficial.first))
@@ -214,8 +216,8 @@ class DraftIT @Autowired constructor(
         val dbOfficial = insertAndVerifyTrack(createLocationTrackAndAlignment())
         val dbDraft = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbOfficial)))
 
-        val officials = locationTrackService.listOfficial()
-        val drafts = locationTrackService.listDraft()
+        val officials = locationTrackService.list(OFFICIAL)
+        val drafts = locationTrackService.list(DRAFT)
 
         assertFalse(officials.contains(dbDraft.first))
         assertFalse(drafts.contains(dbOfficial.first))
@@ -229,8 +231,8 @@ class DraftIT @Autowired constructor(
         val dbSwitch = insertAndVerify(switch(456))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
-        val officials = switchService.listOfficial()
-        val drafts = switchService.listDraft()
+        val officials = switchService.list(OFFICIAL)
+        val drafts = switchService.list(DRAFT)
 
         assertFalse(officials.contains(dbDraft))
         assertFalse(drafts.contains(dbSwitch))
@@ -244,8 +246,8 @@ class DraftIT @Autowired constructor(
         val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
-        val officials = kmPostService.listOfficial()
-        val drafts = kmPostService.listDraft()
+        val officials = kmPostService.list(OFFICIAL)
+        val drafts = kmPostService.list(DRAFT)
 
         assertFalse(officials.contains(dbDraft))
         assertFalse(drafts.contains(dbKmPost))

@@ -77,6 +77,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun validatePublishCandidates(
         candidates: PublishCandidates,
         request: PublishRequestIds,
@@ -88,6 +89,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun validateTrackNumberAndReferenceLine(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         publishType: PublishType,
@@ -134,6 +136,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun validateLocationTrack(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
@@ -172,6 +175,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun validateSwitches(
         switchIds: List<IntId<TrackLayoutSwitch>>,
         publishType: PublishType,
@@ -190,9 +194,10 @@ class PublicationService @Autowired constructor(
             switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
-        val linkedTracks =
-            publicationDao.fetchLinkedLocationTracks(switchIds, DRAFT).mapValues { (_, tracks) -> tracks.toSet() }
-        val allOfficialSwitches = switchService.listOfficial()
+        val linkedTracks = publicationDao
+            .fetchLinkedLocationTracks(switchIds, DRAFT)
+            .mapValues { (_, tracks) -> tracks.toSet() }
+        val allOfficialSwitches = switchService.list(OFFICIAL)
         return switches.map { switch ->
             ValidatedAsset(
                 validateSwitch(
@@ -206,11 +211,13 @@ class PublicationService @Autowired constructor(
         }
     }
 
+    @Transactional(readOnly = true)
     fun validateSwitch(
         switchId: IntId<TrackLayoutSwitch>,
         publishType: PublishType,
     ): ValidatedAsset<TrackLayoutSwitch> = validateSwitches(listOf(switchId), publishType).single()
 
+    @Transactional(readOnly = true)
     fun validateKmPost(
         kmPostId: IntId<TrackLayoutKmPost>,
         publishType: PublishType,
@@ -280,6 +287,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun validatePublishRequest(versions: ValidationVersions) {
         logger.serviceCall("validatePublishRequest", "versions" to versions)
         val cacheKeys = collectCacheKeys(versions)
@@ -474,7 +482,6 @@ class PublicationService @Autowired constructor(
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
 
-
     fun publishChanges(
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
@@ -545,9 +552,9 @@ class PublicationService @Autowired constructor(
         trackNumber: TrackLayoutTrackNumber,
         versions: ValidationVersions,
     ): List<PublishValidationError> {
-        val drafts = versions.trackNumbers.map { it.officialId to trackNumberService.get(it.validatedAssetVersion) }
+        val drafts = versions.trackNumbers.map { it.officialId to trackNumberDao.fetch(it.validatedAssetVersion) }
         val officials =
-            trackNumberDao.fetchVersions(OFFICIAL, false).map(trackNumberService::get).filterNot { official ->
+            trackNumberDao.fetchVersions(OFFICIAL, false).map(trackNumberDao::fetch).filterNot { official ->
                 drafts.map { draft -> draft.first }.contains(official.id)
             }
         val officialDuplicateExists =
@@ -617,7 +624,7 @@ class PublicationService @Autowired constructor(
         versions: ValidationVersions,
         allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
     ): List<PublishValidationError> {
-        val drafts = versions.switches.map { it.officialId to switchService.get(it.validatedAssetVersion) }
+        val drafts = versions.switches.map { it.officialId to switchDao.fetch(it.validatedAssetVersion) }
         val officials = allOfficialSwitches.filterNot { official ->
             drafts.map { draft -> draft.first }.contains(official.id)
         }
@@ -739,13 +746,12 @@ class PublicationService @Autowired constructor(
         locationTrack: LocationTrack,
         versions: ValidationVersions,
     ): List<PublishValidationError> {
-        val drafts = versions.locationTracks.map { it.officialId to locationTrackService.get(it.validatedAssetVersion) }
+        val drafts = versions.locationTracks
+            .map { it.officialId to locationTrackDao.fetch(it.validatedAssetVersion) }
             .filter { (_, lt) -> lt.trackNumberId == locationTrack.trackNumberId }
-        val officials = locationTrackDao.fetchVersions(OFFICIAL, false, locationTrack.trackNumberId)
-            .map(locationTrackService::get)
-            .filterNot { official ->
-                drafts.map { draft -> draft.first }.contains(official.id)
-            }
+        val officials = locationTrackDao
+            .list(OFFICIAL, false, locationTrack.trackNumberId)
+            .filterNot { official -> drafts.map { draft -> draft.first }.contains(official.id) }
         val officialDuplicateExists = officials.any { official ->
             official.id != locationTrack.id && official.name == locationTrack.name
         }
@@ -784,7 +790,7 @@ class PublicationService @Autowired constructor(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
     ) = versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion) }
-        .find { line -> line.trackNumberId == trackNumberId } ?: referenceLineDao.fetchVersion(OFFICIAL, trackNumberId)
+        .find { line -> line.trackNumberId == trackNumberId } ?: referenceLineDao.fetchVersionByTrackNumberId(OFFICIAL, trackNumberId)
         ?.let(referenceLineDao::fetch)
 
     private fun getKmPostsByTrackNumber(
@@ -956,7 +962,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun diffTrackNumber(
+    private fun diffTrackNumber(
         translation: Translation,
         trackNumberChanges: TrackNumberChanges,
         newTimestamp: Instant,
@@ -1000,7 +1006,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun diffLocationTrack(
+    private fun diffLocationTrack(
         translation: Translation,
         locationTrackChanges: LocationTrackChanges,
         switchLinkChanges: LocationTrackPublicationSwitchLinkChanges?,
@@ -1136,7 +1142,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun diffReferenceLine(
+    private fun diffReferenceLine(
         translation: Translation,
         changes: ReferenceLineChanges,
         newTimestamp: Instant,
@@ -1180,7 +1186,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun diffKmPost(
+    private fun diffKmPost(
         translation: Translation,
         changes: KmPostChanges,
         publicationTime: Instant,
@@ -1202,7 +1208,7 @@ class PublicationService @Autowired constructor(
         ),
     )
 
-    fun diffSwitch(
+    private fun diffSwitch(
         translation: Translation,
         changes: SwitchChanges,
         newTimestamp: Instant,

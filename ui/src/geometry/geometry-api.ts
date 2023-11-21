@@ -291,8 +291,8 @@ export async function getProject(id: ProjectId): Promise<Project> {
     });
 }
 
-export async function createProject(project: Project): Promise<Project | undefined> {
-    return await postIgnoreError<Project, Project>(`${GEOMETRY_URI}/projects`, project);
+export async function createProject(project: Project): Promise<ProjectId | undefined> {
+    return await postIgnoreError<Project, ProjectId>(`${GEOMETRY_URI}/projects`, project);
 }
 
 export async function fetchAuthors(): Promise<Author[]> {

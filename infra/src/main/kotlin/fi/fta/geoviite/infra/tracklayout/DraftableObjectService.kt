@@ -3,8 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -20,13 +18,9 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
 
     protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun listOfficial(): List<ObjectType> = list(OFFICIAL)
-
-    fun listDraft(): List<ObjectType> = list(DRAFT)
-
     fun list(publishType: PublishType, includeDeleted: Boolean = false): List<ObjectType> {
         logger.serviceCall("list", "publishType" to publishType)
-        return listInternal(publishType, includeDeleted)
+        return dao.list(publishType, includeDeleted)
     }
 
     fun list(
@@ -39,7 +33,7 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         )
 
         return searchTerm.toString().trim().takeIf(String::isNotEmpty)
-            ?.let { term -> listInternal(publishType, true)
+            ?.let { term -> dao.list(publishType, true)
                 .filter { item ->
                     idMatches(term, item) ||
                     contentMatches(term, item)
@@ -49,36 +43,24 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
             } ?: listOf()
     }
 
-    fun getOfficial(id: IntId<ObjectType>) = get(OFFICIAL, id)
-
-    fun getDraft(id: IntId<ObjectType>) = get(DRAFT, id)
-
     fun get(publishType: PublishType, id: IntId<ObjectType>): ObjectType? {
         logger.serviceCall("get", "publishType" to publishType, "id" to id)
-        return getInternal(publishType, id)
+        return dao.get(publishType, id)
     }
 
     fun getMany(publishType: PublishType, ids: List<IntId<ObjectType>>): List<ObjectType> {
         logger.serviceCall("getMany", "publishType" to publishType, "ids" to ids)
-        return when (publishType) {
-            DRAFT -> dao.fetchDraftVersions(ids)
-            OFFICIAL -> dao.fetchOfficialVersions(ids)
-        }.map(dao::fetch)
-    }
-
-    fun get(rowVersion: RowVersion<ObjectType>): ObjectType {
-        logger.serviceCall("get", "rowVersion" to rowVersion)
-        return dao.fetch(rowVersion)
+        return dao.getMany(publishType, ids)
     }
 
     fun getOfficialAtMoment(id: IntId<ObjectType>, moment: Instant): ObjectType? {
         logger.serviceCall("get", "id" to id, "moment" to moment)
-        return dao.fetchOfficialVersionAtMoment(id, moment)?.let(dao::fetch)
+        return dao.getOfficialAtMoment(id, moment)
     }
 
     fun getOrThrow(publishType: PublishType, id: IntId<ObjectType>): ObjectType {
         logger.serviceCall("get", "publishType" to publishType, "id" to id)
-        return getInternalOrThrow(publishType, id)
+        return dao.getOrThrow(publishType, id)
     }
 
     fun getChangeTime(): Instant {
@@ -99,21 +81,6 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
     fun officialExists(id: IntId<ObjectType>): Boolean {
         logger.serviceCall("officialExists", "id" to id)
         return dao.officialExists(id)
-    }
-
-    protected fun listInternal(publishType: PublishType, includeDeleted: Boolean) =
-        dao.fetchVersions(publishType, includeDeleted).map(dao::fetch)
-
-    protected fun getInternal(publishType: PublishType, id: IntId<ObjectType>): ObjectType? = when (publishType) {
-        DRAFT -> dao.fetchDraftVersion(id)?.let(dao::fetch)
-        OFFICIAL -> dao.fetchOfficialVersion(id)?.let(dao::fetch)
-    }
-
-    protected fun getDraftInternal(id: IntId<ObjectType>): ObjectType = getInternalOrThrow(DRAFT, id)
-
-    protected fun getInternalOrThrow(publishType: PublishType, id: IntId<ObjectType>): ObjectType = when (publishType) {
-        DRAFT -> dao.fetch(dao.fetchDraftVersionOrThrow(id))
-        OFFICIAL -> dao.fetch(dao.fetchOfficialVersionOrThrow(id))
     }
 
     protected abstract fun createDraft(item: ObjectType): ObjectType
@@ -145,23 +112,10 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         }
     }
 
-    @Deprecated("Should only be used for cleaning up before/after tests")
-    @Transactional
-    open fun deleteAllDrafts(): List<DaoResponse<ObjectType>> {
-        logger.serviceCall("deleteDrafts")
-        return dao.deleteDrafts()
-    }
-
     @Transactional
     open fun deleteDraft(id: IntId<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("deleteDraft")
         return dao.deleteDraft(id)
-    }
-
-    @Transactional
-    open fun deleteUnpublishedDraft(id: IntId<ObjectType>): DaoResponse<ObjectType> {
-        logger.serviceCall("deleteUnpublishedDraft", "id" to id)
-        return dao.deleteUnpublishedDraft(id)
     }
 
     @Transactional
@@ -210,9 +164,9 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         if (response.rowVersion.version != previousVersion.version + 1) {
             // We could do optimistic locking here by throwing
             logger.warn(
-                "Updated version isn't the next one: a concurrent change may have been overwritten: " + "id=$id previous=$previousVersion updated=$response"
+                "Updated version isn't the next one: a concurrent change may have been overwritten: "
+                        + "id=$id previous=$previousVersion updated=$response"
             )
         }
     }
-
 }

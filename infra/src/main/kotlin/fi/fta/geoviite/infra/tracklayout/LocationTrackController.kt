@@ -194,7 +194,7 @@ class LocationTrackController(
     @DeleteMapping("/draft/{id}")
     fun deleteLocationTrack(@PathVariable("id") id: IntId<LocationTrack>): IntId<LocationTrack> {
         logger.apiCall("deleteLocationTrack", "id" to id)
-        return locationTrackService.deleteUnpublishedDraft(id).id
+        return locationTrackService.deleteDraft(id).id
     }
 
     @PreAuthorize(AUTH_ALL_READ)

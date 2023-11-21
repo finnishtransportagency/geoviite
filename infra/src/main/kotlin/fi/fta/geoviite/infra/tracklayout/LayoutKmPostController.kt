@@ -143,7 +143,7 @@ class LayoutKmPostController(
     @DeleteMapping("/draft/{id}")
     fun deleteDraftKmPost(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
         logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
-        return kmPostService.deleteUnpublishedDraft(kmPostId).id
+        return kmPostService.deleteDraft(kmPostId).id
     }
 
     @PreAuthorize(AUTH_ALL_READ)

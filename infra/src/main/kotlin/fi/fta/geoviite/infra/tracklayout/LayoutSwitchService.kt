@@ -69,7 +69,7 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        val layoutSwitch = getInternalOrThrow(DRAFT, id)
+        val layoutSwitch = dao.getOrThrow(DRAFT, id)
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
@@ -93,7 +93,7 @@ class LayoutSwitchService @Autowired constructor(
     fun deleteDraftSwitch(switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
         logger.serviceCall("deleteDraftSwitch", "switchId" to switchId)
         clearSwitchInformationFromSegments(switchId)
-        return deleteUnpublishedDraft(switchId).id
+        return deleteDraft(switchId).id
     }
 
     @Transactional
@@ -130,7 +130,7 @@ class LayoutSwitchService @Autowired constructor(
 
     fun list(publishType: PublishType, filter: (switch: TrackLayoutSwitch) -> Boolean): List<TrackLayoutSwitch> {
         logger.serviceCall("list", "publishType" to publishType, "filter" to true)
-        return listInternal(publishType, false).filter(filter)
+        return dao.list(publishType, false).filter(filter)
     }
 
     override fun sortSearchResult(list: List<TrackLayoutSwitch>) = list.sortedBy(TrackLayoutSwitch::name)
@@ -171,7 +171,7 @@ class LayoutSwitchService @Autowired constructor(
         oid: Oid<TrackLayoutSwitch>,
     ): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
-        val original = getInternalOrThrow(DRAFT, id)
+        val original = dao.getOrThrow(DRAFT, id)
         return saveDraft(original.copy(externalId = oid))
     }
 
@@ -208,11 +208,6 @@ class LayoutSwitchService @Autowired constructor(
         }
     }
 
-    fun duplicateNameExistsForPublicationCandidate(switchId: IntId<TrackLayoutSwitch>): Boolean {
-        logger.serviceCall("duplicateNameExistsForPublicationCandidate", "switchId" to switchId)
-        return dao.duplicateNameExistsForPublicationCandidate(switchId)
-    }
-
     private fun getTopologySwitchJointConnections(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
@@ -236,7 +231,8 @@ class LayoutSwitchService @Autowired constructor(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return dao.findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+        return dao
+            .findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
             .map { ids -> locationTrackService.getWithAlignment(ids.rowVersion) }
     }
 }

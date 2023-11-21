@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -56,13 +57,13 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val dummySwitch = generateDummySwitch()
         val id = switchDao.insert(dummySwitch).id
 
-        assertEquals(dummySwitch.externalId, switchService.getOfficial(id)!!.externalId)
+        assertEquals(dummySwitch.externalId, switchService.get(OFFICIAL, id)!!.externalId)
     }
 
     @Test
     fun someSwitchesAreReturnedEvenWithoutParameters() {
         switchDao.insert(generateDummySwitch())
-        assertTrue(switchService.listOfficial().isNotEmpty())
+        assertTrue(switchService.list(OFFICIAL).isNotEmpty())
     }
 
     @Test
@@ -240,7 +241,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
     fun switchConnectedLocationTracksFound() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.getDraft(switchService.saveDraft(switch(1)).id)!!
+        val switch = switchService.get(DRAFT, switchService.saveDraft(switch(1)).id)!!
         val (_, withStartLink) = insert(
             locationTrack(tnId, externalId = someOid()).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
@@ -265,7 +266,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
             listOf<LocationTrackIdentifiers>(),
             switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switch.id as IntId),
         )
-        val result = switchDao.findLocationTracksLinkedToSwitch(PublishType.DRAFT, switch.id as IntId)
+        val result = switchDao.findLocationTracksLinkedToSwitch(DRAFT, switch.id as IntId)
         assertEquals(
             listOf(withStartLink, withEndLink, withSegmentLink),
             result.sortedBy { ids -> ids.rowVersion.id.intValue },
@@ -370,7 +371,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
             locationTrack.copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))),
             alignment
         )
-        val connections = switchService.getSwitchJointConnections(PublishType.DRAFT, switchVersion.id)
+        val connections = switchService.getSwitchJointConnections(DRAFT, switchVersion.id)
 
         assertEquals(
             listOf(TrackLayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
@@ -388,8 +389,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
             trapPoint = null,
         )
         val switchId = switchService.insertSwitch(switch)
-        val fetchedSwitch = switchService.getDraft(switchId)!!
-        assertNull(switchService.getOfficial(switchId))
+        val fetchedSwitch = switchService.get(DRAFT, switchId)!!
+        assertNull(switchService.get(OFFICIAL, switchId))
 
         assertEquals(DataType.STORED, fetchedSwitch.dataType)
         assertEquals(switch.name, fetchedSwitch.name)
@@ -402,7 +403,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         alignment: LayoutAlignment,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
         val (id, version) = locationTrackService.saveDraft(locationTrack, alignment)
-        return locationTrackService.getDraft(id)!! to LocationTrackIdentifiers(version, locationTrack.externalId)
+        return locationTrackService.get(DRAFT, id)!! to LocationTrackIdentifiers(version, locationTrack.externalId)
     }
 
     private fun generateDummyExternalId(): String {

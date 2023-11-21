@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.RatkoAssetType.*
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
@@ -27,9 +28,9 @@ class RatkoStatusService @Autowired constructor(
     fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
         return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
-                TRACK_NUMBER -> trackNumberService.getOfficial(ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
-                LOCATION_TRACK -> locationTrackService.getOfficial(ratkoError.assetId as IntId<LocationTrack>)
-                SWITCH -> switchService.getOfficial(ratkoError.assetId as IntId<TrackLayoutSwitch>)
+                TRACK_NUMBER -> trackNumberService.get(OFFICIAL, ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
+                LOCATION_TRACK -> locationTrackService.get(OFFICIAL, ratkoError.assetId as IntId<LocationTrack>)
+                SWITCH -> switchService.get(OFFICIAL, ratkoError.assetId as IntId<TrackLayoutSwitch>)
             }
             checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
 
