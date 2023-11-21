@@ -962,7 +962,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    private fun diffTrackNumber(
+    fun diffTrackNumber(
         translation: Translation,
         trackNumberChanges: TrackNumberChanges,
         newTimestamp: Instant,
@@ -1006,7 +1006,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    private fun diffLocationTrack(
+    fun diffLocationTrack(
         translation: Translation,
         locationTrackChanges: LocationTrackChanges,
         switchLinkChanges: LocationTrackPublicationSwitchLinkChanges?,
@@ -1142,7 +1142,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    private fun diffReferenceLine(
+    fun diffReferenceLine(
         translation: Translation,
         changes: ReferenceLineChanges,
         newTimestamp: Instant,
@@ -1186,11 +1186,10 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    private fun diffKmPost(
+    fun diffKmPost(
         translation: Translation,
         changes: KmPostChanges,
         publicationTime: Instant,
-        previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
     ) = listOfNotNull(
         compareChangeValues(
@@ -1208,7 +1207,7 @@ class PublicationService @Autowired constructor(
         ),
     )
 
-    private fun diffSwitch(
+    fun diffSwitch(
         translation: Translation,
         changes: SwitchChanges,
         newTimestamp: Instant,
@@ -1470,7 +1469,6 @@ class PublicationService @Autowired constructor(
                     translation,
                     publicationKmPostChanges.getOrElse(kp.version.id) { error("KM Post changes not found") },
                     publication.publicationTime,
-                    previousComparisonTime,
                     trackNumberNamesCache,
                 ),
             )

@@ -15,8 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class LayoutKmPostService(
     dao: LayoutKmPostDao,
-    private val referenceLineDao: ReferenceLineDao,
-    private val alignmentDao: LayoutAlignmentDao,
+    private val referenceLineService: ReferenceLineService,
 ) : DraftableObjectService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
@@ -110,12 +109,14 @@ class LayoutKmPostService(
     fun getSingleKmPostLength(
         publishType: PublishType,
         id: IntId<TrackLayoutKmPost>,
-    ): Double? = dao.fetchVersionOrThrow(id, publishType).let(dao::fetch).getAsIntegral()?.let { kmPost ->
-        getReferenceLineAlignment(publishType, kmPost.trackNumberId)?.let { referenceLineAlignment ->
-            val kmPostM = referenceLineAlignment.getClosestPointM(kmPost.location)?.first
-            val kmEndM = getKmEndM(publishType, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
-            if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
-        }
+    ): Double? = dao.getOrThrow(publishType, id).getAsIntegral()?.let { kmPost ->
+        referenceLineService
+            .getByTrackNumberWithAlignment(publishType, kmPost.trackNumberId)
+            ?.let { (_, referenceLineAlignment) ->
+                val kmPostM = referenceLineAlignment.getClosestPointM(kmPost.location)?.first
+                val kmEndM = getKmEndM(publishType, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
+                if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
+            }
     }
 
     private fun getKmEndM(
@@ -131,10 +132,4 @@ class LayoutKmPostService(
         return if (nextKmPost == null) referenceLineAlignment.length
         else referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
     }
-
-    private fun getReferenceLineAlignment(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>) =
-        referenceLineDao.fetchVersion(publishType, trackNumberId)
-            ?.let(referenceLineDao::fetch)
-            ?.let(ReferenceLine::alignmentVersion)
-            ?.let(alignmentDao::fetch)
 }

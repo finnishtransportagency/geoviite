@@ -1279,14 +1279,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)
         val latestPub = latestPubs.first()
-        val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
             localizationService.getLocalization("fi"),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
-            previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
         )
         assertEquals(2, diff.size)
@@ -1315,14 +1313,12 @@ class PublicationServiceIT @Autowired constructor(
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)
         val latestPub = latestPubs.first()
-        val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
             localizationService.getLocalization("fi"),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
-            previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
         )
         assertEquals(1, diff.size)

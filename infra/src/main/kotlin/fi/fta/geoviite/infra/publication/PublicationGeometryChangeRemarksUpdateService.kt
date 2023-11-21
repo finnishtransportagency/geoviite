@@ -26,7 +26,6 @@ class PublicationGeometryChangeRemarksUpdateService constructor(
     private val executor =
         Executors.newSingleThreadExecutor { task -> Thread(task).also { it.name = "geometry change remarks updater" } }
 
-    @Transactional
     @EventListener(ContextRefreshedEvent::class)
     fun enqueueUpdateAllUnprocessedGeometryChangeRemarks() {
         executor.execute(::updateUnprocessedGeometryChangeRemarks)
