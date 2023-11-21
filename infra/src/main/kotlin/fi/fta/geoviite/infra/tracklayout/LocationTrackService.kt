@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
@@ -108,7 +109,7 @@ class LocationTrackService(
     @Transactional
     fun updateExternalId(id: IntId<LocationTrack>, oid: Oid<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("updateExternalIdForLocationTrack", "id" to id, "oid" to oid)
-        val original = getInternalOrThrow(DRAFT, id)
+        val original = dao.getOrThrow(DRAFT, id)
         return saveDraftInternal(
             original.copy(
                 externalId = oid,
@@ -132,9 +133,9 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun deleteUnpublishedDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
-        val draft = getInternalOrThrow(DRAFT, id)
-        val deletedVersion = super.deleteUnpublishedDraft(id)
+    override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
+        val draft = dao.getOrThrow(DRAFT, id)
+        val deletedVersion = super.deleteDraft(id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
@@ -145,15 +146,15 @@ class LocationTrackService(
 
     fun listNonLinked(): List<LocationTrack> {
         logger.serviceCall("listNonLinked")
-        return listInternal(DRAFT, false).filter { a -> a.segmentCount == 0 }
+        return dao.list(DRAFT, false).filter { a -> a.segmentCount == 0 }
     }
 
     fun list(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
         logger.serviceCall("list", "publishType" to publishType, "bbox" to bbox)
-        return listInternal(publishType, false).filter { tn -> bbox.intersects(tn.boundingBox) }
+        return dao.list(publishType, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
-    override fun sortSearchResult(list: List<LocationTrack>) = list.sortedBy(LocationTrack::name)
+    override fun sortSearchResult(list: List<LocationTrack>): List<LocationTrack> = list.sortedBy(LocationTrack::name)
 
     fun list(
         publicationState: PublishType,
@@ -163,13 +164,7 @@ class LocationTrackService(
         logger.serviceCall(
             "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "name" to name
         )
-        return dao.fetchVersions(
-            publicationState = publicationState,
-            includeDeleted = true,
-            trackNumberId = trackNumberId,
-            name = name,
-        ).map(dao::fetch)
-
+        return dao.list(publicationState, true, trackNumberId, name)
     }
 
     override fun idMatches(term: String, item: LocationTrack) =
@@ -180,19 +175,38 @@ class LocationTrackService(
 
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
-        return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch).filter(LocationTrack::exists)
+        return dao.listNear(publishType, bbox).filter(LocationTrack::exists)
     }
 
+    @Transactional(readOnly = true)
     fun listWithAlignments(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        includeDeleted: Boolean = false,
+        boundingBox: BoundingBox? = null
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall(
-            "listWithAlignments", "publishType" to publishType, "trackNumberId" to trackNumberId
+            "listWithAlignments",
+            "publishType" to publishType,
+            "trackNumberId" to trackNumberId,
+            "includeDeleted" to includeDeleted,
         )
-        return dao.fetchVersions(publishType, false, trackNumberId).map(::getWithAlignmentInternal)
+        return dao
+            .list(publishType, includeDeleted, trackNumberId)
+            .let { list -> filterByBoundingBox(list, boundingBox) }
+            .let(::associateWithAlignments)
     }
 
+    @Transactional(readOnly = true)
+    fun getManyWithAlignments(
+        publishType: PublishType,
+        ids: List<IntId<LocationTrack>>,
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall("getManyWithAlignments", "publishType" to publishType, "ids" to ids)
+        return dao.getMany(publishType, ids).let(::associateWithAlignments)
+    }
+
+    @Transactional(readOnly = true)
     fun getWithAlignmentOrThrow(
         publishType: PublishType,
         id: IntId<LocationTrack>,
@@ -201,11 +215,24 @@ class LocationTrackService(
         return getWithAlignmentInternalOrThrow(publishType, id)
     }
 
+    @Transactional(readOnly = true)
     fun getWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return dao.fetchVersion(id, publishType)?.let(::getWithAlignmentInternal)
     }
 
+    @Transactional(readOnly = true)
+    fun getTrackPoint(publishType: PublishType, locationTrackId: IntId<LocationTrack>, address: TrackMeter): AddressPoint? {
+        logger.serviceCall("getTrackPoint",
+        "publishType" to publishType, "locationTrackId" to locationTrackId, "address" to address,
+        )
+        val locationTrackAndAlignment = getWithAlignment(publishType, locationTrackId)
+        return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
+            geocodingService.getTrackLocation(locationTrack, alignment, address, publishType)
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getOfficialWithAlignmentAtMoment(
         id: IntId<LocationTrack>,
         moment: Instant,
@@ -214,11 +241,13 @@ class LocationTrackService(
         return dao.fetchOfficialVersionAtMoment(id, moment)?.let(::getWithAlignmentInternal)
     }
 
+    @Transactional(readOnly = true)
     fun getWithAlignment(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "version" to version)
         return getWithAlignmentInternal(version)
     }
 
+    @Transactional(readOnly = true)
     fun listNearWithAlignments(
         publishType: PublishType,
         bbox: BoundingBox,
@@ -226,7 +255,7 @@ class LocationTrackService(
         logger.serviceCall(
             "listNearWithAlignments", "publishType" to publishType, "bbox" to bbox
         )
-        return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
+        return dao.listNear(publishType, bbox).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
@@ -286,6 +315,7 @@ class LocationTrackService(
 
     private val BUFFER_TRANSLATION = "Puskin"
 
+    @Transactional(readOnly = true)
     fun getFullDescription(publishType: PublishType, locationTrack: LocationTrack): FreeText {
         val alignmentVersion = locationTrack.alignmentVersion
         val (startSwitch, endSwitch) = alignmentVersion?.let {
@@ -313,6 +343,12 @@ class LocationTrackService(
 
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)
+
+    private fun associateWithAlignments(lines: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
+        // This is a little convoluted to avoid extra passes of transaction annotation handling in alignmentDao.fetch
+        val alignments = alignmentDao.fetchMany(lines.map(LocationTrack::getAlignmentVersionOrThrow))
+        return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
+    }
 
     @Transactional(readOnly = true)
     fun getInfoboxExtras(publishType: PublishType, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
@@ -410,14 +446,10 @@ class LocationTrackService(
         ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
     }
 
+    @Transactional(readOnly = true)
     fun getLocationTrackEndpoints(bbox: BoundingBox, publishType: PublishType): List<LocationTrackEndpoint> {
         logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
         return getLocationTrackEndpoints(listWithAlignments(publishType), bbox)
-    }
-
-    fun duplicateNameExistsFor(locationTrackId: IntId<LocationTrack>): Boolean {
-        logger.serviceCall("duplicateNameExistsFor", "locationTrackId" to locationTrackId)
-        return dao.duplicateNameExistsForPublicationCandidate(locationTrackId)
     }
 
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
@@ -425,6 +457,7 @@ class LocationTrackService(
         return dao.fetchLocationTrackOwners()
     }
 
+    @Transactional(readOnly = true)
     fun getSplittingInitializationParameters(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
@@ -470,6 +503,7 @@ class LocationTrackService(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getSwitchesForLocationTrack(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
@@ -565,3 +599,7 @@ fun getConnectedSwitchIds(locationTrack: LocationTrack, alignment: LayoutAlignme
     )
     return (segmentLinks + topologyLinks).toHashSet()
 }
+
+fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
+    if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) }
+    else list

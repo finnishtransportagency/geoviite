@@ -11,7 +11,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getKmLengths, getKmPost } from 'track-layout/layout-km-post-api';
+import { getKmPost, getSingleKmPostKmLength } from 'track-layout/layout-km-post-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
@@ -24,6 +24,8 @@ import { formatDateShort } from 'utils/date-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
+import { roundToPrecision } from 'utils/rounding';
+import { ChangeTimes } from 'common/common-slice';
 
 type KmPostInfoboxProps = {
     publishType: PublishType;
@@ -35,6 +37,7 @@ type KmPostInfoboxProps = {
     onDataChange: () => void;
     visibilities: KmPostInfoboxVisibilities;
     onVisibilityChange: (visibilities: KmPostInfoboxVisibilities) => void;
+    changeTimes: ChangeTimes;
 };
 
 const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
@@ -47,9 +50,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     onDataChange,
     visibilities,
     onVisibilityChange,
+    changeTimes,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const changeTimes = useKmPostChangeTimes(kmPost.id);
+    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
@@ -58,10 +62,16 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         [kmPost.id, kmPostChangeTime, publishType],
     );
 
-    const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(async () => {
-        const allKmLengths = await getKmLengths(publishType, kmPost.trackNumberId);
-        return allKmLengths.find((value) => value.kmNumber === kmPost.kmNumber)?.length;
-    }, [kmPost.trackNumberId, kmPost.kmNumber, publishType]);
+    const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
+        async () => getSingleKmPostKmLength(publishType, kmPost.id).then((result) => result.length),
+        [
+            kmPost.id,
+            kmPost.state,
+            publishType,
+            changeTimes.layoutKmPost,
+            changeTimes.layoutReferenceLine,
+        ],
+    );
 
     function openEditDialog() {
         setShowEditDialog(true);
@@ -84,7 +94,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             ? t('tool-panel.km-post.layout.no-kilometer-length')
             : kmPostLength < 0
             ? t('tool-panel.km-post.layout.negative-kilometer-length')
-            : `${kmPostLength} m`;
+            : `${roundToPrecision(kmPostLength, 3)} m`;
 
     return (
         <React.Fragment>
@@ -168,15 +178,15 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}>
                 <InfoboxContent>
-                    {changeTimes && (
+                    {kmPostCreatedAndChangedTime && (
                         <React.Fragment>
                             <InfoboxField
                                 label={t('tool-panel.created')}
-                                value={formatDateShort(changeTimes.created)}
+                                value={formatDateShort(kmPostCreatedAndChangedTime.created)}
                             />
                             <InfoboxField
                                 label={t('tool-panel.changed')}
-                                value={formatDateShort(changeTimes.changed)}
+                                value={formatDateShort(kmPostCreatedAndChangedTime.changed)}
                             />
                         </React.Fragment>
                     )}

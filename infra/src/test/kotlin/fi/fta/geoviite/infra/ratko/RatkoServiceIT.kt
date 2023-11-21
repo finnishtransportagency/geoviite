@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.lineFromOrigin
@@ -84,7 +85,7 @@ class RatkoServiceIT @Autowired constructor(
         val officialVersion = locationTrackDao.insert(
             locationTrack(trackNumberId = trackNumberId).copy(alignmentVersion = locationTrackAlignmentVersion)
         )
-        val draft = locationTrackService.getDraft(officialVersion.id)!!.let { orig ->
+        val draft = locationTrackService.get(DRAFT, officialVersion.id)!!.let { orig ->
             orig.copy(name = AlignmentName("${orig.name}-draft"))
         }
         locationTrackService.saveDraft(draft, alignmentDao.fetch(locationTrackAlignmentVersion)).rowVersion
@@ -426,7 +427,7 @@ class RatkoServiceIT @Autowired constructor(
         referenceLineService.saveDraft(
             draft(
                 referenceLineDao.fetch(
-                    referenceLineDao.fetchVersion(
+                    referenceLineDao.fetchVersionByTrackNumberId(
                         PublishType.OFFICIAL, originalTrackNumberVersion.id
                     )!!
                 )
@@ -478,7 +479,7 @@ class RatkoServiceIT @Autowired constructor(
         referenceLineService.saveDraft(
             draft(
                 referenceLineDao.fetch(
-                    referenceLineDao.fetchVersion(
+                    referenceLineDao.fetchVersionByTrackNumberId(
                         PublishType.OFFICIAL, originalTrackNumberVersion.id
                     )!!
                 )
