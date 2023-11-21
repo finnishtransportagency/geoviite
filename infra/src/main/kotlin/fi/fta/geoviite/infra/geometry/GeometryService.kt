@@ -458,8 +458,10 @@ class GeometryService @Autowired constructor(
                     a.kmNumberRange?.max, b.kmNumberRange?.max
                 )
             }
-            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> translation.t("enum.plan-phase.${h.planPhase?.name}") }
-            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> translation.t("enum.plan-decision.${h.decisionPhase?.name}") }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h ->
+                h.planPhase?.let { planPhase -> translation.t("enum.plan-phase.${planPhase.name}") } }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h ->
+                h.decisionPhase?.let { decisionPhase -> translation.t("enum.plan-decision.${decisionPhase.name}") } }
             GeometryPlanSortField.CREATED_AT -> Comparator { a, b -> nullsLastComparator(a.planTime, b.planTime) }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
@@ -474,7 +476,7 @@ class GeometryService @Autowired constructor(
     }
 
     private inline fun <reified T> stringComparator(crossinline getValue: (T) -> CharSequence?) =
-        Comparator.comparing { h: T -> getValue(h)?.toString()?.lowercase() ?: "" }
+        Comparator.comparing({ h: T -> getValue(h)?.toString()?.lowercase() }, ::nullsLastComparator)
 
     fun getFilter(
         freeText: FreeText?,
