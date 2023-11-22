@@ -387,9 +387,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             {trackWithSameName && (
                                 <>
                                     <div>{t('location-track-dialog.name-in-use')}</div>
-                                    <Link
-                                        className="move-to-edit-link"
-                                        onClick={() => props.onEditTrack(trackWithSameName.id)}>
+                                    <Link onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
                                     </Link>
                                 </>

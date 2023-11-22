@@ -195,7 +195,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         ? t('km-post-dialog.title-new')
                         : t('km-post-dialog.title-edit')
                 }
-                onClose={() => close()}
+                onClose={close}
                 footerContent={
                     <React.Fragment>
                         {state.existingKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
@@ -219,7 +219,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
-                                onClick={() => close()}>
+                                onClick={close}>
                                 {t('button.cancel')}
                             </Button>
                             <span onClick={() => stateActions.validate()}>
@@ -261,7 +261,6 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
                                     <Link
-                                        className="move-to-edit-link"
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>

@@ -367,9 +367,7 @@ export const SwitchEditDialog = ({
                             {conflictingSwitch && (
                                 <>
                                     <div>{t('switch-dialog.name-in-use')}</div>
-                                    <Link
-                                        className="move-to-edit-link"
-                                        onClick={() => onEdit(conflictingSwitch.id)}>
+                                    <Link onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
                                 </>
