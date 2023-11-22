@@ -735,7 +735,7 @@ private fun getClosestPointAsIntersection(track1: IAlignment, track2:IAlignment,
         alignment2 = track2,
         point = closestPoint,
         distance = 0.0,
-        desiredLocation = desiredLocation
+        desiredLocation = desiredLocation,
     )
 }
 
