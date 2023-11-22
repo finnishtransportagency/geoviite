@@ -31,41 +31,30 @@ class LayoutSwitchController(
     fun getTrackLayoutSwitches(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox?,
-        @RequestParam("name") name: String?,
+        @RequestParam("namePart") namePart: String?,
+        @RequestParam("exactName") exactName: SwitchName?,
         @RequestParam("offset") offset: Int?,
         @RequestParam("limit") limit: Int?,
         @RequestParam("comparisonPoint") comparisonPoint: Point?,
         @RequestParam("switchType") switchType: String?,
         @RequestParam("includeSwitchesWithNoJoints") includeSwitchesWithNoJoints: Boolean = false,
+        @RequestParam("includeDeleted") includeDeleted: Boolean = false,
     ): List<TrackLayoutSwitch> {
         logger.apiCall(
             "getTrackLayoutSwitches",
             "publishType" to publishType,
             "bbox" to bbox,
-            "name" to name,
+            "namePart" to namePart,
+            "exactName" to exactName,
             "offset" to offset,
             "limit" to limit,
             "comparisonPoint" to comparisonPoint,
-            "switchType" to switchType
-        )
-        val filter = switchService.switchFilter(name, switchType, bbox, includeSwitchesWithNoJoints)
-        return switchService.pageSwitchesByFilter(publishType, filter, offset, limit, comparisonPoint)
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publicationState}/by-name")
-    fun getSwitchesByName(
-        @PathVariable("publicationState") publicationState: PublishType,
-        @RequestParam("name") name: SwitchName,
-        @RequestParam("includeDeleted") includeDeleted: Boolean,
-    ): List<TrackLayoutSwitch> {
-        logger.apiCall(
-            "getSwitchesByName",
-            "publicationState" to "publicationState",
-            "name" to name,
+            "switchType" to switchType,
             "includeDeleted" to includeDeleted,
         )
-        return switchService.getSwitchesByName(publicationState, name, includeDeleted)
+        val filter = switchFilter(namePart, exactName, switchType, bbox, includeSwitchesWithNoJoints)
+        val switches = switchService.listWithStructure(publishType, includeDeleted).filter(filter)
+        return pageSwitches(switches, offset ?: 0, limit, comparisonPoint).items
     }
 
     @PreAuthorize(AUTH_ALL_READ)

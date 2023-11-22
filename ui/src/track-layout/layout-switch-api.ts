@@ -57,12 +57,10 @@ export async function getSwitchesByName(
     name: string,
 ): Promise<LayoutSwitch[]> {
     const params = queryParams({
-        name: name,
+        exactName: name,
         includeDeleted: true,
     });
-    return await getNonNull<LayoutSwitch[]>(
-        `${layoutUri('switches', publishType)}/by-name${params}`,
-    );
+    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
 export async function getSwitch(
