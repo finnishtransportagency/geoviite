@@ -209,7 +209,7 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/track-numbers/{publicationState}/location-tracks/{trackNumberId}")
+    @GetMapping("/track-numbers/{publicationState}/{trackNumberId}/location-tracks")
     fun getTrackNumberTracksByName(
         @PathVariable("publicationState") publicationState: PublishType,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
