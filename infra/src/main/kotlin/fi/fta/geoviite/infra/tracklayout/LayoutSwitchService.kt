@@ -112,7 +112,7 @@ class LayoutSwitchService @Autowired constructor(
         includeDeleted: Boolean = false,
     ): List<Pair<TrackLayoutSwitch, SwitchStructure>> {
         logger.serviceCall("list", "publishType" to publishType)
-        return listInternal(publishType, includeDeleted).map(::withStructure)
+        return dao.list(publishType, includeDeleted).map(::withStructure)
     }
 
     override fun sortSearchResult(list: List<TrackLayoutSwitch>) = list.sortedBy(TrackLayoutSwitch::name)
@@ -135,7 +135,6 @@ class LayoutSwitchService @Autowired constructor(
 
     private fun withStructure(switch: TrackLayoutSwitch): Pair<TrackLayoutSwitch, SwitchStructure> =
         switch to switchLibraryService.getSwitchStructure(switch.switchStructureId)
-
 
     override fun createDraft(item: TrackLayoutSwitch) = draft(item)
 
