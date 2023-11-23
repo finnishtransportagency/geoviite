@@ -14,6 +14,7 @@ import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 
 const val POINT_SEEK_TOLERANCE = 1.0
 
@@ -64,6 +65,14 @@ interface IAlignment : Loggable {
     val allSegmentPoints: List<SegmentPoint> get() = segments.flatMapIndexed { index, segment ->
         if (index == segments.lastIndex) segment.segmentPoints
         else segment.segmentPoints.take(segment.segmentPoints.size - 1)
+    }
+
+    fun filterSegmentsByBbox(bbox: BoundingBox): List<ISegment> {
+        return if (!bbox.intersects(boundingBox)) {
+            listOf() // Shortcut: if it doesn't hit the alignment, it won't hit segments either
+        } else {
+            segments.filter { s -> s.boundingBox?.intersects(bbox) ?: false }
+        }
     }
 
     fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
@@ -269,10 +278,12 @@ interface ISegmentGeometry {
             val indexAfter = segmentPoints.indexOfFirst { p -> p.m >= segmentM }
             val pointAfter = segmentPoints[indexAfter]
             segmentPoints.getOrNull(indexAfter - 1)?.let { pointBefore ->
-                if (abs(pointAfter.m - segmentM) <= snapDistance) {
-                    PointSeekResult(pointAfter, indexAfter, true)
-                } else if (abs(pointBefore.m - segmentM) <= snapDistance) {
+                val distanceToLast = abs(pointBefore.m - segmentM)
+                val distanceToNext = abs(pointAfter.m - segmentM)
+                if (distanceToLast <= min(snapDistance, distanceToNext)) {
                     PointSeekResult(pointBefore, indexAfter - 1, true)
+                } else if (distanceToNext <= min(snapDistance, distanceToLast)) {
+                    PointSeekResult(pointAfter, indexAfter, true)
                 } else {
                     val portion = (segmentM - pointBefore.m) / (pointAfter.m - pointBefore.m)
                     PointSeekResult(interpolate(pointBefore, pointAfter, portion), indexAfter, false)
@@ -422,8 +433,19 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
 
     fun toLayoutPoint(segmentPoint: SegmentPoint) = segmentPoint.toLayoutPoint(startM)
 
-    fun takeFirst(count: Int) = segmentPoints.take(count).map(::toLayoutPoint)
-    fun takeLast(count: Int) = segmentPoints.takeLast(count).map(::toLayoutPoint)
+    fun takeFirst(count: Int): List<LayoutPoint> {
+        require(count >= 0 && count <= segmentPoints.size) {
+            "Invalid point range requested: points=${segmentPoints.size} count=$count"
+        }
+        return segmentPoints.take(count).map(::toLayoutPoint)
+    }
+
+    fun takeLast(count: Int): List<LayoutPoint> {
+        require(count >= 0 && count <= segmentPoints.size) {
+            "Invalid point range requested: points=${segmentPoints.size} count=$count"
+        }
+        return segmentPoints.takeLast(count).map(::toLayoutPoint)
+    }
 }
 
 data class PointSeekResult<T : IPoint3DM>(

@@ -437,7 +437,7 @@ fun getProjectedAddressPoint(
     val edgeAndPortion = segmentEdges?.let { edges -> getIntersection(projection.projection, edges) }
     return edgeAndPortion?.let { (edge, portion) ->
         AddressPoint(
-            point = edge.getPointAtPortion(portion),
+            point = edge.interpolateLayoutPointAtPortion(portion),
             address = projection.address,
         )
     }
@@ -463,7 +463,7 @@ fun getProjectedAddressPoints(
 
             WITHIN -> {
                 addressPoints.add(
-                    AddressPoint(edge.getPointAtPortion(intersection.segment1Portion), projection.address),
+                    AddressPoint(edge.interpolateLayoutPointAtPortion(intersection.segment1Portion), projection.address),
                 )
                 projectionIndex += 1
             }
@@ -619,18 +619,19 @@ data class PolyLineEdge(
     val endM: Double get() = end.m + segmentStart
     val length: Double get() = end.m - start.m
 
-    fun crossSectionAt(distance: Double) = pointAt(distance).let { point ->
+    fun crossSectionAt(distance: Double) = interpolatePointAtM(distance).let { point ->
         Line(point, pointInDirection(point, distance = PROJECTION_LINE_LENGTH, direction = projectionDirection))
     }
 
-    private fun pointAt(distance: Double): IPoint =
-        if (distance <= startM) start
-        else if (distance >= endM) end
-        else interpolate(start, end, (distance - startM) / length)
+    private fun interpolatePointAtM(m: Double): IPoint =
+        if (m <= startM) start
+        else if (m >= endM) end
+        else interpolate(start, end, (m - startM) / length)
 
-    fun getPointAtPortion(portion: Double) = getSegmentPointAtPortion(portion).toLayoutPoint(segmentStart)
+    fun interpolateLayoutPointAtPortion(portion: Double): LayoutPoint =
+        interpolateSegmentPointAtPortion(portion).toLayoutPoint(segmentStart)
 
-    fun getSegmentPointAtPortion(portion: Double): SegmentPoint =
+    fun interpolateSegmentPointAtPortion(portion: Double): SegmentPoint =
         if (portion <= 0.0) start
         else if (portion >= 1.0) end
         else interpolate(start, end, portion)

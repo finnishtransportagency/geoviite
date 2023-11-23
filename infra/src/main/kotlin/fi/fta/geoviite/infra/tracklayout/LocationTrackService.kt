@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
+const val TRACK_SEARCH_AREA_SIZE = 2.0
+
 @Service
 class LocationTrackService(
     locationTrackDao: LocationTrackDao,
@@ -264,8 +266,10 @@ class LocationTrackService(
         publishType: PublishType,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall("getLocationTracksNear", "location" to location)
-        val searchAreaSize = 2.0
-        val searchArea = BoundingBox(Point(0.0, 0.0), Point(searchAreaSize, searchAreaSize)).centerAt(location)
+        val searchArea = BoundingBox(
+            Point(0.0, 0.0),
+            Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE),
+        ).centerAt(location)
         return listNearWithAlignments(publishType, searchArea).filter { (_, alignment) ->
             alignment.segments.any { segment ->
                 searchArea.intersects(segment.boundingBox) && segment.segmentPoints.any(searchArea::contains)

@@ -4,10 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
-import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.create2DPolygonString
-import fi.fta.geoviite.infra.geography.create3DMLineString
-import fi.fta.geoviite.infra.geography.parse3DMLineString
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -29,7 +26,6 @@ const val GEOMETRY_CACHE_SIZE = 500000L
 data class MapSegmentProfileInfo<T>(
     val id: IntId<T>,
     val alignmentId: IndexedId<LayoutSegment>,
-//    val points: List<LayoutPoint>,
     val segmentStartM: Double,
     val segmentEndM: Double,
     val hasProfile: Boolean,
@@ -532,7 +528,6 @@ class LayoutAlignmentDao(
             MapSegmentProfileInfo(
                 id = rs.getIntId("official_id"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
-//                points = getSegmentPointsWkt(rs, "geometry_wkt"),
                 segmentStartM = startM,
                 segmentEndM = startM + rs.getDouble("max_m"),
                 hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
@@ -735,22 +730,26 @@ private fun parseSegmentPointsWkt(
     heightString: String? = null,
     cantString: String? = null,
 ): List<SegmentPoint> {
-    // TODO: GVT-2217 if we'd pass in height/cant arrays or point creator function, we could skip intermediate Point3DM
-    val geometryValues = parse3DMLineString(geometryWkt)
     val heightValues = parseNullableDoubleList(heightString)
     val cantValues = parseNullableDoubleList(cantString)
-    return geometryValues.mapIndexed { index, coordinate ->
-        SegmentPoint(
-            x = coordinate.x,
-            y = coordinate.y,
-            z = heightValues?.getOrNull(index),
-            m = coordinate.m,
-            cant = cantValues?.getOrNull(index),
-        )
-    }
+    return parseSegmentPointLineString(geometryWkt, heightValues, cantValues)
 }
 
-private fun parseNullableDoubleList(listString: String?) =
+fun parseSegmentPointLineString(
+    lineString: String,
+    heights: List<Double?>?,
+    cants: List<Double?>?,
+): List<SegmentPoint> = get3DMLineStringContent(lineString).let { pointStrings ->
+    require(heights == null || heights.size == pointStrings.size) {
+        "Height value count should match point count: points=${pointStrings.size} heights=${heights?.size}"
+    }
+    require(cants == null || cants.size == pointStrings.size) {
+        "Cant value count should match point count: points=${pointStrings.size} cants=${cants?.size}"
+    }
+    pointStrings.mapIndexed { i, p -> parseSegmentPoint(p, heights?.get(i), cants?.get(i)) }
+}
+
+private fun parseNullableDoubleList(listString: String?): List<Double?>? =
     listString?.split(",")?.map(String::toDoubleOrNull)
 
 private data class SegmentData(

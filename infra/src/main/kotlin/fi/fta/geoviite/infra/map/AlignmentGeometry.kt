@@ -97,26 +97,40 @@ fun simplify(
     resolution: Int? = null,
     bbox: BoundingBox? = null,
 ): List<LayoutPoint> {
-    val segments =
-        if (bbox == null) alignment.segments
-        else if (!bbox.intersects(alignment.boundingBox)) listOf()
-        else alignment.segments.filter { s -> s.boundingBox?.intersects(bbox) ?: false }
+    val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
+    val isOverResolution = { mValue: Double ->
+        resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true
+    }
     return segments.flatMapIndexed { sIndex, s ->
-        val isLastSegment = sIndex == segments.lastIndex
-        val lastPointIndex = s.segmentPoints.lastIndex
-        val bboxContains = { index: Int -> bbox == null || s.segmentPoints.getOrNull(index)?.let(bbox::contains) ?: false }
+        val isEndPoint = { pIndex: Int ->
+            (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+        }
+        val bboxContains = { pIndex: Int ->
+            bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
+        }
         s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-            val resolutionHit = resolution == null
-                    || ((p.m + s.startM - previousM).roundToInt() >= resolution)
-                    || (isLastSegment && pIndex == lastPointIndex)
-            val bboxHit = bboxContains(pIndex)
-            // Always take the first point on either side of the bbox to extend the line appropriately
-            val outOfBboxExtension = !bboxHit && (bboxContains(pIndex-1) || bboxContains(pIndex+1))
-            if (outOfBboxExtension || (resolutionHit && bboxHit)) {
+            if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
                 previousM = s.startM + p.m
                 p.toLayoutPoint(s.startM)
             } else null
         }
     }.let { points -> if (points.size >= 2) points else listOf() }
+}
+
+private fun takePoint(
+    index: Int,
+    m: Double,
+    isEndPoint: (index: Int) -> Boolean,
+    isOverResolution: (m: Double) -> Boolean,
+    bboxContains: (index: Int) -> Boolean,
+): Boolean {
+    val isInsideBbox = bboxContains(index)
+    return if (!isInsideBbox) {
+        // Outside the box, take the first points on either side to extend the line out
+        bboxContains(index - 1) || bboxContains(index + 1)
+    } else {
+        // Inside the box, take points by resolution + always include endpoints
+        isOverResolution(m) || isEndPoint(index)
+    }
 }
