@@ -16,7 +16,7 @@ import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
 
-data class AddressPoint(val point: LayoutPoint, val address: TrackMeter) {
+data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
 }
 
@@ -304,7 +304,7 @@ data class GeocodingContext(
         }
     }
 
-    private fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
+    private fun toAddressPoint(point: AlignmentPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
         getAddress(point, decimals)?.let { (address, intersectType) ->
             AddressPoint(point, address) to intersectType
         }
@@ -361,7 +361,7 @@ data class GeocodingContext(
                 segment.endJointNumber?.let { segment.alignmentEnd },
             )
         }
-        return locations.mapNotNull { location: LayoutPoint ->
+        return locations.mapNotNull { location: AlignmentPoint ->
             getAddress(location, 3)?.let { (address) -> AddressPoint(location, address) }
         }.distinctBy { addressPoint -> addressPoint.address }
     }
@@ -437,7 +437,7 @@ fun getProjectedAddressPoint(
     val edgeAndPortion = segmentEdges?.let { edges -> getIntersection(projection.projection, edges) }
     return edgeAndPortion?.let { (edge, portion) ->
         AddressPoint(
-            point = edge.interpolateLayoutPointAtPortion(portion),
+            point = edge.interpolateAlignmentPointAtPortion(portion),
             address = projection.address,
         )
     }
@@ -463,7 +463,7 @@ fun getProjectedAddressPoints(
 
             WITHIN -> {
                 addressPoints.add(
-                    AddressPoint(edge.interpolateLayoutPointAtPortion(intersection.segment1Portion), projection.address),
+                    AddressPoint(edge.interpolateAlignmentPointAtPortion(intersection.segment1Portion), projection.address),
                 )
                 projectionIndex += 1
             }
@@ -628,8 +628,8 @@ data class PolyLineEdge(
         else if (m >= endM) end
         else interpolate(start, end, (m - startM) / length)
 
-    fun interpolateLayoutPointAtPortion(portion: Double): LayoutPoint =
-        interpolateSegmentPointAtPortion(portion).toLayoutPoint(segmentStart)
+    fun interpolateAlignmentPointAtPortion(portion: Double): AlignmentPoint =
+        interpolateSegmentPointAtPortion(portion).toAlignmentPoint(segmentStart)
 
     fun interpolateSegmentPointAtPortion(portion: Double): SegmentPoint =
         if (portion <= 0.0) start

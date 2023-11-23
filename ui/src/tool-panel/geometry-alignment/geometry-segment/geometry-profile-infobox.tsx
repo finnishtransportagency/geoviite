@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { GeometryProfileRange } from 'tool-panel/geometry-alignment/geometry-segment/geometry-profile-range';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 
 type VerticalGeometryInfoBoxProps = {
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     planHeader: GeometryPlanHeader;
 };
 

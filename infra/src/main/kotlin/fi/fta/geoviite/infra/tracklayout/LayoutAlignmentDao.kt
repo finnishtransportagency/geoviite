@@ -424,11 +424,11 @@ class LayoutAlignmentDao(
             val toSegment = rs.getInt("to_segment")
             val startPoint = rs.getDoubleOrNull("start_m")?.let { m ->
                 rs.getPointOrNull("start_x", "start_y")?.let { point ->
-                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+                    AlignmentPoint(point.x, point.y, 0.0, m, 0.0) }
             }
             val endPoint = rs.getDoubleOrNull("end_m")?.let { m ->
                 rs.getPointOrNull("end_x", "end_y")?.let { point ->
-                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+                    AlignmentPoint(point.x, point.y, 0.0, m, 0.0) }
             }
             SegmentGeometryAndMetadata(
                 planId = rs.getIntIdOrNull("plan_id"),

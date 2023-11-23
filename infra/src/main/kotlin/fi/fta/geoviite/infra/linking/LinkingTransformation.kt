@@ -142,6 +142,8 @@ private fun validateSegments(newSegments: List<LayoutSegment>) =
         }
     }
 
+fun fixSegmentStarts(vararg segments: LayoutSegment) = fixSegmentStarts(segments.toList())
+
 fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
     var cumulativeM = 0.0
     return segments.map { s -> s.withStartM(cumulativeM).also { cumulativeM += s.length } }

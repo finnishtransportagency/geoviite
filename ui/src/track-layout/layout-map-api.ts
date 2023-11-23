@@ -2,8 +2,8 @@ import { asyncCache } from 'cache/cache';
 import { AlignmentHighlight, MapTile } from 'map/map-model';
 import {
     AlignmentId,
-    combineLayoutPoints,
-    LayoutPoint,
+    combineAlignmentPoints,
+    AlignmentPoint,
     LayoutState,
     LayoutTrackNumber,
     LayoutTrackNumberId,
@@ -23,7 +23,7 @@ import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
-import { createLinkPoints, layoutPointToLinkPoint } from 'linking/linking-store';
+import { createLinkPoints, alignmentPointToLinkPoint } from 'linking/linking-store';
 import { deduplicate, filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getTrackNumbers } from './layout-track-number-api';
@@ -33,7 +33,7 @@ import { ChangeTimes } from 'common/common-slice';
 export type AlignmentDataHolder = {
     trackNumber?: LayoutTrackNumber;
     header: AlignmentHeader;
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     planId?: GeometryPlanId;
 };
 
@@ -56,7 +56,7 @@ export type AlignmentHeader = {
 export type AlignmentPolyLine = {
     id: LocationTrackId | ReferenceLineId;
     alignmentType: MapAlignmentType;
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
 };
 
 const referenceLineHeaderCache = asyncCache<string, AlignmentHeader | undefined>();
@@ -67,8 +67,8 @@ const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefi
 const locationTrackSegmentMCache = asyncCache<string, number[]>();
 const referenceLineSegmentMCache = asyncCache<string, number[]>();
 
-const locationTrackEndsCache = asyncCache<string, LayoutPoint[]>();
-const referenceLineEndsCache = asyncCache<string, LayoutPoint[]>();
+const locationTrackEndsCache = asyncCache<string, AlignmentPoint[]>();
+const referenceLineEndsCache = asyncCache<string, AlignmentPoint[]>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
 const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
@@ -194,7 +194,7 @@ function combine(
             );
             return {
                 header: header,
-                points: combineLayoutPoints(polyLinePieces.map((p) => p.points)),
+                points: combineAlignmentPoints(polyLinePieces.map((p) => p.points)),
                 trackNumber: trackNumbers.find((tn) => tn.id === header.trackNumberId),
                 planId: undefined,
             };
@@ -299,14 +299,14 @@ export async function getEndLinkPoints(
 ): Promise<LinkInterval> {
     return (type === 'LOCATION_TRACK' ? locationTrackEndsCache : referenceLineEndsCache)
         .get(changeTime, cacheKey(id, publishType), () =>
-            getNonNull<LayoutPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`)),
+            getNonNull<AlignmentPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`)),
         )
         .then(([start, startPlusOne, endMinusOne, end]) => {
             const startDir = directionBetweenPoints(start, startPlusOne);
             const endDir = directionBetweenPoints(endMinusOne, end);
             return {
-                start: layoutPointToLinkPoint(type, id, start, startDir, true, true),
-                end: layoutPointToLinkPoint(type, id, end, endDir, true, true),
+                start: alignmentPointToLinkPoint(type, id, start, startDir, true, true),
+                end: alignmentPointToLinkPoint(type, id, end, endDir, true, true),
             };
         });
 }
@@ -324,7 +324,7 @@ export async function getLinkPointsByTiles(
     const allPieces = tiledAlignments
         .flat()
         .filter((a) => a.alignmentType === alignmentType && a.id === alignmentId);
-    const allPoints = combineLayoutPoints(allPieces.map((a) => a.points));
+    const allPoints = combineAlignmentPoints(allPieces.map((a) => a.points));
     return createLinkPoints(
         alignmentType,
         alignmentId,

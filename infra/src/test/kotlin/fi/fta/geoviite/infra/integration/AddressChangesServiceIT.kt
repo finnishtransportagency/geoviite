@@ -754,11 +754,11 @@ class AddressChangesServiceIT @Autowired constructor(
     fun createEmptyAddresses(start: Pair<Point, TrackMeter>, end: Pair<Point, TrackMeter>): AlignmentAddresses =
         AlignmentAddresses(
             startPoint = AddressPoint(
-                LayoutPoint(start.first.x, start.first.y, null, 0.0, null),
+                AlignmentPoint(start.first.x, start.first.y, null, 0.0, null),
                 start.second,
             ),
             endPoint = AddressPoint(
-                LayoutPoint(end.first.x, end.first.y, null, lineLength(start.first, end.first), null),
+                AlignmentPoint(end.first.x, end.first.y, null, lineLength(start.first, end.first), null),
                 start.second,
             ),
             startIntersect = IntersectType.WITHIN,
@@ -776,11 +776,11 @@ class AddressChangesServiceIT @Autowired constructor(
             if (nextTransitionPoint != null) {
                 val to = nextTransitionPoint.first
                 val points = createLineString(from, to)
-                val layoutPoints = toTrackLayoutPoints(points = points.toTypedArray())
-                val addressPoints = layoutPoints.map { layoutPoint: LayoutPoint ->
+                val alignmentPoints = toAlignmentPoints(points = points.toTypedArray())
+                val addressPoints = alignmentPoints.map { alignmentPoint: AlignmentPoint ->
                     AddressPoint(
-                        point = layoutPoint,
-                        address = fromAddress + layoutPoint.m,
+                        point = alignmentPoint,
+                        address = fromAddress + alignmentPoint.m,
                     )
                 }
                 addressPoints
@@ -798,7 +798,7 @@ class AddressChangesServiceIT @Autowired constructor(
     }
 
     fun someAddressPoint() = AddressPoint(
-        LayoutPoint(0.0, 0.0, null, 0.0, null),
+        AlignmentPoint(0.0, 0.0, null, 0.0, null),
         TrackMeter(0, 0),
     )
 

@@ -39,7 +39,7 @@ data class AlignmentHeader<T>(
 data class AlignmentPolyLine<T>(
     val id: DomainId<T>,
     val alignmentType: MapAlignmentType,
-    val points: List<LayoutPoint>,
+    val points: List<AlignmentPoint>,
 ) : Loggable {
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
@@ -96,7 +96,7 @@ fun simplify(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
-): List<LayoutPoint> {
+): List<AlignmentPoint> {
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
     val isOverResolution = { mValue: Double ->
@@ -112,7 +112,7 @@ fun simplify(
         s.segmentPoints.mapIndexedNotNull { pIndex, p ->
             if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
                 previousM = s.startM + p.m
-                p.toLayoutPoint(s.startM)
+                p.toAlignmentPoint(s.startM)
             } else null
         }
     }.let { points -> if (points.size >= 2) points else listOf() }

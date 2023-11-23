@@ -74,8 +74,8 @@ val addressPoints = listOf(
 )
 val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
 val kmPostLocations = (0..5).map { i ->
-    val layoutPoint = alignment.getPointAtM(i * alignment.length / 5)
-    checkNotNull(layoutPoint?.toPoint())
+    val alignmentPoint = alignment.getPointAtM(i * alignment.length / 5)
+    checkNotNull(alignmentPoint?.toPoint())
 }
 
 val kmPosts = listOf(
@@ -153,8 +153,8 @@ class GeocodingTest {
     @Test
     fun contextDistancesWorkAlongLine() {
         for (segment in alignment.segments) {
-            val midMinusOne = toPoint(segment.alignmentPoints[1])
-            val midPlusOne = toPoint(segment.alignmentPoints[2])
+            val midMinusOne = segment.alignmentPoints[1].toPoint()
+            val midPlusOne = segment.alignmentPoints[2].toPoint()
             val midPoint = (midMinusOne + midPlusOne) / 2.0
 
             val midDistance = context.getM(midPoint)!!.first
@@ -726,7 +726,6 @@ class GeocodingTest {
         }
     }
 
-
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
         assertEquals(
             expected.size,
@@ -746,7 +745,6 @@ class GeocodingTest {
         assertEquals(line.end.y, projectionLine.projection.end.y, 2 * DELTA)
     }
 
-    private fun toPoint(layoutPoint: LayoutPoint) = Point(layoutPoint.x, layoutPoint.y)
     private fun getLastAddress(kmNumber: KmNumber) =
         context.projectionLines.findLast { l -> l.address.kmNumber == kmNumber }?.address
 }

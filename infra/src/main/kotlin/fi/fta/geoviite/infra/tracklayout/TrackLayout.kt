@@ -236,7 +236,7 @@ data class TrackLayoutSwitch(
         } else null
     }
 
-    fun getJoint(location: LayoutPoint, delta: Double): TrackLayoutSwitchJoint? =
+    fun getJoint(location: AlignmentPoint, delta: Double): TrackLayoutSwitchJoint? =
         getJoint(Point(location.x, location.y), delta)
 
     fun getJoint(location: Point, delta: Double): TrackLayoutSwitchJoint? =

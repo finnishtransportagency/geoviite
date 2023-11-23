@@ -173,33 +173,33 @@ class LayoutGeometryTest {
             segmentPoint(20.0, 0.0, 20.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(0.0, 0.0, 0.0), 0, true),
+            PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true),
             segment.seekPointAtM(0.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(10.0, 0.0, 10.0), 1, true),
+            PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true),
             segment.seekPointAtM(10.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(20.0, 0.0, 20.0), 2, true),
+            PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true),
             segment.seekPointAtM(20.0),
         )
 
         assertEquals(
-            PointSeekResult(layoutPoint(0.0, 0.0, 0.0), 0, true),
+            PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true),
             segment.seekPointAtM(-5.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(20.0, 0.0, 20.0), 2, true),
+            PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true),
             segment.seekPointAtM(25.0),
         )
 
         assertEquals(
-            PointSeekResult(layoutPoint(5.0, 0.0, 5.0), 1, false),
+            PointSeekResult(alignmentPoint(5.0, 0.0, 5.0), 1, false),
             segment.seekPointAtM(5.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(13.0, 0.0, 13.0), 2, false),
+            PointSeekResult(alignmentPoint(13.0, 0.0, 13.0), 2, false),
             segment.seekPointAtM(13.0),
         )
     }
@@ -212,53 +212,53 @@ class LayoutGeometryTest {
             segmentPoint(20.0, 0.0, 20.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(0.05, 0.0, 0.05), 1, false),
+            PointSeekResult(alignmentPoint(0.05, 0.0, 0.05), 1, false),
             segment.seekPointAtM(0.05, 0.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(0.0, 0.0, 0.0), 0, true),
+            PointSeekResult(alignmentPoint(0.0, 0.0, 0.0), 0, true),
             segment.seekPointAtM(0.05, 0.1),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(0.15, 0.0, 0.15), 1, false),
+            PointSeekResult(alignmentPoint(0.15, 0.0, 0.15), 1, false),
             segment.seekPointAtM(0.15, 0.1),
         )
 
         assertEquals(
-            PointSeekResult(layoutPoint(9.95, 0.0, 9.95), 1, false),
+            PointSeekResult(alignmentPoint(9.95, 0.0, 9.95), 1, false),
             segment.seekPointAtM(9.95, 0.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(10.0, 0.0, 10.0), 1, true),
+            PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true),
             segment.seekPointAtM(9.95, 0.1),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(9.85, 0.0, 9.85), 1, false),
+            PointSeekResult(alignmentPoint(9.85, 0.0, 9.85), 1, false),
             segment.seekPointAtM(9.85, 0.1),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(10.05, 0.0, 10.05), 2, false),
+            PointSeekResult(alignmentPoint(10.05, 0.0, 10.05), 2, false),
             segment.seekPointAtM(10.05, 0.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(10.0, 0.0, 10.0), 1, true),
+            PointSeekResult(alignmentPoint(10.0, 0.0, 10.0), 1, true),
             segment.seekPointAtM(10.05, 0.1),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(10.15, 0.0, 10.15), 2, false),
+            PointSeekResult(alignmentPoint(10.15, 0.0, 10.15), 2, false),
             segment.seekPointAtM(10.15, 0.1),
         )
 
         assertEquals(
-            PointSeekResult(layoutPoint(19.95, 0.0, 19.95), 2, false),
+            PointSeekResult(alignmentPoint(19.95, 0.0, 19.95), 2, false),
             segment.seekPointAtM(19.95, 0.0),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(20.0, 0.0, 20.0), 2, true),
+            PointSeekResult(alignmentPoint(20.0, 0.0, 20.0), 2, true),
             segment.seekPointAtM(19.95, 0.1),
         )
         assertEquals(
-            PointSeekResult(layoutPoint(19.85, 0.0, 19.85), 2, false),
+            PointSeekResult(alignmentPoint(19.85, 0.0, 19.85), 2, false),
             segment.seekPointAtM(19.85, 0.1),
         )
     }

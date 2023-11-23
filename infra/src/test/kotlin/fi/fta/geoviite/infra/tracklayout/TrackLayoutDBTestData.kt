@@ -85,7 +85,7 @@ fun moveAlignmentPoints(
         segments = alignment.segments.map { segment ->
             var prevPoint: IPoint3DM? = null
             val newPoints = segment.segmentPoints.map { point ->
-                val newPoint = moveFunc(point.toLayoutPoint(segment.startM))
+                val newPoint = moveFunc(point.toAlignmentPoint(segment.startM))
                 val m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
                 point.copy(x = newPoint.x, y = newPoint.y, m = m).also { p -> prevPoint = p }
             }

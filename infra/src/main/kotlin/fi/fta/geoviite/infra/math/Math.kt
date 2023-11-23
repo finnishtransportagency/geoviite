@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.math
 
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -44,7 +44,7 @@ fun interpolate(value1: SegmentPoint, value2: SegmentPoint, portion: Double) = S
     cant = interpolate(value1.cant, value2.cant, portion),
 )
 
-fun interpolate(value1: LayoutPoint, value2: LayoutPoint, portion: Double) = LayoutPoint(
+fun interpolate(value1: AlignmentPoint, value2: AlignmentPoint, portion: Double) = AlignmentPoint(
     x = interpolate(value1.x, value2.x, portion),
     y = interpolate(value1.y, value2.y, portion),
     z = interpolate(value1.z, value2.z, portion),

@@ -138,35 +138,6 @@ private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: L
     return alignment(segments)
 }
 
-/*
-fun locationTrack(
-    name: String,
-    trackNumber: IntId<TrackLayoutTrackNumber>,
-    layoutPoints: List<LayoutPoint>,
-    layoutAlignmentType: LocationTrackType = LocationTrackType.MAIN,
-    description: String = "$name location track description"
-): Pair<LocationTrack, LayoutAlignment> {
-    val segment = segment(layoutPoints)
-
-    val segments = layoutPoints.dropLast(1).mapIndexed{index, pointA ->
-        val pointB = layoutPoints[index +1]
-        segment(listOf(pointA, pointB))
-    }
-
-
-    val alignment = alignment(listOf(segment(layoutPoints)))
-    val track = locationTrack(
-        trackNumberId = trackNumber,
-        alignment = alignment,
-        name = "$name-lt",
-        description = description,
-        type = layoutAlignmentType,
-        state = LayoutState.IN_USE,
-    )
-    return track to alignment
-}
-*/
-
 fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) = TrackLayoutSwitch(
     externalId = null,
     sourceId = null,

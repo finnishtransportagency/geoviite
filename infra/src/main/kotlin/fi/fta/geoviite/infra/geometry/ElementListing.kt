@@ -338,7 +338,7 @@ private fun elementListing(
 
 private fun getLocation(
     context: GeocodingContext?,
-    point: LayoutPoint,
+    point: AlignmentPoint,
     directionRads: Double,
 ) = ElementLocation(
     coordinate = point.round(COORDINATE_DECIMALS),

@@ -759,9 +759,9 @@ fun findFarthestJoint(
 }
 
 private data class SwitchPointSeekResult(
-    val fixPoint: LayoutPoint,
-    val pointBackwards: LayoutPoint?,
-    val pointForwards: LayoutPoint?,
+    val fixPoint: AlignmentPoint,
+    val pointBackwards: AlignmentPoint?,
+    val pointForwards: AlignmentPoint?,
 )
 
 private fun findPointsOnTrack(from: IPoint, distance: Double, alignment: IAlignment): SwitchPointSeekResult? {

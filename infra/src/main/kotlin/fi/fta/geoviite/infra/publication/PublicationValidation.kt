@@ -642,10 +642,10 @@ private fun areSegmentsContinuous(segments: List<LayoutSegment>): Boolean = segm
     index == 0 || segments[index - 1].segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)
 }.all { it }
 
-private fun discontinuousDirectionRangeIndices(points: List<LayoutPoint>) =
+private fun discontinuousDirectionRangeIndices(points: List<AlignmentPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
 
-private fun stretchedMeterRangeIndices(points: List<LayoutPoint>) =
+private fun stretchedMeterRangeIndices(points: List<AlignmentPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::lineLength).map { it <= MAX_LAYOUT_METER_LENGTH }, 1)
 
 private fun discontinuousAddressRangeIndices(addresses: List<TrackMeter>): List<ClosedRange<Int>> =
@@ -675,7 +675,7 @@ private fun <T : Draftable<T>> isPublished(item: T, publishItemIds: List<IntId<T
 
 data class TopologyEndLink(
     val topologySwitch: TopologyLocationTrackSwitch,
-    val point: LayoutPoint,
+    val point: AlignmentPoint,
 )
 
 private fun collectTopologyEndLinks(

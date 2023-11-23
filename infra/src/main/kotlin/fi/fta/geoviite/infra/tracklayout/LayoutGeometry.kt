@@ -59,8 +59,8 @@ interface IAlignment : Loggable {
     val length: Double get() = segments.lastOrNull()?.let(ISegment::endM) ?: 0.0
     val firstSegmentStart: SegmentPoint? get() = segments.firstOrNull()?.segmentStart
     val lastSegmentEnd: SegmentPoint? get() = segments.lastOrNull()?.segmentEnd
-    val start: LayoutPoint? get() = segments.firstOrNull()?.alignmentStart
-    val end: LayoutPoint? get() = segments.lastOrNull()?.alignmentEnd
+    val start: AlignmentPoint? get() = segments.firstOrNull()?.alignmentStart
+    val end: AlignmentPoint? get() = segments.lastOrNull()?.alignmentEnd
 
     val allSegmentPoints: List<SegmentPoint> get() = segments.flatMapIndexed { index, segment ->
         if (index == segments.lastIndex) segment.segmentPoints
@@ -91,7 +91,7 @@ interface IAlignment : Loggable {
             }
         }
 
-    fun getPointAtM(m: Double, snapDistance: Double = 0.0): LayoutPoint? =
+    fun getPointAtM(m: Double, snapDistance: Double = 0.0): AlignmentPoint? =
         if (m <= 0.0) start
         else if (m >= length) end
         else getSegmentAtM(m)?.seekPointAtM(m, snapDistance)?.point
@@ -221,9 +221,9 @@ data class LayoutAlignment(
 
     fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
 
-    fun takeFirst(count: Int): List<LayoutPoint> = segments.firstOrNull()?.takeFirst(count) ?: listOf()
+    fun takeFirst(count: Int): List<AlignmentPoint> = segments.firstOrNull()?.takeFirst(count) ?: listOf()
 
-    fun takeLast(count: Int): List<LayoutPoint> = segments.lastOrNull()?.takeLast(count) ?: listOf()
+    fun takeLast(count: Int): List<AlignmentPoint> = segments.lastOrNull()?.takeLast(count) ?: listOf()
 }
 
 data class LayoutSegmentMetadata(
@@ -293,19 +293,6 @@ interface ISegmentGeometry {
     }
 }
 
-data class SegmentPoint(
-    override val x: Double,
-    override val y: Double,
-    val z: Double?,
-    /**
-     * Length (in meters) along the segment, from start to this point.
-     */
-    override val m: Double,
-    val cant: Double?,
-) : IPoint3DM {
-    fun toLayoutPoint(segmentStartM: Double) = LayoutPoint(x = x, y = y, z = z, m = m + segmentStartM, cant = cant)
-}
-
 data class SegmentGeometry(
     override val resolution: Int,
     override val segmentPoints: List<SegmentPoint>,
@@ -325,7 +312,7 @@ data class SegmentGeometry(
         require(resolution > 0) { "Invalid segment geometry resolution: $resolution" }
         require(segmentPoints.size >= 2) { "Segment geometry must have at least 2 points: points=${segmentPoints.size}" }
         require(length.isFinite() && length >= 0.0) { "Invalid length: $length" }
-        require(segmentStart.m == 0.0) { "Segment geometry m-values should start at 0.0" }
+        require(segmentPoints.first().m == 0.0) { "Segment geometry m-values should start at 0.0" }
         segmentPoints.forEachIndexed { index, point ->
             require(index == 0 || point.x != segmentPoints[index - 1].x || point.y != segmentPoints[index - 1].y) {
                 "There should be no duplicate points in segment geometry:" +
@@ -377,9 +364,9 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
     val geometry: SegmentGeometry
     val startM: Double
     val endM: Double get() = startM + segmentPoints.last().m
-    val alignmentStart: LayoutPoint get() = segmentStart.let(::toLayoutPoint)
-    val alignmentEnd: LayoutPoint get() = segmentEnd.let(::toLayoutPoint)
-    val alignmentPoints: List<LayoutPoint> get() = segmentPoints.map(::toLayoutPoint)
+    val alignmentStart: AlignmentPoint get() = segmentStart.let(::toAlignmentPoint)
+    val alignmentEnd: AlignmentPoint get() = segmentEnd.let(::toAlignmentPoint)
+    val alignmentPoints: List<AlignmentPoint> get() = segmentPoints.map(::toAlignmentPoint)
 
     fun getClosestPointM(target: IPoint): Pair<Double, IntersectType> =
         findClosestSegmentPointM(0..segmentPoints.lastIndex, target).let { (segmentM, intersect) ->
@@ -426,25 +413,25 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
      * Finds a point on the line at given alignment m-value (segment start + in-segment m).
      * Snaps to actual segment points at snapDistance, if provided and greater than zero.
      */
-    fun seekPointAtM(m: Double, snapDistance: Double = 0.0): PointSeekResult<LayoutPoint> =
+    fun seekPointAtM(m: Double, snapDistance: Double = 0.0): PointSeekResult<AlignmentPoint> =
         seekPointAtSegmentM(m - startM, snapDistance).let { r ->
-            PointSeekResult(toLayoutPoint(r.point), r.index, r.isSnapped)
+            PointSeekResult(toAlignmentPoint(r.point), r.index, r.isSnapped)
         }
 
-    fun toLayoutPoint(segmentPoint: SegmentPoint) = segmentPoint.toLayoutPoint(startM)
+    fun toAlignmentPoint(segmentPoint: SegmentPoint) = segmentPoint.toAlignmentPoint(startM)
 
-    fun takeFirst(count: Int): List<LayoutPoint> {
+    fun takeFirst(count: Int): List<AlignmentPoint> {
         require(count >= 0 && count <= segmentPoints.size) {
             "Invalid point range requested: points=${segmentPoints.size} count=$count"
         }
-        return segmentPoints.take(count).map(::toLayoutPoint)
+        return segmentPoints.take(count).map(::toAlignmentPoint)
     }
 
-    fun takeLast(count: Int): List<LayoutPoint> {
+    fun takeLast(count: Int): List<AlignmentPoint> {
         require(count >= 0 && count <= segmentPoints.size) {
             "Invalid point range requested: points=${segmentPoints.size} count=$count"
         }
-        return segmentPoints.takeLast(count).map(::toLayoutPoint)
+        return segmentPoints.takeLast(count).map(::toAlignmentPoint)
     }
 }
 
@@ -535,27 +522,56 @@ const val LAYOUT_HEIGHT_DELTA = 0.001
 const val LAYOUT_CANT_DELTA = 0.00001
 const val LAYOUT_M_DELTA = 0.001
 
-data class LayoutPoint(
+interface LayoutPoint : IPoint3DM {
+    val z: Double?
+    val cant: Double?
+
+    fun isSame(other: LayoutPoint) =
+        this::class == other::class &&
+                super.isSame(other, LAYOUT_COORDINATE_DELTA) &&
+                isSame(z, other.z, LAYOUT_HEIGHT_DELTA) &&
+                isSame(cant, other.cant, LAYOUT_CANT_DELTA)
+    fun isSame(other: IPoint) = super.isSame(other, LAYOUT_COORDINATE_DELTA)
+}
+data class SegmentPoint(
     override val x: Double,
     override val y: Double,
-    val z: Double?,
+    override val z: Double?,
+    /**
+     * Length (in meters) along the segment, from start to this point.
+     */
+    override val m: Double,
+    override val cant: Double?,
+) : LayoutPoint {
+    init {
+        verifyPointValues(x, y, m, z, cant)
+    }
+
+    fun toAlignmentPoint(segmentStartM: Double) =
+        AlignmentPoint(x = x, y = y, z = z, m = m + segmentStartM, cant = cant)
+}
+
+data class AlignmentPoint(
+    override val x: Double,
+    override val y: Double,
+    override val z: Double?,
     /**
      * Length (in meters) along the alignment, from start to this point.
      */
     override val m: Double,
-    val cant: Double?,
-) : IPoint3DM {
+    override val cant: Double?,
+) : LayoutPoint {
     init {
-        require(x.isFinite() && y.isFinite() && m.isFinite()) { "Cannot create layout point of: x=$x y=$y m=$m" }
-        require(z?.isFinite() != false) { "Invalid Z value: $z" }
-        require(cant?.isFinite() != false) { "Invalid cant value: $cant" }
-        require(m >= 0.0) { "Layout point m-value must be positive" }
+        verifyPointValues(x, y, m, z, cant)
     }
 
-    fun isSame(other: LayoutPoint) =
-        super.isSame(other, LAYOUT_COORDINATE_DELTA) && isSame(z, other.z, LAYOUT_HEIGHT_DELTA) && isSame(
-            cant, other.cant, LAYOUT_CANT_DELTA
-        )
+    fun toSegmentPoint(segmentStartM: Double) =
+        SegmentPoint(x = x, y = y, z = z, m = m - segmentStartM, cant = cant)
+}
 
-    fun isSame(other: IPoint) = super.isSame(other, LAYOUT_COORDINATE_DELTA)
+fun verifyPointValues(x: Double, y: Double, m: Double, z: Double?, cant: Double?) {
+    require(x.isFinite() && y.isFinite() && m.isFinite()) { "Cannot create layout point of: x=$x y=$y m=$m" }
+    require(z?.isFinite() != false) { "Invalid Z value: $z" }
+    require(cant?.isFinite() != false) { "Invalid cant value: $cant" }
+    require(m >= 0.0) { "Layout point m-value must be positive" }
 }

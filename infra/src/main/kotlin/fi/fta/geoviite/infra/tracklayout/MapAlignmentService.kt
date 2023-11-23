@@ -148,13 +148,13 @@ class MapAlignmentService(
         return getSegmentBorderMValues(alignment)
     }
 
-    fun getLocationTrackEnds(publishType: PublishType, id: IntId<LocationTrack>): List<LayoutPoint> {
+    fun getLocationTrackEnds(publishType: PublishType, id: IntId<LocationTrack>): List<AlignmentPoint> {
         logger.serviceCall("getLocationTrackEnds", "publishType" to publishType, "id" to id)
         val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(publishType, id)
         return getEndPoints(alignment)
     }
 
-    fun getReferenceLineEnds(publishType: PublishType, id: IntId<ReferenceLine>): List<LayoutPoint> {
+    fun getReferenceLineEnds(publishType: PublishType, id: IntId<ReferenceLine>): List<AlignmentPoint> {
         logger.serviceCall("getReferenceLineEnds", "publishType" to publishType, "id" to id)
         val (_, alignment) = referenceLineService.getWithAlignmentOrThrow(publishType, id)
         return getEndPoints(alignment)
@@ -211,5 +211,5 @@ private fun <T> getMissingLinkings(
 private fun getMissingLinkingRanges(alignment: LayoutAlignment): List<Range<Double>> =
     combineContinuous(alignment.segments.filter { s -> s.sourceId == null }.map { s -> Range(s.startM, s.endM) })
 
-private fun getEndPoints(alignment: LayoutAlignment): List<LayoutPoint> =
+private fun getEndPoints(alignment: LayoutAlignment): List<AlignmentPoint> =
     alignment.takeFirst(2) + alignment.takeLast(2)

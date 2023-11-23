@@ -101,7 +101,7 @@ fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boole
     expected.alignmentPoints.forEachIndexed { index, point -> assertMatches(point, actual.alignmentPoints[index]) }
 }
 
-fun assertMatches(expected: LayoutPoint, actual: LayoutPoint) {
+fun assertMatches(expected: AlignmentPoint, actual: AlignmentPoint) {
     assertEquals(expected.x, actual.x, COORDINATE_DELTA)
     assertEquals(expected.y, actual.y, COORDINATE_DELTA)
     assertEquals(expected.m, actual.m, COORDINATE_DELTA)

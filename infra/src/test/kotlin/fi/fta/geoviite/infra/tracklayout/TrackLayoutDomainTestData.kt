@@ -559,29 +559,29 @@ fun toSegmentPoints(points: List<IPoint3DM>) = points.map { point ->
         x = point.x,
         y = point.y,
         z = when (point) {
-            is LayoutPoint -> point.z
+            is AlignmentPoint -> point.z
             is IPoint3DZ -> point.z
             else -> null
         },
         m = point.m - points.first().m,
-        cant = (point as? LayoutPoint)?.cant,
+        cant = (point as? AlignmentPoint)?.cant,
     )
 }
 
-fun toTrackLayoutPoints(vararg points: IPoint) = toTrackLayoutPoints(to3DMPoints(points.asList()))
-fun toTrackLayoutPoints(vararg points: Point3DZ) = toTrackLayoutPoints(to3DMPoints(points.asList()))
-fun toTrackLayoutPoints(vararg points: IPoint3DM) = toTrackLayoutPoints(points.asList())
-fun toTrackLayoutPoints(points: List<IPoint3DM>) = points.map { point ->
-    LayoutPoint(
+fun toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints(points.asList()))
+fun toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints(points.asList()))
+fun toAlignmentPoints(vararg points: IPoint3DM) = toAlignmentPoints(points.asList())
+fun toAlignmentPoints(points: List<IPoint3DM>) = points.map { point ->
+    AlignmentPoint(
         point.x,
         point.y,
         when (point) {
-            is LayoutPoint -> point.z
+            is AlignmentPoint -> point.z
             is IPoint3DZ -> point.z
             else -> null
         },
         point.m,
-        if (point is LayoutPoint) point.cant else null,
+        if (point is AlignmentPoint) point.cant else null,
     )
 }
 
@@ -593,7 +593,7 @@ fun to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM> {
     return pointsWithDistance.mapIndexed { index, (point, _) ->
         val m = pointsWithDistance.subList(0, index + 1).foldRight(start) { (_, distance), acc -> acc + distance }
         when (point) {
-            is LayoutPoint -> LayoutPoint(point.x, point.y, point.z, m, point.cant)
+            is AlignmentPoint -> AlignmentPoint(point.x, point.y, point.z, m, point.cant)
             is Point3DZ -> Point4DZM(point.x, point.y, point.z, m)
             else -> Point3DM(point.x, point.y, m)
         }
@@ -687,7 +687,7 @@ fun kmPost(
 ).let { kp -> if (draft) draft(kp) else kp }
 
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, m, null)
-fun layoutPoint(x: Double, y: Double, m: Double = 1.0) = LayoutPoint(x, y, null, m, null)
+fun alignmentPoint(x: Double, y: Double, m: Double = 1.0) = AlignmentPoint(x, y, null, m, null)
 
 fun rawPoints(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
     toSegmentPoints(to3DMPoints((1..count).map { pointNumber ->
@@ -695,12 +695,12 @@ fun rawPoints(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double
     }))
 
 fun points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
-    toTrackLayoutPoints(to3DMPoints((1..count).map { pointNumber ->
+    toAlignmentPoints(to3DMPoints((1..count).map { pointNumber ->
         point2d(minX, maxX, minY, maxY, (pointNumber - 1).toDouble() / (count - 1))
     }))
 
 fun segmentPoint(minX: Double, maxX: Double, minY: Double, maxY: Double, m: Double, fraction: Double = rand.nextDouble()) =
-    LayoutPoint(valueBetween(minX, maxX, fraction), valueBetween(minY, maxY, fraction), null, m, null)
+    AlignmentPoint(valueBetween(minX, maxX, fraction), valueBetween(minY, maxY, fraction), null, m, null)
 
 fun point2d(minX: Double, maxX: Double, minY: Double, maxY: Double, fraction: Double = rand.nextDouble()) =
     Point(valueBetween(minX, maxX, fraction), valueBetween(minY, maxY, fraction))
