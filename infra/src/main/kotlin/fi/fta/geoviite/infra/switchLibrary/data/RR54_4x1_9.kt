@@ -10,7 +10,7 @@ fun RR54_4x1_9() = SwitchStructure(
     joints = listOf(
         SwitchJoint(
             JointNumber(1),
-            Point(-5.075, -1.128)
+            Point(-5.075, -1.142)
         ),
         SwitchJoint(
             JointNumber(5),
@@ -18,15 +18,15 @@ fun RR54_4x1_9() = SwitchStructure(
         ),
         SwitchJoint(
             JointNumber(2),
-            Point(5.075, 1.128)
+            Point(5.075, 1.142)
         ),
         SwitchJoint(
             JointNumber(4),
-            Point(-5.075, 1.128)
+            Point(-5.075, 1.142)
         ),
         SwitchJoint(
             JointNumber(3),
-            Point(5.075, -1.128)
+            Point(5.075, -1.142)
         )
     ),
     alignments = listOf(
@@ -38,12 +38,12 @@ fun RR54_4x1_9() = SwitchStructure(
             ),
             elements = listOf(
                 SwitchElementLine(
-                    start = Point(-5.075, -1.128),
+                    start = Point(-5.075, -1.142),
                     end = Point(0.0, 0.0),
                 ),
                 SwitchElementLine(
                     start = Point(0.0, 0.0),
-                    end = Point(5.075, 1.128),
+                    end = Point(5.075, 1.142),
                 )
             )
         ),
@@ -55,12 +55,12 @@ fun RR54_4x1_9() = SwitchStructure(
             ),
             elements = listOf(
                 SwitchElementLine(
-                    start = Point(-5.075, 1.128),
+                    start = Point(-5.075, 1.142),
                     end = Point(0.0, 0.0),
                 ),
                 SwitchElementLine(
                     start = Point(0.0, 0.0),
-                    end = Point(5.075, -1.128),
+                    end = Point(5.075, -1.142),
                 )
             )
         )
