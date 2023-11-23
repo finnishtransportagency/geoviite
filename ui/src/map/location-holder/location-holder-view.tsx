@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './location-holder-view.scss';
-import { formatToTM35FINString } from 'utils/geography-utils';
+import { formatToTM35FINString, formatTrackMeter } from 'utils/geography-utils';
 import { Point } from 'model/geometry';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { PublishType, TrackMeter as TrackMeterModel } from 'common/common-model';
@@ -100,7 +100,11 @@ export const LocationHolderView: React.FC<LocationHolderProps> = ({
     return (
         <div className={styles['location-holder-view']}>
             <div>{hovered?.alignmentName}</div>
-            <div>{hovered?.address ? <TrackMeter value={hovered.address} /> : ''}</div>
+            <div>
+                <TrackMeter
+                    placeholder={hovered?.address ? formatTrackMeter(hovered.address) : ''}
+                />
+            </div>
             <div>{hovered?.coordinate ? formatToTM35FINString(hovered.coordinate) : ''}</div>
         </div>
     );

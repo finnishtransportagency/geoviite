@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
@@ -10,6 +9,12 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
+import { BoundingBox } from 'model/geometry';
+import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+} from 'map/map-utils';
 
 type HighlightedItemBase = {
     startM: number;
@@ -33,11 +38,12 @@ type AlignmentPlanSectionInfoboxContentProps = {
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
     id: LocationTrackId | LayoutTrackNumberId;
     type: 'LOCATION_TRACK' | 'REFERENCE_LINE';
+    showArea: (boundingBox: BoundingBox) => void;
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections, type, id, onHighlightItem }) => {
+> = ({ sections, type, id, onHighlightItem, showArea }) => {
     const { t } = useTranslation();
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
@@ -67,10 +73,12 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         </span>
     );
 
+    console.log(sections);
+
     return (
         <React.Fragment>
             <div className="infobox__list">
-                {sections.map((section) => (
+                {sections.map((section: AlignmentPlanSection) => (
                     <div
                         className="infobox__list-row"
                         key={section.id}
@@ -149,22 +157,56 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                         <div className="infobox__list-cell">
                             <div className={styles['alignment-plan-section-infobox__meters']}>
                                 <span>
-                                    {section.start
-                                        ? formatTrackMeterWithoutMeters(section.start.address)
-                                        : errorFragment(
-                                              t(
-                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
-                                              ),
-                                          )}
+                                    {section.start ? (
+                                        <TrackMeter
+                                            onShowOnMap={() =>
+                                                section?.start?.location &&
+                                                showArea(
+                                                    calculateBoundingBoxToShowAroundLocation(
+                                                        section.start.location,
+                                                        MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                                    ),
+                                                )
+                                            }
+                                            displayDecimals={false}
+                                            addressPoint={{
+                                                point: section.start.location,
+                                                address: section.start.address,
+                                            }}
+                                        />
+                                    ) : (
+                                        errorFragment(
+                                            t(
+                                                'tool-panel.alignment-plan-sections.geocoding-failed',
+                                            ),
+                                        )
+                                    )}
                                 </span>{' '}
                                 <span>
-                                    {section.end
-                                        ? formatTrackMeterWithoutMeters(section.end.address)
-                                        : errorFragment(
-                                              t(
-                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
-                                              ),
-                                          )}
+                                    {section.end ? (
+                                        <TrackMeter
+                                            onShowOnMap={() =>
+                                                section?.end?.location &&
+                                                showArea(
+                                                    calculateBoundingBoxToShowAroundLocation(
+                                                        section.end.location,
+                                                        MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                                    ),
+                                                )
+                                            }
+                                            displayDecimals={false}
+                                            addressPoint={{
+                                                point: section.end.location,
+                                                address: section.end.address,
+                                            }}
+                                        />
+                                    ) : (
+                                        errorFragment(
+                                            t(
+                                                'tool-panel.alignment-plan-sections.geocoding-failed',
+                                            ),
+                                        )
+                                    )}
                                 </span>
                             </div>
                         </div>
