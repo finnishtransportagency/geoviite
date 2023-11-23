@@ -180,27 +180,20 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchAllVersions(): List<RowVersion<T>> = fetchRowVersions(table)
 
     private val versionPairSql = """
-        with rs as
-          (
-            select
-              direct.id as direct_id,
-              direct.version as direct_version,
-              direct.draft as direct_draft,
-              lookup_official.id as lookup_id,
-              lookup_official.version as lookup_version
-              from (
-                (select * from ${table.fullName} where id = :id)
-                union all
-                (select * from ${table.fullName} where ${table.draftLink} = :id)
-              ) direct
-                left join ${table.fullName} lookup_official on direct.${table.draftLink} = lookup_official.id
-          )
-        select direct_id as id, direct_version as version, direct_draft as draft
-          from rs
+        with direct as (
+          select version, draft, ${table.draftLink} from ${table.fullName} where id = :id
+        )
+        select :id as id, version, draft
+          from direct
         union
-        select lookup_id, lookup_version, false
-          from rs
-          where lookup_id is not null;
+        select draft.id, draft.version, true
+          from ${table.fullName} draft
+          where draft.draft and draft.${table.draftLink} = :id
+        union
+        select official.id, official.version, false
+          from direct
+            join ${table.fullName} official
+                 on not official.draft and direct.${table.draftLink} = official.id;
     """.trimIndent()
 
     override fun fetchVersionPair(id: IntId<T>): VersionPair<T> {
