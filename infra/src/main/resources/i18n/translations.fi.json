@@ -887,6 +887,7 @@
                 "duplicate-name": "Suunnitelmassa on useampi raide samalla nimellä \"{{alignmentName}}\"",
                 "no-profile": "Raiteen pystygeometriaa ei ole määritelty keskilinjalle {{alignmentName}}",
                 "no-cant": "Raiteen kallistusta ei ole määritelty keskilinjalle {{alignmentName}}",
+                "cant-rotation-point-undefined": "Kallistuksen mittauspistettä (rotationPoint) ei ole määritelty keskilinjalla {{alignmentName}}",
                 "cant-rotation-point-center": "Kallistuksen mittauspiste (rotationPoint) määritelty keskelle raidetta keskilinjalla {{alignmentName}}",
                 "cant-gauge-invalid": "Ilmoitettu raideleveys \"{{value}}\" keskilinjalla {{alignmentName}} ei vastaa suomen raideleveyttä 1.524",
                 "no-feature-type": "Keskilinjalta {{alignmentName}} puuttuu tyyppikoodi",
