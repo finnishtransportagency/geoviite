@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -49,12 +49,13 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
 
     val trackNumberDescription by lazy { "Test track number ${this::class.simpleName}" }
 
-    @BeforeAll
+    @BeforeEach
     fun initUserMdc() {
         MDC.put(USER_HEADER, testUser)
     }
 
     fun <T> transactional(op: () -> T): T = transaction.execute {
+        initUserMdc()
         jdbc.setUser()
         op()
     } ?: throw IllegalStateException("Transaction returned nothing")
