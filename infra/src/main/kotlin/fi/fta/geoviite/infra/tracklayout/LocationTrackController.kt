@@ -248,7 +248,7 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/splitting-initialization-parameters")
+    @GetMapping("/location-tracks/{publishType}/{id}/splitting-initialization-parameters")
     fun getSplittingInitializationParameters(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
