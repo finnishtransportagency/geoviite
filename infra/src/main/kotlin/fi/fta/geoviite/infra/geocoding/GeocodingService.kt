@@ -7,10 +7,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -45,6 +42,19 @@ class GeocodingService(
             "contextKey" to contextKey,
         )
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
+    }
+
+    /**
+     * Prepares a calculation (with results cached) to calculate address points. The returned calculation itself is
+     * safe to run on a worker thread.
+     */
+    fun collectDataForGetAddressPoints(
+        contextKey: GeocodingContextCacheKey,
+        alignmentVersion: RowVersion<LayoutAlignment>,
+    ): () -> AlignmentAddresses? {
+        val calculationData =
+            addressPointsCache.getAddressPointCalculationData(AddressPointCacheKey(alignmentVersion, contextKey))
+        return { calculationData?.let(addressPointsCache::getAddressPoints) }
     }
 
     fun getAddress(
