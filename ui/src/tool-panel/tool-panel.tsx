@@ -76,6 +76,7 @@ type ToolPanelProps = {
     stopSwitchLinking: () => void;
     verticalGeometryDiagramVisible: boolean;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
+    onSelectLocationTrackBadge: (locationTrackId: LocationTrackId) => void;
 };
 
 export type ToolPanelAsset = {
@@ -128,6 +129,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     stopSwitchLinking,
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
+    onSelectLocationTrackBadge,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -331,6 +333,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         }
                         startSwitchPlacing={startSwitchPlacing}
                         stopLinking={stopSwitchLinking}
+                        onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                     />
                 ),
             } as ToolPanelTab;
