@@ -79,10 +79,13 @@ private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.jav
 data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedReason: KmPostRejectedReason)
 
 data class GeocodingContextCreateResult(
-    val geocodingContext: GeocodingContext,
+    val geocodingContext: GeocodingContext?,
     val rejectedKmPosts: List<KmPostWithRejectedReason>,
     val validKmPosts: List<TrackLayoutKmPost>,
+    val startPointRejectedReason: StartPointRejectedReason?,
 )
+
+enum class StartPointRejectedReason { TOO_LONG }
 
 enum class KmPostRejectedReason {
     TOO_FAR_APART,
@@ -177,15 +180,29 @@ data class GeocodingContext(
                 kmPostsOutsideGeometry.any { kp -> kp.kmPost.id == vkp.id }
             }
 
+            val startKmIsTooLong = startKmIsTooLong(startAddress, referenceLineGeometry, validReferencePoints)
+
             return GeocodingContextCreateResult(
-                geocodingContext = GeocodingContext(
+                geocodingContext = if (startKmIsTooLong) null else GeocodingContext(
                     trackNumber = trackNumber,
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
                     startAddress = startAddress
                 ), rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
                 validKmPosts = validKmPosts,
+                startPointRejectedReason = if (startKmIsTooLong) StartPointRejectedReason.TOO_LONG else null
             )
+        }
+
+        private fun startKmIsTooLong(
+            startAddress: TrackMeter,
+            referenceLineGeometry: IAlignment,
+            referencePoints: List<GeocodingReferencePoint>,
+        ): Boolean = if (referencePoints.isEmpty()) false else {
+            val startMeters =
+                referencePoints[0].distance + startAddress.meters.setScale(0, RoundingMode.CEILING).toDouble()
+            val length = if (referencePoints.size > 1) referencePoints[1].distance else referenceLineGeometry.length
+            !TrackMeter.isMetersValid(startMeters + length)
         }
 
         private fun requireKmPostsSanity(kmPosts: List<TrackLayoutKmPost>) {

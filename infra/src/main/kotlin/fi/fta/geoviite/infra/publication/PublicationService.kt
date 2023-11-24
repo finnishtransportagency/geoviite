@@ -551,7 +551,7 @@ class PublicationService @Autowired constructor(
             validationVersions.locationTracks.map { it.officialId },
         )
         val geocodingErrors = if (trackNumber.exists && referenceLine != null) {
-            validateGeocodingContext(cacheKeys[version.officialId], VALIDATION_TRACK_NUMBER)
+            validateGeocodingContext(cacheKeys[version.officialId], VALIDATION_TRACK_NUMBER, trackNumber.number)
         } else listOf()
         val duplicateNameErrors = validateTrackNumberNumberDuplication(trackNumber, validationVersions)
         return fieldErrors + referenceErrors + geocodingErrors + duplicateNameErrors
@@ -597,7 +597,7 @@ class PublicationService @Autowired constructor(
             validationVersions.trackNumbers.map { it.officialId },
         )
         val geocodingErrors = if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
-            validateGeocodingContext(cacheKeys[kmPost.trackNumberId], VALIDATION_KM_POST)
+            validateGeocodingContext(cacheKeys[kmPost.trackNumberId], VALIDATION_KM_POST, trackNumber.number)
         } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
     }
@@ -667,7 +667,7 @@ class PublicationService @Autowired constructor(
         val alignmentErrors = if (trackNumber?.exists == true) validateReferenceLineAlignment(alignment) else listOf()
         val geocodingErrors: List<PublishValidationError> = if (trackNumber?.exists == true) {
             val contextKey = cacheKeys[referenceLine.trackNumberId]
-            val contextErrors = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE)
+            val contextErrors = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE, trackNumber.number)
             val addressErrors = contextKey?.let { key ->
                 val locationTracks = getLocationTracksByTrackNumber(trackNumber.id as IntId, validationVersions)
                 locationTracks.flatMap { track ->
@@ -1295,9 +1295,9 @@ class PublicationService @Autowired constructor(
         )
     }.orElse(null)
 
-    private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
+    private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String, trackNumber: TrackNumber) =
         cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)
-            ?.let { context -> validateGeocodingContext(context) } ?: listOf(noGeocodingContext(localizationKey))
+            ?.let { context -> validateGeocodingContext(context, trackNumber) } ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
         trackNumber: TrackLayoutTrackNumber,
