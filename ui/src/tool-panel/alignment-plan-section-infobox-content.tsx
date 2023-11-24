@@ -73,8 +73,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         </span>
     );
 
-    console.log(sections);
-
     return (
         <React.Fragment>
             <div className="infobox__list">
@@ -169,10 +167,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                 )
                                             }
                                             displayDecimals={false}
-                                            addressPoint={{
-                                                point: section.start.location,
-                                                address: section.start.address,
-                                            }}
+                                            trackMeter={section.start.address}
                                         />
                                     ) : (
                                         errorFragment(
@@ -195,10 +190,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                 )
                                             }
                                             displayDecimals={false}
-                                            addressPoint={{
-                                                point: section.end.location,
-                                                address: section.end.address,
-                                            }}
+                                            trackMeter={section.end.address}
                                         />
                                     ) : (
                                         errorFragment(

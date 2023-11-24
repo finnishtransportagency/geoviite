@@ -361,7 +361,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                     ),
                                                 )
                                             }
-                                            addressPoint={startAndEndPoints.start}
+                                            trackMeter={startAndEndPoints.start.address}
                                         />
                                     ) : (
                                         t('tool-panel.location-track.unset')
@@ -380,7 +380,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                     ),
                                                 )
                                             }
-                                            addressPoint={startAndEndPoints.end}
+                                            trackMeter={startAndEndPoints.end.address}
                                         />
                                     ) : (
                                         t('tool-panel.location-track.unset')

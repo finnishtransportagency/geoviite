@@ -103,7 +103,7 @@ const Split: React.FC<SplitProps> = ({
                                     ),
                                 )
                             }
-                            addressPoint={addressPoint}
+                            trackMeter={addressPoint?.address}
                         />
                     </InfoboxField>
                     <InfoboxField
@@ -194,7 +194,7 @@ const Endpoint: React.FC<EndpointProps> = ({ showArea, addressPoint }) => {
                             ),
                         )
                     }
-                    addressPoint={addressPoint}
+                    trackMeter={addressPoint?.address}
                 />
             </InfoboxField>
         </div>

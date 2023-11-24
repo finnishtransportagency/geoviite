@@ -19,28 +19,22 @@ const formatJointTrackMeter = (
     addressPlaceHolder: string,
     showArea: (area: BoundingBox) => void,
 ) => {
-    const addressPoint = jointTrackMeter.trackMeter
-        ? {
-              point: jointTrackMeter.location,
-              address: jointTrackMeter.trackMeter,
-          }
-        : undefined;
-
     return (
         <span>
+            (jointTrackMeter.trackMeter &&
             <TrackMeter
                 onShowOnMap={() =>
-                    addressPoint?.point &&
                     showArea(
                         calculateBoundingBoxToShowAroundLocation(
-                            addressPoint.point,
+                            jointTrackMeter.location,
                             MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
                         ),
                     )
                 }
-                addressPoint={addressPoint}
+                trackMeter={jointTrackMeter.trackMeter}
                 placeholder={addressPlaceHolder}
             />
+            )
             <br />
             <LocationTrackLink
                 locationTrackId={jointTrackMeter.locationTrackId}

@@ -196,7 +196,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                             ),
                                         )
                                     }
-                                    addressPoint={startAndEndPoints?.start}
+                                    trackMeter={startAndEndPoints?.start?.address}
                                 />
                             }
                             onEdit={() => setShowEditDialog(true)}
@@ -215,7 +215,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                             ),
                                         )
                                     }
-                                    addressPoint={startAndEndPoints?.end}
+                                    trackMeter={startAndEndPoints?.end?.address}
                                 />
                             }
                         />
