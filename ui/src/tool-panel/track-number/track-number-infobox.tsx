@@ -188,7 +188,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.reference-line.start-location')}
                             value={
                                 <TrackMeter
-                                    onShowOnMap={() =>
+                                    onClickAction={() =>
                                         startAndEndPoints?.start &&
                                         showArea(
                                             calculateBoundingBoxToShowAroundLocation(
@@ -207,7 +207,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.reference-line.end-location')}
                             value={
                                 <TrackMeter
-                                    onShowOnMap={() =>
+                                    onClickAction={() =>
                                         startAndEndPoints?.end &&
                                         showArea(
                                             calculateBoundingBoxToShowAroundLocation(

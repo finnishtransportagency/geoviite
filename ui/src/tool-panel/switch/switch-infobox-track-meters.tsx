@@ -23,7 +23,7 @@ const formatJointTrackMeter = (
         <span>
             (jointTrackMeter.trackMeter &&
             <TrackMeter
-                onShowOnMap={() =>
+                onClickAction={() =>
                     showArea(
                         calculateBoundingBoxToShowAroundLocation(
                             jointTrackMeter.location,

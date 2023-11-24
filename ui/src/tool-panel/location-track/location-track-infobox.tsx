@@ -353,7 +353,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     label={t('tool-panel.location-track.start-location')}>
                                     {startAndEndPoints?.start?.address ? (
                                         <TrackMeter
-                                            onShowOnMap={() =>
+                                            onClickAction={() =>
                                                 startAndEndPoints?.start &&
                                                 showArea(
                                                     calculateBoundingBoxToShowAroundLocation(
@@ -372,7 +372,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     label={t('tool-panel.location-track.end-location')}>
                                     {startAndEndPoints?.end?.address ? (
                                         <TrackMeter
-                                            onShowOnMap={() =>
+                                            onClickAction={() =>
                                                 startAndEndPoints.end &&
                                                 showArea(
                                                     calculateBoundingBoxToShowAroundLocation(

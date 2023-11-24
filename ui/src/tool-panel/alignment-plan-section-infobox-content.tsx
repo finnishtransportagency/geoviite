@@ -157,7 +157,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                 <span>
                                     {section.start ? (
                                         <TrackMeter
-                                            onShowOnMap={() =>
+                                            onClickAction={() =>
                                                 section?.start?.location &&
                                                 showArea(
                                                     calculateBoundingBoxToShowAroundLocation(
@@ -180,7 +180,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                 <span>
                                     {section.end ? (
                                         <TrackMeter
-                                            onShowOnMap={() =>
+                                            onClickAction={() =>
                                                 section?.end?.location &&
                                                 showArea(
                                                     calculateBoundingBoxToShowAroundLocation(

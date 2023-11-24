@@ -5,7 +5,7 @@ import { TrackMeter } from 'common/common-model';
 type TrackMeterProps = {
     trackMeter?: TrackMeter;
     placeholder?: string;
-    onShowOnMap?: () => void;
+    onClickAction?: () => void;
     displayDecimals?: boolean;
 };
 
@@ -15,15 +15,15 @@ const formatTrackMeterForDisplay = (trackMeter: TrackMeter, displayDecimals: boo
 const TrackMeter: React.FC<TrackMeterProps> = ({
     trackMeter,
     placeholder = '',
-    onShowOnMap,
+    onClickAction,
     displayDecimals = true,
 }: TrackMeterProps) => {
     const displayedValue = trackMeter
         ? formatTrackMeterForDisplay(trackMeter, displayDecimals)
         : placeholder;
 
-    return onShowOnMap ? (
-        <a className={'link'} onClick={onShowOnMap}>
+    return onClickAction ? (
+        <a className={'link'} onClick={onClickAction}>
             {displayedValue}
         </a>
     ) : (

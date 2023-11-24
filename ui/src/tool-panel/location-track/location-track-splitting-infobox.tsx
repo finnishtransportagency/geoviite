@@ -94,7 +94,7 @@ const Split: React.FC<SplitProps> = ({
                                 : t('tool-panel.location-track.splitting.start-address')
                         }>
                         <TrackMeter
-                            onShowOnMap={() =>
+                            onClickAction={() =>
                                 addressPoint?.point &&
                                 showArea(
                                     calculateBoundingBoxToShowAroundLocation(
@@ -185,7 +185,7 @@ const Endpoint: React.FC<EndpointProps> = ({ showArea, addressPoint }) => {
             <div className={styles['location-track-infobox__split-item-ball']} />
             <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
                 <TrackMeter
-                    onShowOnMap={() =>
+                    onClickAction={() =>
                         addressPoint?.point &&
                         showArea(
                             calculateBoundingBoxToShowAroundLocation(
