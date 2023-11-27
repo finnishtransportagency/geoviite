@@ -1,23 +1,30 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
+import org.openqa.selenium.support.pagefactory.ByChained
+import waitUntilTextExists
 import waitUntilTextIs
-import waitUntilTextIsNot
 
 abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
     protected val title: String get() = childText(By.className("infobox__title"))
 
-    //todo Replace this with common component or with qaIds
-    private fun getFieldValueBy(fieldName: String) = By.xpath(
-        ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]" +
-                "/div[@class='infobox__field-value']"
-    )
+    private fun getValueBy(fieldQaId: String) = ByChained(byQaId(fieldQaId), By.className("infobox__field-value"))
 
-    protected fun getValueForField(fieldName: String): String {
-        logger.info("Get value for field $fieldName")
+    protected fun getValueForField(fieldQaId: String): String {
+        logger.info("Get value for field $fieldQaId")
 
-        return childText(getFieldValueBy(fieldName))
+        return childText(getValueBy(fieldQaId))
+    }
+
+    protected fun getValueWhenFieldHasValue(fieldQaId: String): String {
+        logger.info("Get value for field $fieldQaId when it has value")
+
+        val by = getValueBy(fieldQaId)
+        waitUntilTextExists(childBy(by))
+
+        return childText(by)
     }
 
     protected fun editFields(): E2EInfoBox = apply {
@@ -26,28 +33,10 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
         clickChild(By.className("infobox__edit-icon"))
     }
 
-    protected fun getValueForFieldWhenNotEmpty(fieldName: String): String {
-        logger.info("Get value for field $fieldName when it's not empty")
+    protected fun waitUntilValueChangesForField(fieldQaId: String, targetValue: String): E2EInfoBox = apply {
+        logger.info("Wait for field $fieldQaId to change value to $targetValue")
 
-        return childText(
-            By.xpath(
-                ".//div[@class='infobox__field-label' and text() = '$fieldName']" +
-                        "/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
-            )
-        )
-    }
-
-    protected fun waitUntilValueChangesForField(fieldName: String): E2EInfoBox = apply {
-        logger.info("Wait for field $fieldName to change value")
-
-        val originalValue = getValueForField(fieldName)
-        waitUntilTextIsNot(getFieldValueBy(fieldName), originalValue)
-    }
-
-    protected fun waitUntilValueChangesForField(fieldName: String, targetValue: String): E2EInfoBox = apply {
-        logger.info("Wait until field $fieldName is $targetValue")
-
-        waitUntilTextIs(getFieldValueBy(fieldName), targetValue)
+        waitUntilTextIs(childBy(getValueBy(fieldQaId)), targetValue)
     }
 
     fun waitUntilLoaded(): E2EInfoBox = apply { waitUntilChildInvisible(By.className("spinner")) }

@@ -123,6 +123,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                 qa-id="geometry-km-post-linking-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="geometry-km-post-linked"
                         label={t('tool-panel.km-post.geometry.linking.is-linked-label')}
                         value={
                             linkedLayoutKmPosts != undefined && (

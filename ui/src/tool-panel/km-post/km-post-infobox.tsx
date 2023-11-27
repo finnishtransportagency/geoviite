@@ -95,6 +95,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 onContentVisibilityChange={() => visibilityChange('basic')}>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="km-post-km-number"
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
                         onEdit={openEditDialog}
@@ -102,6 +103,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
+                        qaId="km-post-track-number"
                         value={
                             <TrackNumberLinkContainer
                                 trackNumberId={updatedKmPost?.trackNumberId}
@@ -141,10 +143,12 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 onContentVisibilityChange={() => visibilityChange('location')}>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="km-post-location"
                         label={t('tool-panel.km-post.layout.location')}
                         value={kmPost.kmNumber}
                     />
                     <InfoboxField
+                        qaId="km-post-coordinates"
                         label={t('tool-panel.km-post.layout.coordinates')}
                         value={
                             updatedKmPost?.location

@@ -587,7 +587,7 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkingInfobox.link()
         waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
-        assertEquals("foo tracknumber", alignmentLinkingInfobox.trackNumber)
+        assertContains(alignmentLinkingInfobox.linkedReferenceLines, "foo tracknumber")
         toolPanel.selectToolPanelTab("foo tracknumber")
 
         val referenceLineLocationInfobox = toolPanel.referenceLineLocation

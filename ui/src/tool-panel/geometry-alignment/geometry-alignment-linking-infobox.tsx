@@ -254,6 +254,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 onContentVisibilityChange={onContentVisibilityChange}>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="geometry-alignment-linked"
                         label={t('tool-panel.alignment.geometry.is-linked')}
                         className={styles['geometry-alignment-infobox__linked-status']}
                         value={

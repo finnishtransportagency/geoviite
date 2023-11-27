@@ -220,18 +220,21 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 qa-id="location-track-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="location-track-oid"
                         label={t('tool-panel.location-track.identifier')}
                         value={
                             locationTrack.externalId || t('tool-panel.location-track.unpublished')
                         }
                     />
                     <InfoboxField
+                        qaId="location-track-name"
                         label={t('tool-panel.location-track.track-name')}
                         value={locationTrack.name}
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={isOfficial()}
                     />
                     <InfoboxField
+                        qaId="location-track-state"
                         label={t('tool-panel.location-track.state')}
                         value={<LayoutState state={locationTrack.state} />}
                         onEdit={openEditLocationTrackDialog}
@@ -244,12 +247,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         iconDisabled={isOfficial()}
                     />
                     <InfoboxField
+                        qaId="location-track-description"
                         label={t('tool-panel.location-track.description')}
                         value={description}
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={isOfficial()}
                     />
                     <InfoboxField
+                        qaId="location-track-track-number"
                         label={t('tool-panel.location-track.track-number')}
                         value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
                         onEdit={openEditLocationTrackDialog}
@@ -340,14 +345,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             indicator={ProgressIndicatorType.Area}
                             inProgress={startAndEndPointFetchStatus !== LoaderStatus.Ready}>
                             <React.Fragment>
-                                <InfoboxField label={t('tool-panel.location-track.start-location')}>
+                                <InfoboxField
+                                    qaId="location-track-start-track-meter"
+                                    label={t('tool-panel.location-track.start-location')}>
                                     {startAndEndPoints?.start?.address ? (
                                         <TrackMeter value={startAndEndPoints?.start?.address} />
                                     ) : (
                                         t('tool-panel.location-track.unset')
                                     )}
                                 </InfoboxField>
-                                <InfoboxField label={t('tool-panel.location-track.end-location')}>
+                                <InfoboxField
+                                    qaId="location-track-end-track-meter"
+                                    label={t('tool-panel.location-track.end-location')}>
                                     {startAndEndPoints?.end?.address ? (
                                         <TrackMeter value={startAndEndPoints?.end?.address} />
                                     ) : (
@@ -445,6 +454,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 </InfoboxButtons>
 
                                 <InfoboxField
+                                    qaId="location-track-true-length"
                                     label={t('tool-panel.location-track.true-length')}
                                     value={
                                         roundToPrecision(
@@ -454,6 +464,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     }
                                 />
                                 <InfoboxField
+                                    qaId="location-track-start-coordinates"
                                     label={`${t('tool-panel.location-track.start-coordinates')} ${
                                         coordinateSystem.name
                                     }`}
@@ -464,6 +475,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     }
                                 />
                                 <InfoboxField
+                                    qaId="location-track-end-coordinates"
                                     label={`${t('tool-panel.location-track.end-coordinates')} ${
                                         coordinateSystem.name
                                     }`}
@@ -512,10 +524,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     qa-id="location-track-log-infobox">
                     <InfoboxContent>
                         <InfoboxField
+                            qaId="location-track-created-date"
                             label={t('tool-panel.created')}
                             value={formatDateShort(changeTimes.created)}
                         />
                         <InfoboxField
+                            qaId="location-track-changed-date"
                             label={t('tool-panel.changed')}
                             value={formatDateShort(changeTimes.changed)}
                         />

@@ -34,6 +34,7 @@ export const LinkingStatus: React.FC<LinkingStatusProps> = ({
 
     return (
         <InfoboxField
+            qaId="geometry-switch-linked"
             label={t('tool-panel.switch.geometry.is-linked')}
             className={styles['geometry-switch-infobox__linked-status']}
             value={
