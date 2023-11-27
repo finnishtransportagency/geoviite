@@ -69,6 +69,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             locationTrackIds={store.selection.selectedItems.locationTracks}
             geometryAlignmentIds={store.selection.selectedItems.geometryAlignmentIds}
             linkingState={store.linkingState}
+            splittingState={store.splittingState}
             showArea={delegates.showArea}
             changeTimes={changeTimes}
             publishType={store.publishType}

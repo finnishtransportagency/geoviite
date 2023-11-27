@@ -89,7 +89,6 @@ val context = GeocodingContext(
     trackNumber,
     startAddress,
     alignment,
-    kmPosts,
     addressPoints,
     // test-data is inaccurate so allow more delta in validation
     projectionLineDistanceDeviation = 0.05,
@@ -345,18 +344,6 @@ class GeocodingTest {
         val projectionContext = GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
-            kmPosts = listOf(
-                kmPost(
-                    trackNumberId = null,
-                    km = KmNumber(2),
-                    location = checkNotNull(alignment.getPointAtM(0.0)).toPoint()
-                ),
-                kmPost(
-                    trackNumberId = null,
-                    km = KmNumber(3),
-                    location = checkNotNull(alignment.getPointAtM(3.0)).toPoint()
-                ),
-            ),
             referenceLineGeometry = alignment,
             referencePoints = listOf(
                 GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), 0.0, 0.0, WITHIN),
@@ -468,13 +455,6 @@ class GeocodingTest {
         return GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
-            kmPosts = combinedReferencePoints.map { p ->
-                kmPost(
-                    trackNumberId = null,
-                    km = p.kmNumber,
-                    location = checkNotNull(alignment.getPointAtM(p.distance)).toPoint()
-                )
-            },
             referenceLineGeometry = alignment,
             referencePoints = combinedReferencePoints,
         )
@@ -493,7 +473,6 @@ class GeocodingTest {
             trackNumber,
             startAddress,
             verticalAlignment,
-            listOf(kmPost(trackNumberId = null, km = startAddress.kmNumber, location = start)),
             listOf(
                 GeocodingReferencePoint(
                     kmNumber = startAddress.kmNumber,
@@ -611,7 +590,6 @@ class GeocodingTest {
                 startAddress = TrackMeter(KmNumber(10), 100),
                 referenceLineGeometry = startAlignment,
                 referencePoints = emptyList(),
-                kmPosts = emptyList(),
             )
         }
     }
@@ -628,30 +606,6 @@ class GeocodingTest {
                 startAddress = TrackMeter(KmNumber(10), 100),
                 referenceLineGeometry = startAlignment,
                 referencePoints = emptyList(),
-                kmPosts = emptyList(),
-            )
-        }
-    }
-
-    @Test
-    fun `should throw an exception when geocoding context is created with km posts without location`() {
-        val trackNumber = trackNumber(TrackNumber("T001"))
-        val startAddress = TrackMeter(KmNumber(10), 100)
-
-        val startAlignment = LayoutAlignment(
-            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        )
-
-        val kmPost = kmPost(IntId(1), KmNumber(11), null)
-        val referencePoints = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
-
-        assertThrows<IllegalArgumentException>("Geocoding context created with kmPosts without location") {
-            GeocodingContext(
-                trackNumber = trackNumber,
-                startAddress = startAddress,
-                referenceLineGeometry = startAlignment,
-                referencePoints = listOf(referencePoints),
-                kmPosts = listOf(kmPost),
             )
         }
     }
@@ -679,7 +633,7 @@ class GeocodingTest {
         }
 
         assertTrue("Geocoding context contained km posts without location") {
-            result.geocodingContext.kmPosts.isEmpty()
+            result.validKmPosts.isEmpty()
         }
     }
 

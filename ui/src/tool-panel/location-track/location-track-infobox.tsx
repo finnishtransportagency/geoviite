@@ -36,7 +36,10 @@ import { LocationTrackOwnerId, PublishType, TimeStamp } from 'common/common-mode
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrackDescriptions,
+    getSplittingInitializationParameters,
+} from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
@@ -60,6 +63,8 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
+import { LocationTrackSplittingInfobox } from 'tool-panel/location-track/location-track-splitting-infobox';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackOwners } from 'common/common-api';
 
 type LocationTrackInfoboxProps = {
@@ -67,6 +72,7 @@ type LocationTrackInfoboxProps = {
     onStartLocationTrackGeometryChange: (linkInterval: LinkInterval) => void;
     onEndLocationTrackGeometryChange: () => void;
     linkingState?: LinkingState;
+    splittingState?: SplittingState;
     showArea: (area: BoundingBox) => void;
     onDataChange: () => void;
     publishType: PublishType;
@@ -87,6 +93,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onEndLocationTrackGeometryChange,
     showArea,
     linkingState,
+    splittingState,
     onDataChange,
     publishType,
     locationTrackChangeTime,
@@ -122,6 +129,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
+    const splitInitializationParameters = useLoader(
+        () => getSplittingInitializationParameters(publishType, locationTrack.id),
+        [publishType, locationTrack.id],
+    );
+
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
@@ -299,6 +311,23 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
+            {splittingState && (
+                <LocationTrackSplittingInfobox
+                    visibilities={visibilities}
+                    visibilityChange={visibilityChange}
+                    initialSplit={splittingState.initialSplit}
+                    splits={splittingState.splits || []}
+                    locationTrackId={splittingState.originLocationTrack.id}
+                    removeSplit={delegates.removeSplit}
+                    cancelSplitting={() => {
+                        delegates.cancelSplitting();
+                        delegates.hideLayers(['location-track-split-location-layer']);
+                    }}
+                    allowedSwitches={splittingState.allowedSwitches}
+                    duplicateLocationTracks={extraInfo?.duplicates || []}
+                    updateSplit={delegates.updateSplit}
+                />
+            )}
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
                     contentVisible={visibilities.location}
@@ -380,6 +409,37 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         </InfoboxButtons>
                                     </React.Fragment>
                                 )}
+                                <InfoboxButtons>
+                                    {!linkingState && !splittingState && (
+                                        <Button
+                                            variant={ButtonVariant.SECONDARY}
+                                            size={ButtonSize.SMALL}
+                                            onClick={() => {
+                                                if (
+                                                    startAndEndPoints?.start &&
+                                                    startAndEndPoints?.end
+                                                ) {
+                                                    delegates.onStartSplitting({
+                                                        locationTrack: locationTrack,
+                                                        allowedSwitches:
+                                                            splitInitializationParameters?.switches ||
+                                                            [],
+                                                        duplicateTracks:
+                                                            splitInitializationParameters?.duplicates ||
+                                                            [],
+                                                        startLocation:
+                                                            startAndEndPoints.start.point,
+                                                        endLocation: startAndEndPoints.end.point,
+                                                    });
+                                                    delegates.showLayers([
+                                                        'location-track-split-location-layer',
+                                                    ]);
+                                                }
+                                            }}>
+                                            {t('tool-panel.location-track.start-splitting')}
+                                        </Button>
+                                    )}
+                                </InfoboxButtons>
 
                                 <InfoboxField
                                     label={t('tool-panel.location-track.true-length')}

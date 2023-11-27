@@ -2,7 +2,6 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
-import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
@@ -11,6 +10,8 @@ import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-ap
 import {
     createAlignmentFeatures,
     findMatchingAlignments,
+    NORMAL_ALIGNMENT_OPACITY,
+    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
@@ -24,8 +25,8 @@ export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
+    isSplitting: boolean,
     publishType: PublishType,
-    linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
@@ -33,6 +34,9 @@ export function createReferenceLineAlignmentLayer(
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    layer.setOpacity(
+        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
+    );
 
     function updateShownReferenceLines(referenceLineIds: ReferenceLineId[]) {
         const compare = referenceLineIds.sort().join();
@@ -48,12 +52,7 @@ export function createReferenceLineAlignmentLayer(
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 
-            const features = createAlignmentFeatures(
-                referenceLines,
-                selection,
-                linkingState,
-                false,
-            );
+            const features = createAlignmentFeatures(referenceLines, selection, false);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

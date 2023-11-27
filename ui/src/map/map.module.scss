@@ -39,15 +39,17 @@
     selectedAlignmentLine: geoviite-design.$color-geoviite-blue;
 
     alignmentRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.2);
+    splitSectionRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.5);
     alignmentBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.2);
+    splitSectionBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.5);
 }
 
 // Alignment badge styling
 :export {
     /* prettier-ignore */
     alignmentBadge: {
-        @include vayla-design.typography-body-strong;
-    }
+    @include vayla-design.typography-body-strong;
+  }
     alignmentBadge: vayla-design.$color-black-default;
     alignmentBadgeWhite: vayla-design.$color-white-default;
     alignmentBadgeBlue: geoviite-design.$color-geoviite-blue;
@@ -61,8 +63,8 @@
 :export {
     /* prettier-ignore */
     kmPost: {
-        @include vayla-design.typography-body-strong;
-    }
+    @include vayla-design.typography-body-strong;
+  }
 
     kmPostTextColor: vayla-design.$color-black-default;
     kmPostLabel: rgba(vayla-design.$color-white-default, 0.6);
@@ -102,6 +104,11 @@
     linkedSwitchJointBorder: vayla-design.$color-green-dark;
     unlinkedSwitchJoint: vayla-design.$color-red-default;
     unlinkedSwitchJointBorder: vayla-design.$color-red-dark;
+}
+
+// Location track split point styling
+:export {
+    splitPointCircleColor: vayla-design.$color-blue-default;
 }
 
 //Measure tooltip styling

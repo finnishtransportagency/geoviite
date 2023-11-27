@@ -55,6 +55,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     }
 
     fun <T> transactional(op: () -> T): T = transaction.execute {
+        initUserMdc()
         jdbc.setUser()
         op()
     } ?: throw IllegalStateException("Transaction returned nothing")
@@ -112,16 +113,19 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         }
 
     fun deleteFromTables(schema: String, vararg tables: String) {
-        // Temporarily disable all triggers
-        jdbc.execute("set session_replication_role = replica") { it.execute() }
-        try {
-            tables.forEach { table ->
-                jdbc.update(
-                    "DELETE FROM ${schema}.${table};", mapOf("table_name" to table, "schema_name" to schema)
-                )
+        // We don't actually need transactionality, but we do need everything to be run in one session
+        transactional {
+            // Temporarily disable all triggers
+            jdbc.execute("set session_replication_role = replica") { it.execute() }
+            try {
+                tables.forEach { table ->
+                    jdbc.update(
+                        "DELETE FROM ${schema}.${table};", mapOf("table_name" to table, "schema_name" to schema)
+                    )
+                }
+            } finally {
+                jdbc.execute("set session_replication_role = DEFAULT") { it.execute() }
             }
-        } finally {
-            jdbc.execute("set session_replication_role = DEFAULT") { it.execute() }
         }
     }
 }

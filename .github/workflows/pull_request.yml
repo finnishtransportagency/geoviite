@@ -50,4 +50,5 @@ jobs:
       uses: mikepenz/action-junit-report@75b84e78b3f0aaea7ed7cf8d1d100d7f97f963ec
       if: success() || failure()
       with:
-        report_paths: '**/build/test-results/test/*TEST.xml'
+        report_paths: '**/build/test-results/test/TEST*.xml'
+        detailed_summary: true

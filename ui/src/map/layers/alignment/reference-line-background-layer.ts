@@ -8,12 +8,17 @@ import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-l
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import {
+    NORMAL_ALIGNMENT_OPACITY,
+    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
+} from 'map/layers/utils/alignment-layer-utils';
 
 let newestLayerId = 0;
 
 export function createReferenceLineBackgroundLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    isSplitting: boolean,
     publishType: PublishType,
     changeTimes: ChangeTimes,
 ): MapLayer {
@@ -21,6 +26,9 @@ export function createReferenceLineBackgroundLayer(
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    layer.setOpacity(
+        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
+    );
 
     let inFlight = true;
     getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)

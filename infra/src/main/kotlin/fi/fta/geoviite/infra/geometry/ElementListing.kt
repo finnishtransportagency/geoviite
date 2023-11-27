@@ -123,7 +123,7 @@ fun toElementListing(
                 null
             }
         }
-    }.map { listing ->
+    }.distinctBy(ElementListing::id).map { listing ->
         val calculatedSegmentLength =
             lengthOfSegmentsConnectedToSameElement.find { (elementId, _) -> elementId == listing.elementId }?.second
         listing.copy(

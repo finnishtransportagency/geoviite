@@ -10,6 +10,10 @@ import { clearFeatures } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Selection } from 'selection/selection-model';
+import {
+    NORMAL_ALIGNMENT_OPACITY,
+    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
+} from 'map/layers/utils/alignment-layer-utils';
 
 let newestLayerId = 0;
 
@@ -20,11 +24,15 @@ export function createLocationTrackBackgroundLayer(
     changeTimes: ChangeTimes,
     resolution: number,
     selection: Selection,
+    isSplitting: boolean,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    layer.setOpacity(
+        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
+    );
 
     let inFlight = true;
     const selectedTrack = selection.selectedItems.locationTracks[0];

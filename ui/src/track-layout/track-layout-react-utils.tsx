@@ -49,6 +49,7 @@ import {
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
+import { getChangeTimes } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
     updateReferenceLineChangeTime,
@@ -58,6 +59,7 @@ import {
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
 import { isNilOrBlank } from 'utils/string-utils';
+import { deduplicate } from 'utils/array-utils';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -201,7 +203,7 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
-    changeTime: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () =>
@@ -371,3 +373,14 @@ export function refereshKmPostSelection(
         });
     };
 }
+
+export const getSaveDisabledReasons = (reasons: string[], saveInProgress: boolean): string[] =>
+    saveInProgress
+        ? ['save-in-progress']
+        : deduplicate(
+              reasons.map((reason) => {
+                  if (reason.includes('mandatory-field')) return 'mandatory-fields-missing';
+                  if (reason === 'km-post-regexp') return 'invalid-km-post-number';
+                  else return reason;
+              }),
+          );

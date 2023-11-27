@@ -47,6 +47,7 @@ import {
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -59,6 +60,7 @@ type ToolPanelProps = {
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
+    splittingState?: SplittingState;
     showArea: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
@@ -110,6 +112,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     geometryAlignmentIds,
     suggestedSwitches,
     linkingState,
+    splittingState,
     showArea,
     changeTimes,
     publishType,
@@ -258,6 +261,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: k.kmNumber,
                 element: (
                     <KmPostInfobox
+                        changeTimes={changeTimes}
                         visibilities={infoboxVisibilities.kmPost}
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('kmPost', visibilities)
@@ -396,6 +400,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             }
                             locationTrackId={track.id}
                             linkingState={linkingState}
+                            splittingState={splittingState}
                             publishType={publishType}
                             locationTrackChangeTime={changeTimes.layoutLocationTrack}
                             onDataChange={onDataChange}
@@ -458,6 +463,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         locationTracks,
         geometryAlignmentIds,
         linkingState,
+        splittingState,
         publishType,
         viewport,
         changeTimes,

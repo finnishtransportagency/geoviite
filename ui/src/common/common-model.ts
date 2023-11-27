@@ -53,7 +53,7 @@ export type AssetId =
     | LayoutSwitchId
     | LayoutKmPostId;
 
-const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4})$/;
+const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4}(?:.[0-9]{1,4})?)$/;
 
 export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
 

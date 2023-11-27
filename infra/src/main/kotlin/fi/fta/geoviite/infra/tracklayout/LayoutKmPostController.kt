@@ -143,7 +143,7 @@ class LayoutKmPostController(
     @DeleteMapping("/draft/{id}")
     fun deleteDraftKmPost(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
         logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
-        return kmPostService.deleteUnpublishedDraft(kmPostId).id
+        return kmPostService.deleteDraft(kmPostId).id
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -151,5 +151,15 @@ class LayoutKmPostController(
     fun getKmPostChangeInfo(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): DraftableChangeInfo {
         logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
         return kmPostService.getDraftableChangeInfo(kmPostId)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/km-length")
+    fun getKmLength(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
+    ): TrackLayoutKmPostLength {
+        logger.apiCall("getKmLength", "id" to kmPostId, "publishType" to publishType)
+        return TrackLayoutKmPostLength(kmPostService.getSingleKmPostLength(publishType, kmPostId))
     }
 }

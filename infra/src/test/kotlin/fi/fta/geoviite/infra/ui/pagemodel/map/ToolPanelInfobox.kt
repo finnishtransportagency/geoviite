@@ -13,7 +13,7 @@ class E2EGeometryPlanGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val fileName: String get() = getValueForField("Tiedosto")
     val planPhase: String get() = getValueForField("Vaihe")
     val decisionPhase: String get() = getValueForField("Vaiheen tarkennus")
-    val trackNumber: String get() = getValueForField("Ratanumero")
+    val trackNumber: String get() = getValueForFieldWhenNotEmpty("Ratanumero")
     val startKmNumber: String get() = getValueForField("Ratakilometri alku")
     val endKmNumber: String get() = getValueForField("Ratakilometri loppu")
 }
@@ -30,7 +30,7 @@ class E2EGeometryPlanQualityInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2ELayoutKmPostGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val name: String get() = getValueForFieldWhenNotEmpty("Tasakmpistetunnus")
+    val name: String get() = getValueForField("Tasakmpistetunnus")
     val trackNumber: String get() = getValueForFieldWhenNotEmpty("Ratanumero")
     fun zoomTo(): E2ELayoutKmPostGeneralInfoBox = apply {
         logger.info("Zoom to km post")
@@ -55,8 +55,8 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val trueLengthDouble: Double? get() = Regex("[0-9.]*").find(trueLength)?.value?.toDouble()
     val startCoordinates: String get() = getValueForField("Alkukoordinaatit TM35FIN")
     val endCoordinates: String get() = getValueForField("Loppukoordinaatit TM35FIN")
-    fun waitForStartCoordinatesChange(text: String) = waitUntilValueChangesForField("Alkukoordinaatit TM35FIN", text)
-    fun waitForEndCoordinatesChange(text: String) = waitUntilValueChangesForField("Loppukoordinaatit TM35FIN", text)
+    fun waitForStartCoordinatesChange(text: String) = waitUntilFieldContainsValue("Alkukoordinaatit TM35FIN", text)
+    fun waitForEndCoordinatesChange(text: String) = waitUntilFieldContainsValue("Loppukoordinaatit TM35FIN", text)
 
     fun startLinking(): E2ELocationTrackLocationInfobox = apply {
         logger.info("Edit start/end point")
@@ -83,8 +83,13 @@ class E2ELocationTrackGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val oid: String get() = getValueForField("Tunniste")
     val name: String get() = getValueForField("Sijaintiraidetunnus")
     val state: String get() = getValueForField("Tila")
-    val description: String get() = getValueForField("Kuvaus")
-    val trackNumber: String get() = getValueForField("Ratanumero")
+    val type: String get() = getValueForField("Raidetyyppi")
+    val description: String get() = getValueForFieldWhenNotEmpty("Kuvaus")
+    val trackNumber: String get() = getValueForFieldWhenNotEmpty("Ratanumero")
+
+    fun waitForDescriptionValue(description: String) = waitUntilFieldContainsValue("Kuvaus", description)
+
+    fun waitForDescriptionValueIsNot(description: String) = waitUntilFieldOmitsValue("Kuvaus", description)
 
     fun edit(): E2ELocationTrackEditDialog {
         logger.info("Enable location track editing")
@@ -268,8 +273,7 @@ class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(info
 
     fun lock(): E2EGeometryAlignmentLinkingInfoBox = apply {
         logger.info("Lock location track selection")
-        clickButton(byText("Lukitse valinta"))
-        waitUntilChildVisible(byText("Poista valinta"))
+        childButton(byText("Lukitse valinta")).clickAndWaitToDisappear()
     }
 }
 

@@ -29,7 +29,6 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
 import {
-    descriptionSuffixModes,
     layoutStates,
     locationTrackTypes,
     topologicalConnectivityTypes,
@@ -39,6 +38,7 @@ import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/fo
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
+    getSaveDisabledReasons,
     useConflictingTrack,
     useLocationTrack,
     useLocationTrackInfoboxExtras,
@@ -53,6 +53,7 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { getLocationTrackOwners } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
@@ -352,7 +353,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 onClick={() => {
                                     stateActions.validate();
                                     saveOrConfirm();
-                                }}>
+                                }}
+                                title={getSaveDisabledReasons(
+                                    state.validationErrors.map((e) => e.reason),
+                                    state.isSaving,
+                                )
+                                    .map((reason) => t(`location-track-dialog.${reason}`))
+                                    .join(', ')}>
                                 {t('button.save')}
                             </Button>
                         </div>
@@ -380,9 +387,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             {trackWithSameName && (
                                 <>
                                     <div>{t('location-track-dialog.name-in-use')}</div>
-                                    <Link
-                                        className="move-to-edit-link"
-                                        onClick={() => props.onEditTrack(trackWithSameName.id)}>
+                                    <Link onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
                                     </Link>
                                 </>
@@ -458,9 +463,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     <FieldLayout
                                         label={`${t('location-track-dialog.description-suffix')} *`}
                                         value={
-                                            <Dropdown
-                                                options={descriptionSuffixModes}
-                                                value={locationTrackDescriptionSuffixMode}
+                                            <DescriptionSuffixDropdown
+                                                suffixMode={locationTrackDescriptionSuffixMode}
                                                 onChange={(value) => {
                                                     updateProp('descriptionSuffix', value);
                                                     setLocationTrackDescriptionSuffixMode(value);
@@ -468,9 +472,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                                 onBlur={() =>
                                                     stateActions.onCommitField('descriptionSuffix')
                                                 }
-                                                canUnselect={false}
-                                                wideList
-                                                wide
                                             />
                                         }
                                         errors={getVisibleErrorsByProp('descriptionSuffix')}

@@ -56,7 +56,7 @@ class PublicationDao(
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
                 userName = UserName(rs.getString("change_user")),
-                boundingBox = referenceLineDao.fetchVersion(PublishType.DRAFT, id)
+                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublishType.DRAFT, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
         }

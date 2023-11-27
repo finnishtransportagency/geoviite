@@ -19,14 +19,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-
 fun isAlignmentConnected(
     location: Point,
     locationTrackPointUpdateType: LocationTrackPointUpdateType,
     alignment: LayoutAlignment,
     distanceTolerance: Double,
 ): Boolean {
-
     val firstPoint = alignment.segments.first().points.first()
     val lastPoint = alignment.segments.last().points.last()
 
@@ -55,7 +53,8 @@ class LinkingService @Autowired constructor(
         locationTrackPointUpdateType: LocationTrackPointUpdateType,
         bbox: BoundingBox,
     ): List<LocationTrack> {
-        return locationTrackService.listNearWithAlignments(DRAFT, bbox)
+        return locationTrackService
+            .listNearWithAlignments(DRAFT, bbox)
             .filter { (first, _) -> first.id != locationTrackId }
             .filter { (_, second) -> isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0) }
             .map { (first, _) -> first }
@@ -67,7 +66,9 @@ class LinkingService @Autowired constructor(
 
         val referenceLineId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
-            "Save ReferenceLine linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "referenceLineId=$referenceLineId"
+            "saveReferenceLineLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "referenceLineId" to referenceLineId,
         )
 
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
@@ -82,7 +83,9 @@ class LinkingService @Autowired constructor(
 
         val locationTrackId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
-            "Save LocationTrack linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "locationTrackId=$locationTrackId"
+            "saveLocationTrackLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "locationTrackId" to locationTrackId,
         )
 
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
@@ -133,7 +136,9 @@ class LinkingService @Autowired constructor(
         val geometryInterval = parameters.geometryInterval
 
         logger.serviceCall(
-            "Save empty ReferenceLine linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "referenceLineId=$referenceLineId"
+            "saveReferenceLineLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "referenceLineId" to referenceLineId,
         )
 
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
@@ -152,7 +157,9 @@ class LinkingService @Autowired constructor(
         val geometryInterval = parameters.geometryInterval
 
         logger.serviceCall(
-            "Save empty LocationTrack linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "locationTrackId=$locationTrackId"
+            "saveLocationTrackLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "locationTrackId" to locationTrackId,
         )
 
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)

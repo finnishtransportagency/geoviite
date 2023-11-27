@@ -169,7 +169,10 @@ class ReferenceLineDao(
         return result
     }
 
-    fun fetchVersion(
+    fun getByTrackNumber(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
+        fetchVersionByTrackNumberId(publicationState, trackNumberId)?.let(::fetch)
+
+    fun fetchVersionByTrackNumberId(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {

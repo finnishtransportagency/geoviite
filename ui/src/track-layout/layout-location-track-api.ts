@@ -1,4 +1,5 @@
 import {
+    AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutTrackNumberId,
@@ -21,6 +22,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
 const locationTrackInfoboxExtrasCache = asyncCache<
@@ -43,6 +45,19 @@ export type AlignmentPlanSection = {
     start: PlanSectionPoint | undefined;
     end: PlanSectionPoint | undefined;
     id: string;
+};
+
+export type SplitDuplicate = {
+    id: LocationTrackId;
+    name: string;
+    start: AddressPoint;
+    end: AddressPoint;
+};
+
+export type SplitInitializationParameters = {
+    id: LocationTrackId;
+    switches: SwitchOnLocationTrack[];
+    duplicates: SplitDuplicate[];
 };
 
 const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;
@@ -79,7 +94,7 @@ export async function getLocationTracksByName(
 ): Promise<LayoutLocationTrack[]> {
     const params = queryParams({ locationTrackName });
     return getNonNull<LayoutLocationTrack[]>(
-        `${layoutUri('location-tracks', publishType)}/by-tracknumber/${trackNumberId}${params}`,
+        `${layoutUri('track-numbers', publishType)}/${trackNumberId}/location-tracks${params}`,
     );
 }
 
@@ -117,6 +132,29 @@ export async function fetchStartAndEnd(
     return getNullable<AlignmentStartAndEnd>(
         `${layoutUri('location-tracks', publishType, locationTrackId)}/start-and-end`,
     );
+}
+
+export async function getManyStartsAndEnds(
+    locationTrackIds: LocationTrackId[],
+    publishType: PublishType,
+    changeTime: TimeStamp,
+): Promise<AlignmentStartAndEnd[]> {
+    return locationTrackStartAndEndCache
+        .getMany(
+            changeTime,
+            locationTrackIds,
+            (id) => cacheKey(id, publishType),
+            (ids) =>
+                getNonNull<AlignmentStartAndEnd[]>(
+                    `${layoutUri('location-tracks', publishType)}/start-and-end${queryParams({
+                        ids,
+                    })}`,
+                ).then((startsAndEnds) => {
+                    const startAndEndMap = indexIntoMap(startsAndEnds);
+                    return (id) => startAndEndMap.get(id);
+                }),
+        )
+        .then((startsAndEnds) => startsAndEnds.filter(filterNotEmpty));
 }
 
 export async function getLocationTrackStartAndEnd(
@@ -226,6 +264,15 @@ export const getLocationTrackSectionsByPlan = async (
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNullable<AlignmentPlanSection[]>(
         `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+    );
+};
+
+export const getSplittingInitializationParameters = async (
+    publishType: PublishType,
+    id: LocationTrackId,
+): Promise<SplitInitializationParameters> => {
+    return getNonNull<SplitInitializationParameters>(
+        `${layoutUri('location-tracks', publishType, id)}/splitting-initialization-parameters`,
     );
 };
 

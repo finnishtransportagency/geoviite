@@ -16,6 +16,7 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
@@ -24,6 +25,7 @@ export function createSwitchLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
+    splittingState: SplittingState | undefined,
     publishType: PublishType,
     changeTimes: ChangeTimes,
     olView: OlView,
@@ -31,11 +33,22 @@ export function createSwitchLayer(
 ): MapLayer {
     const layerId = ++newestLayerId;
     const getSwitchesFromApi = () => {
-        return resolution <= Limits.SWITCH_SHOW
-            ? Promise.all(
-                  mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
-              ).then((switchGroups) => switchGroups.flat().filter(filterUniqueById((s) => s.id)))
-            : getSwitches(selection.selectedItems.switches, publishType);
+        if (resolution <= Limits.SWITCH_SHOW) {
+            return splittingState
+                ? getSwitches(
+                      splittingState.allowedSwitches.map((sw) => sw.switchId),
+                      publishType,
+                  )
+                : Promise.all(
+                      mapTiles.map((t) =>
+                          getSwitchesByTile(changeTimes.layoutSwitch, t, publishType),
+                      ),
+                  ).then((switchGroups) =>
+                      switchGroups.flat().filter(filterUniqueById((s) => s.id)),
+                  );
+        } else {
+            return getSwitches(selection.selectedItems.switches, publishType);
+        }
     };
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();

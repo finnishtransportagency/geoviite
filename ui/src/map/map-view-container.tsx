@@ -23,6 +23,7 @@ const getTrackLayoutProps = (): MapViewProps => {
     return {
         changeTimes: changeTimes,
         linkingState: store.linkingState,
+        splittingState: store.splittingState,
         map: store.map,
         onClickLocation: delegates.onClickLocation,
         onHighlightItems: delegates.onHighlightItems,
@@ -49,6 +50,7 @@ const getInfraModelProps = (): MapViewProps => {
     return {
         changeTimes: changeTimes,
         linkingState: undefined,
+        splittingState: undefined,
         map: store.map,
         onClickLocation: emptyFn,
         onHighlightItems: delegates.onHighlightItems,

@@ -48,7 +48,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     return (
         <React.Fragment>
             <tr className={rowClassNames}>
-                <td>
+                <td className={styles['publication-table__accordion-column']}>
                     <AccordionToggle
                         open={detailsVisible}
                         onToggle={() => setDetailsVisible(!detailsVisible)}

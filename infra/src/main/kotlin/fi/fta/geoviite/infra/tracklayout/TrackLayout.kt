@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
@@ -129,6 +130,27 @@ data class SwitchValidationWithSuggestedSwitch(
     val suggestedSwitch: SuggestedSwitch?,
 )
 
+data class SwitchOnLocationTrack(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val name: SwitchName,
+    val address: TrackMeter?,
+    val location: Point?,
+    val distance: Double?,
+)
+
+data class SplitDuplicateTrack(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val start: AddressPoint,
+    val end: AddressPoint,
+)
+
+data class SplittingInitializationParameters(
+    val id: IntId<LocationTrack>,
+    val switches: List<SwitchOnLocationTrack>,
+    val duplicates: List<SplitDuplicateTrack>,
+)
+
 data class LocationTrack(
     val name: AlignmentName,
     val descriptionBase: FreeText,
@@ -222,7 +244,17 @@ data class TrackLayoutKmPost(
 ) : Draftable<TrackLayoutKmPost> {
     @JsonIgnore
     val exists = !state.isRemoved()
+
+    fun getAsIntegral(): IntegralTrackLayoutKmPost? =
+        if (state != LayoutState.IN_USE || location == null || trackNumberId == null) null
+        else IntegralTrackLayoutKmPost(kmNumber, location, trackNumberId)
 }
+
+data class IntegralTrackLayoutKmPost(
+    val kmNumber: KmNumber,
+    val location: Point,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+)
 
 enum class TrackLayoutKmPostTableColumn {
     TRACK_NUMBER, KILOMETER, START_M, END_M, LENGTH, LOCATION_E, LOCATION_N, WARNING
@@ -238,6 +270,10 @@ data class TrackLayoutKmLengthDetails(
 ) {
     val length = endM - startM
 }
+
+data class TrackLayoutKmPostLength(
+    val length: Double?
+)
 
 data class TrackLayoutSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,

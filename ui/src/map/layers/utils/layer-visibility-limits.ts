@@ -18,8 +18,11 @@ export const mapLayerZIndexes = [
     'reference-line-alignment-layer',
     'location-track-alignment-layer',
     'geometry-alignment-layer',
+    'duplicate-split-section-highlight-layer',
+    'location-track-selected-alignment-layer',
     'location-track-badge-layer',
     'reference-line-badge-layer',
+    'location-track-split-badge-layer',
     'km-post-layer',
     'switch-layer',
     'track-number-addresses-layer',
@@ -27,14 +30,19 @@ export const mapLayerZIndexes = [
     'geometry-switch-layer',
     'alignment-linking-layer',
     'switch-linking-layer',
+    'location-track-duplicate-endpoint-address-layer',
+    'location-track-split-location-layer',
     'plan-area-layer',
     'debug-1m-points-layer',
     'debug-layer',
-].reduce((acc, layer, idx) => {
-    acc[layer as MapLayerName] = idx;
+].reduce(
+    (acc, layer, idx) => {
+        acc[layer as MapLayerName] = idx;
 
-    return acc;
-}, {} as Record<MapLayerName, number>);
+        return acc;
+    },
+    {} as Record<MapLayerName, number>,
+);
 
 // Geometry
 export const GEOMETRY_TICKS = 5.0;

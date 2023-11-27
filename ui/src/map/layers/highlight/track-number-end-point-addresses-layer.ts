@@ -24,6 +24,15 @@ import mapStyles from 'map/map.module.scss';
 import { State } from 'ol/render';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
+import {
+    DASHED_LINE_INDICATOR_FONT_SIZE,
+    getRotation,
+    indicatorDashedLineWidth,
+    indicatorLineDash,
+    indicatorLineWidth,
+    indicatorTextBackgroundHeight,
+    indicatorTextPadding,
+} from 'map/layers/utils/dashed-line-indicator-utils';
 
 let newestLayerId = 0;
 
@@ -42,45 +51,6 @@ const getColorForTrackNumber = (
     return getColor(selectedColor);
 };
 
-function getRotation(start: Coordinate, end: Coordinate) {
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
-    const angle = Math.atan2(dy, dx);
-    const halfPi = Math.PI / 2;
-
-    let positiveXOffset = true;
-    let positiveYOffset = true;
-    let rotation: number;
-
-    if (angle >= 0) {
-        positiveYOffset = false;
-
-        if (angle >= halfPi) {
-            //2nd quadrant
-            rotation = -angle + halfPi;
-        } else {
-            //1st quadrant
-            rotation = Math.abs(angle - halfPi);
-        }
-    } else {
-        positiveXOffset = false;
-
-        if (angle <= -halfPi) {
-            //3rd quadrant
-            rotation = Math.abs(angle + halfPi);
-        } else {
-            //4th quadrant
-            rotation = -angle - halfPi;
-        }
-    }
-
-    return {
-        rotation,
-        positiveXOffset,
-        positiveYOffset,
-    };
-}
-
 function createAddressFeature(
     point: LayoutPoint,
     controlPoint: LayoutPoint,
@@ -98,25 +68,21 @@ function createAddressFeature(
     );
 
     const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
-        const fontSize = 12;
-        const lineWidth = 120 * pixelRatio;
-        const textPadding = 3 * pixelRatio;
-        const lineDash = [12, 6];
-        const textBackgroundHeight = (fontSize + 4) * pixelRatio;
-        const dashedLineWidth = 1 * pixelRatio;
-
         const ctx = context;
 
-        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${pixelRatio * fontSize}px ${
-            mapStyles['alignmentBadge-font-family']
-        }`;
+        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
+            pixelRatio * DASHED_LINE_INDICATOR_FONT_SIZE
+        }px ${mapStyles['alignmentBadge-font-family']}`;
 
         ctx.save();
 
         const text = formatTrackMeter(address);
         const textWidth = ctx.measureText(text).width;
-        const xEndPosition = x + lineWidth * (positiveXOffset ? 1 : -1);
-        const yEndPosition = y + (positiveYOffset === pointAtEnd ? -1 : fontSize + 3) * pixelRatio;
+        const xEndPosition = x + indicatorLineWidth(pixelRatio) * (positiveXOffset ? 1 : -1);
+        const yEndPosition =
+            y +
+            (positiveYOffset === pointAtEnd ? -1 : DASHED_LINE_INDICATOR_FONT_SIZE + 3) *
+                pixelRatio;
 
         ctx.translate(x, y);
         ctx.rotate(rotation);
@@ -124,17 +90,17 @@ function createAddressFeature(
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
         ctx.fillRect(
-            xEndPosition - (positiveXOffset ? textWidth + textPadding * 2 : 0),
-            positiveYOffset === pointAtEnd ? y - textBackgroundHeight : y,
-            textWidth + textPadding * 2,
-            textBackgroundHeight,
+            xEndPosition - (positiveXOffset ? textWidth + indicatorTextPadding(pixelRatio) * 2 : 0),
+            positiveYOffset === pointAtEnd ? y - indicatorTextBackgroundHeight(pixelRatio) : y,
+            textWidth + indicatorTextPadding(pixelRatio) * 2,
+            indicatorTextBackgroundHeight(pixelRatio),
         );
 
         //Dashed line
         ctx.beginPath();
-        ctx.lineWidth = dashedLineWidth;
+        ctx.lineWidth = indicatorDashedLineWidth(pixelRatio);
         ctx.strokeStyle = color;
-        ctx.setLineDash(lineDash);
+        ctx.setLineDash(indicatorLineDash);
         ctx.moveTo(x, y);
         ctx.lineTo(xEndPosition, y);
         ctx.stroke();
@@ -142,7 +108,11 @@ function createAddressFeature(
         ctx.fillStyle = color;
         ctx.textAlign = positiveXOffset ? 'right' : 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(text, xEndPosition + textPadding * (positiveXOffset ? -1 : 1), yEndPosition);
+        ctx.fillText(
+            text,
+            xEndPosition + indicatorTextPadding(pixelRatio) * (positiveXOffset ? -1 : 1),
+            yEndPosition,
+        );
 
         ctx.restore();
     };

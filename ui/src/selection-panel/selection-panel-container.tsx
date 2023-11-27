@@ -16,7 +16,7 @@ export const SelectionPanelContainer: React.FC = () => {
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     const selectableItemTypes = React.useMemo(() => {
-        return getSelectableItemTypes(state.linkingState);
+        return getSelectableItemTypes(state.splittingState, state.linkingState);
     }, [state.linkingState]);
 
     const locationTracks = useLocationTracks(

@@ -6,12 +6,13 @@ import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
-import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentFeatures,
     findMatchingAlignments,
+    NORMAL_ALIGNMENT_OPACITY,
+    OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
@@ -26,8 +27,8 @@ export function createLocationTrackAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
+    isSplitting: boolean,
     publishType: PublishType,
-    linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -36,6 +37,9 @@ export function createLocationTrackAlignmentLayer(
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    layer.setOpacity(
+        isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
+    );
 
     const resolution = olView.getResolution() || 0;
 
@@ -66,12 +70,7 @@ export function createLocationTrackAlignmentLayer(
 
             const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-            const features = createAlignmentFeatures(
-                locationTracks,
-                selection,
-                linkingState,
-                showEndPointTicks,
-            );
+            const features = createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

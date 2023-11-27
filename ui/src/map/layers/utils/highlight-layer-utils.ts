@@ -41,3 +41,24 @@ export const blueHighlightStyle = new Style({
         width: 12,
     }),
 });
+
+export const redHighlightStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentRedHighlight,
+        width: 12,
+    }),
+});
+
+export const blueSplitSectionStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.splitSectionBlueHighlight,
+        width: 12,
+    }),
+});
+
+export const redSplitSectionStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.splitSectionRedHighlight,
+        width: 12,
+    }),
+});

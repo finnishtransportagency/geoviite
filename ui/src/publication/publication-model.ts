@@ -169,6 +169,14 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
+export const publishNothing: PublishRequestIds = {
+    trackNumbers: [],
+    referenceLines: [],
+    locationTracks: [],
+    switches: [],
+    kmPosts: [],
+};
+
 export type PropKey = {
     key: string;
     params: LocalizationParams;

@@ -65,6 +65,12 @@ import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-secti
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SplittingState } from 'tool-panel/location-track/split-store';
+import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
+import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
+import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
+import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
+import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 
 declare global {
     interface Window {
@@ -77,6 +83,7 @@ export type MapViewProps = {
     selection: Selection;
     publishType: PublishType;
     linkingState: LinkingState | undefined;
+    splittingState: SplittingState | undefined;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
@@ -135,6 +142,7 @@ const MapView: React.FC<MapViewProps> = ({
     selection,
     publishType,
     linkingState,
+    splittingState,
     changeTimes,
     onSelect,
     onViewportUpdate,
@@ -310,8 +318,8 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
+                            !!splittingState,
                             publishType,
-                            linkingState,
                             changeTimes,
                             onShownLayerItemsChange,
                         );
@@ -319,6 +327,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createReferenceLineBackgroundLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            !!splittingState,
                             publishType,
                             changeTimes,
                         );
@@ -337,8 +346,8 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
+                            !!splittingState,
                             publishType,
-                            linkingState,
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
@@ -351,6 +360,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             selection,
+                            !!splittingState,
                         );
                     case 'location-track-badge-layer':
                         return createLocationTrackBadgeLayer(
@@ -410,6 +420,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
+                            splittingState,
                             publishType,
                             changeTimes,
                             olView,
@@ -462,6 +473,49 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             linkingState as LinkingSwitch | undefined,
                         );
+                    case 'location-track-split-location-layer':
+                        return createLocationTrackSplitLocationLayer(
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            splittingState,
+                        );
+                    case 'duplicate-split-section-highlight-layer':
+                        return createDuplicateSplitSectionHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                            splittingState,
+                        );
+                    case 'location-track-duplicate-endpoint-address-layer':
+                        return createDuplicateTrackEndpointAddressLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                            splittingState,
+                        );
+                    case 'location-track-split-badge-layer':
+                        return createLocationTrackSplitBadgeLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            publishType,
+                            splittingState,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'location-track-selected-alignment-layer':
+                        return createLocationTrackSelectedAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            linkingState,
+                            splittingState,
+                            changeTimes,
+                            olView,
+                        );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
                             mapTiles,
@@ -504,6 +558,7 @@ const MapView: React.FC<MapViewProps> = ({
         changeTimes,
         publishType,
         linkingState,
+        splittingState,
         map.layerSettings,
         hoveredOverPlanSection,
         manuallySetPlan,

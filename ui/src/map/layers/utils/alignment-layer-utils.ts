@@ -14,9 +14,9 @@ import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const tickImageCache = cache<string, RegularShape>();
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const locationTrackStyle = new Style({
     stroke: new Stroke({
@@ -26,18 +26,10 @@ const locationTrackStyle = new Style({
     zIndex: 0,
 });
 
-const highlightedLocationTrackStyle = new Style({
+export const highlightedLocationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 1,
-    }),
-    zIndex: 2,
-});
-
-const selectedLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 2,
     }),
     zIndex: 2,
 });
@@ -50,18 +42,10 @@ const referenceLineStyle = new Style({
     zIndex: 0,
 });
 
-const highlightedReferenceLineStyle = new Style({
+export const highlightedReferenceLineStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 3,
-    }),
-    zIndex: 1,
-});
-
-const selectedReferenceLineStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 4,
     }),
     zIndex: 1,
 });
@@ -81,6 +65,9 @@ const highlightedEndPointTickStyle = new Style({
     }),
     zIndex: 1,
 });
+
+export const OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING = 0.5;
+export const NORMAL_ALIGNMENT_OPACITY = 1;
 
 export function getTickStyle(
     point1: Coordinate,
@@ -157,15 +144,10 @@ function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
 export function createAlignmentFeatures(
     alignments: AlignmentDataHolder[],
     selection: Selection,
-    linkingState: LinkingState | undefined,
     showEndTicks: boolean,
 ): Feature<LineString | OlPoint>[] {
     return alignments.flatMap((alignment) => {
-        const { selected, isLinking, highlighted } = getAlignmentHeaderStates(
-            alignment,
-            selection,
-            linkingState,
-        );
+        const highlighted = isHighlighted(selection, alignment.header);
 
         const features: Feature<LineString | OlPoint>[] = [];
         const alignmentFeature = new Feature({
@@ -175,18 +157,14 @@ export function createAlignmentFeatures(
 
         const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
 
-        if (selected || isLinking) {
-            alignmentFeature.setStyle(
-                isReferenceLine ? selectedReferenceLineStyle : selectedLocationTrackStyle,
-            );
-        } else if (highlighted) {
+        if (highlighted) {
             alignmentFeature.setStyle(
                 isReferenceLine ? highlightedReferenceLineStyle : highlightedLocationTrackStyle,
             );
         } else alignmentFeature.setStyle(isReferenceLine ? referenceLineStyle : locationTrackStyle);
 
         if (showEndTicks) {
-            features.push(...createEndPointTicks(alignment, selected || isLinking || highlighted));
+            features.push(...createEndPointTicks(alignment, highlighted));
         }
 
         setAlignmentFeatureProperty(alignmentFeature, alignment);
@@ -209,13 +187,16 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
     }
 }
 
+export const isHighlighted = (selection: Selection, header: AlignmentHeader) =>
+    includes(selection.highlightedItems, header);
+
 export function getAlignmentHeaderStates(
     { header }: AlignmentDataHolder,
     selection: Selection,
     linkingState: LinkingState | undefined,
 ) {
     const selected = includes(selection.selectedItems, header);
-    const highlighted = includes(selection.highlightedItems, header);
+    const highlighted = isHighlighted(selection, header);
     const isLinking = linkingState
         ? (linkingState.type == LinkingType.LinkingGeometryWithAlignment ||
               linkingState.type == LinkingType.LinkingAlignment) &&
@@ -230,7 +211,7 @@ export function getAlignmentHeaderStates(
     };
 }
 
-function createEndPointTicks(
+export function createEndPointTicks(
     alignment: AlignmentDataHolder,
     contrast: boolean,
 ): Feature<OlPoint>[] {

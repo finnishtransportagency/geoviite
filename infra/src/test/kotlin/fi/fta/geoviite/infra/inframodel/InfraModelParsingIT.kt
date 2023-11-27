@@ -25,6 +25,7 @@ import java.math.BigDecimal
 
 const val TESTFILE_SIMPLE = "/inframodel/testfile_simple.xml"
 const val TESTFILE_CLOTHOID_AND_PARABOLA = "/inframodel/testfile_clothoid_and_parabola.xml"
+const val TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT = "/inframodel/testfile_simple_without_cant_rotation_point.xml"
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -419,6 +420,22 @@ class InfraModelParsingIT @Autowired constructor(
         assertEquals(infraModelObject, parsed)
     }
 
+    @Test
+    fun `InfraModel Cant-field is allowed to have missing rotationPoint-attribute`() {
+        val xmlString = classpathResourceToString(TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT)
+        val infraModel =
+            toInfraModel(toInfraModelFile(FileName("testfile_without_cant_rotation_point.xml"), xmlString))
+
+        toGvtPlan(
+            PlanSource.GEOMETRIAPALVELU,
+            FileName(TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT),
+            infraModel,
+            coordinateSystemNameToSrid,
+            switchStructuresByType,
+            switchTypeNameAliases,
+            trackNumberDao.getTrackNumberToIdMapping(),
+        )
+    }
 
     private fun assertTrackNumbersMatch(
         infraModelAlignmentGroups: List<InfraModelAlignmentGroup>,

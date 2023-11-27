@@ -84,109 +84,101 @@ class BasicMapTestUI @Autowired constructor(
     @Test
     fun `Edit and discard location track changes`() {
         val locationTrackToBeEdited = EAST_LT_NAME
-
         val trackLayoutPage = goToMap().switchToDraftMode()
+        val selectionPanel = trackLayoutPage.selectionPanel
+        val toolPanel = trackLayoutPage.toolPanel
+        val locationTrackInfobox = toolPanel.locationTrackGeneralInfo
 
-        trackLayoutPage.selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
-        trackLayoutPage.toolPanel.referenceLineLocation.zoomTo()
+        selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        toolPanel.referenceLineLocation.zoomTo()
 
-        trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)
-        val infobox = trackLayoutPage.toolPanel.locationTrackGeneralInfo
-        val orgTunniste = infobox.oid
-        val orgTila = infobox.state
-        //TBD val orgRatanumero = infobox.ratanumero()
-        val orgSijaintiraidetunnus = infobox.name
+        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        val editDialog = locationTrackInfobox.edit()
 
-        val editDialog = infobox.edit()
-        val editedTunnus = "$orgSijaintiraidetunnus-edited"
-        editDialog.setName(editedTunnus)
-        //TBD editDialog.editNewRatanumero("HKI1A")
-        editDialog.selectType(E2ELocationTrackEditDialog.Type.SIDE)
-
-        editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
-        editDialog.save()
+        editDialog
+            .setName("R36240")
+            .setDescription("R36240 kuvaus")
+            .selectType(E2ELocationTrackEditDialog.Type.SIDE)
+            .selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
+            .save()
 
         waitAndClearToast("location-track-dialog.modified-successfully")
 
-        trackLayoutPage.selectionPanel.waitUntilLocationTrackVisible(editedTunnus)
-        val infoboxAfterFirstEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
-        assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
-        assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.name)
-        assertNotEquals(orgTila, infoboxAfterFirstEdit.state)
-        //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
+        selectionPanel.waitUntilLocationTrackVisible("R36240")
+
+        assertEquals("R36240", locationTrackInfobox.name)
+        locationTrackInfobox.waitForDescriptionValue("R36240 kuvaus").also {
+            assertEquals("R36240 kuvaus", locationTrackInfobox.description)
+        }
+
+        assertEquals(E2ELocationTrackEditDialog.Type.SIDE.uiText, locationTrackInfobox.type)
+        assertEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.uiText, locationTrackInfobox.state)
 
         val previewChangesPage = trackLayoutPage.goToPreview()
         val changePreviewTable = previewChangesPage.changesTable
+
         assertTrue(changePreviewTable.rows.isNotEmpty())
 
-        val changedAlignment = changePreviewTable.rows.first { row -> row.name.contains(editedTunnus) }
+        val changedAlignment = changePreviewTable.rows.first { row -> row.name.contains("R36240") }
 
-        val nameColumnValue = "Sijaintiraide $editedTunnus"
-        assertEquals(nameColumnValue, changedAlignment.name)
-        assertEquals(HKI_TRACK_NUMBER_2, changedAlignment.trackNumber)
+        assertEquals("Sijaintiraide R36240", changedAlignment.name)
 
-        previewChangesPage.revertChange(nameColumnValue)
-        previewChangesPage.goToTrackLayout()
-        trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        previewChangesPage.revertChange("Sijaintiraide R36240").goToTrackLayout()
+        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
 
-        val infoBoxAfterSecondEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
-        assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)
-        assertEquals(orgSijaintiraidetunnus, infoBoxAfterSecondEdit.name)
-        assertEquals(orgTila, infoBoxAfterSecondEdit.state)
-        //TBD assertEquals(orgRatanumero, infoBoxAfterSecondEdit.ratanumero())
+        assertNotEquals("R36240", locationTrackInfobox.name)
+        locationTrackInfobox.waitForDescriptionValueIsNot("R36240 kuvaus").also {
+            assertNotEquals("R36240 kuvaus", locationTrackInfobox.description)
+        }
 
+        assertNotEquals(E2ELocationTrackEditDialog.Type.SIDE.uiText, locationTrackInfobox.type)
+        assertNotEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.uiText, locationTrackInfobox.state)
     }
 
     @Test
     fun `Edit and save location track changes`() {
         val locationTrackToBeEdited = WEST_LT_NAME
         val trackLayoutPage = goToMap().switchToDraftMode()
+        val selectionPanel = trackLayoutPage.selectionPanel
+        val toolPanel = trackLayoutPage.toolPanel
+        val locationTrackInfobox = toolPanel.locationTrackGeneralInfo
 
-        trackLayoutPage.selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
-        trackLayoutPage.toolPanel.referenceLineLocation.zoomTo()
-        trackLayoutPage.selectionPanel.selectLocationTrack(locationTrackToBeEdited)
-        val infobox = trackLayoutPage.toolPanel.locationTrackGeneralInfo
-        val orgTunniste = infobox.oid
-        val orgTila = infobox.state
-        //TBD val orgRatanumero = infobox.ratanumero()
-        val orgSijaintiraidetunnus = infobox.name
+        selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        toolPanel.referenceLineLocation.zoomTo()
 
-        val editDialog = infobox.edit()
-        val editedTunnus = "$orgSijaintiraidetunnus-edited"
-        editDialog.setName(editedTunnus)
-        //TBD editDialog.editNewRatanumero("HKI1A")
-        editDialog.selectType(E2ELocationTrackEditDialog.Type.SIDE)
+        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        val editDialog = locationTrackInfobox.edit()
 
-        editDialog.selectState(E2ELocationTrackEditDialog.State.NOT_IN_USE)
-        editDialog.save()
+        editDialog
+            .setName("R36240")
+            .setDescription("R36240 kuvaus")
+            .save()
+
         waitAndClearToast("location-track-dialog.modified-successfully")
 
-        trackLayoutPage.selectionPanel.waitUntilLocationTrackVisible(editedTunnus)
-        val infoboxAfterFirstEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
-        assertEquals(orgTunniste, infoboxAfterFirstEdit.oid)
-        assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.name)
-        assertNotEquals(orgTila, infoboxAfterFirstEdit.state)
-        //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
+        selectionPanel.waitUntilLocationTrackVisible("R36240")
+
+        assertEquals("R36240", locationTrackInfobox.name)
+        locationTrackInfobox.waitForDescriptionValue("R36240 kuvaus").also {
+            assertEquals("R36240 kuvaus", locationTrackInfobox.description)
+        }
 
         val previewChangesPage = trackLayoutPage.goToPreview()
         val changePreviewTable = previewChangesPage.changesTable
+
         assertTrue(changePreviewTable.rows.isNotEmpty())
 
-        val changedAlignment = changePreviewTable.rows.first { row -> row.name.contains(editedTunnus) }
+        val changedAlignment = changePreviewTable.rows.first { row -> row.name.contains("R36240") }
 
-        assertEquals("Sijaintiraide $editedTunnus", changedAlignment.name)
-        assertEquals(HKI_TRACK_NUMBER_1, changedAlignment.trackNumber)
-        previewChangesPage.stageChange(changedAlignment.name)
+        assertEquals("Sijaintiraide R36240", changedAlignment.name)
 
-        previewChangesPage.publish()
+        previewChangesPage.stageChange("Sijaintiraide R36240").publish()
+        //selectionPanel.selectLocationTrack("R36240")
 
-        val infoBoxAfterSecondEdit = trackLayoutPage.toolPanel.locationTrackGeneralInfo
-        assertEquals(orgTunniste, infoBoxAfterSecondEdit.oid)
-        assertNotEquals(orgSijaintiraidetunnus, infoBoxAfterSecondEdit.name)
-        assertNotEquals(orgTila, infoBoxAfterSecondEdit.state)
-        //TBD assertEquals(orgRatanumero, infoBoxAfterSecondEdit.ratanumero())
-
-        WEST_LT_NAME = infoBoxAfterSecondEdit.name
+        assertEquals("R36240", locationTrackInfobox.name)
+        locationTrackInfobox.waitForDescriptionValue("R36240 kuvaus").also {
+            assertEquals("R36240 kuvaus", locationTrackInfobox.description)
+        }
     }
 
     fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) {

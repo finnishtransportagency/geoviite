@@ -32,6 +32,7 @@ import { addIfExists } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { subtractPublishRequestIds } from 'publication/publication-utils';
 
 export type SelectedPublishChange = {
@@ -72,6 +73,7 @@ export type SwitchInfoboxVisibilities = {
 
 export type LocationTrackInfoboxVisibilities = {
     basic: boolean;
+    splitting: boolean;
     location: boolean;
     log: boolean;
     validation: boolean;
@@ -132,6 +134,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
     },
     locationTrack: {
         basic: true,
+        splitting: true,
         location: true,
         log: true,
         validation: true,
@@ -187,6 +190,7 @@ export type TrackLayoutState = {
     selection: Selection;
     stagedPublicationRequestIds: PublishRequestIds;
     linkingState?: LinkingState;
+    splittingState?: SplittingState;
     linkingIssuesSelectedBeforeLinking: boolean;
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
@@ -206,8 +210,11 @@ export const initialTrackLayoutState: TrackLayoutState = {
 };
 
 export function getSelectableItemTypes(
+    splittingState?: SplittingState | undefined,
     linkingState?: LinkingState | undefined,
 ): SelectableItemType[] {
+    if (splittingState) return ['switches'];
+
     switch (linkingState?.type) {
         case LinkingType.UnknownAlignment:
             return ['locationTracks', 'trackNumbers'];
@@ -234,7 +241,7 @@ function filterItemSelectOptions(
     state: TrackLayoutState,
     options: OnSelectOptions,
 ): OnSelectOptions {
-    const selectableItemTypes = getSelectableItemTypes(state.linkingState);
+    const selectableItemTypes = getSelectableItemTypes(state.splittingState, state.linkingState);
 
     if (state.linkingState?.type == LinkingType.LinkingSwitch) {
         if (options.suggestedSwitches?.length == 0) {
@@ -270,6 +277,7 @@ const trackLayoutSlice = createSlice({
         ...wrapReducers((state: TrackLayoutState) => state.map, mapReducers),
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
         ...wrapReducers((state: TrackLayoutState) => state, linkingReducers),
+        ...wrapReducers((state: TrackLayoutState) => state, splitReducers),
 
         onInfoboxVisibilityChange: (
             state: TrackLayoutState,
@@ -288,6 +296,11 @@ const trackLayoutSlice = createSlice({
 
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
+            if (state.splittingState && action.payload.switches?.length) {
+                splitReducers.addSplit(state, { ...action, payload: action.payload.switches[0] });
+                return;
+            }
+
             // Handle selection
             const options = filterItemSelectOptions(state, action.payload);
             selectionReducers.onSelect(state.selection, {

@@ -41,7 +41,9 @@ export const isLayerEnabledByProxy = (
 
 const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
-const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
+type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
+
+const relatedMapLayers: LayerCollection = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'switch-linking-layer': ['switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
@@ -53,6 +55,15 @@ const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
         'reference-line-background-layer',
         'reference-line-badge-layer',
     ],
+    'location-track-split-location-layer': [
+        'duplicate-split-section-highlight-layer',
+        'location-track-duplicate-endpoint-address-layer',
+        'location-track-split-badge-layer',
+    ],
+};
+
+const layersToHideByProxy: LayerCollection = {
+    'location-track-split-location-layer': ['location-track-badge-layer'],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
@@ -84,6 +95,7 @@ export const initialMapState: Map = {
         'geometry-alignment-layer',
         'geometry-switch-layer',
         'geometry-km-post-layer',
+        'location-track-selected-alignment-layer',
     ],
     layerMenu: {
         layout: [
@@ -152,12 +164,16 @@ export const mapReducers = {
         state.loadingIndicatorVisible = true;
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.visibleLayers = deduplicate([
+        const newVisibleLayers = deduplicate([
             ...alwaysOnLayers,
             ...state.visibleLayers,
             ...layers,
             ...collectRelatedLayers(layers),
         ]);
+        const layersHiddenByProxy = collectLayersHiddenByProxy(newVisibleLayers);
+        state.visibleLayers = newVisibleLayers.filter(
+            (layer) => !layersHiddenByProxy.includes(layer),
+        );
         state.loadingIndicatorVisible = true;
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
@@ -171,12 +187,13 @@ export const mapReducers = {
         const visibleLayers = state.visibleLayers
             .filter((l) => !relatedLayers.includes(l) && !layers.includes(l))
             .concat(layersByMenu);
+        const layersHiddenByProxy = collectLayersHiddenByProxy(visibleLayers);
 
         state.visibleLayers = deduplicate([
             ...alwaysOnLayers,
             ...visibleLayers,
             ...collectRelatedLayers(visibleLayers),
-        ]);
+        ]).filter((layer) => !layersHiddenByProxy.includes(layer));
     },
     onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
         state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);
@@ -264,6 +281,9 @@ function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
             : [],
     );
 }
+
+const collectLayersHiddenByProxy = (items: MapLayerName[]) =>
+    deduplicate(items.flatMap((i) => layersToHideByProxy[i]).filter(filterNotEmpty));
 
 function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
     const relatedLayers = layers.flatMap((l) => relatedMapLayers[l]).filter(filterNotEmpty);

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './app-bar.scss';
 import { Menu } from 'vayla-design-lib/menu/menu';
+import { createClassName } from 'vayla-design-lib/utils';
 
 const DataProductsMenu: React.FC = () => {
     const { t } = useTranslation();
@@ -43,8 +44,12 @@ const DataProductsMenu: React.FC = () => {
             ref={menuRef}
             className={
                 useLocation().pathname.includes('data-products')
-                    ? `${styles['app-bar__link']} ${styles['app-bar__menu-button--active']}`
-                    : `${styles['app-bar__link']} ${styles['app-bar__menu-button']}`
+                    ? createClassName(
+                          styles['app-bar__link'],
+                          styles['app-bar__link--active'],
+                          styles['app-bar__menu-button'],
+                      )
+                    : createClassName(styles['app-bar__link'], styles['app-bar__menu-button'])
             }
             qa-id="data-product-link"
             onClick={() => setShowMenu(!showMenu)}>
