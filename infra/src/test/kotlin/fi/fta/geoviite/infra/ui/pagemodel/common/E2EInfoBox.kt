@@ -31,23 +31,22 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
         return childText(
             By.xpath(
-                ".//div[@class='infobox__field-label' and text() = '$fieldName']" +
+                ".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]" +
                         "/div[@class='infobox__field-value' and (text() != '' or ./*[text() != ''])]"
             )
         )
     }
 
-    protected fun waitUntilValueChangesForField(fieldName: String): E2EInfoBox = apply {
-        logger.info("Wait for field $fieldName to change value")
+    protected fun waitUntilFieldContainsValue(fieldName: String, targetValue: String): E2EInfoBox = apply {
+        logger.info("Wait for field $fieldName to contain value $targetValue")
 
-        val originalValue = getValueForField(fieldName)
-        waitUntilValueIsNot(getFieldValueBy(fieldName), originalValue)
+        waitUntilValueIs(childBy(getFieldValueBy(fieldName)), targetValue)
     }
 
-    protected fun waitUntilValueChangesForField(fieldName: String, targetValue: String): E2EInfoBox = apply {
-        logger.info("Wait until field $fieldName is $targetValue")
+    protected fun waitUntilFieldOmitsValue(fieldName: String, oldValue: String): E2EInfoBox = apply {
+        logger.info("Wait for field $fieldName to change from value $oldValue")
 
-        waitUntilValueIs(getFieldValueBy(fieldName), targetValue)
+        waitUntilValueIsNot(childBy(getFieldValueBy(fieldName)), oldValue)
     }
 
     fun waitUntilLoaded(): E2EInfoBox = apply { waitUntilChildNotVisible(By.className("spinner")) }
