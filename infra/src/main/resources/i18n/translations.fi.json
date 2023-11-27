@@ -101,7 +101,8 @@
         "yes": "Kyllä",
         "show-more": "Näytä lisää",
         "show-less": "Piilota",
-        "logout": "Kirjaudu ulos"
+        "logout": "Kirjaudu ulos",
+        "close": "Sulje"
     },
     "yes": "Kyllä",
     "no": "Ei",
