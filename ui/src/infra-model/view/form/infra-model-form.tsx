@@ -571,9 +571,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
             {showNewProjectDialog && (
                 <NewProjectDialog
                     onClose={() => setShowNewProjectDialog(false)}
-                    onSave={(project) => {
+                    onSave={(projectId) => {
                         setShowNewProjectDialog(false);
-                        changeInOverrideParametersField(project.id, 'projectId');
+                        changeInOverrideParametersField(projectId, 'projectId');
                         updateProjectChangeTime();
                     }}></NewProjectDialog>
             )}

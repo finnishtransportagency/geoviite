@@ -367,8 +367,9 @@ fun toGvtCant(cant: InfraModelCant): GeometryCant {
         rotationPoint = when (cant.rotationPoint) {
             "insideRail" -> CantRotationPoint.INSIDE_RAIL
             "center" -> CantRotationPoint.CENTER
+            "" -> null
             else -> throw InputValidationException(
-                message = "XML Cant rotation point unrecognized: ${formatForException(cant.rotationPoint)}",
+                message = "XML Cant rotation point unrecognized: ${formatForException(cant.rotationPoint ?: "")}",
                 type = CantRotationPoint::class,
             )
         },

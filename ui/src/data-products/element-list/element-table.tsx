@@ -6,9 +6,10 @@ import styles from '../data-product-table.scss';
 import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
-    ElementHeading,
+    ElementHeadingWithClassName,
     nonNumericHeading,
     numericHeading,
+    withClassName,
 } from 'data-products/data-products-utils';
 
 type ElementTableProps = {
@@ -21,35 +22,76 @@ const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTab
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
-    const commonTableHeadings: ElementHeading[] = [
-        nonNumericHeading('alignment'),
-        nonNumericHeading('element-type'),
-        numericHeading('track-address-start'),
-        numericHeading('track-address-end'),
-        nonNumericHeading('coordinate-system'),
-        numericHeading('location-start-e'),
-        numericHeading('location-start-n'),
-        numericHeading('location-end-e'),
-        numericHeading('location-end-n'),
-        numericHeading('length'),
-        numericHeading('curve-radius-start'),
-        numericHeading('curve-radius-end'),
-        numericHeading('cant-start'),
-        numericHeading('cant-end'),
-        numericHeading('angle-start'),
-        numericHeading('angle-end'),
-        nonNumericHeading('plan'),
-        nonNumericHeading('source'),
-        nonNumericHeading('remarks'),
+    const commonTableHeadings: ElementHeadingWithClassName[] = [
+        withClassName(
+            nonNumericHeading('alignment'),
+            styles['data-product-table__header--alignment'],
+        ),
+        withClassName(
+            nonNumericHeading('element-type'),
+            styles['data-product-table__header--element-type'],
+        ),
+        withClassName(
+            numericHeading('track-address-start'),
+            styles['data-product-table__header--track-address'],
+        ),
+        withClassName(
+            numericHeading('track-address-end'),
+            styles['data-product-table__header--track-address'],
+        ),
+        withClassName(
+            nonNumericHeading('coordinate-system'),
+            styles['data-product-table__header--coordinate-system'],
+        ),
+        withClassName(
+            numericHeading('location-start-e'),
+            styles['data-product-table__header--location'],
+        ),
+        withClassName(
+            numericHeading('location-start-n'),
+            styles['data-product-table__header--location'],
+        ),
+        withClassName(
+            numericHeading('location-end-e'),
+            styles['data-product-table__header--location'],
+        ),
+        withClassName(
+            numericHeading('location-end-n'),
+            styles['data-product-table__header--location'],
+        ),
+        withClassName(numericHeading('length'), styles['data-product-table__header--length']),
+        withClassName(
+            numericHeading('curve-radius-start'),
+            styles['data-product-table__header--curve'],
+        ),
+        withClassName(
+            numericHeading('curve-radius-end'),
+            styles['data-product-table__header--curve'],
+        ),
+        withClassName(numericHeading('cant-start'), styles['data-product-table__header--cant']),
+        withClassName(numericHeading('cant-end'), styles['data-product-table__header--cant']),
+        withClassName(numericHeading('angle-start'), styles['data-product-table__header--angle']),
+        withClassName(numericHeading('angle-end'), styles['data-product-table__header--angle']),
+        withClassName(nonNumericHeading('plan'), styles['data-product-table__header--plan']),
+        withClassName(nonNumericHeading('source'), styles['data-product-table__header--source']),
+        withClassName(nonNumericHeading('remarks'), styles['data-product-table__header--remarks']),
     ];
+
+    const trackNumberHeading = withClassName(
+        nonNumericHeading('track-number'),
+        styles['data-product-table__header--track-number'],
+    );
 
     const tableHeadingsToShowInUI = showLocationTrackName
         ? [
-              nonNumericHeading('track-number'),
-              nonNumericHeading('location-track'),
+              trackNumberHeading,
+              withClassName(
+                  nonNumericHeading('location-track'),
+                  styles['data-product-table__header--location-track'],
+              ),
               ...commonTableHeadings,
           ]
-        : [nonNumericHeading('track-number'), ...commonTableHeadings];
+        : [trackNumberHeading, ...commonTableHeadings];
 
     return (
         <React.Fragment>
@@ -64,11 +106,7 @@ const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTab
                                 <Th
                                     qa-id={`data-products.element-list.element-list-table.${heading.name}`}
                                     key={heading.name}
-                                    className={
-                                        heading.numeric
-                                            ? styles['data-product-table__column--number']
-                                            : ''
-                                    }>
+                                    className={heading?.className ?? ''}>
                                     {t(
                                         `data-products.element-list.element-list-table.${heading.name}`,
                                     )}

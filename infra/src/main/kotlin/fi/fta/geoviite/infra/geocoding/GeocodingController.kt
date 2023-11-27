@@ -43,8 +43,7 @@ class GeocodingController(
         @RequestParam("address") address: TrackMeter,
     ): ResponseEntity<AddressPoint> {
         logger.apiCall("getTrackPoint", "locationTrackId" to locationTrackId, "address" to address)
-        val locationTrackAndAlignment = locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
-        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) -> geocodingService.getTrackLocation(locationTrack, alignment, address, OFFICIAL) })
+        return toResponse(locationTrackService.getTrackPoint(OFFICIAL, locationTrackId, address))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

@@ -38,7 +38,7 @@ import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import {
     getLocationTrackDescriptions,
-    getSwitchesOnLocationTrack,
+    getSplittingInitializationParameters,
 } from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
@@ -129,9 +129,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
-    const allowedSwitchesForSplitting = useLoader(
-        () => getSwitchesOnLocationTrack(publishType, locationTrack.id),
-        [publishType, locationTrack],
+    const splitInitializationParameters = useLoader(
+        () => getSplittingInitializationParameters(publishType, locationTrack.id),
+        [publishType, locationTrack.id],
     );
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -422,7 +422,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                     delegates.onStartSplitting({
                                                         locationTrack: locationTrack,
                                                         allowedSwitches:
-                                                            allowedSwitchesForSplitting || [],
+                                                            splitInitializationParameters?.switches ||
+                                                            [],
+                                                        duplicateTracks:
+                                                            splitInitializationParameters?.duplicates ||
+                                                            [],
                                                         startLocation:
                                                             startAndEndPoints.start.point,
                                                         endLocation: startAndEndPoints.end.point,

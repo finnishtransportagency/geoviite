@@ -91,5 +91,11 @@ export function nonNumericHeading(
 
 export const withSeparator = (heading: ElementHeading) => ({ ...heading, hasSeparator: true });
 
+export type ElementHeadingWithClassName = ElementHeading & { className: string };
+export const withClassName = (
+    heading: ElementHeading,
+    className: string,
+): ElementHeadingWithClassName => ({ ...heading, className });
+
 export const findCoordinateSystem = (srid: Srid, coordinateSystems: CoordinateSystem[]) =>
     coordinateSystems.find((crs) => crs.srid === srid);

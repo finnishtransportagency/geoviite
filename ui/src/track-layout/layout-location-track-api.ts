@@ -1,4 +1,5 @@
 import {
+    AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutTrackNumberId,
@@ -46,6 +47,19 @@ export type AlignmentPlanSection = {
     id: string;
 };
 
+export type SplitDuplicate = {
+    id: LocationTrackId;
+    name: string;
+    start: AddressPoint;
+    end: AddressPoint;
+};
+
+export type SplitInitializationParameters = {
+    id: LocationTrackId;
+    switches: SwitchOnLocationTrack[];
+    duplicates: SplitDuplicate[];
+};
+
 const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;
 
 export async function getLocationTrack(
@@ -80,7 +94,7 @@ export async function getLocationTracksByName(
 ): Promise<LayoutLocationTrack[]> {
     const params = queryParams({ locationTrackName });
     return getNonNull<LayoutLocationTrack[]>(
-        `${layoutUri('location-tracks', publishType)}/by-tracknumber/${trackNumberId}${params}`,
+        `${layoutUri('track-numbers', publishType)}/${trackNumberId}/location-tracks${params}`,
     );
 }
 
@@ -164,14 +178,6 @@ export async function getLocationTracksNear(
         `${layoutUri('location-tracks', publishType)}${params}`,
     );
 }
-
-export const getSwitchesOnLocationTrack = async (
-    publishType: PublishType,
-    locationTrackId: LocationTrackId,
-) =>
-    getNonNull<SwitchOnLocationTrack[]>(
-        `${layoutUri('location-tracks', publishType, locationTrackId)}/switches`,
-    );
 
 export async function insertLocationTrack(
     locationTrack: LocationTrackSaveRequest,
@@ -258,6 +264,15 @@ export const getLocationTrackSectionsByPlan = async (
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNullable<AlignmentPlanSection[]>(
         `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+    );
+};
+
+export const getSplittingInitializationParameters = async (
+    publishType: PublishType,
+    id: LocationTrackId,
+): Promise<SplitInitializationParameters> => {
+    return getNonNull<SplitInitializationParameters>(
+        `${layoutUri('location-tracks', publishType, id)}/splitting-initialization-parameters`,
     );
 };
 

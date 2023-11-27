@@ -9,6 +9,11 @@
         z-index: 1;
     }
 
+    &__accordion-column {
+        width: 0%;
+        padding-right: 0px;
+    }
+
     &__message-column {
         max-width: 200px;
     }

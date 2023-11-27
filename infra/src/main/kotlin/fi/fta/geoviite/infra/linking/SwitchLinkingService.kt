@@ -49,7 +49,6 @@ fun calculateLayoutSwitchJoints(
     }
 }
 
-
 fun findSuggestedSwitchJointMatches(
     joint: SwitchJoint,
     locationTrack: LocationTrack,
@@ -561,7 +560,6 @@ private fun getSegmentsByLinkingJoints(
                     endSplitSegment?.let {
                         acc.add(setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber))
                     }
-
                 }
             }
         }
@@ -928,7 +926,6 @@ fun createSuggestedSwitchByPoint(
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
     return selectBestSuggestedSwitch(suggestedSwitches, farthestJoint, point)
 }
-
 
 @Service
 class SwitchLinkingService @Autowired constructor(

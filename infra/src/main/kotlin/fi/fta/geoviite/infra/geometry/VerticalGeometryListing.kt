@@ -117,12 +117,6 @@ fun toVerticalGeometryListing(
                         segment.end.x
                     )
                 } else (null to null)
-            val segmentStartLocation = alignment
-                .getCoordinateAt(alignment.stationValueNormalized(segment.start.x))
-                ?.round(COORDINATE_DECIMALS)
-            val segmentEndLocation = alignment
-                .getCoordinateAt(alignment.stationValueNormalized(segment.end.x))
-                ?.round(COORDINATE_DECIMALS)
 
             toVerticalGeometryListing(
                 segment,
@@ -135,8 +129,6 @@ fun toVerticalGeometryListing(
                 linearSegments,
                 segmentStartAddress,
                 segmentEndAddress,
-                segmentStartLocation,
-                segmentEndLocation,
             )
         }
     }.flatten()
@@ -234,29 +226,25 @@ private fun toVerticalGeometry(
                 segment.end.x
             )
         } else (null to null)
-    val startLocation = geometryAlignment
-        .getCoordinateAt(geometryAlignment.stationValueNormalized(segment.start.x))
-        ?.round(COORDINATE_DECIMALS)
-    val endLocation = geometryAlignment
-        .getCoordinateAt(geometryAlignment.stationValueNormalized(segment.end.x))
-        ?.round(COORDINATE_DECIMALS)
 
-    return if (segmentStartAddress != null && endAddress != null && segmentStartAddress > endAddress) null
-    else if (segmentEndAddress != null && startAddress != null && segmentEndAddress < startAddress) null
-    else toVerticalGeometryListing(
-        segment,
-        geometryAlignment,
-        track.name,
-        planHeader.units.coordinateSystemSrid?.let(getTransformation),
-        planHeader,
-        geocodingContext,
-        curvedProfileSegments,
-        linearProfileSegments,
-        segmentStartAddress,
-        segmentEndAddress,
-        startLocation,
-        endLocation
-    )
+    return if (segmentStartAddress != null && endAddress != null && segmentStartAddress > endAddress) {
+        null
+    } else if (segmentEndAddress != null && startAddress != null && segmentEndAddress < startAddress) {
+        null
+    } else {
+        toVerticalGeometryListing(
+            segment,
+            geometryAlignment,
+            track.name,
+            planHeader.units.coordinateSystemSrid?.let(getTransformation),
+            planHeader,
+            geocodingContext,
+            curvedProfileSegments,
+            linearProfileSegments,
+            segmentStartAddress,
+            segmentEndAddress,
+        )
+    }
 }
 
 fun toVerticalGeometryListing(
@@ -270,9 +258,7 @@ fun toVerticalGeometryListing(
     linearSegments: List<LinearProfileSegment>,
     segmentStartAddress: TrackMeter?,
     segmentEndAddress: TrackMeter?,
-    segmentStartLocation: RoundedPoint?,
-    segmentEndLocation: RoundedPoint?
-    ): VerticalGeometryListing {
+): VerticalGeometryListing {
     val stationPoint = circCurveStationPoint(segment)
     val stationPointLocation = alignment
         .getCoordinateAt(alignment.stationValueNormalized(stationPoint.x))
@@ -291,20 +277,20 @@ fun toVerticalGeometryListing(
         fileName = planHeader.fileName,
         alignmentId = alignment.id,
         alignmentName = alignment.name,
-        locationTrackName,
+        locationTrackName = locationTrackName,
         start = toCurvedSectionEndpoint(
             address = segmentStartAddress,
             height = segment.start.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.start),
             station = segment.start.x,
-            location = segmentStartLocation,
+            location = roundedLocationM(alignment, segment.start.x),
         ),
         end = toCurvedSectionEndpoint(
             address = segmentEndAddress,
             height = segment.end.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.end),
             station = segment.end.x,
-            location = segmentEndLocation,
+            location = roundedLocationM(alignment, segment.end.x),
         ),
         point = toIntersectionPoint(
             address = stationPointAddress,
@@ -324,6 +310,8 @@ fun toVerticalGeometryListing(
         overlapsAnother = false,
     )
 }
+fun roundedLocationM(alignment: GeometryAlignment, distance: Double): RoundedPoint? =
+    alignment.getCoordinateAt(alignment.stationValueNormalized(distance))?.round(COORDINATE_DECIMALS)
 
 fun locationTrackVerticalGeometryListingToCsv(listing: List<VerticalGeometryListing>) =
     printCsv(listOf(locationTrackCsvEntry) + commonVerticalGeometryListingCsvEntries, listing)

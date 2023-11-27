@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -47,6 +48,7 @@ class ChangeTimeController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/collected")
+    @Transactional(readOnly = true)
     fun getCollectedChangeTimes(): CollectedChangeTimes {
         logger.apiCall("getCollectedChangeTimes")
         return CollectedChangeTimes(
