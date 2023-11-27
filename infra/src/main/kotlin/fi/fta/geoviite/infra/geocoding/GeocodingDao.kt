@@ -63,7 +63,7 @@ class GeocodingDao(
             "tn_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
+        return jdbcTemplate.queryNotNull(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
     fun getLayoutGeocodingContextCacheKey(
