@@ -33,35 +33,37 @@ class RatkoLocationTrackService @Autowired constructor(
         publicationTime: Instant,
     ): List<Oid<LocationTrack>> {
         return publishedLocationTracks.groupBy { it.version.id }.map { (_, locationTracks) ->
-                val newestVersion = locationTracks.maxBy { it.version.version }.version
-                locationTrackDao.fetch(newestVersion) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
-            }.sortedWith(compareBy({ sortByNullDuplicateOfFirst(it.first.duplicateOf) },
+            val newestVersion = locationTracks.maxBy { it.version.version }.version
+            locationTrackDao.fetch(newestVersion) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
+        }.sortedWith(
+            compareBy(
+                { sortByNullDuplicateOfFirst(it.first.duplicateOf) },
                 { sortByDeletedStateFirst(it.first.state) })
-            ).map { (layoutLocationTrack, changedKmNumbers) ->
-                val externalId =
-                    requireNotNull(layoutLocationTrack.externalId) { "OID required for location track, lt=${layoutLocationTrack.id}" }
-                try {
-                    ratkoClient.getLocationTrack(RatkoOid(externalId))?.let { existingLocationTrack ->
-                        if (layoutLocationTrack.state == LayoutState.DELETED) {
-                            deleteLocationTrack(
-                                layoutLocationTrack = layoutLocationTrack,
-                                existingRatkoLocationTrack = existingLocationTrack,
-                                moment = publicationTime,
-                            )
-                        } else {
-                            updateLocationTrack(
-                                layoutLocationTrack = layoutLocationTrack,
-                                existingRatkoLocationTrack = existingLocationTrack,
-                                changedKmNumbers = changedKmNumbers,
-                                moment = publicationTime
-                            )
-                        }
-                    } ?: createLocationTrack(layoutLocationTrack, publicationTime)
-                } catch (ex: RatkoPushException) {
-                    throw RatkoLocationTrackPushException(ex, layoutLocationTrack)
-                }
-                externalId
+        ).map { (layoutLocationTrack, changedKmNumbers) ->
+            val externalId =
+                requireNotNull(layoutLocationTrack.externalId) { "OID required for location track, lt=${layoutLocationTrack.id}" }
+            try {
+                ratkoClient.getLocationTrack(RatkoOid(externalId))?.let { existingLocationTrack ->
+                    if (layoutLocationTrack.state == LayoutState.DELETED) {
+                        deleteLocationTrack(
+                            layoutLocationTrack = layoutLocationTrack,
+                            existingRatkoLocationTrack = existingLocationTrack,
+                            moment = publicationTime,
+                        )
+                    } else {
+                        updateLocationTrack(
+                            layoutLocationTrack = layoutLocationTrack,
+                            existingRatkoLocationTrack = existingLocationTrack,
+                            changedKmNumbers = changedKmNumbers,
+                            moment = publicationTime
+                        )
+                    }
+                } ?: createLocationTrack(layoutLocationTrack, publicationTime)
+            } catch (ex: RatkoPushException) {
+                throw RatkoLocationTrackPushException(ex, layoutLocationTrack)
             }
+            externalId
+        }
     }
 
     private fun getTrackNumberOid(
@@ -223,7 +225,7 @@ class RatkoLocationTrackService @Autowired constructor(
     ): AddressPoint = when (rounding) {
         AddressRounding.UP -> points.find { p -> p.address >= seek }
         AddressRounding.DOWN -> points.findLast { p -> p.address <= seek }
-    } ?: throw IllegalStateException("No address point found: seek=$seek rounding=$rounding")
+    } ?: error("No address point found: seek=$seek rounding=$rounding")
 
     private fun deleteLocationTrack(
         layoutLocationTrack: LocationTrack,

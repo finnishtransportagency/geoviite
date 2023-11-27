@@ -35,7 +35,7 @@ class RatkoController(
         logger.apiCall("pushChangesToRatko")
         ratkoService.pushChangesToRatko()
 
-        return HttpStatus.NO_CONTENT;
+        return HttpStatus.NO_CONTENT
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
