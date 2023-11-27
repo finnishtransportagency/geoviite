@@ -28,6 +28,9 @@ class LayoutTrackNumberDao(
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
 
+    fun list(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> =
+        fetchVersions(publishType, false, trackNumber).map(::fetch)
+
     fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
@@ -207,25 +210,4 @@ class LayoutTrackNumberDao(
             )
         }.also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
     }
-
-    fun officialDuplicateNumberExistsFor(trackNumberId: IntId<TrackLayoutTrackNumber>): Boolean {
-        val sql = """
-            select
-              exists(
-                  select *
-                    from layout.track_number this_tn
-                      join layout.track_number duplicate_tn
-                           on this_tn.number = duplicate_tn.number
-                             and this_tn.id != duplicate_tn.id
-                             and this_tn.draft_of_track_number_id is distinct from duplicate_tn.id
-                    where not duplicate_tn.draft
-                      and duplicate_tn.state != 'DELETED'
-                      and this_tn.id = :trackNumberId)
-        """.trimIndent()
-
-        return jdbcTemplate.queryForObject(
-            sql, mapOf("trackNumberId" to trackNumberId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
-    }
-
 }

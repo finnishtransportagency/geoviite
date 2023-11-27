@@ -66,7 +66,7 @@ export type PreviewCandidates = {
 };
 
 export type ChangesBeingReverted = {
-    requestedRevertChange: PreviewTableEntry;
+    requestedRevertChange: { type: PreviewSelectType; name: string; id: string };
     changeIncludingDependencies: PublishRequestIds;
 };
 
@@ -470,7 +470,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             </div>
             {changesBeingReverted !== undefined && (
                 <PreviewConfirmRevertChangesDialog
-                    changeTimes={props.changeTimes}
                     changesBeingReverted={changesBeingReverted}
                     cancelRevertChanges={() => {
                         setChangesBeingReverted(undefined);

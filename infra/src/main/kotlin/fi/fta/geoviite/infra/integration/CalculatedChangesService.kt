@@ -505,19 +505,20 @@ private fun getTopologySwitchJointDataHolder(
     // - and Ratko may not want other joint numbers in this case
     val presentationJointNumber = fetchStructure(switch.switchStructureId).presentationJointNumber
     val address = geocodingContext.getAddress(point)?.first
-    val joint = switch.getJoint(topologySwitch.jointNumber)
-        ?: throw IllegalStateException("Topology switch contains invalid joint number: $topologySwitch")
+    val joint = requireNotNull(switch.getJoint(topologySwitch.jointNumber)) {
+        "Topology switch contains invalid joint number: $topologySwitch"
+    }
     return if (presentationJointNumber == joint.number && address != null) {
         topologySwitch.switchId to listOf(SwitchJointDataHolder(address = address, point = point, joint = joint))
     } else null
 }
 
 private fun topologySwitchLinks(track: LocationTrack, alignment: LayoutAlignment) = listOfNotNull(
-    switchIdAndLocation(track.topologyStartSwitch, alignment.start),
-    switchIdAndLocation(track.topologyEndSwitch, alignment.end),
+    switchIdAndLocation(track.topologyStartSwitch, alignment.firstSegmentStart),
+    switchIdAndLocation(track.topologyEndSwitch, alignment.lastSegmentEnd),
 )
 
-private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: LayoutPoint?) =
+private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: SegmentPoint?) =
     if (topologySwitch != null && location != null) topologySwitch to location.toPoint()
     else null
 
@@ -587,8 +588,8 @@ private fun findMatchingJoints(
     geocodingContext: GeocodingContext,
 ) = switch.joints.mapNotNull { joint ->
     val segmentPoint = when (joint.number) {
-        segment.startJointNumber -> segment.points.first()
-        segment.endJointNumber -> segment.points.last()
+        segment.startJointNumber -> segment.alignmentStart
+        segment.endJointNumber -> segment.alignmentEnd
         else -> null
     }
 

@@ -4,9 +4,9 @@ import { LineString } from 'ol/geom';
 import { Stroke, Style } from 'ol/style';
 import { Selection } from 'selection/selection-model';
 import {
-    filterLayoutPoints,
+    filterAlignmentPoints,
     GeometryPlanLayout,
-    LayoutPoint,
+    AlignmentPoint,
     PlanLayoutAlignment,
 } from 'track-layout/track-layout-model';
 import { clearFeatures, getVisiblePlans, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -114,7 +114,7 @@ function createAlignmentFeature(
 
 type AlignmentWithLinking = {
     header: AlignmentHeader;
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     segmentMValues: number[];
     linked: boolean;
 };
@@ -128,7 +128,7 @@ function getAlignmentsWithLinking(
         const points = alignment.polyLine?.points || [];
         return {
             header: alignment.header,
-            points: filterLayoutPoints(toMapAlignmentResolution(resolution), points),
+            points: filterAlignmentPoints(toMapAlignmentResolution(resolution), points),
             segmentMValues: alignment.segmentMValues,
             linked: alignment.header.id ? linkedAlignmentIds.includes(alignment.header.id) : false,
         };

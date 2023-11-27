@@ -32,8 +32,6 @@ const val CACHE_PLAN_GEOCODING_CONTEXTS = "plan-geocoding-contexts"
 
 const val CACHE_RATKO_HEALTH_STATUS = "ratko-health-status"
 
-const val CACHE_ADDRESS_POINTS = "track-address-points"
-
 const val CACHE_PUBLISHED_LOCATION_TRACKS = "published-location-tracks"
 const val CACHE_PUBLISHED_SWITCHES = "published-switches"
 
@@ -69,8 +67,6 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN_LAYOUT, cache(100, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))
             manager.registerCustomCache(CACHE_PLAN_GEOCODING_CONTEXTS, cache(50, planCacheDuration))
-
-            manager.registerCustomCache(CACHE_ADDRESS_POINTS, cache(2000, layoutCacheDuration))
 
             manager.registerCustomCache(CACHE_RATKO_HEALTH_STATUS, ephemeralCache(1, healthCheckLifetime))
 

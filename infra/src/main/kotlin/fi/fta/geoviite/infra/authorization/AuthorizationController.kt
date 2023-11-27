@@ -23,7 +23,7 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/own-details")
     fun getOwnDetails(): User {
-        logger.apiCall("getMyRole")
+        logger.apiCall("getOwnDetails")
         return SecurityContextHolder.getContext().authentication.principal as User
     }
 

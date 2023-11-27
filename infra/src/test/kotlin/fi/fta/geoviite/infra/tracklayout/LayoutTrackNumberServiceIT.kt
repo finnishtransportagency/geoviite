@@ -47,13 +47,13 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             )
         )
         val id = trackNumberService.insert(saveRequest)
-        val trackNumber = trackNumberService.getDraft(id)!!
+        val trackNumber = trackNumberService.get(DRAFT, id)!!
 
         assertNull(trackNumber.externalId)
 
         trackNumberService.updateExternalId(trackNumber.id as IntId, externalIdForTrackNumber())
 
-        val updatedTrackNumber = trackNumberService.getDraft(id)!!
+        val updatedTrackNumber = trackNumberService.get(DRAFT, id)!!
         assertNotNull(updatedTrackNumber.externalId)
     }
 
@@ -63,7 +63,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         assertEquals(referenceLine.alignmentVersion?.id, alignment.id as IntId)
         val trackNumberId = trackNumber.id as IntId
 
-        assertDoesNotThrow { trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumberId) }
+        assertDoesNotThrow { trackNumberService.deleteDraftAndReferenceLine(trackNumberId) }
         assertThrows<NoSuchEntityException> {
             referenceLineService.getOrThrow(DRAFT, referenceLine.id as IntId)
         }
@@ -80,7 +80,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         publishReferenceLine(referenceLine.id as IntId)
 
         assertThrows<DeletingFailureException> {
-            trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumber.id as IntId)
+            trackNumberService.deleteDraft(trackNumber.id as IntId)
         }
     }
 
@@ -285,7 +285,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             )
         )
         val id = trackNumberService.insert(saveRequest)
-        val trackNumber = trackNumberService.getDraft(id)!!
+        val trackNumber = trackNumberService.get(DRAFT, id)!!
 
         val (referenceLine, alignment) = referenceLineService.getByTrackNumberWithAlignment(
             DRAFT, trackNumber.id as IntId<TrackLayoutTrackNumber>

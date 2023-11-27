@@ -314,8 +314,10 @@
         "modified-successfully": "Sijaintiraiteen tiedot päivitetty",
         "deleted-successfully": "Sijaintiraide poistettu",
         "mandatory-field": "Pakollinen kenttä",
+        "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
+        "save-in-progress": "Tallennetaan",
         "duplicate-of": "Duplikaatti raiteelle",
         "not-a-duplicate": "Ei duplikaatti",
         "search": "Hae...",
@@ -375,7 +377,7 @@
             "start-address": "Alkusijainti (km + m)",
             "delete-dialog": {
                 "delete-draft-confirm": "Poistetaanko luonnos?",
-                "can-be-deleted": "Tätä ratanumeroa ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa ratanumeroa. Ratanumeron poistaminen poistaa myös siihen liittyvän pituusmittauslinjan.",
+                "can-be-deleted": "Tätä ratanumeroa ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa ratanumeroa.",
                 "delete-succeeded": "Ratanumero poistettu.",
                 "delete-failed": "Poisto epäonnistui."
             }
@@ -494,7 +496,7 @@
                 "search-all-reference-lines-without-geometry": "Hae ratanumeroista...",
                 "search-location-tracks": "Hae raidetunnuksista...",
                 "start-setup": "Aloita linkitys",
-                "lock-location-track": "Lukitse valinta",
+                "lock-alignment": "Lukitse valinta",
                 "cancel": "Peruuta",
                 "return": "Poista valinta",
                 "save-link": "Linkitä",
@@ -885,6 +887,7 @@
                 "duplicate-name": "Suunnitelmassa on useampi raide samalla nimellä \"{{alignmentName}}\"",
                 "no-profile": "Raiteen pystygeometriaa ei ole määritelty keskilinjalle {{alignmentName}}",
                 "no-cant": "Raiteen kallistusta ei ole määritelty keskilinjalle {{alignmentName}}",
+                "cant-rotation-point-undefined": "Kallistuksen mittauspistettä (rotationPoint) ei ole määritelty keskilinjalla {{alignmentName}}",
                 "cant-rotation-point-center": "Kallistuksen mittauspiste (rotationPoint) määritelty keskelle raidetta keskilinjalla {{alignmentName}}",
                 "cant-gauge-invalid": "Ilmoitettu raideleveys \"{{value}}\" keskilinjalla {{alignmentName}} ei vastaa suomen raideleveyttä 1.524",
                 "no-feature-type": "Keskilinjalta {{alignmentName}} puuttuu tyyppikoodi",
@@ -1138,7 +1141,8 @@
                     },
                     "not-official": "Raide viittaa duplikaattiraiteen {{duplicateTrack}} luonnosriviin",
                     "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{duplicateTrack}}",
-                    "duplicate": "Raide on merkitty duplikaatiksi raiteelle {{duplicateTrack}}, joka itse on myös duplikaatti"
+                    "publishing-duplicate-of-duplicated": "Raide on merkitty duplikaatiksi raiteelle {{duplicateTrack}}, joka itse on myös duplikaatti",
+                    "publishing-duplicate-while-duplicated": "Raide on merkitty duplikaatiksi, mutta raiteet {{otherDuplicates}} ovat tämän raiteen duplikaatteja"
                 },
                 "empty-segments": "Sijaintiraiteella ei ole geometriaa",
                 "points": {
@@ -1207,7 +1211,8 @@
                 "km-post-outside-line-after": "Tasakilometripiste ({{kmNumber}}) sijaitsee linjan {{trackNumber}} jälkeen",
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
                 "km-posts-invalid": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
-                "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta"
+                "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta",
+                "start-km-too-long": "Alkukilometri ottaen huomioon alkupisteen metrit on liian pitkä"
             }
         }
     },
@@ -1372,9 +1377,12 @@
         "info-from-linking": "Linkityksestä tulevat tiedot",
         "location": "Sijainti (km + m)",
         "coordinate-system": "Koordinaattijärjestelmä",
-        "error-mandatory-field": "Pakollinen kenttä",
-        "error-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
-        "error-km-number-already-in-use": "Tunnus on jo käytössä valitulla ratanumerolla",
+        "mandatory-field": "Pakollinen kenttä",
+        "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
+        "save-in-progress": "Tallennetaan",
+        "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
+        "invalid-km-post-number": "Virheellinen tasakilometripistetunnus",
+        "km-number-already-in-use": "Tunnus on jo käytössä valitulla ratanumerolla",
         "insert-succeeded": "Uusi tasakilometripiste lisätty rekisteriin",
         "insert-failed": "Tasakilometripisteen lisäys epäonnistui",
         "modify-succeeded": "Tasakilometripisteen tiedot päivitetty",
@@ -1414,8 +1422,10 @@
         "new-switch-added": "Uusi vaihde lisätty rekisteriin",
         "adding-switch-failed": "Vaihteen lisäys epäonnistui",
         "name-max-limit": "Vaihdetunnus voi olla korkeintaan 20 merkkiä pitkä",
-        "validation-error-mandatory-field": "Pakollinen kenttä",
+        "mandatory-field": "Pakollinen kenttä",
         "invalid-name": "Virheellinen vaihdetunnus",
+        "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
+        "save-in-progress": "Tallennetaan",
         "title-edit": "Muokkaa vaihteen tietoja",
         "modified-successfully": "Vaihteen tiedot päivitetty",
         "modify-failed": "Vaihteen päivittäminen epäonnistui",
@@ -1441,6 +1451,7 @@
             "track-number": "Ratanumero",
             "reference-line": "Pituusmittauslinja",
             "metadata-heading": "Metatiedot",
+            "delete-draft": "Poista",
             "delete-non-draft": "Ratanumeron poistaminen paikannuspohjasta"
         },
         "dialog": {
@@ -1465,14 +1476,16 @@
             "succeeded": "Ratanumero tallennettu"
         },
         "error": {
-            "mandatory-empty-number": "Ratanumeron tunnus puuttuu",
-            "mandatory-empty-description": "Ratanumeron kuvaus puuttuu",
-            "mandatory-empty-state": "Ratanumeron tila puuttuu",
-            "mandatory-empty-startAddress": "Ratanumeron alkuosoite puuttuu",
+            "mandatory-field-number": "Ratanumeron tunnus puuttuu",
+            "mandatory-field-description": "Ratanumeron kuvaus puuttuu",
+            "mandatory-field-state": "Ratanumeron tila puuttuu",
+            "mandatory-field-startAddress": "Ratanumeron alkuosoite puuttuu",
             "invalid-number": "Virheellinen ratanumeron tunnus",
             "invalid-description": "Virheellinen ratanumeron kuvaus",
             "invalid-startAddress": "Virheellinen ratanumeron alkuosoite",
-            "duplicate-number": "Ratanumeron tunnus on jo käytössä"
+            "duplicate-number": "Ratanumeron tunnus on jo käytössä",
+            "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
+            "save-in-progress": "Tallennetaan"
         }
     },
     "licenses-page": {

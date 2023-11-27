@@ -29,24 +29,17 @@ class LayoutSwitchDao(
     override fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
-    ): List<RowVersion<TrackLayoutSwitch>> =
-        fetchVersions(publicationState, includeDeleted, null)
-
-    fun fetchVersions(
-        publicationState: PublishType,
-        includeDeleted: Boolean,
-        name: SwitchName? = null,
     ): List<RowVersion<TrackLayoutSwitch>> {
         val sql = """
-            select row_id, row_version
+            select
+              row_id,
+              row_version
             from layout.switch_publication_view 
             where :publication_state = any(publication_states) 
-              and (cast(:name as varchar) is null or lower(name) = lower(:name))
               and (:include_deleted = true or state_category != 'NOT_EXISTING')
         """.trimIndent()
         val params = mapOf(
             "publication_state" to publicationState.name,
-            "name" to name,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -491,24 +484,5 @@ class LayoutSwitchDao(
                 externalId = rs.getOidOrNull("external_id"),
             )
         }
-    }
-
-    fun duplicateNameExistsForPublicationCandidate(switchId: IntId<TrackLayoutSwitch>): Boolean {
-        val sql = """
-            select
-              exists(
-                  select *
-                    from layout.switch this_switch
-                      join layout.switch duplicate_switch
-                           on this_switch.name = duplicate_switch.name
-                             and this_switch.id != duplicate_switch.id
-                             and this_switch.draft_of_switch_id is distinct from duplicate_switch.id
-                    where duplicate_switch.state_category != 'NOT_EXISTING'
-                      and this_switch.id = :switchId)
-        """.trimIndent()
-
-        return jdbcTemplate.queryForObject(
-            sql, mapOf("switchId" to switchId.intValue)
-        ) { rs, _ -> rs.getBoolean("exists") } ?: throw IllegalStateException("Unexpected null from exists-query")
     }
 }

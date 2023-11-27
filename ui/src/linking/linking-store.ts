@@ -17,7 +17,7 @@ import {
 } from 'linking/linking-model';
 import {
     AlignmentId,
-    LayoutPoint,
+    AlignmentPoint,
     LayoutSwitch,
     LayoutSwitchId,
     MapAlignmentType,
@@ -441,7 +441,7 @@ export function createLinkPoints(
     id: AlignmentId,
     alignmentLength: number,
     segmentEndMs: number[],
-    points: LayoutPoint[],
+    points: AlignmentPoint[],
 ): LinkPoint[] {
     let segmentMIndex = 0;
     return points.flatMap((point, pIdx) => {
@@ -467,7 +467,7 @@ export function createLinkPoints(
         const segmentEnd = segmentEndMs.includes(point.m);
         const alignmentEnd = point.m === 0 || point.m === alignmentLength;
         linkPoints.push(
-            layoutPointToLinkPoint(type, id, point, direction, segmentEnd, alignmentEnd),
+            alignmentPointToLinkPoint(type, id, point, direction, segmentEnd, alignmentEnd),
         );
 
         return linkPoints;
@@ -477,8 +477,8 @@ export function createLinkPoints(
 function interpolateSegmentEndLinkPoint(
     alignmentType: MapAlignmentType,
     alignmentId: AlignmentId,
-    previous: LayoutPoint,
-    next: LayoutPoint,
+    previous: AlignmentPoint,
+    next: AlignmentPoint,
     newM: number,
 ): LinkPoint {
     const [x, y] = interpolateXY(previous, next, newM);
@@ -494,10 +494,10 @@ function interpolateSegmentEndLinkPoint(
     );
 }
 
-export function layoutPointToLinkPoint(
+export function alignmentPointToLinkPoint(
     alignmentType: MapAlignmentType,
     alignmentId: AlignmentId,
-    point: LayoutPoint,
+    point: AlignmentPoint,
     direction: number | undefined,
     isSegmentEndPoint: boolean,
     isEndPoint: boolean,

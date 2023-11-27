@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-number-api';
 import {
+    getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
     useTrackNumberReferenceLine,
     useTrackNumbersIncludingDeleted,
@@ -36,6 +37,9 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
+import { ChangesBeingReverted } from 'preview/preview-view';
+import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
+import { getChangeTimes } from 'common/change-time-api';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -82,6 +86,8 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     }
 };
 
+const mapError = (errorReason: string) => `track-number-edit.error.${errorReason}`;
+
 export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     inEditTrackNumber,
     inEditReferenceLine,
@@ -103,18 +109,21 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         : undefined;
 
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
-    const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
-        React.useState<boolean>();
+    const [deletingDraft, setDeletingDraft] = React.useState<ChangesBeingReverted>();
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
-    const trackNumberStateOptions = layoutStates.filter((s) => s.value !== 'PLANNED');
+    const trackNumberStateOptions = layoutStates
+        .filter((s) => s.value !== 'PLANNED')
+        .map((s) =>
+            s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
+        );
 
     const confirmNewDraftDelete = () => {
-        setDraftDeleteConfirmationVisible(true);
+        inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
     };
     const closeDraftDeleteConfirmation = () => {
-        setDraftDeleteConfirmationVisible(false);
+        setDeletingDraft(undefined);
     };
     const closeNonDraftDeleteConfirmation = () => {
         setNonDraftDeleteConfirmationVisible(false);
@@ -122,7 +131,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 
     const saveOrConfirm = () => {
         if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
-            setNonDraftDeleteConfirmationVisible(true);
+            if (inEditTrackNumber?.draftType === 'NEW_DRAFT') {
+                confirmNewDraftDelete();
+            } else {
+                setNonDraftDeleteConfirmationVisible(true);
+            }
         } else {
             saveTrackNumber();
         }
@@ -203,7 +216,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Button
                                 disabled={hasErrors || saveInProgress}
                                 isProcessing={saveInProgress}
-                                onClick={saveOrConfirm}>
+                                onClick={saveOrConfirm}
+                                title={getSaveDisabledReasons(
+                                    state.validationErrors.map((e) => e.reason),
+                                    saveInProgress,
+                                )
+                                    .map((reason) => t(mapError(reason)))
+                                    .join(', ')}>
                                 {t('track-number-edit.action.save')}
                             </Button>
                         </div>
@@ -232,11 +251,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={numberErrors.map((e) => t(e.reason))}>
+                            errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link
-                                    className="move-to-edit-link"
-                                    onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                <Link onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}
@@ -261,7 +278,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     searchable
                                 />
                             }
-                            errors={stateErrors.map((e) => t(e.reason))}
+                            errors={stateErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                         <FieldLayout
                             label={`${t('track-number-edit.field.description')} *`}
@@ -281,7 +298,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={descriptionErrors.map((e) => t(e.reason))}
+                            errors={descriptionErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                     </FormLayoutColumn>
                     <FormLayoutColumn>
@@ -306,7 +323,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={startAddressErrors.map((e) => t(e.reason))}
+                            errors={startAddressErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                         {startAndEndPoints && (
                             <FieldLayout
@@ -365,9 +382,10 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     </div>
                 </Dialog>
             )}
-            {inEditTrackNumber && draftDeleteConfirmationVisible && (
+            {inEditTrackNumber && deletingDraft && (
                 <TrackNumberDeleteConfirmationDialog
-                    id={inEditTrackNumber.id}
+                    changesBeingReverted={deletingDraft}
+                    changeTimes={getChangeTimes()}
                     onClose={closeDraftDeleteConfirmation}
                     onSave={onSave}
                 />

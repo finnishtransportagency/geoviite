@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.math.BigDecimal
@@ -20,4 +21,6 @@ data class GeometryKmPost(
     val location: Point?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val id: DomainId<GeometryKmPost> = StringId(),
-)
+) : Loggable {
+    override fun toLog(): String = logFormat("id" to id, "trackNumber" to trackNumberId, "kmNumber" to kmNumber)
+}

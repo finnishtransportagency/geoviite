@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
@@ -15,7 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
-
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 sealed interface GeocodingContextCacheKey
 
@@ -51,6 +54,7 @@ class GeocodingCacheService(
     private val kmPostDao: LayoutKmPostDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val planLayoutService: PlanLayoutService,
+    private val geocodingDao: GeocodingDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -58,15 +62,18 @@ class GeocodingCacheService(
     @Lazy
     lateinit var geocodingCacheService: GeocodingCacheService
 
+    @Transactional(readOnly = true)
     fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? =
         getGeocodingContextWithReasons(key)?.geocodingContext
 
+    @Transactional(readOnly = true)
     fun getGeocodingContextWithReasons(key: GeocodingContextCacheKey): GeocodingContextCreateResult? =
         when (key) {
             is LayoutGeocodingContextCacheKey -> geocodingCacheService.getLayoutGeocodingContext(key)
             is GeometryGeocodingContextCacheKey -> geocodingCacheService.getGeometryGeocodingContext(key)
         }
 
+    @Transactional(readOnly = true)
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
     fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContextCreateResult? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
@@ -80,6 +87,7 @@ class GeocodingCacheService(
         return GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, kmPosts)
     }
 
+    @Transactional(readOnly = true)
     @Cacheable(CACHE_PLAN_GEOCODING_CONTEXTS, sync = true)
     fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContextCreateResult? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
@@ -98,4 +106,28 @@ class GeocodingCacheService(
         }
         return if (referenceLines.size == 1) referenceLines[0] else null
     }
+
+    @Transactional(readOnly = true)
+    fun getGeocodingContextCreateResult(
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ): GeocodingContextCreateResult? = geocodingDao
+        .getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)
+        ?.let(geocodingCacheService::getGeocodingContextWithReasons)
+
+    @Transactional(readOnly = true)
+    fun getGeocodingContextAtMoment(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): GeocodingContext? = geocodingDao
+        .getLayoutGeocodingContextCacheKey(trackNumberId, moment)
+        ?.let(geocodingCacheService::getGeocodingContext)
+
+    @Transactional(readOnly = true)
+    fun getGeocodingContext(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        plan: RowVersion<GeometryPlan>,
+    ): GeocodingContext? = trackNumberDao
+        .fetchVersion(trackNumberId, PublishType.OFFICIAL)
+        ?.let { trackNumberVersion -> getGeocodingContext(GeometryGeocodingContextCacheKey(trackNumberVersion, plan)) }
 }

@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
-
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -33,14 +32,15 @@ class ReferenceLineServiceIT @Autowired constructor(
     @Test
     fun creatingAndDeletingUnpublishedReferenceLineWithAlignmentWorks() {
         val trackNumberId = createTrackNumber() // automatically creates first version of reference line
-        val (savedLine, savedAlignment) = referenceLineService.getByTrackNumberWithAlignment(DRAFT, trackNumberId)
-            ?: throw IllegalStateException("Reference line was not automatically created")
+        val (savedLine, savedAlignment) = requireNotNull(
+            referenceLineService.getByTrackNumberWithAlignment(DRAFT, trackNumberId)
+        ) { "Reference line was not automatically created" }
         assertTrue(alignmentExists(savedLine.alignmentVersion!!.id))
         assertEquals(savedLine.alignmentVersion?.id, savedAlignment.id as IntId)
-        assertThrows<DataIntegrityViolationException> { trackNumberService.deleteUnpublishedDraft(trackNumberId) }
-        referenceLineService.deleteUnpublishedDraft(savedLine.id as IntId)
+        assertThrows<DataIntegrityViolationException> { trackNumberService.deleteDraft(trackNumberId) }
+        referenceLineService.deleteDraft(savedLine.id as IntId)
         assertFalse(alignmentExists(savedLine.alignmentVersion!!.id))
-        assertDoesNotThrow { trackNumberService.deleteUnpublishedDraft(trackNumberId) }
+        assertDoesNotThrow { trackNumberService.deleteDraft(trackNumberId) }
     }
 
     @Test
@@ -50,7 +50,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         publish(referenceLineId)
         val (line, _) = referenceLineService.getWithAlignmentOrThrow(OFFICIAL, referenceLineId)
         assertNull(line.draft)
-        assertThrows<NoSuchEntityException> { referenceLineService.deleteUnpublishedDraft(referenceLineId) }
+        assertThrows<DeletingFailureException> { referenceLineService.deleteDraft(referenceLineId) }
     }
 
     @Test
@@ -68,7 +68,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val address = address(2)
         val updateResponse = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, address)
         assertEquals(referenceLineId, updateResponse?.id)
-        val updatedLine = referenceLineService.getDraft(referenceLineId)!!
+        val updatedLine = referenceLineService.get(DRAFT, referenceLineId)!!
         assertEquals(address, updatedLine.startAddress)
         assertEquals(trackNumberId, updatedLine.trackNumberId)
         assertEquals(referenceLine.alignmentVersion, updatedLine.alignmentVersion)
@@ -99,7 +99,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertEquals(publishedVersion.id, editResponse2?.id)
         assertNotEquals(publishedVersion.rowVersion.id, editResponse2?.rowVersion?.id)
 
-        val editedDraft2 = referenceLineService.getDraft(publishedVersion.id)!!
+        val editedDraft2 = referenceLineService.get(DRAFT, publishedVersion.id)!!
         assertEquals(TrackMeter(8, 9), editedDraft2.startAddress)
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
@@ -147,8 +147,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishedVersion.id)
         assertEquals(
-            alignmentTmp.segments.flatMap(LayoutSegment::points),
-            editedAlignment.segments.flatMap(LayoutSegment::points),
+            alignmentTmp.segments.flatMap(LayoutSegment::alignmentPoints),
+            editedAlignment.segments.flatMap(LayoutSegment::alignmentPoints),
         )
 
         // Creating a draft should duplicate the alignment
@@ -161,8 +161,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishedVersion.id)
         assertEquals(
-            alignmentTmp2.segments.flatMap(LayoutSegment::points),
-            editedAlignment2.segments.flatMap(LayoutSegment::points),
+            alignmentTmp2.segments.flatMap(LayoutSegment::alignmentPoints),
+            editedAlignment2.segments.flatMap(LayoutSegment::alignmentPoints),
         )
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
@@ -188,7 +188,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     }
 
     private fun getAndVerifyDraft(id: IntId<ReferenceLine>): ReferenceLine {
-        val draft = referenceLineService.getDraft(id)!!
+        val draft = referenceLineService.get(DRAFT, id)!!
         assertEquals(id, draft.id)
         assertNotNull(draft.draft)
         return draft

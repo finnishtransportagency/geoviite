@@ -5,10 +5,10 @@ import { CantRange } from 'tool-panel/geometry-alignment/geometry-segment/cant-r
 import { Precision, roundToPrecision } from 'utils/rounding';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 
 type CurveInfoBoxProps = {
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     geometryCurve: GeometryCurve;
 };
 

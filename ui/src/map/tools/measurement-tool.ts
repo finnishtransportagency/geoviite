@@ -10,7 +10,7 @@ import { LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
 import { getPlanarDistanceUnwrapped, pointToCoords } from 'map/layers/utils/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 
@@ -25,10 +25,10 @@ function formatMeasurement(distance: number): string {
 }
 
 function findClosestPoints(
-    points: LayoutPoint[],
+    points: AlignmentPoint[],
     targetCoordinate: number[],
     maxPoints: number,
-): LayoutPoint[] {
+): AlignmentPoint[] {
     if (points.length <= maxPoints) {
         return points;
     } else {
@@ -101,7 +101,7 @@ export const measurementTool: MapTool = {
                         findClosestPoints(points, cursorCoordinate, 8),
                     );
 
-                let closestPoint: { distance: number; point: LayoutPoint } | undefined;
+                let closestPoint: { distance: number; point: AlignmentPoint } | undefined;
                 for (let i = 0; i < nearbyAlignmentPoints.length; i++) {
                     const nearbyPoint = nearbyAlignmentPoints[i];
                     const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint));

@@ -12,7 +12,9 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.util.pageToList
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.util.Page
+import fi.fta.geoviite.infra.util.page
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,30 +25,6 @@ class LayoutSwitchService @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
-
-    @Transactional(readOnly = true)
-    fun getSwitchesByName(
-        publicationState: PublishType,
-        name: SwitchName,
-        includeDeleted: Boolean,
-    ): List<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "getSwitchByName",
-            "publicationState" to publicationState,
-            "name" to name,
-            "includeDeleted" to includeDeleted,
-        )
-        return dao.fetchVersions(publicationState, includeDeleted = includeDeleted, name = name).map(dao::fetch)
-    }
-
-    @Transactional(readOnly = true)
-    fun pageSwitchesByFilter(
-        publishType: PublishType,
-        filter: (TrackLayoutSwitch) -> Boolean,
-        offset: Int?,
-        limit: Int?,
-        comparisonPoint: Point?,
-    ): List<TrackLayoutSwitch> = pageSwitches(list(publishType, filter), offset ?: 0, limit, comparisonPoint)
 
     @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
@@ -69,7 +47,7 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        val layoutSwitch = getInternalOrThrow(DRAFT, id)
+        val layoutSwitch = dao.getOrThrow(DRAFT, id)
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
@@ -93,7 +71,7 @@ class LayoutSwitchService @Autowired constructor(
     fun deleteDraftSwitch(switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
         logger.serviceCall("deleteDraftSwitch", "switchId" to switchId)
         clearSwitchInformationFromSegments(switchId)
-        return deleteUnpublishedDraft(switchId).id
+        return deleteDraft(switchId).id
     }
 
     @Transactional
@@ -128,9 +106,13 @@ class LayoutSwitchService @Autowired constructor(
             ?: throw IllegalArgumentException("Switch ${switch.id} has no presentation joint")
     }
 
-    fun list(publishType: PublishType, filter: (switch: TrackLayoutSwitch) -> Boolean): List<TrackLayoutSwitch> {
-        logger.serviceCall("list", "publishType" to publishType, "filter" to true)
-        return listInternal(publishType, false).filter(filter)
+    @Transactional(readOnly = true)
+    fun listWithStructure(
+        publishType: PublishType,
+        includeDeleted: Boolean = false,
+    ): List<Pair<TrackLayoutSwitch, SwitchStructure>> {
+        logger.serviceCall("list", "publishType" to publishType)
+        return dao.list(publishType, includeDeleted).map(::withStructure)
     }
 
     override fun sortSearchResult(list: List<TrackLayoutSwitch>) = list.sortedBy(TrackLayoutSwitch::name)
@@ -141,53 +123,18 @@ class LayoutSwitchService @Autowired constructor(
     override fun contentMatches(term: String, item: TrackLayoutSwitch) =
         item.exists && item.name.toString().replace("  ", " ").contains(term, true)
 
-    fun pageSwitches(
-        switches: List<TrackLayoutSwitch>,
-        offset: Int,
-        limit: Int?,
-        comparisonPoint: Point?,
-    ): List<TrackLayoutSwitch> = if (comparisonPoint != null) {
-        val switchesWithDistance: List<Pair<TrackLayoutSwitch, Double?>> =
-            switches.map { associateByDistance(it, comparisonPoint) { s -> getPresentationJoint(s)?.location } }
-        pageToList(switchesWithDistance, offset, limit, ::compareByDistanceNullsFirst).map { (switch, _) -> switch }
-    } else {
-        pageToList(switches, offset, limit, Comparator.comparing(TrackLayoutSwitch::name))
-    }
-
-    fun switchFilter(
-        name: String? = null,
-        switchType: String? = null,
-        bbox: BoundingBox? = null,
-        includeSwitchesWithNoJoints: Boolean = false,
-    ) = { switch: TrackLayoutSwitch ->
-        switchMatchesName(switch, name) && switchMatchesType(switch, switchType) && switchMatchesBbox(
-            switch, bbox, includeSwitchesWithNoJoints
-        )
-    }
-
     @Transactional
     fun updateExternalIdForSwitch(
         id: IntId<TrackLayoutSwitch>,
         oid: Oid<TrackLayoutSwitch>,
     ): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
-        val original = getInternalOrThrow(DRAFT, id)
+        val original = dao.getOrThrow(DRAFT, id)
         return saveDraft(original.copy(externalId = oid))
     }
 
-    private fun switchMatchesName(switch: TrackLayoutSwitch, searchString: String?) =
-        searchString?.let { n -> switch.name.contains(n, ignoreCase = true) } ?: true
-
-    private fun switchMatchesType(switch: TrackLayoutSwitch, searchString: String?) = searchString?.let { t ->
-        switchLibraryService.getSwitchType(switch.switchStructureId).typeName.contains(t, ignoreCase = true)
-    } ?: true
-
-    private fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
-        (includeSwitchesWithNoJoints && switch.joints.isEmpty()) || (bbox?.let { bb ->
-            (switch.joints.any { joint ->
-                bb.contains(joint.location)
-            })
-        } ?: true)
+    private fun withStructure(switch: TrackLayoutSwitch): Pair<TrackLayoutSwitch, SwitchStructure> =
+        switch to switchLibraryService.getSwitchStructure(switch.switchStructureId)
 
     override fun createDraft(item: TrackLayoutSwitch) = draft(item)
 
@@ -206,11 +153,6 @@ class LayoutSwitchService @Autowired constructor(
         return (segment + topological).groupBy { joint -> joint.number }.values.map { jointConnections ->
             jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
         }
-    }
-
-    fun duplicateNameExistsForPublicationCandidate(switchId: IntId<TrackLayoutSwitch>): Boolean {
-        logger.serviceCall("duplicateNameExistsForPublicationCandidate", "switchId" to switchId)
-        return dao.duplicateNameExistsForPublicationCandidate(switchId)
     }
 
     private fun getTopologySwitchJointConnections(
@@ -236,18 +178,34 @@ class LayoutSwitchService @Autowired constructor(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return dao.findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+        return dao
+            .findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
             .map { ids -> locationTrackService.getWithAlignment(ids.rowVersion) }
     }
 }
 
-fun <T> associateByDistance(
-    item: T,
+fun pageSwitches(
+    switches: List<Pair<TrackLayoutSwitch, SwitchStructure>>,
+    offset: Int?,
+    limit: Int?,
+    comparisonPoint: Point?,
+): Page<TrackLayoutSwitch> {
+    return if (comparisonPoint != null) {
+        val switchesWithDistance: List<Pair<TrackLayoutSwitch, Double?>> =
+            switches.map { (switch, structure) -> associateByDistance(switch, structure, comparisonPoint) }
+        page(switchesWithDistance, offset ?: 0, limit, ::compareByDistanceNullsFirst).map { (s, _) -> s }
+    } else {
+        page(switches.map { (s, _) -> s }, offset ?: 0, limit, Comparator.comparing(TrackLayoutSwitch::name))
+    }
+}
+
+fun associateByDistance(
+    switch: TrackLayoutSwitch,
+    structure: SwitchStructure,
     comparisonPoint: Point,
-    fetchPointFromItem: (item: T) -> Point?,
-): Pair<T, Double?> {
-    val point = fetchPointFromItem(item)
-    return if (point != null) item to calculateDistance(LAYOUT_SRID, point, comparisonPoint) else item to null
+): Pair<TrackLayoutSwitch, Double?> {
+    val location = switch.getJoint(structure.presentationJointNumber)?.location
+    return switch to location?.let { l -> calculateDistance(LAYOUT_SRID, comparisonPoint, l) }
 }
 
 fun <T> compareByDistanceNullsFirst(
@@ -281,14 +239,42 @@ fun clearSwitchInformationFromSegments(
     return newLocationTrack to newAlignment
 }
 
-private fun getTopologyPoints(switchId: IntId<TrackLayoutSwitch>, track: LocationTrack, alignment: LayoutAlignment) =
-    listOfNotNull(
-        topologyPointOrNull(switchId, track.topologyStartSwitch, alignment.start),
-        topologyPointOrNull(switchId, track.topologyEndSwitch, alignment.end),
-    )
+private fun getTopologyPoints(
+    switchId: IntId<TrackLayoutSwitch>,
+    track: LocationTrack,
+    alignment: LayoutAlignment,
+): List<Pair<TopologyLocationTrackSwitch, Point>> = listOfNotNull(
+    topologyPointOrNull(switchId, track.topologyStartSwitch, alignment.firstSegmentStart),
+    topologyPointOrNull(switchId, track.topologyEndSwitch, alignment.lastSegmentEnd),
+)
 
 private fun topologyPointOrNull(
     switchId: IntId<TrackLayoutSwitch>,
     topology: TopologyLocationTrackSwitch?,
     location: IPoint?,
-) = if (topology?.switchId == switchId && location != null) topology to location.toPoint() else null
+): Pair<TopologyLocationTrackSwitch, Point>? =
+    if (topology?.switchId == switchId && location != null) topology to location.toPoint() else null
+
+fun switchFilter(
+    namePart: String? = null,
+    exactName: SwitchName? = null,
+    switchType: String? = null,
+    bbox: BoundingBox? = null,
+    includeSwitchesWithNoJoints: Boolean = false,
+) = { (switch, structure): Pair<TrackLayoutSwitch, SwitchStructure> ->
+    switchMatchesName(switch, namePart, exactName) && structureMatchesType(structure, switchType) && switchMatchesBbox(
+        switch, bbox, includeSwitchesWithNoJoints
+    )
+}
+
+private fun switchMatchesName(switch: TrackLayoutSwitch, partial: String?, exact: SwitchName?) =
+    exact?.equalsIgnoreCase(switch.name) ?: partial?.let { n -> switch.name.contains(n, ignoreCase = true) } ?: true
+
+private fun structureMatchesType(structure: SwitchStructure, searchString: String?) = searchString?.let { t ->
+    structure.type.typeName.contains(t, ignoreCase = true)
+} ?: true
+
+private fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
+    (includeSwitchesWithNoJoints && switch.joints.isEmpty()) || (bbox?.let { bb ->
+        (switch.joints.any { joint -> bb.contains(joint.location) })
+    } ?: true)

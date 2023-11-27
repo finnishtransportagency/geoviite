@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     LayoutLocationTrack,
-    LayoutPoint,
+    AlignmentPoint,
     LayoutSwitchId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
@@ -28,7 +28,7 @@ export type Split = InitialSplit & {
 };
 
 export type SplittingState = {
-    endLocation: LayoutPoint;
+    endLocation: AlignmentPoint;
     originLocationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
     duplicateTracks: SplitDuplicate[];
@@ -40,8 +40,8 @@ type SplitStart = {
     locationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
     duplicateTracks: SplitDuplicate[];
-    startLocation: LayoutPoint;
-    endLocation: LayoutPoint;
+    startLocation: AlignmentPoint;
+    endLocation: AlignmentPoint;
 };
 
 export type SwitchOnLocationTrack = {
@@ -82,10 +82,12 @@ export const splitReducers = {
             endLocation: payload.endLocation,
             initialSplit: {
                 name:
+                    duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
                         ? duplicateTrackClosestToStart.duplicate.name
                         : '',
                 duplicateOf:
+                    duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
                         ? duplicateTrackClosestToStart.duplicate.id
                         : undefined,
@@ -116,11 +118,11 @@ export const splitReducers = {
                 {
                     switchId: payload,
                     name:
-                        closestDupe.distance <= DUPLICATE_MAX_DISTANCE
+                        closestDupe && closestDupe.distance <= DUPLICATE_MAX_DISTANCE
                             ? closestDupe.duplicate.name
                             : '',
                     duplicateOf:
-                        closestDupe.distance <= DUPLICATE_MAX_DISTANCE
+                        closestDupe && closestDupe.distance <= DUPLICATE_MAX_DISTANCE
                             ? closestDupe.duplicate.id
                             : undefined,
                     descriptionBase: '',

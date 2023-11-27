@@ -21,12 +21,14 @@ import kotlin.test.assertNull
 class LayoutKmPostServiceIT @Autowired constructor(
     private val kmPostService: LayoutKmPostService,
     private val kmPostDao: LayoutKmPostDao,
+    private val trackNumberService: LayoutTrackNumberService,
+    private val referenceLineService: ReferenceLineService,
 ) : DBTestBase() {
 
     @Test
     fun nearbyKmPostsAreReturnedInOrder() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost1 = kmPostService.get(
+        val kmPost1 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -35,7 +37,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 )
             ).rowVersion
         )
-        val kmPost2 = kmPostService.get(
+        val kmPost2 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -44,7 +46,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 )
             ).rowVersion
         )
-        val kmPost3 = kmPostService.get(
+        val kmPost3 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -72,7 +74,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun findsKmPostAtKmNumber() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost = kmPostService.get(
+        val kmPost = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
@@ -105,7 +107,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun doesntFindKmPostOnWrongTrack() {
         val trackNumber1Id = insertOfficialTrackNumber()
         val trackNumber2Id = insertOfficialTrackNumber()
-        val kmPost = kmPostService.get(
+        val kmPost = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumber1Id,
@@ -124,11 +126,11 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val kmPost = TrackLayoutKmPost(KmNumber(7654), Point(123.4, 234.5), LayoutState.IN_USE, trackNumberId, null)
 
         val draftId = kmPostService.saveDraft(draft(kmPost)).id
-        val draftFromDb = kmPostService.getDraft(draftId)
+        val draftFromDb = kmPostService.get(DRAFT, draftId)
 
         assertEquals(1, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
 
-        kmPostService.deleteUnpublishedDraft(draftId)
+        kmPostService.deleteDraft(draftId)
 
         assertEquals(0, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
     }
@@ -143,12 +145,38 @@ class LayoutKmPostServiceIT @Autowired constructor(
         )
         val kmPostId = kmPostService.insertKmPost(kmPost)
 
-        val fetchedKmPost = kmPostService.getDraft(kmPostId)!!
-        assertNull(kmPostService.getOfficial(kmPostId))
+        val fetchedKmPost = kmPostService.get(DRAFT, kmPostId)!!
+        assertNull(kmPostService.get(OFFICIAL, kmPostId))
 
         assertEquals(DataType.STORED, fetchedKmPost.dataType)
         assertEquals(kmPost.kmNumber, fetchedKmPost.kmNumber)
         assertEquals(kmPost.state, fetchedKmPost.state)
         assertEquals(kmPost.trackNumberId, fetchedKmPost.trackNumberId)
+    }
+
+    @Test
+    fun kmPostLengthMatchesTrackNumberService() {
+        val trackNumberId = insertDraftTrackNumber()
+        referenceLineService.saveDraft(referenceLine(trackNumberId), alignment(segment(
+            Point(0.0, 0.0),
+            Point(0.0, 5.0),
+            Point(1.0, 10.0),
+            Point(3.0, 15.0),
+            Point(4.0, 20.0)
+        )))
+        val kmPosts = listOf(
+            kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0)),
+            kmPost(trackNumberId, KmNumber(2), Point(0.0, 5.0)),
+            kmPost(trackNumberId, KmNumber(3), null),
+            kmPost(trackNumberId, KmNumber(4), Point(0.0, 6.0), state = LayoutState.NOT_IN_USE),
+            kmPost(trackNumberId, KmNumber(5), Point(0.0, 10.0), state = LayoutState.PLANNED),
+            kmPost(trackNumberId, KmNumber(6, "A"), Point(3.0, 14.0)),
+            kmPost(trackNumberId, KmNumber(6, "AA"), Point(6.0, 18.0)),
+        ).map(kmPostService::saveDraft).map(DaoResponse<TrackLayoutKmPost>::id)
+        // drop(1) because the track number km lengths include the section before the first km post
+        val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)
+        val actual = kmPosts.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
+        assertEquals(expected.size, actual.size)
+        expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
     }
 }

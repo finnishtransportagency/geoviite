@@ -8,7 +8,9 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedTrackNumber
 import fi.fta.geoviite.infra.ratko.model.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -29,6 +31,9 @@ class RatkoRouteNumberService @Autowired constructor(
         publishedTrackNumbers: Collection<PublishedTrackNumber>,
         publicationTime: Instant,
     ): List<Oid<TrackLayoutTrackNumber>> {
+        logger.serviceCall("pushTrackNumberChangesToRatko",
+            "publishedTrackNumbers" to publishedTrackNumbers, "publicationTime" to publicationTime
+        )
         return publishedTrackNumbers
             .groupBy { it.version.id }
             .map { (_, trackNumbers) ->
@@ -66,7 +71,7 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber, existingRatkoRouteNumber: RatkoRouteNumber) {
-        logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber)
+        logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber, "existing" to existingRatkoRouteNumber)
         requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid, id=${trackNumber.id}" }
 
         val deletedEndsPoints = existingRatkoRouteNumber.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
