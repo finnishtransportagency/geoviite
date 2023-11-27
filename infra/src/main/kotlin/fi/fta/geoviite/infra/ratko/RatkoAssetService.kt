@@ -44,7 +44,7 @@ class RatkoAssetService @Autowired constructor(
             .sortedBy { (switch, _) -> sortByDeletedStateFirst(switch.stateCategory) }
             .forEach { (layoutSwitch, changedJoints) ->
                 try {
-                    requireNotNull(layoutSwitch.externalId) {"OID required for switch, sw=${layoutSwitch.id}"}
+                    requireNotNull(layoutSwitch.externalId) { "OID required for switch, sw=${layoutSwitch.id}" }
                         .let { oid -> ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(oid)) }
                         ?.also { existingRatkoSwitch ->
                             updateSwitch(
@@ -152,9 +152,9 @@ class RatkoAssetService @Autowired constructor(
                                 mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
                             )
 
-                                checkNotNull(jointChange.locationTrackExternalId) {
-                                    "Cannot push switch changes with missing location track oid, $jointChange"
-                                }
+                            checkNotNull(jointChange.locationTrackExternalId) {
+                                "Cannot push switch changes with missing location track oid, $jointChange"
+                            }
 
                             jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id
                                     && nodeType == node.nodeType
