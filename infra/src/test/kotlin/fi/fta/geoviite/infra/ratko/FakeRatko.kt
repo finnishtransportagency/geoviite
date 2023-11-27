@@ -28,7 +28,7 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
     fun start(): FakeRatko = FakeRatko(testRatkoPort)
 }
 
-class FakeRatko (port: Int) {
+class FakeRatko(port: Int) {
     private val mockServer: ClientAndServer =
         ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
 
@@ -66,12 +66,12 @@ class FakeRatko (port: Int) {
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.0/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
-        post("/api/assets/v1.2/",mapOf("type" to RatkoAssetType.METADATA.value))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
     fun acceptsNewSwitchGivingItOid(oid: String) {
-        post("/api/assets/v1.2/", mapOf("type" to "turnout", "id" to oid)).respond(okJson(listOf(mapOf("id" to oid))))
+        post("/api/assets/v1.2", mapOf("type" to "turnout", "id" to oid)).respond(okJson(listOf(mapOf("id" to oid))))
         put("/api/assets/v1.2/${oid}/locations").respond(ok())
         put("/api/assets/v1.2/${oid}/geoms").respond(ok())
         put("/api/assets/v1.2/${oid}/properties").respond(ok())
@@ -135,7 +135,7 @@ class FakeRatko (port: Int) {
 
     fun getPushedMetadata(locationTrackOid: String? = null, routeNumberOid: String? = null): List<RatkoMetadataAsset> =
         mockServer.retrieveRecordedRequests(
-            request().withPath("/api/assets/v1.2/")
+            request().withPath("/api/assets/v1.2")
                 .withMethod("POST")
                 .withBody(
                     JsonBody.json(
@@ -155,8 +155,8 @@ class FakeRatko (port: Int) {
         point.put("m", kmM.substring(5))
     }
 
-    fun lastPushedSwitchBody(oid: String) = mockServer.retrieveRecordedRequests(
-        request().withPath("/api/assets/v1.2/")
+    fun lastPushedSwitchBody(oid: String): String = mockServer.retrieveRecordedRequests(
+        request().withPath("/api/assets/v1.2")
             .withMethod("POST")
             .withBody(JsonBody.json(mapOf("type" to "turnout", "id" to oid)))
     ).last().bodyAsString

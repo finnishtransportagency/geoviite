@@ -35,6 +35,68 @@
         }
     }
 
+    &__header {
+        &--track-number {
+            min-width: 100px;
+        }
+
+        &--location-track {
+            min-width: 160px;
+        }
+
+        &--alignment {
+            min-width: 85px;
+        }
+
+        &--element-type {
+            min-width: 110px;
+        }
+
+        &--track-address {
+            min-width: 110px;
+        }
+
+        &--coordinate-system {
+            min-width: 135px;
+        }
+
+        &--location {
+            min-width: 100px;
+            text-align: center;
+        }
+
+        &--length {
+            min-width: 60px;
+        }
+
+        &--cant {
+            min-width: 55px;
+            text-align: center;
+        }
+
+        &--curve {
+            min-width: 70px;
+            text-align: center;
+        }
+
+        &--angle {
+            min-width: 90px;
+            text-align: center;
+        }
+
+        &--plan {
+            min-width: 350px;
+        }
+
+        &--source {
+            min-width: 100px;
+        }
+
+        &--remarks {
+            min-width: 400px;
+        }
+    }
+
     &__column--number {
         text-align: right;
     }

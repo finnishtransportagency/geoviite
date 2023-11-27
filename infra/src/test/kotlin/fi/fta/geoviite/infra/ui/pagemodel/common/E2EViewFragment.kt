@@ -67,7 +67,7 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun waitUntilChildInvisible(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilNotVisible(childBy(by), timeout)
 
-    //Thils will not check for child's visibility
+    //This will not check for child's visibility
     protected fun waitUntilChildExists(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilExists(childBy(by), timeout)
 

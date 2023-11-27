@@ -68,8 +68,7 @@ class PVIntegrationService @Autowired constructor(
         logger.info("Poll for search results")
         pvDao.fetchLatestActiveSearch()?.let { latestSearch ->
             updateDictionaries()
-            getSearchStatusIfReady(latestSearch)
-                ?.let { status -> importFilesFromProjektiVelho(latestSearch, status) }
+            getSearchStatusIfReady(latestSearch)?.let { status -> importFilesFromProjektiVelho(latestSearch, status) }
         }
     }
 

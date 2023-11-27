@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
@@ -13,7 +14,6 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -86,7 +86,7 @@ class LayoutTrackNumberController(
     @DeleteMapping("/draft/{id}")
     fun deleteDraftTrackNumber(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("deleteDraftTrackNumber", "id" to id)
-        return trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(id)
+        return trackNumberService.deleteDraftAndReferenceLine(id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -149,10 +149,9 @@ class LayoutTrackNumberController(
         logger.apiCall("getEntireRailNetworkTrackNumberKmLengthsAsCsv", "lang" to lang)
 
         val csv = trackNumberService.getAllKmLengthsAsCsv(
-            publishType = PublishType.OFFICIAL,
-            trackNumberIds = trackNumberService.listOfficial().map { tn ->
-                tn.id as IntId
-            })
+            publishType = OFFICIAL,
+            trackNumberIds = trackNumberService.list(OFFICIAL).map { tn -> tn.id as IntId },
+        )
 
         val localization = localizationService.getLocalization(lang)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))

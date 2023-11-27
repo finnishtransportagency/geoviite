@@ -362,7 +362,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 disabled={!canLockAlignment}
                                 onClick={lockAlignment}
                                 qa-id="lock-alignment">
-                                {t('tool-panel.alignment.geometry.lock-location-track')}
+                                {t('tool-panel.alignment.geometry.lock-alignment')}
                             </Button>
                         </InfoboxButtons>
                     )}

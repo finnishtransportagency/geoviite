@@ -241,6 +241,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         iconDisabled={isOfficial()}
                     />
                     <InfoboxField
+                        qaId="location-track-type"
                         label={t('tool-panel.location-track.type')}
                         value={<LocationTrackTypeLabel type={locationTrack.type} />}
                         onEdit={openEditLocationTrackDialog}

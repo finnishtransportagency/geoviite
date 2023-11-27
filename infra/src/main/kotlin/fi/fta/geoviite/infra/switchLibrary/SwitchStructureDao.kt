@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_SWITCH_STRUCTURE
 import fi.fta.geoviite.infra.logging.AccessType
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
@@ -37,7 +38,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             )
             switchType
         }
-        logger.daoAccess(AccessType.FETCH, SwitchStructure::class, switchStructures.map { it.id })
+        logger.daoAccess(FETCH, SwitchStructure::class, switchStructures.map { it.id })
         return switchStructures
     }
 
@@ -66,9 +67,8 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             )
             switchType
         }
-        logger.daoAccess(AccessType.FETCH, SwitchStructure::class, switchStructure)
+        logger.daoAccess(FETCH, SwitchStructure::class, version)
         return switchStructure
-
     }
 
     private fun fetchSwitchTypeJoints(switchStructureId: IntId<SwitchStructure>): List<SwitchJoint> {
@@ -84,11 +84,10 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val params = mapOf("switch_structure_id" to switchStructureId.intValue)
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            val switchTypeJoint = SwitchJoint(
+            SwitchJoint(
                 number = rs.getJointNumber("number"),
-                location = rs.getPoint("x", "y")
+                location = rs.getPoint("x", "y"),
             )
-            switchTypeJoint
         }
     }
 
@@ -116,13 +115,13 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 SwitchElementType.LINE -> SwitchElementLine(
                     id = elementId,
                     start = rs.getPoint("start_x", "start_y"),
-                    end = rs.getPoint("end_x", "end_y")
+                    end = rs.getPoint("end_x", "end_y"),
                 )
                 SwitchElementType.CURVE -> SwitchElementCurve(
                     id = elementId,
                     start = rs.getPoint("start_x", "start_y"),
                     end = rs.getPoint("end_x", "end_y"),
-                    radius = rs.getDouble("curve_radius")
+                    radius = rs.getDouble("curve_radius"),
                 )
             }
         }
@@ -139,19 +138,17 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val params = mapOf("switch_structure_id" to switchStructureId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val switchAlignmentId = rs.getIntId<SwitchAlignment>("id")
-            val switchTypeAlignment = SwitchAlignment(
+            SwitchAlignment(
                 jointNumbers = rs.getIntArray("joint_numbers").map { number -> JointNumber(number) },
-                elements = fetchSwitchTypeElements(switchAlignmentId)
+                elements = fetchSwitchTypeElements(switchAlignmentId),
             )
-            switchTypeAlignment
         }
     }
 
     @Transactional
     fun insertSwitchStructure(switchStructure: SwitchStructure): RowVersion<SwitchStructure> {
         val sql = """
-            insert into common.switch_structure
-                (
+            insert into common.switch_structure(
                   type,
                   presentation_joint_number
                 )

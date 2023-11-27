@@ -35,7 +35,6 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
-
 enum class VerticalIntersectionType {
     POINT, CIRCULAR_CURVE,
 }
@@ -681,6 +680,10 @@ class GeometryDao @Autowired constructor(
         headerCache.putAll(headers)
     }
 
+    fun getPlanHeader(planId: IntId<GeometryPlan>) = getPlanHeader(fetchPlanVersion(planId))
+
+    fun getPlanHeaders(planIds: List<IntId<GeometryPlan>>) = fetchManyPlanVersions(planIds).map(::getPlanHeader)
+
     fun getPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader =
         if (cacheEnabled) headerCache.get(rowVersion) { v -> getPlanHeaderInternal(v) }
         else getPlanHeaderInternal(rowVersion)
@@ -777,6 +780,9 @@ class GeometryDao @Autowired constructor(
             isHidden = rs.getBoolean("hidden"),
         )
     }
+
+    fun fetchPlanHeaders(sources: List<PlanSource>, bbox: BoundingBox?): List<GeometryPlanHeader> =
+        fetchPlanVersions(sources, bbox).map(::getPlanHeader)
 
     fun fetchPlanVersions(
         sources: List<PlanSource>,
@@ -1108,7 +1114,7 @@ class GeometryDao @Autowired constructor(
                         name = PlanElementName(name),
                         description = PlanElementName(rs.getString("cant_description")),
                         gauge = rs.getBigDecimal("cant_gauge"),
-                        rotationPoint = rs.getEnum("cant_rotation_point"),
+                        rotationPoint = rs.getEnumOrNull<CantRotationPoint>("cant_rotation_point"),
                         points = fetchCantPoints(alignmentId),
                     )
                 },

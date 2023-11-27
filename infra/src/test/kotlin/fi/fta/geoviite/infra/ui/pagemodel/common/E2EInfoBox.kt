@@ -12,6 +12,12 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
     private fun getValueBy(fieldQaId: String) = ByChained(byQaId(fieldQaId), By.className("infobox__field-value"))
 
+    protected fun getEnumValueForField(fieldQaId: String): String {
+        logger.info("Get enum value for field $fieldQaId")
+
+        return childElement(ByChained(getValueBy(fieldQaId), By.tagName("span"))).getAttribute("qa-id")
+    }
+
     protected fun getValueForField(fieldQaId: String): String {
         logger.info("Get value for field $fieldQaId")
 

@@ -14,7 +14,6 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
-
 @Transactional(readOnly = true)
 @Component
 class GeocodingDao(
@@ -26,10 +25,19 @@ class GeocodingDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
 
+    fun listLayoutGeocodingContextCacheKeys(publicationState: PublishType): List<LayoutGeocodingContextCacheKey> =
+        getLayoutGeocodingContextCacheKeysInternal(publicationState, null)
+
     fun getLayoutGeocodingContextCacheKey(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): LayoutGeocodingContextCacheKey? {
+    ): LayoutGeocodingContextCacheKey? =
+        getOptional(trackNumberId, getLayoutGeocodingContextCacheKeysInternal(publicationState, trackNumberId))
+
+    private fun getLayoutGeocodingContextCacheKeysInternal(
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    ): List<LayoutGeocodingContextCacheKey> {
         //language=SQL
         val sql = """
             select
@@ -48,14 +56,14 @@ class GeocodingDao(
                 and :publication_state = any(kmp.publication_states)
                 and kmp.state = 'IN_USE'
             where :publication_state = any(tn.publication_states)
-              and :tn_id = tn.official_id
+              and (:tn_id::int is null or :tn_id = tn.official_id)
             group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """.trimIndent()
         val params = mapOf(
-            "tn_id" to trackNumberId.intValue,
+            "tn_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
         )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
+        return jdbcTemplate.queryNotNull(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
     fun getLayoutGeocodingContextCacheKey(
@@ -154,7 +162,7 @@ class GeocodingDao(
         } else null
     }
 
-    private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) =
-        if (ids.size == versions.size) ids.mapIndexed { index, id -> RowVersion(id, versions[index]) }
-        else throw IllegalStateException("Unmatched row-versions: ids=$ids versions=$versions")
+    private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) = ids
+        .also { check(it.size == versions.size) { "Unmatched row-versions: ids=$ids versions=$versions" } }
+        .mapIndexed { index, id -> RowVersion(id, versions[index]) }
 }

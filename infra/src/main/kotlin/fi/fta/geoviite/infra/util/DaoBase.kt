@@ -6,9 +6,12 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.util.FetchType.MULTI
+import fi.fta.geoviite.infra.util.FetchType.SINGLE
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.sql.ResultSet
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -17,8 +20,8 @@ enum class FetchType {
 }
 
 fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
-    FetchType.MULTI -> "in (:ids)"
-    FetchType.SINGLE -> "= :id"
+    MULTI -> "in (:ids)"
+    SINGLE -> "= :id"
 }
 
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
@@ -44,6 +47,15 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     val versionTable = "$schema.${table}_version"
     val draftLink: String = "draft_of_${table}_id"
     val orderBy: String = sortColumns.joinToString(",")
+
+    //language=SQL
+    val changeTimeSql = "select max(change_time) change_time from $versionTable"
+    //language=SQL
+    val singleRowVersionSql = "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(SINGLE)}"
+    //language=SQL
+    val multiRowVersionSql = "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(MULTI)}"
+    //language=SQL
+    val rowVersionsSql = "select id, version from $fullName order by $orderBy"
 }
 
 open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
@@ -60,34 +72,26 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
     protected fun <T> fetchRowVersion(id: IntId<T>, table: DbTable): RowVersion<T> {
         logger.daoAccess(VERSION_FETCH, "fetchRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersion(
-            "select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.SINGLE)}",
-            id
-        )
+        return queryRowVersion(table.singleRowVersionSql, id)
     }
 
     protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
         logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
-        return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
-            "select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.MULTI)}",
-            mapOf("ids" to ids.map { it.intValue })
-        ) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        return if (ids.isEmpty()) {
+            emptyList()
+        } else {
+            jdbcTemplate.query(table.multiRowVersionSql, mapOf("ids" to ids.map { it.intValue }), ::toRowVersion)
         }
     }
-
 
     protected fun <T> fetchRowVersions(table: DbTable): List<RowVersion<T>> {
         logger.daoAccess(VERSION_FETCH, "fetchRowVersions", "table" to table.fullName)
-        val sql = "select id, version from ${table.fullName} order by ${table.orderBy}"
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }
+        return jdbcTemplate.query(table.rowVersionsSql, mapOf<String, Any>(), ::toRowVersion)
     }
 
     protected fun fetchLatestChangeTime(table: DbTable): Instant {
-        val sql = "select max(change_time) change_time from ${table.versionTable}"
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
+        return jdbcTemplate
+            .query(table.changeTimeSql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
             .firstOrNull() ?: Instant.EPOCH
     }
 
@@ -97,37 +101,39 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     }
 
     protected fun <T> queryRowVersion(sql: String, id: IntId<T>): RowVersion<T> =
-        jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), id.toString()) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }
+        jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), id.toString(), ::toRowVersion)
 
     protected fun <T> queryRowVersionOrNull(sql: String, id: IntId<T>): RowVersion<T>? =
-        jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ ->
-            rs.getRowVersionOrNull("id", "version")
-        }
+        jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue), ::toRowVersionOrNull)
+
+    protected fun <T> toRowVersion(rs: ResultSet, index: Int): RowVersion<T> =
+        rs.getRowVersion("id", "version")
+
+    protected fun <T> toRowVersionOrNull(rs: ResultSet, index: Int): RowVersion<T> =
+        rs.getRowVersion("id", "version")
 }
 
 inline fun <reified T, reified S> getOne(id: DomainId<T>, result: List<S>) =
     getOptional(id, result) ?: throw NoSuchEntityException(T::class, id)
 
 inline fun <reified T, reified S> getOptional(id: DomainId<T>, result: List<S>): S? {
-    if (result.size > 1) {
+    require (result.size <= 1) {
         val idDesc = if (S::class == T::class) "id $id" else "${T::class.simpleName}.id $id"
-        throw IllegalStateException("Found more than one ${S::class.simpleName} with same $idDesc")
+        "Found more than one ${S::class.simpleName} with same $idDesc"
     }
     return result.firstOrNull()
 }
 
 fun <T, S> getOne(name: String, id: DomainId<T>, result: List<S>): S {
     if (result.isEmpty()) throw NoSuchEntityException(name, id)
-    else if (result.size > 1) {
-        throw IllegalStateException("Found more than one $name with id: $id")
-    }
+    else if (result.size > 1) error("Found more than one $name with id: $id")
     return result.first()
 }
 
-inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> = if (id is IntId) id
-else throw NoSuchEntityException(T::class, id)
+inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> =
+    if (id is IntId) id
+    else throw NoSuchEntityException(T::class, id)
 
-fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> = if (id is IntId) id
-else throw NoSuchEntityException(clazz, id)
+fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> =
+    if (id is IntId) id
+    else throw NoSuchEntityException(clazz, id)

@@ -121,21 +121,21 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     @Test
     fun mixedNullsInHeightAndCantWork() {
         val points = listOf(
-            LayoutPoint(
+            SegmentPoint(
                 x = 10.0,
                 y = 20.0,
                 z = 1.0,
                 cant = 0.1,
                 m = 0.0,
             ),
-            LayoutPoint(
+            SegmentPoint(
                 x = 10.0,
                 y = 21.0,
                 z = null,
                 cant = null,
                 m = 1.0,
             ),
-            LayoutPoint(
+            SegmentPoint(
                 x = 10.0,
                 y = 22.0,
                 z = 1.5,
@@ -147,17 +147,17 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val version = alignmentDao.insert(alignment)
         val fromDb = alignmentDao.fetch(version)
         assertEquals(1, fromDb.segments.size)
-        assertEquals(points, fromDb.segments[0].points)
+        assertEquals(points, fromDb.segments[0].segmentPoints)
 
         val points2 = listOf(
-            LayoutPoint(
+            SegmentPoint(
                 x = 11.0,
                 y = 22.0,
                 z = 1.0,
                 cant = null,
                 m = 0.0,
             ),
-            LayoutPoint(
+            SegmentPoint(
                 x = 11.0,
                 y = 23.0,
                 z = null,
@@ -170,7 +170,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val updatedFromDb = alignmentDao.fetch(updatedVersion)
 
         assertEquals(1, updatedFromDb.segments.size)
-        assertEquals(points2, updatedFromDb.segments[0].points)
+        assertEquals(points2, updatedFromDb.segments[0].segmentPoints)
     }
 
     @Test
@@ -329,9 +329,9 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         )
     )
 
-    private fun createSegment(segmentSeed: Int, points: List<LayoutPoint>) = segment(
+    private fun createSegment(segmentSeed: Int, points: List<SegmentPoint>) = segment(
         points = points,
-        start = segmentSeed * 0.1,
+        startM = segmentSeed * 0.1,
         source = GeometrySource.PLAN,
     )
 

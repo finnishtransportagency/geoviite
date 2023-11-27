@@ -59,6 +59,7 @@ import {
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
 import { isNilOrBlank } from 'utils/string-utils';
+import { deduplicate } from 'utils/array-utils';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -372,3 +373,14 @@ export function refereshKmPostSelection(
         });
     };
 }
+
+export const getSaveDisabledReasons = (reasons: string[], saveInProgress: boolean): string[] =>
+    saveInProgress
+        ? ['save-in-progress']
+        : deduplicate(
+              reasons.map((reason) => {
+                  if (reason.includes('mandatory-field')) return 'mandatory-fields-missing';
+                  if (reason === 'km-post-regexp') return 'invalid-km-post-number';
+                  else return reason;
+              }),
+          );

@@ -4,6 +4,7 @@ import {
     LayoutKmPost,
     LayoutKmPostId,
     LayoutTrackNumberId,
+    TrackLayoutKmPostLength,
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
@@ -170,6 +171,15 @@ export async function getKmLengths(
 ): Promise<LayoutKmLengthDetails[]> {
     return getNonNull<LayoutKmLengthDetails[]>(
         `${layoutUri('track-numbers', publishType, id)}/km-lengths`,
+    );
+}
+
+export async function getSingleKmPostKmLength(
+    publishType: PublishType,
+    id: LayoutKmPostId,
+): Promise<TrackLayoutKmPostLength> {
+    return getNonNull<TrackLayoutKmPostLength>(
+        `${layoutUri('km-posts', publishType, id)}/km-length`,
     );
 }
 

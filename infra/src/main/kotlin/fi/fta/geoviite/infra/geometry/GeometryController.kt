@@ -44,11 +44,12 @@ class GeometryController @Autowired constructor(
         @RequestParam("offset") offset: Int?,
         @RequestParam("sortField") sortField: GeometryPlanSortField?,
         @RequestParam("sortOrder") sortOrder: SortOrder?,
+        @RequestParam("lang") lang: String,
     ): Page<GeometryPlanHeader> {
         log.apiCall("getPlanHeaders", "sources" to sources)
         val filter = geometryService.getFilter(freeText, trackNumberIds ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
-        val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING)
+        val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
         return page(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
     }
 
@@ -119,7 +120,6 @@ class GeometryController @Autowired constructor(
         return geometryService.getGeometryElement(geometryElementId)
     }
 
-
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/projects")
     fun getProjects(): List<Project> {
@@ -136,7 +136,7 @@ class GeometryController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/projects")
-    fun createProject(@RequestBody project: Project): Project {
+    fun createProject(@RequestBody project: Project): IntId<Project> {
         log.apiCall("createProject", "project" to project)
         return geometryService.createProject(project)
     }

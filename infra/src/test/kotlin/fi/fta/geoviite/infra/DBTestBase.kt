@@ -55,6 +55,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     }
 
     fun <T> transactional(op: () -> T): T = transaction.execute {
+        initUserMdc()
         jdbc.setUser()
         op()
     } ?: throw IllegalStateException("Transaction returned nothing")

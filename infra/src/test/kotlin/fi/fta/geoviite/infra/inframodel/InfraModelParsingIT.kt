@@ -25,6 +25,7 @@ import java.math.BigDecimal
 
 const val TESTFILE_SIMPLE = "/inframodel/testfile_simple.xml"
 const val TESTFILE_CLOTHOID_AND_PARABOLA = "/inframodel/testfile_clothoid_and_parabola.xml"
+const val TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT = "/inframodel/testfile_simple_without_cant_rotation_point.xml"
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -32,7 +33,7 @@ class InfraModelParsingIT @Autowired constructor(
     geographyService: GeographyService,
     switchStructureDao: SwitchStructureDao,
     val trackNumberDao: LayoutTrackNumberDao,
-): DBTestBase() {
+) : DBTestBase() {
     private val coordinateSystemNameToSrid = geographyService.getCoordinateSystemNameToSridMapping()
     private val switchStructuresByType = switchStructureDao.fetchSwitchStructures().associateBy { it.type }
     private val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
@@ -115,7 +116,7 @@ class InfraModelParsingIT @Autowired constructor(
                                     "1001.000",
                                     "start start",
                                     "center center",
-                                    "end end"
+                                    "end end",
                                 ),
                                 InfraModelSpiral403(
                                     "s1",
@@ -131,16 +132,17 @@ class InfraModelParsingIT @Autowired constructor(
                                     "INF",
                                     "start start",
                                     "pi pi",
-                                    "end end"
+                                    "end end",
                                 ),
-                                InfraModelLine403("l2", "o02", "123.126", "13.000", "start start", "end end")
+                                InfraModelLine403("l2", "o02", "123.126", "13.000", "start start", "end end"),
                             ),
                             cant = InfraModelCant403(
-                                "tc", "test cant", "1.01", "insideRail", listOf(
+                                "tc", "test cant", "1.01", "insideRail",
+                                listOf(
                                     InfraModelCantStation403("12.12", "0.045000", "cw"),
                                     InfraModelCantStation403("123.123", "0.055000", "ccw"),
                                     InfraModelCantStation403("1234.1234", "0.065000", "cw"),
-                                )
+                                ),
                             ),
                             profile = InfraModelProfile403(
                                 InfraModelProfAlign403(
@@ -149,27 +151,27 @@ class InfraModelParsingIT @Autowired constructor(
                                         InfraModelPvi403("test start PVI", "100.001"),
                                         InfraModelCircCurve403("test circcurve 1", "12.3", "654321", "123.321 456.654"),
                                         InfraModelCircCurve403("test circcurve 2", "21.3", "123456", "321.123 654.456"),
-                                        InfraModelPvi403("test end PVI", "1000.5")
+                                        InfraModelPvi403("test end PVI", "1000.5"),
                                     ),
                                     listOf(
                                         InfraModelFeature403(
                                             "profalignfeature",
-                                            listOf(InfraModelProperty403("testprop", "testvalue"))
-                                        )
-                                    )
+                                            listOf(InfraModelProperty403("testprop", "testvalue")),
+                                        ),
+                                    ),
                                 ),
                                 listOf(
                                     InfraModelFeature403(
                                         "profilefeature",
-                                        listOf(InfraModelProperty403("testprop", "testvalue"))
-                                    )
-                                )
+                                        listOf(InfraModelProperty403("testprop", "testvalue")),
+                                    ),
+                                ),
                             ),
                             features = listOf(
                                 InfraModelFeature403(
                                     "alignmentfeature",
-                                    listOf(InfraModelProperty403("testprop", "testvalue"))
-                                )
+                                    listOf(InfraModelProperty403("testprop", "testvalue")),
+                                ),
                             ),
                             staEquations = listOf(
                                 InfraModelStaEquation403(
@@ -178,13 +180,14 @@ class InfraModelParsingIT @Autowired constructor(
                                     staInternal = "304.954785",
                                     desc = "1",
                                     InfraModelFeature403(
-                                        code = "IM_kmPostCoords", listOf(
+                                        code = "IM_kmPostCoords",
+                                        listOf(
                                             InfraModelProperty403(label = "northing", value = "6674007.758000"),
-                                            InfraModelProperty403(label = "easting", value = "25496599.876000")
-                                        )
-                                    )
-                                )
-                            )
+                                            InfraModelProperty403(label = "easting", value = "25496599.876000"),
+                                        ),
+                                    ),
+                                ),
+                            ),
                         ),
                         InfraModelAlignment403(
                             name = "alignment2",
@@ -222,10 +225,10 @@ class InfraModelParsingIT @Autowired constructor(
                                     "pi pi",
                                     "end end"
                                 ),
-                                InfraModelLine403("l4", "o04", "123.130", "23.000", "start start", "end end")
-                            )
-                        )
-                    )
+                                InfraModelLine403("l4", "o04", "123.130", "23.000", "start start", "end end"),
+                            ),
+                        ),
+                    ),
                 )
             )
         )
@@ -320,21 +323,21 @@ class InfraModelParsingIT @Autowired constructor(
                                     listOf(
                                         InfraModelFeature404(
                                             "profalignfeature",
-                                            listOf(InfraModelProperty404("testprop", "testvalue"))
-                                        )
-                                    )
+                                            listOf(InfraModelProperty404("testprop", "testvalue")),
+                                        ),
+                                    ),
                                 ),
                                 listOf(
                                     InfraModelFeature404(
                                         "profilefeature",
-                                        listOf(InfraModelProperty404("testprop", "testvalue"))
-                                    )
-                                )
+                                        listOf(InfraModelProperty404("testprop", "testvalue")),
+                                    ),
+                                ),
                             ),
                             features = listOf(
                                 InfraModelFeature404(
                                     "alignmentfeature",
-                                    listOf(InfraModelProperty404("testprop", "testvalue"))
+                                    listOf(InfraModelProperty404("testprop", "testvalue")),
                                 )
                             ),
                             staEquations = listOf(
@@ -346,11 +349,11 @@ class InfraModelParsingIT @Autowired constructor(
                                     InfraModelFeature404(
                                         code = "IM_kmPostCoords", listOf(
                                             InfraModelProperty404(label = "northing", value = "6674007.758000"),
-                                            InfraModelProperty404(label = "easting", value = "25496599.876000")
+                                            InfraModelProperty404(label = "easting", value = "25496599.876000"),
                                         )
                                     )
                                 )
-                            )
+                            ),
                         ),
                         InfraModelAlignment404(
                             name = "alignment2",
@@ -390,8 +393,8 @@ class InfraModelParsingIT @Autowired constructor(
                                 ),
                                 InfraModelLine404("l4", "o04", "123.130", "23.000", "start start", "end end")
                             )
-                        )
-                    )
+                        ),
+                    ),
                 )
             )
         )
@@ -399,8 +402,6 @@ class InfraModelParsingIT @Autowired constructor(
         val sw = StringWriter()
         marshaller.marshal(infraModelObject, sw)
         val xmlString = sw.toString()
-
-        println("xmlString $xmlString")
 
         assertTrue(xmlString.startsWith("<?xml"))
         assertTrue(xmlString.contains("LandXML"))
@@ -419,6 +420,22 @@ class InfraModelParsingIT @Autowired constructor(
         assertEquals(infraModelObject, parsed)
     }
 
+    @Test
+    fun `InfraModel Cant-field is allowed to have missing rotationPoint-attribute`() {
+        val xmlString = classpathResourceToString(TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT)
+        val infraModel =
+            toInfraModel(toInfraModelFile(FileName("testfile_without_cant_rotation_point.xml"), xmlString))
+
+        toGvtPlan(
+            PlanSource.GEOMETRIAPALVELU,
+            FileName(TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT),
+            infraModel,
+            coordinateSystemNameToSrid,
+            switchStructuresByType,
+            switchTypeNameAliases,
+            trackNumberDao.getTrackNumberToIdMapping(),
+        )
+    }
 
     private fun assertTrackNumbersMatch(
         infraModelAlignmentGroups: List<InfraModelAlignmentGroup>,
@@ -467,7 +484,8 @@ class InfraModelParsingIT @Autowired constructor(
     }
 
     private fun assertFeatureTypeCodeMatch(features: List<InfraModelFeature>, featureTypeCode: FeatureTypeCode?) {
-        val xmlCodeProperty = features.find { imFeature -> imFeature.code == "IM_coding" }
+        val xmlCodeProperty = features
+            .find { imFeature -> imFeature.code == "IM_coding" }
             ?.getPropertyAnyMatch(listOf("terrainCoding", "infraCoding"))
         assertEquals(xmlCodeProperty?.let(::FeatureTypeCode), featureTypeCode)
     }

@@ -24,7 +24,7 @@ private fun overlapsAddressInterval(
             (start == null || context != null && getEndAddress(segment, context)?.let { it > start } == true)
 
 private fun getStartAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.points.first())?.first
+    context.getAddress(segment.alignmentStart)?.first
 
 private fun getEndAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.points.last())?.first
+    context.getAddress(segment.alignmentEnd)?.first

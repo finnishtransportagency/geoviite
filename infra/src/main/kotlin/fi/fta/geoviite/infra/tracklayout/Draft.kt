@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.logging.Loggable
 
 enum class DraftType {
     OFFICIAL, EDITED_DRAFT, NEW_DRAFT
@@ -12,7 +13,7 @@ enum class DraftType {
 
 data class Draft<T>(val draftRowId: DomainId<T> = StringId())
 
-interface Draftable<T> {
+interface Draftable<T> : Loggable {
     val id: DomainId<T>
     val version: RowVersion<T>?
     val dataType: DataType

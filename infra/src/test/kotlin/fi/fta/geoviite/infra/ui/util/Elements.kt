@@ -13,7 +13,7 @@ import java.util.regex.Pattern
 
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
-val defaultWait: Duration = Duration.ofSeconds(10L)
+val defaultWait: Duration = Duration.ofSeconds(5L)
 val defaultPoll: Duration = Duration.ofMillis(100)
 
 fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {

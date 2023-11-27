@@ -41,6 +41,8 @@ import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import { ChangesBeingReverted } from 'preview/preview-view';
+import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -99,7 +101,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
-    const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
+    const [deleting, setDeleting] = React.useState<ChangesBeingReverted>();
     const isOfficial = publishType === 'OFFICIAL';
     const officialTrackNumbers = useTrackNumbers('OFFICIAL');
     const isDeletable =
@@ -134,6 +136,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     };
 
     const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
+
+    const onRequestDelete = () => onRequestDeleteTrackNumber(trackNumber, setDeleting);
 
     return (
         <React.Fragment>
@@ -326,7 +330,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         {isDeletable && (
                             <InfoboxButtons>
                                 <Button
-                                    onClick={() => setConfirmingDraftDelete(true)}
+                                    onClick={onRequestDelete}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}
                                     size={ButtonSize.SMALL}>
@@ -337,11 +341,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
-            {confirmingDraftDelete && (
+            {deleting !== undefined && (
                 <TrackNumberDeleteConfirmationDialog
-                    id={trackNumber.id}
-                    onClose={() => setConfirmingDraftDelete(false)}
+                    changesBeingReverted={deleting}
+                    onClose={() => setDeleting(undefined)}
                     onSave={handleTrackNumberSave}
+                    changeTimes={changeTimes}
                 />
             )}
             {showEditDialog && (

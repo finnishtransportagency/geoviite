@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import browser
 import clickElementAtPoint
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import javaScriptExecutor
@@ -77,7 +77,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
-    fun clickAtCoordinates(point: LayoutPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+    fun clickAtCoordinates(point: AlignmentPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 

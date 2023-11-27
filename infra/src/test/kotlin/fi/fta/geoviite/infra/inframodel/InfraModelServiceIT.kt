@@ -57,6 +57,16 @@ class InfraModelServiceIT @Autowired constructor(
         assertTrue(exception.message?.contains("InfraModel file exists already") ?: false)
     }
 
+    @Test
+    fun `InfraModel with empty rotationPoint value in the Cant-field can be saved to and fetched from the database`() {
+        val file = getMockedMultipartFile(TESTFILE_SIMPLE_WITHOUT_CANT_ROTATION_POINT)
+
+        val parsedPlan = infraModelService.parseInfraModel(toInfraModelFile(file, null))
+        val planId = infraModelService.saveInfraModel(file, null, null)
+
+        assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))
+    }
+
     fun getMockedMultipartFile(fileLocation: String): MockMultipartFile = MockMultipartFile(
         "file",
         "file.xml",

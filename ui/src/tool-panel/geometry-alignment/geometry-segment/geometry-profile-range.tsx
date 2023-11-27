@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -7,8 +7,8 @@ import { GeometryPlanHeader } from 'geometry/geometry-model';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
 
-const getProfileRange = (trackLayoutPoints: LayoutPoint[]): string => {
-    const z: number[] = trackLayoutPoints.map((point) => point.z).filter(filterNotEmpty);
+const getProfileRange = (points: AlignmentPoint[]): string => {
+    const z: number[] = points.map((point) => point.z).filter(filterNotEmpty);
     if (z.length === 0) {
         return '-';
     } else {
@@ -19,7 +19,7 @@ const getProfileRange = (trackLayoutPoints: LayoutPoint[]): string => {
 };
 
 type CantRangeComponentProps = {
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     planHeader: GeometryPlanHeader;
 };
 

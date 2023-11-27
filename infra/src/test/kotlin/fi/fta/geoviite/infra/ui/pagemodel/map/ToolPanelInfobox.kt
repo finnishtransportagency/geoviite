@@ -13,7 +13,7 @@ class E2EGeometryPlanGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val fileName: String get() = getValueForField("geometry-plan-file")
     val planPhase: String get() = getValueForField("geometry-plan-phase")
     val decisionPhase: String get() = getValueForField("geometry-plan-decision")
-    val trackNumber: String get() = getValueForField("geometry-plan-track-number")
+    val trackNumber: String get() = getValueWhenFieldHasValue("geometry-plan-track-number")
     val startKmNumber: String get() = getValueForField("geometry-plan-start-km")
     val endKmNumber: String get() = getValueForField("geometry-plan-end-km")
 }
@@ -78,9 +78,13 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 class E2ELocationTrackGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val oid: String get() = getValueForField("location-track-oid")
     val name: String get() = getValueForField("location-track-name")
-    val state: String get() = getValueForField("location-track-state")
-    val description: String get() = getValueForField("location-track-description")
-    val trackNumber: String get() = getValueForField("location-track-track-number")
+    val state: String get() = getEnumValueForField("location-track-state")
+    val type: String get() = getEnumValueForField("location-track-type")
+
+    val description: String get() = getValueWhenFieldHasValue("location-track-description")
+    val trackNumber: String get() = getValueWhenFieldHasValue("location-track-track-number")
+
+    fun waitUntilDescriptionChanges(value: String) = waitUntilValueChangesForField("location-track-description", value)
 
     fun edit(): E2ELocationTrackEditDialog {
         logger.info("Enable location track editing")
