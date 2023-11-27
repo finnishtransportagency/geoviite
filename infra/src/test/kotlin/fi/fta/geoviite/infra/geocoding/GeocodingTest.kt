@@ -254,7 +254,7 @@ class GeocodingTest {
             startAddress = startAddress,
             referenceLineGeometry = alignment(startSegment, connectSegment, endSegment),
             kmPosts = listOf(),
-        ).geocodingContext
+        ).geocodingContext!!
 
         val addressPoints = ctx.getAddressPoints(alignment(segment(
             Point(7.0, -2.0),
@@ -537,7 +537,7 @@ class GeocodingTest {
             startAddress = referenceLine.startAddress,
             referenceLineGeometry = referenceLineAlignment,
             kmPosts = listOf(),
-        ).geocodingContext
+        ).geocodingContext!!
 
         val result = testContext.getSwitchPoints(alignment(
             segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),
@@ -729,6 +729,23 @@ class GeocodingTest {
         }
     }
 
+    @Test
+    fun `should require start km to have sane length`() {
+        val trackNumber = trackNumber(TrackNumber("T001"))
+        val startAlignment = LayoutAlignment(
+            segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        )
+        val kmPost = kmPost(IntId(1), KmNumber(1), Point(15.0, 0.0))
+        val result = GeocodingContext.create(
+            trackNumber = trackNumber,
+            startAddress = TrackMeter(KmNumber(0), 9990),
+            referenceLineGeometry = startAlignment,
+            kmPosts = listOf(kmPost),
+        )
+
+        assertEquals(null, result.geocodingContext)
+        assertEquals(StartPointRejectedReason.TOO_LONG, result.startPointRejectedReason)
+    }
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
         assertEquals(expected.size, result.size,

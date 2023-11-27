@@ -1211,7 +1211,8 @@
                 "km-post-outside-line-after": "Tasakilometripiste ({{kmNumber}}) sijaitsee linjan {{trackNumber}} jälkeen",
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
                 "km-posts-invalid": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
-                "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta"
+                "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta",
+                "start-km-too-long": "Alkukilometri ottaen huomioon alkupisteen metrit on liian pitkä"
             }
         }
     },

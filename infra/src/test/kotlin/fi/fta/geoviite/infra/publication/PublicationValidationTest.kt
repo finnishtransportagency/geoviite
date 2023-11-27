@@ -543,7 +543,8 @@ class PublicationValidationTest {
                         kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0)),
                         kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0)),
                     ),
-                )
+                ),
+                TrackNumber("001"),
             ),
             error,
         )
@@ -557,7 +558,8 @@ class PublicationValidationTest {
                         kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0)),
                         kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0)),
                     ),
-                )
+                ),
+                TrackNumber("001"),
             ),
             error,
         )
@@ -574,7 +576,8 @@ class PublicationValidationTest {
                 geocodingContext(
                     toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(15.0, 0.0))),
-                )
+                ),
+                TrackNumber("001"),
             ),
             error,
         )
@@ -584,7 +587,8 @@ class PublicationValidationTest {
                 geocodingContext(
                     toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(5.0, 0.0))),
-                )
+                ),
+                TrackNumber("001"),
             ),
             kmPostsOutsideLineErrorBefore,
         )
@@ -594,7 +598,8 @@ class PublicationValidationTest {
                 geocodingContext(
                     toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(25.0, 0.0))),
-                )
+                ),
+                TrackNumber("001"),
             ),
             kmPostsOutsideLineErrorAfter,
         )
@@ -862,7 +867,7 @@ class PublicationValidationTest {
     }
 
     private fun simpleGeocodingContext(referenceLinePoints: List<LayoutPoint>): GeocodingContext =
-        geocodingContext(referenceLinePoints, listOf()).geocodingContext
+        geocodingContext(referenceLinePoints, listOf()).geocodingContext!!
 
     private fun geocodingContext(
         referenceLinePoints: List<LayoutPoint>,
