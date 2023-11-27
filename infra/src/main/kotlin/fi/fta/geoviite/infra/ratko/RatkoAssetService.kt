@@ -44,7 +44,7 @@ class RatkoAssetService @Autowired constructor(
             .sortedBy { (switch, _) -> sortByDeletedStateFirst(switch.stateCategory) }
             .forEach { (layoutSwitch, changedJoints) ->
                 try {
-                    requireNotNull(layoutSwitch.externalId) {"OID required for switch, sw=${layoutSwitch.id}"}
+                    requireNotNull(layoutSwitch.externalId) { "OID required for switch, sw=${layoutSwitch.id}" }
                         .let { oid -> ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(oid)) }
                         ?.also { existingRatkoSwitch ->
                             updateSwitch(

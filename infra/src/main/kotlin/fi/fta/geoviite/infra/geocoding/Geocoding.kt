@@ -443,7 +443,6 @@ fun getProjectedAddressPoints(
     projectionLines: List<ProjectionLine>,
     alignment: IAlignment,
 ): List<AddressPoint> {
-
     val alignmentEdges = getPolyLineEdges(alignment)
     var edgeIndex = 0
     var projectionIndex = 0

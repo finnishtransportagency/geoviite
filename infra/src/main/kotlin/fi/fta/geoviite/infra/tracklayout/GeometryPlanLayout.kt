@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
 import fi.fta.geoviite.infra.map.getSegmentBorderMValues
@@ -24,7 +25,7 @@ data class GeometryPlanLayout(
     val planHidden: Boolean,
     val planDataType: DataType,
     val startAddress: TrackMeter?,
-) {
+) : Loggable {
     val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox })
 
     fun withLayoutGeometry(resolution: Int? = null) = copy(
@@ -34,6 +35,13 @@ data class GeometryPlanLayout(
                 segmentMValues = getSegmentBorderMValues(alignment),
             )
         },
+    )
+
+    override fun toLog(): String = logFormat(
+        "plan" to planId,
+        "alignments" to alignments.map(PlanLayoutAlignment::toLog),
+        "switches" to switches.map(TrackLayoutSwitch::toLog),
+        "kmPosts" to kmPosts.map(TrackLayoutKmPost::toLog),
     )
 }
 
@@ -48,6 +56,13 @@ data class PlanLayoutAlignment(
 
     @get:JsonIgnore
     override val boundingBox: BoundingBox? get() = header.boundingBox
+
+    override fun toLog(): String = logFormat(
+        "id" to id,
+        "name" to header.name,
+        "segments" to segments.size,
+        "points" to polyLine?.points?.size,
+    )
 }
 
 data class PlanLayoutSegment(

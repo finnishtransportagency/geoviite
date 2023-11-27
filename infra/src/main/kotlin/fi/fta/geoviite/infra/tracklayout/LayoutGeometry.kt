@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
@@ -49,7 +50,7 @@ data class AlignmentPlanSection(
     val id: StringId<SegmentGeometryAndMetadata>,
 )
 
-interface IAlignment {
+interface IAlignment : Loggable {
     val segments: List<ISegment>
     val id: DomainId<*>
     val boundingBox: BoundingBox?
@@ -154,6 +155,8 @@ interface IAlignment {
     private fun approximateClosestSegmentIndex(target: IPoint): Int? = segments.mapIndexed { idx, seg ->
         pointDistanceToLine(seg.points.first(), seg.points.last(), target) to idx
     }.minByOrNull { (distance, _) -> distance }?.let { (_, index) -> index }
+
+    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
 
 data class LayoutAlignment(
@@ -186,7 +189,6 @@ data class LayoutAlignment(
     }
 
     fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
-
 }
 
 data class LayoutSegmentMetadata(
@@ -298,7 +300,7 @@ data class SegmentGeometry(
     override val resolution: Int,
     override val points: List<LayoutPoint>,
     val id: DomainId<SegmentGeometry> = StringId(),
-) : ISegmentGeometry {
+) : ISegmentGeometry, Loggable {
     constructor(resolution: Int, points: List<LayoutPoint>, start: Double) : this(
         resolution, adjustMValuesToStart(points, start)
     )
@@ -332,6 +334,8 @@ data class SegmentGeometry(
         copy(points = adjustMValuesToStart(points, start ?: points.first().m), id = StringId())
 
     fun withStartMAt(start: Double): SegmentGeometry = copy(points = adjustMValuesToStart(points, start))
+
+    override fun toLog(): String = logFormat("id" to id, "points" to points.size)
 }
 
 private fun adjustMValuesToStart(points: List<LayoutPoint>, start: Double): List<LayoutPoint> =
@@ -361,7 +365,7 @@ data class LayoutSegment(
     val endJointNumber: JointNumber?,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
-) : ISegmentGeometry by geometry, ISegment {
+) : ISegmentGeometry by geometry, ISegment, Loggable {
 
     init {
         require(source != GENERATED || points.size == 2) { "Generated segment can't have more than 2 points" }
@@ -427,6 +431,7 @@ data class LayoutSegment(
         if (switchId == null && startJointNumber == null && endJointNumber == null) this
         else copy(switchId = null, startJointNumber = null, endJointNumber = null)
 
+    override fun toLog(): String = logFormat("id" to id, "source" to source, "geometry" to geometry.toLog())
 }
 
 const val LAYOUT_COORDINATE_DELTA = 0.001

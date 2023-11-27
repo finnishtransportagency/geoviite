@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.roundToInt
@@ -39,7 +40,9 @@ data class AlignmentPolyLine<T>(
     val id: DomainId<T>,
     val alignmentType: MapAlignmentType,
     val points: List<LayoutPoint>,
-)
+) : Loggable {
+    override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
+}
 
 fun toAlignmentHeader(
     trackNumber: TrackLayoutTrackNumber,

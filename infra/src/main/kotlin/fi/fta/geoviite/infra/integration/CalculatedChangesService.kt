@@ -505,8 +505,9 @@ private fun getTopologySwitchJointDataHolder(
     // - and Ratko may not want other joint numbers in this case
     val presentationJointNumber = fetchStructure(switch.switchStructureId).presentationJointNumber
     val address = geocodingContext.getAddress(point)?.first
-    val joint = switch.getJoint(topologySwitch.jointNumber)
-        ?: throw IllegalStateException("Topology switch contains invalid joint number: $topologySwitch")
+    val joint = requireNotNull(switch.getJoint(topologySwitch.jointNumber)) {
+        "Topology switch contains invalid joint number: $topologySwitch"
+    }
     return if (presentationJointNumber == joint.number && address != null) {
         topologySwitch.switchId to listOf(SwitchJointDataHolder(address = address, point = point, joint = joint))
     } else null

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
@@ -170,7 +171,7 @@ data class PublishCandidates(
     val referenceLines: List<ReferenceLinePublishCandidate>,
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
-) {
+) : Loggable {
     fun ids(): PublishRequestIds = PublishRequestIds(
         trackNumbers.map { candidate -> candidate.id },
         locationTracks.map { candidate -> candidate.id },
@@ -194,6 +195,16 @@ data class PublishCandidates(
         switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
         kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
     )
+
+    override fun toLog(): String = logFormat(
+        "trackNumbers" to toLog(trackNumbers),
+        "locationTracks" to toLog(locationTracks),
+        "referenceLines" to toLog(referenceLines),
+        "switches" to toLog(switches),
+        "kmPosts" to toLog(kmPosts),
+    )
+
+    private fun <T : PublishCandidate<*>> toLog(list: List<T>): String = "${list.map(PublishCandidate<*>::rowVersion)}"
 }
 
 data class ValidationVersions(

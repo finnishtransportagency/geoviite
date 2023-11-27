@@ -33,7 +33,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         updatePushContent(ratkoPushId, publicationIds = layoutPublishIds)
 
-        return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, RatkoPush::class, ratkoPushId) }
+        return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, "${RatkoPush::class}.id", ratkoPushId) }
     }
 
     @Transactional
@@ -97,7 +97,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 status = rs.getEnum("status"),
             )
         }.first().also {
-            logger.daoAccess(AccessType.FETCH, RatkoPush::class, it)
+            logger.daoAccess(AccessType.FETCH, RatkoPush::class, it.id)
         }
     }
 
@@ -226,7 +226,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         return jdbcTemplate.queryOne(sql) { rs, _ ->
             rs.getInstant("latest_publication_time")
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class) }
+        }.also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
     }
 
     fun getLatestPublicationMoment(): Instant {
@@ -236,7 +236,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from publication.publication
         """.trimIndent()
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
-            .also { logger.daoAccess(AccessType.FETCH, Publication::class) }
+            .also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
     }
 
     fun getRatkoPushChangeTime(): Instant {
@@ -251,7 +251,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from integrations.ratko_push
         """.trimIndent()
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_ratko_push_time") }
-            .also { logger.daoAccess(AccessType.FETCH, Publication::class) }
+            .also { logger.daoAccess(AccessType.FETCH, "${RatkoPush::class.simpleName}.changeTime") }
     }
 
     fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {
