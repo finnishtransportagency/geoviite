@@ -103,7 +103,7 @@ data class ReferenceLine(
     }
 
     fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        alignmentVersion ?: throw IllegalStateException("ReferenceLine has no an alignment")
+        requireNotNull(alignmentVersion) { "ReferenceLine has no an alignment: id=$id" }
 
     override fun toLog(): String = logFormat(
         "version" to version,
@@ -236,7 +236,7 @@ data class TrackLayoutSwitch(
         } else null
     }
 
-    fun getJoint(location: LayoutPoint, delta: Double): TrackLayoutSwitchJoint? =
+    fun getJoint(location: AlignmentPoint, delta: Double): TrackLayoutSwitchJoint? =
         getJoint(Point(location.x, location.y), delta)
 
     fun getJoint(location: Point, delta: Double): TrackLayoutSwitchJoint? =

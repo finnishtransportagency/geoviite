@@ -7,7 +7,7 @@ import Feature from 'ol/Feature';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Coordinate } from 'ol/coordinate';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { interpolateXY } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import VectorSource from 'ol/source/Vector';
@@ -102,7 +102,7 @@ export function getTickStyle(
 }
 
 export function getTickStyles(
-    points: LayoutPoint[],
+    points: AlignmentPoint[],
     mValues: number[],
     length: number,
     style: Style,
@@ -128,7 +128,7 @@ export function getTickStyles(
         .filter(filterNotEmpty);
 }
 
-function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
+function getCoordinate(points: AlignmentPoint[], m: number): number[] | undefined {
     const nextIndex = points.findIndex((p) => p.m >= m);
     if (nextIndex < 0 || nextIndex >= points.length) {
         return undefined;

@@ -1393,10 +1393,12 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffTrackNumber(
                     translation,
-                    publicationTrackNumberChanges.getOrElse(tn.version.id) { error("Track number changes not found") },
+                    publicationTrackNumberChanges.getOrElse(tn.version.id) {
+                        error("Track number changes not found: version=${tn.version}")
+                    },
                     publication.publicationTime,
                     previousComparisonTime,
-                    geocodingContextGetter
+                    geocodingContextGetter,
                 ),
             )
         }
@@ -1414,7 +1416,9 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffReferenceLine(
                     translation,
-                    publicationReferenceLineChanges.getOrElse(rl.version.id) { error("Reference line changes not found") },
+                    publicationReferenceLineChanges.getOrElse(rl.version.id) {
+                        error("Reference line changes not found: version=${rl.version}")
+                    },
                     publication.publicationTime,
                     previousComparisonTime,
                     rl.changedKmNumbers,
@@ -1424,18 +1428,20 @@ class PublicationService @Autowired constructor(
         }
 
         val locationTracks = publication.locationTracks.map { lt ->
-            val tn = trackNumberNamesCache.findLast {
+            val trackNumber = trackNumberNamesCache.findLast {
                 it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime
             }?.number
             mapToPublicationTableItem(
                 name = "${translation.t("publication-table.location-track")} ${lt.name}",
-                trackNumbers = setOfNotNull(tn),
+                trackNumbers = setOfNotNull(trackNumber),
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
                 propChanges = diffLocationTrack(
                     translation,
-                    publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
+                    publicationLocationTrackChanges.getOrElse(lt.version.id) {
+                        error("Location track changes not found: version=${lt.version}")
+                    },
                     switchLinkChanges[lt.version.id],
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1457,7 +1463,9 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffSwitch(
                     translation,
-                    publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
+                    publicationSwitchChanges.getOrElse(s.version.id) {
+                        error("Switch changes not found: version=${s.version}")
+                    },
                     publication.publicationTime,
                     previousComparisonTime,
                     s.operation,
@@ -1468,8 +1476,9 @@ class PublicationService @Autowired constructor(
         }
 
         val kmPosts = publication.kmPosts.map { kp ->
-            val tn =
-                trackNumberNamesCache.findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }?.number
+            val tn = trackNumberNamesCache.findLast {
+                it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime
+            }?.number
             mapToPublicationTableItem(
                 name = "${translation.t("publication-table.km-post")} ${kp.kmNumber}",
                 trackNumbers = setOfNotNull(tn),
@@ -1477,7 +1486,9 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffKmPost(
                     translation,
-                    publicationKmPostChanges.getOrElse(kp.version.id) { error("KM Post changes not found") },
+                    publicationKmPostChanges.getOrElse(kp.version.id) {
+                        error("KM Post changes not found: version=${kp.version}")
+                    },
                     publication.publicationTime,
                     trackNumberNamesCache,
                 ),
@@ -1485,8 +1496,9 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedLocationTracks = publication.indirectChanges.locationTracks.map { lt ->
-            val tn =
-                trackNumberNamesCache.findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }?.number
+            val tn = trackNumberNamesCache.findLast {
+                it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime
+            }?.number
             mapToPublicationTableItem(
                 name = "${translation.t("publication-table.location-track")} ${lt.name}",
                 trackNumbers = setOfNotNull(tn),
@@ -1495,7 +1507,9 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffLocationTrack(
                     translation,
-                    publicationLocationTrackChanges.getOrElse(lt.version.id) { error("Location track changes not found") },
+                    publicationLocationTrackChanges.getOrElse(lt.version.id) {
+                        error("Location track changes not found: version=${lt.version}")
+                    },
                     switchLinkChanges[lt.version.id],
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1517,7 +1531,9 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffSwitch(
                     translation,
-                    publicationSwitchChanges.getOrElse(s.version.id) { error("Switch changes not found") },
+                    publicationSwitchChanges.getOrElse(s.version.id) {
+                        error("Switch changes not found: version=${s.version}")
+                    },
                     publication.publicationTime,
                     previousComparisonTime,
                     Operation.CALCULATED,

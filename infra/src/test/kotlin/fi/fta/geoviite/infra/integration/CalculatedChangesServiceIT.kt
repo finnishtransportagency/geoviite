@@ -490,17 +490,19 @@ class CalculatedChangesServiceIT @Autowired constructor(
             locationTrackIds = listOf(locationTrack3.id as IntId),
         )
 
-        assertContains(
-            changes.directChanges.locationTrackChanges, LocationTrackChange(
-                locationTrackId = locationTrack3.id as IntId<LocationTrack>,
-                changedKmNumbers = setOf(KmNumber(6)),
-                isStartChanged = true,
-                isEndChanged = false
-            )
+        assertEquals(
+            changes.directChanges.locationTrackChanges,
+            listOf(
+                LocationTrackChange(
+                    locationTrackId = locationTrack3.id as IntId<LocationTrack>,
+                    changedKmNumbers = setOf(KmNumber(6)),
+                    isStartChanged = true,
+                    isEndChanged = false
+                ),
+            ),
         )
         assertTrue(changes.indirectChanges.switchChanges.isEmpty())
     }
-
 
     @Test
     fun referenceLineChangeGeneratesIndirectLocationTrackChanges() {
@@ -1280,10 +1282,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
     }
 
     private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int) =
-        alignment.segments[segmentIndex].points.first()
+        alignment.segments[segmentIndex].alignmentPoints.first()
 
     private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int) =
-        alignment.segments[segmentIndex].points.last()
+        alignment.segments[segmentIndex].alignmentPoints.last()
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,

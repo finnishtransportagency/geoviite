@@ -4,8 +4,8 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.logger
-
 
 private const val POINT_SEPARATOR = ","
 private const val COORDINATE_SEPARATOR = " "
@@ -15,13 +15,12 @@ private const val LINESTRING_TYPE_2D = "LINESTRING"
 private const val LINESTRING_TYPE_3DM = "LINESTRING M"
 private const val POLYGON_TYPE_2D = "POLYGON"
 
-
 fun parse2DPoint(point: String): Point = parse2DPointValues(dropWktType(point, POINT_TYPE_2D))
 
 fun parse2DLineString(lineString: String): List<Point> = split2DPointValues(dropWktType(lineString, LINESTRING_TYPE_2D))
 
 fun parse3DMLineString(lineString: String): List<Point3DM> =
-    split3DMPointValues(dropWktType(lineString, LINESTRING_TYPE_3DM))
+    get3DMLineStringContent(lineString).map { s -> parse3DMPointValue(s) }
 
 fun parse2DPolygon(polygon: String): List<Point> = split2DPointValues(dropWktType(polygon, POLYGON_TYPE_2D, 2))
 
@@ -54,24 +53,40 @@ fun split2DPointValues(valuesString: String): List<Point> {
     return valuesString.split(POINT_SEPARATOR).map { s -> parse2DPointValues(s) }
 }
 
-fun split3DMPointValues(valuesString: String): List<Point3DM> = try {
-    valuesString.split(POINT_SEPARATOR).map { s -> parse3DMPointValue(s) }
+fun get3DMLineStringContent(string: String): List<String> =
+    split3DMPointValues(dropWktType(string, LINESTRING_TYPE_3DM))
+
+fun split3DMPointValues(valuesString: String): List<String> = try {
+    valuesString.split(POINT_SEPARATOR)
 } catch (e: NumberFormatException) {
     logger.error("tried=$valuesString")
     throw e
 }
 
 fun parse2DPointValues(pointString: String): Point {
-    val values = pointString.split(COORDINATE_SEPARATOR)
-    if (values.size != 2) throw IllegalArgumentException("2D geometry should contain X/Y values: ${values.size} <> 2")
-    return Point(values[0].toDouble(), values[1].toDouble())
+    val values = splitPointValues(pointString, 2)
+    return Point(values[0], values[1])
 }
 
 fun parse3DMPointValue(pointString: String): Point3DM {
-    val values = pointString.split(COORDINATE_SEPARATOR).also { values ->
-        require(values.size == 3) { "3D geometry should contain X/Y/m values: ${values.size} <> 3" }
-    }
-    return Point3DM(values[0].toDouble(), values[1].toDouble(), values[2].toDouble())
+    val values = splitPointValues(pointString, 3)
+    return Point3DM(values[0], values[1], values[2])
+}
+
+fun splitPointValues(pointString: String, count: Int): List<Double> = pointString
+    .split(COORDINATE_SEPARATOR)
+    .also { values -> require(values.size == count) { "Invalid point value count: ${values.size} <> $count" } }
+    .map(String::toDouble)
+
+fun parseSegmentPoint(pointString: String, zValue: Double?, cantValue: Double?): SegmentPoint {
+    val values = splitPointValues(pointString, 3)
+    return SegmentPoint(
+        x = values[0],
+        y = values[1],
+        m = values[2],
+        z = zValue,
+        cant = cantValue,
+    )
 }
 
 private fun dropWktType(wkt: String, typeString: String, parenthesis: Int = 1): String {

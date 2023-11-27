@@ -39,7 +39,7 @@ data class AlignmentHeader<T>(
 data class AlignmentPolyLine<T>(
     val id: DomainId<T>,
     val alignmentType: MapAlignmentType,
-    val points: List<LayoutPoint>,
+    val points: List<AlignmentPoint>,
 ) : Loggable {
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
@@ -81,14 +81,14 @@ fun toAlignmentHeader(
     boundingBox = alignment?.boundingBox,
 )
 
-fun getSegmentBorderMValues(alignment: IAlignment) =
+fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
     alignment.segments.map { s -> s.startM } + alignment.length
 
 fun <T> toAlignmentPolyLine(
     id: DomainId<T>,
     type: MapAlignmentType,
     alignment: IAlignment,
-    resolution: Int ? = null,
+    resolution: Int? = null,
     bbox: BoundingBox? = null,
 ) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox))
 
@@ -96,23 +96,41 @@ fun simplify(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
-): List<LayoutPoint> {
-    val segments =
-        if (bbox == null) alignment.segments
-        else if (!bbox.intersects(alignment.boundingBox)) listOf()
-        else alignment.segments.filter { s -> s.boundingBox?.intersects(bbox) ?: false }
+): List<AlignmentPoint> {
+    val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
-    var previousInBbox = false
-    return segments
-        .flatMap { s -> s.points.filter { p ->
-            val result =
-                (resolution == null || (p.m - previousM).roundToInt() >= resolution || (p.m == alignment.length && previousM < p.m))
-                        && (bbox == null || previousInBbox || bbox.contains(p))
-            if (result) {
-                previousM = p.m
-                previousInBbox = bbox == null || bbox.contains(p)
-            }
-            result
-        } }
-        .let { points -> if (points.size >= 2) points else listOf() }
+    val isOverResolution = { mValue: Double ->
+        resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true
+    }
+    return segments.flatMapIndexed { sIndex, s ->
+        val isEndPoint = { pIndex: Int ->
+            (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+        }
+        val bboxContains = { pIndex: Int ->
+            bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
+        }
+        s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+            if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+                previousM = s.startM + p.m
+                p.toAlignmentPoint(s.startM)
+            } else null
+        }
+    }.let { points -> if (points.size >= 2) points else listOf() }
+}
+
+private fun takePoint(
+    index: Int,
+    m: Double,
+    isEndPoint: (index: Int) -> Boolean,
+    isOverResolution: (m: Double) -> Boolean,
+    bboxContains: (index: Int) -> Boolean,
+): Boolean {
+    val isInsideBbox = bboxContains(index)
+    return if (!isInsideBbox) {
+        // Outside the box, take the first points on either side to extend the line out
+        bboxContains(index - 1) || bboxContains(index + 1)
+    } else {
+        // Inside the box, take points by resolution + always include endpoints
+        isOverResolution(m) || isEndPoint(index)
+    }
 }

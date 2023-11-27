@@ -84,7 +84,6 @@ class ValidationTest {
             viPoint(10.1, 1.0),
         )
         val alignment = geometryAlignment(profile = profile(points))
-        println(validateAlignmentProfile(alignment))
         assertEquals(listOf<ValidationError>(), validateAlignmentProfile(alignment))
     }
 
@@ -93,7 +92,7 @@ class ValidationTest {
         val points = listOf(
             viPoint(1.0, 0.02),
             viPoint(0.1, 0.01),
-            viPoint(3.0, 0.04)
+            viPoint(3.0, 0.04),
         )
         val alignment = geometryAlignment(profile = profile(points))
         assertValidationErrors(

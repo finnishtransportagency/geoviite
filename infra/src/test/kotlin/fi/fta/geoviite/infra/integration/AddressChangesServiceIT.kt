@@ -145,16 +145,19 @@ class AddressChangesServiceIT @Autowired constructor(
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
 
         // Move start-point a bit
-        updateAndPublish(initialLocationTrack, setupData.locationTrackGeometry.copy(
-            segments = fixSegmentStarts(setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
-                if (index == 0) segment.copy(
-                    geometry = segment.geometry.withPoints(
-                        fixMValues(listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1)),
+        updateAndPublish(
+            initialLocationTrack,
+            setupData.locationTrackGeometry.copy(
+                segments = fixSegmentStarts(setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
+                    if (index == 0) segment.copy(
+                        geometry = segment.geometry.withPoints(
+                            fixMValues(listOf(movePoint(segment.segmentPoints.first(), -1.0)) + segment.segmentPoints.drop(1)),
+                        )
                     )
-                )
-                else segment
-            })
-        ))
+                    else segment
+                }),
+            ),
+        )
         val updateMoment = locationTrackDao.fetchChangeTime()
 
         val changes = addressChangesService.getAddressChanges(
@@ -709,18 +712,15 @@ class AddressChangesServiceIT @Autowired constructor(
                 segments = fixSegmentStarts(alignment.segments.map { segment ->
                     segment.copy(
                         geometry = segment.geometry.withPoints(
-                            fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
+                            fixMValues(segment.segmentPoints.mapIndexed { inSegmentIndex, point ->
                                 val newPoint = moveFunc(index, point)
-                                if (inSegmentIndex < segment.points.lastIndex) index++
-                                point.copy(
-                                    x = newPoint.x,
-                                    y = newPoint.y
-                                )
-                            } ),
+                                if (inSegmentIndex < segment.alignmentPoints.lastIndex) index++
+                                point.copy(x = newPoint.x, y = newPoint.y)
+                            }),
                         ),
                     )
-                } )
-            )
+                }),
+            ),
         )
         referenceLineService.publish(ValidationVersion(version.id, version.rowVersion))
     }
@@ -754,11 +754,11 @@ class AddressChangesServiceIT @Autowired constructor(
     fun createEmptyAddresses(start: Pair<Point, TrackMeter>, end: Pair<Point, TrackMeter>): AlignmentAddresses =
         AlignmentAddresses(
             startPoint = AddressPoint(
-                LayoutPoint(start.first.x, start.first.y, null, 0.0, null),
+                AlignmentPoint(start.first.x, start.first.y, null, 0.0, null),
                 start.second,
             ),
             endPoint = AddressPoint(
-                LayoutPoint(end.first.x, end.first.y, null, lineLength(start.first, end.first), null),
+                AlignmentPoint(end.first.x, end.first.y, null, lineLength(start.first, end.first), null),
                 start.second,
             ),
             startIntersect = IntersectType.WITHIN,
@@ -776,11 +776,11 @@ class AddressChangesServiceIT @Autowired constructor(
             if (nextTransitionPoint != null) {
                 val to = nextTransitionPoint.first
                 val points = createLineString(from, to)
-                val layoutPoints = toTrackLayoutPoints(points = points.toTypedArray())
-                val addressPoints = layoutPoints.map { layoutPoint: LayoutPoint ->
+                val alignmentPoints = toAlignmentPoints(points = points.toTypedArray())
+                val addressPoints = alignmentPoints.map { alignmentPoint: AlignmentPoint ->
                     AddressPoint(
-                        point = layoutPoint,
-                        address = fromAddress + layoutPoint.m,
+                        point = alignmentPoint,
+                        address = fromAddress + alignmentPoint.m,
                     )
                 }
                 addressPoints
@@ -798,7 +798,7 @@ class AddressChangesServiceIT @Autowired constructor(
     }
 
     fun someAddressPoint() = AddressPoint(
-        LayoutPoint(0.0, 0.0, null, 0.0, null),
+        AlignmentPoint(0.0, 0.0, null, 0.0, null),
         TrackMeter(0, 0),
     )
 
@@ -809,7 +809,7 @@ class AddressChangesServiceIT @Autowired constructor(
         return context.referencePoints.map { r -> r.kmNumber }.filter { km -> km in startKm..endKm }.toSet()
     }
 
-    fun movePoint(point: LayoutPoint, delta: Double) = LayoutPoint(
+    fun movePoint(point: SegmentPoint, delta: Double) = SegmentPoint(
         x = point.x + delta,
         y = point.y + delta,
         z = point.z,

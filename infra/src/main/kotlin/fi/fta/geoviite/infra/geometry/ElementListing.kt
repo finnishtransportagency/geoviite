@@ -166,8 +166,8 @@ private fun toMissingElementListing(
     elementId = null,
     elementType = MISSING_SECTION,
     lengthMeters = round(segment.length, LENGTH_DECIMALS),
-    start = getLocation(context, segment.points.first(), segment.startDirection),
-    end = getLocation(context, segment.points.last(), segment.endDirection),
+    start = getLocation(context, segment.alignmentStart, segment.startDirection),
+    end = getLocation(context, segment.alignmentEnd, segment.endDirection),
     locationTrackName = locationTrack.name,
     connectedSwitchName = segment.switchId?.let { id -> if (id is IntId) getSwitchName(id) else null },
     isPartial = false,
@@ -338,7 +338,7 @@ private fun elementListing(
 
 private fun getLocation(
     context: GeocodingContext?,
-    point: LayoutPoint,
+    point: AlignmentPoint,
     directionRads: Double,
 ) = ElementLocation(
     coordinate = point.round(COORDINATE_DECIMALS),

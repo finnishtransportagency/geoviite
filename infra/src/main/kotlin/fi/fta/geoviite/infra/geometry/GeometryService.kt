@@ -631,7 +631,7 @@ class GeometryService @Autowired constructor(
         alignment: IAlignment,
         tickLength: Int,
         alignmentBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
-        getHeightAt: (point: LayoutPoint, segmentIndex: Int?) -> Double?,
+        getHeightAt: (point: AlignmentPoint, segmentIndex: Int?) -> Double?,
     ): List<KmHeights>? {
         val addressOfStartDistance =
             geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null

@@ -89,12 +89,12 @@ class HelsinkiTestData {
         }
 
         fun westReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
-            val trackLayoutPoints = toTrackLayoutPoints(
+            val points = toSegmentPoints(
                 Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
                 Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
                 Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 560.00), //pohjoinen
             )
-            val alignment = alignment(segment(trackLayoutPoints))
+            val alignment = alignment(segment(points))
             return referenceLine(
                 alignment = alignment,
                 trackNumberId = trackNumber,
@@ -103,12 +103,12 @@ class HelsinkiTestData {
         }
 
         fun eastReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
-            val trackLayoutPoints = toTrackLayoutPoints(
+            val points = toSegmentPoints(
                 Point(x = HKI_BASE_POINT_X + 675.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
                 Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 500.00),
                 Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 560.00), //pohjoinen
             )
-            val alignment = alignment(segment(trackLayoutPoints))
+            val alignment = alignment(segment(points))
             return referenceLine(
                 alignment = alignment,
                 trackNumberId = trackNumber,

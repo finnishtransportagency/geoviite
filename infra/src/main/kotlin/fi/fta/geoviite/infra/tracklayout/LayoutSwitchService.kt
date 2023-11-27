@@ -239,17 +239,21 @@ fun clearSwitchInformationFromSegments(
     return newLocationTrack to newAlignment
 }
 
-private fun getTopologyPoints(switchId: IntId<TrackLayoutSwitch>, track: LocationTrack, alignment: LayoutAlignment) =
-    listOfNotNull(
-        topologyPointOrNull(switchId, track.topologyStartSwitch, alignment.start),
-        topologyPointOrNull(switchId, track.topologyEndSwitch, alignment.end),
-    )
+private fun getTopologyPoints(
+    switchId: IntId<TrackLayoutSwitch>,
+    track: LocationTrack,
+    alignment: LayoutAlignment,
+): List<Pair<TopologyLocationTrackSwitch, Point>> = listOfNotNull(
+    topologyPointOrNull(switchId, track.topologyStartSwitch, alignment.firstSegmentStart),
+    topologyPointOrNull(switchId, track.topologyEndSwitch, alignment.lastSegmentEnd),
+)
 
 private fun topologyPointOrNull(
     switchId: IntId<TrackLayoutSwitch>,
     topology: TopologyLocationTrackSwitch?,
     location: IPoint?,
-) = if (topology?.switchId == switchId && location != null) topology to location.toPoint() else null
+): Pair<TopologyLocationTrackSwitch, Point>? =
+    if (topology?.switchId == switchId && location != null) topology to location.toPoint() else null
 
 fun switchFilter(
     namePart: String? = null,

@@ -72,4 +72,5 @@ data class PlanLayoutSegment(
     override val sourceStart: Double?,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
+    override val startM: Double,
 ) : ISegment, ISegmentGeometry by geometry

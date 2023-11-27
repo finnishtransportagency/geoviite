@@ -387,7 +387,10 @@ class PublicationValidationTest {
             editSegment(segmentSwitch) { segment ->
                 segment.copy(
                     geometry = segment.geometry.withPoints(
-                        points = toTrackLayoutPoints(segment.points.first(), segment.points.last() + Point(0.0, 1.0)),
+                        segmentPoints = toSegmentPoints(
+                            segment.alignmentPoints.first(),
+                            segment.alignmentPoints.last() + Point(0.0, 1.0),
+                        ),
                     )
                 )
             },
@@ -398,7 +401,10 @@ class PublicationValidationTest {
             editSegment(segmentSwitch) { segment ->
                 segment.copy(
                     geometry = segment.geometry.withPoints(
-                        points = toTrackLayoutPoints(segment.points.first() + Point(0.0, 1.0), segment.points.last()),
+                        segmentPoints = toSegmentPoints(
+                            segment.alignmentPoints.first() + Point(0.0, 1.0),
+                            segment.alignmentPoints.last(),
+                        ),
                     )
                 )
             },
@@ -414,7 +420,7 @@ class PublicationValidationTest {
     @Test
     fun validationOkForNormalAlignmentGeocoding() {
         // Reference line: straight up from origin, 1km
-        val context = simpleGeocodingContext(points(100, 0.0, 0.0, 0.0, 1000.0))
+        val context = simpleGeocodingContext(rawPoints(100, 0.0, 0.0, 0.0, 1000.0))
         assertEquals(listOf(), validateAddressPoints(trackNumber(), locationTrack(trackNumberId = IntId(1)), "") {
             // Alignment at slight angle to reference line -> should be OK
             context.getAddressPoints(
@@ -432,7 +438,7 @@ class PublicationValidationTest {
     fun validationCatchesStretchedOutAddressPoints() {
         val context = simpleGeocodingContext(
             // Reference line goes straight up
-            toTrackLayoutPoints(
+            toSegmentPoints(
                 Point(0.0, 0.0),
                 Point(0.0, 1000.0),
             )
@@ -459,7 +465,7 @@ class PublicationValidationTest {
     fun stretchedOutAddressPointsAtStartAndEndOfLineAreDescribedProperly() {
         val context = simpleGeocodingContext(
             // Reference line goes straight up
-            toTrackLayoutPoints(
+            toSegmentPoints(
                 Point(0.0, 0.0),
                 Point(0.0, 1000.0),
             )
@@ -484,7 +490,7 @@ class PublicationValidationTest {
     @Test
     fun validationCatchesZigZagAddressPoints() {
         val context = simpleGeocodingContext(
-            toTrackLayoutPoints(
+            toSegmentPoints(
                 Point(0.0, 0.0),
                 Point(0.0, 10.0),
                 // Reference line makes a bend to right
@@ -509,7 +515,7 @@ class PublicationValidationTest {
     @Test
     fun validationReportsSharpAngleSectionsCorrectly() {
         val referenceLinePoints = simpleSphereArc(10.0, PI, 20)
-        val context = simpleGeocodingContext(toTrackLayoutPoints(to3DMPoints(referenceLinePoints)))
+        val context = simpleGeocodingContext(toSegmentPoints(to3DMPoints(referenceLinePoints)))
 
         val sharpAngleTrack = to3DMPoints(
             listOf(
@@ -521,7 +527,7 @@ class PublicationValidationTest {
 
         val geocode = {
             context.getAddressPoints(
-                alignment(segment(toTrackLayoutPoints(sharpAngleTrack))).copy(id = IntId(2))
+                alignment(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2))
             )
         }
 
@@ -538,7 +544,7 @@ class PublicationValidationTest {
             false,
             validateGeocodingContext(
                 geocodingContext(
-                    toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
+                    toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(
                         kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0)),
                         kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0)),
@@ -553,7 +559,7 @@ class PublicationValidationTest {
             true,
             validateGeocodingContext(
                 geocodingContext(
-                    toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
+                    toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(
                         kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0)),
                         kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0)),
@@ -574,7 +580,7 @@ class PublicationValidationTest {
             false,
             validateGeocodingContext(
                 geocodingContext(
-                    toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
+                    toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(15.0, 0.0))),
                 ),
                 TrackNumber("001"),
@@ -585,7 +591,7 @@ class PublicationValidationTest {
             true,
             validateGeocodingContext(
                 geocodingContext(
-                    toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
+                    toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(5.0, 0.0))),
                 ),
                 TrackNumber("001"),
@@ -596,7 +602,7 @@ class PublicationValidationTest {
             true,
             validateGeocodingContext(
                 geocodingContext(
-                    toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
+                    toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(25.0, 0.0))),
                 ),
                 TrackNumber("001"),
@@ -866,11 +872,11 @@ class PublicationValidationTest {
         assertEquals(contains, errors.any { e -> e.localizationKey == LocalizationKey(error) }, message)
     }
 
-    private fun simpleGeocodingContext(referenceLinePoints: List<LayoutPoint>): GeocodingContext =
+    private fun simpleGeocodingContext(referenceLinePoints: List<SegmentPoint>): GeocodingContext =
         geocodingContext(referenceLinePoints, listOf()).geocodingContext!!
 
     private fun geocodingContext(
-        referenceLinePoints: List<LayoutPoint>,
+        referenceLinePoints: List<SegmentPoint>,
         kmPosts: List<TrackLayoutKmPost>,
     ): GeocodingContextCreateResult {
         val (referenceLine, alignment) = referenceLineAndAlignment(

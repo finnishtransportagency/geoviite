@@ -58,7 +58,7 @@ class SuggestedSwitchTest {
         )
 
         val presentationJointLocation =
-            alignmentContainingSwitchSegments.segments[1].points.first()
+            alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
         val switchTransformation = inferSwitchTransformation(
             presentationJointLocation,
             switchStructure,
@@ -90,7 +90,7 @@ class SuggestedSwitchTest {
         )
 
         val presentationJointLocation =
-            reversedAlignmentContainingSwitchSegments.segments[2].points.last()
+            reversedAlignmentContainingSwitchSegments.segments[2].alignmentPoints.last()
         val switchTransformation = inferSwitchTransformation(
             presentationJointLocation,
             switchStructure,
@@ -109,14 +109,14 @@ class SuggestedSwitchTest {
 
     private fun reverseAlignment(alignment: LayoutAlignment): LayoutAlignment {
         val reverseSegments = fixSegmentStarts(alignment.segments.reversed().map { segment ->
-            val reversedPoints = segment.points.reversed()
+            val reversedPoints = segment.segmentPoints.reversed()
             var cumulativeM = 0.0
             segment.copy(
                 geometry = segment.geometry.withPoints(
                     reversedPoints.mapIndexed { index, point ->
                         cumulativeM += if (index == 0) 0.0 else lineLength(reversedPoints[index - 1], point)
                         point.copy(m = cumulativeM)
-                    }
+                    },
                 ),
                 sourceId = null,
                 sourceStart = null,
@@ -156,7 +156,7 @@ class SuggestedSwitchTest {
             rotation = rotation
         )
         val locationTrack = locationTrack(IntId(0), alignmentContainingSwitchSegments, trackId)
-        val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].points.first()
+        val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
 
         val missingLocationTrackEndpoint = LocationTrackEndpoint(
             trackId,

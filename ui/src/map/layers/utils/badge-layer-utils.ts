@@ -4,7 +4,7 @@ import { Style } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import mapStyles from 'map/map.module.scss';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { findOrInterpolateXY } from 'utils/math-utils';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -158,7 +158,7 @@ function getBadgeRotation(start: Coordinate, end: Coordinate) {
 }
 
 export function getBadgePoints(
-    points: LayoutPoint[],
+    points: AlignmentPoint[],
     drawDistance: number,
 ): MapAlignmentBadgePoint[] {
     if (points.length < 3) return [];
