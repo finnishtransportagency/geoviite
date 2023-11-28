@@ -24,7 +24,10 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
             {linkingState === undefined &&
                 (hasSuggestedSwitch ? (
                     <InfoboxButtons>
-                        <Button size={ButtonSize.SMALL} onClick={onStartLinking}>
+                        <Button
+                            size={ButtonSize.SMALL}
+                            onClick={onStartLinking}
+                            qa-id={'start-linking'}>
                             {t('tool-panel.switch.geometry.start-setup')}
                         </Button>
                     </InfoboxButtons>

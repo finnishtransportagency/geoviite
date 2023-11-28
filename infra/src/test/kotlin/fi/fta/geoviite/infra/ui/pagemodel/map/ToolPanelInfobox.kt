@@ -213,21 +213,21 @@ open class E2ELinkingInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun startLinking() {
         logger.info("Start linking")
 
-        clickButton(byText("Aloita linkitys"))
-        waitUntilChildVisible(byText("Peruuta")) //ensures that the infobox has changed
+        clickButton(byQaId("start-linking"))
+        waitUntilChildVisible(byQaId("cancel-linking")) //ensures that the infobox has changed
     }
 
     fun addLinking() {
         logger.info("Add more linked alignments")
 
-        clickButton(byText("Lisää linkitettäviä"))
-        waitUntilChildVisible(byText("Peruuta")) //ensures that the infobox has changed
+        clickButton(byQaId("start-linking"))
+        waitUntilChildVisible(byQaId("cancel-linking")) //ensures that the infobox has changed
     }
 
     fun link() {
         logger.info("Link")
 
-        childButton(byText("Linkitä")).clickAndWaitToDisappear()
+        childButton(byQaId("save-link")).clickAndWaitToDisappear()
     }
 
 }
@@ -256,6 +256,15 @@ class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
 }
 
 class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
+    fun selectLocationTrackLinking() {
+        logger.info("Select reference line linking")
+        clickChild(By.xpath(".//input[@qa-id='location-track-linking']"))
+    }
+
+    fun selectReferenceLineLinking() {
+        logger.info("Select reference line linking")
+        clickChild(By.xpath(".//label[@qa-id='reference-line-linking']"))
+    }
 
     fun linkTo(name: String): E2EGeometryAlignmentLinkingInfoBox = apply {
         logger.info("Link alignment to $name")

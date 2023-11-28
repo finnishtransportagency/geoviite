@@ -255,6 +255,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                             )}
                             <InfoboxButtons>
                                 <Button
+                                    qa-id={'cancel-linking'}
                                     size={ButtonSize.SMALL}
                                     variant={ButtonVariant.SECONDARY}
                                     disabled={linkingCallInProgress}
@@ -262,6 +263,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                     {t('tool-panel.switch.geometry.cancel')}
                                 </Button>
                                 <Button
+                                    qa-id={'save-link'}
                                     size={ButtonSize.SMALL}
                                     disabled={!canLink}
                                     isProcessing={linkingCallInProgress}

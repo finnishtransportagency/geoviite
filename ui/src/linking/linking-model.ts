@@ -97,9 +97,11 @@ export type LinkInterval = {
 };
 export const emptyLinkInterval = { start: undefined, end: undefined };
 
+export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
+
 type LinkingBaseType = {
     type: LinkingType;
-    state: 'preliminary' | 'setup' | 'allSet';
+    state: LinkingPhase;
     errors: string[];
 };
 
