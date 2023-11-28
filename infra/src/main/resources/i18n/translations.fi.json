@@ -488,9 +488,11 @@
             "geometry": {
                 "title": "Raidegeometria: raide",
                 "name": "Nimi",
+                "location-track": "Sijaintiraide",
                 "reference-line": "Pituusmittauslinja",
                 "linking-title": "Linkitys",
                 "is-linked": "Linkitetty",
+                "link-command": "Linkitä",
                 "choose-reference-line": "Linkitä pituusmittauslinjaan: Valitse ratanumero",
                 "choose-location-track": "Linkitä sijaintiraiteeseen: Valitse raidetunnus",
                 "search-all-reference-lines-without-geometry": "Hae ratanumeroista...",
@@ -504,7 +506,7 @@
                 "zoom-closer": "Zoomaa lähemmäksi valitaksesi yhdistymispisteet.",
                 "linking-succeeded-and-previous-unlinked": "Raide linkitetty ja vanhentuneen geometrian linkitys purettu.",
                 "linking-succeeded": "Raide linkitetty",
-                "add-linking": "Lisää linkitettäviä",
+                "add-linking": "Lisää linkitys",
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
                 "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi."

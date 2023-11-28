@@ -90,7 +90,7 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/start-and-end")
+    @GetMapping("/location-tracks/{publishType}/start-and-end")
     fun getManyLocationTracksStartsAndEnds(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
@@ -162,10 +162,9 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
-            switchIds
-                .distinct()
-                .let { swId -> switchService.getMany(publishType, swId) })
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds
+            .distinct()
+            .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
