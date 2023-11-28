@@ -249,7 +249,11 @@ export const Dropdown = function <TItemValue>({
                         setOptions(optionsResult);
                     }
                 })
-                .finally(() => setIsLoading(false));
+                .finally(() => {
+                    if (lastSearch.searchId == searchId) {
+                        setIsLoading(false);
+                    }
+                });
         }
     }, [props.options, searchTerm]);
 
