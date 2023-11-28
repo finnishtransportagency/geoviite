@@ -990,12 +990,12 @@ class SwitchLinkingService @Autowired constructor(
             location, switchStructure, nearbyLocationTracks
         )
 
-        suggestedSwitch
-            ?.let (::createTemporarySwitchLinkingParameters)
+        return suggestedSwitch
+            ?.let (::createSwitchLinkingParameters)
             ?.let (::calculateModifiedLocationTracksAndAlignments)
-            ?.let (::updateTemporarySwitchLinkingToTemporaryLocationTracks)?.asSequence()
+            ?.let (::assignNewSwitchLinkingToLocationTracksAndAlignments)?.asSequence()
             ?.filter (::locationTrackHasTemporaryTopologicalSwitchConnection)
-            ?.mapNotNull(::topologicalConnectionJointNumberToTemporaryLocationTrackId)
+            ?.mapNotNull(::topologicalConnectionJointNumberToLocationTrackId)
             ?.groupBy (
                 { (jointNumber, _ ) -> jointNumber },
                 { (_, locationTrackId ) -> locationTrackId },
@@ -1007,21 +1007,20 @@ class SwitchLinkingService @Autowired constructor(
                 temporaryTopologicalJointConnection.jointNumber
             }
             ?.let { temporaryTopologicalJointConnections ->
-                return suggestedSwitch.copy(
+                suggestedSwitch.copy(
                     topologicalJointConnections = temporaryTopologicalJointConnections
                 )
-            }
-
-        return suggestedSwitch
+            } ?: suggestedSwitch
     }
 
-    private fun updateTemporarySwitchLinkingToTemporaryLocationTracks(
+    private fun assignNewSwitchLinkingToLocationTracksAndAlignments(
         locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+        switchId: IntId<TrackLayoutSwitch> = temporarySwitchId
     ): List<LocationTrack> {
-        // It is unnecessary to get the original switch bounds as well, as the "temporary" switch
+        // It is unnecessary to get the original switch bounds as well, as the new switch
         // is not linked to anywhere beforehand.
         val updatedArea = getSwitchBoundsFromTracksAndAlignments(
-            temporarySwitchId,
+            switchId,
             locationTracksAndAlignments,
         )
 
@@ -1034,7 +1033,10 @@ class SwitchLinkingService @Autowired constructor(
                 locationTrackService.calculateLocationTrackTopology(
                     locationTrack,
                     alignment,
-                    nearbyTracksForSearch=nearbyTracks
+                    nearbyTracks = NearbyTracks(
+                        aroundStart = nearbyTracks,
+                        aroundEnd = nearbyTracks,
+                    )
                 )
             }
     }
@@ -1100,7 +1102,7 @@ class SwitchLinkingService @Autowired constructor(
         val potentiallyChangedTracks =
             (listDraftTracksNearArea(originalArea) + listDraftTracksNearArea(updatedArea)).distinctBy { t -> t.first.id }
         potentiallyChangedTracks.forEach { (locationTrack, alignment) ->
-            val updated = locationTrackService.calculateLocationTrackTopology(locationTrack, alignment)
+            val updated = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, alignment)
             if (updated != locationTrack) locationTrackService.saveDraft(updated)
         }
         return switchUpdateResponse
@@ -1173,7 +1175,7 @@ class SwitchLinkingService @Autowired constructor(
                 )
 
             val locationTrackWithUpdatedTopology =
-                locationTrackService.calculateLocationTrackTopology(locationTrack, updatedAlignment)
+                locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, updatedAlignment)
 
             locationTrackWithUpdatedTopology to updatedAlignment
         }
@@ -1305,11 +1307,12 @@ class SwitchLinkingService @Autowired constructor(
     }
 }
 
-private fun createTemporarySwitchLinkingParameters(
+private fun createSwitchLinkingParameters(
     suggestedSwitch: SuggestedSwitch,
+    layoutSwitchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): SwitchLinkingParameters {
     return SwitchLinkingParameters(
-        layoutSwitchId = temporarySwitchId,
+        layoutSwitchId = layoutSwitchId,
         joints = suggestedSwitch.joints.map { suggestedSwitchJoint ->
             SwitchLinkingJoint(
                 jointNumber = suggestedSwitchJoint.number,
@@ -1370,18 +1373,20 @@ private fun getSwitchBoundsFromTracksAndAlignments(
 }
 
 private fun locationTrackHasTemporaryTopologicalSwitchConnection(
-    temporaryLocationTrack: LocationTrack,
+    locationTrack: LocationTrack,
+    switchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): Boolean =
-    temporaryLocationTrack.topologyStartSwitch?.switchId == temporarySwitchId
-    || temporaryLocationTrack.topologyEndSwitch?.switchId == temporarySwitchId
+    locationTrack.topologyStartSwitch?.switchId == switchId
+    || locationTrack.topologyEndSwitch?.switchId == switchId
 
-private fun topologicalConnectionJointNumberToTemporaryLocationTrackId(
-    temporaryLocationTrack: LocationTrack,
+private fun topologicalConnectionJointNumberToLocationTrackId(
+    locationTrack: LocationTrack,
+    switchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): Pair<JointNumber, IntId<LocationTrack>>? {
-    return if (temporaryLocationTrack.topologyStartSwitch?.switchId == temporarySwitchId) {
-        temporaryLocationTrack.topologyStartSwitch.jointNumber to temporaryLocationTrack.id as IntId
-    } else if (temporaryLocationTrack.topologyEndSwitch?.switchId == temporarySwitchId) {
-        temporaryLocationTrack.topologyEndSwitch.jointNumber to temporaryLocationTrack.id as IntId
+    return if (locationTrack.topologyStartSwitch?.switchId == switchId) {
+        locationTrack.topologyStartSwitch.jointNumber to locationTrack.id as IntId
+    } else if (locationTrack.topologyEndSwitch?.switchId == switchId) {
+        locationTrack.topologyEndSwitch.jointNumber to locationTrack.id as IntId
     } else {
         null
     }
