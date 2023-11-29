@@ -1362,8 +1362,8 @@ private fun getSwitchBoundsFromTracksAndAlignments(
                             segmentIndex == lastSegmentIndex && locationTrack.topologyEndSwitch?.switchId == switchId
 
                 listOfNotNull(
-                    if (startIsJoint) layoutSegment.geometry.points.first() else null,
-                    if (endIsJoint) layoutSegment.geometry.points.last() else null,
+                    if (startIsJoint) layoutSegment.geometry.segmentPoints.first() else null,
+                    if (endIsJoint) layoutSegment.geometry.segmentPoints.last() else null,
                 )
             }
     }
