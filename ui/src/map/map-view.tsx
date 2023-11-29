@@ -71,6 +71,7 @@ import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/
 import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
+import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 
 declare global {
     interface Window {
@@ -515,6 +516,15 @@ const MapView: React.FC<MapViewProps> = ({
                             splittingState,
                             changeTimes,
                             olView,
+                        );
+                    case 'reference-line-selected-alignment-layer':
+                        return createSelectedReferenceLineAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            linkingState,
+                            changeTimes,
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(

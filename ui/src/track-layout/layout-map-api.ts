@@ -121,6 +121,24 @@ export async function getMapAlignmentsByTiles(
     ];
 }
 
+export async function getSelectedReferenceLineMapAlignmentByTiles(
+    changeTimes: ChangeTimes,
+    mapTiles: MapTile[],
+    publishType: PublishType,
+    trackNumberId: LayoutTrackNumberId,
+) {
+    return getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then(
+        (alignments) => {
+            const alignment = alignments.find(
+                (a) =>
+                    a.header.trackNumberId === trackNumberId &&
+                    a.header.alignmentType === 'REFERENCE_LINE',
+            );
+            return alignment ? [alignment] : [];
+        },
+    );
+}
+
 export async function getReferenceLineMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
@@ -137,27 +155,34 @@ export async function getReferenceLineMapAlignmentsByTiles(
     return getAlignmentDataHolder('REFERENCE_LINE', polyLines, publishType, changeTimes);
 }
 
+export async function getSelectedLocationTrackMapAlignmentByTiles(
+    changeTimes: ChangeTimes,
+    mapTiles: MapTile[],
+    publishType: PublishType,
+    locationTrackId: LocationTrackId,
+): Promise<AlignmentDataHolder[]> {
+    const polyLines = await Promise.all(
+        mapTiles.map((tile) =>
+            getLocationTrackPolyline(
+                locationTrackId,
+                tile,
+                changeTimes.layoutLocationTrack,
+                publishType,
+            ).then((r) => (r ? [r] : [])),
+        ),
+    ).then((lines) => lines.flat());
+
+    return getAlignmentDataHolder('LOCATION_TRACK', polyLines, publishType, changeTimes);
+}
+
 export async function getLocationTrackMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     publishType: PublishType,
-    locationTrackId?: LocationTrackId,
-) {
+): Promise<AlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
-            locationTrackId
-                ? getLocationTrackPolyline(
-                      locationTrackId,
-                      tile,
-                      changeTimes.layoutLocationTrack,
-                      publishType,
-                  ).then((r) => (r ? [r] : []))
-                : getPolyLines(
-                      tile,
-                      changeTimes.layoutLocationTrack,
-                      publishType,
-                      'LOCATION_TRACKS',
-                  ),
+            getPolyLines(tile, changeTimes.layoutLocationTrack, publishType, 'LOCATION_TRACKS'),
         ),
     ).then((lines) => lines.flat());
 
@@ -169,7 +194,7 @@ async function getAlignmentDataHolder(
     polyLines: AlignmentPolyLine[],
     publishType: PublishType,
     changeTimes: ChangeTimes,
-) {
+): Promise<AlignmentDataHolder[]> {
     const ids = deduplicate(polyLines.map((pl) => pl.id));
     const headerChangeTime =
         type === 'LOCATION_TRACK'

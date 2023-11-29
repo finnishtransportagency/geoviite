@@ -15,7 +15,7 @@ import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import {
     AlignmentDataHolder,
-    getLocationTrackMapAlignmentsByTiles,
+    getSelectedLocationTrackMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
 import { sortSplitsByDistance, SplittingState } from 'tool-panel/location-track/split-store';
 import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
@@ -83,7 +83,7 @@ export function createLocationTrackSplitBadgeLayer(
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
         inFlight = true;
-        getLocationTrackMapAlignmentsByTiles(
+        getSelectedLocationTrackMapAlignmentByTiles(
             changeTimes,
             mapTiles,
             publishType,
