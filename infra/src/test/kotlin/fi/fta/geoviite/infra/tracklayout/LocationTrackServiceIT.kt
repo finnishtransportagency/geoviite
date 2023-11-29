@@ -229,7 +229,7 @@ class LocationTrackServiceIT @Autowired constructor(
         )
         assertEquals(null, track.topologyStartSwitch)
         assertEquals(null, track.topologyEndSwitch)
-        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        val updatedTrack = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track, alignment)
         assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(1)), updatedTrack.topologyStartSwitch)
         assertEquals(null, updatedTrack.topologyEndSwitch)
     }
@@ -258,7 +258,7 @@ class LocationTrackServiceIT @Autowired constructor(
         )
         assertEquals(null, track.topologyStartSwitch)
         assertEquals(null, track.topologyEndSwitch)
-        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        val updatedTrack = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track, alignment)
         assertEquals(null, updatedTrack.topologyStartSwitch)
         assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(2)), updatedTrack.topologyEndSwitch)
     }
@@ -287,7 +287,7 @@ class LocationTrackServiceIT @Autowired constructor(
         )
         assertEquals(null, track.topologyStartSwitch)
         assertEquals(null, track.topologyEndSwitch)
-        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        val updatedTrack = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track, alignment)
         assertEquals(null, updatedTrack.topologyStartSwitch)
         assertEquals(null, updatedTrack.topologyEndSwitch)
     }
@@ -316,7 +316,7 @@ class LocationTrackServiceIT @Autowired constructor(
         )
         assertEquals(null, track.topologyStartSwitch)
         assertEquals(null, track.topologyEndSwitch)
-        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        val updatedTrack = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track, alignment)
         assertEquals(null, updatedTrack.topologyStartSwitch)
         assertEquals(null, updatedTrack.topologyEndSwitch)
     }
@@ -343,7 +343,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, track1.topologyStartSwitch)
         assertEquals(null, track1.topologyEndSwitch)
 
-        val updatedTrack1 = locationTrackService.updateTopology(track1, alignment1)
+        val updatedTrack1 = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track1, alignment1)
         assertEquals(TopologyLocationTrackSwitch(switchId1, JointNumber(3)), updatedTrack1.topologyStartSwitch)
         assertEquals(null, updatedTrack1.topologyEndSwitch)
 
@@ -355,7 +355,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, track2.topologyStartSwitch)
         assertEquals(null, track2.topologyEndSwitch)
 
-        val updatedTrack2 = locationTrackService.updateTopology(track2, alignment2)
+        val updatedTrack2 = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track2, alignment2)
         assertEquals(TopologyLocationTrackSwitch(switchId2, JointNumber(5)), updatedTrack2.topologyStartSwitch)
         assertEquals(null, updatedTrack2.topologyEndSwitch)
 
@@ -367,7 +367,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, track3.topologyStartSwitch)
         assertEquals(null, track3.topologyEndSwitch)
 
-        val updatedTrack3 = locationTrackService.updateTopology(track3, alignment3)
+        val updatedTrack3 = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track3, alignment3)
         assertEquals(null, updatedTrack3.topologyStartSwitch)
         assertEquals(TopologyLocationTrackSwitch(switchId1, JointNumber(3)), updatedTrack3.topologyEndSwitch)
 
@@ -379,7 +379,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, track4.topologyStartSwitch)
         assertEquals(null, track4.topologyEndSwitch)
 
-        val updatedTrack4 = locationTrackService.updateTopology(track4, alignment4)
+        val updatedTrack4 = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track4, alignment4)
         assertEquals(null, updatedTrack4.topologyStartSwitch)
         assertEquals(TopologyLocationTrackSwitch(switchId2, JointNumber(5)), updatedTrack4.topologyEndSwitch)
     }
@@ -397,7 +397,7 @@ class LocationTrackServiceIT @Autowired constructor(
             ),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
-        val updated = locationTrackService.updateTopology(track, alignment)
+        val updated = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track, alignment)
         assertEquals(track.topologyStartSwitch, updated.topologyStartSwitch)
         assertEquals(track.topologyEndSwitch, updated.topologyEndSwitch)
     }
@@ -421,7 +421,7 @@ class LocationTrackServiceIT @Autowired constructor(
         )
         assertEquals(null, track.topologyStartSwitch)
         assertEquals(null, track.topologyEndSwitch)
-        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        val updatedTrack = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(track, alignment)
         assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(3)), updatedTrack.topologyStartSwitch)
         assertEquals(null, updatedTrack.topologyEndSwitch)
     }

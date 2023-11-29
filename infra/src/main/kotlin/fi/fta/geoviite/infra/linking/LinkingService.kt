@@ -106,7 +106,7 @@ class LinkingService @Autowired constructor(
     ): LocationTrack {
         val startChanged = startChanged(oldAlignment, newAlignment)
         val endChanged = endChanged(oldAlignment, newAlignment)
-        return if (startChanged || endChanged) locationTrackService.updateTopology(
+        return if (startChanged || endChanged) locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
             track = track,
             alignment = newAlignment,
             startChanged = startChanged,
