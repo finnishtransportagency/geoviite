@@ -453,13 +453,13 @@ class LocationTrackService(
 
         val startSwitch =
             if (!track.exists || startPoint == null) null
-            else if (startChanged) findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, nearbyTracks.aroundStart,null)
-            else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
+            else if (startChanged) findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null)
+            else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
 
         val endSwitch =
             if (!track.exists || endPoint == null) null
-            else if (endChanged) findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, nearbyTracks.aroundEnd, null)
-            else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches,  nearbyTracks.aroundEnd,  track.topologyEndSwitch,)
+            else if (endChanged) findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null)
+            else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch)
 
         return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
             track
@@ -474,7 +474,6 @@ class LocationTrackService(
 
    fun findBestTopologySwitchMatch(
        target: IPoint,
-       ownId: DomainId<LocationTrack>,
        ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
        nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
        currentTopologySwitch: TopologyLocationTrackSwitch?,
