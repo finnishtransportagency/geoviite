@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERadio
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
@@ -252,6 +253,20 @@ class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
 }
 
 class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
+
+    private val alignmentTypeRadio: E2ERadio by lazy { childRadio(By.className("geometry-alignment-infobox__radio-buttons")) }
+
+    fun selectLocationTrackLinking() {
+        logger.info("Select location track linking")
+
+        alignmentTypeRadio.choose("location-track-linking")
+    }
+
+    fun selectReferenceLineLinking() {
+        logger.info("Select reference line linking")
+
+        alignmentTypeRadio.choose("reference-line-linking")
+    }
 
     override val linked: String
         get() = childText(

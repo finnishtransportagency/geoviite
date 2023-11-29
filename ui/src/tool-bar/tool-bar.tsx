@@ -183,7 +183,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         switch (item?.type) {
             case 'locationTrackSearchItem':
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
-                return onSelect({ locationTracks: [item.locationTrack.id] });
+                return onSelect({
+                    locationTracks: [item.locationTrack.id],
+                    trackNumbers: [],
+                    switches: [],
+                });
 
             case 'switchSearchItem':
                 if (item.layoutSwitch.joints.length > 0) {
@@ -195,7 +199,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
                     showArea(bbox);
                 }
-                return onSelect({ switches: [item.layoutSwitch.id] });
+                return onSelect({
+                    switches: [item.layoutSwitch.id],
+                    locationTracks: [],
+                    trackNumbers: [],
+                });
 
             case 'trackNumberSearchItem':
                 getTrackNumberReferenceLine(item.trackNumber.id, publishType).then(
@@ -206,7 +214,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     },
                 );
 
-                return onSelect({ trackNumbers: [item.trackNumber.id] });
+                return onSelect({
+                    trackNumbers: [item.trackNumber.id],
+                    locationTracks: [],
+                    switches: [],
+                });
 
             default:
                 return;

@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
-import waitUntilNotVisible
+import waitUntilInvisible
 import waitUntilVisible
 
 class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-bar")) {
@@ -31,7 +31,7 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
         if (clear) searchDropdown.clearSearch()
         searchDropdown.search(value)
         waitUntilVisible(By.className("dropdown__loading-indicator"))
-        waitUntilNotVisible(By.className("dropdown__loading-indicator"))
+        waitUntilInvisible(By.className("dropdown__loading-indicator"))
     }
 
     val searchResults: List<E2EDropdownListItem> get() = searchDropdown.options

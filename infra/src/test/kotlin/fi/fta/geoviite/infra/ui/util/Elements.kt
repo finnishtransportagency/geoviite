@@ -13,7 +13,7 @@ import java.util.regex.Pattern
 
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
-val defaultWait: Duration = Duration.ofSeconds(5L)
+val defaultWait: Duration = Duration.ofSeconds(10L)
 val defaultPoll: Duration = Duration.ofMillis(100)
 
 fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {
@@ -75,7 +75,7 @@ fun waitUntilVisible(by: By, timeout: Duration = defaultWait) {
     getElementWhenVisible(by, timeout)
 }
 
-fun waitUntilNotVisible(by: By, timeout: Duration = defaultWait) {
+fun waitUntilInvisible(by: By, timeout: Duration = defaultWait) {
     tryWait(timeout, not(visibilityOfElementLocated(by))) {
         "Wait for element to disappear failed: seekBy=$by"
     }
@@ -83,12 +83,6 @@ fun waitUntilNotVisible(by: By, timeout: Duration = defaultWait) {
 
 fun waitUntilElementClickable(by: By, timeout: Duration = defaultWait) {
     getElementWhenClickable(by, timeout)
-}
-
-fun waitUntilElementIsStale(by: By, timeout: Duration = defaultWait) {
-    tryWait(timeout, stalenessOf(getElement(by))) {
-        "Wait for element staleness failed, by=$by"
-    }
 }
 
 fun waitUntilTextExists(by: By, timeout: Duration = defaultWait) {

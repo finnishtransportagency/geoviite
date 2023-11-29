@@ -66,7 +66,7 @@ const MoreMenu: React.FC = () => {
                                 qa-id="confirm-logout"
                                 onClick={() => (window.location.href = '/sso/logout?auth=1')}
                                 variant={ButtonVariant.PRIMARY}>
-                                {t('button.ok')}
+                                {t('button.logout')}
                             </Button>
                         </div>
                     }>

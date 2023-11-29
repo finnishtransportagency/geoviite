@@ -7,7 +7,7 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
 import org.openqa.selenium.support.ui.ExpectedConditions
 import tryWait
-import waitUntilNotVisible
+import waitUntilInvisible
 import waitUntilTextExists
 import waitUntilVisible
 
@@ -59,7 +59,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
         open()
         optionsList.selectByName(name)
-        waitUntilNotVisible(CONTAINER_BY)
+        waitUntilInvisible(CONTAINER_BY)
     }
 
     fun selectByQaId(qaId: String): E2EDropdown = apply {
@@ -67,7 +67,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
         open()
         optionsList.selectByQaId(qaId)
-        waitUntilNotVisible(CONTAINER_BY)
+        waitUntilInvisible(CONTAINER_BY)
     }
 
     fun selectFromDynamicByName(name: String): E2EDropdown = apply {

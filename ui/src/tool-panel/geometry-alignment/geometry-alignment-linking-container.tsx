@@ -60,8 +60,8 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
             geometryAlignment={geometryAlignment}
-            selectedLayoutLocationTrack={selectedLocationTrackId ? locationTrack : undefined}
-            selectedLayoutReferenceLine={selectedLocationTrackId ? undefined : referenceLine}
+            selectedLayoutLocationTrack={locationTrack}
+            selectedLayoutReferenceLine={referenceLine}
             planId={planId}
             locationTrackChangeTime={getMaxTimestamp(
                 changeTimes.layoutReferenceLine,

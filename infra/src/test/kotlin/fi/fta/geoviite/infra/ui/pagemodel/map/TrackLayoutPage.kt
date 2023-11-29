@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import javaScriptExecutor
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
 import tryWait
 import waitUntilNotExist
@@ -118,21 +117,13 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     private fun zoomOut() {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-out"))
-        try {
-            waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
-        } catch (ex: TimeoutException) {
-            logger.warn("Zoom out failed, cause: $ex")
-        }
+        waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
     }
 
     private fun zoomIn() {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-in"))
-        try {
-            waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
-        } catch (ex: TimeoutException) {
-            logger.warn("Zoom in failed, cause: $ex")
-        }
+        waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
     }
 
 }
