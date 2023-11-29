@@ -11,7 +11,6 @@ import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
 import tryWait
 import waitUntilNotExist
-import waitUntilTextIsNot
 import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
@@ -115,15 +114,15 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     private fun zoomOut() {
-        val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-out"))
-        waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
+        //Prevents Selenium from reading the same zoom scale too soon
+        Thread.sleep(250)
     }
 
     private fun zoomIn() {
-        val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-in"))
-        waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
+        //Prevents Selenium from reading the same zoom scale too soon
+        Thread.sleep(250)
     }
 
 }
