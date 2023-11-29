@@ -25,8 +25,8 @@ class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By
         infoBox("track-number-infobox", ::E2ETrackNumberGeneralInfoBox)
     }
 
-    val referenceLineLocation: E2EReferenceLineLocationInfoBox by lazy {
-        infoBox("reference-line-location-infobox", ::E2EReferenceLineLocationInfoBox)
+    val referenceLineLocation: E2ETrackNumberLocationInfoBox by lazy {
+        infoBox("reference-line-location-infobox", ::E2ETrackNumberLocationInfoBox)
     }
 
     val locationTrackGeneralInfo: E2ELocationTrackGeneralInfoBox by lazy {

@@ -45,7 +45,7 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By) : E2EViewFragment(listBy)
         }
     }
 
-    fun waitUntilItemNotExist(check: (T) -> Boolean) = apply {
+    fun waitUntilItemIsRemoved(check: (T) -> Boolean) = apply {
         logger.info("Wait until item doesn't exist")
 
         tryWait(not { itemElements.firstOrNull { (_, item) -> check(item) } }) {

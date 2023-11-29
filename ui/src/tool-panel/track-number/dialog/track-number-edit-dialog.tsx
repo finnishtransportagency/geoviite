@@ -117,7 +117,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         .filter((s) => s.value !== 'PLANNED')
         .map((s) =>
             s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
-        );
+        )
+        .map((s) => ({ ...s, qaId: s.value }));
 
     const confirmNewDraftDelete = () => {
         inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
@@ -216,6 +217,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Button
                                 disabled={hasErrors || saveInProgress}
                                 isProcessing={saveInProgress}
+                                qa-id="save-track-number-changes"
                                 onClick={saveOrConfirm}
                                 title={getSaveDisabledReasons(
                                     state.validationErrors.map((e) => e.reason),
@@ -237,6 +239,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.number')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-name"
                                     value={state.request.number}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({
@@ -262,6 +265,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="track-number-state"
                                     value={state.request.state}
                                     canUnselect={false}
                                     options={trackNumberStateOptions}
@@ -284,6 +288,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.description')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-description"
                                     value={state.request.description}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({

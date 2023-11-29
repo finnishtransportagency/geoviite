@@ -83,6 +83,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                     qa-id="geometry-switch-infobox">
                     <InfoboxContent>
                         <InfoboxField
+                            qaId="geometry-switch-name"
                             label={t('tool-panel.switch.geometry.name')}
                             value={switchItem?.name}
                         />
@@ -92,6 +93,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                         )}
                         {switchStructure && (
                             <InfoboxField
+                                qaId="geometry-switch-hand"
                                 label={t('tool-panel.switch.geometry.hand')}
                                 value={<SwitchHand hand={switchStructure.hand} />}
                             />
@@ -100,6 +102,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
+                                qa-id="zoom-to-geometry-switch"
                                 disabled={!switchLocation}
                                 onClick={() => switchLocation && onShowOnMap(switchLocation)}>
                                 {t('tool-panel.switch.layout.show-on-map')}

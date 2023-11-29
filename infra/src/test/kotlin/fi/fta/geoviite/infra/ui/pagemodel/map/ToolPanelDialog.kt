@@ -2,83 +2,101 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.DIALOG_BY
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
-import fi.fta.geoviite.infra.ui.util.byText
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
-    enum class State(val uiText: String) {
-        IN_USE("Käytössä"),
-        NOT_IN_USE("Käytöstä poistettu"),
-        DELETED("Poistettu")
+    enum class State {
+        IN_USE,
+        NOT_IN_USE,
+        DELETED
     }
 
-    enum class Type(val uiText: String) {
-        MAIN("Pääraide"),
-        SIDE("Sivuraide"),
-        TRAP("Turvaraide"),
-        CHORD("Kujaraide"),
+    enum class Type {
+        MAIN,
+        SIDE,
+        TRAP,
+        CHORD,
     }
 
-    enum class TopologicalConnectivity(val uiText: String) {
-        NONE("Ei kytketty"),
-        START("Raiteen alku"),
-        END("Raiteen loppu"),
-        START_AND_END("Raiteen alku ja loppu")
+    enum class TopologicalConnectivity {
+        NONE,
+        START,
+        END,
+        START_AND_END
     }
 
-    enum class DescriptionSuffix(val uiText: String) {
-        NONE("Ei lisäosaa"),
-        SWITCH_TO_SWITCH("Vaihde alussa - vaihde lopussa"),
-        SWITCH_TO_BUFFER("Vaihde - Puskin")
+    enum class DescriptionSuffix {
+        NONE,
+        SWITCH_TO_SWITCH,
+        SWITCH_TO_BUFFER
     }
+
+    private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("location-track-name")) }
+
+    private val trackNumberDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-track-number")) }
+
+    val ownerDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-dialog.owner")) }
+
+    private val stateDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-state")) }
+
+    private val typeDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-type")) }
+
+    private val descriptionBaseInput: E2ETextInput by lazy { childTextInput(byQaId("location-track-description-base")) }
+
+    private val descriptionSuffixDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-description-suffix")) }
+
+    private val topologicalConnectivityDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-topological-connectivity")) }
 
     fun setName(name: String): E2ELocationTrackEditDialog = apply {
         logger.info("Set name $name")
 
-        content.inputFieldValueByLabel("Sijaintiraidetunnus", name)
+        nameInput.replaceValue(name)
     }
 
     fun selectTrackNumber(trackNumber: String): E2ELocationTrackEditDialog = apply {
         logger.info("Select track number $trackNumber")
 
-        content.selectDropdownValueByLabel("Ratanumero", trackNumber)
+        trackNumberDropdown.selectByName(trackNumber)
     }
 
     fun selectState(state: State): E2ELocationTrackEditDialog = apply {
         logger.info("Select state $state")
 
-        content.selectDropdownValueByLabel("Tila", state.uiText)
+        stateDropdown.selectByQaId(state.name)
     }
 
     fun selectType(type: Type): E2ELocationTrackEditDialog = apply {
         logger.info("Select type $type")
 
-        content.selectDropdownValueByLabel("Raidetyyppi", type.uiText)
+        typeDropdown.selectByQaId(type.name)
     }
 
     fun setDescription(description: String): E2ELocationTrackEditDialog = apply {
         logger.info("Set description $description")
 
-        content.inputFieldValueByLabel("Kuvauksen perusosa", description)
+        descriptionBaseInput.replaceValue(description)
     }
 
     fun setDescriptionSuffix(descriptionSuffix: DescriptionSuffix): E2ELocationTrackEditDialog = apply {
         logger.info("Set description suffix $descriptionSuffix")
 
-        content.selectDropdownValueByLabel("Kuvauksen lisäosa", descriptionSuffix.uiText)
+        descriptionSuffixDropdown.selectByQaId(descriptionSuffix.name)
     }
 
     fun selectTopologicalConnectivity(topologicalConnectivity: TopologicalConnectivity): E2ELocationTrackEditDialog =
         apply {
             logger.info("Select topological connectivity $topologicalConnectivity")
 
-            content.selectDropdownValueByLabel(label = "Topologinen kytkeytyminen", topologicalConnectivity.uiText)
+            topologicalConnectivityDropdown.selectByQaId(topologicalConnectivity.name)
         }
 
     fun save() = waitUntilClosed {
         logger.info("Save location track changes")
 
-        val isDeleted = content.getValueForFieldByLabel("Tila") == State.DELETED.uiText
+        val isDeleted = stateDropdown.qaIdValue == State.DELETED.name
         clickPrimaryButton()
 
         if (isDeleted) {
@@ -99,35 +117,40 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
 }
 
 class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
-    enum class State(val uiText: String) {
-        IN_USE("Käytössä"),
-        NOT_IN_USE("Käytöstä poistettu"),
-        DELETED("Poistettu")
+    enum class State {
+        IN_USE,
+        NOT_IN_USE,
+        DELETED
     }
+
+    private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("track-number-name")) }
+    private val stateDropdown: E2EDropdown by lazy { childDropdown(byQaId("track-number-state")) }
+    private val descriptionInput: E2ETextInput by lazy { childTextInput(byQaId("track-number-description")) }
+
 
     fun setName(name: String): E2ETrackNumberEditDialog = apply {
         logger.info("Set name $name")
 
-        content.inputFieldValueByLabel("Tunnus", name)
+        nameInput.replaceValue(name)
     }
 
     fun selectState(state: State): E2ETrackNumberEditDialog = apply {
         logger.info("Select state $state")
 
-        content.selectDropdownValueByLabel("Tila", state.uiText)
+        stateDropdown.selectByQaId(state.name)
     }
 
     fun setDescription(description: String): E2ETrackNumberEditDialog = apply {
         logger.info("Set description $description")
 
-        content.inputFieldValueByLabel("Kuvaus", description)
+        descriptionInput.replaceValue(description)
     }
 
     fun save() = waitUntilClosed {
         logger.info("Save track number changes")
 
-        val isDeleted = content.getValueForFieldByLabel("Tila") == E2ELocationTrackEditDialog.State.DELETED.uiText
-        clickButton(byText("Tallenna"))
+        val isDeleted = stateDropdown.qaIdValue == E2ELocationTrackEditDialog.State.DELETED.name
+        clickButton(byQaId("save-track-number-changes"))
 
         if (isDeleted) {
             clickChild(
@@ -142,28 +165,31 @@ class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
 class E2EKmPostEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
-    enum class State(val uiText: String) {
-        PLANNED("Suunniteltu"),
-        IN_USE("Käytössä"),
-        NOT_IN_USE("Käytöstä poistettu"),
+    enum class State {
+        PLANNED,
+        IN_USE,
+        NOT_IN_USE,
     }
+
+    private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("km-post-number")) }
+    private val stateDropdown: E2EDropdown by lazy { childDropdown(byQaId("km-post-state")) }
 
     fun setName(name: String): E2EKmPostEditDialog = apply {
         logger.info("Set name $name")
 
-        content.inputFieldValueByLabel("Tasakmpistetunnus", name)
+        nameInput.replaceValue(name)
     }
 
     fun selectState(state: State): E2EKmPostEditDialog = apply {
         logger.info("Select state $state")
 
-        content.selectDropdownValueByLabel("Tila", state.uiText)
+        stateDropdown.selectByQaId(state.name)
     }
 
     fun save() = waitUntilClosed {
         logger.info("Save km post changes")
 
-        clickButton(byText("Tallenna"))
+        clickButton(byQaId("save-km-post-changes"))
     }
 
     fun cancel() = waitUntilClosed {
@@ -175,28 +201,31 @@ class E2EKmPostEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
 class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
-    enum class StateCategory(val uiText: String) {
-        NOT_EXISTING("Poistunut kohde"),
-        EXISTING("Olemassa oleva kohde")
+    enum class StateCategory {
+        NOT_EXISTING,
+        EXISTING
     }
+
+    private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("switch-name")) }
+    private val stateDropdown: E2EDropdown by lazy { childDropdown(byQaId("switch-state")) }
 
     fun setName(name: String): E2ELayoutSwitchEditDialog = apply {
         logger.info("Set name $name")
 
-        content.inputFieldValueByLabel("Vaihdetunnus", name)
+        nameInput.replaceValue(name)
     }
 
     fun selectStateCategory(stateCategory: StateCategory): E2ELayoutSwitchEditDialog = apply {
         logger.info("Select state $stateCategory")
 
-        content.selectDropdownValueByLabel("Tilakategoria", stateCategory.uiText)
+        stateDropdown.selectByQaId(stateCategory.name)
     }
 
     fun save() = waitUntilClosed {
         logger.info("Save switch changes")
 
-        val isNotExisting = content.getValueForFieldByLabel("Tilakategoria") == StateCategory.NOT_EXISTING.uiText
-        clickButton(byText("Tallenna"))
+        val isNotExisting = stateDropdown.qaIdValue == StateCategory.NOT_EXISTING.name
+        clickButton(byQaId("save-switch-changes"))
 
         if (isNotExisting) {
             clickChild(

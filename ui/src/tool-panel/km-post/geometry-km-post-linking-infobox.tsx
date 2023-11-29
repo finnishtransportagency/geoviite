@@ -123,6 +123,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                 qa-id="geometry-km-post-linking-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="geometry-km-post-linked"
                         label={t('tool-panel.km-post.geometry.linking.is-linked-label')}
                         value={
                             linkedLayoutKmPosts != undefined && (
@@ -147,8 +148,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         <WriteAccessRequired>
                             <InfoboxButtons>
                                 <Button
-                                    qa-id={'start-linking'}
                                     size={ButtonSize.SMALL}
+                                    qa-id="start-geometry-km-post-linking"
                                     onClick={() => startLinking(geometryKmPost.id)}>
                                     {t('tool-panel.km-post.geometry.linking.start-linking-command')}
                                 </Button>
@@ -223,17 +224,16 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             <InfoboxButtons>
                                 <Button
                                     onClick={() => stopLinking()}
-                                    qa-id={'cancel-linking'}
                                     disabled={linkingCallInProgress}
                                     variant={ButtonVariant.SECONDARY}
                                     size={ButtonSize.SMALL}>
                                     {t('button.cancel')}
                                 </Button>
                                 <Button
-                                    qa-id={'save-link'}
                                     onClick={() => link()}
                                     isProcessing={linkingCallInProgress}
                                     disabled={!canLink}
+                                    qa-id="link-geometry-km-post"
                                     size={ButtonSize.SMALL}>
                                     {t('tool-panel.km-post.geometry.linking.link-command')}
                                 </Button>

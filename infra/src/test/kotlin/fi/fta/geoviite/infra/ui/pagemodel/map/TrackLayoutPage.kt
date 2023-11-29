@@ -8,10 +8,10 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import javaScriptExecutor
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
+import tryWait
 import waitUntilNotExist
-import waitUntilValueIsNot
+import waitUntilTextIsNot
 import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
@@ -53,10 +53,11 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val toolBar: E2EToolBar by lazy { E2EToolBar(this) }
     val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
     val mapScale: MapScale
-        get() {
+        get() = tryWait({
             val scale = childText(By.className("ol-scale-line-inner"))
-            return MapScale.entries.first { it.value == scale }
-        }
+            MapScale.entries.firstOrNull { it.value == scale }
+        }) { "Invalid map scale" }
+
 
     companion object {
         fun finishLoading() {
@@ -116,21 +117,13 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     private fun zoomOut() {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-out"))
-        try {
-            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
-        } catch (ex: TimeoutException) {
-            logger.warn("Zoom out failed, cause: $ex")
-        }
+        waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
     }
 
     private fun zoomIn() {
         val currentScale = mapScale.value
         clickChild(By.className("ol-zoom-in"))
-        try {
-            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
-        } catch (ex: TimeoutException) {
-            logger.warn("Zoom in failed, cause: $ex")
-        }
+        waitUntilTextIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
     }
 
 }

@@ -23,13 +23,11 @@ abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-pro
 }
 
 class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
-    val searchForm: E2EFormLayout = childComponent(By.className("data-products__search"), ::E2EFormLayout)
+    val locationTrack: E2EDropdown = childDropdown(byQaId("km-lengths-search-location-track"))
 
-    val locationTrack: E2EDropdown = searchForm.dropdownByQaId("km-lengths-search-location-track")
+    val startKm: E2ETextInput = childTextInput(byQaId("km-lengths-search-start-km"))
 
-    val startKm: E2ETextInput = searchForm.textInputByQaId("km-lengths-search-start-km")
-
-    val endKm: E2ETextInput = searchForm.textInputByQaId("km-lengths-search-end-km")
+    val endKm: E2ETextInput = childTextInput(byQaId("km-lengths-search-end-km"))
 
     val resultList: LocationTrackKilometerLengthsList = LocationTrackKilometerLengthsList()
 

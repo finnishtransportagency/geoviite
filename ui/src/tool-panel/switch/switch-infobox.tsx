@@ -214,18 +214,21 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="switch-oid"
                             label={t('tool-panel.switch.layout.oid')}
                             value={
                                 layoutSwitch.externalId || t('tool-panel.switch.layout.unpublished')
                             }
                         />
                         <InfoboxField
+                            qaId="switch-name"
                             label={t('tool-panel.switch.layout.name')}
                             value={layoutSwitch.name}
                             onEdit={openEditSwitchDialog}
                             iconDisabled={isOfficial()}
                         />
                         <InfoboxField
+                            qaId="switch-state-category"
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
                                 <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
@@ -238,6 +241,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 size={ButtonSize.SMALL}
                                 disabled={!switchLocation}
                                 variant={ButtonVariant.SECONDARY}
+                                qa-id="zoom-to-switch"
                                 onClick={() => switchLocation && onShowOnMap(switchLocation)}>
                                 {t('tool-panel.switch.layout.show-on-map')}
                             </Button>
@@ -256,10 +260,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                     )}
                     <InfoboxField
+                        qaId="switch-hand"
                         label={t('tool-panel.switch.layout.hand')}
                         value={structure && <SwitchHand hand={structure.hand} />}
                     />
                     <InfoboxField
+                        qaId="switch-trap-point"
                         label={t('tool-panel.switch.layout.trap-point')}
                         value={
                             layoutSwitch &&
@@ -275,6 +281,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 qa-id="switch-location-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="switch-coordinates"
                         label={t('tool-panel.switch.layout.coordinates')}
                         value={switchLocation ? formatToTM35FINString(switchLocation) : '-'}
                     />
@@ -317,6 +324,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 qa-id="switch-additional-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="switch-owner"
                         label={t('tool-panel.switch.layout.owner')}
                         value={getOwnerName(layoutSwitch?.ownerId)}
                     />

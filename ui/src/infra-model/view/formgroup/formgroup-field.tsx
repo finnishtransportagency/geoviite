@@ -5,6 +5,7 @@ import { WriteAccessRequired } from 'user/write-access-required';
 
 type InfoboxFieldProps = {
     label: string;
+    qaId?: string;
     value?: React.ReactNode;
     children?: React.ReactNode;
     inEditMode?: boolean;
@@ -17,10 +18,11 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
     value,
     children,
     inEditMode = false,
+    qaId,
     ...props
 }: InfoboxFieldProps) => {
     return (
-        <div className={styles['formgroup__field']}>
+        <div className={styles['formgroup__field']} qa-id={qaId}>
             <div className={styles['formgroup__field-label']}>{label}</div>
             <div className={styles['formgroup__field-value']}>{children || value}</div>
             <div className={styles['formgroup__edit-icon']}>

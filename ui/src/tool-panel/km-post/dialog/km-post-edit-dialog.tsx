@@ -75,7 +75,8 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates
         .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value === 'PLANNED' }));
+        .map((ls) => ({ ...ls, qaId: ls.value, disabled: ls.value === 'PLANNED' }))
+
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
@@ -224,6 +225,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             </Button>
                             <span onClick={() => stateActions.validate()}>
                                 <Button
+                                    qa-id="save-km-post-changes"
                                     disabled={!canSaveKmPost(state)}
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}
@@ -249,6 +251,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.km-post')} *`}
                             value={
                                 <TextField
+                                    qa-id="km-post-number"
                                     value={state.kmPost?.kmNumber}
                                     onChange={(e) => updateProp('kmNumber', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('kmNumber')}
@@ -291,6 +294,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="km-post-state"
                                     value={state.kmPost?.state}
                                     options={kmPostStateOptions}
                                     onChange={(value) => value && updateProp('state', value)}

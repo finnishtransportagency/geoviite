@@ -109,9 +109,9 @@ export const SwitchEditDialog = ({
     const switchStructureChanged =
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
 
-    const switchStateCategoryOptions = layoutStateCategories
-        .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
+    const stateCategoryOptions = layoutStateCategories
+        .filter((sc) => isExistingSwitch || sc.value != 'NOT_EXISTING')
+        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING', qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {
         if (validateSwitchName(switchName).length == 0) {
@@ -332,6 +332,7 @@ export const SwitchEditDialog = ({
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                qa-id="save-switch-changes"
                                 disabled={validationErrors.length > 0 || isSaving}
                                 isProcessing={isSaving}
                                 onClick={saveOrConfirm}
@@ -355,6 +356,7 @@ export const SwitchEditDialog = ({
                             label={`${t('switch-dialog.switch-name')} *`}
                             value={
                                 <TextField
+                                    qa-id="switch-name"
                                     value={switchName}
                                     onChange={(e) => updateName(e.target.value)}
                                     hasError={hasErrors('name')}
@@ -377,8 +379,9 @@ export const SwitchEditDialog = ({
                             label={`${t('switch-dialog.state-category')} *`}
                             value={
                                 <Dropdown
+                                    qaId="switch-state"
                                     value={switchStateCategory}
-                                    options={switchStateCategoryOptions}
+                                    options={stateCategoryOptions}
                                     onChange={(value) => value && updateStateCategory(value)}
                                     onBlur={() => visitField('stateCategory')}
                                     hasError={hasErrors('stateCategory')}

@@ -107,12 +107,12 @@ class BasicMapTestUI @Autowired constructor(
         selectionPanel.waitUntilLocationTrackVisible("R36240")
 
         assertEquals("R36240", locationTrackInfobox.name)
-        locationTrackInfobox.waitForDescriptionValue("R36240 kuvaus").also {
-            assertEquals("R36240 kuvaus", locationTrackInfobox.description)
-        }
 
-        assertEquals(E2ELocationTrackEditDialog.Type.SIDE.uiText, locationTrackInfobox.type)
-        assertEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.uiText, locationTrackInfobox.state)
+        locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
+        assertEquals("R36240 kuvaus", locationTrackInfobox.description)
+
+        assertEquals(E2ELocationTrackEditDialog.Type.SIDE.name, locationTrackInfobox.type)
+        assertEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.name, locationTrackInfobox.state)
 
         val previewChangesPage = trackLayoutPage.goToPreview()
         val changePreviewTable = previewChangesPage.changesTable
@@ -127,12 +127,11 @@ class BasicMapTestUI @Autowired constructor(
         selectionPanel.selectLocationTrack(locationTrackToBeEdited)
 
         assertNotEquals("R36240", locationTrackInfobox.name)
-        locationTrackInfobox.waitForDescriptionValueIsNot("R36240 kuvaus").also {
-            assertNotEquals("R36240 kuvaus", locationTrackInfobox.description)
-        }
+        locationTrackInfobox.waitUntilDescriptionChanges("east location track description")
+        assertNotEquals("R36240 kuvaus", locationTrackInfobox.description)
 
-        assertNotEquals(E2ELocationTrackEditDialog.Type.SIDE.uiText, locationTrackInfobox.type)
-        assertNotEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.uiText, locationTrackInfobox.state)
+        assertNotEquals(E2ELocationTrackEditDialog.Type.SIDE.name, locationTrackInfobox.type)
+        assertNotEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.name, locationTrackInfobox.state)
     }
 
     @Test
@@ -159,9 +158,7 @@ class BasicMapTestUI @Autowired constructor(
         selectionPanel.waitUntilLocationTrackVisible("R36240")
 
         assertEquals("R36240", locationTrackInfobox.name)
-        locationTrackInfobox.waitForDescriptionValue("R36240 kuvaus").also {
-            assertEquals("R36240 kuvaus", locationTrackInfobox.description)
-        }
+        locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
 
         val previewChangesPage = trackLayoutPage.goToPreview()
         val changePreviewTable = previewChangesPage.changesTable
@@ -176,9 +173,7 @@ class BasicMapTestUI @Autowired constructor(
         //selectionPanel.selectLocationTrack("R36240")
 
         assertEquals("R36240", locationTrackInfobox.name)
-        locationTrackInfobox.waitForDescriptionValue("R36240 kuvaus").also {
-            assertEquals("R36240 kuvaus", locationTrackInfobox.description)
-        }
+        locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
     }
 
     fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) {

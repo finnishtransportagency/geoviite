@@ -302,6 +302,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     <WriteAccessRequired>
                         <Button
                             variant={ButtonVariant.PRIMARY}
+                            qa-id="switch-to-draft-mode"
                             onClick={() => onPublishTypeChange('DRAFT')}>
                             {t('tool-bar.draft-mode.enable')}
                         </Button>
@@ -317,6 +318,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <Button
                             icon={Icons.VectorRight}
                             variant={ButtonVariant.PRIMARY}
+                            qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
                             {t('tool-bar.preview-mode.enable')}
                         </Button>

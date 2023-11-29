@@ -266,6 +266,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 onContentVisibilityChange={onContentVisibilityChange}>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="geometry-alignment-linked"
                         label={t('tool-panel.alignment.geometry.is-linked')}
                         className={styles['geometry-alignment-infobox__linked-status']}
                         value={
@@ -374,7 +375,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 <Button
                                     size={ButtonSize.SMALL}
                                     onClick={startLinking}
-                                    qa-id={'start-linking'}>
+                                    qa-id="start-alignment-linking">
                                     {t(
                                         `tool-panel.alignment.geometry.${
                                             isLinked ? 'add-linking' : 'start-setup'
@@ -387,7 +388,6 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     {linkingState?.state === 'preliminary' && (
                         <InfoboxButtons>
                             <Button
-                                qa-id={'cancel-linking'}
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
                                 onClick={onStopLinking}>
@@ -396,7 +396,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             <Button
                                 size={ButtonSize.SMALL}
                                 disabled={!canLockAlignment}
-                                onClick={lockAlignment}>
+                                onClick={lockAlignment}
+                                qa-id="lock-alignment">
                                 {t('tool-panel.alignment.geometry.lock-alignment')}
                             </Button>
                         </InfoboxButtons>
@@ -411,9 +412,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 {t('tool-panel.alignment.geometry.return')}
                             </Button>
                             <Button
-                                qa-id={'save-link'}
                                 size={ButtonSize.SMALL}
                                 isProcessing={linkingCallInProgress}
+                                qa-id="link-geometry-alignment"
                                 disabled={!canLink}
                                 onClick={link}>
                                 {t('tool-panel.alignment.geometry.save-link')}

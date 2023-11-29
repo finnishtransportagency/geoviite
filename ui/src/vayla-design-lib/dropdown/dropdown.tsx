@@ -18,6 +18,7 @@ export type Item<TItemValue> = {
     name: string;
     value: TItemValue;
     disabled?: boolean;
+    qaId?: string;
 };
 
 export type DropdownOptions<TItemValue> =
@@ -97,6 +98,8 @@ export const Dropdown = function <TItemValue>({
           options?.find((item) => item.value == props.value)?.name ||
           ''
         : props.placeholder;
+
+    const selectedQaId = options?.find((i) => i.value == props.value)?.qaId;
 
     function setHasFocus(value: boolean) {
         if (hasFocus && !value) {
@@ -331,7 +334,7 @@ export const Dropdown = function <TItemValue>({
                         onChange={(e) => handleInputChange(e.target.value)}
                     />
                     {!searchTerm && (
-                        <div className={styles['dropdown__current-value']}>
+                        <div className={styles['dropdown__current-value']} qa-id={selectedQaId}>
                             <span>{selectedName}</span>
                         </div>
                     )}
@@ -377,6 +380,7 @@ export const Dropdown = function <TItemValue>({
                                 <li
                                     className={getItemClassName(item, index)}
                                     key={index}
+                                    qa-id={item.qaId}
                                     onClick={(event) => handleItemClick(item, event)}
                                     title={item.name}
                                     aria-disabled={!!item.disabled}

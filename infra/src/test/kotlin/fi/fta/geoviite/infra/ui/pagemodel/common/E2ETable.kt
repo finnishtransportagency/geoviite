@@ -8,6 +8,11 @@ abstract class E2ETable<T>(
     rowsBy: By = By.tagName("tr"),
     protected open val headersBy: By = By.tagName("th"),
 ) : E2EList<T>(tableBy, rowsBy) {
+
+    init {
+        waitUntilReady()
+    }
+
     val rows: List<T> get() = items
 
     protected val headerElements: List<WebElement> get() = childElements(headersBy)
@@ -26,16 +31,9 @@ abstract class E2ETable<T>(
     fun waitUntilReady(): E2ETable<T> = apply {
         logger.info("Wait until table has finished loading")
 
-        waitUntilChildNotVisible(By.className("table--loading"))
+        waitUntilChildInvisible(By.className("table--loading"))
     }
 }
-
-@Deprecated("Use qa-ids instead", ReplaceWith("getColumnIndex(qaId, headers)"))
-fun getColumnIndexByText(
-    columnName: String,
-    headers: List<WebElement>,
-) = headers.indexOfFirst { it.text == columnName }
-    .also { idx -> check(idx != -1) { "No header with text $columnName. Headers: ${headers.map { it.text }}" } }
 
 fun getColumnIndex(
     qaId: String,
@@ -54,6 +52,3 @@ fun getColumnContent(
 ): String {
     return columns[getColumnIndex(qaId, headers)].text
 }
-
-fun getColumnContentByText(columnName: String, columns: List<WebElement>, headers: List<WebElement>): String =
-    columns[getColumnIndexByText(columnName, headers)].text

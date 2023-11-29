@@ -39,6 +39,7 @@ export const InfraModelVerticalCoordinateInfoboxField: React.FC<
     return (
         <FormgroupField
             label={t('im-form.vertical-coordinate-system-field')}
+            qaId="vertical-coordinate-system-im-field"
             inEditMode={fieldInEdit === 'heightSystem'}
             onEdit={() => setFieldInEdit('heightSystem')}
             onClose={() => setFieldInEdit(undefined)}>

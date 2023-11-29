@@ -323,6 +323,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 <FormgroupContent title={t('im-form.file-metadata')}>
                     <FormgroupField
                         label={t('im-form.name-field')}
+                        qaId="project-im-field"
                         inEditMode={fieldInEdit === 'planName'}
                         onEdit={() => setFieldInEdit('planName')}
                         onClose={() => setFieldInEdit(undefined)}>
@@ -341,6 +342,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
                     <FormgroupField
                         label={t('im-form.company')}
+                        qaId="author-im-field"
                         inEditMode={fieldInEdit === 'author'}
                         onEdit={() => setFieldInEdit('author')}
                         onClose={() => setFieldInEdit(undefined)}>
@@ -377,6 +379,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 <FormgroupContent title={t('im-form.location-formgroup-title')}>
                     <FormgroupField
                         label={t('im-form.tracknumberfield')}
+                        qaId="track-number-im-field"
                         inEditMode={fieldInEdit === 'trackNumbers'}
                         onEdit={() => setFieldInEdit('trackNumbers')}
                         onClose={() => setFieldInEdit(undefined)}>
@@ -413,12 +416,15 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         )}
                     </FormgroupField>
 
-                    <FormgroupField label={t('im-form.km-interval-field')}>
+                    <FormgroupField
+                        label={t('im-form.km-interval-field')}
+                        qaId="km-interval-im-field">
                         {getKmRangePresentation(geometryPlan.kmPosts)}
                     </FormgroupField>
 
                     <FormgroupField
                         label={t('im-form.coordinate-system-field')}
+                        qaId="coordinate-system-im-field"
                         inEditMode={fieldInEdit === 'coordinateSystem'}
                         onEdit={() => setFieldInEdit('coordinateSystem')}
                         onClose={() => setFieldInEdit(undefined)}>
@@ -536,6 +542,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 <FormgroupContent title={t('im-form.log-formgroup-title')}>
                     <FormgroupField
                         label={t('im-form.plan-time-field')}
+                        qaId="plan-time-im-field"
                         inEditMode={fieldInEdit === 'createdTime'}
                         onEdit={() => setFieldInEdit('createdTime')}
                         onClose={() => setFieldInEdit(undefined)}>

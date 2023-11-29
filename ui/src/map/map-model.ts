@@ -81,6 +81,7 @@ export type ShownItems = {
 export type MapLayerMenuItem = {
     name: MapLayerMenuItemName;
     visible: boolean;
+    qaId?: string;
     subMenu?: MapLayerMenuItem[];
 };
 
