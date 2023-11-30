@@ -39,6 +39,7 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
 import { BoundingBox, Point } from 'model/geometry';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -161,6 +162,34 @@ export async function getPlanLinkStatus(
     return geometryElementsLinkedStatusCache.get(maxChangeTime, `${publishType}_${planId}`, () =>
         getNonNull(`${LINKING_URI}/${publishType}/plans/${planId}/status`),
     );
+}
+
+export async function getPlanLinkStatuses(
+    planIds: GeometryPlanId[],
+    publishType: PublishType,
+): Promise<GeometryPlanLinkStatus[]> {
+    const changeTimes = getChangeTimes();
+    const maxChangeTime = getMaxTimestamp(
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.layoutKmPost,
+    );
+
+    return geometryElementsLinkedStatusCache
+        .getMany(
+            maxChangeTime,
+            planIds,
+            (planId) => `${publishType}_${planId}`,
+            (planIds) =>
+                getNonNull<GeometryPlanLinkStatus[]>(
+                    `${LINKING_URI}/${publishType}/plans/status?ids=${planIds}`,
+                ).then((tracks) => {
+                    const trackMap = indexIntoMap(tracks);
+                    return (id) => trackMap.get(id)!;
+                }),
+        )
+        .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
 export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<SuggestedSwitch[]> {

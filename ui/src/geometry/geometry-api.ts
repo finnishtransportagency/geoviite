@@ -275,6 +275,33 @@ export async function getTrackLayoutPlan(
     return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
 }
 
+function indexPlansIntoMap<Id, Obj extends { planId: Id }>(objs: Obj[]): Map<Id, Obj> {
+    return objs.reduce((map, obj) => map.set(obj.planId, obj), new Map());
+}
+
+export async function getTrackLayoutPlans(
+    planIds: GeometryPlanId[],
+    changeTime: TimeStamp,
+    includeGeometryData = true,
+): Promise<GeometryPlanLayout[]> {
+    const url = (planIds: GeometryPlanId[], includeGeometryData: boolean) =>
+        `${GEOMETRY_URI}/plans/layout?planIds=${planIds}&includeGeometryData=${includeGeometryData}`;
+    return trackLayoutPlanCache
+        .getMany(
+            changeTime,
+            planIds,
+            (id) => `${id}-${includeGeometryData}`,
+            (fetchIds) =>
+                getNonNull<GeometryPlanLayout[]>(url(fetchIds, includeGeometryData)).then(
+                    (tracks) => {
+                        const trackMap = indexPlansIntoMap(tracks);
+                        return (id) => trackMap.get(id);
+                    },
+                ),
+        )
+        .then((plans) => plans.filter(filterNotEmpty));
+}
+
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
     return projectCache.get(changeTime, undefined, () =>
         getNonNull<Project[]>(`${GEOMETRY_URI}/projects`),

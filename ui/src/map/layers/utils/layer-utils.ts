@@ -10,9 +10,9 @@ import { register } from 'ol/proj/proj4';
 import VectorSource from 'ol/source/Vector';
 import { avg, filterNotEmpty, filterUnique } from 'utils/array-utils';
 import { distToSegmentSquared } from 'utils/math-utils';
-import { getPlanLinkStatus } from 'linking/linking-api';
+import { getPlanLinkStatus, getPlanLinkStatuses } from 'linking/linking-api';
 import { PublishType } from 'common/common-model';
-import { getPlanAreasByTile, getTrackLayoutPlan } from 'geometry/geometry-api';
+import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { MapTile } from 'map/map-model';
 
@@ -233,12 +233,17 @@ export async function getVisiblePlansWithStatus(
     changeTimes: ChangeTimes,
 ): Promise<PlanAndStatus[]> {
     const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
-    const withStatuses = await Promise.all(
-        planIds.map((planId) =>
-            getTrackLayoutPlan(planId, changeTimes.geometryPlan, true).then((plan) =>
-                plan && !plan.planHidden ? getPlanAndStatus(plan, publishType) : undefined,
+    const withStatuses = await getTrackLayoutPlans(planIds, changeTimes.geometryPlan, true).then(
+        (plans) =>
+            getPlanLinkStatuses(
+                plans.filter((p) => !p.planHidden).map((p) => p.planId),
+                publishType,
+            ).then((statii) =>
+                plans.map((plan) => ({
+                    plan,
+                    status: statii.find((s) => s.id === plan.planId),
+                })),
             ),
-        ),
     );
     return withStatuses.filter(filterNotEmpty);
 }
@@ -249,11 +254,7 @@ export async function getVisiblePlans(
     changeTimes: ChangeTimes,
 ): Promise<GeometryPlanLayout[]> {
     const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
-    return (
-        await Promise.all(
-            planIds.map((planId) => getTrackLayoutPlan(planId, changeTimes.geometryPlan, true)),
-        )
-    )
+    return (await getTrackLayoutPlans(planIds, changeTimes.geometryPlan, true))
         .filter(filterNotEmpty)
         .filter((plan) => !plan.planHidden);
 }

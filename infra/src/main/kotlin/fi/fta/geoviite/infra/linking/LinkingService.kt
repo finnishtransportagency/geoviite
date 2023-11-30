@@ -216,6 +216,16 @@ class LinkingService @Autowired constructor(
         return linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType)
     }
 
+    fun getGeometryPlanLinkStatuses(
+        planIds: List<IntId<GeometryPlan>>,
+        publishType: PublishType,
+    ): List<GeometryPlanLinkStatus> {
+        logger.serviceCall(
+            "getGeometryPlanLinkStatuses", "planIds" to planIds, "publishType" to publishType
+        )
+        return planIds.map { planId -> linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType) }
+    }
+
     @Transactional
     fun saveKmPostLinking(parameters: KmPostLinkingParameters): DaoResponse<TrackLayoutKmPost> {
         verifyPlanNotHidden(parameters.geometryPlanId)

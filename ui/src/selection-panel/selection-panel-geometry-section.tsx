@@ -20,10 +20,14 @@ import {
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { useRateLimitedEffect, useMapState, useSetState } from 'utils/react-utils';
-import { getGeometryPlanHeadersBySearchTerms, getTrackLayoutPlan } from 'geometry/geometry-api';
+import {
+    getGeometryPlanHeadersBySearchTerms,
+    getTrackLayoutPlan,
+    getTrackLayoutPlans,
+} from 'geometry/geometry-api';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
-import { getPlanLinkStatus } from 'linking/linking-api';
+import { getPlanLinkStatus, getPlanLinkStatuses } from 'linking/linking-api';
 import { MapViewport } from 'map/map-model';
 import {
     OnSelectOptions,
@@ -80,7 +84,10 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     const { t } = useTranslation();
     const [planHeadersInView, setPlanHeadersInView] = React.useState<GeometryPlanHeader[]>([]);
     const [planHeaderCount, setPlanHeaderCount] = React.useState<number>(0);
-    const [loadedPlans, setLoadedPlan] = useMapState<GeometryPlanId, LoadedGeometryPlan>();
+    const [loadedPlans, setLoadedPlan, _, setLoadedPlanMap] = useMapState<
+        GeometryPlanId,
+        LoadedGeometryPlan
+    >();
     const [plansBeingLoaded, startLoadingPlan, finishLoadingPlan] = useSetState<GeometryPlanId>();
 
     useRateLimitedEffect(
@@ -143,11 +150,33 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         if (visiblePlansInView.length > 0) {
             visiblePlansInView.forEach(onTogglePlanVisibility);
         } else {
-            planHeadersInView.forEach((ph) => {
-                loadPlanLayout(ph.id).then((p) => {
-                    if (p) onTogglePlanVisibility(wholePlanVisibility(p));
+            planHeadersInView.forEach((h) => startLoadingPlan(h.id));
+            getTrackLayoutPlans(
+                planHeadersInView.map((h) => h.id),
+                changeTimes.geometryPlan,
+            )
+                .then((plans) => {
+                    getPlanLinkStatuses(
+                        plans.map((p) => p.planId),
+                        publishType,
+                    ).then((statuses) => {
+                        const map = new Map(loadedPlans);
+                        plans.forEach((plan) => {
+                            const status = statuses.find((s) => s.id === plan.planId);
+                            if (status) {
+                                map.set(plan.planId, {
+                                    planLayout: plan,
+                                    linkStatus: status,
+                                });
+                                onTogglePlanVisibility(wholePlanVisibility(plan));
+                            }
+                        });
+                        setLoadedPlanMap(map);
+                    });
+                })
+                .finally(() => {
+                    planHeadersInView.forEach((h) => finishLoadingPlan(h.id));
                 });
-            });
         }
     };
 

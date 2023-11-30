@@ -91,6 +91,18 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/layout")
+    fun getTrackLayoutPlan(
+        @RequestParam("planIds") planIds: List<IntId<GeometryPlan>>,
+        @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
+    ): ResponseEntity<List<GeometryPlanLayout>> {
+        log.apiCall(
+            "getTrackLayoutPlan", "planIds" to planIds, "includeGeometryData" to includeGeometryData
+        )
+        return toResponse(planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull { it.first })
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/switches/{switchId}")
     fun getGeometrySwitch(@PathVariable("switchId") switchId: IntId<GeometrySwitch>): GeometrySwitch {
         log.apiCall("getGeometrySwitch", "switchId" to switchId)

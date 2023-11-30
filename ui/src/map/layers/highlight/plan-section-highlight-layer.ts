@@ -6,7 +6,8 @@ import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import {
     AlignmentDataHolder,
     AlignmentHeader,
-    getMapAlignmentsByTiles,
+    getSelectedLocationTrackMapAlignmentByTiles,
+    getSelectedReferenceLineMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
@@ -65,23 +66,35 @@ export function createPlanSectionHighlightLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     let inFlight = false;
-    if (resolution <= HIGHLIGHTS_SHOW) {
+    if (resolution <= HIGHLIGHTS_SHOW && hoveredOverItem) {
         inFlight = true;
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-            .then((alignments) => {
-                if (layerId === newestLayerId) {
-                    const features = createFeatures(alignments, hoveredOverItem);
+        hoveredOverItem.type === 'REFERENCE_LINE'
+            ? getSelectedReferenceLineMapAlignmentByTiles(
+                  changeTimes,
+                  mapTiles,
+                  publishType,
+                  hoveredOverItem.id,
+              )
+            : getSelectedLocationTrackMapAlignmentByTiles(
+                  changeTimes,
+                  mapTiles,
+                  publishType,
+                  hoveredOverItem.id,
+              )
+                  .then((alignments) => {
+                      if (layerId === newestLayerId) {
+                          const features = createFeatures(alignments, hoveredOverItem);
 
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                }
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
+                          clearFeatures(vectorSource);
+                          vectorSource.addFeatures(features);
+                      }
+                  })
+                  .catch(() => {
+                      if (layerId === newestLayerId) clearFeatures(vectorSource);
+                  })
+                  .finally(() => {
+                      inFlight = false;
+                  });
     } else {
         clearFeatures(vectorSource);
     }
