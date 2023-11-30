@@ -6,7 +6,7 @@ export const DEBUG_1M_POINTS = 0.06;
 
 export const HIGHLIGHTS_SHOW = 100.0;
 
-export const mapLayerZIndexes = [
+const mapLayerOrder: MapLayerName[] = [
     'background-map-layer',
     'location-track-background-layer',
     'reference-line-background-layer',
@@ -20,6 +20,7 @@ export const mapLayerZIndexes = [
     'geometry-alignment-layer',
     'duplicate-split-section-highlight-layer',
     'location-track-selected-alignment-layer',
+    'reference-line-selected-alignment-layer',
     'location-track-badge-layer',
     'reference-line-badge-layer',
     'location-track-split-badge-layer',
@@ -35,7 +36,9 @@ export const mapLayerZIndexes = [
     'plan-area-layer',
     'debug-1m-points-layer',
     'debug-layer',
-].reduce(
+];
+
+export const mapLayerZIndexes = mapLayerOrder.reduce(
     (acc, layer, idx) => {
         acc[layer as MapLayerName] = idx;
 

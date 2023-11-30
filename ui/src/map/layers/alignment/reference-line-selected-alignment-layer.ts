@@ -1,61 +1,52 @@
 import { LineString, Point as OlPoint } from 'ol/geom';
-import OlView from 'ol/View';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { getSelectedLocationTrackMapAlignmentByTiles } from 'track-layout/layout-map-api';
-import { SplittingState } from 'tool-panel/location-track/split-store';
+import { getSelectedReferenceLineMapAlignmentByTiles } from 'track-layout/layout-map-api';
 import { createSelectedAlignmentFeature } from '../utils/alignment-layer-utils';
 
 let newestLayerId = 0;
 
-export function createLocationTrackSelectedAlignmentLayer(
+export function createSelectedReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
-    splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
-    olView: OlView,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const resolution = olView.getResolution() || 0;
-
     let inFlight = true;
-    const selectedTrack = selection.selectedItems.locationTracks[0];
-    const alignmentPromise = selectedTrack
-        ? getSelectedLocationTrackMapAlignmentByTiles(
+    const selectedTrackNumber = selection.selectedItems.trackNumbers[0];
+    const alignmentPromise = selectedTrackNumber
+        ? getSelectedReferenceLineMapAlignmentByTiles(
               changeTimes,
               mapTiles,
               publishType,
-              selectedTrack,
+              selectedTrackNumber,
           )
         : Promise.resolve([]);
 
     alignmentPromise
-        .then((locationTracks) => {
+        .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 
-            const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
-
             const alignmentFeatures = createSelectedAlignmentFeature(
-                locationTracks[0],
+                referenceLines[0],
                 selection,
                 linkingState,
-                showEndPointTicks,
-                splittingState,
+                false,
+                undefined,
             );
 
             clearFeatures(vectorSource);
@@ -71,7 +62,7 @@ export function createLocationTrackSelectedAlignmentLayer(
         });
 
     return {
-        name: 'location-track-selected-alignment-layer',
+        name: 'reference-line-selected-alignment-layer',
         layer: layer,
         requestInFlight: () => inFlight,
     };

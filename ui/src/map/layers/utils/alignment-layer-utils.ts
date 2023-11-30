@@ -15,6 +15,7 @@ import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 const tickImageCache = cache<string, RegularShape>();
 
@@ -34,6 +35,22 @@ export const highlightedLocationTrackStyle = new Style({
     zIndex: 2,
 });
 
+const selectedLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 2,
+    }),
+    zIndex: 2,
+});
+
+const splittingLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 4,
+    }),
+    zIndex: 2,
+});
+
 const referenceLineStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentLine,
@@ -46,6 +63,14 @@ export const highlightedReferenceLineStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.selectedAlignmentLine,
         width: 3,
+    }),
+    zIndex: 1,
+});
+
+const selectedReferenceLineStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 4,
     }),
     zIndex: 1,
 });
@@ -189,6 +214,48 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
 
 export const isHighlighted = (selection: Selection, header: AlignmentHeader) =>
     includes(selection.highlightedItems, header);
+
+export function createSelectedAlignmentFeature(
+    alignment: AlignmentDataHolder,
+    selection: Selection,
+    linkingState: LinkingState | undefined,
+    showEndTicks: boolean,
+    splittingState: SplittingState | undefined,
+): Feature<LineString | OlPoint>[] {
+    const { selected, isLinking, highlighted } = getAlignmentHeaderStates(
+        alignment,
+        selection,
+        linkingState,
+    );
+
+    const features: Feature<LineString | OlPoint>[] = [];
+    const alignmentFeature = new Feature({
+        geometry: new LineString(alignment.points.map(pointToCoords)),
+    });
+    features.push(alignmentFeature);
+
+    const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
+
+    if (splittingState?.originLocationTrack.id === alignment.header.id) {
+        alignmentFeature.setStyle(splittingLocationTrackStyle);
+    } else if (selected || isLinking) {
+        alignmentFeature.setStyle(
+            isReferenceLine ? selectedReferenceLineStyle : selectedLocationTrackStyle,
+        );
+    } else if (highlighted) {
+        alignmentFeature.setStyle(
+            isReferenceLine ? highlightedReferenceLineStyle : highlightedLocationTrackStyle,
+        );
+    }
+
+    if (showEndTicks) {
+        features.push(...createEndPointTicks(alignment, selected || isLinking || highlighted));
+    }
+
+    setAlignmentFeatureProperty(alignmentFeature, alignment);
+
+    return features;
+}
 
 export function getAlignmentHeaderStates(
     { header }: AlignmentDataHolder,

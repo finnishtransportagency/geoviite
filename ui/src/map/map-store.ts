@@ -96,6 +96,7 @@ export const initialMapState: Map = {
         'geometry-switch-layer',
         'geometry-km-post-layer',
         'location-track-selected-alignment-layer',
+        'reference-line-selected-alignment-layer',
     ],
     layerMenu: {
         layout: [
