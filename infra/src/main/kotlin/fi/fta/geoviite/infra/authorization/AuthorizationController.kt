@@ -13,7 +13,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
-
+//
+//
 @RestController
 @RequestMapping("/authorization")
 class AuthorizationController @Autowired constructor(private val signer: CookieSigner) {
