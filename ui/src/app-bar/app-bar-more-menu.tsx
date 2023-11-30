@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useNavigate } from 'react-router';
 
-const MoreMenu: React.FC = () => {
+const AppBarMoreMenu: React.FC = () => {
     const { t } = useTranslation();
     const [showMenu, setShowMenu] = React.useState(false);
     const [showLogoutConfirmation, setShowLogoutConfirmation] = React.useState(false);
@@ -77,4 +77,4 @@ const MoreMenu: React.FC = () => {
     );
 };
 
-export default MoreMenu;
+export default AppBarMoreMenu;
