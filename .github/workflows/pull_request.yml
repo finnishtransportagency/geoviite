@@ -4,7 +4,7 @@ run-name: ${{ github.actor }} wants to merge ${{ github.ref_name }}
 
 on:
   pull_request:
-    branches: [main]
+    branches: [dev/GVT-2257]
     paths-ignore:
       - 'README.md'
 
@@ -26,26 +26,55 @@ jobs:
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
 
+    - name: Create cache key for Postgres Docker image
+      id: hash-postgres-dockerfile
+      env:
+        DOCKERFILE_PATH: './docker-images/geoviite-postgres/Dockerfile'
+      run: echo "POSTGRES_DOCKERFILE_HASH=$(echo -n $DOCKERFILE_PATH | sha256sum | awk '{ print $1 }')" >> $GITHUB_ENV
+
+    - name: Use cache for Postgres Docker image
+      id: load-cached-postgres-image
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.docker
+        key: geoviite-postgres-${{ env.POSTGRES_DOCKERFILE_HASH }}
+
+    - name: Use cached Postgres Docker image if it exists
+      if: steps.load-cached-postgres-image.outputs.cache-hit == 'true'
+      run: |
+        docker image load -i /tmp/.docker/geoviite-postgres-image.tar
+
+    - name: Build Postgres Docker image if it was not found from the cache
+      if: steps.load-cached-postgres-image.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/.docker
+        docker image build -t gvt-postgres ./docker-images/geoviite-postgres
+        docker image save -o /tmp/.docker/geoviite-postgres-image.tar gvt-postgres
+
     - name: Execute Gradle build
       run: |
         cd infra
         ./gradlew build -x test
 
-    - name: run unit tests in infra (backend)
+    - name: Run unit tests in infra (backend)
       run: |
         cd infra
         ./gradlew cleanTest test --tests "*Test"
 
-    - name: run integration tests in infra (backend)
-      run: |
-        docker build -t gvt-postgres ./docker-images/geoviite-postgres
-        docker run -d -p 127.0.0.1:5436:5432 -e POSTGRES_DB=$POSTGRES_DB -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD --name geoviite-db gvt-postgres
-        cd infra
-        DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
+    - name: Run integration tests in infra (backend)
       env:
-        POSTGRES_PASSWORD: 'dev-geouser-password'
-        POSTGRES_USER: 'dev-geouser'
         POSTGRES_DB: 'geoviite'
+        POSTGRES_USER: 'dev-geouser'
+        POSTGRES_PASSWORD: 'dev-geouser-password'
+      run: |
+        docker run -d -p 127.0.0.1:5436:5432 \
+        -e POSTGRES_DB=$POSTGRES_DB \
+        -e POSTGRES_USER=$POSTGRES_USER \
+        -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+         --name geoviite-db-github gvt-postgres
+
+        cd infra
+        ./gradlew cleanTest test --tests "*IT"
 
     - name: Publish Test Report
       uses: mikepenz/action-junit-report@75b84e78b3f0aaea7ed7cf8d1d100d7f97f963ec
