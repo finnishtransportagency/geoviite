@@ -14,7 +14,7 @@ import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import DataProductsMenu from 'app-bar/data-products-menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import MoreMenu from 'app-bar/more-menu';
+import AppBarMoreMenu from 'app-bar/app-bar-more-menu';
 
 type Link = {
     link: string;
@@ -118,7 +118,7 @@ export const AppBar: React.FC = () => {
             }
             <ul className={styles['app-bar__links']}>
                 <li>
-                    <MoreMenu />
+                    <AppBarMoreMenu />
                 </li>
             </ul>
         </nav>
