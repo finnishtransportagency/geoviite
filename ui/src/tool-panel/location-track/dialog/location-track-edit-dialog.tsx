@@ -28,11 +28,7 @@ import {
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
-import {
-    layoutStates,
-    locationTrackTypes,
-    topologicalConnectivityTypes,
-} from 'utils/enum-localization-utils';
+import { layoutStates, locationTrackTypes, topologicalConnectivityTypes } from 'utils/enum-localization-utils';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -129,10 +125,20 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const locationTrackOwners = useLoader(
         () =>
             getLocationTrackOwners().then((owners) =>
-                owners.sort((a, b) => a.name.localeCompare(b.name)),
-            ),
-        [],
+                owners.sort((a, b) => sortUnknownLocationTrackOwnerAsLast(a.name,b.name))
+            ),[],
     );
+
+    function sortUnknownLocationTrackOwnerAsLast(a: string, b: string) {
+        if (b === "Ei tiedossa") {
+            return -1
+        } else if (a === b) {
+            return 0
+        } else {
+            return a < b ? -1 : 1;
+        }
+    }
+    
     const trackWithSameName = useConflictingTrack(
         state.locationTrack.trackNumberId,
         state.locationTrack.name,
