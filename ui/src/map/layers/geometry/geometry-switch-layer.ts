@@ -87,7 +87,7 @@ export function createGeometrySwitchLayer(
                     isSwitchLinked,
                     showLargeSymbols,
                     showLabels,
-                    plan.planId,
+                    plan.id,
                     switchStructures,
                 );
             });

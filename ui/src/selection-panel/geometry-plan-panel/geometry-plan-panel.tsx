@@ -132,7 +132,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 isKmPostsOpen: isKmPostsOpen,
                 isSwitchesOpen: isSwitchesOpen,
                 isAlignmentsOpen: isAlignmentsOpen,
-                id: planLayout.planId,
+                id: planLayout.id,
                 isOpen: !isPlanOpen,
             });
         } else {
@@ -144,7 +144,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             isKmPostsOpen: isKmPostsOpen,
                             isSwitchesOpen: isSwitchesOpen,
                             isAlignmentsOpen: isAlignmentsOpen,
-                            id: planLayout.planId,
+                            id: planLayout.id,
                             isOpen: true,
                         });
                     }
@@ -168,7 +168,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
             onToggleAlignmentSelection(alignment);
             onToggleAlignmentVisibility({
                 alignmentId: alignment.id,
-                planId: planLayout.planId,
+                planId: planLayout.id,
                 keepAlignmentVisible: true,
             });
         }
@@ -179,7 +179,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
             onToggleSwitchSelection(switchItem);
             onToggleSwitchVisibility({
                 switchId: switchItem.sourceId,
-                planId: planLayout.planId,
+                planId: planLayout.id,
                 keepSwitchesVisible: true,
             });
         }
@@ -190,7 +190,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
             onToggleKmPostSelection(kmPostItem);
             onToggleKmPostVisibility({
                 kmPostId: kmPostItem.sourceId,
-                planId: planLayout.planId,
+                planId: planLayout.id,
                 keepKmPostsVisible: true,
             });
         }
@@ -354,7 +354,7 @@ function createKmPostRow(
                         (planKmPost.sourceId &&
                             onToggleKmPostVisibility({
                                 kmPostId: planKmPost.sourceId,
-                                planId: planLayout.planId,
+                                planId: planLayout.id,
                             }))
                     }
                 />
@@ -408,7 +408,7 @@ function createAlignmentRow(
                         isAlignmentSelected ||
                         onToggleAlignmentVisibility({
                             alignmentId: alignment.header.id,
-                            planId: planLayout.planId,
+                            planId: planLayout.id,
                         })
                     }
                 />
@@ -464,7 +464,7 @@ function createSwitchRow(
                         (planSwitch.sourceId &&
                             onToggleSwitchVisibility({
                                 switchId: planSwitch.sourceId,
-                                planId: planLayout.planId,
+                                planId: planLayout.id,
                             }))
                     }
                 />

@@ -450,7 +450,7 @@ function arePlanPartsVisible(plan: VisiblePlanLayout): boolean {
 }
 export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout {
     return {
-        id: plan.planId,
+        id: plan.id,
         switches: plan.switches.map((s) => s.sourceId).filter(filterNotEmpty),
         kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
         alignments: plan.alignments.map((a) => a.header.id),

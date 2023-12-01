@@ -88,10 +88,20 @@ class LinkingController @Autowired constructor(
     @GetMapping("{publishType}/plans/{id}/status")
     fun getPlanLinkStatus(
         @PathVariable("id") planId: IntId<GeometryPlan>,
-        @PathVariable("publishType") publishType: PublishType
+        @PathVariable("publishType") publishType: PublishType,
     ): GeometryPlanLinkStatus {
         logger.apiCall("getPlanLinkStatus", "planId" to planId, "publishType" to publishType)
         return linkingService.getGeometryPlanLinkStatus(planId = planId, publishType = publishType)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/plans/status")
+    fun getManyPlanLinkStatuses(
+        @RequestParam("ids") planIds: List<IntId<GeometryPlan>>,
+        @PathVariable("publishType") publishType: PublishType,
+    ): List<GeometryPlanLinkStatus> {
+        logger.apiCall("getManyPlanLinkStatuses", "publishType" to publishType)
+        return linkingService.getGeometryPlanLinkStatuses(planIds = planIds, publishType = publishType)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -128,7 +138,7 @@ class LinkingController @Autowired constructor(
     @GetMapping("/switches/suggested", params = ["location", "switchStructureId"])
     fun getSuggestedSwitches(
         @RequestParam("location") location: Point,
-        @RequestParam("switchStructureId") switchStructureId: IntId<SwitchStructure>
+        @RequestParam("switchStructureId") switchStructureId: IntId<SwitchStructure>,
     ): List<SuggestedSwitch> {
         logger.apiCall("getSuggestedSwitches", "location" to location, "switchStructureId" to switchStructureId)
         return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchStructureId))
