@@ -13,16 +13,20 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
 import styles from './switch-infobox.scss';
+import { TopologicalJointConnection } from 'linking/linking-model';
+import { getLocationTracks } from 'track-layout/layout-location-track-api';
 
 type SwitchJointInfobox = {
     switchAlignments: SwitchAlignment[];
     jointConnections: LayoutSwitchJointConnection[];
+    topologicalJointConnections?: TopologicalJointConnection[];
     publishType: PublishType;
 };
 
 const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     switchAlignments,
     jointConnections,
+    topologicalJointConnections,
     publishType,
 }) => {
     const { t } = useTranslation();
@@ -32,10 +36,27 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
         ),
     );
 
-    const locationTracks = useLoader(
-        () => getLocationTracksForJointConnections(publishType, jointConnections),
-        [switchAlignments, jointConnections, publishType],
-    );
+    const displayedLocationTracksEndingAtJoint =
+        topologicalJointConnections ?? locationTracksEndingAtJoint;
+
+    const locationTracks = [
+        useLoader(
+            () => getLocationTracksForJointConnections(publishType, jointConnections),
+            [switchAlignments, jointConnections, publishType],
+        ),
+        useLoader(
+            () =>
+                getLocationTracks(
+                    (topologicalJointConnections ?? []).flatMap(
+                        (jointConnection) => jointConnection.locationTrackIds,
+                    ),
+                    publishType,
+                ),
+            [],
+        ),
+    ]
+        .flat()
+        .filter(filterNotEmpty);
 
     function getLocationTracksForJointNumbers(jointNumbers: JointNumber[]) {
         const locationTrackIds = getMatchingLocationTrackIdsForJointNumbers(
@@ -73,7 +94,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                         </React.Fragment>
                     );
                 })}
-                {locationTracksEndingAtJoint.length > 0 && (
+                {displayedLocationTracksEndingAtJoint.length > 0 && (
                     <>
                         <dt className={styles['switch-joint-infobox__joint-title']}>
                             {t('tool-panel.switch.layout.joint-number-title')}
@@ -81,7 +102,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                         <dd className={styles['switch-joint-infobox__joint-title']}>
                             {t('tool-panel.switch.layout.location-tracks-end-at-joint-title')}
                         </dd>
-                        {locationTracksEndingAtJoint.map((a) => {
+                        {displayedLocationTracksEndingAtJoint?.map((a) => {
                             return (
                                 <React.Fragment key={a.jointNumber}>
                                     <dt

@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
@@ -28,7 +29,7 @@ data class GeometryAlignment(
     val cant: GeometryCant? = null,
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val id: DomainId<GeometryAlignment> = StringId(),
-) {
+) : Loggable {
     @get:JsonIgnore
     val bounds by lazy { boundingBoxAroundPointsOrNull(elements.flatMap { e -> e.bounds }) }
 
@@ -51,6 +52,8 @@ data class GeometryAlignment(
             .find { elementAndLength -> elementAndLength.second.id == elementId }
             ?.let { match -> match.first..(match.first + match.second.calculatedLength) }
             ?: throw IllegalArgumentException("Element not found from alignment")
+
+    override fun toLog(): String = logFormat("id" to id, "name" to name, "elements" to elements.size)
 }
 
 private fun foldElementLengths(elements: List<GeometryElement>) =

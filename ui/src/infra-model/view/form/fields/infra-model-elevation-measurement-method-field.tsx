@@ -34,6 +34,7 @@ export const InfraModelElevationMeasurementMethodField: React.FC<
     return (
         <FormgroupField
             label={t('im-form.elevation-measurement-method-field')}
+            qaId="elevation-measurement-method-im-field"
             inEditMode={fieldInEdit === 'elevationMeasurementMethod'}
             onEdit={() => setFieldInEdit('elevationMeasurementMethod')}
             onClose={() => setFieldInEdit(undefined)}>

@@ -4,10 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
-import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.create2DPolygonString
-import fi.fta.geoviite.infra.geography.create3DMLineString
-import fi.fta.geoviite.infra.geography.parse3DMLineString
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -17,6 +14,7 @@ import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.util.stream.Collectors
@@ -28,8 +26,8 @@ const val GEOMETRY_CACHE_SIZE = 500000L
 data class MapSegmentProfileInfo<T>(
     val id: IntId<T>,
     val alignmentId: IndexedId<LayoutSegment>,
-    val points: List<LayoutPoint>,
-    val segmentStart: Double,
+    val segmentStartM: Double,
+    val segmentEndM: Double,
     val hasProfile: Boolean,
 )
 
@@ -48,9 +46,14 @@ class LayoutAlignmentDao(
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
         if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal)
         else fetchInternal(alignmentVersion)
+
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+    fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
+        versions.associateWith(::fetch)
 
     private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql = """
@@ -259,7 +262,7 @@ class LayoutAlignmentDao(
             }
             val geometry = requireNotNull(geometries[geometryId]) {
                 "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
-            }.withStartMAt(start)
+            }
             LayoutSegment(
                 id = data.id,
                 sourceId = data.sourceId,
@@ -269,6 +272,7 @@ class LayoutAlignmentDao(
                 endJointNumber = data.endJointNumber,
                 source = data.source,
                 geometry = geometry,
+                startM = start,
             ).also {
                 start += geometry.length
             }
@@ -420,11 +424,11 @@ class LayoutAlignmentDao(
             val toSegment = rs.getInt("to_segment")
             val startPoint = rs.getDoubleOrNull("start_m")?.let { m ->
                 rs.getPointOrNull("start_x", "start_y")?.let { point ->
-                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+                    AlignmentPoint(point.x, point.y, 0.0, m, 0.0) }
             }
             val endPoint = rs.getDoubleOrNull("end_m")?.let { m ->
                 rs.getPointOrNull("end_x", "end_y")?.let { point ->
-                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+                    AlignmentPoint(point.x, point.y, 0.0, m, 0.0) }
             }
             SegmentGeometryAndMetadata(
                 planId = rs.getIntIdOrNull("plan_id"),
@@ -493,7 +497,7 @@ class LayoutAlignmentDao(
               segment_version.alignment_id,
               segment_version.segment_index,
               segment_version.start,
-              postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
+              postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) max_m,
               plan.vertical_coordinate_system
               from layout.location_track_publication_view location_track_v
                 inner join layout.segment_version on
@@ -520,11 +524,12 @@ class LayoutAlignmentDao(
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
+            val startM = rs.getDouble("start")
             MapSegmentProfileInfo(
                 id = rs.getIntId("official_id"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
-                points = getSegmentPointsWkt(rs, "geometry_wkt"),
-                segmentStart = rs.getDouble("start"),
+                segmentStartM = startM,
+                segmentEndM = startM + rs.getDouble("max_m"),
                 hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
             )
         }
@@ -533,7 +538,7 @@ class LayoutAlignmentDao(
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
-                if (s.geometry.id is StringId) s.geometry.withStartMAt(0.0) else null
+                if (s.geometry.id is StringId) s.geometry else null
             })
             //language=SQL
             val sqlIndexed = """
@@ -580,13 +585,13 @@ class LayoutAlignmentDao(
     private fun insertSegmentGeometries(
         geometries: List<SegmentGeometry>,
     ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
-        require(geometries.all { geom -> geom.startM == 0.0 }) {
+        require(geometries.all { geom -> geom.segmentStart.m == 0.0 }) {
             "Geometries in DB must be set to startM=0.0, so they remain valid if an earlier segment changes"
         }
         require(geometries.all { geom ->
-            val calculatedLength = calculateDistance(geom.points, LAYOUT_SRID)
+            val calculatedLength = calculateDistance(geom.segmentPoints, LAYOUT_SRID)
             val maxDelta = calculatedLength * 0.01
-            abs(calculatedLength - geom.endM) <= maxDelta
+            abs(calculatedLength - geom.segmentEnd.m) <= maxDelta
         }) { "Geometries in DB should have (approximately) endM=length" }
         //language=SQL
         val sql = """
@@ -609,10 +614,10 @@ class LayoutAlignmentDao(
         return geometries.associate { geometry ->
             val params = mapOf(
                 "resolution" to geometry.resolution,
-                "line_string" to create3DMLineString(geometry.points),
+                "line_string" to create3DMLineString(geometry.segmentPoints),
                 "srid" to LAYOUT_SRID.code,
-                "height_values" to createListString(geometry.points) { p -> p.z },
-                "cant_values" to createListString(geometry.points) { p -> p.cant },
+                "height_values" to createListString(geometry.segmentPoints) { p -> p.z },
+                "cant_values" to createListString(geometry.segmentPoints) { p -> p.cant },
             )
             jdbcTemplate.query(sql, params) { rs, _ ->
                 geometry.id as StringId to rs.getIntId<SegmentGeometry>("id")
@@ -706,7 +711,7 @@ private fun parseGeometries(rowResults: List<GeometryRowResult>): Map<IntId<Segm
     rowResults.parallelStream().map { row ->
         SegmentGeometry(
             id = row.id,
-            points = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
+            segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
             resolution = row.resolution,
         )
     }.collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
@@ -716,7 +721,7 @@ private fun getSegmentPointsWkt(
     geometryColumn: String,
     heightColumn: String? = null,
     cantColumn: String? = null,
-): List<LayoutPoint> = rs.getString(geometryColumn)?.let { wktString ->
+): List<SegmentPoint> = rs.getString(geometryColumn)?.let { wktString ->
     parseSegmentPointsWkt(wktString, heightColumn?.let(rs::getString), cantColumn?.let(rs::getString))
 } ?: emptyList()
 
@@ -724,22 +729,28 @@ private fun parseSegmentPointsWkt(
     geometryWkt: String,
     heightString: String? = null,
     cantString: String? = null,
-): List<LayoutPoint> {
-    val geometryValues = parse3DMLineString(geometryWkt)
+): List<SegmentPoint> {
     val heightValues = parseNullableDoubleList(heightString)
     val cantValues = parseNullableDoubleList(cantString)
-    return geometryValues.mapIndexed { index, coordinate ->
-        LayoutPoint(
-            x = coordinate.x,
-            y = coordinate.y,
-            z = heightValues?.getOrNull(index),
-            m = coordinate.m,
-            cant = cantValues?.getOrNull(index),
-        )
-    }
+    return parseSegmentPointLineString(geometryWkt, heightValues, cantValues)
 }
 
-private fun parseNullableDoubleList(listString: String?) = listString?.split(",")?.map(String::toDoubleOrNull)
+fun parseSegmentPointLineString(
+    lineString: String,
+    heights: List<Double?>?,
+    cants: List<Double?>?,
+): List<SegmentPoint> = get3DMLineStringContent(lineString).let { pointStrings ->
+    require(heights == null || heights.size == pointStrings.size) {
+        "Height value count should match point count: points=${pointStrings.size} heights=${heights?.size}"
+    }
+    require(cants == null || cants.size == pointStrings.size) {
+        "Cant value count should match point count: points=${pointStrings.size} cants=${cants?.size}"
+    }
+    pointStrings.mapIndexed { i, p -> parseSegmentPoint(p, heights?.get(i), cants?.get(i)) }
+}
+
+private fun parseNullableDoubleList(listString: String?): List<Double?>? =
+    listString?.split(",")?.map(String::toDoubleOrNull)
 
 private data class SegmentData(
     val id: IndexedId<LayoutSegment>,

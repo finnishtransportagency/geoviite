@@ -1,7 +1,7 @@
 import { Point } from 'model/geometry';
 import {
     LayoutKmPostId,
-    LayoutPoint,
+    AlignmentPoint,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -78,7 +78,7 @@ export const compareTrackMeterStrings = (a: string, b: string) => {
 };
 
 export type AddressPoint = {
-    point: LayoutPoint;
+    point: AlignmentPoint;
     address: TrackMeter;
     distance: number;
 };

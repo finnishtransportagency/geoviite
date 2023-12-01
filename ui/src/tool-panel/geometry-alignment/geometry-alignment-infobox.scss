@@ -94,4 +94,13 @@
         @include vayla-design.typography-caption;
         color: vayla-design.$color-black-lighter;
     }
+
+    &__radio-buttons {
+        display: flex;
+        flex-direction: column;
+
+        > label {
+            margin-bottom: 8px;
+        }
+    }
 }

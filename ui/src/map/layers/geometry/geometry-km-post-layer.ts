@@ -81,7 +81,7 @@ export function createGeometryKmPostLayer(
                         isSelected,
                         'geometryKmPost',
                         resolution,
-                        plan.planId,
+                        plan.id,
                         (kmPost) =>
                             (kmPost.sourceId && kmPostLinkedStatus?.get(kmPost.sourceId)) || false,
                     );

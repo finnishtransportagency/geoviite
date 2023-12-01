@@ -387,7 +387,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     ).length;
 
     return (
-        <div className={styles['geometry-alignment-infobox__linking-container']}>
+        <React.Fragment>
             <div className={styles['geometry-alignment-infobox__search-container']}>
                 <InfoboxText value={t('tool-panel.alignment.geometry.choose-location-track')} />
                 <Button
@@ -420,6 +420,6 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                     </span>
                 )}
             </ul>
-        </div>
+        </React.Fragment>
     );
 };

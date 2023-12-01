@@ -91,7 +91,7 @@ export function getSuggestedSwitchId(suggestedSwitch: SuggestedSwitch): string {
     return `${suggestedSwitch.geometrySwitchId}_${
         suggestedSwitch.alignmentEndPoint?.locationTrackId
     }_${suggestedSwitch.joints.map(
-        (j) => j.number + j.matches.map((m) => m.locationTrackId + m.segmentIndex + m.segmentM),
+        (j) => j.number + j.matches.map((m) => m.locationTrackId + m.segmentIndex + m.m),
     )}`;
 }
 

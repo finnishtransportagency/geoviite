@@ -10,8 +10,6 @@ open class E2EDialog(val dialogBy: By = DIALOG_BY) : E2EViewFragment(dialogBy) {
 
     val title: String get() = childText(By.className("dialog__title"))
 
-    val content: E2EFormLayout = childComponent(By.className("dialog__content"), ::E2EFormLayout)
-
     fun clickPrimaryButton() {
         logger.info("Click primary button")
 
@@ -52,9 +50,7 @@ class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
                 By.className("dialog__content"),
                 By.xpath("(//*[@class='text-field__input-element'])[${textFieldIdx + 1}]")
             )
-        )
-            .clear()
-            .inputValue(value)
+        ).replaceValue(value)
     }
 
     fun inputValues(values: List<String>): E2EDialog = apply {

@@ -32,6 +32,7 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelMeasurementMet
     return (
         <FormgroupField
             label={t('im-form.measurement-method-field')}
+            qaId="measurement-method-im-field"
             inEditMode={fieldInEdit === 'measurementMethod'}
             onEdit={() => setFieldInEdit('measurementMethod')}
             onClose={() => setFieldInEdit(undefined)}>

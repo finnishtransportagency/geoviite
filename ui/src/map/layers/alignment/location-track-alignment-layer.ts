@@ -53,15 +53,9 @@ export function createLocationTrackAlignmentLayer(
     }
 
     let inFlight = true;
-    const selectedTrack = selection.selectedItems.locationTracks[0];
     const alignmentPromise =
-        resolution <= ALL_ALIGNMENTS || selectedTrack
-            ? getLocationTrackMapAlignmentsByTiles(
-                  changeTimes,
-                  mapTiles,
-                  publishType,
-                  resolution <= ALL_ALIGNMENTS ? undefined : selectedTrack,
-              )
+        resolution <= ALL_ALIGNMENTS
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
             : Promise.resolve([]);
 
     alignmentPromise

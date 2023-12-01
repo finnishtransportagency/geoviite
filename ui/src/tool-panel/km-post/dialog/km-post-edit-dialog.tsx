@@ -32,7 +32,10 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
-import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
+import {
+    getSaveDisabledReasons,
+    useTrackNumbersIncludingDeleted,
+} from 'track-layout/track-layout-react-utils';
 
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
@@ -70,9 +73,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const { t } = useTranslation();
     const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const kmPostStateOptions = layoutStates.filter(
-        (ls) => !state.isNewKmPost || ls.value != 'DELETED',
-    );
+    const kmPostStateOptions = layoutStates
+        .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
+        .map((ls) => ({ ...ls, qaId: ls.value, disabled: ls.value === 'PLANNED' }))
+
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
@@ -192,7 +196,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         ? t('km-post-dialog.title-new')
                         : t('km-post-dialog.title-edit')
                 }
-                onClose={() => close()}
+                onClose={close}
                 footerContent={
                     <React.Fragment>
                         {state.existingKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
@@ -216,14 +220,21 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
-                                onClick={() => close()}>
+                                onClick={close}>
                                 {t('button.cancel')}
                             </Button>
                             <span onClick={() => stateActions.validate()}>
                                 <Button
+                                    qa-id="save-km-post-changes"
                                     disabled={!canSaveKmPost(state)}
                                     isProcessing={state.isSaving}
-                                    onClick={() => saveOrConfirm()}>
+                                    onClick={() => saveOrConfirm()}
+                                    title={getSaveDisabledReasons(
+                                        state.validationErrors.map((e) => e.reason),
+                                        state.isSaving,
+                                    )
+                                        .map((reason) => t(`km-post-dialog.${reason}`))
+                                        .join(', ')}>
                                     {t('button.save')}
                                 </Button>
                             </span>
@@ -240,6 +251,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.km-post')} *`}
                             value={
                                 <TextField
+                                    qa-id="km-post-number"
                                     value={state.kmPost?.kmNumber}
                                     onChange={(e) => updateProp('kmNumber', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('kmNumber')}
@@ -252,7 +264,6 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
                                     <Link
-                                        className="move-to-edit-link"
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>
@@ -283,6 +294,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="km-post-state"
                                     value={state.kmPost?.state}
                                     options={kmPostStateOptions}
                                     onChange={(value) => value && updateProp('state', value)}

@@ -2,13 +2,14 @@ package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.codec.digest.DigestUtils
 
 data class InfraModelFile(
     val name: FileName,
     val content: String,
-) {
+) : Loggable {
     val hash: String by lazy { DigestUtils.md5Hex(content) }
 
     init {
@@ -18,6 +19,8 @@ data class InfraModelFile(
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
         )
     }
+
+    override fun toLog(): String = logFormat("name" to name, "hash" to hash)
 }
 
 data class InfraModelFileWithSource(

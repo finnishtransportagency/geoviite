@@ -140,7 +140,7 @@ class PublicationController @Autowired constructor(
             "sortBy" to sortBy,
             "order" to order,
             "timeZone" to timeZone,
-            "lang" to lang
+            "lang" to lang,
         )
 
         val publicationsAsCsv = publicationService.fetchPublicationsAsCsv(

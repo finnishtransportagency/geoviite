@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-number-api';
 import {
+    getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
     useTrackNumberReferenceLine,
     useTrackNumbersIncludingDeleted,
@@ -85,6 +86,8 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     }
 };
 
+const mapError = (errorReason: string) => `track-number-edit.error.${errorReason}`;
+
 export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     inEditTrackNumber,
     inEditReferenceLine,
@@ -114,7 +117,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         .filter((s) => s.value !== 'PLANNED')
         .map((s) =>
             s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
-        );
+        )
+        .map((s) => ({ ...s, qaId: s.value }));
 
     const confirmNewDraftDelete = () => {
         inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
@@ -213,7 +217,14 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Button
                                 disabled={hasErrors || saveInProgress}
                                 isProcessing={saveInProgress}
-                                onClick={saveOrConfirm}>
+                                qa-id="save-track-number-changes"
+                                onClick={saveOrConfirm}
+                                title={getSaveDisabledReasons(
+                                    state.validationErrors.map((e) => e.reason),
+                                    saveInProgress,
+                                )
+                                    .map((reason) => t(mapError(reason)))
+                                    .join(', ')}>
                                 {t('track-number-edit.action.save')}
                             </Button>
                         </div>
@@ -228,6 +239,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.number')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-name"
                                     value={state.request.number}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({
@@ -242,11 +254,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={numberErrors.map((e) => t(e.reason))}>
+                            errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link
-                                    className="move-to-edit-link"
-                                    onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                <Link onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}
@@ -255,6 +265,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="track-number-state"
                                     value={state.request.state}
                                     canUnselect={false}
                                     options={trackNumberStateOptions}
@@ -271,12 +282,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     searchable
                                 />
                             }
-                            errors={stateErrors.map((e) => t(e.reason))}
+                            errors={stateErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                         <FieldLayout
                             label={`${t('track-number-edit.field.description')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-description"
                                     value={state.request.description}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({
@@ -291,7 +303,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={descriptionErrors.map((e) => t(e.reason))}
+                            errors={descriptionErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                     </FormLayoutColumn>
                     <FormLayoutColumn>
@@ -316,7 +328,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     wide
                                 />
                             }
-                            errors={startAddressErrors.map((e) => t(e.reason))}
+                            errors={startAddressErrors.map(({ reason }) => t(mapError(reason)))}
                         />
                         {startAndEndPoints && (
                             <FieldLayout

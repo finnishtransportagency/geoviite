@@ -187,6 +187,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const sortableTableHeader = (prop: SortProps, translationKey: string) => (
         <Th
             onClick={() => sortByProp(prop)}
+            qa-id={translationKey}
             icon={
                 sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
             }>

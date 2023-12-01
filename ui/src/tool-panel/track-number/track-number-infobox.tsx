@@ -148,22 +148,26 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 qa-id="track-number-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="track-number-oid"
                         label={t('tool-panel.track-number.oid')}
                         value={trackNumber.externalId}
                     />
                     <InfoboxField
+                        qaId="track-number-name"
                         label={t('tool-panel.track-number.track-number')}
                         value={trackNumber.number}
                         onEdit={() => setShowEditDialog(true)}
                         iconDisabled={isOfficial}
                     />
                     <InfoboxField
+                        qaId="track-number-state"
                         label={t('tool-panel.track-number.state')}
                         value={<LayoutState state={trackNumber.state} />}
                         onEdit={() => setShowEditDialog(true)}
                         iconDisabled={isOfficial}
                     />
                     <InfoboxField
+                        qaId="track-number-description"
                         label={t('tool-panel.track-number.description')}
                         value={trackNumber.description}
                         onEdit={() => setShowEditDialog(true)}
@@ -179,12 +183,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     qa-id="reference-line-location-infobox">
                     <InfoboxContent>
                         <InfoboxField
+                            qaId="track-number-start-track-meter"
                             label={t('tool-panel.reference-line.start-location')}
                             value={<TrackMeter value={startAndEndPoints?.start?.address} />}
                             onEdit={() => setShowEditDialog(true)}
                             iconDisabled={isOfficial}
                         />
                         <InfoboxField
+                            qaId="track-number-end-track-meter"
                             label={t('tool-panel.reference-line.end-location')}
                             value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
@@ -237,6 +243,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         )}
 
                         <InfoboxField
+                            qaId="track-number-true-length"
                             label={t('tool-panel.reference-line.true-length')}
                             value={
                                 roundToPrecision(
@@ -246,6 +253,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="track-number-start-coordinates"
                             label={`${t('tool-panel.reference-line.start-coordinates')} ${
                                 coordinateSystem.name
                             }`}
@@ -256,6 +264,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="track-number-end-coordinates"
                             label={`${t('tool-panel.reference-line.end-coordinates')} ${
                                 coordinateSystem.name
                             }`}
@@ -269,6 +278,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
+                                qa-id="zoom-to-track-number"
                                 onClick={() =>
                                     referenceLine?.boundingBox &&
                                     showArea(referenceLine.boundingBox)
@@ -308,10 +318,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     qa-id="track-number-log-infobox">
                     <InfoboxContent>
                         <InfoboxField
+                            qaId="track-number-created-date"
                             label={t('tool-panel.created')}
                             value={formatDateShort(createdTime)}
                         />
                         <InfoboxField
+                            qaId="track-number-changed-date"
                             label={t('tool-panel.changed')}
                             value={formatDateShort(changedTime)}
                         />

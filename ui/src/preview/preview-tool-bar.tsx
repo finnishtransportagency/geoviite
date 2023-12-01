@@ -14,7 +14,10 @@ export const PreviewToolBar: React.FC<PreviewToolBarParams> = (props: PreviewToo
             <div className={'preview-tool-bar__title'}>{t('preview-toolbar.title')}</div>
 
             <div className={'preview-tool-bar__right-section'}>
-                <Button variant={ButtonVariant.SECONDARY} onClick={props.onClosePreview}>
+                <Button
+                    variant={ButtonVariant.SECONDARY}
+                    qa-id="go-to-track-layout-view"
+                    onClick={props.onClosePreview}>
                     {t('preview-toolbar.return-to-draft')}
                 </Button>
             </div>

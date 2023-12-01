@@ -86,6 +86,12 @@ data class SuggestedSwitch(
     val alignmentEndPoint: LocationTrackEndpoint?,
     val geometryPlanId: IntId<GeometryPlan>? = null,
     val geometrySwitchId: IntId<GeometrySwitch>? = null,
+    val topologicalJointConnections: List<TopologicalJointConnection>? = null,
+)
+
+data class TopologicalJointConnection(
+    val jointNumber: JointNumber,
+    val locationTrackIds: List<IntId<LocationTrack>>,
 )
 
 data class SwitchLinkingSegment(

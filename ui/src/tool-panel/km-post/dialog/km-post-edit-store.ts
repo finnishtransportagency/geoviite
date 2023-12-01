@@ -49,7 +49,7 @@ function validateLinkingKmPost(state: KmPostEditState): ValidationError<KmPostSa
                 if (isNilOrBlank(state.kmPost[prop])) {
                     return {
                         field: prop,
-                        reason: 'error-mandatory-field',
+                        reason: 'mandatory-field',
                         type: ValidationErrorType.ERROR,
                     };
                 }
@@ -74,7 +74,7 @@ function getKmNumberDoesntMatchRegExpError(): ValidationError<KmPostSaveRequest>
     return [
         {
             field: 'kmNumber',
-            reason: 'error-regexp',
+            reason: 'km-post-regexp',
             type: ValidationErrorType.ERROR,
         },
     ];
@@ -85,7 +85,7 @@ function getErrorForKmPostExistsOnTrack(): ValidationError<KmPostSaveRequest>[] 
         ...['kmNumber'].map((prop: keyof KmPostSaveRequest) => {
             return {
                 field: prop,
-                reason: 'error-km-number-already-in-use',
+                reason: 'km-number-already-in-use',
                 type: ValidationErrorType.ERROR,
             };
         }),

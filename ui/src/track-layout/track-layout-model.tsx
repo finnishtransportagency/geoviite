@@ -30,7 +30,7 @@ export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
 
-export type LayoutPoint = {
+export type AlignmentPoint = {
     x: number;
     y: number;
     z?: number;
@@ -41,10 +41,10 @@ export type LayoutPoint = {
 export type LayoutSegmentId = string;
 export type GeometrySource = 'IMPORTED' | 'GENERATED' | 'PLAN';
 
-export function filterLayoutPoints(
+export function filterAlignmentPoints(
     desiredResolution: number,
-    points: LayoutPoint[],
-): LayoutPoint[] {
+    points: AlignmentPoint[],
+): AlignmentPoint[] {
     let prevM = -desiredResolution;
     return points.filter((point, index) => {
         const isEndPoint = index === 0 || index === points.length - 1;
@@ -202,6 +202,10 @@ export type LayoutKmLengthDetails = {
     location?: Point;
 };
 
+export type TrackLayoutKmPostLength = {
+    length?: number;
+};
+
 export type PlanArea = {
     id: GeometryPlanId;
     fileName: string;
@@ -214,7 +218,7 @@ export type GeometryPlanLayout = {
     switches: LayoutSwitch[];
     kmPosts: LayoutKmPost[];
     boundingBox: BoundingBox;
-    planId: GeometryPlanLayoutId;
+    id: GeometryPlanLayoutId;
     planHidden: boolean;
     planDataType: DataType;
 };
@@ -243,7 +247,7 @@ export type LayoutTrackNumber = {
 };
 
 export type AddressPoint = {
-    point: LayoutPoint;
+    point: AlignmentPoint;
     address: TrackMeter;
 };
 
@@ -278,6 +282,6 @@ export type SwitchJointTrackMeter = {
     trackMeter: TrackMeter | undefined;
 };
 
-export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {
+export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }

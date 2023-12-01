@@ -81,7 +81,7 @@ class E2ESelectionPanel(
     }
 
     fun waitUntilSwitchNotVisible(name: String): E2ESelectionPanel = apply {
-        switchesList.waitUntilItemNotExist { it.name == name }
+        switchesList.waitUntilItemIsRemoved { it.name == name }
     }
 
     fun waitUntilLocationTrackVisible(name: String): E2ESelectionPanel = apply {

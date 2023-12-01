@@ -34,13 +34,13 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
         startGeoviite()
         val mapPage = goToMap()
 
-        val searchResults = mapPage.toolBar.search("test-lt").searchResults.map { it.text }
+        val searchResults = mapPage.toolBar.search("test-lt").searchResults.map { it.name }
         assertEquals(ltNames.map { (n, d) -> "$n, $d" }, searchResults)
 
-        val searchResultsBs = mapPage.toolBar.search(" b", false).searchResults.map { it.text }
+        val searchResultsBs = mapPage.toolBar.search(" b", false).searchResults.map { it.name }
         assertEquals(listOf("test-lt B2, test-desc-2", "test-lt B3, test-desc-3"), searchResultsBs)
 
-        val searchResultsB2 = mapPage.toolBar.search("2", false).searchResults.map { it.text }
+        val searchResultsB2 = mapPage.toolBar.search("2", false).searchResults.map { it.name }
         assertEquals(listOf("test-lt B2, test-desc-2"), searchResultsB2)
     }
 

@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -19,22 +20,14 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-
 fun isAlignmentConnected(
     location: Point,
-    locationTrackPointUpdateType: LocationTrackPointUpdateType,
+    updateType: LocationTrackPointUpdateType,
     alignment: LayoutAlignment,
     distanceTolerance: Double,
 ): Boolean {
-
-    val firstPoint = alignment.segments.first().points.first()
-    val lastPoint = alignment.segments.last().points.last()
-
-    return if (locationTrackPointUpdateType == LocationTrackPointUpdateType.END_POINT) {
-        calculateDistance(LAYOUT_SRID, firstPoint, location) <= distanceTolerance
-    } else {
-        calculateDistance(LAYOUT_SRID, lastPoint, location) <= distanceTolerance
-    }
+    val comparePoint = if (updateType == END_POINT) alignment.firstSegmentStart else alignment.lastSegmentEnd
+    return comparePoint?.let { p -> calculateDistance(LAYOUT_SRID, p, location) <= distanceTolerance } ?: false
 }
 
 @Service
@@ -55,7 +48,8 @@ class LinkingService @Autowired constructor(
         locationTrackPointUpdateType: LocationTrackPointUpdateType,
         bbox: BoundingBox,
     ): List<LocationTrack> {
-        return locationTrackService.listNearWithAlignments(DRAFT, bbox)
+        return locationTrackService
+            .listNearWithAlignments(DRAFT, bbox)
             .filter { (first, _) -> first.id != locationTrackId }
             .filter { (_, second) -> isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0) }
             .map { (first, _) -> first }
@@ -67,7 +61,9 @@ class LinkingService @Autowired constructor(
 
         val referenceLineId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
-            "Save ReferenceLine linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "referenceLineId=$referenceLineId"
+            "saveReferenceLineLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "referenceLineId" to referenceLineId,
         )
 
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
@@ -82,7 +78,9 @@ class LinkingService @Autowired constructor(
 
         val locationTrackId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
-            "Save LocationTrack linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "locationTrackId=$locationTrackId"
+            "saveLocationTrackLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "locationTrackId" to locationTrackId,
         )
 
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
@@ -108,7 +106,7 @@ class LinkingService @Autowired constructor(
     ): LocationTrack {
         val startChanged = startChanged(oldAlignment, newAlignment)
         val endChanged = endChanged(oldAlignment, newAlignment)
-        return if (startChanged || endChanged) locationTrackService.updateTopology(
+        return if (startChanged || endChanged) locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
             track = track,
             alignment = newAlignment,
             startChanged = startChanged,
@@ -118,10 +116,10 @@ class LinkingService @Autowired constructor(
     }
 
     private fun startChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
-        !equalsXY(oldAlignment.start, newAlignment.start)
+        !equalsXY(oldAlignment.firstSegmentStart, newAlignment.firstSegmentStart)
 
     private fun endChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
-        !equalsXY(oldAlignment.end, newAlignment.end)
+        !equalsXY(oldAlignment.lastSegmentEnd, newAlignment.lastSegmentEnd)
 
     private fun equalsXY(point1: IPoint?, point2: IPoint?) = point1?.x == point2?.x && point1?.y == point2?.y
 
@@ -133,7 +131,9 @@ class LinkingService @Autowired constructor(
         val geometryInterval = parameters.geometryInterval
 
         logger.serviceCall(
-            "Save empty ReferenceLine linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "referenceLineId=$referenceLineId"
+            "saveReferenceLineLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "referenceLineId" to referenceLineId,
         )
 
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
@@ -152,7 +152,9 @@ class LinkingService @Autowired constructor(
         val geometryInterval = parameters.geometryInterval
 
         logger.serviceCall(
-            "Save empty LocationTrack linking: " + "geometryAlignmentId=${parameters.geometryInterval.alignmentId} " + "locationTrackId=$locationTrackId"
+            "saveLocationTrackLinking",
+            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
+            "locationTrackId" to locationTrackId,
         )
 
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
@@ -212,6 +214,16 @@ class LinkingService @Autowired constructor(
             "getGeometryPlanLinkStatus", "planId" to planId, "publishType" to publishType
         )
         return linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType)
+    }
+
+    fun getGeometryPlanLinkStatuses(
+        planIds: List<IntId<GeometryPlan>>,
+        publishType: PublishType,
+    ): List<GeometryPlanLinkStatus> {
+        logger.serviceCall(
+            "getGeometryPlanLinkStatuses", "planIds" to planIds, "publishType" to publishType
+        )
+        return planIds.map { planId -> linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType) }
     }
 
     @Transactional

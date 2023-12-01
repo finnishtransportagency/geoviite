@@ -1,4 +1,8 @@
-import { LayoutPoint, LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    AlignmentPoint,
+    LayoutTrackNumberId,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { PublishType, TrackMeter } from 'common/common-model';
 import { API_URI, getNullable, queryParams } from 'api/api-fetch';
@@ -7,7 +11,7 @@ import { pointString } from 'common/common-api';
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
 export type AddressPoint = {
-    point: LayoutPoint;
+    point: AlignmentPoint;
     address: TrackMeter;
     distance: number;
 };

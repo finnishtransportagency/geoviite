@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLoader } from 'utils/react-utils';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import styles from './geometry-segment-infobox.scss';
 import {
     GeometryBiquadraticParabola,
@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 
 type SelectedGeometryItemInfoBoxProps = {
     sourceId: GeometryElementId;
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     planHeader: GeometryPlanHeader;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;

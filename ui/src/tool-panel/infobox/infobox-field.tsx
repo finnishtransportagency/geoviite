@@ -7,6 +7,7 @@ import { WriteAccessRequired } from 'user/write-access-required';
 
 type InfoboxFieldProps = {
     label: React.ReactNode;
+    qaId?: string;
     value?: React.ReactNode;
     children?: React.ReactNode;
     inEditMode?: boolean;
@@ -20,6 +21,7 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
     value,
     children,
     className,
+    qaId,
     inEditMode = false,
     iconDisabled = false,
     ...props
@@ -28,7 +30,7 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
     const { t } = useTranslation();
 
     return (
-        <div className={classes}>
+        <div className={classes} qa-id={qaId}>
             <div className={styles['infobox__field-label']}>{label}</div>
             <div className={styles['infobox__field-value']}>{children || value}</div>
             {!inEditMode && props.onEdit && !iconDisabled && (

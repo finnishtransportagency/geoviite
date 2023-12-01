@@ -9,12 +9,12 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(
         listOf(
             segment(
-                points = toTrackLayoutPoints(
+                points = toSegmentPoints(
                     Point3DM(x = 288037.36665503116, y = 7067239.269061557, m = 0.0),
                     Point3DM(x = 288052.17096940894, y = 7067276.688420034, m = 40.23542958800948),
                 ),
                 resolution = 100,
-                start = 0.0,
+                startM = 0.0,
                 source = GeometrySource.PLAN,
             ).copy(id = IndexedId(257, 0)),
         ),

@@ -12,7 +12,6 @@ import { BoundingBox, Point } from 'model/geometry';
 
 const GEOGRAPHY_URI = `${API_URI}/geography`;
 const SWITCH_LIBRARY_URI = `${API_URI}/switch-library`;
-const LOCATION_TRACK_URI = `${API_URI}//track-layout/location-tracks`;
 const coordinateSystemCache = asyncCache<Srid, CoordinateSystem>();
 const sridModelCache = asyncCache<undefined, CoordinateSystem[]>();
 const switchStructureCache = asyncCache<undefined, SwitchStructure[]>();
@@ -62,10 +61,11 @@ export async function getSwitchStructure(
         switchStructures.find((s) => s.id === id),
     );
 }
+
 export async function getLocationTrackOwners(): Promise<LocationTrackOwner[]> {
     return locationTrackOwnerCache.getImmutable(undefined, () =>
-        getNonNull<LocationTrackOwner[]>(`${LOCATION_TRACK_URI}/location-track-owners`).catch(() =>
-            Promise.reject('failed to fetch location track owners'),
+        getNonNull<LocationTrackOwner[]>(`${API_URI}/track-layout/location-track-owners`).catch(
+            () => Promise.reject('failed to fetch location track owners'),
         ),
     );
 }

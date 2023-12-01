@@ -1,5 +1,5 @@
 import { Point } from 'model/geometry';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 
 export function directionBetweenPoints(p1: Point, p2: Point): number {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
@@ -23,7 +23,7 @@ export function radsToDegrees(rads: number): number {
 }
 
 export function getPartialPolyLine(
-    points: LayoutPoint[],
+    points: AlignmentPoint[],
     startM: number,
     endM: number,
 ): number[][] {
@@ -46,7 +46,10 @@ type SeekResult = {
     point: number[];
 };
 
-export function findOrInterpolateXY(points: LayoutPoint[], mValue: number): SeekResult | undefined {
+export function findOrInterpolateXY(
+    points: AlignmentPoint[],
+    mValue: number,
+): SeekResult | undefined {
     const lastIndex = points.length - 1;
     if (points.length < 2) return undefined;
     if (points[0].m >= mValue)
@@ -81,7 +84,11 @@ export function findOrInterpolateXY(points: LayoutPoint[], mValue: number): Seek
     };
 }
 
-export function interpolateXY(point1: LayoutPoint, point2: LayoutPoint, mValue: number): number[] {
+export function interpolateXY(
+    point1: AlignmentPoint,
+    point2: AlignmentPoint,
+    mValue: number,
+): number[] {
     if (mValue < point1.m || mValue > point2.m)
         throw Error(`Invalid m-value for interpolation: ${point1.m} <= ${mValue} <= ${point2.m}`);
     if (point1.m >= point2.m) throw Error('Invalid m-values for interpolation ends');

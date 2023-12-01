@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.util.concurrent.Executors
 
@@ -30,10 +31,9 @@ class PublicationGeometryChangeRemarksUpdateService constructor(
         executor.execute(::updateUnprocessedGeometryChangeRemarks)
     }
 
+    @Transactional
     fun processPublication(publicationId: IntId<Publication>) {
-        publicationDao.fetchUnprocessedGeometryChangeRemarks(publicationId).forEach { unprocessed ->
-            processOne(unprocessed)
-        }
+        publicationDao.fetchUnprocessedGeometryChangeRemarks(publicationId).forEach(::processOne)
     }
 
     private fun updateUnprocessedGeometryChangeRemarks() {
@@ -42,8 +42,7 @@ class PublicationGeometryChangeRemarksUpdateService constructor(
             while (unprocessedRemarksWereLeft) {
                 val unprocessed = publicationDao.fetchUnprocessedGeometryChangeRemarks(null)
                 unprocessedRemarksWereLeft = unprocessed.isNotEmpty()
-                if (unprocessed.isNotEmpty())
-                    processBatch(unprocessed)
+                if (unprocessed.isNotEmpty()) processBatch(unprocessed)
             }
         }
     }
@@ -63,7 +62,8 @@ class PublicationGeometryChangeRemarksUpdateService constructor(
         publicationDao.upsertGeometryChangeSummaries(
             unprocessedChange.publicationId,
             unprocessedChange.locationTrackId,
-            if (geocodingContext == null || unprocessedChange.oldAlignmentVersion == null) listOf() else summarizeAlignmentChanges(
+            if (geocodingContext == null || unprocessedChange.oldAlignmentVersion == null) listOf()
+            else summarizeAlignmentChanges(
                 geocodingContext = geocodingContext,
                 oldAlignment = alignmentDao.fetch(unprocessedChange.oldAlignmentVersion),
                 newAlignment = alignmentDao.fetch(unprocessedChange.newAlignmentVersion)

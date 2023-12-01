@@ -45,7 +45,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
@@ -275,6 +275,29 @@ export async function getTrackLayoutPlan(
     return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
 }
 
+export async function getTrackLayoutPlans(
+    planIds: GeometryPlanId[],
+    changeTime: TimeStamp,
+    includeGeometryData = true,
+): Promise<GeometryPlanLayout[]> {
+    const url = (planIds: GeometryPlanId[], includeGeometryData: boolean) =>
+        `${GEOMETRY_URI}/plans/layout?planIds=${planIds}&includeGeometryData=${includeGeometryData}`;
+    return trackLayoutPlanCache
+        .getMany(
+            changeTime,
+            planIds,
+            (id) => `${id}-${includeGeometryData}`,
+            (fetchIds) =>
+                getNonNull<GeometryPlanLayout[]>(url(fetchIds, includeGeometryData)).then(
+                    (tracks) => {
+                        const trackMap = indexIntoMap(tracks);
+                        return (id) => trackMap.get(id);
+                    },
+                ),
+        )
+        .then((plans) => plans.filter(filterNotEmpty));
+}
+
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
     return projectCache.get(changeTime, undefined, () =>
         getNonNull<Project[]>(`${GEOMETRY_URI}/projects`),
@@ -291,8 +314,8 @@ export async function getProject(id: ProjectId): Promise<Project> {
     });
 }
 
-export async function createProject(project: Project): Promise<Project | undefined> {
-    return await postIgnoreError<Project, Project>(`${GEOMETRY_URI}/projects`, project);
+export async function createProject(project: Project): Promise<ProjectId | undefined> {
+    return await postIgnoreError<Project, ProjectId>(`${GEOMETRY_URI}/projects`, project);
 }
 
 export async function fetchAuthors(): Promise<Author[]> {

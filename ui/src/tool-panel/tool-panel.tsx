@@ -192,7 +192,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
 
     const getPlan = (id: GeometryPlanId) =>
-        tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[5].find((p) => p.planId === id);
+        tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[5].find((p) => p.id === id);
 
     const infoboxVisibilityChange = (
         key: keyof InfoboxVisibilities,
@@ -261,6 +261,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: k.kmNumber,
                 element: (
                     <KmPostInfobox
+                        changeTimes={changeTimes}
                         visibilities={infoboxVisibilities.kmPost}
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('kmPost', visibilities)

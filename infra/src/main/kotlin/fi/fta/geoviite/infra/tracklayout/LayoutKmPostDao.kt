@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
-import fi.fta.geoviite.infra.geometry.KmPostError
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -26,6 +25,13 @@ class LayoutKmPostDao(
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null, null)
+
+    fun list(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        bbox: BoundingBox? = null,
+    ): List<TrackLayoutKmPost> = fetchVersions(publicationState, includeDeleted, trackNumberId, bbox).map(::fetch)
 
     fun fetchVersions(
         publicationState: PublishType,
@@ -278,5 +284,32 @@ class LayoutKmPostDao(
         }.also { ids ->
             logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
         }
+    }
+
+    fun fetchNextWithLocationAfter(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        kmNumber: KmNumber,
+        publicationState: PublishType,
+        state: LayoutState,
+    ): RowVersion<TrackLayoutKmPost>? {
+        val sql = """
+            select row_id, row_version
+            from layout.km_post_publication_view
+            where track_number_id = :track_number_id
+              and state = :state::layout.state
+              and :publication_state = any (publication_states)
+              and location is not null
+              and km_number > :km_number
+            order by km_number asc
+            limit 1
+        """.trimIndent()
+        return jdbcTemplate.queryOptional(
+            sql, mapOf(
+                "track_number_id" to trackNumberId.intValue,
+                "state" to state.name,
+                "publication_state" to publicationState.name,
+                "km_number" to kmNumber.toString()
+            )
+        ) { rs, _ -> rs.getRowVersion("row_id", "row_version") }
     }
 }

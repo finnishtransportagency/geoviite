@@ -106,7 +106,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val segments = (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), start = startLength)
+            segment(Point(start, start), Point(end, end), startM = startLength)
                 .also { s -> startLength += s.length }
         }
 
@@ -181,7 +181,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val segments = (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), start = startLength)
+            segment(Point(start, start), Point(end, end), startM = startLength)
                 .also { s -> startLength += s.length }
         }
 

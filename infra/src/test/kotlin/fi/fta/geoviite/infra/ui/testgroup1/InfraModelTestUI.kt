@@ -32,6 +32,7 @@ class InfraModelTestUI @Autowired constructor(
 
     @BeforeAll
     fun clearDb() {
+        initUserMdc()
         clearAllTestData()
     }
 
@@ -66,7 +67,7 @@ class InfraModelTestUI @Autowired constructor(
         val uploadForm = infraModelPage.upload(file.absolutePath)
         val projektinTiedot = uploadForm.metaFormGroup
 
-        assertEquals("TEST_Clothoid_and_parabola", projektinTiedot.projectName)
+        assertEquals("TEST_Clothoid_and_parabola", projektinTiedot.project)
         assertEquals("Geoviite", projektinTiedot.author)
 
         val sijaintitiedot = uploadForm.locationFormGroup
@@ -88,7 +89,9 @@ class InfraModelTestUI @Autowired constructor(
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 
-        val uploadedPlanRow = infraModelRowsAfterUpload.getRow(projectName = "TEST_Clothoid_and_parabola")
+        val uploadedPlanRow = infraModelRowsAfterUpload.getItemWhenMatches { r ->
+            r.projectName == "TEST_Clothoid_and_parabola"
+        }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.fileName)
 
@@ -109,7 +112,7 @@ class InfraModelTestUI @Autowired constructor(
 
         val projektinNimi = "E2E IM upload and edit project"
         projektinTiedot.selectNewProject(projektinNimi)
-        assertEquals(projektinNimi, projektinTiedot.projectName)
+        assertEquals(projektinNimi, projektinTiedot.project)
 
         val suunnitteluyritys = "Rane ja rautatiet"
         projektinTiedot.selectNewAuthor(suunnitteluyritys)

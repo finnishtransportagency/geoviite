@@ -39,6 +39,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
+import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -108,9 +109,9 @@ export const SwitchEditDialog = ({
     const switchStructureChanged =
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
 
-    const switchStateCategoryOptions = layoutStateCategories
-        .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
+    const stateCategoryOptions = layoutStateCategories
+        .filter((sc) => isExistingSwitch || sc.value != 'NOT_EXISTING')
+        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING', qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {
         if (validateSwitchName(switchName).length == 0) {
@@ -284,7 +285,7 @@ export const SwitchEditDialog = ({
         if (visitedFields.includes(prop)) {
             return validationErrors
                 .filter((error) => error.field == prop)
-                .map((error) => t(error.reason));
+                .map(({ reason }) => t(`switch-dialog.${reason}`));
         }
         return [];
     }
@@ -331,9 +332,16 @@ export const SwitchEditDialog = ({
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                qa-id="save-switch-changes"
                                 disabled={validationErrors.length > 0 || isSaving}
                                 isProcessing={isSaving}
-                                onClick={saveOrConfirm}>
+                                onClick={saveOrConfirm}
+                                title={getSaveDisabledReasons(
+                                    validationErrors.map((e) => e.reason),
+                                    isSaving,
+                                )
+                                    .map((reason) => t(`switch-dialog.${reason}`))
+                                    .join(', ')}>
                                 {t('button.save')}
                             </Button>
                         </div>
@@ -348,6 +356,7 @@ export const SwitchEditDialog = ({
                             label={`${t('switch-dialog.switch-name')} *`}
                             value={
                                 <TextField
+                                    qa-id="switch-name"
                                     value={switchName}
                                     onChange={(e) => updateName(e.target.value)}
                                     hasError={hasErrors('name')}
@@ -360,9 +369,7 @@ export const SwitchEditDialog = ({
                             {conflictingSwitch && (
                                 <>
                                     <div>{t('switch-dialog.name-in-use')}</div>
-                                    <Link
-                                        className="move-to-edit-link"
-                                        onClick={() => onEdit(conflictingSwitch.id)}>
+                                    <Link onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
                                 </>
@@ -372,8 +379,9 @@ export const SwitchEditDialog = ({
                             label={`${t('switch-dialog.state-category')} *`}
                             value={
                                 <Dropdown
+                                    qaId="switch-state"
                                     value={switchStateCategory}
-                                    options={switchStateCategoryOptions}
+                                    options={stateCategoryOptions}
                                     onChange={(value) => value && updateStateCategory(value)}
                                     onBlur={() => visitField('stateCategory')}
                                     hasError={hasErrors('stateCategory')}
@@ -518,21 +526,21 @@ function validateSwitchName(name: string): ValidationError<TrackLayoutSwitchSave
     if (!name) {
         errors.push({
             field: 'name',
-            reason: 'switch-dialog.validation-error-mandatory-field',
+            reason: 'mandatory-field',
             type: ValidationErrorType.ERROR,
         });
     }
     if (name.length > 20) {
         errors.push({
             field: 'name',
-            reason: 'switch-dialog.name-max-limit',
+            reason: 'name-max-limit',
             type: ValidationErrorType.ERROR,
         });
     }
     if (!name.match(SWITCH_NAME_REGEX)) {
         errors.push({
             field: 'name',
-            reason: 'switch-dialog.invalid-name',
+            reason: 'invalid-name',
             type: ValidationErrorType.ERROR,
         });
     }
@@ -546,7 +554,7 @@ function validateSwitchStateCategory(
         return [
             {
                 field: 'stateCategory',
-                reason: 'switch-dialog.validation-error-mandatory-field',
+                reason: 'mandatory-field',
                 type: ValidationErrorType.ERROR,
             },
         ];
@@ -560,7 +568,7 @@ function validateSwitchStructureId(
         return [
             {
                 field: 'switchStructureId',
-                reason: 'switch-dialog.validation-error-mandatory-field',
+                reason: 'mandatory-field',
                 type: ValidationErrorType.ERROR,
             },
         ];
@@ -574,7 +582,7 @@ function validateSwitchOwnerId(
         return [
             {
                 field: 'ownerId',
-                reason: 'switch-dialog.validation-error-mandatory-field',
+                reason: 'mandatory-field',
                 type: ValidationErrorType.ERROR,
             },
         ];

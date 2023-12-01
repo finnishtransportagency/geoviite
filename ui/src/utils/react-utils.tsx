@@ -92,6 +92,28 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): {
+    isLoading: boolean;
+    load: (promise: Promise<TEntity>) => void;
+} {
+    const [isLoading, setIsLoading] = useState(false);
+    const query = useRef({ cancel: false });
+    return {
+        isLoading,
+        load: (promise) => {
+            setIsLoading(true);
+            query.current.cancel = true;
+            const nextQuery = {
+                cancel: false,
+            };
+            query.current = nextQuery;
+            promise
+                .then((result) => nextQuery.cancel || setter(result))
+                .finally(() => nextQuery.cancel || setIsLoading(false));
+        },
+    };
+}
+
 /**
  * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
  * result.

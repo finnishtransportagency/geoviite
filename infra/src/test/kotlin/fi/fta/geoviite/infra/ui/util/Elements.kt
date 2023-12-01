@@ -9,6 +9,7 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.regex.Pattern
 
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 
@@ -74,7 +75,7 @@ fun waitUntilVisible(by: By, timeout: Duration = defaultWait) {
     getElementWhenVisible(by, timeout)
 }
 
-fun waitUntilNotVisible(by: By, timeout: Duration = defaultWait) {
+fun waitUntilInvisible(by: By, timeout: Duration = defaultWait) {
     tryWait(timeout, not(visibilityOfElementLocated(by))) {
         "Wait for element to disappear failed: seekBy=$by"
     }
@@ -84,25 +85,19 @@ fun waitUntilElementClickable(by: By, timeout: Duration = defaultWait) {
     getElementWhenClickable(by, timeout)
 }
 
-fun waitUntilElementIsStale(by: By, timeout: Duration = defaultWait) {
-    tryWait(timeout, stalenessOf(getElement(by))) {
-        "Wait for element staleness failed, by=$by"
-    }
-}
-
-fun waitUntilHasValue(by: By, timeout: Duration = defaultWait) {
-    tryWait(timeout, { getElement(by).text.isNotEmpty() }) {
+fun waitUntilTextExists(by: By, timeout: Duration = defaultWait) {
+    tryWait(timeout, textMatches(by, Pattern.compile("(?s).+"))) {
         "Wait for element to have value, by:$by"
     }
 }
 
-fun waitUntilValueIs(by: By, value: String, timeout: Duration = defaultWait) {
+fun waitUntilTextIs(by: By, value: String, timeout: Duration = defaultWait) {
     tryWait(timeout, textToBe(by, value)) {
         "Wait for element value 'to be x' failed: expected=$value by:$by"
     }
 }
 
-fun waitUntilValueIsNot(by: By, value: String, timeout: Duration = defaultWait) {
+fun waitUntilTextIsNot(by: By, value: String, timeout: Duration = defaultWait) {
     tryWait(timeout, not(textToBe(by, value))) {
         "Wait for element value 'to not be x' failed: expectedNot=$value by=$by"
     }

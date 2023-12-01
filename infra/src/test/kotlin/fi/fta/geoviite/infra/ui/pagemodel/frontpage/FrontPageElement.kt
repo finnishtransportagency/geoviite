@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByText
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import org.openqa.selenium.WebElement
 
 data class E2EPublicationDetailRow(
@@ -10,8 +10,8 @@ data class E2EPublicationDetailRow(
 ) {
 
     constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
-        name = getColumnContentByText("Muutoskohde", columns, headers),
-        trackNumbers = getColumnContentByText("Ratanro", columns, headers),
-        pushedToRatko = getColumnContentByText("Viety Ratkoon", columns, headers)
+        name = getColumnContent("publication-table.name", columns, headers),
+        trackNumbers = getColumnContent("publication-table.track-number", columns, headers),
+        pushedToRatko = getColumnContent("publication-table.pushed-to-ratko", columns, headers)
     )
 }

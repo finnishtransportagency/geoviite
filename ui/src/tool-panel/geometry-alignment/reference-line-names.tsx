@@ -68,6 +68,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
     return (
         <InfoboxField
             label={referenceLineName}
+            qaId="geometry-alignment-linked-reference-lines"
             value={
                 <div className={styles['linked-items-list']}>
                     {referenceLinesWithoutTrackNumbers?.map((referenceLine) => {

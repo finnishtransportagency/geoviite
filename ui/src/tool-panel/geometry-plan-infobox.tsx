@@ -79,44 +79,49 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
             }>
             <InfoboxContent>
                 <InfoboxField
+                    qaId="geometry-plan-remarks"
                     label={t('tool-panel.geometry-plan.message')}
                     value={planHeader.message}
                 />
                 <InfoboxField
+                    qaId="geometry-plan-author"
                     label={t('tool-panel.geometry-plan.author')}
                     value={planHeader.author}
                 />
-                <InfoboxField label={t('tool-panel.geometry-plan.project')}>
+                <InfoboxField
+                    qaId="geometry-plan-project"
+                    label={t('tool-panel.geometry-plan.project')}>
                     <span className={styles['geometry-plan-tool-panel__long']}>
                         {planHeader.project.name}
                     </span>
                 </InfoboxField>
-                <InfoboxField label={t('tool-panel.geometry-plan.file')}>
+                <InfoboxField qaId="geometry-plan-file" label={t('tool-panel.geometry-plan.file')}>
                     <span className={styles['geometry-plan-tool-panel__long']}>
                         {planHeader.fileName}
                     </span>
                 </InfoboxField>
                 <InfoboxField
+                    qaId="geometry-plan-phase"
                     label={t('tool-panel.geometry-plan.phase')}
                     value={<PlanPhase phase={planHeader.planPhase} />}
                 />
                 <InfoboxField
+                    qaId="geometry-plan-decision"
                     label={t('tool-panel.geometry-plan.decision')}
                     value={<PlanDecisionPhase decision={planHeader.decisionPhase} />}
                 />
                 <InfoboxField
+                    qaId="geometry-plan-track-number"
                     label={t('tool-panel.geometry-plan.track-number')}
-                    value={
-                        planHeader.trackNumberId && (
-                            <TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />
-                        )
-                    }
+                    value={<TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />}
                 />
                 <InfoboxField
+                    qaId="geometry-plan-start-km"
                     label={t('tool-panel.geometry-plan.start-km')}
                     value={planHeader.kmNumberRange?.min}
                 />
                 <InfoboxField
+                    qaId="geometry-plan-end-km"
                     label={t('tool-panel.geometry-plan.end-km')}
                     value={planHeader.kmNumberRange?.max}
                 />
@@ -135,20 +140,25 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 }>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="geometry-plan-source"
                         label={t('tool-panel.geometry-plan.source')}
                         value={planHeader.source}
                     />
-                    <InfoboxField label={t('tool-panel.geometry-plan.plan-age')}>
+                    <InfoboxField
+                        qaId="geometry-plan-plan-time"
+                        label={t('tool-panel.geometry-plan.plan-age')}>
                         <Age timeStamp={planHeader.planTime} />
                     </InfoboxField>
                     <InfoboxField label={t('tool-panel.geometry-plan.plan-uploaded')}>
                         <Age timeStamp={planHeader.uploadTime} />
                     </InfoboxField>
                     <InfoboxField
+                        qaId="geometry-plan-measurement-method"
                         label={t('tool-panel.geometry-plan.measurement-method')}
                         value={<MeasurementMethod method={planHeader.measurementMethod} />}
                     />
                     <InfoboxField
+                        qaId="geometry-plan-coordinate-system"
                         label={t('tool-panel.geometry-plan.coordinate-system')}
                         value={
                             coordinateSystemModel && (
@@ -157,14 +167,17 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                         }
                     />
                     <InfoboxField
+                        qaId="geometry-plan-vertical-geometry"
                         label={t('tool-panel.geometry-plan.has-vertical-geometry')}
                         value={planHeader.hasProfile ? t('yes') : t('no')}
                     />
                     <InfoboxField
+                        qaId="geometry-plan-cant"
                         label={t('tool-panel.geometry-plan.has-cant')}
                         value={planHeader.hasCant ? t('yes') : t('no')}
                     />
                     <InfoboxField
+                        qaId="geometry-plan-vertical-coordinate-system"
                         label={t('tool-panel.geometry-plan.vertical-coordinate-system')}
                         value={planHeader.units.verticalCoordinateSystem}
                     />

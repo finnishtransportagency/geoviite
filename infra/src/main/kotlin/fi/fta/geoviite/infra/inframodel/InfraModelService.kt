@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -19,6 +20,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 
 const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
@@ -45,9 +47,11 @@ class InfraModelService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    @Transactional
     fun saveInfraModel(file: MultipartFile, overrides: OverrideParameters?, extraInfo: ExtraInfoParameters?) =
         saveInfraModel(toInfraModelFile(file, overrides?.encoding?.charset), overrides, extraInfo)
 
+    @Transactional
     fun saveInfraModel(
         file: InfraModelFile,
         overrides: OverrideParameters?,
@@ -55,7 +59,7 @@ class InfraModelService @Autowired constructor(
     ): RowVersion<GeometryPlan> {
         logger.serviceCall(
             "saveInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+            "file" to file, "overrides" to overrides, "extraInfo" to extraInfo
         )
 
         val geometryPlan = parseInfraModel(file, overrides, extraInfo)
@@ -68,6 +72,7 @@ class InfraModelService @Autowired constructor(
         return geometryDao.insertPlan(geometryPlan, file, transformedBoundingBox)
     }
 
+    @Transactional(readOnly = true)
     fun parseInfraModel(
         file: InfraModelFile,
         overrides: OverrideParameters? = null,
@@ -75,10 +80,10 @@ class InfraModelService @Autowired constructor(
     ): GeometryPlan {
         logger.serviceCall(
             "parseInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+            "file" to file, "overrides" to overrides, "extraInfo" to extraInfo
         )
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
-        val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
+        val trackNumberIdsByNumber = trackNumberService.list(OFFICIAL).associate { tn -> tn.number to tn.id as IntId }
 
         val parsed = parseInfraModelFile(
             overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
@@ -112,7 +117,7 @@ class InfraModelService @Autowired constructor(
     ): ValidationResponse {
         logger.serviceCall(
             "validateInfraModelFile",
-            "file.name" to file.name, "overrideParameters" to overrideParameters
+            "file" to file, "overrideParameters" to overrideParameters
         )
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
@@ -122,6 +127,7 @@ class InfraModelService @Autowired constructor(
         return validateAndTransformToLayoutPlan(geometryPlan)
     }
 
+    @Transactional(readOnly = true)
     fun validateGeometryPlan(
         planId: IntId<GeometryPlan>,
         overrideParameters: OverrideParameters?,
@@ -147,6 +153,7 @@ class InfraModelService @Autowired constructor(
         return ValidationResponse(validationErrors, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
+    @Transactional
     fun updateInfraModel(
         planId: IntId<GeometryPlan>,
         overrideParameters: OverrideParameters?,
@@ -154,6 +161,7 @@ class InfraModelService @Autowired constructor(
     ): GeometryPlan {
         logger.serviceCall(
             "updateInfraModel",
+            "planId" to planId,
             "overrideParameters" to overrideParameters,
             "extraInfoParameters" to extraInfoParameters,
         )

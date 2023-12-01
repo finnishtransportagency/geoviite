@@ -76,7 +76,7 @@ function validateTrackNumberEdit(
             if (isNilOrBlank(state.request[prop])) {
                 return {
                     field: prop,
-                    reason: `track-number-edit.error.mandatory-empty-${prop}`,
+                    reason: `mandatory-field-${prop}`,
                     type: ValidationErrorType.ERROR,
                 };
             }
@@ -87,7 +87,7 @@ function validateTrackNumberEdit(
         return !isEmpty(value) && !state.request[validation.field].match(validation.regex)
             ? {
                   field: validation.field,
-                  reason: `track-number-edit.error.invalid-${validation.field}`,
+                  reason: `invalid-${validation.field}`,
                   type: ValidationErrorType.ERROR,
               }
             : undefined;
@@ -99,7 +99,7 @@ function validateTrackNumberEdit(
         existingTrackNumber && existingTrackNumber.id !== state.inEditTrackNumber?.id
             ? {
                   field: 'number' as keyof TrackNumberSaveRequest,
-                  reason: 'track-number-edit.error.duplicate-number',
+                  reason: 'duplicate-number',
                   type: ValidationErrorType.ERROR,
               }
             : undefined,

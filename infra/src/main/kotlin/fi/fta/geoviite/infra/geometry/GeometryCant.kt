@@ -18,7 +18,7 @@ data class GeometryCant(
     val name: PlanElementName,
     val description: PlanElementName,
     val gauge: BigDecimal,
-    val rotationPoint: CantRotationPoint,
+    val rotationPoint: CantRotationPoint?,
     val points: List<GeometryCantPoint>,
 ) {
     init {

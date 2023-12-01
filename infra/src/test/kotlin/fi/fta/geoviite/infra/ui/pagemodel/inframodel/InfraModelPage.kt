@@ -31,7 +31,7 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         logger.info("Search infra models $query")
 
         waitUntilChildVisible(By.className("infra-model-list-search-result__table"))
-        childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).clear().inputValue(query)
+        childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).replaceValue(query)
     }
 
     fun openVelhoWaitingForApprovalList(): E2EProjektiVelhoPage {
