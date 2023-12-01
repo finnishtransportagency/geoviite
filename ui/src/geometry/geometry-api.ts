@@ -45,7 +45,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
@@ -275,10 +275,6 @@ export async function getTrackLayoutPlan(
     return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
 }
 
-function indexPlansIntoMap<Id, Obj extends { planId: Id }>(objs: Obj[]): Map<Id, Obj> {
-    return objs.reduce((map, obj) => map.set(obj.planId, obj), new Map());
-}
-
 export async function getTrackLayoutPlans(
     planIds: GeometryPlanId[],
     changeTime: TimeStamp,
@@ -294,7 +290,7 @@ export async function getTrackLayoutPlans(
             (fetchIds) =>
                 getNonNull<GeometryPlanLayout[]>(url(fetchIds, includeGeometryData)).then(
                     (tracks) => {
-                        const trackMap = indexPlansIntoMap(tracks);
+                        const trackMap = indexIntoMap(tracks);
                         return (id) => trackMap.get(id);
                     },
                 ),

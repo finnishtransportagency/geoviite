@@ -236,12 +236,12 @@ export async function getVisiblePlansWithStatus(
     const withStatuses = await getTrackLayoutPlans(planIds, changeTimes.geometryPlan, true).then(
         (plans) =>
             getPlanLinkStatuses(
-                plans.filter((p) => !p.planHidden).map((p) => p.planId),
+                plans.filter((p) => !p.planHidden).map((p) => p.id),
                 publishType,
             ).then((statii) =>
                 plans.map((plan) => ({
                     plan,
-                    status: statii.find((s) => s.id === plan.planId),
+                    status: statii.find((s) => s.id === plan.id),
                 })),
             ),
     );
@@ -265,5 +265,5 @@ export async function getPlanAndStatus(
 ): Promise<PlanAndStatus | undefined> {
     if (!plan) return undefined;
     else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
-    else return getPlanLinkStatus(plan.planId, publishType).then((status) => ({ plan, status }));
+    else return getPlanLinkStatus(plan.id, publishType).then((status) => ({ plan, status }));
 }

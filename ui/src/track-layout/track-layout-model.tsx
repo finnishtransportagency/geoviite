@@ -218,7 +218,7 @@ export type GeometryPlanLayout = {
     switches: LayoutSwitch[];
     kmPosts: LayoutKmPost[];
     boundingBox: BoundingBox;
-    planId: GeometryPlanLayoutId;
+    id: GeometryPlanLayoutId;
     planHidden: boolean;
     planDataType: DataType;
 };

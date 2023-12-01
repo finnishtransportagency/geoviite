@@ -170,9 +170,9 @@ export function createGeometryAlignmentLayer(
                 const linksPromise: Promise<GeometryAlignmentId[]> =
                     plan.planDataType == 'TEMP'
                         ? Promise.resolve([])
-                        : getLinkedAlignmentIdsInPlan(plan.planId, publishType);
+                        : getLinkedAlignmentIdsInPlan(plan.id, publishType);
                 return linksPromise.then((links) => ({
-                    planId: plan.planId,
+                    planId: plan.id,
                     alignments: getAlignmentsWithLinking(
                         plan.alignments.filter((a) => visibleAlignmentIds.includes(a.header.id)),
                         links,

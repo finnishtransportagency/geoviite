@@ -157,14 +157,14 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             )
                 .then((plans) => {
                     getPlanLinkStatuses(
-                        plans.map((p) => p.planId),
+                        plans.map((p) => p.id),
                         publishType,
                     ).then((statuses) => {
                         const map = new Map(loadedPlans);
                         plans.forEach((plan) => {
-                            const status = statuses.find((s) => s.id === plan.planId);
+                            const status = statuses.find((s) => s.id === plan.id);
                             if (status) {
-                                map.set(plan.planId, {
+                                map.set(plan.id, {
                                     planLayout: plan,
                                     linkStatus: status,
                                 });

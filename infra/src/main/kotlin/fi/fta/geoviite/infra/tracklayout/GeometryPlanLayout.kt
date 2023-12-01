@@ -21,7 +21,7 @@ data class GeometryPlanLayout(
     val alignments: List<PlanLayoutAlignment>,
     val switches: List<TrackLayoutSwitch>,
     val kmPosts: List<TrackLayoutKmPost>,
-    val planId: DomainId<GeometryPlan>,
+    val id: DomainId<GeometryPlan>,
     val planHidden: Boolean,
     val planDataType: DataType,
     val startAddress: TrackMeter?,
@@ -38,7 +38,7 @@ data class GeometryPlanLayout(
     )
 
     override fun toLog(): String = logFormat(
-        "plan" to planId,
+        "plan" to id,
         "alignments" to alignments.map(PlanLayoutAlignment::toLog),
         "switches" to switches.map(TrackLayoutSwitch::toLog),
         "kmPosts" to kmPosts.map(TrackLayoutKmPost::toLog),

@@ -39,7 +39,7 @@ fun toTrackLayout(
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
-        planId = geometryPlan.id,
+        id = geometryPlan.id,
         planHidden = geometryPlan.isHidden,
         planDataType = geometryPlan.dataType,
         fileName = geometryPlan.fileName,
