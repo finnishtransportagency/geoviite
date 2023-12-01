@@ -12,11 +12,14 @@ import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
 import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
+import { LoaderStatus } from 'utils/react-utils';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type PublishListProps = {
     onPublicationSelect: (pub: PublicationDetails) => void;
     onShowPublicationLog: () => void;
-    publications: PublicationDetails[];
+    publicationFetchStatus: LoaderStatus;
+    publications: PublicationDetails[] | undefined;
     ratkoStatus: RatkoStatus | undefined;
 };
 
@@ -63,21 +66,24 @@ export const MAX_LISTED_PUBLICATIONS = 8;
 const PublicationCard: React.FC<PublishListProps> = ({
     publications,
     onPublicationSelect,
+    publicationFetchStatus,
     ratkoStatus,
     onShowPublicationLog,
 }) => {
     const { t } = useTranslation();
-    const allPublications = publications.sort(
+    const allPublications = publications?.sort(
         (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
     );
 
-    const failures = allPublications
-        .filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
-        .slice(0, MAX_LISTED_PUBLICATIONS);
+    const failures =
+        allPublications
+            ?.filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
+            .slice(0, MAX_LISTED_PUBLICATIONS) || [];
 
-    const successes = allPublications
-        .filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
-        .slice(0, MAX_LISTED_PUBLICATIONS);
+    const successes =
+        allPublications
+            ?.filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
+            .slice(0, MAX_LISTED_PUBLICATIONS) || [];
 
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
@@ -90,50 +96,60 @@ const PublicationCard: React.FC<PublishListProps> = ({
                     <h2 className={styles['publication-card__title']}>
                         {t('publication-card.title')}
                     </h2>
-                    {(failures.length > 0 || ratkoConnectionError) && (
-                        <section>
-                            <h3 className={styles['publication-card__subsection-title']}>
-                                {t('publication-card.publish-issues')}
-                            </h3>
-                            {ratkoConnectionError && (
-                                <p className={styles['publication-card__title-errors']}>
-                                    {parseRatkoOfflineStatus(ratkoStatus)}
-                                </p>
+                    {publicationFetchStatus !== LoaderStatus.Ready ? (
+                        <Spinner />
+                    ) : (
+                        <React.Fragment>
+                            {(failures.length > 0 || ratkoConnectionError) && (
+                                <section>
+                                    <h3 className={styles['publication-card__subsection-title']}>
+                                        {t('publication-card.publish-issues')}
+                                    </h3>
+                                    {ratkoConnectionError && (
+                                        <p className={styles['publication-card__title-errors']}>
+                                            {parseRatkoOfflineStatus(ratkoStatus)}
+                                        </p>
+                                    )}
+                                    {failures.length > 0 && (
+                                        <React.Fragment>
+                                            <RatkoPushErrorDetails latestFailure={failures[0]} />
+                                            <div
+                                                className={
+                                                    styles['publication-card__ratko-push-button']
+                                                }>
+                                                <RatkoPublishButton
+                                                    size={ButtonSize.SMALL}
+                                                    disabled={ratkoConnectionError}
+                                                />
+                                            </div>
+                                            <PublicationList
+                                                publications={failures}
+                                                onPublicationSelect={onPublicationSelect}
+                                                anyFailed={failures.length > 0}
+                                            />
+                                        </React.Fragment>
+                                    )}
+                                </section>
                             )}
-                            {failures.length > 0 && (
-                                <React.Fragment>
-                                    <RatkoPushErrorDetails latestFailure={failures[0]} />
-                                    <div className={styles['publication-card__ratko-push-button']}>
-                                        <RatkoPublishButton
-                                            size={ButtonSize.SMALL}
-                                            disabled={ratkoConnectionError}
-                                        />
-                                    </div>
-                                    <PublicationList
-                                        publications={failures}
-                                        onPublicationSelect={onPublicationSelect}
-                                        anyFailed={failures.length > 0}
-                                    />
-                                </React.Fragment>
+                            <section>
+                                <h3 className={styles['publication-card__subsection-title']}>
+                                    {t('publication-card.latest')}
+                                </h3>
+                                <PublicationList
+                                    publications={successes}
+                                    onPublicationSelect={onPublicationSelect}
+                                />
+                            </section>
+                            {successes.length == 0 && failures.length == 0 && (
+                                <div className={styles['publication-card__no-publications']}>
+                                    {t('publication-card.no-success-publications')}
+                                </div>
                             )}
-                        </section>
+                            <Link onClick={onShowPublicationLog}>
+                                {t('publication-card.log-link')}
+                            </Link>
+                        </React.Fragment>
                     )}
-                    <section>
-                        <h3 className={styles['publication-card__subsection-title']}>
-                            {t('publication-card.latest')}
-                        </h3>
-                        <PublicationList
-                            publications={successes}
-                            onPublicationSelect={onPublicationSelect}
-                        />
-                    </section>
-
-                    {successes.length == 0 && failures.length == 0 && (
-                        <div className={styles['publication-card__no-publications']}>
-                            {t('publication-card.no-success-publications')}
-                        </div>
-                    )}
-                    <Link onClick={onShowPublicationLog}>{t('publication-card.log-link')}</Link>
                 </React.Fragment>
             }
         />

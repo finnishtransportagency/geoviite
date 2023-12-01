@@ -10,6 +10,7 @@ import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -54,12 +55,19 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
             </div>
             <div className={styles['publication-details__content']}>
                 <div className={styles['publication-details__count-header']}>
-                    <span>
-                        {t('publication-table.count-header', {
-                            number: publicationItems?.length || 0,
-                            truncated: '',
-                        })}
-                    </span>
+                    {isLoading ? (
+                        <React.Fragment>
+                            {t('publication-table.count-header-loading')}&nbsp;
+                            <Spinner />
+                        </React.Fragment>
+                    ) : (
+                        <span>
+                            {t('publication-table.count-header', {
+                                number: publicationItems?.length || 0,
+                                truncated: '',
+                            })}
+                        </span>
+                    )}
                 </div>
                 <PublicationTable isLoading={isLoading} items={publicationItems} />
             </div>
