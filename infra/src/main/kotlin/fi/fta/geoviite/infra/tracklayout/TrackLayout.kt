@@ -303,7 +303,7 @@ data class TrackLayoutKmLengthDetails(
 }
 
 data class TrackLayoutKmPostLength(
-    val length: Double?
+    val length: Double
 )
 
 data class TrackLayoutSwitchJointMatch(

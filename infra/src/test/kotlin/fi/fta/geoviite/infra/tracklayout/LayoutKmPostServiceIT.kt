@@ -177,6 +177,6 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)
         val actual = kmPosts.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
         assertEquals(expected.size, actual.size)
-        expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
+        expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a.length, 0.001) }
     }
 }

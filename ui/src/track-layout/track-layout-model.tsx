@@ -203,7 +203,7 @@ export type LayoutKmLengthDetails = {
 };
 
 export type TrackLayoutKmPostLength = {
-    length?: number;
+    length: number;
 };
 
 export type PlanArea = {

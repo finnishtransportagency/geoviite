@@ -177,8 +177,8 @@ export async function getKmLengths(
 export async function getSingleKmPostKmLength(
     publishType: PublishType,
     id: LayoutKmPostId,
-): Promise<TrackLayoutKmPostLength> {
-    return getNonNull<TrackLayoutKmPostLength>(
+): Promise<TrackLayoutKmPostLength | undefined> {
+    return getNullable<TrackLayoutKmPostLength>(
         `${layoutUri('km-posts', publishType, id)}/km-length`,
     );
 }

@@ -63,7 +63,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
 
     const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
-        async () => getSingleKmPostKmLength(publishType, kmPost.id).then((result) => result.length),
+        async () =>
+            getSingleKmPostKmLength(publishType, kmPost.id).then((result) => result?.length),
         [
             kmPost.id,
             kmPost.state,
