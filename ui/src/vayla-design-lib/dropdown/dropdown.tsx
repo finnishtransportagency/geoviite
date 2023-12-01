@@ -68,7 +68,16 @@ export const Dropdown = function <TItemValue>({
     const focusedOptionRef = React.useRef<HTMLLIElement>(null);
     const optionsIsFunc = props.options && !isOptionsArray(props.options);
     const [loadedOptions, setLoadedOptions] = React.useState<Item<TItemValue>[]>();
-    const { isLoading, load: loadOptions } = useImmediateLoader(setLoadedOptions);
+    const earlySelect = React.useRef(false);
+    const { isLoading, load: loadOptions } = useImmediateLoader((options: Item<TItemValue>[]) => {
+        const activeOptions = options.filter((option) => !option.disabled);
+        if (earlySelect.current && activeOptions.length === 1) {
+            select(activeOptions[0].value);
+        } else {
+            setLoadedOptions(options);
+        }
+        earlySelect.current = false;
+    });
     const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -217,9 +226,13 @@ export const Dropdown = function <TItemValue>({
                     break;
                 case 'Tab':
                 case 'Enter': {
-                    const item = filteredOptions[optionFocusIndex];
-                    if (!item?.disabled) {
-                        select(item?.value || undefined);
+                    if (optionsIsFunc && isLoading) {
+                        earlySelect.current = true;
+                    } else {
+                        const item = filteredOptions[optionFocusIndex];
+                        if (!item?.disabled) {
+                            select(item?.value || undefined);
+                        }
                     }
                 }
             }
