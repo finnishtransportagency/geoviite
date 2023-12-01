@@ -437,9 +437,8 @@ fun validateGeocodingContext(
         "$VALIDATION_GEOCODING.start-km-too-long" to LocalizationParams()
     }
 
-    val kmPostsInWrongOrder = if (context == null) null else context.referencePoints
-        .filter { point -> point.intersectType == WITHIN }
-        .filterIndexed { index, point ->
+    val kmPostsInWrongOrder =
+        context.referencePoints.filter { point -> point.intersectType == WITHIN }.filterIndexed { index, point ->
             val previous = context.referencePoints.getOrNull(index - 1)
             val next = context.referencePoints.getOrNull(index + 1)
             !isOrderOk(previous, point) || !isOrderOk(point, next)
@@ -453,7 +452,7 @@ fun validateGeocodingContext(
             }
         }
 
-    val kmPostsFarFromLine = if (context == null) null else context.referencePoints
+    val kmPostsFarFromLine = context.referencePoints
         .filter { point -> point.intersectType == WITHIN }
         .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
         .let { farAwayPoints ->

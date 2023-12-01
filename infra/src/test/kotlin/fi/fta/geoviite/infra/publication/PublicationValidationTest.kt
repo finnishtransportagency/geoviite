@@ -873,7 +873,7 @@ class PublicationValidationTest {
     }
 
     private fun simpleGeocodingContext(referenceLinePoints: List<SegmentPoint>): GeocodingContext =
-        geocodingContext(referenceLinePoints, listOf()).geocodingContext!!
+        geocodingContext(referenceLinePoints, listOf()).geocodingContext
 
     private fun geocodingContext(
         referenceLinePoints: List<SegmentPoint>,

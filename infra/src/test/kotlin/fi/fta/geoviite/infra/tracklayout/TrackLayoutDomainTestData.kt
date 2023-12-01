@@ -422,7 +422,7 @@ fun geocodingContext(
         startAddress = startAddress,
         referenceLineGeometry = alignment,
         kmPosts = kmPosts,
-    ).geocodingContext!!
+    ).geocodingContext
 }
 
 abstract class TargetSegment
