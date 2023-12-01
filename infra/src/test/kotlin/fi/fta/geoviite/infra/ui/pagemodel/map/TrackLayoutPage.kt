@@ -51,6 +51,11 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val selectionPanel: E2ESelectionPanel by lazy { E2ESelectionPanel(this) }
     val toolBar: E2EToolBar by lazy { E2EToolBar(this) }
     val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
+
+    private val resolution: Double
+        get() = childElement(By.className("map__ol-map")).getAttribute("qa-resolution").toDouble()
+
+
     val mapScale: MapScale
         get() = tryWait({
             val scale = childText(By.className("ol-scale-line-inner"))
@@ -114,15 +119,18 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     private fun zoomOut() {
+        val oldScale = resolution;
         clickChild(By.className("ol-zoom-out"))
-        //Prevents Selenium from reading the same zoom scale too soon
-        Thread.sleep(250)
+        waitUntilScaleChanges(oldScale)
     }
 
     private fun zoomIn() {
+        val oldScale = resolution;
         clickChild(By.className("ol-zoom-in"))
-        //Prevents Selenium from reading the same zoom scale too soon
-        Thread.sleep(250)
+        waitUntilScaleChanges(oldScale)
     }
 
+    private fun waitUntilScaleChanges(oldScale: Double) {
+        tryWait({ resolution != oldScale }) { "Map scale did not change from $oldScale" }
+    }
 }

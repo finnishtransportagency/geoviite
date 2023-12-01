@@ -29,7 +29,7 @@ module.exports = {
                 argsIgnorePattern: '^_',
             },
         ],
-        'react/no-unknown-property': [1, { ignore: ['qa-id'] }],
+        'react/no-unknown-property': [1, { ignore: ['qa-id', 'qa-resolution'] }],
         'react/prop-types': 0,
     },
 };
