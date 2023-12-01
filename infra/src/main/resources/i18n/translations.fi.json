@@ -1234,6 +1234,7 @@
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
         "km-post": "Tasakilometripiste",
+        "count-header-loading": "Julkaistut muutokset",
         "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
         "calculated-change": "Laskettu muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta",
