@@ -543,6 +543,8 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDebugLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                         );
+                    case 'virtual-km-post-linking-layer': // Virtual map layers
+                        return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);
                 }
