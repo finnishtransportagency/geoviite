@@ -47,7 +47,7 @@ const relatedMapLayers: LayerCollection = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'switch-linking-layer': ['switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
-    'km-post-linking-layer': ['km-post-layer'],
+    'virtual-km-post-linking-layer': ['km-post-layer'],
     'location-track-alignment-layer': [
         'location-track-background-layer',
         'location-track-badge-layer',

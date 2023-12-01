@@ -38,7 +38,7 @@ export type MapLayerName =
     | 'geometry-switch-layer'
     | 'alignment-linking-layer'
     | 'switch-linking-layer'
-    | 'km-post-linking-layer' // virtual map layer
+    | 'virtual-km-post-linking-layer'
     | 'location-track-duplicate-endpoint-address-layer'
     | 'location-track-split-location-layer'
     | 'plan-area-layer'
