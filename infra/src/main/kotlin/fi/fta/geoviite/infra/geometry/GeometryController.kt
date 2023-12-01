@@ -92,12 +92,12 @@ class GeometryController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/plans/layout")
-    fun getTrackLayoutPlan(
+    fun getTrackLayoutPlans(
         @RequestParam("planIds") planIds: List<IntId<GeometryPlan>>,
         @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
     ): ResponseEntity<List<GeometryPlanLayout>> {
         log.apiCall(
-            "getTrackLayoutPlan", "planIds" to planIds, "includeGeometryData" to includeGeometryData
+            "getTrackLayoutPlans", "planIds" to planIds, "includeGeometryData" to includeGeometryData
         )
         return toResponse(planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull { it.first })
     }
