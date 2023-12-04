@@ -512,7 +512,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             publishType,
-                            linkingState,
                             splittingState,
                             changeTimes,
                             olView,
@@ -523,7 +522,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             publishType,
-                            linkingState,
                             changeTimes,
                         );
                     case 'plan-area-layer':

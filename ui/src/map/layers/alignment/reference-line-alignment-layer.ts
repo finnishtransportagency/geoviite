@@ -17,9 +17,27 @@ import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { Stroke, Style } from 'ol/style';
+import mapStyles from 'map/map.module.scss';
 
 let shownReferenceLinesCompare: string;
 let newestLayerId = 0;
+
+const highlightedReferenceLineStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 3,
+    }),
+    zIndex: 1,
+});
+
+const referenceLineStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentLine,
+        width: 3,
+    }),
+    zIndex: 0,
+});
 
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
@@ -52,7 +70,13 @@ export function createReferenceLineAlignmentLayer(
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 
-            const features = createAlignmentFeatures(referenceLines, selection, false);
+            const features = createAlignmentFeatures(
+                referenceLines,
+                selection,
+                false,
+                referenceLineStyle,
+                highlightedReferenceLineStyle,
+            );
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);
