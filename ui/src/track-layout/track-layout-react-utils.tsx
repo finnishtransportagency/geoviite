@@ -246,32 +246,52 @@ export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeade
 
 export function useTrackNumberChangeTimes(
     id: LayoutTrackNumberId | undefined,
+    publishType: PublishType,
 ): DraftableChangeInfo | undefined {
-    return useOptionalLoader(() => (id ? getTrackNumberChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(
+        () => (id ? getTrackNumberChangeTimes(id, publishType) : undefined),
+        [id],
+    );
 }
 
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
+    publishType: PublishType,
 ): DraftableChangeInfo | undefined {
-    return useOptionalLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(
+        () => (id ? getReferenceLineChangeTimes(id, publishType) : undefined),
+        [id, publishType],
+    );
 }
 
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
+    publishType: PublishType,
 ): DraftableChangeInfo | undefined {
-    return useOptionalLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(
+        () => (id ? getLocationTrackChangeTimes(id, publishType) : undefined),
+        [id, publishType],
+    );
 }
 
 export function useSwitchChangeTimes(
     id: LayoutSwitchId | undefined,
+    publishType: PublishType,
 ): DraftableChangeInfo | undefined {
-    return useOptionalLoader(() => (id ? getSwitchChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(
+        () => (id ? getSwitchChangeTimes(id, publishType) : undefined),
+        [id, publishType],
+    );
 }
 
 export function useKmPostChangeTimes(
     id: LayoutKmPostId | undefined,
+    publishType: PublishType,
 ): DraftableChangeInfo | undefined {
-    return useOptionalLoader(() => (id ? getKmPostChangeTimes(id) : undefined), [id]);
+    return useOptionalLoader(
+        () => (id ? getKmPostChangeTimes(id, publishType) : undefined),
+        [id, publishType],
+    );
 }
 
 export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {

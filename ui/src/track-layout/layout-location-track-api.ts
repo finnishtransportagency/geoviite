@@ -252,8 +252,9 @@ export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[
 
 export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id, publishType));
 };
 
 export const getLocationTrackSectionsByPlan = async (

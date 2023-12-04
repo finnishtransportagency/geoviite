@@ -147,10 +147,13 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{id}/change-times")
-    fun getKmPostChangeInfo(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): DraftableChangeInfo {
+    @GetMapping("/{publishType}/{id}/change-times")
+    fun getKmPostChangeInfo(
+        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
+        @PathVariable("publishType") publishType: PublishType,
+    ): ResponseEntity<DraftableChangeInfo> {
         logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
-        return kmPostService.getDraftableChangeInfo(kmPostId)
+        return toResponse(kmPostService.getDraftableChangeInfo(kmPostId, publishType))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -158,8 +161,8 @@ class LayoutKmPostController(
     fun getKmLength(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-    ): TrackLayoutKmPostLength {
+    ): ResponseEntity<Double> {
         logger.apiCall("getKmLength", "id" to kmPostId, "publishType" to publishType)
-        return TrackLayoutKmPostLength(kmPostService.getSingleKmPostLength(publishType, kmPostId))
+        return toResponse(kmPostService.getSingleKmPostLength(publishType, kmPostId))
     }
 }

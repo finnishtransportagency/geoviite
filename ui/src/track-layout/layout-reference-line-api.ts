@@ -87,6 +87,7 @@ export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[
 
 export const getReferenceLineChangeTimes = (
     id: ReferenceLineId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('reference-lines', id));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('reference-lines', id, publishType));
 };

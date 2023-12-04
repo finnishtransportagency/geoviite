@@ -122,9 +122,12 @@ class LayoutSwitchController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{id}/change-times")
-    fun getSwitchChangeInfo(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): DraftableChangeInfo {
+    @GetMapping("/{publishType}/{id}/change-times")
+    fun getSwitchChangeInfo(
+        @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
+        @PathVariable("publishType") publishType: PublishType,
+    ): ResponseEntity<DraftableChangeInfo> {
         logger.apiCall("getSwitchChangeTimes", "id" to switchId)
-        return switchService.getDraftableChangeInfo(switchId)
+        return toResponse(switchService.getDraftableChangeInfo(switchId, publishType))
     }
 }

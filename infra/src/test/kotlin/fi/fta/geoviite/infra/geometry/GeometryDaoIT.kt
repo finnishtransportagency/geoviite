@@ -4,6 +4,7 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -208,7 +209,8 @@ class GeometryDaoIT @Autowired constructor(
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))
-        val trackChangeTime = locationTrackService.getDraftableChangeInfo(trackVersion.id).officialChanged!!
+        val trackChangeTime =
+            locationTrackService.getDraftableChangeInfo(trackVersion.id, PublishType.OFFICIAL)?.changed
 
         val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName("TEST_USER")), true)
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))

@@ -110,7 +110,7 @@ class LayoutKmPostService(
     fun getSingleKmPostLength(
         publishType: PublishType,
         id: IntId<TrackLayoutKmPost>,
-    ): Double? = dao.getOrThrow(publishType, id).getAsIntegral()?.let { kmPost ->
+    ): Double? = dao.get(publishType, id)?.getAsIntegral()?.let { kmPost ->
         referenceLineService
             .getByTrackNumberWithAlignment(publishType, kmPost.trackNumberId)
             ?.let { (_, referenceLineAlignment) ->

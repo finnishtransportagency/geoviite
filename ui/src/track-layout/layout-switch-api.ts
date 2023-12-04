@@ -154,6 +154,7 @@ export async function getSwitchValidation(
 
 export const getSwitchChangeTimes = (
     id: LayoutSwitchId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNonNull<DraftableChangeInfo>(changeTimeUri('switches', id));
+    return getNonNull<DraftableChangeInfo>(changeTimeUri('switches', id, publishType));
 };

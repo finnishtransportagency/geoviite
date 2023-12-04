@@ -32,15 +32,11 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
             "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
         )
 
-        return searchTerm.toString().trim().takeIf(String::isNotEmpty)
-            ?.let { term -> dao.list(publishType, true)
-                .filter { item ->
-                    idMatches(term, item) ||
-                    contentMatches(term, item)
-                }
-                .let { list -> sortSearchResult(list)}
-                .let { list -> if (limit != null) list.take(limit) else list }
-            } ?: listOf()
+        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
+            dao.list(publishType, true).filter { item ->
+                    idMatches(term, item) || contentMatches(term, item)
+                }.let { list -> sortSearchResult(list) }.let { list -> if (limit != null) list.take(limit) else list }
+        } ?: listOf()
     }
 
     fun get(publishType: PublishType, id: IntId<ObjectType>): ObjectType? {
@@ -68,9 +64,9 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         return dao.fetchChangeTime()
     }
 
-    fun getDraftableChangeInfo(id: IntId<ObjectType>): DraftableChangeInfo {
+    fun getDraftableChangeInfo(id: IntId<ObjectType>, publishType: PublishType): DraftableChangeInfo? {
         logger.serviceCall("getChangeTimes", "id" to id)
-        return dao.fetchDraftableChangeInfo(id)
+        return dao.fetchDraftableChangeInfo(id, publishType)
     }
 
     fun draftExists(id: IntId<ObjectType>): Boolean {
@@ -164,8 +160,7 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         if (response.rowVersion.version != previousVersion.version + 1) {
             // We could do optimistic locking here by throwing
             logger.warn(
-                "Updated version isn't the next one: a concurrent change may have been overwritten: "
-                        + "id=$id previous=$previousVersion updated=$response"
+                "Updated version isn't the next one: a concurrent change may have been overwritten: " + "id=$id previous=$previousVersion updated=$response"
             )
         }
     }

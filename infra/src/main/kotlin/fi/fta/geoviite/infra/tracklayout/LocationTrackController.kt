@@ -162,9 +162,10 @@ class LocationTrackController(
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
         val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
         val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(switchIds
-            .distinct()
-            .let { swId -> switchService.getMany(publishType, swId) })
+        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
+            switchIds
+                .distinct()
+                .let { swId -> switchService.getMany(publishType, swId) })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
@@ -204,10 +205,13 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/location-tracks/{id}/change-times")
-    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): DraftableChangeInfo {
+    @GetMapping("/location-tracks/{publishType}/{id}/change-times")
+    fun getLocationTrackChangeInfo(
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @PathVariable("publishType") publishType: PublishType,
+    ): ResponseEntity<DraftableChangeInfo> {
         logger.apiCall("getLocationTrackChangeInfo", "id" to id)
-        return locationTrackService.getDraftableChangeInfo(id)
+        return toResponse(locationTrackService.getDraftableChangeInfo(id, publishType))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -251,12 +255,12 @@ class LocationTrackController(
     fun getSplittingInitializationParameters(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): SplittingInitializationParameters {
+    ): ResponseEntity<SplittingInitializationParameters> {
         logger.apiCall(
             "getSplittingInitializationParameters",
             "publishType" to publishType,
             "id" to id,
         )
-        return locationTrackService.getSplittingInitializationParameters(id, publishType)
+        return toResponse(locationTrackService.getSplittingInitializationParameters(id, publishType))
     }
 }

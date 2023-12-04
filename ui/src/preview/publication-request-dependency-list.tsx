@@ -1,6 +1,7 @@
 import { PublishRequestIds } from 'publication/publication-model';
 import * as React from 'react';
 import {
+    LayoutKmPostId,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -9,6 +10,7 @@ import {
 import { TimeStamp } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import {
+    useKmPost,
     useLocationTrack,
     useReferenceLine,
     useSwitch,
@@ -94,6 +96,18 @@ const SwitchItem: React.FC<{ switchId: LayoutSwitchId }> = ({ switchId }) => {
     );
 };
 
+const KmPostItem: React.FC<{ kmPostId: LayoutKmPostId }> = ({ kmPostId }) => {
+    const { t } = useTranslation();
+    const kmPost = useKmPost(kmPostId, 'DRAFT');
+    return kmPost === undefined ? (
+        <li />
+    ) : (
+        <li>
+            {t('publish.revert-confirm.dependency-list.km-post')} {kmPost.kmNumber}
+        </li>
+    );
+};
+
 export const publicationRequestTypeTranslationKey = (type: PreviewSelectType) => {
     switch (type) {
         case 'trackNumber':
@@ -171,6 +185,9 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
                     ))}
                     {dependencies.switches.map((sw) => (
                         <SwitchItem switchId={sw} key={sw} />
+                    ))}
+                    {dependencies.kmPosts.map((kmPost) => (
+                        <KmPostItem kmPostId={kmPost} key={kmPost} />
                     ))}
                 </ul>
             </>
