@@ -5,5 +5,7 @@ geoviite:
   data:
     reset: true
 spring:
+  main:
+    web-application-type: none
   flyway:
     clean-disabled: false
