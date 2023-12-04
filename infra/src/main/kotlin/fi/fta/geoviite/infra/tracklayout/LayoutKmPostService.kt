@@ -110,7 +110,7 @@ class LayoutKmPostService(
     fun getSingleKmPostLength(
         publishType: PublishType,
         id: IntId<TrackLayoutKmPost>,
-    ): Double? = dao.getOrThrow(publishType, id).getAsIntegral()?.let { kmPost ->
+    ): TrackLayoutKmPostLength? = dao.get(publishType, id)?.getAsIntegral()?.let { kmPost ->
         referenceLineService
             .getByTrackNumberWithAlignment(publishType, kmPost.trackNumberId)
             ?.let { (_, referenceLineAlignment) ->
@@ -118,7 +118,7 @@ class LayoutKmPostService(
                 val kmEndM = getKmEndM(publishType, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
                 if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
             }
-    }
+    }?.let(::TrackLayoutKmPostLength)
 
     private fun getKmEndM(
         publishType: PublishType,

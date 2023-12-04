@@ -158,8 +158,8 @@ class LayoutKmPostController(
     fun getKmLength(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-    ): TrackLayoutKmPostLength {
+    ): ResponseEntity<TrackLayoutKmPostLength> {
         logger.apiCall("getKmLength", "id" to kmPostId, "publishType" to publishType)
-        return TrackLayoutKmPostLength(kmPostService.getSingleKmPostLength(publishType, kmPostId))
+        return toResponse(kmPostService.getSingleKmPostLength(publishType, kmPostId))
     }
 }
