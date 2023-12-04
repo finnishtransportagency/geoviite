@@ -87,16 +87,15 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
         },
     });
 
-    if (x === undefined || y === undefined) return <></>;
-
     return createPortal(
         <div
             ref={modalRef}
             style={{
-                top: y + offsetY,
-                left: x + offsetX,
+                top: (y ?? 0) + offsetY,
+                left: (x ?? 0) + offsetX,
                 position: 'absolute',
                 width: width,
+                visibility: x === undefined || y === undefined ? 'hidden' : undefined,
             }}
             className={className}
             onClick={(e) => e.stopPropagation()}>
