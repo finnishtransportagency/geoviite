@@ -166,23 +166,8 @@ interface IAlignment : Loggable {
         .minByOrNull { (distance, _) -> distance }
         ?.let { (_, index) -> index }
 
-    fun getMaxDirectionDeltaRads(): Double {
-        var prevPoint: SegmentPoint? = null
-        var prevDirection: Double? = null
-        return if (segments.isEmpty()) {
-            0.0
-        } else {
-            segments.maxOf { segment ->
-                segment.segmentPoints.maxOf { point ->
-                    val direction = prevPoint?.let { prev -> directionBetweenPoints(prev, point) }
-                    angleDeltaRads(prevDirection, direction).also {
-                        prevPoint = point
-                        prevDirection = direction
-                    }
-                }
-            }
-        }
-    }
+    fun getMaxDirectionDeltaRads(): Double =
+        allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDeltaRads).maxOrNull() ?: 0.0
 
     private fun angleDeltaRads(dir1: Double?, dir2: Double?): Double =
         if (dir1 != null && dir2 != null) angleDiffRads(dir1, dir2) else 0.0
