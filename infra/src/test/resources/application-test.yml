@@ -4,11 +4,11 @@ spring:
     hikari:
       minimum-idle: 0
 geoviite:
+  scheduling:
+    enabled: false
   cache:
     enabled: false
     preload: false
-  scheduler-lock:
-    enabled: false
   data:
     import: false
   skip-auth: true
