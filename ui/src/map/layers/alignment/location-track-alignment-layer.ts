@@ -19,9 +19,27 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { Stroke, Style } from 'ol/style';
+import mapStyles from 'map/map.module.scss';
 
 let shownLocationTracksCompare = '';
 let newestLayerId = 0;
+
+const highlightedLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 1,
+    }),
+    zIndex: 2,
+});
+
+const locationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentLine,
+        width: 1,
+    }),
+    zIndex: 0,
+});
 
 export function createLocationTrackAlignmentLayer(
     mapTiles: MapTile[],
@@ -64,7 +82,13 @@ export function createLocationTrackAlignmentLayer(
 
             const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-            const features = createAlignmentFeatures(locationTracks, selection, showEndPointTicks);
+            const features = createAlignmentFeatures(
+                locationTracks,
+                selection,
+                showEndPointTicks,
+                locationTrackStyle,
+                highlightedLocationTrackStyle,
+            );
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

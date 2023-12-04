@@ -5,23 +5,39 @@ import { Selection } from 'selection/selection-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { getSelectedLocationTrackMapAlignmentByTiles } from 'track-layout/layout-map-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { createSelectedAlignmentFeature } from '../utils/alignment-layer-utils';
+import { createAlignmentFeature } from '../utils/alignment-layer-utils';
+import { Stroke, Style } from 'ol/style';
+import mapStyles from 'map/map.module.scss';
 
 let newestLayerId = 0;
+
+const selectedLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 2,
+    }),
+    zIndex: 2,
+});
+
+const splittingLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 4,
+    }),
+    zIndex: 2,
+});
 
 export function createLocationTrackSelectedAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
-    linkingState: LinkingState | undefined,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
@@ -50,12 +66,12 @@ export function createLocationTrackSelectedAlignmentLayer(
 
             const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-            const alignmentFeatures = createSelectedAlignmentFeature(
+            const track = locationTracks[0];
+            const isSplitting = splittingState?.originLocationTrack.id === track.header.id;
+            const alignmentFeatures = createAlignmentFeature(
                 locationTracks[0],
-                selection,
-                linkingState,
                 showEndPointTicks,
-                splittingState,
+                isSplitting ? splittingLocationTrackStyle : selectedLocationTrackStyle,
             );
 
             clearFeatures(vectorSource);
