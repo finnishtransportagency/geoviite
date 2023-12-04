@@ -81,7 +81,7 @@ private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.jav
 data class KmPostWithRejectedReason(val kmPost: TrackLayoutKmPost, val rejectedReason: KmPostRejectedReason)
 
 data class GeocodingContextCreateResult(
-    val geocodingContext: GeocodingContext?,
+    val geocodingContext: GeocodingContext,
     val rejectedKmPosts: List<KmPostWithRejectedReason>,
     val validKmPosts: List<TrackLayoutKmPost>,
     val startPointRejectedReason: StartPointRejectedReason?,
@@ -191,7 +191,7 @@ data class GeocodingContext(
             val startKmIsTooLong = startKmIsTooLong(startAddress, referenceLineGeometry, validReferencePoints)
 
             return GeocodingContextCreateResult(
-                geocodingContext = if (startKmIsTooLong) null else GeocodingContext(
+                geocodingContext = GeocodingContext(
                     trackNumber = trackNumber,
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
@@ -303,16 +303,18 @@ data class GeocodingContext(
 
     fun getAddressAndM(coordinate: IPoint, addressDecimals: Int = DEFAULT_TRACK_METER_DECIMALS): AddressAndM? =
         referenceLineGeometry.getClosestPointM(coordinate)?.let { (dist, type) ->
-            AddressAndM(getAddress(dist, addressDecimals), dist, type)
+            getAddress(dist, addressDecimals)?.let { address ->
+                AddressAndM(address, dist, type)
+            }
         }
 
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =
         getAddressAndM(coordinate, decimals)?.let { (address, _, type) -> address to type }
 
-    fun getAddress(targetDistance: Double, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): TrackMeter {
+    fun getAddress(targetDistance: Double, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): TrackMeter? {
         val addressPoint = findPreviousPoint(targetDistance)
-        val meters = addressPoint.meters.toDouble() + targetDistance - addressPoint.distance
-        return TrackMeter(addressPoint.kmNumber, round(meters, decimals))
+        val meters = round(addressPoint.meters.toDouble() + targetDistance - addressPoint.distance, decimals)
+        return if (TrackMeter.isMetersValid(meters)) TrackMeter(addressPoint.kmNumber, meters) else null
     }
 
     val referenceLineAddresses by lazy {
