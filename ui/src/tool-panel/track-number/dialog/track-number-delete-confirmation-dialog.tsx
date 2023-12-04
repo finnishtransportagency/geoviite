@@ -49,10 +49,14 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
+                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
-                    <Button onClick={deleteDraftLocationTrack}>{t('button.delete')}</Button>
+                    <Button
+                        variant={ButtonVariant.PRIMARY_WARNING}
+                        onClick={deleteDraftLocationTrack}>
+                        {t('button.delete')}
+                    </Button>
                 </div>
             }>
             <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>

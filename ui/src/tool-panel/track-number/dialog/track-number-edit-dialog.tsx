@@ -376,7 +376,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button onClick={saveTrackNumber}>{t('button.delete')}</Button>
+                            <Button
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={saveTrackNumber}>
+                                {t('button.delete')}
+                            </Button>
                         </div>
                     }>
                     <div className={'dialog__text'}>

@@ -24,7 +24,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
-import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
@@ -46,6 +45,7 @@ import {
     useSwitchChangeTimes,
 } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -372,7 +372,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {showDeleteDialog && (
-                <SwitchDeleteDialog
+                <SwitchDeleteConfirmationDialog
                     switchId={switchId}
                     onClose={() => setShowDeleteDialog(false)}
                     onSave={handleSwitchSave}

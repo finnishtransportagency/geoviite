@@ -27,7 +27,6 @@ import {
 } from 'common/common-model';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
-import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import {
     getSwitch,
@@ -40,6 +39,7 @@ import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
+import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -511,7 +511,7 @@ export const SwitchEditDialog = ({
                 </Dialog>
             )}
             {showDeleteDraftConfirmDialog && switchId && (
-                <SwitchDeleteDialog
+                <SwitchDeleteConfirmationDialog
                     switchId={switchId}
                     onSave={handleOnDelete}
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
