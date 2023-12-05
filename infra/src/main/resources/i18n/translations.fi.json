@@ -331,7 +331,7 @@
         "description-base": "Kuvauksen perusosa",
         "description-suffix": "Kuvauksen lisäosa",
         "full-description": "Valmis kuvaus",
-        "name-in-use": "Huomaa, että ratanumerolla on toinen sijaintiraide samalla nimellä",
+        "name-in-use": "Huomaa, että ratanumerolla on toinen sijaintiraide samalla tunnuksella",
         "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä"
     },
     "location-track-delete-dialog": {
@@ -1386,7 +1386,7 @@
         "save-in-progress": "Tallennetaan",
         "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
         "invalid-km-post-number": "Virheellinen tasakilometripistetunnus",
-        "km-number-already-in-use": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla nimellä. Tunnus on jo käytössä valitulla ratanumerolla.",
+        "km-number-already-in-use": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä valitulla ratanumerolla.",
         "insert-succeeded": "Uusi tasakilometripiste lisätty rekisteriin",
         "insert-failed": "Tasakilometripisteen lisäys epäonnistui",
         "modify-succeeded": "Tasakilometripisteen tiedot päivitetty",
@@ -1440,7 +1440,7 @@
         "switch-will-be-unlinked": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko varmasti poistaa vaihteen paikannuspohjasta?",
-        "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla nimellä",
+        "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä"
     },
     "switch-delete-dialog": {

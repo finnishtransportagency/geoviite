@@ -15,7 +15,6 @@
 }
 
 .switch-edit-dialog__alert {
+    @include vayla-design.typography-caption;
     color: vayla-design.$color-lemon-dark;
-    font-size: 12px;
-    line-height: 16px;
 }
