@@ -632,7 +632,11 @@ const MapView: React.FC<MapViewProps> = ({
                 </li>
             </ol>
 
-            <div ref={olMapContainer} className={styles['map__ol-map']} />
+            <div
+                ref={olMapContainer}
+                qa-resolution={olMap?.getView()?.getResolution()}
+                className={styles['map__ol-map']}
+            />
 
             <div id="clusteroverlay">
                 {selection.selectedItems.clusterPoints[0] && (
