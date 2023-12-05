@@ -7,13 +7,17 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteDraftSwitch } from 'track-layout/layout-switch-api';
 
-type SwitchDeleteDialogProps = {
+type SwitchDeleteConfirmationDialogProps = {
     switchId: LayoutSwitchId;
     onSave: (id: LayoutSwitchId) => void;
     onClose: () => void;
 };
 
-const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({ switchId, onSave, onClose }) => {
+const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogProps> = ({
+    switchId,
+    onSave,
+    onClose,
+}) => {
     const { t } = useTranslation();
     const deleteSwitch = () => {
         deleteDraftSwitch(switchId).then((id) => {
@@ -32,10 +36,12 @@ const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({ switchId, onSav
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
+                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
-                    <Button onClick={deleteSwitch}>{t('button.delete')}</Button>
+                    <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={deleteSwitch}>
+                        {t('button.delete')}
+                    </Button>
                 </div>
             }>
             <p>{t('switch-delete-dialog.guide')}</p>
@@ -43,4 +49,4 @@ const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({ switchId, onSav
     );
 };
 
-export default SwitchDeleteDialog;
+export default SwitchDeleteConfirmationDialog;

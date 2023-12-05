@@ -38,10 +38,14 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
             allowClose={false}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
+                    <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
                         {t('button.cancel')}
                     </Button>
-                    <Button onClick={() => deleteKmPost(id)}>{t('button.delete')}</Button>
+                    <Button
+                        variant={ButtonVariant.PRIMARY_WARNING}
+                        onClick={() => deleteKmPost(id)}>
+                        {t('button.delete')}
+                    </Button>
                 </div>
             }>
             <div>{t('km-post-delete-draft-dialog.can-be-deleted')}</div>
