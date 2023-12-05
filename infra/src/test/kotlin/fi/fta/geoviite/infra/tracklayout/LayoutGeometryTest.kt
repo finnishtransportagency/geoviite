@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -406,5 +407,14 @@ class LayoutGeometryTest {
         assertEquals(original.alignmentPoints[2].x, slice.alignmentPoints[1].x)
         assertEquals(original.alignmentPoints[2].y, slice.alignmentPoints[1].y)
         assertEquals(original.alignmentPoints[2].m, slice.alignmentPoints[1].m)
+    }
+
+    @Test
+    fun `getMaxDirectionDeltaRads with shared segment points`() {
+        val alignment = alignment(
+            segment(Point(0.0, 0.0), Point(1.0, 1.0)),
+            segment(Point(1.0, 1.0), Point(2.0, 2.0)),
+        )
+        assertEquals(0.0, alignment.getMaxDirectionDeltaRads())
     }
 }
