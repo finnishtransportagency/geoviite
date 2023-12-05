@@ -3,8 +3,6 @@ geoviite:
     url: "${FRONT_END_URL:http://127.0.0.1:9000}"
     username: foobar
     password: s3cret
-  scheduler-lock:
-    enabled: false
   projektivelho:
     enabled: true
     url: http://localhost:12346

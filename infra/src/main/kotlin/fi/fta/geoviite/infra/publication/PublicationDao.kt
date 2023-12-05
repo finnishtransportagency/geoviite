@@ -681,7 +681,17 @@ class PublicationDao(
         val publicationTime: Instant,
     )
 
-    fun fetchUnprocessedGeometryChangeRemarks(publicationId: IntId<Publication>?, maxCount: Int? = 10): List<UnprocessedGeometryChange> {
+    fun fetchUnprocessedGeometryChangeRemarks(publicationId: IntId<Publication>): List<UnprocessedGeometryChange> =
+        fetchUnprocessedGeometryChangeRemarks(publicationId, null)
+
+    fun fetchUnprocessedGeometryChangeRemarks(maxCount: Int): List<UnprocessedGeometryChange> =
+        fetchUnprocessedGeometryChangeRemarks(null, maxCount)
+
+    private fun fetchUnprocessedGeometryChangeRemarks(
+        publicationId: IntId<Publication>?,
+        maxCount: Int?,
+    ): List<UnprocessedGeometryChange> {
+        val limitClause = if (maxCount != null) "limit :max_count" else ""
         val sql = """
             select
               publication_id,
@@ -699,19 +709,17 @@ class PublicationDao(
               left join layout.location_track_version old_ltv
                 on plt.location_track_id = old_ltv.id and plt.location_track_version = old_ltv.version + 1 and not old_ltv.draft
             where not geometry_change_summary_computed
-              and (:publicationId::int is null or publication_id = :publicationId)
+              and (:publication_id::int is null or publication_id = :publication_id)
             order by publication_id, location_track_id
-            limit :maxCount
+            $limitClause
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf("publicationId" to publicationId?.intValue, "maxCount" to maxCount)
-        ) { rs, _ ->
+        val params = mapOf("publication_id" to publicationId?.intValue, "max_count" to maxCount)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
             UnprocessedGeometryChange(
                 publicationId = rs.getIntId("publication_id"),
                 locationTrackId = rs.getIntId("location_track_id"),
                 newAlignmentVersion = rs.getRowVersion("new_alignment_id", "new_alignment_version"),
-                oldAlignmentVersion = rs.getRowVersionOrNull<LayoutAlignment>("old_alignment_id", "old_alignment_version"),
+                oldAlignmentVersion = rs.getRowVersionOrNull("old_alignment_id", "old_alignment_version"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 publicationTime = rs.getInstant("publication_time"),
             )

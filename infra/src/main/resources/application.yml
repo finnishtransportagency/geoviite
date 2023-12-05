@@ -40,11 +40,11 @@ geoviite:
     key-pair-id: "${CLOUDFRONT_KEY_PAIR_ID:}"
     private-key: "${CLOUDFRONT_PRIVATE_KEY:}"
     distribution-name: "${CLOUDFRONT_DNS_NAME:}"
+  scheduling:
+    enabled: true
   cache:
     enabled: true
     preload: true
-  scheduler-lock:
-    enabled: true
   data:
     import: false
   jwt:

@@ -257,7 +257,7 @@ class GeocodingTest {
             startAddress = startAddress,
             referenceLineGeometry = alignment(startSegment, connectSegment, endSegment),
             kmPosts = listOf(),
-        ).geocodingContext!!
+        ).geocodingContext
 
         val addressPoints = ctx.getAddressPoints(alignment(segment(Point(7.0, -2.0), Point(7.0, 8.0))))
         assertNotNull(addressPoints)
@@ -534,7 +534,7 @@ class GeocodingTest {
             startAddress = referenceLine.startAddress,
             referenceLineGeometry = referenceLineAlignment,
             kmPosts = listOf(),
-        ).geocodingContext!!
+        ).geocodingContext
 
         val result = testContext.getSwitchPoints(alignment(
             segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),
@@ -740,7 +740,7 @@ class GeocodingTest {
             kmPosts = listOf(kmPost),
         )
 
-        assertEquals(null, result.geocodingContext)
+        assertEquals(null, result.geocodingContext.getAddress(Point(14.0, 0.0)))
         assertEquals(StartPointRejectedReason.TOO_LONG, result.startPointRejectedReason)
     }
 

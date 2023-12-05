@@ -1,5 +1,4 @@
-import { RegularShape, Stroke, Style } from 'ol/style';
-import mapStyles from 'map/map.module.scss';
+import { RegularShape, Style } from 'ol/style';
 import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -15,81 +14,8 @@ import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { SplittingState } from 'tool-panel/location-track/split-store';
 
 const tickImageCache = cache<string, RegularShape>();
-
-const locationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentLine,
-        width: 1,
-    }),
-    zIndex: 0,
-});
-
-export const highlightedLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 1,
-    }),
-    zIndex: 2,
-});
-
-const selectedLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 2,
-    }),
-    zIndex: 2,
-});
-
-const splittingLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 4,
-    }),
-    zIndex: 2,
-});
-
-const referenceLineStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentLine,
-        width: 3,
-    }),
-    zIndex: 0,
-});
-
-export const highlightedReferenceLineStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 3,
-    }),
-    zIndex: 1,
-});
-
-const selectedReferenceLineStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 4,
-    }),
-    zIndex: 1,
-});
-
-const endPointTickStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentLine,
-        width: 1,
-    }),
-    zIndex: 1,
-});
-
-const highlightedEndPointTickStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 1,
-    }),
-    zIndex: 1,
-});
 
 export const OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING = 0.5;
 export const NORMAL_ALIGNMENT_OPACITY = 1;
@@ -166,36 +92,42 @@ function getCoordinate(points: AlignmentPoint[], m: number): number[] | undefine
     }
 }
 
+export function createAlignmentFeature(
+    alignment: AlignmentDataHolder,
+    showEndTicks: boolean,
+    style: Style,
+): Feature<LineString | OlPoint>[] {
+    const features: Feature<LineString | OlPoint>[] = [];
+    const alignmentFeature = new Feature({
+        geometry: new LineString(alignment.points.map(pointToCoords)),
+    });
+    features.push(alignmentFeature);
+
+    alignmentFeature.setStyle(style);
+
+    if (showEndTicks) {
+        features.push(...createEndPointTicks(alignment, style));
+    }
+
+    setAlignmentFeatureProperty(alignmentFeature, alignment);
+
+    return features;
+}
+
 export function createAlignmentFeatures(
     alignments: AlignmentDataHolder[],
     selection: Selection,
     showEndTicks: boolean,
+    style: Style,
+    hightlightStyle: Style,
 ): Feature<LineString | OlPoint>[] {
-    return alignments.flatMap((alignment) => {
-        const highlighted = isHighlighted(selection, alignment.header);
-
-        const features: Feature<LineString | OlPoint>[] = [];
-        const alignmentFeature = new Feature({
-            geometry: new LineString(alignment.points.map(pointToCoords)),
-        });
-        features.push(alignmentFeature);
-
-        const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
-
-        if (highlighted) {
-            alignmentFeature.setStyle(
-                isReferenceLine ? highlightedReferenceLineStyle : highlightedLocationTrackStyle,
-            );
-        } else alignmentFeature.setStyle(isReferenceLine ? referenceLineStyle : locationTrackStyle);
-
-        if (showEndTicks) {
-            features.push(...createEndPointTicks(alignment, highlighted));
-        }
-
-        setAlignmentFeatureProperty(alignmentFeature, alignment);
-
-        return features;
-    });
+    return alignments.flatMap((alignment) =>
+        createAlignmentFeature(
+            alignment,
+            showEndTicks,
+            isHighlighted(selection, alignment.header) ? hightlightStyle : style,
+        ),
+    );
 }
 
 function includes(selection: ItemCollections, alignment: AlignmentHeader): boolean {
@@ -214,48 +146,6 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
 
 export const isHighlighted = (selection: Selection, header: AlignmentHeader) =>
     includes(selection.highlightedItems, header);
-
-export function createSelectedAlignmentFeature(
-    alignment: AlignmentDataHolder,
-    selection: Selection,
-    linkingState: LinkingState | undefined,
-    showEndTicks: boolean,
-    splittingState: SplittingState | undefined,
-): Feature<LineString | OlPoint>[] {
-    const { selected, isLinking, highlighted } = getAlignmentHeaderStates(
-        alignment,
-        selection,
-        linkingState,
-    );
-
-    const features: Feature<LineString | OlPoint>[] = [];
-    const alignmentFeature = new Feature({
-        geometry: new LineString(alignment.points.map(pointToCoords)),
-    });
-    features.push(alignmentFeature);
-
-    const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
-
-    if (splittingState?.originLocationTrack.id === alignment.header.id) {
-        alignmentFeature.setStyle(splittingLocationTrackStyle);
-    } else if (selected || isLinking) {
-        alignmentFeature.setStyle(
-            isReferenceLine ? selectedReferenceLineStyle : selectedLocationTrackStyle,
-        );
-    } else if (highlighted) {
-        alignmentFeature.setStyle(
-            isReferenceLine ? highlightedReferenceLineStyle : highlightedLocationTrackStyle,
-        );
-    }
-
-    if (showEndTicks) {
-        features.push(...createEndPointTicks(alignment, selected || isLinking || highlighted));
-    }
-
-    setAlignmentFeatureProperty(alignmentFeature, alignment);
-
-    return features;
-}
 
 export function getAlignmentHeaderStates(
     { header }: AlignmentDataHolder,
@@ -280,14 +170,12 @@ export function getAlignmentHeaderStates(
 
 export function createEndPointTicks(
     alignment: AlignmentDataHolder,
-    contrast: boolean,
+    tickStyle: Style,
 ): Feature<OlPoint>[] {
     const ticks: Feature<OlPoint>[] = [];
     const points = alignment.points;
 
     if (points.length >= 2) {
-        const tickStyle = contrast ? highlightedEndPointTickStyle : endPointTickStyle;
-
         if (points[0].m === 0) {
             const fP = pointToCoords(points[0]);
             const sP = pointToCoords(points[1]);
