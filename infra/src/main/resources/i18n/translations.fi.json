@@ -895,8 +895,8 @@
                 "cant-rotation-point-center": "Kallistuksen mittauspiste (rotationPoint) määritelty keskelle raidetta keskilinjalla {{alignmentName}}",
                 "cant-gauge-invalid": "Ilmoitettu raideleveys \"{{value}}\" keskilinjalla {{alignmentName}} ei vastaa suomen raideleveyttä 1.524",
                 "no-feature-type": "Keskilinjalta {{alignmentName}} puuttuu tyyppikoodi",
-                "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei vastaa raiteilla käytettyjä (111, 281)",
-                "wrong-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodia {{value}} ei pitäisi käyttää raiteilla: keskilinjan koodi on 281",
+                "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei ole tunnettu. Raiteen keskilinjan koodi on 281, pituusmittausraiteen 111.",
+                "wrong-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodia {{value}} ei pitäisi käyttää raiteilla. Raiteen keskilinjan koodi on 281, pituusmittausraiteen 111.",
                 "no-state": "Keskilinjalle {{alignmentName}} ei ole annettu tilatietoa",
                 "multiple-reference-lines": "Suunnitelma sisältää useamman kuin yhden pituusmittauslinjan",
                 "no-reference-lines": "Suunnitelma ei sisällä pituusmittauslinjaa"
