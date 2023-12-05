@@ -19,7 +19,7 @@ enum class PVDocumentStatus {
 }
 
 val pvProjectNameLength = 1..200
-val pvProjectNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\\\\\-–—+().,:;'/*]*\$")
+val pvProjectNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\\\\\-–—+().,:;'/*!@\"£#$€\\[\\]{}=?^~<>]*\$")
 data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
     : Comparable<PVProjectName>, CharSequence by value {
     init { assertSanitized<PVProjectName>(value, pvProjectNameRegex, pvProjectNameLength) }
