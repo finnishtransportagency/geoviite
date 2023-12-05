@@ -288,7 +288,7 @@ fun inferSwitchTransformation(
         else 2
     }
 
-    val allPoints = alignment.allSegmentPoints
+    val allPoints = alignment.allSegmentPoints.toList()
     //Find the "start" point for switch joint
     //It's usually the first or the last point of alignment
     val startPointIndex = allPoints.indexOfFirst { point ->

@@ -62,9 +62,9 @@ interface IAlignment : Loggable {
     val start: AlignmentPoint? get() = segments.firstOrNull()?.alignmentStart
     val end: AlignmentPoint? get() = segments.lastOrNull()?.alignmentEnd
 
-    val allSegmentPoints: List<SegmentPoint> get() = segments.flatMapIndexed { index, segment ->
-        if (index == segments.lastIndex) segment.segmentPoints
-        else segment.segmentPoints.take(segment.segmentPoints.size - 1)
+    val allSegmentPoints: Sequence<SegmentPoint> get() = segments.asSequence().flatMapIndexed { index, segment ->
+        if (index == segments.lastIndex) segment.segmentPoints.asSequence()
+        else segment.segmentPoints.asSequence().take(segment.segmentPoints.size - 1)
     }
 
     fun filterSegmentsByBbox(bbox: BoundingBox): List<ISegment> {
@@ -167,10 +167,7 @@ interface IAlignment : Loggable {
         ?.let { (_, index) -> index }
 
     fun getMaxDirectionDeltaRads(): Double =
-        allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDeltaRads).maxOrNull() ?: 0.0
-
-    private fun angleDeltaRads(dir1: Double?, dir2: Double?): Double =
-        if (dir1 != null && dir2 != null) angleDiffRads(dir1, dir2) else 0.0
+        allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
 
     override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
