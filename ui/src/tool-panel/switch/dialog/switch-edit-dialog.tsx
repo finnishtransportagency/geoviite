@@ -319,7 +319,7 @@ export const SwitchEditDialog = ({
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         )}
                         <div
@@ -368,7 +368,9 @@ export const SwitchEditDialog = ({
                             errors={getVisibleErrorsByProp('name')}>
                             {conflictingSwitch && (
                                 <>
-                                    <div className={styles['switch-edit-dialog__alert']}>{t('switch-dialog.name-in-use')}</div>
+                                    <div className={styles['switch-edit-dialog__alert']}>
+                                        {t('switch-dialog.name-in-use')}
+                                    </div>
                                     <Link onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
@@ -502,11 +504,13 @@ export const SwitchEditDialog = ({
                     }>
                     <p>{t('switch-dialog.deleted-state-warning')}</p>
                     <p>
-                        <span className={styles['switch-edit-dialog__warning']}>
-                            <Icons.StatusError color={IconColor.INHERIT} />
-                        </span>{' '}
-                        {t('switch-dialog.switch-will-be-unlinked')}{' '}
-                        {t('switch-dialog.confirm-switch-delete')}
+                        <div className={styles['switch-edit-dialog__warning']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />{' '}
+                            {t('switch-dialog.switch-will-be-unlinked')}
+                        </div>
+                        <div className={'dialog__text'}>
+                            {t('switch-dialog.confirm-switch-delete')}
+                        </div>
                     </p>
                 </Dialog>
             )}

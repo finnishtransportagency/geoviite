@@ -123,20 +123,10 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const confirmNewDraftDelete = () => {
         inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
     };
-    const closeDraftDeleteConfirmation = () => {
-        setDeletingDraft(undefined);
-    };
-    const closeNonDraftDeleteConfirmation = () => {
-        setNonDraftDeleteConfirmationVisible(false);
-    };
 
     const saveOrConfirm = () => {
         if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
-            if (inEditTrackNumber?.draftType === 'NEW_DRAFT') {
-                confirmNewDraftDelete();
-            } else {
-                setNonDraftDeleteConfirmationVisible(true);
-            }
+            setNonDraftDeleteConfirmationVisible(true);
         } else {
             saveTrackNumber();
         }
@@ -203,7 +193,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     }}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('button.delete')}
+                                    {t('button.delete-draft')}
                                 </Button>
                             </div>
                         )}
@@ -372,7 +362,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     footerContent={
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
-                                onClick={closeNonDraftDeleteConfirmation}
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
@@ -395,7 +385,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                 <TrackNumberDeleteConfirmationDialog
                     changesBeingReverted={deletingDraft}
                     changeTimes={getChangeTimes()}
-                    onClose={closeDraftDeleteConfirmation}
+                    onClose={() => setDeletingDraft(undefined)}
                     onSave={onSave}
                 />
             )}
