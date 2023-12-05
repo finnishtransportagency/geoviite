@@ -368,7 +368,7 @@ export const SwitchEditDialog = ({
                             errors={getVisibleErrorsByProp('name')}>
                             {conflictingSwitch && (
                                 <>
-                                    <div>{t('switch-dialog.name-in-use')}</div>
+                                    <div className={styles['switch-edit-dialog__alert']}>{t('switch-dialog.name-in-use')}</div>
                                     <Link onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>

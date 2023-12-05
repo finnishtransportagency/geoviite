@@ -9,6 +9,12 @@
         fill: vayla-design.$color-red-default;
     }
 
+    &__alert {
+      color: vayla-design.$color-lemon-dark;
+      font-size: 12px;
+      line-height: 16px;
+    }
+
     &__readonly-value {
       @include vayla-design.typography-caption-strong;
 

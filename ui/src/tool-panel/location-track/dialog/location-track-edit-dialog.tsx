@@ -393,7 +393,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('name')}>
                             {trackWithSameName && (
                                 <>
-                                    <div>{t('location-track-dialog.name-in-use')}</div>
+                                    <div className={styles['location-track-edit-dialog__alert']}>{t('location-track-dialog.name-in-use')}</div>
                                     <Link onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
                                     </Link>
