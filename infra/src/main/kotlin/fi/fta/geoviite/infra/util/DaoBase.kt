@@ -50,10 +50,13 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
 
     //language=SQL
     val changeTimeSql = "select max(change_time) change_time from $versionTable"
+
     //language=SQL
     val singleRowVersionSql = "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(SINGLE)}"
+
     //language=SQL
     val multiRowVersionSql = "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(MULTI)}"
+
     //language=SQL
     val rowVersionsSql = "select id, version from $fullName order by $orderBy"
 }
@@ -106,18 +109,16 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     protected fun <T> queryRowVersionOrNull(sql: String, id: IntId<T>): RowVersion<T>? =
         jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue), ::toRowVersionOrNull)
 
-    protected fun <T> toRowVersion(rs: ResultSet, index: Int): RowVersion<T> =
-        rs.getRowVersion("id", "version")
+    protected fun <T> toRowVersion(rs: ResultSet, index: Int): RowVersion<T> = rs.getRowVersion("id", "version")
 
-    protected fun <T> toRowVersionOrNull(rs: ResultSet, index: Int): RowVersion<T> =
-        rs.getRowVersion("id", "version")
+    protected fun <T> toRowVersionOrNull(rs: ResultSet, index: Int): RowVersion<T> = rs.getRowVersion("id", "version")
 }
 
 inline fun <reified T, reified S> getOne(id: DomainId<T>, result: List<S>) =
     getOptional(id, result) ?: throw NoSuchEntityException(T::class, id)
 
 inline fun <reified T, reified S> getOptional(id: DomainId<T>, result: List<S>): S? {
-    require (result.size <= 1) {
+    require(result.size <= 1) {
         val idDesc = if (S::class == T::class) "id $id" else "${T::class.simpleName}.id $id"
         "Found more than one ${S::class.simpleName} with same $idDesc"
     }
@@ -130,10 +131,8 @@ fun <T, S> getOne(name: String, id: DomainId<T>, result: List<S>): S {
     return result.first()
 }
 
-inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> =
-    if (id is IntId) id
-    else throw NoSuchEntityException(T::class, id)
+inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> = if (id is IntId) id
+else throw NoSuchEntityException(T::class, id)
 
-fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> =
-    if (id is IntId) id
-    else throw NoSuchEntityException(clazz, id)
+fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> = if (id is IntId) id
+else throw NoSuchEntityException(clazz, id)

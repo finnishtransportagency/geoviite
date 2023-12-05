@@ -104,6 +104,7 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
 
 export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id, publishType));
 };

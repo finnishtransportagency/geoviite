@@ -88,8 +88,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         trackNumberChangeTime,
     );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
-    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id);
-    const rlChangeTimes = useReferenceLineChangeTimes(referenceLine?.id);
+    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id, publishType);
+    const rlChangeTimes = useReferenceLineChangeTimes(referenceLine?.id, publishType);
     const createdTime =
         tnChangeTimes?.created && rlChangeTimes?.created
             ? getMinTimestamp(tnChangeTimes.created, rlChangeTimes.created)

@@ -150,7 +150,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitchJointConnections(publishType, switchId),
         [publishType, layoutSwitch],
     );
-    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id);
+    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, publishType);
 
     const switchJointTrackMeters = useLoader(() => {
         return switchJointConnections

@@ -74,9 +74,9 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertEquals(referenceLine.alignmentVersion, updatedLine.alignmentVersion)
         val changeTimeAfterUpdate = referenceLineService.getChangeTime()
 
-        val changeInfo = referenceLineService.getDraftableChangeInfo(referenceLineId)
-        assertEquals(changeTimeAfterInsert, changeInfo.created)
-        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
+        val changeInfo = referenceLineService.getDraftableChangeInfo(referenceLineId, DRAFT)
+        assertEquals(changeTimeAfterInsert, changeInfo?.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo?.changed)
     }
 
     @Test

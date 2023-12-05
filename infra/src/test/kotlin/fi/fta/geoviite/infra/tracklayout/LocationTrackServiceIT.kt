@@ -109,9 +109,9 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
         val changeTimeAfterUpdate = locationTrackService.getChangeTime()
 
-        val changeInfo = locationTrackService.getDraftableChangeInfo(id)
-        assertEquals(changeTimeAfterInsert, changeInfo.created)
-        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
+        val changeInfo = locationTrackService.getDraftableChangeInfo(id, DRAFT)
+        assertEquals(changeTimeAfterInsert, changeInfo?.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo?.changed)
     }
 
     @Test
@@ -509,8 +509,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =
         LocationTrackDuplicate(locationTrack.id as IntId, locationTrack.name, locationTrack.externalId)
 
-    private fun insertAndFetch(switch: TrackLayoutSwitch) =
-        switchDao.fetch(switchService.saveDraft(switch).rowVersion)
+    private fun insertAndFetch(switch: TrackLayoutSwitch) = switchDao.fetch(switchService.saveDraft(switch).rowVersion)
 
     private fun insertAndFetch(
         locationTrack: LocationTrack,

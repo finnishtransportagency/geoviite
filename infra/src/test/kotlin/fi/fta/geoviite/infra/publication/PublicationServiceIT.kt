@@ -652,18 +652,33 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `Assets on draft only track number depend on its reference line`() {
+        val trackNumber = insertDraftTrackNumber()
+        val referenceLine = referenceLineService.saveDraft(referenceLine(trackNumber)).id
+        val kmPost = kmPostService.saveDraft(kmPost(trackNumber, KmNumber(0))).id
+        val locationTrack = locationTrackService.saveDraft(locationTrack(trackNumber)).id
+        val publishAll = publishRequest(
+            trackNumbers = listOf(trackNumber),
+            referenceLines = listOf(referenceLine),
+            kmPosts = listOf(kmPost),
+            locationTracks = listOf(locationTrack)
+        )
+        assertEquals(
+            publishAll,
+            publicationService.getRevertRequestDependencies(publishRequest(referenceLines = listOf(referenceLine)))
+        )
+    }
+
+    @Test
     fun kmPostsAndLocationTracksDependOnTheirTrackNumber() {
         val trackNumber = insertDraftTrackNumber()
         val locationTrack = locationTrackService.saveDraft(locationTrack(trackNumber)).id
         val kmPost = kmPostService.saveDraft(kmPost(trackNumber, KmNumber(0))).id
         val all = publishRequest(
-            trackNumbers = listOf(trackNumber),
-            locationTracks = listOf(locationTrack),
-            kmPosts = listOf(kmPost)
+            trackNumbers = listOf(trackNumber), locationTracks = listOf(locationTrack), kmPosts = listOf(kmPost)
         )
         assertEquals(
-            all,
-            publicationService.getRevertRequestDependencies(publishRequest(trackNumbers = listOf(trackNumber)))
+            all, publicationService.getRevertRequestDependencies(publishRequest(trackNumbers = listOf(trackNumber)))
         )
     }
 
@@ -809,7 +824,8 @@ class PublicationServiceIT @Autowired constructor(
                 mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN"))
             )
         },
-            validation.validatedAsPublicationUnit.locationTracks.filter { lt -> lt.name == AlignmentName("NLT") }
+            validation.validatedAsPublicationUnit.locationTracks
+                .filter { lt -> lt.name == AlignmentName("NLT") }
                 .flatMap { it.errors })
 
         assertEquals(listOf(
@@ -828,7 +844,8 @@ class PublicationServiceIT @Autowired constructor(
                 mapOf("switch" to SwitchName("NSW"))
             )
         },
-            validation.validatedAsPublicationUnit.switches.filter { it.name == SwitchName("NSW") }
+            validation.validatedAsPublicationUnit.switches
+                .filter { it.name == SwitchName("NSW") }
                 .flatMap { it.errors }
                 .filter { it.localizationKey.toString() == "validation.layout.switch.duplicate-name-draft" })
 
@@ -913,9 +930,23 @@ class PublicationServiceIT @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"))).id
         val dummyAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
         // small wants to duplicate middle, middle initially duplicates nothing but wants to duplicate big
-        val middleTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "middle track", alignmentVersion = dummyAlignment))
-        val smallTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "small track", duplicateOf = middleTrack.id, alignmentVersion = dummyAlignment))
-        val bigTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment))
+        val middleTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId,
+                name = "middle track",
+                alignmentVersion = dummyAlignment
+            )
+        )
+        val smallTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId,
+                name = "small track",
+                duplicateOf = middleTrack.id,
+                alignmentVersion = dummyAlignment
+            )
+        )
+        val bigTrack =
+            locationTrackDao.insert(locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment))
         locationTrackService.saveDraft(locationTrackDao.fetch(middleTrack.rowVersion).copy(duplicateOf = bigTrack.id))
 
         fun getPublishingDuplicateWhileDuplicatedValidationError(vararg publishableTracks: IntId<LocationTrack>): PublishValidationError? {
@@ -942,18 +973,39 @@ class PublicationServiceIT @Autowired constructor(
         // if we have a draft of the small track that is not a duplicate of the middle track, but we're not publishing
         // it in this unit, that doesn't fix the issue yet
         locationTrackService.saveDraft(locationTrackDao.fetch(smallTrack.rowVersion).copy(duplicateOf = null))
-        assertNotNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id), "only saving a draft of small track")
+        assertNotNull(
+            getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id),
+            "only saving a draft of small track"
+        )
 
         // but if we have the new non-duplicating small track in the same publication unit, it's fine
-        assertNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id), "publishing new small track")
+        assertNull(
+            getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
+            "publishing new small track"
+        )
 
         // finally, if we have a track whose official version doesn't duplicate the middle track, but the draft does,
         // it's only bad if the draft is in the publication unit
-        val otherSmallTrack = locationTrackDao.insert(locationTrack(trackNumberId, name = "other small track", alignmentVersion = dummyAlignment))
-        locationTrackService.saveDraft(locationTrackDao.fetch(otherSmallTrack.rowVersion).copy(duplicateOf = middleTrack.id))
-        assertNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id), "publishing new small track with other small track added")
-        assertNotNull(getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id, otherSmallTrack.id),
-            "publishing new small track with other small track added and in publication unit")
+        val otherSmallTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId,
+                name = "other small track",
+                alignmentVersion = dummyAlignment
+            )
+        )
+        locationTrackService.saveDraft(
+            locationTrackDao
+                .fetch(otherSmallTrack.rowVersion)
+                .copy(duplicateOf = middleTrack.id)
+        )
+        assertNull(
+            getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
+            "publishing new small track with other small track added"
+        )
+        assertNotNull(
+            getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id, otherSmallTrack.id),
+            "publishing new small track with other small track added and in publication unit"
+        )
     }
 
 
@@ -999,8 +1051,8 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Track number diff finds all changed fields`() {
         val address = TrackMeter(0, 0)
-        val trackNumber = trackNumberService.get(DRAFT,
-            trackNumberService.insert(
+        val trackNumber = trackNumberService.get(
+            DRAFT, trackNumberService.insert(
                 TrackNumberSaveRequest(
                     getUnusedTrackNumber(),
                     FreeText("TEST"),
@@ -1468,7 +1520,8 @@ class PublicationServiceIT @Autowired constructor(
             switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
         )
         switchService.saveDraft(
-            switchDao.fetch(originalSwitchReplacedWithNewSameName.rowVersion)
+            switchDao
+                .fetch(originalSwitchReplacedWithNewSameName.rowVersion)
                 .copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
         )
         switchService.saveDraft(
@@ -1522,9 +1575,11 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Location track geometry changes are reported`() {
         val trackNumberId = insertOfficialTrackNumber()
-        fun segmentWithCurveToMaxY(maxY: Double) =
-            segment(*(0..10).map { x -> Point(x.toDouble(), (5.0 - (x.toDouble() - 5.0).absoluteValue) / 10.0 * maxY) }
+        fun segmentWithCurveToMaxY(maxY: Double) = segment(
+            *(0..10)
+                .map { x -> Point(x.toDouble(), (5.0 - (x.toDouble() - 5.0).absoluteValue) / 10.0 * maxY) }
                 .toTypedArray())
+
         val referenceLineAlignment = alignmentDao.insert(alignment(segmentWithCurveToMaxY(0.0)))
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = referenceLineAlignment))
 
@@ -1532,8 +1587,12 @@ class PublicationServiceIT @Autowired constructor(
         // but the geometry changes
         val originalAlignment = alignment(segmentWithCurveToMaxY(-10.0))
         val newAlignment = alignment(segmentWithCurveToMaxY(10.0))
-        val originalLocationTrack =
-            locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment)))
+        val originalLocationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(originalAlignment)
+            )
+        )
         locationTrackService.saveDraft(draft(locationTrackDao.fetch(originalLocationTrack.rowVersion)), newAlignment)
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
         val latestPub = publicationService.fetchLatestPublicationDetails(1)[0]
@@ -1551,7 +1610,10 @@ class PublicationServiceIT @Autowired constructor(
         ) { _, _ -> null }
         print(diff)
         assertEquals(1, diff.size)
-        assertEquals("Muuttunut kilometriltä 0000. Sivuttaissiirtymää laajuudella 8.0 m, maksimipoikkeama 10.0 m", diff[0].remark)
+        assertEquals(
+            "Muuttunut kilometriltä 0000. Sivuttaissiirtymää laajuudella 8.0 m, maksimipoikkeama 10.0 m",
+            diff[0].remark
+        )
     }
 
     @Test
@@ -1842,7 +1904,8 @@ class PublicationServiceIT @Autowired constructor(
         val switchId = switchService.saveDraft(
             switch(
                 123,
-                switchStructureDao.fetchSwitchStructures()
+                switchStructureDao
+                    .fetchSwitchStructures()
                     .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!.id as IntId
             ).copy(stateCategory = LayoutStateCategory.EXISTING)
         ).id

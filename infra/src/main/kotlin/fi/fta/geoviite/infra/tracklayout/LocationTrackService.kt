@@ -185,7 +185,7 @@ class LocationTrackService(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         includeDeleted: Boolean = false,
-        boundingBox: BoundingBox? = null
+        boundingBox: BoundingBox? = null,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall(
             "listWithAlignments",
@@ -224,9 +224,14 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getTrackPoint(publishType: PublishType, locationTrackId: IntId<LocationTrack>, address: TrackMeter): AddressPoint? {
-        logger.serviceCall("getTrackPoint",
-        "publishType" to publishType, "locationTrackId" to locationTrackId, "address" to address,
+    fun getTrackPoint(
+        publishType: PublishType,
+        locationTrackId: IntId<LocationTrack>,
+        address: TrackMeter,
+    ): AddressPoint? {
+        logger.serviceCall(
+            "getTrackPoint",
+            "publishType" to publishType, "locationTrackId" to locationTrackId, "address" to address,
         )
         val locationTrackAndAlignment = getWithAlignment(publishType, locationTrackId)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
@@ -415,25 +420,17 @@ class LocationTrackService(
         endChanged: Boolean = false,
     ): LocationTrack {
         val nearbyTracksAroundStart =
-            alignment.start
-                ?.let(::fetchNearbyLocationTracksWithAlignments)
-                ?.filter { (nearbyLocationTrack, _) ->
-                    nearbyLocationTrack.id != track.id
-                } ?: listOf()
+            alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
+                nearbyLocationTrack.id != track.id
+            } ?: listOf()
 
         val nearbyTracksAroundEnd =
-            alignment.end
-                ?.let(::fetchNearbyLocationTracksWithAlignments)
-                ?.filter { (nearbyLocationTrack, _) ->
-                    nearbyLocationTrack.id != track.id
-                } ?: listOf()
+            alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
+                nearbyLocationTrack.id != track.id
+            } ?: listOf()
 
         return calculateLocationTrackTopology(
-            track,
-            alignment,
-            startChanged,
-            endChanged,
-            NearbyTracks(
+            track, alignment, startChanged, endChanged, NearbyTracks(
                 aroundStart = nearbyTracksAroundStart,
                 aroundEnd = nearbyTracksAroundEnd,
             )
@@ -451,15 +448,13 @@ class LocationTrackService(
         val endPoint = alignment.lastSegmentEnd
         val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
 
-        val startSwitch =
-            if (!track.exists || startPoint == null) null
-            else if (startChanged) findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null)
-            else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
+        val startSwitch = if (!track.exists || startPoint == null) null
+        else if (startChanged) findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null)
+        else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
 
-        val endSwitch =
-            if (!track.exists || endPoint == null) null
-            else if (endChanged) findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null)
-            else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch)
+        val endSwitch = if (!track.exists || endPoint == null) null
+        else if (endChanged) findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null)
+        else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch)
 
         return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
             track
@@ -472,17 +467,16 @@ class LocationTrackService(
         }
     }
 
-   fun findBestTopologySwitchMatch(
-       target: IPoint,
-       ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
-       nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
-       currentTopologySwitch: TopologyLocationTrackSwitch?,
+    fun findBestTopologySwitchMatch(
+        target: IPoint,
+        ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+        nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
+        currentTopologySwitch: TopologyLocationTrackSwitch?,
     ): TopologyLocationTrackSwitch? {
         val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
         else currentTopologySwitch
-        return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracksForSearch)
-            ?: defaultSwitch
-            ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracksForSearch)
+        return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracksForSearch) ?: defaultSwitch
+        ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracksForSearch)
     }
 
     @Transactional(readOnly = true)
@@ -500,46 +494,47 @@ class LocationTrackService(
     fun getSplittingInitializationParameters(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
-    ): SplittingInitializationParameters {
+    ): SplittingInitializationParameters? {
         logger.serviceCall(
             "getSplittingInitializationParameters",
             "locationTrackId" to locationTrackId,
             "publishType" to publishType,
         )
-        val locationTrack = getOrThrow(publishType, locationTrackId)
-        val switches = getSwitchesForLocationTrack(locationTrackId, publishType)
-            .mapNotNull { switchDao.fetchVersion(it, publishType) }
-            .map { switchDao.fetch(it) }
-            .mapNotNull { switch ->
-                switchLibraryService.getSwitchStructure(switch.switchStructureId).let { structure ->
-                    val presentationJointLocation = switch.getJoint(structure.presentationJointNumber)?.location
-                    if (presentationJointLocation != null) {
-                        switch to presentationJointLocation
+        return get(publishType, locationTrackId)?.let { locationTrack ->
+            val switches = getSwitchesForLocationTrack(locationTrackId, publishType)
+                .mapNotNull { switchDao.fetchVersion(it, publishType) }
+                .map { switchDao.fetch(it) }
+                .mapNotNull { switch ->
+                    switchLibraryService.getSwitchStructure(switch.switchStructureId).let { structure ->
+                        val presentationJointLocation = switch.getJoint(structure.presentationJointNumber)?.location
+                        if (presentationJointLocation != null) {
+                            switch to presentationJointLocation
+                        } else null
+                    }
+                }
+                .map { (switch, location) ->
+                    val address = geocodingService
+                        .getGeocodingContext(publishType, locationTrack.trackNumberId)
+                        ?.getAddressAndM(location)
+                    SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, address?.m)
+                }
+
+            val duplicateTracks = getLocationTrackDuplicates(locationTrackId, publishType).mapNotNull { duplicate ->
+                getWithAlignmentOrThrow(publishType, duplicate.id).let { (dupe, alignment) ->
+                    geocodingService.getLocationTrackStartAndEnd(publishType, dupe, alignment)
+                }?.let { (start, end) ->
+                    if (start != null && end != null) {
+                        SplitDuplicateTrack(
+                            duplicate.id, duplicate.name, start, end
+                        )
                     } else null
                 }
             }
-            .map { (switch, location) ->
-                val address = geocodingService
-                    .getGeocodingContext(publishType, locationTrack.trackNumberId)
-                    ?.getAddressAndM(location)
-                SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, address?.m)
-            }
 
-        val duplicateTracks = getLocationTrackDuplicates(locationTrackId, publishType).mapNotNull { duplicate ->
-            getWithAlignmentOrThrow(publishType, duplicate.id).let { (dupe, alignment) ->
-                geocodingService.getLocationTrackStartAndEnd(publishType, dupe, alignment)
-            }?.let { (start, end) ->
-                if (start != null && end != null) {
-                    SplitDuplicateTrack(
-                        duplicate.id, duplicate.name, start, end
-                    )
-                } else null
-            }
+            SplittingInitializationParameters(
+                locationTrackId, switches, duplicateTracks
+            )
         }
-
-        return SplittingInitializationParameters(
-            locationTrackId, switches, duplicateTracks
-        )
     }
 
     @Transactional(readOnly = true)
@@ -573,7 +568,11 @@ private fun findBestTopologySwitchFromSegments(
     otherAlignment.segments.flatMap { segment ->
         if (segment.switchId !is IntId || ownSwitches.contains(segment.switchId)) listOf()
         else listOfNotNull(
-            segment.startJointNumber?.let { number -> pickIfClose(segment.switchId, number, target, segment.segmentStart) },
+            segment.startJointNumber?.let { number ->
+                pickIfClose(
+                    segment.switchId, number, target, segment.segmentStart
+                )
+            },
             segment.endJointNumber?.let { number -> pickIfClose(segment.switchId, number, target, segment.segmentEnd) },
         )
     }

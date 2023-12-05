@@ -114,7 +114,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         publishType,
         locationTrackChangeTime,
     );
-    const changeTimes = useLocationTrackChangeTimes(locationTrack?.id);
+    const changeTimes = useLocationTrackChangeTimes(locationTrack?.id, publishType);
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const officialLocationTrack = useLocationTrack(
         locationTrack.id,

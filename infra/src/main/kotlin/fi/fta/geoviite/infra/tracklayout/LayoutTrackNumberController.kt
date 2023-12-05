@@ -164,9 +164,12 @@ class LayoutTrackNumberController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{id}/change-times")
-    fun getTrackNumberChangeInfo(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): DraftableChangeInfo {
+    @GetMapping("/{publishType}/{id}/change-times")
+    fun getTrackNumberChangeInfo(
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("publishType") publishType: PublishType,
+    ): ResponseEntity<DraftableChangeInfo> {
         logger.apiCall("getTrackNumberChangeInfo", "id" to id)
-        return trackNumberService.getDraftableChangeInfo(id)
+        return toResponse(trackNumberService.getDraftableChangeInfo(id, publishType))
     }
 }

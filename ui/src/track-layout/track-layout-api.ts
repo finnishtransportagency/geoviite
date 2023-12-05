@@ -10,8 +10,12 @@ type LayoutDataType =
 
 export const TRACK_LAYOUT_URI = `${API_URI}/track-layout`;
 
-export function changeTimeUri(dataType: LayoutDataType, id: string): string {
-    return `${TRACK_LAYOUT_URI}/${dataType}/${id}/change-times`;
+export function changeTimeUri(
+    dataType: LayoutDataType,
+    id: string,
+    publishType: PublishType,
+): string {
+    return `${TRACK_LAYOUT_URI}/${dataType}/${publishType}/${id}/change-times`;
 }
 
 export function layoutUri(dataType: LayoutDataType, publishType: PublishType, id?: string): string {

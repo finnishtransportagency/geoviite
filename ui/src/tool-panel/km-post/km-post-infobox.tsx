@@ -53,7 +53,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     changeTimes,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id);
+    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, publishType);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
@@ -63,8 +63,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
 
     const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
-        async () =>
-            getSingleKmPostKmLength(publishType, kmPost.id).then((result) => result?.length),
+        async () => getSingleKmPostKmLength(publishType, kmPost.id),
         [
             kmPost.id,
             kmPost.state,
