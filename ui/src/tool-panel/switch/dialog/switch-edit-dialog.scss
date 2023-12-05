@@ -13,3 +13,8 @@
     padding: 0;
     list-style: inside;
 }
+
+.switch-edit-dialog__alert {
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-lemon-dark;
+}
