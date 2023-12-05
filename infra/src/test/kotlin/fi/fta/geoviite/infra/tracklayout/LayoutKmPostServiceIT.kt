@@ -157,13 +157,13 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun kmPostLengthMatchesTrackNumberService() {
         val trackNumberId = insertDraftTrackNumber()
-        referenceLineService.saveDraft(referenceLine(trackNumberId), alignment(segment(
-            Point(0.0, 0.0),
-            Point(0.0, 5.0),
-            Point(1.0, 10.0),
-            Point(3.0, 15.0),
-            Point(4.0, 20.0)
-        )))
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId), alignment(
+                segment(
+                    Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0)
+                )
+            )
+        )
         val kmPosts = listOf(
             kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0)),
             kmPost(trackNumberId, KmNumber(2), Point(0.0, 5.0)),
@@ -177,6 +177,6 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)
         val actual = kmPosts.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
         assertEquals(expected.size, actual.size)
-        expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a.length, 0.001) }
+        expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
     }
 }
