@@ -65,7 +65,7 @@ class InfraModelService @Autowired constructor(
             "extraInfo" to extraInfo,
         )
 
-        val geometryPlan = cleanMissingValues(parseInfraModel(file, overrides, extraInfo))
+        val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
@@ -132,7 +132,7 @@ class InfraModelService @Autowired constructor(
         return validateAndTransformToLayoutPlan(geometryPlan)
     }
 
-    private fun cleanMissingValues(plan: GeometryPlan): GeometryPlan {
+    private fun cleanMissingFeatureTypeCodes(plan: GeometryPlan): GeometryPlan {
         val codes = codeDictionaryService.getFeatureTypes().map(FeatureType::code)
         val cleanedAlignments = plan.alignments.map { a ->
             if (a.featureTypeCode != null && a.featureTypeCode !in codes) a.copy(featureTypeCode = null)
