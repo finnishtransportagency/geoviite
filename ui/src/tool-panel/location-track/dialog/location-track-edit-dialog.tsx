@@ -689,7 +689,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 <LocationTrackDeleteConfirmationDialog
                     id={state.existingLocationTrack?.id}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}
-                    onSave={props.onSave}
+                    onSave={() => {
+                        props.onSave &&
+                            state.existingLocationTrack &&
+                            props.onSave(state.existingLocationTrack.id);
+                        props.onClose();
+                    }}
                 />
             )}
         </React.Fragment>

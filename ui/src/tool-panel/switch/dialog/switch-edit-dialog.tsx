@@ -517,7 +517,10 @@ export const SwitchEditDialog = ({
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteConfirmationDialog
                     switchId={switchId}
-                    onSave={handleOnDelete}
+                    onSave={() => {
+                        handleOnDelete();
+                        onClose();
+                    }}
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}
