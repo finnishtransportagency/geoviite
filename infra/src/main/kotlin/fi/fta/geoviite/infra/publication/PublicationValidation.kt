@@ -296,10 +296,10 @@ fun validateDuplicateOfState(
                 "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated" to duplicateNameParams
             },
             validateWithParams(duplicates.isEmpty()) {
-                "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-while-duplicated${if (duplicates.size > 1) "-multiple" else ""}" to LocalizationParams(
-                    mapOf("duplicateTrack" to duplicateOfLocationTrack.name,
-                        "otherDuplicates" to duplicates.map { track -> track.name }.distinct().joinToString { it })
-                )
+                val localizationKey = if (duplicates.size > 1) "publishing-duplicate-of-duplicated-multiple"
+                else "publishing-duplicate-of-duplicated"
+                "$VALIDATION_LOCATION_TRACK.duplicate-of.$localizationKey" to LocalizationParams(mapOf("duplicateTrack" to duplicateOfLocationTrack.name,
+                    "otherDuplicates" to duplicates.map { track -> track.name }.distinct().joinToString { it }))
             },
         )
     }
@@ -442,8 +442,7 @@ fun validateGeocodingContext(
             val previous = context.referencePoints.getOrNull(index - 1)
             val next = context.referencePoints.getOrNull(index + 1)
             !isOrderOk(previous, point) || !isOrderOk(point, next)
-        }
-        .let { invalidPoints ->
+        }.let { invalidPoints ->
             validateWithParams(invalidPoints.isEmpty()) {
                 "$VALIDATION_GEOCODING.km-posts-invalid" to LocalizationParams(
                     "trackNumber" to context.trackNumber.number,

@@ -43,7 +43,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                 <React.Fragment>
                     <div className={styles['frontpage']}>
                         <PublicationCard
-                            publications={publications}
+                            publications={publications || []}
                             publicationFetchStatus={publicationFetchStatus}
                             onPublicationSelect={(pub) => {
                                 onSelectedPublicationChanged(pub.id);

@@ -238,10 +238,10 @@ export async function getVisiblePlansWithStatus(
             getPlanLinkStatuses(
                 plans.filter((p) => !p.planHidden).map((p) => p.id),
                 publishType,
-            ).then((statii) =>
+            ).then((statuses) =>
                 plans.map((plan) => ({
                     plan,
-                    status: statii.find((s) => s.id === plan.id),
+                    status: statuses.find((s) => s.id === plan.id),
                 })),
             ),
     );

@@ -19,7 +19,7 @@ type PublishListProps = {
     onPublicationSelect: (pub: PublicationDetails) => void;
     onShowPublicationLog: () => void;
     publicationFetchStatus: LoaderStatus;
-    publications: PublicationDetails[] | undefined;
+    publications: PublicationDetails[];
     ratkoStatus: RatkoStatus | undefined;
 };
 
@@ -71,18 +71,18 @@ const PublicationCard: React.FC<PublishListProps> = ({
     onShowPublicationLog,
 }) => {
     const { t } = useTranslation();
-    const allPublications = publications?.sort(
+    const allPublications = publications.sort(
         (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
     );
 
     const failures =
         allPublications
-            ?.filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
+            .filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
             .slice(0, MAX_LISTED_PUBLICATIONS) || [];
 
     const successes =
         allPublications
-            ?.filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
+            .filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
             .slice(0, MAX_LISTED_PUBLICATIONS) || [];
 
     const ratkoConnectionError =
