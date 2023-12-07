@@ -31,9 +31,9 @@ class E2EDropdownList : E2EList<E2EDropdownListItem>(CONTAINER_BY, By.className(
 
 class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
-    private val valueBy: By = By.className("dropdown__current-value")
+    private val inputBy: By = By.tagName("input")
 
-    private val input: E2ETextInput = childTextInput(By.tagName("input"))
+    private val input: E2ETextInput = childTextInput(inputBy)
 
     private val optionsList: E2EDropdownList by lazy {
         E2EDropdownList()
@@ -41,9 +41,7 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
     val options: List<E2EDropdownListItem> get() = optionsList.items
 
-    val value: String get() = childText(valueBy)
-
-    val qaIdValue: String? get() = childElement(valueBy).getAttribute("qa-id")
+    val value: String get() = input.value
 
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
@@ -102,17 +100,6 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
     fun clearSearch(): E2EDropdown = apply {
         logger.info("Clear dropdown input")
 
-        val currentValueHolder = childElement(valueBy)
-
-        if (!currentValueHolder.isDisplayed) {
-            input.clear()
-        }
-    }
-
-    fun waitForValue(): E2EDropdown = apply {
-        logger.info("Wait for dropdown value")
-
-        waitUntilTextExists(childBy(valueBy))
-
+        input.clear()
     }
 }
