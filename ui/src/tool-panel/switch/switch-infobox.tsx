@@ -365,7 +365,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         </InfoboxButtons>
                     )}

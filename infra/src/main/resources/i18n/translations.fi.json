@@ -96,6 +96,7 @@
         "cancel": "Peruuta",
         "save": "Tallenna",
         "delete": "Poista",
+        "delete-draft": "Poista",
         "ok": "OK",
         "continue": "Jatka",
         "yes": "Kyllä",
@@ -1436,12 +1437,12 @@
         "modified-successfully": "Vaihteen tiedot päivitetty",
         "modify-failed": "Vaihteen päivittäminen epäonnistui",
         "confirmation-title": "Vaihteen päivittäminen",
-        "confirmation-delete-title": "Vaihteen poistaminen",
+        "confirmation-delete-title": "Vaihteen poistaminen paikannuspohjasta",
         "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
         "changed-switch-structure-warning": "Vaihteen vaihdetyyppiä on muokattu.",
-        "switch-will-be-unlinked": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä.",
+        "switch-will-be-unlinked": "Poistettaessa myös vaihteeseen liittyvät sijaintiraidelinkitykset puretaan, eivätkä ne palaudu automaattisesti, vaikka vaihteen tila palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
-        "confirm-switch-delete": "Haluatko varmasti poistaa vaihteen paikannuspohjasta?",
+        "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä"
     },
@@ -1457,7 +1458,6 @@
             "track-number": "Ratanumero",
             "reference-line": "Pituusmittauslinja",
             "metadata-heading": "Metatiedot",
-            "delete-draft": "Poista",
             "delete-non-draft": "Ratanumeron poistaminen paikannuspohjasta"
         },
         "dialog": {
