@@ -96,7 +96,7 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
     fun save() = waitUntilClosed {
         logger.info("Save location track changes")
 
-        val isDeleted = stateDropdown.qaIdValue == State.DELETED.name
+        val isDeleted = stateDropdown.value == "Poistettu"
         clickPrimaryButton()
 
         if (isDeleted) {
@@ -149,7 +149,7 @@ class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     fun save() = waitUntilClosed {
         logger.info("Save track number changes")
 
-        val isDeleted = stateDropdown.qaIdValue == E2ELocationTrackEditDialog.State.DELETED.name
+        val isDeleted = stateDropdown.value == "Poistettu"
         clickButton(byQaId("save-track-number-changes"))
 
         if (isDeleted) {
@@ -224,7 +224,7 @@ class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) 
     fun save() = waitUntilClosed {
         logger.info("Save switch changes")
 
-        val isNotExisting = stateDropdown.qaIdValue == StateCategory.NOT_EXISTING.name
+        val isNotExisting = stateDropdown.value == "Poistunut kohde"
         clickButton(byQaId("save-switch-changes"))
 
         if (isNotExisting) {
