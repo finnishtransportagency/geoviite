@@ -327,11 +327,11 @@ class PublicationService @Autowired constructor(
     fun getRevertRequestDependencies(publishRequestIds: PublishRequestIds): PublishRequestIds {
         logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to publishRequestIds)
 
-        val draftOnlyTrackNumbers = publishRequestIds.referenceLines.mapNotNull { id ->
+        val draftOnlyTrackNumbers = (publishRequestIds.referenceLines.mapNotNull { id ->
             referenceLineService.get(DRAFT, id)?.trackNumberId?.let { trackNumberId ->
                 if (!trackNumberService.officialExists(trackNumberId)) trackNumberId else null
             }
-        } + publishRequestIds.trackNumbers.filter { id -> !trackNumberDao.officialExists(id) }.toSet()
+        } + publishRequestIds.trackNumbers.filterNot { id -> trackNumberDao.officialExists(id) }).toSet()
         val locationTracks = publishRequestIds.locationTracks.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
             locationTrackDao.fetchOnlyDraftVersions(false, trackNumberId)
         }.map { lt -> lt.id }
