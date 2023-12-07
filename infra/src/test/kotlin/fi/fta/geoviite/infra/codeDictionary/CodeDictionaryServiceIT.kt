@@ -18,7 +18,7 @@ class CodeDictionaryServiceIT @Autowired constructor(
 
     @Test
     fun fetchFeatureTypesWorks() {
-        assertEquals(15, codeDictionaryService.getFeatureTypes().count())
+        assertEquals(43, codeDictionaryService.getFeatureTypes().count())
     }
 
     @Test

@@ -69,7 +69,7 @@ export function createLocationTrackSelectedAlignmentLayer(
             const track = locationTracks[0];
             const isSplitting = splittingState?.originLocationTrack.id === track.header.id;
             const alignmentFeatures = createAlignmentFeature(
-                locationTracks[0],
+                track,
                 showEndPointTicks,
                 isSplitting ? splittingLocationTrackStyle : selectedLocationTrackStyle,
             );
