@@ -368,7 +368,9 @@ export const SwitchEditDialog = ({
                             errors={getVisibleErrorsByProp('name')}>
                             {conflictingSwitch && (
                                 <>
-                                    <div className={styles['switch-edit-dialog__alert']}>{t('switch-dialog.name-in-use')}</div>
+                                    <div className={styles['switch-edit-dialog__alert']}>
+                                        {t('switch-dialog.name-in-use')}
+                                    </div>
                                     <Link onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
@@ -513,7 +515,10 @@ export const SwitchEditDialog = ({
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteConfirmationDialog
                     switchId={switchId}
-                    onSave={handleOnDelete}
+                    onSave={() => {
+                        handleOnDelete();
+                        onClose();
+                    }}
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}

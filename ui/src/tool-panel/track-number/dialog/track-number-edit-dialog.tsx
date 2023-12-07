@@ -396,7 +396,10 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     changesBeingReverted={deletingDraft}
                     changeTimes={getChangeTimes()}
                     onClose={closeDraftDeleteConfirmation}
-                    onSave={onSave}
+                    onSave={() => {
+                        inEditTrackNumber && onSave && onSave(inEditTrackNumber.id);
+                        onClose();
+                    }}
                 />
             )}
         </React.Fragment>

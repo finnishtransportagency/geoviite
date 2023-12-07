@@ -353,7 +353,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 <KmPostDeleteConfirmationDialog
                     id={props.kmPostId}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}
-                    onSave={props.onSave}
+                    onSave={() => {
+                        props.kmPostId && props.onSave && props.onSave(props.kmPostId);
+                        props.onClose();
+                    }}
                 />
             )}
         </React.Fragment>
