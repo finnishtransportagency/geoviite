@@ -49,11 +49,9 @@ import {
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { getChangeTimes } from 'common/change-time-api';
+import { getChangeTimes, updateAllChangeTimes } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
-    updateReferenceLineChangeTime,
-    updateTrackNumberChangeTime,
     updateKmPostChangeTime,
     updateSwitchChangeTime,
     updateLocationTrackChangeTime,
@@ -338,14 +336,12 @@ export function refreshTrackNumberSelection(
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutTrackNumberId) => void {
     return (id) => {
-        Promise.all([updateTrackNumberChangeTime(), updateReferenceLineChangeTime()]).then(
-            ([ts, _]) => {
-                getTrackNumberById(id, publicationState, ts).then((tn) => {
-                    if (tn) onSelect({ trackNumbers: [id] });
-                    else onUnselect({ trackNumbers: [id] });
-                });
-            },
-        );
+        Promise.all([updateAllChangeTimes()]).then(([changeTimes]) => {
+            getTrackNumberById(id, publicationState, changeTimes.layoutTrackNumber).then((tn) => {
+                if (tn) onSelect({ trackNumbers: [id] });
+                else onUnselect({ trackNumbers: [id] });
+            });
+        });
     };
 }
 
