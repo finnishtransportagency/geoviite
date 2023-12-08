@@ -532,7 +532,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         <InfoboxField
                             qaId="location-track-changed-date"
                             label={t('tool-panel.changed')}
-                            value={formatDateShort(changeTimes.changed)}
+                            value={changeTimes.changed && formatDateShort(changeTimes.changed)}
                         />
                         {officialLocationTrack === undefined && (
                             <InfoboxButtons>

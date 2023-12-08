@@ -93,9 +93,7 @@ export type ElementLocation = {
 
 export type DraftableChangeInfo = {
     created: TimeStamp;
-    changed: TimeStamp;
-    officialChanged?: TimeStamp;
-    draftChanged?: TimeStamp;
+    changed: TimeStamp | undefined;
 };
 
 export type Message = string;

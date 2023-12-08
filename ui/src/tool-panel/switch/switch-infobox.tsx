@@ -354,7 +354,10 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             />
                             <InfoboxField
                                 label={t('tool-panel.changed')}
-                                value={formatDateShort(switchChangeTimes.changed)}
+                                value={
+                                    switchChangeTimes.changed &&
+                                    formatDateShort(switchChangeTimes.changed)
+                                }
                             />
                         </React.Fragment>
                     )}
