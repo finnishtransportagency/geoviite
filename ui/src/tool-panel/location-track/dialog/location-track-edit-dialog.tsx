@@ -140,6 +140,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         [],
     );
 
+    const duplicate = useLocationTrack(
+        props.locationTrack?.duplicateOf,
+        'DRAFT',
+        props.locationTrackChangeTime,
+    );
+    React.useEffect(() => {
+        if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
+    }, [duplicate]);
+
     function sortUnknownLocationTrackOwnerAsLast(a: string, b: string) {
         if (b === 'Ei tiedossa') {
             return -1;

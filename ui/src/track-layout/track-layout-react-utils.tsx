@@ -215,10 +215,11 @@ export function useLocationTrackStartAndEnd(
 export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
     publishType: PublishType,
+    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
 ): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 export function useConflictingTrack(
