@@ -334,7 +334,7 @@ data class TrackLayoutSwitchJointConnection(
 
 data class DraftableChangeInfo(
     val created: Instant,
-    val changed: Instant,
+    val changed: Instant?,
 )
 
 data class TrackNumberAndChangeTime(

@@ -191,7 +191,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                             <InfoboxField
                                 label={t('tool-panel.changed')}
-                                value={formatDateShort(kmPostCreatedAndChangedTime.changed)}
+                                value={
+                                    kmPostCreatedAndChangedTime.changed &&
+                                    formatDateShort(kmPostCreatedAndChangedTime.changed)
+                                }
                             />
                         </React.Fragment>
                     )}
