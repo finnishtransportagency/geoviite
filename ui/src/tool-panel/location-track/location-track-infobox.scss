@@ -28,8 +28,8 @@
             margin-left: 12px;
         }
 
-        .dropdown {
-            max-width: 178px;
+        input {
+            max-width: 181px;
         }
     }
 }
@@ -62,7 +62,7 @@
 }
 
 .location-track-infobox__close-split-button-column {
-    width: 36px;
+    min-width: 36px;
 }
 
 .location-track-infobox__split-replaces-duplicate {
