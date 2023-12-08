@@ -83,8 +83,8 @@ const Split: React.FC<SplitProps> = ({
                     <InfoboxField
                         label={
                             'switchId' in split
-                                ? t('tool-panel.location-track.splitting.start-address')
-                                : t('tool-panel.location-track.splitting.split-address')
+                                ? t('tool-panel.location-track.splitting.split-address')
+                                : t('tool-panel.location-track.splitting.start-address')
                         }>
                         <TrackMeter value={address} />
                     </InfoboxField>
