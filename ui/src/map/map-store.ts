@@ -62,9 +62,13 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
 export const initialMapState: Map = {
     visibleLayers: [
         'background-map-layer',
+        'location-track-background-layer',
+        'reference-line-background-layer',
+        'location-track-badge-layer',
+        'reference-line-badge-layer',
         'location-track-alignment-layer',
-        'plan-section-highlight-layer',
         'reference-line-alignment-layer',
+        'plan-section-highlight-layer',
         'km-post-layer',
         'switch-layer',
         'geometry-alignment-layer',
