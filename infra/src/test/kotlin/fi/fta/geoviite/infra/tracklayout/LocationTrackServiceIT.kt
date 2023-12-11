@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.DeletingFailureException
@@ -504,6 +505,50 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val extras = locationTrackService.getInfoboxExtras(OFFICIAL, fullTrack.id)
         assertEquals(listOf("dupB", "dupD", "dupA", "dupC"), extras?.duplicates?.map { dup -> dup.name.toString() })
+    }
+
+    @Test
+    fun `Splitting initialization parameters are fetched properly`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val rlAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = rlAlignment))
+
+        val switch = insertAndFetch(
+            switch(
+                joints = listOf(
+                    TrackLayoutSwitchJoint(
+                        JointNumber(1),
+                        Point(100.0, 0.0),
+                        LocationAccuracy.DIGITIZED_AERIAL_IMAGE
+                    )
+                )
+            )
+        ).id as IntId
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(
+                    alignment(
+                        segment(
+                            Point(50.0, 0.0),
+                            Point(100.0, 0.0),
+                            switchId = switch,
+                            startJointNumber = JointNumber(1)
+                        )
+                    )
+                )
+            )
+        )
+        val duplicateLocationTrack = locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = rlAlignment, duplicateOf = locationTrack.id))
+
+        val splittingParams = locationTrackService.getSplittingInitializationParameters(locationTrack.id, DRAFT)
+        assertNotNull(splittingParams)
+        assertEquals(locationTrack.id, splittingParams?.id)
+        assertEquals(1, splittingParams?.switches?.size)
+        assertEquals(1, splittingParams?.duplicates?.size)
+        assertContains(splittingParams?.switches?.map { it.switchId } ?: emptyList(), switch)
+        assertContains(splittingParams?.duplicates?.map { it.id } ?: emptyList(), duplicateLocationTrack.id)
+        assertEquals(50.0, splittingParams?.switches?.first()?.distance ?: 0.0, 0.01)
     }
 
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =
