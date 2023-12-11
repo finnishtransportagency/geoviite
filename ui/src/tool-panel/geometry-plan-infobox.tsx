@@ -80,7 +80,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
             <InfoboxContent>
                 <InfoboxField
                     qaId="geometry-plan-remarks"
-                    label={t('tool-panel.geometry-plan.message')}
+                    label={t('tool-panel.geometry-plan.observations')}
                     value={planHeader.message}
                 />
                 <InfoboxField
