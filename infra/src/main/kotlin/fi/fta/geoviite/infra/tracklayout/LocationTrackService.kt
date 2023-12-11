@@ -501,6 +501,7 @@ class LocationTrackService(
             "publishType" to publishType,
         )
         return get(publishType, locationTrackId)?.let { locationTrack ->
+            val alignment = locationTrack.alignmentVersion?.let(alignmentDao::fetch)
             val switches = getSwitchesForLocationTrack(locationTrackId, publishType)
                 .mapNotNull { switchDao.fetchVersion(it, publishType) }
                 .map { switchDao.fetch(it) }
@@ -516,7 +517,8 @@ class LocationTrackService(
                     val address = geocodingService
                         .getGeocodingContext(publishType, locationTrack.trackNumberId)
                         ?.getAddressAndM(location)
-                    SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, address?.m)
+                    val mAlongAlignment = alignment?.getClosestPointM(location)?.first
+                    SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, mAlongAlignment)
                 }
 
             val duplicateTracks = getLocationTrackDuplicates(locationTrackId, publishType).mapNotNull { duplicate ->
