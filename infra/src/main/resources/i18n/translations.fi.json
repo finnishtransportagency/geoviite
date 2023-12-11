@@ -345,7 +345,7 @@
         "geometry-plan": {
             "general-title": "Suunnitelman perustiedot",
             "quality-title": "Laatutiedot",
-            "remarks": "Huomiot",
+            "observations": "Huomiot",
             "author": "Yritys",
             "project": "Projekti",
             "file": "Tiedosto",
