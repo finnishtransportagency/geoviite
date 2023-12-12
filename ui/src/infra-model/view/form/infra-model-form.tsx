@@ -16,7 +16,7 @@ import {
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
+import { compareNamed, CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -183,7 +183,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     const authorsIncludingFromPlan = () => {
         const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
-        return [...authors, ...(!authorInList && geometryPlan.author ? [geometryPlan.author] : [])];
+        return [
+            ...authors,
+            ...(!authorInList && geometryPlan.author ? [geometryPlan.author] : []),
+        ].sort((a, b) => a.companyName.localeCompare(b.companyName));
     };
 
     React.useEffect(() => {
@@ -398,10 +401,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             }
                                             options={
                                                 trackNumberList
-                                                    ? trackNumberList.map((tn) => ({
-                                                          name: `${tn.number}`,
-                                                          value: tn.id,
-                                                      }))
+                                                    ? trackNumberList
+                                                          .map((tn) => ({
+                                                              name: `${tn.number}`,
+                                                              value: tn.id,
+                                                          }))
+                                                          .sort(compareNamed)
                                                     : []
                                             }
                                             canUnselect
@@ -442,10 +447,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         value={coordinateSystem?.srid}
                                         options={
                                             sridList
-                                                ? sridList.map((srid) => ({
-                                                      name: `${srid.name} ${srid.srid}`,
-                                                      value: srid.srid,
-                                                  }))
+                                                ? sridList
+                                                      .map((srid) => ({
+                                                          name: `${srid.name} ${srid.srid}`,
+                                                          value: srid.srid,
+                                                      }))
+                                                      .sort(compareNamed)
                                                 : []
                                         }
                                         canUnselect
