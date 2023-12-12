@@ -500,8 +500,7 @@ class LocationTrackService(
             "locationTrackId" to locationTrackId,
             "publishType" to publishType,
         )
-        return get(publishType, locationTrackId)?.let { locationTrack ->
-            val alignment = locationTrack.alignmentVersion?.let(alignmentDao::fetch)
+        return getWithAlignment(publishType, locationTrackId)?.let { (locationTrack, alignment) ->
             val switches = getSwitchesForLocationTrack(locationTrackId, publishType)
                 .mapNotNull { switchDao.fetchVersion(it, publishType) }
                 .map { switchDao.fetch(it) }
@@ -517,7 +516,7 @@ class LocationTrackService(
                     val address = geocodingService
                         .getGeocodingContext(publishType, locationTrack.trackNumberId)
                         ?.getAddressAndM(location)
-                    val mAlongAlignment = alignment?.getClosestPointM(location)?.first
+                    val mAlongAlignment = alignment.getClosestPointM(location)?.first
                     SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, mAlongAlignment)
                 }
 
