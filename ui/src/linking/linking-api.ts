@@ -10,7 +10,7 @@ import {
     getNonNull,
     getNullable,
     postNonNullResult,
-    putIgnoreError,
+    putNonNull,
     queryParams,
 } from 'api/api-fetch';
 import {
@@ -126,7 +126,7 @@ export async function updateReferenceLineGeometry(
     id: ReferenceLineId,
     mRange: Range<number>,
 ): Promise<ReferenceLineId | undefined> {
-    const result = await putIgnoreError<Range<number>, ReferenceLineId>(
+    const result = await putNonNull<Range<number>, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry', id),
         mRange,
     );
@@ -138,7 +138,7 @@ export async function updateLocationTrackGeometry(
     id: LocationTrackId,
     mRange: Range<number>,
 ): Promise<LocationTrackId | undefined> {
-    const result = await putIgnoreError<Range<number>, LocationTrackId>(
+    const result = await putNonNull<Range<number>, LocationTrackId>(
         linkingUri('location-tracks', 'geometry', id),
         mRange,
     );

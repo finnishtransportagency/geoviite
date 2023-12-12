@@ -11,7 +11,7 @@ import {
     getNonNull,
     getNullable,
     postNonNullAdtResult,
-    putAdt,
+    putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
 import { changeTimeUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
@@ -129,12 +129,13 @@ export async function updateKmPost(
     id: LayoutKmPostId,
     kmPost: KmPostSaveRequest,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
-    const apiResult = await putAdt<KmPostSaveRequest, LayoutKmPostId>(
+    const apiResult = await putNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
         layoutUri('km-posts', 'DRAFT', id),
         kmPost,
-        true,
     );
-    updateKmPostChangeTime();
+
+    await updateKmPostChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],

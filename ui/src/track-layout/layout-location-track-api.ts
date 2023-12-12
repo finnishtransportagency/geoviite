@@ -13,7 +13,7 @@ import {
     getNonNull,
     getNullable,
     postNonNullAdtResult,
-    putAdt,
+    putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
@@ -206,12 +206,13 @@ export async function updateLocationTrack(
     id: LocationTrackId,
     locationTrack: LocationTrackSaveRequest,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await putAdt<LocationTrackSaveRequest, LocationTrackId>(
+    const apiResult = await putNonNullAdt<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', 'DRAFT', id),
         locationTrack,
-        true,
     );
-    updateLocationTrackChangeTime();
+
+    await updateLocationTrackChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],

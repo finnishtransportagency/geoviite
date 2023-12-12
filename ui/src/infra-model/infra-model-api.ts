@@ -3,8 +3,8 @@ import {
     ApiErrorResponse,
     getNonNull,
     postFormNonNullAdtResult,
-    putFormIgnoreError,
-    putIgnoreError,
+    putFormNonNullAdt,
+    putNonNull,
     queryParams,
 } from 'api/api-fetch';
 import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
@@ -112,22 +112,18 @@ export async function updateGeometryPlan(
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlan | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
-    const response = await putFormIgnoreError<GeometryPlan>(
-        `${INFRAMODEL_URI}/${planId}`,
-        formData,
-    );
-    if (response) {
+    const response = await putFormNonNullAdt<GeometryPlan>(`${INFRAMODEL_URI}/${planId}`, formData);
+
+    if (response.isOk()) {
         Snackbar.success('infra-model.edit.success');
-        updatePlanChangeTime();
+        await updatePlanChangeTime();
     }
-    return response;
+
+    return response.isOk() ? response.value : undefined;
 }
 export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | undefined> {
-    return putIgnoreError<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
-        (id) => {
-            updatePlanChangeTime();
-            return id;
-        },
+    return putNonNull<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
+        (id) => updatePlanChangeTime().then((_) => id),
     );
 }
 
@@ -171,7 +167,7 @@ export async function getPVDocumentCount(): Promise<PVDocumentCount | undefined>
 }
 
 export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined> {
-    return putIgnoreError<PVDocumentStatus, undefined>(
+    return putNonNull<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${ids}/status`,
         'REJECTED',
     ).then((ids) => {
@@ -181,7 +177,7 @@ export async function rejectPVDocuments(ids: PVDocumentId[]): Promise<undefined>
 }
 
 export async function restorePVDocuments(id: PVDocumentId[]): Promise<undefined> {
-    return putIgnoreError<PVDocumentStatus, undefined>(
+    return putNonNull<PVDocumentStatus, undefined>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
     ).then((id) => {
