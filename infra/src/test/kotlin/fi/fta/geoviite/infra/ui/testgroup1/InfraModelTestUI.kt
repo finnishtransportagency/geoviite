@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
@@ -23,7 +22,6 @@ import kotlin.test.assertNotNull
 @EnableAutoConfiguration
 @EnableConfigurationProperties(E2EProperties::class)
 @SpringBootTest
-@Disabled // Remove before merge
 class InfraModelTestUI @Autowired constructor(
     val properties: E2EProperties,
 ) : SeleniumTest() {
