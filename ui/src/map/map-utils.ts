@@ -4,8 +4,8 @@ import TileGrid from 'ol/tilegrid/TileGrid';
 import { BoundingBox, Point } from 'model/geometry';
 
 // offset used for defining a suitable boundingBox around a single location (Point)
-const MAP_POINT_DEFAULT_BOUNDING_BOX_OFFSET = 178;
-export const MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET = 78;
+const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
+export const MAP_POINT_CLOSEUP_BBOX_OFFSET = 78;
 
 // Resolutions to use to load stuff from backend
 const tileResolutions: number[] = [];
@@ -58,7 +58,7 @@ export function calculateTileSize(tileCount: number): number {
 
 export function calculateBoundingBoxToShowAroundLocation(
     location: Point,
-    offset: number = MAP_POINT_DEFAULT_BOUNDING_BOX_OFFSET,
+    offset: number = MAP_POINT_DEFAULT_BBOX_OFFSET,
 ): BoundingBox {
     return {
         x: {

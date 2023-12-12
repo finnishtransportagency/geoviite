@@ -11,7 +11,7 @@ import { ShowMoreButton } from 'show-more-button/show-more-button';
 import { BoundingBox } from 'model/geometry';
 import {
     calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+    MAP_POINT_CLOSEUP_BBOX_OFFSET,
 } from 'map/map-utils';
 
 const formatJointTrackMeter = (
@@ -27,7 +27,7 @@ const formatJointTrackMeter = (
                         showArea(
                             calculateBoundingBoxToShowAroundLocation(
                                 jointTrackMeter.location,
-                                MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                MAP_POINT_CLOSEUP_BBOX_OFFSET,
                             ),
                         )
                     }

@@ -13,7 +13,7 @@ import { BoundingBox } from 'model/geometry';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import {
     calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+    MAP_POINT_CLOSEUP_BBOX_OFFSET,
 } from 'map/map-utils';
 
 type HighlightedItemBase = {
@@ -162,7 +162,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                 showArea(
                                                     calculateBoundingBoxToShowAroundLocation(
                                                         section.start.location,
-                                                        MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
                                                     ),
                                                 )
                                             }
@@ -185,7 +185,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                 showArea(
                                                     calculateBoundingBoxToShowAroundLocation(
                                                         section.end.location,
-                                                        MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
                                                     ),
                                                 )
                                             }

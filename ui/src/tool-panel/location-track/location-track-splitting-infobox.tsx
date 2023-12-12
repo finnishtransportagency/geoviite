@@ -33,7 +33,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import { BoundingBox } from 'model/geometry';
 import {
     calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+    MAP_POINT_CLOSEUP_BBOX_OFFSET,
 } from 'map/map-utils';
 
 type LocationTrackInfoboxSplittingProps = {
@@ -99,7 +99,7 @@ const Split: React.FC<SplitProps> = ({
                                 showArea(
                                     calculateBoundingBoxToShowAroundLocation(
                                         addressPoint.point,
-                                        MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
                                     ),
                                 )
                             }
@@ -190,7 +190,7 @@ const Endpoint: React.FC<EndpointProps> = ({ showArea, addressPoint }) => {
                         showArea(
                             calculateBoundingBoxToShowAroundLocation(
                                 addressPoint.point,
-                                MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                                MAP_POINT_CLOSEUP_BBOX_OFFSET,
                             ),
                         )
                     }
