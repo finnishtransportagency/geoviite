@@ -60,6 +60,7 @@ type SwitchInfoboxProps = {
     stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;
     onVisibilityChange: (visibilities: SwitchInfoboxVisibilities) => void;
+    onSelectLocationTrackBadge: (locationTrackId: LocationTrackId) => void;
 };
 
 const mapToSwitchJointTrackMeter = (
@@ -135,6 +136,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     visibilities,
     onVisibilityChange,
     stopLinking,
+    onSelectLocationTrackBadge,
 }: SwitchInfoboxProps) => {
     const { t } = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
@@ -290,6 +292,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             switchAlignments={structure.alignments}
                             jointConnections={switchJointConnections}
                             publishType={publishType}
+                            onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                         />
                     )}
                     <WriteAccessRequired>
