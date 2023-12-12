@@ -3,9 +3,10 @@
 Kuvaus järjestelmän tarkoituksesta kannattaa katsoa Confluencesta vaatimusmäärittelyn puolelta.
 
 ## Arkkitehtuurikuvaukset
-* Teknologiat 
-* Geoviite tietomalli
+* [Teknologiat](teknologiat.md) 
+* [Tietomalli](tietomalli.md)
 * [Tietokanta](tietokanta.md)
+* [Autentikaatio ja autorisaatio](autentikaatio_ja_autorisaatio.md)
 
 Kehittäjien ohjeet säilytetään versionhallinnassa, koodin rinnalla markdown-formaatissa
 

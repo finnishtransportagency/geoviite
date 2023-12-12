@@ -1,10 +1,12 @@
+# Autentikaatio ja autorisaatio
+
 ## Vastuut ja käsitteet
 
 Autentikaatio hoidetaan integroitumalla väylän autentikaatiopalveluun. Geoviite itse ei siis sisällä mitään kirjautumislomaketta, käyttäjien tietoja, salasanoja, jne.
 
 Autorisaatio puolestaan tapahtuu Geoviitteen backendissa. Tätä varten määritellään rooleja, joihin sidotaan sovelluksen vaatimusten mukaisesti oikeuksia. Oikeuksien hallinta voidaan näin antaa Väyläpilven ylläpitäjille (väylän käyttäjänhallintaan) roolipohjaisesti: kirjautuneen käyttäjän tiedoissa tulee väylän käyttäjänhallinnassa määritellyt roolit ja geoviite antaa niiden mukaan käyttäjälle tarvittavat oikeudet.
 
-![](auth_concepts.png)
+![](images/auth_concepts.png)
 
 ## Flow
 
@@ -15,7 +17,7 @@ Itse kirjautumisflow tapahtuu Väyläpilvessä network-tilin (ei meidän hallitt
 3. Backend kaivaa JWT:stä käyttäjien roolien nimet ja hakee geoviitteen kannasta niitä vastaavat oikeudet. Nämä liitetään (RequestFilter.kt) Springin SecurityContextiin
 4. Controllereiden kutsuissa varmistetaan riittävät oikeudet Springin PreAuthorize annotaatioilla, jotka varmistavat että SecurityContextissa on vaadittu oikeus mukana
 
-![](auth_flow.png)
+![](images/auth_flow.png)
 
 ## Muiden kuin backend-resurssien suojaaminen
 
@@ -40,4 +42,4 @@ Huom. kaikkia resursseja ei välttämättä ole tarvetta suojata: esim frontend 
 2. Cloudfront varmistaa keksin allekirjoituksen
     1. Julkinen avain johon verrataan haetaan keygroupista pyynnössä tulevalla ID:llä
 
-![](auth_flow2.png)
+![](images/auth_flow2.png)
