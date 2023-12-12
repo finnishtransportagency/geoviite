@@ -9,7 +9,7 @@ import {
     API_URI,
     getNonNull,
     getNullable,
-    postIgnoreError,
+    postNonNullResult,
     putIgnoreError,
     queryParams,
 } from 'api/api-fetch';
@@ -31,7 +31,7 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { PublishType, SwitchStructureId, Range } from 'common/common-model';
+import { PublishType, Range, SwitchStructureId } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
@@ -72,45 +72,53 @@ export const getSuggestedContinuousLocationTracks = async (
 
 export const linkGeometryWithReferenceLine = async (
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<ReferenceLineId | undefined> => {
-    const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, ReferenceLineId>(
-        linkingUri('reference-lines', 'geometry'),
-        parameters,
-    );
+): Promise<ReferenceLineId> => {
+    const response = await postNonNullResult<
+        LinkingGeometryWithAlignmentParameters,
+        ReferenceLineId
+    >(linkingUri('reference-lines', 'geometry'), parameters);
+
     await updateReferenceLineChangeTime();
+
     return response;
 };
 
 export const linkGeometryWithLocationTrack = async (
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<LocationTrackId | undefined> => {
-    const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, LocationTrackId>(
-        linkingUri('location-tracks', 'geometry'),
-        parameters,
-    );
+): Promise<LocationTrackId> => {
+    const response = await postNonNullResult<
+        LinkingGeometryWithAlignmentParameters,
+        LocationTrackId
+    >(linkingUri('location-tracks', 'geometry'), parameters);
+
     await updateLocationTrackChangeTime();
+
     return response;
 };
 
 export const linkGeometryWithEmptyReferenceLine = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<ReferenceLineId | undefined> => {
-    const response = await postIgnoreError<
+): Promise<ReferenceLineId> => {
+    const response = await postNonNullResult<
         LinkingGeometryWithEmptyAlignmentParameters,
         ReferenceLineId
     >(linkingUri('reference-lines', 'empty-geometry'), parameters);
+
     await updateReferenceLineChangeTime();
+
     return response;
 };
 
 export const linkGeometryWithEmptyLocationTrack = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<LocationTrackId | undefined> => {
-    const response = await postIgnoreError<
+): Promise<LocationTrackId> => {
+    const response = await postNonNullResult<
         LinkingGeometryWithEmptyAlignmentParameters,
         LocationTrackId
     >(linkingUri('location-tracks', 'empty-geometry'), parameters);
+
     await updateLocationTrackChangeTime();
+
     return response;
 };
 
@@ -242,39 +250,37 @@ export async function getSuggestedSwitchByPoint(
 }
 
 export async function linkSwitch(params: SwitchLinkingParameters): Promise<LayoutSwitchId> {
-    const result = await postIgnoreError<SwitchLinkingParameters, LayoutSwitchId>(
+    const result = await postNonNullResult<SwitchLinkingParameters, LayoutSwitchId>(
         linkingUri('switches', 'geometry'),
         params,
     );
-    if (!result) {
-        throw Error('Failed to link switch!');
-    }
+
     await updateLocationTrackChangeTime();
     await updateSwitchChangeTime();
+
     return result;
 }
 
 export async function createSuggestedSwitch(
     params: SuggestedSwitchCreateParams,
 ): Promise<SuggestedSwitch | undefined> {
-    return postIgnoreError<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
+    return postNonNullResult<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
         linkingUri('switches', 'suggested'),
         params,
     ).then((switches) => {
-        const s = switches && switches[0];
+        const s = switches[0];
         return s ? { ...s, id: getSuggestedSwitchId(s) } : undefined;
     });
 }
 
 export async function linkKmPost(params: KmPostLinkingParameters): Promise<LayoutKmPostId> {
-    const result = await postIgnoreError<typeof params, LayoutKmPostId>(
+    const result = await postNonNullResult<typeof params, LayoutKmPostId>(
         linkingUri('km-posts', 'geometry'),
         params,
     );
-    if (!result) {
-        throw Error('Failed to link km post!');
-    }
+
     await updateKmPostChangeTime();
     await updatePlanChangeTime();
+
     return result;
 }

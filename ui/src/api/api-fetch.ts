@@ -3,7 +3,6 @@ import i18n from 'i18next';
 import { err, ok, Result } from 'neverthrow';
 import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
-
 import { LocalizationParams } from 'i18n/config';
 
 export const API_URI = '/api';
@@ -151,11 +150,92 @@ export function getNullableAdt<Output>(
     });
 }
 
-export async function postIgnoreError<Input, Output>(
+export async function postNullableResult<Input, Output>(
     path: string,
-    data: Input,
+    body: Input,
+    toastFailure = true,
 ): Promise<Output | undefined> {
-    return executeRequest<Input, Output, undefined>(path, data, ignoreErrorHandler, 'POST');
+    const requestResult = await executeRequest<Input, Output, WrappedApiErrorResponse>(
+        path,
+        body,
+        (error) => {
+            if (toastFailure) {
+                Snackbar.error(i18n.t('error.request-failed', { path }));
+            }
+
+            return { [wrapApiErrorResponse]: error };
+        },
+        'POST',
+    );
+
+    return isWrappedApiError(requestResult)
+        ? Promise.reject(requestResult[wrapApiErrorResponse])
+        : requestResult;
+}
+
+export async function postNonNullResult<Input, Output>(
+    path: string,
+    body: Input,
+    toastFailure = true,
+): Promise<Output> {
+    const result = await postNullableResult<Input, Output>(path, body, toastFailure);
+
+    if (result === undefined) {
+        Snackbar.error('Expected non-null result but got null');
+
+        return Promise.reject(new Error('Expected non-null result but got null'));
+    } else {
+        return result;
+    }
+}
+
+export async function postNonNullAdtResult<Input, Output>(
+    path: string,
+    body: Input,
+): Promise<Result<Output, ApiErrorResponse | undefined>> {
+    const requestResult = await postNullableAdtResult<Input, Output>(path, body);
+
+    if (requestResult.isOk() && requestResult.value === undefined) {
+        Snackbar.error('Expected non-null result but got null');
+
+        return err(undefined);
+    } else {
+        return requestResult as Result<Output, ApiErrorResponse>;
+    }
+}
+
+export async function postNullableAdtResult<Input, Output>(
+    path: string,
+    body: Input,
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
+    const r = await executeRequest<Input, Output, WrappedApiErrorResponse>(
+        path,
+        body,
+        (e) => {
+            return { [wrapApiErrorResponse]: e };
+        },
+        'POST',
+    );
+
+    return isWrappedApiError(r) ? err(r[wrapApiErrorResponse]) : ok(r);
+}
+
+export async function postFormNonNullAdtResult<Output>(
+    path: string,
+    data: FormData,
+): Promise<Result<Output, ApiErrorResponse | undefined>> {
+    const r = await executeBodyRequestInternal<Output>(
+        () => getFormResponse(path, data, 'POST'),
+        true,
+    );
+
+    if (r.isOk() && r.value === undefined) {
+        Snackbar.error('Expected non-null result but got null');
+
+        return err(undefined);
+    } else {
+        return r as Result<Output, ApiErrorResponse>;
+    }
 }
 
 export async function putIgnoreError<Input, Output>(
@@ -171,16 +251,6 @@ export async function deleteIgnoreError<Output>(path: string): Promise<Output | 
         undefined,
         ignoreErrorHandler,
         'DELETE',
-    );
-}
-
-export async function postAdt<Input, Output>(
-    path: string,
-    data: Input,
-    showErrorMessage = false,
-): Promise<Result<Output, ApiErrorResponse>> {
-    return await executeBodyRequestAdt<Input, Output>(path, data, 'POST', showErrorMessage).then(
-        verifyExistsAdt,
     );
 }
 
@@ -202,28 +272,6 @@ export async function deleteAdt<Input, Output>(
     return await executeBodyRequestAdt<Input, Output>(path, data, 'DELETE', showErrorMessage).then(
         verifyExistsAdt,
     );
-}
-
-export async function postFormIgnoreError<Output>(
-    path: string,
-    data: FormData,
-): Promise<Output | undefined> {
-    return postFormWithError<Output, undefined>(path, data, ignoreErrorHandler);
-}
-
-export async function postFormWithError<Output, ErrorOutput>(
-    path: string,
-    data: FormData,
-    errorHandler: ErrorHandler<ErrorOutput>,
-): Promise<Output | ErrorOutput> {
-    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
-        () => getFormResponse(path, data, 'POST'),
-        true,
-    );
-
-    if (result.isOk() && result.value) return result.value;
-    else if (result.isOk()) return Promise.reject('Form return missing despite OK result');
-    else return errorHandler(result.error);
 }
 
 export async function putFormIgnoreError<Output>(

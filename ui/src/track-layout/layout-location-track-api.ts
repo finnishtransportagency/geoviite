@@ -8,7 +8,14 @@ import {
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
-import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
+import {
+    deleteAdt,
+    getNonNull,
+    getNullable,
+    postNonNullAdtResult,
+    putAdt,
+    queryParams,
+} from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
 import { BoundingBox } from 'model/geometry';
@@ -182,12 +189,13 @@ export async function getLocationTracksNear(
 export async function insertLocationTrack(
     locationTrack: LocationTrackSaveRequest,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await postAdt<LocationTrackSaveRequest, LocationTrackId>(
+    const apiResult = await postNonNullAdtResult<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', 'DRAFT'),
         locationTrack,
-        true,
     );
-    updateLocationTrackChangeTime();
+
+    await updateLocationTrackChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],

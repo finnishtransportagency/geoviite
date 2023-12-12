@@ -3,8 +3,7 @@ import {
     deleteAdt,
     getNonNull,
     Page,
-    postAdt,
-    postIgnoreError,
+    postNonNullResult,
     queryParams,
 } from 'api/api-fetch';
 import {
@@ -28,7 +27,7 @@ export const getPublishCandidates = () =>
     getNonNull<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, ValidatedPublishCandidates>(
+    postNonNullResult<PublishRequestIds, ValidatedPublishCandidates>(
         `${PUBLICATION_URL}/validate`,
         request,
     );
@@ -37,7 +36,7 @@ export const revertCandidates = (request: PublishRequestIds) =>
     deleteAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
 
 export const publishCandidates = (request: PublishRequest) => {
-    return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
+    return postNonNullResult<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request);
 };
 
 export const getLatestPublications = (count: number) => {
@@ -93,13 +92,13 @@ export const getPublicationsCsvUri = (
 };
 
 export const getCalculatedChanges = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, CalculatedChanges>(
+    postNonNullResult<PublishRequestIds, CalculatedChanges>(
         `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
 
 export const getRevertRequestDependencies = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, PublishRequestIds>(
+    postNonNullResult<PublishRequestIds, PublishRequestIds>(
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );

@@ -9,7 +9,7 @@ import {
     deleteIgnoreError,
     getNonNull,
     getNullable,
-    postAdt,
+    postNonNullAdtResult,
     putAdt,
     queryParams,
 } from 'api/api-fetch';
@@ -106,12 +106,13 @@ export async function getSwitchJointConnections(
 export async function insertSwitch(
     newSwitch: TrackLayoutSwitchSaveRequest,
 ): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await postAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const apiResult = await postNonNullAdtResult<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', 'DRAFT'),
         newSwitch,
-        true,
     );
-    updateSwitchChangeTime();
+
+    await updateSwitchChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],

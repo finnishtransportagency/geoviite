@@ -9,7 +9,7 @@ import {
     deleteAdt,
     getNonNull,
     getNullable,
-    postIgnoreError,
+    postNonNullResult,
     putIgnoreError,
     queryParams,
 } from 'api/api-fetch';
@@ -66,7 +66,7 @@ export async function createTrackNumber(
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', 'DRAFT');
-    return await postIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
+    return await postNonNullResult<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
 }

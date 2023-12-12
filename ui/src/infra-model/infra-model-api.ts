@@ -2,8 +2,7 @@ import {
     API_URI,
     ApiErrorResponse,
     getNonNull,
-    postFormIgnoreError,
-    postFormWithError,
+    postFormNonNullAdtResult,
     putFormIgnoreError,
     putIgnoreError,
     queryParams,
@@ -47,11 +46,13 @@ export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_U
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
     `${PROJEKTIVELHO_URI}/${docId}`;
 
-const defaultValidationErrorHandler = (response: ApiErrorResponse): ValidationResponse => ({
+const defaultValidationErrorHandler = (
+    response: ApiErrorResponse | undefined,
+): ValidationResponse => ({
     ...EMPTY_VALIDATION_RESPONSE,
     validationErrors: [
         {
-            localizationKey: response.localizedMessageKey || 'error.infra-model.request-failed',
+            localizationKey: response?.localizedMessageKey || 'error.infra-model.request-failed',
             errorType: 'REQUEST_ERROR',
         },
     ],
@@ -63,11 +64,10 @@ export const getValidationErrorsForInfraModelFile = async (
 ): Promise<ValidationResponse> => {
     if (file) {
         const formData = createFormData(file, undefined, overrideParameters);
-        return postFormWithError<ValidationResponse, ValidationResponse>(
+        return postFormNonNullAdtResult<ValidationResponse>(
             `${INFRAMODEL_URI}/validate`,
             formData,
-            defaultValidationErrorHandler,
-        );
+        ).then((r) => (r.isOk() ? r.value : defaultValidationErrorHandler(r.error)));
     } else {
         return Promise.resolve({
             ...EMPTY_VALIDATION_RESPONSE,
@@ -81,11 +81,11 @@ export const getValidationErrorsForGeometryPlan = async (
     overrideParameters: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
     const formData = createFormData(undefined, undefined, overrideParameters);
-    return postFormWithError(
+
+    return postFormNonNullAdtResult<ValidationResponse>(
         `${INFRAMODEL_URI}/${planId}/validate`,
         formData,
-        defaultValidationErrorHandler,
-    );
+    ).then((r) => (r.isOk() ? r.value : defaultValidationErrorHandler(r.error)));
 };
 
 export const saveInfraModelFile = async (
@@ -94,12 +94,16 @@ export const saveInfraModelFile = async (
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<InsertResponse | undefined> => {
     const formData = createFormData(file, extraParameters, overrideParameters);
-    const response = await postFormIgnoreError<InsertResponse>(INFRAMODEL_URI, formData);
-    if (response) {
+    const response = await postFormNonNullAdtResult<InsertResponse>(INFRAMODEL_URI, formData);
+
+    if (response.isOk()) {
         Snackbar.success('infra-model.upload.success');
-        updatePlanChangeTime();
+        await updatePlanChangeTime();
+
+        return response.value;
+    } else {
+        return undefined;
     }
-    return response;
 };
 
 export async function updateGeometryPlan(
@@ -191,11 +195,12 @@ export const getValidationErrorsForPVDocument = async (
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
     const formData = createFormData(undefined, undefined, overrideParameters);
-    return postFormWithError(
+    const result = await postFormNonNullAdtResult<ValidationResponse>(
         `${PROJEKTIVELHO_URI}/documents/${pvDocumentId}/validate`,
         formData,
-        defaultValidationErrorHandler,
     );
+
+    return result.isOk() ? result.value : defaultValidationErrorHandler(result.error);
 };
 
 export async function importPVDocument(
@@ -205,12 +210,16 @@ export async function importPVDocument(
 ): Promise<GeometryPlanId | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
     const url = `${PROJEKTIVELHO_URI}/documents/${id}`;
-    const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
-    if (response) {
+    const response = await postFormNonNullAdtResult<GeometryPlanId>(url, formData);
+
+    if (response.isOk()) {
         Snackbar.success('infra-model.import.success');
-        updatePlanChangeTime();
+        await updatePlanChangeTime();
+
+        return response.value;
+    } else {
+        return undefined;
     }
-    return response;
 }
 
 const createFormData = (
