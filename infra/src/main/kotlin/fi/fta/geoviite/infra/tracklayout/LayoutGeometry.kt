@@ -75,6 +75,9 @@ interface IAlignment : Loggable {
         }
     }
 
+    fun getClosestPoint(target: IPoint, snapDistance: Double = 0.0): Pair<AlignmentPoint, IntersectType>? =
+        getClosestPointM(target)?.let { (m, type) -> getPointAtM(m, snapDistance)?.let { p -> p to type } }
+
     fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->
             val segment = segments[segmentIndex]
