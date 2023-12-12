@@ -25,7 +25,7 @@ import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
-import { Point } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
@@ -46,10 +46,11 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
-    onShowOnMap: (location: Point) => void;
+    showArea: (boundingBox: BoundingBox) => void;
     onDataChange: () => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
@@ -67,12 +68,14 @@ const mapToSwitchJointTrackMeter = (
     jointNumber: JointNumber,
     locationTrack: LayoutLocationTrack,
     trackMeter: TrackMeter | undefined,
+    location: Point,
 ): SwitchJointTrackMeter => {
     return {
         locationTrackId: locationTrack.id,
         locationTrackName: locationTrack.name,
         trackMeter: trackMeter,
         jointNumber: jointNumber,
+        location,
     };
 };
 
@@ -98,7 +101,7 @@ const getTrackMeterForPoint = async (
         location,
     );
 
-    return mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter);
+    return mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter, location);
 };
 
 export const getSwitchJointTrackMeters = async (
@@ -125,7 +128,7 @@ export const getSwitchJointTrackMeters = async (
 
 const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     switchId,
-    onShowOnMap,
+    showArea,
     onDataChange,
     changeTimes,
     publishType,
@@ -209,6 +212,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             value={
                                 (switchJointTrackMeters && (
                                     <SwitchInfoboxTrackMeters
+                                        showArea={showArea}
                                         jointTrackMeters={switchJointTrackMeters}
                                         presentationJoint={structure?.presentationJointNumber}
                                     />
@@ -244,7 +248,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 disabled={!switchLocation}
                                 variant={ButtonVariant.SECONDARY}
                                 qa-id="zoom-to-switch"
-                                onClick={() => switchLocation && onShowOnMap(switchLocation)}>
+                                onClick={() =>
+                                    switchLocation &&
+                                    showArea(
+                                        calculateBoundingBoxToShowAroundLocation(switchLocation),
+                                    )
+                                }>
                                 {t('tool-panel.switch.layout.show-on-map')}
                             </Button>
                         </InfoboxButtons>

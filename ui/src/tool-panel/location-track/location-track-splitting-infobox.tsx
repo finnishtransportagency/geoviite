@@ -7,11 +7,11 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { TrackMeter as TrackMeterModel } from 'common/common-model';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
+    AddressPoint,
     LayoutSwitchId,
     LocationTrackDuplicate,
     LocationTrackId,
@@ -30,6 +30,11 @@ import {
     useLocationTrackStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
+import { BoundingBox } from 'model/geometry';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_CLOSEUP_BBOX_OFFSET,
+} from 'map/map-utils';
 
 type LocationTrackInfoboxSplittingProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -42,15 +47,16 @@ type LocationTrackInfoboxSplittingProps = {
     locationTrackId: string;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    showArea: (boundingBox: BoundingBox) => void;
 };
 
 type EndpointProps = {
-    address: TrackMeterModel | undefined;
+    showArea: (boundingBox: BoundingBox) => void;
+    addressPoint: AddressPoint | undefined;
 };
 
 type SplitProps = EndpointProps & {
     split: Split | InitialSplit;
-    address: TrackMeter | undefined;
     onRemove?: (switchId: LayoutSwitchId) => void;
     duplicateLocationTracks?: LocationTrackDuplicate[];
     updateSplit: (updateSplit: Split | InitialSplit) => void;
@@ -59,11 +65,12 @@ type SplitProps = EndpointProps & {
 
 const Split: React.FC<SplitProps> = ({
     split,
-    address,
+    addressPoint,
     onRemove,
     updateSplit,
     duplicateOf,
     duplicateLocationTracks = [],
+    showArea,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -86,7 +93,18 @@ const Split: React.FC<SplitProps> = ({
                                 ? t('tool-panel.location-track.splitting.split-address')
                                 : t('tool-panel.location-track.splitting.start-address')
                         }>
-                        <TrackMeter value={address} />
+                        <TrackMeter
+                            onClickAction={() =>
+                                addressPoint?.point &&
+                                showArea(
+                                    calculateBoundingBoxToShowAroundLocation(
+                                        addressPoint.point,
+                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
+                                    ),
+                                )
+                            }
+                            trackMeter={addressPoint?.address}
+                        />
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
@@ -160,13 +178,24 @@ const Split: React.FC<SplitProps> = ({
     );
 };
 
-const Endpoint: React.FC<EndpointProps> = ({ address }) => {
+const Endpoint: React.FC<EndpointProps> = ({ showArea, addressPoint }) => {
     const { t } = useTranslation();
     return (
         <div className={styles['location-track-infobox__split-container']}>
             <div className={styles['location-track-infobox__split-item-ball']} />
             <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
-                <TrackMeter value={address} />
+                <TrackMeter
+                    onClickAction={() =>
+                        addressPoint?.point &&
+                        showArea(
+                            calculateBoundingBoxToShowAroundLocation(
+                                addressPoint.point,
+                                MAP_POINT_CLOSEUP_BBOX_OFFSET,
+                            ),
+                        )
+                    }
+                    trackMeter={addressPoint?.address}
+                />
             </InfoboxField>
         </div>
     );
@@ -183,12 +212,23 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
     removeSplit,
     cancelSplitting,
     updateSplit,
+    showArea,
 }) => {
     const { t } = useTranslation();
     const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
 
-    const getSplitLocation = (split: Split) =>
-        allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
+    const getSplitAddressPoint = (split: Split): AddressPoint | undefined => {
+        const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
+
+        if (switchAtSplit?.location && switchAtSplit?.address) {
+            return {
+                point: { ...switchAtSplit.location, m: -1 },
+                address: switchAtSplit.address,
+            };
+        }
+
+        return undefined;
+    };
 
     const sortedSplits = sortSplitsByDistance(splits);
 
@@ -202,25 +242,27 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                     <InfoboxContent className={styles['location-track-infobox__split']}>
                         <Split
                             split={initialSplit}
-                            address={startAndEnd?.start?.address}
+                            addressPoint={startAndEnd?.start}
                             duplicateLocationTracks={duplicateLocationTracks}
                             updateSplit={updateSplit}
                             duplicateOf={initialSplit.duplicateOf}
+                            showArea={showArea}
                         />
                         {sortedSplits.map((split, index) => {
                             return (
                                 <Split
                                     key={index.toString()}
                                     split={split}
-                                    address={getSplitLocation(split)}
+                                    addressPoint={getSplitAddressPoint(split)}
                                     onRemove={removeSplit}
                                     duplicateLocationTracks={duplicateLocationTracks}
                                     updateSplit={updateSplit}
                                     duplicateOf={split.duplicateOf}
+                                    showArea={showArea}
                                 />
                             );
                         })}
-                        <Endpoint address={startAndEnd.end.address} />
+                        <Endpoint showArea={showArea} addressPoint={startAndEnd.end} />
                         {splits.length === 0 && (
                             <InfoboxContentSpread>
                                 <MessageBox>

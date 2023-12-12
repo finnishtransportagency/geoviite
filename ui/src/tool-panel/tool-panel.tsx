@@ -320,7 +320,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             infoboxVisibilityChange('switch', visibilities)
                         }
                         switchId={s.id}
-                        onShowOnMap={onShowMapLocation}
+                        showArea={showArea}
                         publishType={publishType}
                         changeTimes={changeTimes}
                         onDataChange={onDataChange}

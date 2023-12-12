@@ -37,6 +37,7 @@ data class SegmentGeometryAndMetadata(
 
 data class PlanSectionPoint(
     val address: TrackMeter,
+    val location: IPoint,
     val m: Double,
 )
 
