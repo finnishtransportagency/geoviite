@@ -1,6 +1,8 @@
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import * as React from 'react';
 import { TrackMeter } from 'common/common-model';
+import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import styles from 'geoviite-design-lib/track-meter/track-meter.scss';
 
 type TrackMeterProps = {
     trackMeter?: TrackMeter;
@@ -23,9 +25,12 @@ const TrackMeter: React.FC<TrackMeterProps> = ({
         : placeholder;
 
     return onClickAction ? (
-        <a className={'link'} onClick={onClickAction}>
+        <span>
             {displayedValue}
-        </a>
+            <a className={styles['position-pin-container']} onClick={onClickAction}>
+                <Icons.PositionPin size={IconSize.SMALL} />
+            </a>
+        </span>
     ) : (
         <React.Fragment>{displayedValue}</React.Fragment>
     );

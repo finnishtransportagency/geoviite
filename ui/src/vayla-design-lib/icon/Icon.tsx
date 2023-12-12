@@ -33,6 +33,7 @@ import fullScreen from './glyphs/navigation/fullscreen.svg';
 import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
 import externalLink from './glyphs/navigation/external-link.svg';
 import menuSvg from './glyphs/navigation/menu.svg';
+import positionPinSvg from './glyphs/misc/position-pin.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -105,6 +106,7 @@ const iconNameToSvgMap = {
     // Misc
     Layers: layersSvg,
     Switch: switchSvg,
+    PositionPin: positionPinSvg,
 };
 
 const iconNameToSvgMapStaticColor = {

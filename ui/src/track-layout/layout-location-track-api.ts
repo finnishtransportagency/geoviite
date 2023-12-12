@@ -2,7 +2,7 @@ import {
     AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
-    LayoutPoint,
+    AlignmentPoint,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
@@ -34,7 +34,7 @@ const locationTrackStartAndEndCache = asyncCache<string, AlignmentStartAndEnd | 
 
 type PlanSectionPoint = {
     address: TrackMeter;
-    location: LayoutPoint;
+    location: AlignmentPoint;
     m: number;
 };
 

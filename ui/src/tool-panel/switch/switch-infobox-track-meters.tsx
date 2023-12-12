@@ -21,20 +21,20 @@ const formatJointTrackMeter = (
 ) => {
     return (
         <span>
-            (jointTrackMeter.trackMeter &&
-            <TrackMeter
-                onClickAction={() =>
-                    showArea(
-                        calculateBoundingBoxToShowAroundLocation(
-                            jointTrackMeter.location,
-                            MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
-                        ),
-                    )
-                }
-                trackMeter={jointTrackMeter.trackMeter}
-                placeholder={addressPlaceHolder}
-            />
-            )
+            {jointTrackMeter.trackMeter && (
+                <TrackMeter
+                    onClickAction={() =>
+                        showArea(
+                            calculateBoundingBoxToShowAroundLocation(
+                                jointTrackMeter.location,
+                                MAP_POINT_CLOSEUP_BOUNDING_BOX_OFFSET,
+                            ),
+                        )
+                    }
+                    trackMeter={jointTrackMeter.trackMeter}
+                    placeholder={addressPlaceHolder}
+                />
+            )}
             <br />
             <LocationTrackLink
                 locationTrackId={jointTrackMeter.locationTrackId}
