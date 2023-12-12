@@ -60,6 +60,9 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
         .flat()
         .filter(filterNotEmpty);
 
+    const locationTrackBadgeOnClickHandler = (locationTrackId: LocationTrackId) =>
+        onSelectLocationTrackBadge ? () => onSelectLocationTrackBadge(locationTrackId) : undefined;
+
     function getLocationTracksForJointNumbers(jointNumbers: JointNumber[]) {
         const locationTrackIds = getMatchingLocationTrackIdsForJointNumbers(
             jointNumbers,
@@ -76,7 +79,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                 <LocationTrackBadge
                     key={t.id}
                     locationTrack={t}
-                    onClick={() => onSelectLocationTrackBadge && onSelectLocationTrackBadge(t.id)}
+                    onClick={locationTrackBadgeOnClickHandler(t.id)}
                 />
             ));
     }
