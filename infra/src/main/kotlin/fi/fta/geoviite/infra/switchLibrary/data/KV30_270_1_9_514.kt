@@ -31,7 +31,7 @@ fun KV30_270_1_9_514_O() = SwitchStructure(
         ),
         SwitchJoint(
             JointNumber(4),
-            Point(37.96, 0.0)
+            Point(37.96, 1.833)
         ),
 
         ),
