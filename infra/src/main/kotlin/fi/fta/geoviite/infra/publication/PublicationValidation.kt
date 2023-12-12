@@ -296,8 +296,8 @@ fun validateDuplicateOfState(
                 "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated" to duplicateNameParams
             },
             validateWithParams(duplicates.isEmpty()) {
-                val appendix = if (duplicates.size > 1) "-multiple" else ""
-                "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-while-duplicated${appendix}" to LocalizationParams(
+                val suffix = if (duplicates.size > 1) "-multiple" else ""
+                "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-while-duplicated${suffix}" to LocalizationParams(
                     mapOf("duplicateTrack" to duplicateOfLocationTrack.name,
                         "otherDuplicates" to duplicates.map { track -> track.name }.distinct().joinToString { it })
                 )
