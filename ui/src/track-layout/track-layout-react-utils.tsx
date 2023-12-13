@@ -56,7 +56,6 @@ import {
     updateSwitchChangeTime,
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
-import { isNilOrBlank } from 'utils/string-utils';
 import { deduplicate } from 'utils/array-utils';
 
 export function useTrackNumberReferenceLine(
@@ -222,20 +221,24 @@ export function useLocationTrackInfoboxExtras(
         [id, publishType, changeTime],
     );
 }
-export function useConflictingTrack(
+export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
-    trackName: string | undefined,
-    trackId: LocationTrackId | undefined,
+    trackNames: string[],
+    trackIds: LocationTrackId[],
     publishType: PublishType,
-): LayoutLocationTrack | undefined {
+): LayoutLocationTrack[] | undefined {
+    const nonEmptyNames = trackNames.filter((name) => name.length > 0);
+    // Stringify to make sure React doesn't go nuts with deps changing every time
+    const asString = JSON.stringify(nonEmptyNames);
+    const trackIdsString = JSON.stringify(trackIds);
     return useLoader(
         () =>
-            trackNumberId === undefined || trackName === undefined || isNilOrBlank(trackName)
+            trackNumberId === undefined || nonEmptyNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, trackName, publishType).then((tracks) =>
-                      tracks.find((t) => t.id !== trackId),
+                : getLocationTracksByName(trackNumberId, trackNames, publishType).then((tracks) =>
+                      tracks.filter((t) => !trackIds.includes(t.id)),
                   ),
-        [trackNumberId, trackName, trackId, publishType],
+        [trackNumberId, asString, trackIdsString, publishType],
     );
 }
 

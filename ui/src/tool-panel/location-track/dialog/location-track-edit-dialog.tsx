@@ -39,7 +39,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
     getSaveDisabledReasons,
-    useConflictingTrack,
+    useConflictingTracks,
     useLocationTrack,
     useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
@@ -159,12 +159,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         }
     }
 
-    const trackWithSameName = useConflictingTrack(
+    const trackWithSameName = useConflictingTracks(
         state.locationTrack.trackNumberId,
-        state.locationTrack.name,
-        props.locationTrack?.id,
+        [state.locationTrack.name],
+        props.locationTrack?.id ? [props.locationTrack.id] : [],
         'DRAFT',
-    );
+    )?.[0];
     React.useEffect(() => {
         if (
             locationTrackOwners !== undefined &&

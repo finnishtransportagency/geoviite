@@ -161,12 +161,12 @@ class LocationTrackService(
     fun list(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        name: AlignmentName,
+        names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.serviceCall(
-            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "name" to name
+            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "names" to names
         )
-        return dao.list(publicationState, true, trackNumberId, name)
+        return dao.list(publicationState, true, trackNumberId, names)
     }
 
     override fun idMatches(term: String, item: LocationTrack) =

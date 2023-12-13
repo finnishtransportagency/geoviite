@@ -1,0 +1,190 @@
+import * as React from 'react';
+import { useTranslation } from 'react-i18next';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
+import styles from 'tool-panel/location-track/location-track-infobox.scss';
+import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import Infobox from 'tool-panel/infobox/infobox';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    LayoutSwitchId,
+    LocationTrackDuplicate,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import {
+    InitialSplit,
+    sortSplitsByDistance,
+    Split,
+    SwitchOnLocationTrack,
+} from 'tool-panel/location-track/split-store';
+import {
+    useConflictingTracks,
+    useLocationTrack,
+    useLocationTrackStartAndEnd,
+} from 'track-layout/track-layout-react-utils';
+import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import {
+    LocationTrackSplit,
+    LocationTrackSplittingEndpoint,
+} from 'tool-panel/location-track/splitting/location-track-split';
+import { filterNotEmpty } from 'utils/array-utils';
+
+type LocationTrackInfoboxSplittingProps = {
+    duplicateLocationTracks: LocationTrackDuplicate[];
+    visibilities: LocationTrackInfoboxVisibilities;
+    visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
+    initialSplit: InitialSplit;
+    splits: Split[];
+    allowedSwitches: SwitchOnLocationTrack[];
+    removeSplit: (switchId: LayoutSwitchId) => void;
+    locationTrackId: string;
+    cancelSplitting: () => void;
+    updateSplit: (updatedSplit: Split | InitialSplit) => void;
+};
+
+const validateSplitName = (
+    splitName: string,
+    allSplitNames: string[],
+    conflictingTrackNames: string[],
+) => {
+    const errors: ValidationError<Split>[] = [];
+
+    if (splitName === '')
+        errors.push({
+            field: 'name',
+            reason: 'validation.required',
+            type: ValidationErrorType.ERROR,
+        });
+    if (allSplitNames.filter((s) => s === splitName).length > 1)
+        errors.push({
+            field: 'name',
+            reason: 'validation.conflicts-with-split',
+            type: ValidationErrorType.ERROR,
+        });
+    if (conflictingTrackNames.includes(splitName)) {
+        errors.push({
+            field: 'name',
+            reason: 'validation.conflicts-with-track',
+            type: ValidationErrorType.ERROR,
+        });
+    }
+    return errors;
+};
+
+const validateSplitDescription = (
+    description: string,
+    duplicateOf: LocationTrackId | undefined,
+) => {
+    const errors: ValidationError<Split>[] = [];
+    if (!duplicateOf && description === '')
+        errors.push({
+            field: 'descriptionBase',
+            reason: 'validation.required',
+            type: ValidationErrorType.ERROR,
+        });
+    return errors;
+};
+
+export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplittingProps> = ({
+    duplicateLocationTracks,
+    visibilities,
+    visibilityChange,
+    locationTrackId,
+    initialSplit,
+    splits,
+    allowedSwitches,
+    removeSplit,
+    cancelSplitting,
+    updateSplit,
+}) => {
+    const { t } = useTranslation();
+    const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
+    const locationTrack = useLocationTrack(locationTrackId, 'DRAFT');
+
+    const getSplitLocation = (split: Split) =>
+        allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
+
+    const sortedSplits = sortSplitsByDistance(splits);
+
+    const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
+    const conflictingTracks = (
+        useConflictingTracks(
+            locationTrack?.trackNumberId,
+            allSplitNames,
+            [initialSplit, ...splits].map((s) => s.duplicateOf).filter(filterNotEmpty),
+            'DRAFT',
+        ) || []
+    ).map((t) => t.name);
+
+    const initialSplitValidated = {
+        split: initialSplit,
+        nameErrors: validateSplitName(initialSplit.name, allSplitNames, conflictingTracks),
+        descriptionErrors: validateSplitDescription(
+            initialSplit.descriptionBase,
+            initialSplit.duplicateOf,
+        ),
+    };
+    const splitsValidated = sortedSplits.map((s) => ({
+        split: s,
+        nameErrors: validateSplitName(s.name, allSplitNames, conflictingTracks),
+        descriptionErrors: validateSplitDescription(s.descriptionBase, s.duplicateOf),
+    }));
+
+    return (
+        <React.Fragment>
+            {startAndEnd?.start && startAndEnd?.end && locationTrack && (
+                <Infobox
+                    contentVisible={visibilities.splitting}
+                    onContentVisibilityChange={() => visibilityChange('splitting')}
+                    title={t('tool-panel.location-track.splitting.title')}>
+                    <InfoboxContent className={styles['location-track-infobox__split']}>
+                        <LocationTrackSplit
+                            split={initialSplit}
+                            address={startAndEnd?.start?.address}
+                            duplicateLocationTracks={duplicateLocationTracks}
+                            updateSplit={updateSplit}
+                            duplicateOf={initialSplit.duplicateOf}
+                            nameErrors={initialSplitValidated.nameErrors}
+                            descriptionErrors={initialSplitValidated.descriptionErrors}
+                        />
+                        {splitsValidated.map(({ split, nameErrors, descriptionErrors }, index) => {
+                            return (
+                                <LocationTrackSplit
+                                    key={index.toString()}
+                                    split={split}
+                                    address={getSplitLocation(split)}
+                                    onRemove={removeSplit}
+                                    duplicateLocationTracks={duplicateLocationTracks}
+                                    updateSplit={updateSplit}
+                                    duplicateOf={split.duplicateOf}
+                                    nameErrors={nameErrors}
+                                    descriptionErrors={descriptionErrors}
+                                />
+                            );
+                        })}
+                        <LocationTrackSplittingEndpoint address={startAndEnd.end.address} />
+                        {splits.length === 0 && (
+                            <InfoboxContentSpread>
+                                <MessageBox>
+                                    {t('tool-panel.location-track.splitting.splitting-guide')}
+                                </MessageBox>
+                            </InfoboxContentSpread>
+                        )}
+                        <InfoboxButtons>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                onClick={cancelSplitting}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button size={ButtonSize.SMALL}>
+                                {t('tool-panel.location-track.splitting.confirm-split')}
+                            </Button>
+                        </InfoboxButtons>
+                    </InfoboxContent>
+                </Infobox>
+            )}
+        </React.Fragment>
+    );
+};

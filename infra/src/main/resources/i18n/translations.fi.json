@@ -602,7 +602,12 @@
                 "end-address": "Loppusijainti (km + m)",
                 "replaces-duplicate": "Korvaa duplikaattiraiteen",
                 "description-base": "Kuvauksen perusosa",
-                "description-suffix": "Kuvauksen lisäosa"
+                "description-suffix": "Kuvauksen lisäosa",
+                "validation": {
+                    "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
+                    "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
+                    "required": "Pakollinen kenttä"
+                }
             }
         },
         "disabled": {
