@@ -12,7 +12,8 @@ create temp table new_privilege on commit drop as
 with temp(code, name, description) as (
     values
       ('all-read', 'Lukuoikeus', 'Oikeus tarkastella kaikkia geoviitteen tietoja'),
-      ('all-write', 'Kirjoitusoikeus', 'Oikeus muokata kaikkia geoviitteen tietoja')
+      ('all-write', 'Kirjoitusoikeus', 'Oikeus muokata kaikkia geoviitteen tietoja'),
+      ('im-download', 'InfraModel latausoikeus', 'Oikeus ladata geoviitteestä InfraModel-tiedostoja')
 )
 select *
   from temp;
@@ -22,7 +23,8 @@ with temp(role_code, privilege_code) as (
     values
       ('browser', 'all-read'),
       ('operator', 'all-read'),
-      ('operator', 'all-write')
+      ('operator', 'all-write'),
+      ('operator', 'im-download')
 )
 select *
   from temp;
