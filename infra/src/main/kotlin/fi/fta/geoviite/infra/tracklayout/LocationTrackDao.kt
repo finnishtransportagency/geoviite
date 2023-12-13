@@ -316,14 +316,12 @@ class LocationTrackDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<RowVersion<LocationTrack>> {
-        val namesLowercasedOrNull = if (names.isNotEmpty()) names.map { name -> name.toString().lowercase() } else null
-
         val sql = """
             select lt.row_id, lt.row_version 
             from layout.location_track_publication_view lt
             where 
               (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
-              and (cast(:names as varchar[])) is null or lower(lt.name) in (:names)
+              and (:names = '' or lower(lt.name) = any(string_to_array(:names, ',')::varchar[]))
               and :publication_state = any(lt.publication_states)
               and (:include_deleted = true or state != 'DELETED')
         """.trimIndent()
@@ -331,7 +329,7 @@ class LocationTrackDao(
             "track_number_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
             "include_deleted" to includeDeleted,
-            "names" to namesLowercasedOrNull,
+            "names" to names.map { name -> name.toString().lowercase() }.joinToString { "," },
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
