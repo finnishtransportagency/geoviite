@@ -73,13 +73,16 @@ const validateSplitName = (
             reason: 'validation.required',
             type: ValidationErrorType.ERROR,
         });
-    if (allSplitNames.filter((s) => s !== '' && s === splitName).length > 1)
+    if (
+        allSplitNames.filter((s) => s !== '' && s.toLowerCase() === splitName.toLowerCase())
+            .length > 1
+    )
         errors.push({
             field: 'name',
             reason: 'validation.conflicts-with-split',
             type: ValidationErrorType.ERROR,
         });
-    if (conflictingTrackNames.includes(splitName)) {
+    if (conflictingTrackNames.map((t) => t.toLowerCase()).includes(splitName.toLowerCase())) {
         errors.push({
             field: 'name',
             reason: 'validation.conflicts-with-track',
