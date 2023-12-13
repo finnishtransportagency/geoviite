@@ -12,7 +12,7 @@ import {
     deleteNonNullAdt,
     getNonNull,
     getNullable,
-    postNonNullAdtResult,
+    postNonNullAdt,
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
@@ -189,7 +189,7 @@ export async function getLocationTracksNear(
 export async function insertLocationTrack(
     locationTrack: LocationTrackSaveRequest,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await postNonNullAdtResult<LocationTrackSaveRequest, LocationTrackId>(
+    const apiResult = await postNonNullAdt<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', 'DRAFT'),
         locationTrack,
     );

@@ -10,7 +10,7 @@ import {
     deleteNonNullAdt,
     getNonNull,
     getNullable,
-    postNonNullAdtResult,
+    postNonNullAdt,
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
@@ -112,7 +112,7 @@ export async function getKmPostForLinking(
 export async function insertKmPost(
     kmPost: KmPostSaveRequest,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
-    const apiResult = await postNonNullAdtResult<KmPostSaveRequest, LayoutKmPostId>(
+    const apiResult = await postNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
         layoutUri('km-posts', 'DRAFT'),
         kmPost,
     );

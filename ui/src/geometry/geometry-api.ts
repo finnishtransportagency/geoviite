@@ -30,8 +30,8 @@ import {
     getNonNull,
     getNullable,
     Page,
-    postNonNullResult,
-    postNullableResult,
+    postNonNull,
+    postNullable,
     queryParams,
 } from 'api/api-fetch';
 import { BoundingBox, Point } from 'model/geometry';
@@ -315,7 +315,7 @@ export async function getProject(id: ProjectId): Promise<Project> {
 }
 
 export async function createProject(project: Project): Promise<ProjectId> {
-    return await postNonNullResult<Project, ProjectId>(`${GEOMETRY_URI}/projects`, project);
+    return await postNonNull<Project, ProjectId>(`${GEOMETRY_URI}/projects`, project);
 }
 
 export async function fetchAuthors(): Promise<Author[]> {
@@ -323,7 +323,7 @@ export async function fetchAuthors(): Promise<Author[]> {
 }
 
 export async function createAuthor(author: Author): Promise<Author> {
-    return await postNonNullResult<Author, Author>(`${GEOMETRY_URI}/authors`, author);
+    return await postNonNull<Author, Author>(`${GEOMETRY_URI}/authors`, author);
 }
 
 export interface GeometryPlanLinkingSummary {
@@ -335,10 +335,10 @@ export interface GeometryPlanLinkingSummary {
 export function getGeometryPlanLinkingSummaries(
     planIds: GeometryPlanId[],
 ): Promise<{ [key: GeometryPlanId]: GeometryPlanLinkingSummary } | undefined> {
-    return postNullableResult<
-        GeometryPlanId[],
-        { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
-    >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
+    return postNullable<GeometryPlanId[], { [key: GeometryPlanId]: GeometryPlanLinkingSummary }>(
+        `${GEOMETRY_URI}/plans/linking-summaries/`,
+        planIds,
+    );
 }
 
 export interface AlignmentHeights {

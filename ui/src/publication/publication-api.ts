@@ -3,7 +3,7 @@ import {
     deleteNonNullAdt,
     getNonNull,
     Page,
-    postNonNullResult,
+    postNonNull,
     queryParams,
 } from 'api/api-fetch';
 import {
@@ -27,7 +27,7 @@ export const getPublishCandidates = () =>
     getNonNull<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequestIds) =>
-    postNonNullResult<PublishRequestIds, ValidatedPublishCandidates>(
+    postNonNull<PublishRequestIds, ValidatedPublishCandidates>(
         `${PUBLICATION_URL}/validate`,
         request,
     );
@@ -36,7 +36,7 @@ export const revertCandidates = (request: PublishRequestIds) =>
     deleteNonNullAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request);
 
 export const publishCandidates = (request: PublishRequest) => {
-    return postNonNullResult<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request);
+    return postNonNull<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request);
 };
 
 export const getLatestPublications = (count: number) => {
@@ -92,13 +92,13 @@ export const getPublicationsCsvUri = (
 };
 
 export const getCalculatedChanges = (request: PublishRequestIds) =>
-    postNonNullResult<PublishRequestIds, CalculatedChanges>(
+    postNonNull<PublishRequestIds, CalculatedChanges>(
         `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
 
 export const getRevertRequestDependencies = (request: PublishRequestIds) =>
-    postNonNullResult<PublishRequestIds, PublishRequestIds>(
+    postNonNull<PublishRequestIds, PublishRequestIds>(
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );

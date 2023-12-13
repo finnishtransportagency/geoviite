@@ -9,7 +9,7 @@ import {
     API_URI,
     getNonNull,
     getNullable,
-    postNonNullResult,
+    postNonNull,
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
@@ -73,10 +73,10 @@ export const getSuggestedContinuousLocationTracks = async (
 export const linkGeometryWithReferenceLine = async (
     parameters: LinkingGeometryWithAlignmentParameters,
 ): Promise<ReferenceLineId> => {
-    const response = await postNonNullResult<
-        LinkingGeometryWithAlignmentParameters,
-        ReferenceLineId
-    >(linkingUri('reference-lines', 'geometry'), parameters);
+    const response = await postNonNull<LinkingGeometryWithAlignmentParameters, ReferenceLineId>(
+        linkingUri('reference-lines', 'geometry'),
+        parameters,
+    );
 
     await updateReferenceLineChangeTime();
 
@@ -86,10 +86,10 @@ export const linkGeometryWithReferenceLine = async (
 export const linkGeometryWithLocationTrack = async (
     parameters: LinkingGeometryWithAlignmentParameters,
 ): Promise<LocationTrackId> => {
-    const response = await postNonNullResult<
-        LinkingGeometryWithAlignmentParameters,
-        LocationTrackId
-    >(linkingUri('location-tracks', 'geometry'), parameters);
+    const response = await postNonNull<LinkingGeometryWithAlignmentParameters, LocationTrackId>(
+        linkingUri('location-tracks', 'geometry'),
+        parameters,
+    );
 
     await updateLocationTrackChangeTime();
 
@@ -99,7 +99,7 @@ export const linkGeometryWithLocationTrack = async (
 export const linkGeometryWithEmptyReferenceLine = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
 ): Promise<ReferenceLineId> => {
-    const response = await postNonNullResult<
+    const response = await postNonNull<
         LinkingGeometryWithEmptyAlignmentParameters,
         ReferenceLineId
     >(linkingUri('reference-lines', 'empty-geometry'), parameters);
@@ -112,7 +112,7 @@ export const linkGeometryWithEmptyReferenceLine = async (
 export const linkGeometryWithEmptyLocationTrack = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
 ): Promise<LocationTrackId> => {
-    const response = await postNonNullResult<
+    const response = await postNonNull<
         LinkingGeometryWithEmptyAlignmentParameters,
         LocationTrackId
     >(linkingUri('location-tracks', 'empty-geometry'), parameters);
@@ -250,7 +250,7 @@ export async function getSuggestedSwitchByPoint(
 }
 
 export async function linkSwitch(params: SwitchLinkingParameters): Promise<LayoutSwitchId> {
-    const result = await postNonNullResult<SwitchLinkingParameters, LayoutSwitchId>(
+    const result = await postNonNull<SwitchLinkingParameters, LayoutSwitchId>(
         linkingUri('switches', 'geometry'),
         params,
     );
@@ -264,7 +264,7 @@ export async function linkSwitch(params: SwitchLinkingParameters): Promise<Layou
 export async function createSuggestedSwitch(
     params: SuggestedSwitchCreateParams,
 ): Promise<SuggestedSwitch | undefined> {
-    return postNonNullResult<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
+    return postNonNull<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
         linkingUri('switches', 'suggested'),
         params,
     ).then((switches) => {
@@ -274,7 +274,7 @@ export async function createSuggestedSwitch(
 }
 
 export async function linkKmPost(params: KmPostLinkingParameters): Promise<LayoutKmPostId> {
-    const result = await postNonNullResult<typeof params, LayoutKmPostId>(
+    const result = await postNonNull<typeof params, LayoutKmPostId>(
         linkingUri('km-posts', 'geometry'),
         params,
     );

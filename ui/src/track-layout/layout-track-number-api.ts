@@ -9,7 +9,7 @@ import {
     deleteNonNullAdt,
     getNonNull,
     getNullable,
-    postNonNullResult,
+    postNonNull,
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
@@ -66,7 +66,7 @@ export async function createTrackNumber(
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', 'DRAFT');
-    return await postNonNullResult<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
+    return await postNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
 }

@@ -57,180 +57,76 @@ export function queryParams(params: Record<string, unknown>): string {
     return stringifiedParameters.length == 0 ? '' : `?${stringifiedParameters.join('&')}`;
 }
 
-export function getNonNull<Output>(path: string, toastFailure = true): Promise<Output> {
-    return getNullable<Output>(path, toastFailure).then((requestResult) => {
-        if (requestResult === undefined) {
-            if (toastFailure) {
-                Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
-            }
-            const rv = Promise.reject(Error(`undefined return when querying ${path}`));
-            rv.catch(() => {
-                console.error('request returned undefined', path);
-            });
-            return rv;
-        } else {
-            return requestResult;
-        }
-    });
-}
-
 const wrapApiErrorResponse = Symbol('wrap api error response');
 type WrappedApiErrorResponse = { [k in typeof wrapApiErrorResponse]: ApiErrorResponse };
 function isWrappedApiError(x: unknown): x is WrappedApiErrorResponse {
     return typeof x === 'object' && x !== null && wrapApiErrorResponse in x;
 }
 
+export function getNonNull<Output>(path: string, toastFailure: boolean = true): Promise<Output> {
+    return fetchNonNull(path, 'GET', undefined, toastFailure);
+}
+
 export function getNullable<Output>(
     path: string,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output | undefined> {
-    const rv = executeRequest<undefined, Output, WrappedApiErrorResponse>(
-        path,
-        undefined,
-        (error) => {
-            if (toastFailure) {
-                Snackbar.error(i18n.t('error.request-failed', { path }));
-            }
-            return { [wrapApiErrorResponse]: error };
-        },
-        'GET',
-    ).then((requestResult) =>
-        isWrappedApiError(requestResult)
-            ? Promise.reject(requestResult[wrapApiErrorResponse])
-            : requestResult,
-    );
-    return rv as Promise<Output | undefined>;
+    return fetchNullable(path, 'GET', undefined, toastFailure);
 }
 
 export function getNonNullAdt<Output>(
     path: string,
-    toastFailure = true,
-): Promise<Result<Output, ApiErrorResponse>> {
-    return getNullableAdt<Output | undefined>(path, toastFailure).then((requestResult) => {
-        if (requestResult.isOk() && requestResult.value === undefined) {
-            Snackbar.error(i18n.t('error.entity-not-found-on-path', { path }));
-            return Promise.reject(Error(`undefined return when querying ${path}`));
-        } else {
-            return requestResult as Result<Output, ApiErrorResponse>;
-        }
-    });
+): Promise<Result<Output, ApiErrorResponse | undefined>> {
+    return fetchNonNullAdt(path, 'GET', undefined);
 }
 
 export function getNullableAdt<Output>(
     path: string,
-    toastError = true,
 ): Promise<Result<Output | undefined, ApiErrorResponse>> {
-    return executeRequest<undefined, Output, WrappedApiErrorResponse>(
-        path,
-        undefined,
-        (e) => ({
-            [wrapApiErrorResponse]: e,
-        }),
-        'GET',
-    ).then((r) => {
-        if (isWrappedApiError(r)) {
-            if (toastError) {
-                Snackbar.error(i18n.t('error.request-failed', { path }));
-            }
-            return err(r[wrapApiErrorResponse]);
-        } else {
-            return ok(r);
-        }
-    });
+    return fetchNullableAdt(path, 'GET', undefined);
 }
 
-export async function postNullableResult<Input, Output>(
+export async function postNullable<Input, Output>(
     path: string,
     body: Input,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output | undefined> {
-    const requestResult = await executeRequest<Input, Output, WrappedApiErrorResponse>(
-        path,
-        body,
-        (error) => {
-            if (toastFailure) {
-                Snackbar.error(i18n.t('error.request-failed', { path }));
-            }
-
-            return { [wrapApiErrorResponse]: error };
-        },
-        'POST',
-    );
-
-    return isWrappedApiError(requestResult)
-        ? Promise.reject(requestResult[wrapApiErrorResponse])
-        : requestResult;
+    return fetchNullable(path, 'POST', body, toastFailure);
 }
 
-export async function postNonNullResult<Input, Output>(
+export async function postNonNull<Input, Output>(
     path: string,
     body: Input,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output> {
-    const result = await postNullableResult<Input, Output>(path, body, toastFailure);
-
-    if (result === undefined) {
-        Snackbar.error('Expected non-null result but got null');
-
-        return Promise.reject(new Error('Expected non-null result but got null'));
-    } else {
-        return result;
-    }
+    return fetchNonNull(path, 'POST', body, toastFailure);
 }
 
-export async function postNonNullAdtResult<Input, Output>(
+export async function postNonNullAdt<Input, Output>(
     path: string,
     body: Input,
 ): Promise<Result<Output, ApiErrorResponse | undefined>> {
-    const requestResult = await postNullableAdtResult<Input, Output>(path, body);
-
-    if (requestResult.isOk() && requestResult.value === undefined) {
-        Snackbar.error('Expected non-null result but got null');
-
-        return err(undefined);
-    } else {
-        return requestResult as Result<Output, ApiErrorResponse>;
-    }
+    return fetchNonNullAdt<Input, Output>(path, 'POST', body);
 }
 
-export async function postNullableAdtResult<Input, Output>(
+export async function postNullableAdt<Input, Output>(
     path: string,
     body: Input,
 ): Promise<Result<Output | undefined, ApiErrorResponse>> {
-    const r = await executeRequest<Input, Output, WrappedApiErrorResponse>(
-        path,
-        body,
-        (e) => {
-            return { [wrapApiErrorResponse]: e };
-        },
-        'POST',
-    );
-
-    return isWrappedApiError(r) ? err(r[wrapApiErrorResponse]) : ok(r);
+    return fetchNullableAdt<Input, Output>(path, 'POST', body);
 }
 
-export async function postFormNonNullAdtResult<Output>(
+export async function postFormNonNullAdt<Output>(
     path: string,
     data: FormData,
 ): Promise<Result<Output, ApiErrorResponse | undefined>> {
-    const r = await executeBodyRequestInternal<Output>(
-        () => getFormResponse(path, data, 'POST'),
-        true,
-    );
-
-    if (r.isOk() && r.value === undefined) {
-        Snackbar.error('Expected non-null result but got null');
-
-        return err(undefined);
-    } else {
-        return r as Result<Output, ApiErrorResponse>;
-    }
+    return fetchFormNonNullAdt<Output>(path, 'POST', data);
 }
 
 export async function putNullable<Input, Output>(
     path: string,
     body: Input,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output | undefined> {
     return fetchNullable(path, 'PUT', body, toastFailure);
 }
@@ -238,7 +134,7 @@ export async function putNullable<Input, Output>(
 export async function putNonNull<Input, Output>(
     path: string,
     body: Input,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output> {
     return fetchNonNull(path, 'PUT', body, toastFailure);
 }
@@ -266,12 +162,15 @@ export async function putFormNonNullAdt<Output>(
 
 export async function deleteNullable<Output>(
     path: string,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output | undefined> {
     return fetchNullable(path, 'DELETE', undefined, toastFailure);
 }
 
-export async function deleteNonNull<Output>(path: string, toastFailure = true): Promise<Output> {
+export async function deleteNonNull<Output>(
+    path: string,
+    toastFailure: boolean = true,
+): Promise<Output> {
     return fetchNonNull(path, 'DELETE', undefined, toastFailure);
 }
 
@@ -297,13 +196,7 @@ async function fetchNullable<Input, Output>(
     const result = await fetchNullableAdt<Input, Output>(path, method, body);
 
     if (result.isErr() && toastFailure) {
-        const apiError = result.error;
-
-        if (apiError.localizedMessageKey) {
-            Snackbar.error(i18n.t(apiError.localizedMessageKey, apiError.localizedMessageParams));
-        } else {
-            Snackbar.error(i18n.t('error.request-failed', { path }));
-        }
+        showHttpError(path, result.error);
     }
 
     return result.isOk() ? result.value : Promise.reject(result.error);
@@ -313,18 +206,12 @@ async function fetchNonNull<Input, Output>(
     path: string,
     method: HttpMethod,
     body: Input,
-    toastFailure = true,
+    toastFailure: boolean = true,
 ): Promise<Output> {
     const result = await fetchNonNullAdt<Input, Output>(path, method, body);
 
     if (result.isErr() && result.error && toastFailure) {
-        const apiError = result.error;
-
-        if (apiError.localizedMessageKey) {
-            Snackbar.error(i18n.t(apiError.localizedMessageKey, apiError.localizedMessageParams));
-        } else {
-            Snackbar.error(i18n.t('error.request-failed', { path }));
-        }
+        showHttpError(path, result.error);
     }
 
     return result.isOk() ? result.value : Promise.reject(result.error);
@@ -389,28 +276,11 @@ async function executeRequest<Input, Output, ErrorOutput>(
     method: HttpMethod,
 ): Promise<Output | ErrorOutput | undefined> {
     const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
-        () => getResponse(path, data, method),
+        () => getJsonResponse(path, data, method),
         true,
     );
     if (result.isOk()) return result.value;
     else return errorHandler(result.error);
-}
-
-async function _executeBodyRequestAdt<Input, Output>(
-    path: string,
-    data: Input | undefined,
-    method: HttpMethod,
-    showErrorMessage = false,
-): Promise<Result<Output | undefined, ApiErrorResponse>> {
-    const result: Result<Output | undefined, ApiErrorResponse> = await executeBodyRequestInternal(
-        () => getResponse(path, data, method),
-        true,
-    );
-
-    if (showErrorMessage) {
-        result.mapErr((errorResponse: ApiErrorResponse) => showHttpError(errorResponse));
-    }
-    return result;
 }
 
 async function executeBodyRequestInternal<Output>(
@@ -457,7 +327,7 @@ async function getFormResponse(
     });
 }
 
-async function getResponse<Input>(
+async function getJsonResponse<Input>(
     path: string,
     data: Input | undefined,
     method: HttpMethod,
@@ -497,10 +367,12 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
     }
 }
 
-const showHttpError = (response: ApiErrorResponse) => {
+const showHttpError = (path: string, response: ApiErrorResponse) => {
     const msg =
         response.localizedMessageKey &&
         i18n.t(response.localizedMessageKey, response.localizedMessageParams);
+
     const content = msg || response.messageRows.map((r) => `${r}`).join('\n');
-    Snackbar.error(`Request failed (${response.status})`, `${content}`);
+
+    Snackbar.error(i18n.t('error.request-failed', { path }), content);
 };

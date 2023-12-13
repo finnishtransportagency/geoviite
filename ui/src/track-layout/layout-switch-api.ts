@@ -9,7 +9,7 @@ import {
     deleteNonNull,
     getNonNull,
     getNullable,
-    postNonNullAdtResult,
+    postNonNullAdt,
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
@@ -106,7 +106,7 @@ export async function getSwitchJointConnections(
 export async function insertSwitch(
     newSwitch: TrackLayoutSwitchSaveRequest,
 ): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await postNonNullAdtResult<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const apiResult = await postNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', 'DRAFT'),
         newSwitch,
     );
