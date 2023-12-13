@@ -58,6 +58,10 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
+    const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
+    const [descriptionCommitted, setDescriptionCommitted] = React.useState(
+        split.descriptionBase !== '',
+    );
 
     const duplicateLocationTrack = useLocationTrack(
         duplicateOf,
@@ -65,8 +69,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         getChangeTimes().layoutLocationTrack,
     );
 
-    const hasNameRemarks = duplicateOf || nameErrors.length > 0;
-    const hasDescriptionRemarks = descriptionErrors.length > 0;
+    const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
+    const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;
 
     return (
         <div className={styles['location-track-infobox__split-container']}>
@@ -85,10 +89,10 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
                         label={t('tool-panel.location-track.track-name')}
-                        hasErrors={nameErrors.length > 0}>
+                        hasErrors={nameErrorsVisible}>
                         <TextField
                             value={split.name}
-                            hasError={nameErrors.length > 0}
+                            hasError={nameErrorsVisible}
                             onChange={(e) => {
                                 const duplicateId = duplicateLocationTracks.find(
                                     (lt) => lt.name === e.target.value,
@@ -98,34 +102,38 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     name: e.target.value,
                                     duplicateOf: duplicateId,
                                 });
+                                setNameCommitted(true);
                             }}
                         />
                     </InfoboxField>
-                    {hasNameRemarks && (
+                    {(duplicateOf || nameErrorsVisible) && (
                         <InfoboxField
                             className={createClassName(
                                 styles['location-track-infobox__split-remark'],
                             )}
-                            hasErrors={nameErrors.length > 0}
+                            hasErrors={nameErrorsVisible}
                             label={''}>
-                            {duplicateOf && (
+                            {!nameErrorsVisible && duplicateOf && (
                                 <InfoboxText
                                     value={t(
                                         'tool-panel.location-track.splitting.replaces-duplicate',
                                     )}
                                 />
                             )}
-                            {nameErrors.map((error, index) => (
-                                <InfoboxText
-                                    value={t(`tool-panel.location-track.splitting.${error.reason}`)}
-                                    key={index.toString()}
-                                />
-                            ))}
+                            {nameErrorsVisible &&
+                                nameErrors.map((error, index) => (
+                                    <InfoboxText
+                                        value={t(
+                                            `tool-panel.location-track.splitting.${error.reason}`,
+                                        )}
+                                        key={index.toString()}
+                                    />
+                                ))}
                         </InfoboxField>
                     )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        hasErrors={descriptionErrors.length > 0}
+                        hasErrors={descriptionErrorsVisible}
                         label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
                             value={
@@ -133,26 +141,30 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     ? duplicateLocationTrack.descriptionBase
                                     : split.descriptionBase
                             }
-                            hasError={descriptionErrors.length > 0}
+                            hasError={descriptionErrorsVisible}
                             disabled={!!duplicateOf}
-                            onChange={(e) =>
-                                updateSplit({ ...split, descriptionBase: e.target.value })
-                            }
+                            onChange={(e) => {
+                                updateSplit({ ...split, descriptionBase: e.target.value });
+                                setDescriptionCommitted(true);
+                            }}
                         />
                     </InfoboxField>
-                    {hasDescriptionRemarks && (
+                    {descriptionErrorsVisible && (
                         <InfoboxField
                             className={createClassName(
                                 styles['location-track-infobox__split-remark'],
                             )}
-                            hasErrors={descriptionErrors.length > 0}
+                            hasErrors={descriptionErrorsVisible}
                             label={''}>
-                            {descriptionErrors.map((error, index) => (
-                                <InfoboxText
-                                    value={t(`tool-panel.location-track.splitting.${error.reason}`)}
-                                    key={index.toString()}
-                                />
-                            ))}
+                            {descriptionErrorsVisible &&
+                                descriptionErrors.map((error, index) => (
+                                    <InfoboxText
+                                        value={t(
+                                            `tool-panel.location-track.splitting.${error.reason}`,
+                                        )}
+                                        key={index.toString()}
+                                    />
+                                ))}
                         </InfoboxField>
                     )}
                     <InfoboxField

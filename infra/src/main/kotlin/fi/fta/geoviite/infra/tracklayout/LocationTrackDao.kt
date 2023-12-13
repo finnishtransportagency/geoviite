@@ -316,6 +316,7 @@ class LocationTrackDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<RowVersion<LocationTrack>> {
+        val namess = names.map { name -> name.toString().lowercase() }.joinToString(",")
         val sql = """
             select lt.row_id, lt.row_version 
             from layout.location_track_publication_view lt
@@ -329,7 +330,7 @@ class LocationTrackDao(
             "track_number_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
             "include_deleted" to includeDeleted,
-            "names" to names.map { name -> name.toString().lowercase() }.joinToString { "," },
+            "names" to namess,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")

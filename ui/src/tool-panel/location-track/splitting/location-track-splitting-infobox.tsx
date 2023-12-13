@@ -56,7 +56,7 @@ const validateSplitName = (
             reason: 'validation.required',
             type: ValidationErrorType.ERROR,
         });
-    if (allSplitNames.filter((s) => s === splitName).length > 1)
+    if (allSplitNames.filter((s) => s !== '' && s === splitName).length > 1)
         errors.push({
             field: 'name',
             reason: 'validation.conflicts-with-split',
@@ -131,6 +131,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
         descriptionErrors: validateSplitDescription(s.descriptionBase, s.duplicateOf),
     }));
 
+    const anyErrors =
+        initialSplitValidated.nameErrors.length > 0 ||
+        initialSplitValidated.descriptionErrors.length > 0 ||
+        splitsValidated.some((s) => s.nameErrors.length > 0 || s.descriptionErrors.length > 0);
+
     return (
         <React.Fragment>
             {startAndEnd?.start && startAndEnd?.end && locationTrack && (
@@ -148,10 +153,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                             nameErrors={initialSplitValidated.nameErrors}
                             descriptionErrors={initialSplitValidated.descriptionErrors}
                         />
-                        {splitsValidated.map(({ split, nameErrors, descriptionErrors }, index) => {
+                        {splitsValidated.map(({ split, nameErrors, descriptionErrors }) => {
                             return (
                                 <LocationTrackSplit
-                                    key={index.toString()}
+                                    key={`${split.location.x}_${split.location.y}`}
                                     split={split}
                                     address={getSplitLocation(split)}
                                     onRemove={removeSplit}
@@ -178,7 +183,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
                                 onClick={cancelSplitting}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button size={ButtonSize.SMALL}>
+                            <Button size={ButtonSize.SMALL} disabled={anyErrors}>
                                 {t('tool-panel.location-track.splitting.confirm-split')}
                             </Button>
                         </InfoboxButtons>
