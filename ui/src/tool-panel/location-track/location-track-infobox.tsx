@@ -63,7 +63,7 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
-import { LocationTrackSplittingInfobox } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
+import { LocationTrackSplittingInfoboxContainer } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackOwners } from 'common/common-api';
 
@@ -319,7 +319,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {splittingState && (
-                <LocationTrackSplittingInfobox
+                <LocationTrackSplittingInfoboxContainer
                     visibilities={visibilities}
                     visibilityChange={visibilityChange}
                     initialSplit={splittingState.initialSplit}

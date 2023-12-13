@@ -7,6 +7,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import {
+    AlignmentStartAndEnd,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackDuplicate,
     LocationTrackId,
@@ -30,7 +32,7 @@ import {
 } from 'tool-panel/location-track/splitting/location-track-split';
 import { filterNotEmpty } from 'utils/array-utils';
 
-type LocationTrackInfoboxSplittingProps = {
+type LocationTrackSplittingInfoboxContainerProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
@@ -39,6 +41,21 @@ type LocationTrackInfoboxSplittingProps = {
     allowedSwitches: SwitchOnLocationTrack[];
     removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrackId: string;
+    cancelSplitting: () => void;
+    updateSplit: (updatedSplit: Split | InitialSplit) => void;
+};
+
+type LocationTrackSplittingInfoboxProps = {
+    duplicateLocationTracks: LocationTrackDuplicate[];
+    visibilities: LocationTrackInfoboxVisibilities;
+    visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
+    initialSplit: InitialSplit;
+    splits: Split[];
+    allowedSwitches: SwitchOnLocationTrack[];
+    removeSplit: (switchId: LayoutSwitchId) => void;
+    locationTrack: LayoutLocationTrack;
+    conflictingLocationTracks: string[];
+    startAndEnd: AlignmentStartAndEnd;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
 };
@@ -86,40 +103,76 @@ const validateSplitDescription = (
     return errors;
 };
 
-export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplittingProps> = ({
+export const LocationTrackSplittingInfoboxContainer: React.FC<
+    LocationTrackSplittingInfoboxContainerProps
+> = ({
+    locationTrackId,
+    initialSplit,
+    splits,
     duplicateLocationTracks,
     visibilities,
     visibilityChange,
-    locationTrackId,
+    allowedSwitches,
+    removeSplit,
+    cancelSplitting,
+    updateSplit,
+}) => {
+    const locationTrack = useLocationTrack(locationTrackId, 'DRAFT');
+    const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
+    const conflictingTracks = useConflictingTracks(
+        locationTrack?.trackNumberId,
+        [initialSplit, ...splits].map((s) => s.name),
+        [initialSplit, ...splits].map((s) => s.duplicateOf).filter(filterNotEmpty),
+        'DRAFT',
+    );
+
+    return (
+        locationTrack &&
+        startAndEnd &&
+        conflictingTracks !== undefined && (
+            <LocationTrackSplittingInfobox
+                duplicateLocationTracks={duplicateLocationTracks}
+                visibilities={visibilities}
+                visibilityChange={visibilityChange}
+                initialSplit={initialSplit}
+                splits={splits}
+                allowedSwitches={allowedSwitches}
+                removeSplit={removeSplit}
+                cancelSplitting={cancelSplitting}
+                updateSplit={updateSplit}
+                startAndEnd={startAndEnd}
+                conflictingLocationTracks={conflictingTracks.map((t) => t.name)}
+                locationTrack={locationTrack}
+            />
+        )
+    );
+};
+
+export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
+    duplicateLocationTracks,
+    visibilities,
+    visibilityChange,
     initialSplit,
     splits,
     allowedSwitches,
     removeSplit,
     cancelSplitting,
     updateSplit,
+    startAndEnd,
+    conflictingLocationTracks,
+    locationTrack,
 }) => {
     const { t } = useTranslation();
-    const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
-    const locationTrack = useLocationTrack(locationTrackId, 'DRAFT');
-
     const getSplitLocation = (split: Split) =>
         allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
 
     const sortedSplits = sortSplitsByDistance(splits);
 
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
-    const conflictingTracks = (
-        useConflictingTracks(
-            locationTrack?.trackNumberId,
-            allSplitNames,
-            [initialSplit, ...splits].map((s) => s.duplicateOf).filter(filterNotEmpty),
-            'DRAFT',
-        ) || []
-    ).map((t) => t.name);
 
     const initialSplitValidated = {
         split: initialSplit,
-        nameErrors: validateSplitName(initialSplit.name, allSplitNames, conflictingTracks),
+        nameErrors: validateSplitName(initialSplit.name, allSplitNames, conflictingLocationTracks),
         descriptionErrors: validateSplitDescription(
             initialSplit.descriptionBase,
             initialSplit.duplicateOf,
@@ -127,7 +180,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackInfoboxSplitti
     };
     const splitsValidated = sortedSplits.map((s) => ({
         split: s,
-        nameErrors: validateSplitName(s.name, allSplitNames, conflictingTracks),
+        nameErrors: validateSplitName(s.name, allSplitNames, conflictingLocationTracks),
         descriptionErrors: validateSplitDescription(s.descriptionBase, s.duplicateOf),
     }));
 
