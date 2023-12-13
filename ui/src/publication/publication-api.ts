@@ -1,6 +1,6 @@
 import {
     API_URI,
-    deleteAdt,
+    deleteNonNullAdt,
     getNonNull,
     Page,
     postNonNullResult,
@@ -33,7 +33,7 @@ export const validatePublishCandidates = (request: PublishRequestIds) =>
     );
 
 export const revertCandidates = (request: PublishRequestIds) =>
-    deleteAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
+    deleteNonNullAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request);
 
 export const publishCandidates = (request: PublishRequest) => {
     return postNonNullResult<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request);

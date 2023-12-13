@@ -7,7 +7,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import {
-    deleteAdt,
+    deleteNonNullAdt,
     getNonNull,
     getNullable,
     postNonNullAdtResult,
@@ -145,12 +145,13 @@ export async function updateKmPost(
 export const deleteDraftKmPost = async (
     id: LayoutKmPostId,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> => {
-    const apiResult = await deleteAdt<undefined, LayoutKmPostId>(
+    const apiResult = await deleteNonNullAdt<undefined, LayoutKmPostId>(
         layoutUri('km-posts', 'DRAFT', id),
         undefined,
-        true,
     );
-    updateKmPostChangeTime();
+
+    await updateKmPostChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],

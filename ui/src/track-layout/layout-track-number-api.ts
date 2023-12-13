@@ -6,7 +6,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
 import {
-    deleteAdt,
+    deleteNonNullAdt,
     getNonNull,
     getNullable,
     postNonNullResult,
@@ -75,9 +75,11 @@ export async function deleteTrackNumber(
     trackNumberId: LayoutTrackNumberId,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
     const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
-    const apiResult = await deleteAdt<undefined, LayoutTrackNumberId>(path, undefined, true);
-    updateTrackNumberChangeTime();
-    updateReferenceLineChangeTime();
+    const apiResult = await deleteNonNullAdt<undefined, LayoutTrackNumberId>(path, undefined);
+
+    await updateTrackNumberChangeTime();
+    await updateReferenceLineChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],

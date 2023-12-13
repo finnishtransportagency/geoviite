@@ -6,7 +6,7 @@ import {
     LayoutSwitchJointConnection,
 } from 'track-layout/track-layout-model';
 import {
-    deleteIgnoreError,
+    deleteNonNull,
     getNonNull,
     getNullable,
     postNonNullAdtResult,
@@ -139,11 +139,8 @@ export async function updateSwitch(
 export async function deleteDraftSwitch(
     switchId: LayoutSwitchId,
 ): Promise<LayoutSwitchId | undefined> {
-    return await deleteIgnoreError<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then(
-        (r) => {
-            updateSwitchChangeTime();
-            return r;
-        },
+    return await deleteNonNull<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then((r) =>
+        updateSwitchChangeTime().then((_) => r),
     );
 }
 

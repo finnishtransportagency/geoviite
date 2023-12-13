@@ -25,8 +25,6 @@ const createJsonHeaders = () => {
     return csrfToken ? { ...JSON_HEADERS, 'X-XSRF-TOKEN': csrfToken } : JSON_HEADERS;
 };
 
-export type ErrorHandler<T> = (response: ApiErrorResponse) => T;
-
 export type ApiError = {
     status: number;
     response: ApiErrorResponse;
@@ -46,15 +44,6 @@ export type Page<T> = {
     items: T[];
     start: number;
 };
-
-const ignoreErrorHandler = defaultValueErrorHandler(undefined);
-
-function defaultValueErrorHandler<T>(defaultValue: T): ErrorHandler<T> {
-    return (response: ApiErrorResponse): T => {
-        showHttpError(response);
-        return defaultValue;
-    };
-}
 
 export function queryParams(params: Record<string, unknown>): string {
     const stringifiedParameters = Object.keys(params)
@@ -275,23 +264,28 @@ export async function putFormNonNullAdt<Output>(
     return fetchFormNonNullAdt<Output>(path, 'PUT', data);
 }
 
-export async function deleteIgnoreError<Output>(path: string): Promise<Output | undefined> {
-    return executeRequest<undefined, Output, undefined>(
-        path,
-        undefined,
-        ignoreErrorHandler,
-        'DELETE',
-    );
+export async function deleteNullable<Output>(
+    path: string,
+    toastFailure = true,
+): Promise<Output | undefined> {
+    return fetchNullable(path, 'DELETE', undefined, toastFailure);
 }
 
-export async function deleteAdt<Input, Output>(
+export async function deleteNonNull<Output>(path: string, toastFailure = true): Promise<Output> {
+    return fetchNonNull(path, 'DELETE', undefined, toastFailure);
+}
+
+export async function deleteNonNullAdt<Input, Output>(
     path: string,
-    data: Input,
-    showErrorMessage = false,
-): Promise<Result<Output, ApiErrorResponse>> {
-    return await executeBodyRequestAdt<Input, Output>(path, data, 'DELETE', showErrorMessage).then(
-        verifyExistsAdt,
-    );
+    body: Input,
+): Promise<Result<Output, ApiErrorResponse | undefined>> {
+    return fetchNonNullAdt(path, 'DELETE', body);
+}
+
+export async function deleteNullableAdt<Output>(
+    path: string,
+): Promise<Result<Output | undefined, ApiErrorResponse>> {
+    return fetchNullableAdt(path, 'DELETE', undefined);
 }
 
 async function fetchNullable<Input, Output>(
@@ -402,7 +396,7 @@ async function executeRequest<Input, Output, ErrorOutput>(
     else return errorHandler(result.error);
 }
 
-async function executeBodyRequestAdt<Input, Output>(
+async function _executeBodyRequestAdt<Input, Output>(
     path: string,
     data: Input | undefined,
     method: HttpMethod,
@@ -473,17 +467,6 @@ async function getResponse<Input>(
         headers: createJsonHeaders(),
         ...(data !== undefined && { body: JSON.stringify(data) }),
     });
-}
-
-function verifyExistsAdt<Output, ErrorOutput>(
-    result: Result<Output | undefined, ErrorOutput>,
-): Result<Output, ErrorOutput> {
-    return result.map(verifyExists);
-}
-
-function verifyExists<Output>(result: Output | undefined): Output {
-    if (result != undefined) return result;
-    else throw Error('Response contained no body');
 }
 
 async function convertResponseToError(response: Response): Promise<ApiError> {
