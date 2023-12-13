@@ -333,7 +333,9 @@
         "description-suffix": "Kuvauksen lisäosa",
         "full-description": "Valmis kuvaus",
         "name-in-use": "Huomaa, että ratanumerolla on toinen sijaintiraide samalla tunnuksella",
-        "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä"
+        "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä",
+        "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu raide samalla tunnuksella",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
@@ -1444,7 +1446,9 @@
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
-        "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä"
+        "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
+        "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",
