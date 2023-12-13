@@ -246,7 +246,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             }
                             errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                <Link className={dialogStyles['dialog__alert']} onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}

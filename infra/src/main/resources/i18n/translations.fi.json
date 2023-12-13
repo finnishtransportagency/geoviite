@@ -1396,7 +1396,7 @@
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
-        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}"
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}."
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",
@@ -1475,7 +1475,7 @@
         "action": {
             "cancel": "Poistu",
             "save": "Tallenna",
-            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}"
+            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}."
         },
         "result": {
             "failed": "Ratanumeron tallennus epäonnistui.",
