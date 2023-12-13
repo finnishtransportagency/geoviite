@@ -113,7 +113,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 <InfoboxField
                     qaId="geometry-plan-track-number"
                     label={t('tool-panel.geometry-plan.track-number')}
-                    value={<TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />}
+                    value={
+                        planHeader.trackNumberId && (
+                            <TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />
+                        )
+                    }
                 />
                 <InfoboxField
                     qaId="geometry-plan-start-km"
