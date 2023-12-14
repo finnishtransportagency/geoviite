@@ -43,6 +43,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -185,14 +186,38 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         <InfoboxField
                             qaId="track-number-start-track-meter"
                             label={t('tool-panel.reference-line.start-location')}
-                            value={<TrackMeter value={startAndEndPoints?.start?.address} />}
+                            value={
+                                <TrackMeter
+                                    onClickAction={() =>
+                                        startAndEndPoints?.start &&
+                                        showArea(
+                                            calculateBoundingBoxToShowAroundLocation(
+                                                startAndEndPoints.start.point,
+                                            ),
+                                        )
+                                    }
+                                    trackMeter={startAndEndPoints?.start?.address}
+                                />
+                            }
                             onEdit={() => setShowEditDialog(true)}
                             iconDisabled={isOfficial}
                         />
                         <InfoboxField
                             qaId="track-number-end-track-meter"
                             label={t('tool-panel.reference-line.end-location')}
-                            value={<TrackMeter value={startAndEndPoints?.end?.address} />}
+                            value={
+                                <TrackMeter
+                                    onClickAction={() =>
+                                        startAndEndPoints?.end &&
+                                        showArea(
+                                            calculateBoundingBoxToShowAroundLocation(
+                                                startAndEndPoints.end.point,
+                                            ),
+                                        )
+                                    }
+                                    trackMeter={startAndEndPoints?.end?.address}
+                                />
+                            }
                         />
                         {linkingState === undefined && referenceLine && (
                             <WriteAccessRequired>
@@ -298,6 +323,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     viewport={viewport}
                     onHighlightItem={onHighlightItem}
                     changeTime={trackNumberChangeTime}
+                    showArea={showArea}
                 />
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (

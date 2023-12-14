@@ -158,3 +158,25 @@ class V10_03_06__SwitchLibraryDataMigration : BaseJavaMigration() {
     // Increase this manually when switch library data changes
     override fun getChecksum(): Int = 6
 }
+
+@Suppress("unused", "ClassName")
+class V53__add_rr54_4x_switch_structure : BaseJavaMigration() {
+    val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    override fun migrate(context: Context?) {
+        withUser(ImportUser.SWITCH_LIB_IMPORT) {
+            logger.info("Add RR54-4x1:9 structure into library")
+
+            val connection =
+                context?.connection ?: throw IllegalStateException("Can't run imports without DB connection")
+            val jdbcTemplate = NamedParameterJdbcTemplate(
+                SingleConnectionDataSource(connection, true)
+            )
+            val switchStructureDao = SwitchStructureDao(jdbcTemplate)
+            switchStructureDao.insertSwitchStructure(RR54_4x1_9())
+        }
+    }
+
+    // Increase this manually when switch library data changes
+    override fun getChecksum(): Int = 1
+}

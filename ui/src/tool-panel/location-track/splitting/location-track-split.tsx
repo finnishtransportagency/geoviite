@@ -5,27 +5,63 @@ import { getChangeTimes } from 'common/change-time-api';
 import { ValidationError } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
+import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import Infobox from 'tool-panel/infobox/infobox';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { TrackMeter as TrackMeterModel } from 'common/common-model';
 import {
+    AddressPoint,
     LayoutSwitchId,
     LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
+import InfoboxText from 'tool-panel/infobox/infobox-text';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import {
+    InitialSplit,
+    sortSplitsByDistance,
+    Split,
+    SwitchOnLocationTrack,
+} from 'tool-panel/location-track/split-store';
+import {
+    useLocationTrack,
+    useLocationTrackStartAndEnd,
+} from 'track-layout/track-layout-react-utils';
+import { getChangeTimes } from 'common/change-time-api';
+import { BoundingBox } from 'model/geometry';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_CLOSEUP_BBOX_OFFSET,
+} from 'map/map-utils';
+
+type LocationTrackInfoboxSplittingProps = {
+    duplicateLocationTracks: LocationTrackDuplicate[];
+    visibilities: LocationTrackInfoboxVisibilities;
+    visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
+    initialSplit: InitialSplit;
+    splits: Split[];
+    allowedSwitches: SwitchOnLocationTrack[];
+    removeSplit: (switchId: LayoutSwitchId) => void;
+    locationTrackId: string;
+    cancelSplitting: () => void;
+    updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    showArea: (boundingBox: BoundingBox) => void;
+};
 
 type EndpointProps = {
-    address: TrackMeterModel | undefined;
+    showArea: (boundingBox: BoundingBox) => void;
+    addressPoint: AddressPoint | undefined;
 };
 
 type SplitProps = EndpointProps & {
     split: Split | InitialSplit;
-    address: TrackMeter | undefined;
     onRemove?: (switchId: LayoutSwitchId) => void;
     duplicateLocationTracks?: LocationTrackDuplicate[];
     updateSplit: (updateSplit: Split | InitialSplit) => void;
@@ -48,13 +84,14 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({ addres
 
 export const LocationTrackSplit: React.FC<SplitProps> = ({
     split,
-    address,
+    addressPoint,
     onRemove,
     updateSplit,
     duplicateOf,
     nameErrors,
     descriptionErrors,
     duplicateLocationTracks = [],
+    showArea,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -84,7 +121,18 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 ? t('tool-panel.location-track.splitting.split-address')
                                 : t('tool-panel.location-track.splitting.start-address')
                         }>
-                        <TrackMeter value={address} />
+                        <TrackMeter
+                            onClickAction={() =>
+                                addressPoint?.point &&
+                                showArea(
+                                    calculateBoundingBoxToShowAroundLocation(
+                                        addressPoint.point,
+                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
+                                    ),
+                                )
+                            }
+                            trackMeter={addressPoint?.address}
+                        />
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}

@@ -81,6 +81,7 @@ private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, contex
     context.getAddress(point)?.let { (address, _) ->
         PlanSectionPoint(
             address = address,
+            location = point,
             m = alignment.getClosestPointM(point)?.first ?: throw IllegalArgumentException(
                 "Could not find closest point for $point"
             ),

@@ -66,6 +66,7 @@ import { createDelegates } from 'store/store-utils';
 import { LocationTrackSplittingInfoboxContainer } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackOwners } from 'common/common-api';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -333,6 +334,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     allowedSwitches={splittingState.allowedSwitches}
                     duplicateLocationTracks={extraInfo?.duplicates || []}
                     updateSplit={delegates.updateSplit}
+                    showArea={showArea}
                 />
             )}
             {startAndEndPoints && coordinateSystem && (
@@ -350,7 +352,17 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     qaId="location-track-start-track-meter"
                                     label={t('tool-panel.location-track.start-location')}>
                                     {startAndEndPoints?.start?.address ? (
-                                        <TrackMeter value={startAndEndPoints?.start?.address} />
+                                        <TrackMeter
+                                            onClickAction={() =>
+                                                startAndEndPoints?.start &&
+                                                showArea(
+                                                    calculateBoundingBoxToShowAroundLocation(
+                                                        startAndEndPoints.start.point,
+                                                    ),
+                                                )
+                                            }
+                                            trackMeter={startAndEndPoints.start.address}
+                                        />
                                     ) : (
                                         t('tool-panel.location-track.unset')
                                     )}
@@ -359,7 +371,17 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     qaId="location-track-end-track-meter"
                                     label={t('tool-panel.location-track.end-location')}>
                                     {startAndEndPoints?.end?.address ? (
-                                        <TrackMeter value={startAndEndPoints?.end?.address} />
+                                        <TrackMeter
+                                            onClickAction={() =>
+                                                startAndEndPoints.end &&
+                                                showArea(
+                                                    calculateBoundingBoxToShowAroundLocation(
+                                                        startAndEndPoints.end.point,
+                                                    ),
+                                                )
+                                            }
+                                            trackMeter={startAndEndPoints.end.address}
+                                        />
                                     ) : (
                                         t('tool-panel.location-track.unset')
                                     )}
@@ -498,6 +520,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 locationTrackId={locationTrack.id}
                 viewport={viewport}
                 onHighlightItem={onHighlightItem}
+                showArea={showArea}
             />
             <LocationTrackVerticalGeometryInfobox
                 contentVisible={visibilities.verticalGeometry}

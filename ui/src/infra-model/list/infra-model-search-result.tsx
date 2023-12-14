@@ -22,6 +22,7 @@ import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
 import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -328,27 +329,31 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td>{linkingSummaryDate(plan.id)}</td>
                                         <td>{linkingSummaryUsers(plan.id)}</td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <Button
-                                                title={t('im-form.download-file')}
-                                                onClick={() => downloadPlan(plan)}
-                                                variant={ButtonVariant.GHOST}
-                                                size={ButtonSize.SMALL}
-                                                icon={Icons.Download}
-                                            />
+                                            <PrivilegeRequired privilege="im-download">
+                                                <Button
+                                                    title={t('im-form.download-file')}
+                                                    onClick={() => downloadPlan(plan)}
+                                                    variant={ButtonVariant.GHOST}
+                                                    size={ButtonSize.SMALL}
+                                                    icon={Icons.Download}
+                                                />
+                                            </PrivilegeRequired>
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <Button
-                                                title={
-                                                    isCurrentlyLinked(plan.id)
-                                                        ? t('im-form.cannot-hide-file')
-                                                        : t('im-form.hide-file')
-                                                }
-                                                onClick={() => setConfirmHidePlan(plan)}
-                                                disabled={isCurrentlyLinked(plan.id) ?? true}
-                                                variant={ButtonVariant.GHOST}
-                                                size={ButtonSize.SMALL}
-                                                icon={Icons.Delete}
-                                            />
+                                            <PrivilegeRequired privilege="all-write">
+                                                <Button
+                                                    title={
+                                                        isCurrentlyLinked(plan.id)
+                                                            ? t('im-form.cannot-hide-file')
+                                                            : t('im-form.hide-file')
+                                                    }
+                                                    onClick={() => setConfirmHidePlan(plan)}
+                                                    disabled={isCurrentlyLinked(plan.id) ?? true}
+                                                    variant={ButtonVariant.GHOST}
+                                                    size={ButtonSize.SMALL}
+                                                    icon={Icons.Delete}
+                                                />
+                                            </PrivilegeRequired>
                                         </td>
                                         <td>
                                             {plan.message ? (
