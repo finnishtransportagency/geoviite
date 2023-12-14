@@ -7,6 +7,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import {
+    AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutSwitchId,
@@ -31,6 +32,11 @@ import {
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
 import { filterNotEmpty } from 'utils/array-utils';
+import { BoundingBox } from 'model/geometry';
+import {
+    validateLocationTrackDescriptionBase,
+    validateLocationTrackName,
+} from 'tool-panel/location-track/dialog/location-track-validation';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -43,6 +49,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
     locationTrackId: string;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    showArea: (boundingBox: BoundingBox) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -58,6 +65,7 @@ type LocationTrackSplittingInfoboxProps = {
     startAndEnd: AlignmentStartAndEnd;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    showArea: (boundingBox: BoundingBox) => void;
 };
 
 const validateSplitName = (
@@ -65,27 +73,21 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
-    const errors: ValidationError<Split>[] = [];
+    const errors: ValidationError<Split>[] = validateLocationTrackName(splitName);
 
-    if (splitName === '')
-        errors.push({
-            field: 'name',
-            reason: 'validation.required',
-            type: ValidationErrorType.ERROR,
-        });
     if (
         allSplitNames.filter((s) => s !== '' && s.toLowerCase() === splitName.toLowerCase())
             .length > 1
     )
         errors.push({
             field: 'name',
-            reason: 'validation.conflicts-with-split',
+            reason: 'conflicts-with-split',
             type: ValidationErrorType.ERROR,
         });
     if (conflictingTrackNames.map((t) => t.toLowerCase()).includes(splitName.toLowerCase())) {
         errors.push({
             field: 'name',
-            reason: 'validation.conflicts-with-track',
+            reason: 'conflicts-with-track',
             type: ValidationErrorType.ERROR,
         });
     }
@@ -96,11 +98,11 @@ const validateSplitDescription = (
     description: string,
     duplicateOf: LocationTrackId | undefined,
 ) => {
-    const errors: ValidationError<Split>[] = [];
+    const errors: ValidationError<Split>[] = validateLocationTrackDescriptionBase(description);
     if (!duplicateOf && description === '')
         errors.push({
             field: 'descriptionBase',
-            reason: 'validation.required',
+            reason: 'required',
             type: ValidationErrorType.ERROR,
         });
     return errors;
@@ -119,6 +121,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     removeSplit,
     cancelSplitting,
     updateSplit,
+    showArea,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT');
     const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
@@ -131,8 +134,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
 
     return (
         locationTrack &&
-        startAndEnd &&
-        conflictingTracks !== undefined && (
+        startAndEnd && (
             <LocationTrackSplittingInfobox
                 duplicateLocationTracks={duplicateLocationTracks}
                 visibilities={visibilities}
@@ -144,8 +146,9 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 cancelSplitting={cancelSplitting}
                 updateSplit={updateSplit}
                 startAndEnd={startAndEnd}
-                conflictingLocationTracks={conflictingTracks.map((t) => t.name)}
+                conflictingLocationTracks={conflictingTracks?.map((t) => t.name) || []}
                 locationTrack={locationTrack}
+                showArea={showArea}
             />
         )
     );
@@ -164,10 +167,21 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     startAndEnd,
     conflictingLocationTracks,
     locationTrack,
+    showArea,
 }) => {
     const { t } = useTranslation();
-    const getSplitLocation = (split: Split) =>
-        allowedSwitches.find((s) => s.switchId === split.switchId)?.address;
+    const getSplitAddressPoint = (split: Split): AddressPoint | undefined => {
+        const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
+
+        if (switchAtSplit?.location && switchAtSplit?.address) {
+            return {
+                point: { ...switchAtSplit.location, m: -1 },
+                address: switchAtSplit.address,
+            };
+        }
+
+        return undefined;
+    };
 
     const sortedSplits = sortSplitsByDistance(splits);
 
@@ -202,29 +216,34 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     <InfoboxContent className={styles['location-track-infobox__split']}>
                         <LocationTrackSplit
                             split={initialSplit}
-                            address={startAndEnd?.start?.address}
+                            addressPoint={startAndEnd?.start}
                             duplicateLocationTracks={duplicateLocationTracks}
                             updateSplit={updateSplit}
                             duplicateOf={initialSplit.duplicateOf}
                             nameErrors={initialSplitValidated.nameErrors}
                             descriptionErrors={initialSplitValidated.descriptionErrors}
+                            showArea={showArea}
                         />
                         {splitsValidated.map(({ split, nameErrors, descriptionErrors }) => {
                             return (
                                 <LocationTrackSplit
                                     key={`${split.location.x}_${split.location.y}`}
                                     split={split}
-                                    address={getSplitLocation(split)}
+                                    addressPoint={getSplitAddressPoint(split)}
                                     onRemove={removeSplit}
                                     duplicateLocationTracks={duplicateLocationTracks}
                                     updateSplit={updateSplit}
                                     duplicateOf={split.duplicateOf}
                                     nameErrors={nameErrors}
                                     descriptionErrors={descriptionErrors}
+                                    showArea={showArea}
                                 />
                             );
                         })}
-                        <LocationTrackSplittingEndpoint address={startAndEnd.end.address} />
+                        <LocationTrackSplittingEndpoint
+                            addressPoint={startAndEnd.end}
+                            showArea={showArea}
+                        />
                         {splits.length === 0 && (
                             <InfoboxContentSpread>
                                 <MessageBox>

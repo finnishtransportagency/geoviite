@@ -606,7 +606,9 @@
                 "validation": {
                     "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
                     "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
-                    "required": "Pakollinen kenttä"
+                    "mandatory-field": "Pakollinen kenttä",
+                    "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-name": "Virheellinen sijaintiraidetunnus"
                 }
             }
         },

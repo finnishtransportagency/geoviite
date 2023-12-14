@@ -57,6 +57,7 @@ import {
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
 import { deduplicate } from 'utils/array-utils';
+import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -227,18 +228,20 @@ export function useConflictingTracks(
     trackIds: LocationTrackId[],
     publishType: PublishType,
 ): LayoutLocationTrack[] | undefined {
-    const nonEmptyNames = trackNames.filter((name) => name.length > 0);
+    const properAlignmentNames = trackNames.filter(
+        (name) => validateLocationTrackName(name).length === 0,
+    );
     // Stringify to make sure React doesn't go nuts with deps changing every time
-    const asString = JSON.stringify(nonEmptyNames);
+    const namesString = JSON.stringify(properAlignmentNames);
     const trackIdsString = JSON.stringify(trackIds);
     return useLoader(
         () =>
-            trackNumberId === undefined || nonEmptyNames.length === 0
+            trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, trackNames, publishType).then((tracks) =>
-                      tracks.filter((t) => !trackIds.includes(t.id)),
+                : getLocationTracksByName(trackNumberId, properAlignmentNames, publishType).then(
+                      (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
                   ),
-        [trackNumberId, asString, trackIdsString, publishType],
+        [trackNumberId, namesString, trackIdsString, publishType],
     );
 }
 

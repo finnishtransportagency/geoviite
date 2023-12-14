@@ -5,10 +5,6 @@ import { getChangeTimes } from 'common/change-time-api';
 import { ValidationError } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import Infobox from 'tool-panel/infobox/infobox';
-import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -21,39 +17,12 @@ import {
     LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import InfoboxText from 'tool-panel/infobox/infobox-text';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import {
-    InitialSplit,
-    sortSplitsByDistance,
-    Split,
-    SwitchOnLocationTrack,
-} from 'tool-panel/location-track/split-store';
-import {
-    useLocationTrack,
-    useLocationTrackStartAndEnd,
-} from 'track-layout/track-layout-react-utils';
-import { getChangeTimes } from 'common/change-time-api';
+import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
 import { BoundingBox } from 'model/geometry';
 import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_CLOSEUP_BBOX_OFFSET,
 } from 'map/map-utils';
-
-type LocationTrackInfoboxSplittingProps = {
-    duplicateLocationTracks: LocationTrackDuplicate[];
-    visibilities: LocationTrackInfoboxVisibilities;
-    visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
-    initialSplit: InitialSplit;
-    splits: Split[];
-    allowedSwitches: SwitchOnLocationTrack[];
-    removeSplit: (switchId: LayoutSwitchId) => void;
-    locationTrackId: string;
-    cancelSplitting: () => void;
-    updateSplit: (updatedSplit: Split | InitialSplit) => void;
-    showArea: (boundingBox: BoundingBox) => void;
-};
 
 type EndpointProps = {
     showArea: (boundingBox: BoundingBox) => void;
@@ -70,13 +39,27 @@ type SplitProps = EndpointProps & {
     descriptionErrors: ValidationError<Split>[];
 };
 
-export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({ address }) => {
+export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
+    addressPoint,
+    showArea,
+}) => {
     const { t } = useTranslation();
     return (
         <div className={styles['location-track-infobox__split-container']}>
             <div className={styles['location-track-infobox__split-item-ball']} />
             <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
-                <TrackMeter value={address} />
+                <TrackMeter
+                    trackMeter={addressPoint?.address}
+                    onClickAction={() =>
+                        addressPoint?.point &&
+                        showArea(
+                            calculateBoundingBoxToShowAroundLocation(
+                                addressPoint.point,
+                                MAP_POINT_CLOSEUP_BBOX_OFFSET,
+                            ),
+                        )
+                    }
+                />
             </InfoboxField>
         </div>
     );
@@ -150,6 +133,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     name: e.target.value,
                                     duplicateOf: duplicateId,
                                 });
+                            }}
+                            onBlur={() => {
                                 setNameCommitted(true);
                             }}
                         />
@@ -172,7 +157,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 nameErrors.map((error, index) => (
                                     <InfoboxText
                                         value={t(
-                                            `tool-panel.location-track.splitting.${error.reason}`,
+                                            `tool-panel.location-track.splitting.validation.${error.reason}`,
                                         )}
                                         key={index.toString()}
                                     />
@@ -193,6 +178,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             disabled={!!duplicateOf}
                             onChange={(e) => {
                                 updateSplit({ ...split, descriptionBase: e.target.value });
+                            }}
+                            onBlur={() => {
                                 setDescriptionCommitted(true);
                             }}
                         />
@@ -208,7 +195,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 descriptionErrors.map((error, index) => (
                                     <InfoboxText
                                         value={t(
-                                            `tool-panel.location-track.splitting.${error.reason}`,
+                                            `tool-panel.location-track.splitting.validation.${error.reason}`,
                                         )}
                                         key={index.toString()}
                                     />
