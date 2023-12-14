@@ -3,35 +3,24 @@ import styles from './switch-infobox.scss';
 import { SwitchJointTrackMeter } from 'track-layout/track-layout-model';
 import { JointNumber } from 'common/common-model';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { groupBy } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
-import { BoundingBox } from 'model/geometry';
-import {
-    calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_CLOSEUP_BBOX_OFFSET,
-} from 'map/map-utils';
+import { MAP_POINT_CLOSEUP_BBOX_OFFSET } from 'map/map-utils';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 const formatJointTrackMeter = (
     jointTrackMeter: SwitchJointTrackMeter,
     addressPlaceHolder: string,
-    showArea: (area: BoundingBox) => void,
 ) => {
     return (
         <span>
             {jointTrackMeter.trackMeter && (
-                <TrackMeter
-                    onClickAction={() =>
-                        showArea(
-                            calculateBoundingBoxToShowAroundLocation(
-                                jointTrackMeter.location,
-                                MAP_POINT_CLOSEUP_BBOX_OFFSET,
-                            ),
-                        )
-                    }
+                <NavigableTrackMeter
                     trackMeter={jointTrackMeter.trackMeter}
+                    location={jointTrackMeter.location}
+                    mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
                     placeholder={addressPlaceHolder}
                 />
             )}
@@ -47,13 +36,11 @@ const formatJointTrackMeter = (
 export type SwitchInfoboxTrackMetersProps = {
     jointTrackMeters: SwitchJointTrackMeter[];
     presentationJoint?: JointNumber;
-    showArea: (area: BoundingBox) => void;
 };
 
 export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> = ({
     jointTrackMeters,
     presentationJoint,
-    showArea,
 }: SwitchInfoboxTrackMetersProps) => {
     const { t } = useTranslation();
 
@@ -82,7 +69,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                         <li
                             key={pja.locationTrackId}
                             className={styles['switch-infobox-track-meters__track-meter']}>
-                            {formatJointTrackMeter(pja, addressMissingText, showArea)}
+                            {formatJointTrackMeter(pja, addressMissingText)}
                         </li>
                     ))}
                 </ol>
@@ -104,7 +91,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                                         className={
                                             styles['switch-infobox-track-meters__track-meter']
                                         }>
-                                        {formatJointTrackMeter(a, addressMissingText, showArea)}
+                                        {formatJointTrackMeter(a, addressMissingText)}
                                     </li>
                                 ))}
                             </ol>

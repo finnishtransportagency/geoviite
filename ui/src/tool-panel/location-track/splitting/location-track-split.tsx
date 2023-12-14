@@ -5,7 +5,6 @@ import { getChangeTimes } from 'common/change-time-api';
 import { ValidationError } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
@@ -18,14 +17,10 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
-import { BoundingBox } from 'model/geometry';
-import {
-    calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_CLOSEUP_BBOX_OFFSET,
-} from 'map/map-utils';
+import { MAP_POINT_CLOSEUP_BBOX_OFFSET } from 'map/map-utils';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type EndpointProps = {
-    showArea: (boundingBox: BoundingBox) => void;
     addressPoint: AddressPoint | undefined;
 };
 
@@ -39,26 +34,16 @@ type SplitProps = EndpointProps & {
     descriptionErrors: ValidationError<Split>[];
 };
 
-export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
-    addressPoint,
-    showArea,
-}) => {
+export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({ addressPoint }) => {
     const { t } = useTranslation();
     return (
         <div className={styles['location-track-infobox__split-container']}>
             <div className={styles['location-track-infobox__split-item-ball']} />
             <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
-                <TrackMeter
+                <NavigableTrackMeter
                     trackMeter={addressPoint?.address}
-                    onClickAction={() =>
-                        addressPoint?.point &&
-                        showArea(
-                            calculateBoundingBoxToShowAroundLocation(
-                                addressPoint.point,
-                                MAP_POINT_CLOSEUP_BBOX_OFFSET,
-                            ),
-                        )
-                    }
+                    location={addressPoint?.point}
+                    mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
                 />
             </InfoboxField>
         </div>
@@ -74,7 +59,6 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     nameErrors,
     descriptionErrors,
     duplicateLocationTracks = [],
-    showArea,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -104,17 +88,10 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 ? t('tool-panel.location-track.splitting.split-address')
                                 : t('tool-panel.location-track.splitting.start-address')
                         }>
-                        <TrackMeter
-                            onClickAction={() =>
-                                addressPoint?.point &&
-                                showArea(
-                                    calculateBoundingBoxToShowAroundLocation(
-                                        addressPoint.point,
-                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
-                                    ),
-                                )
-                            }
+                        <NavigableTrackMeter
                             trackMeter={addressPoint?.address}
+                            location={addressPoint?.point}
+                            mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
                         />
                     </InfoboxField>
                     <InfoboxField

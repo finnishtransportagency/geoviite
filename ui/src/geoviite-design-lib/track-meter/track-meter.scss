@@ -1,7 +1,12 @@
 @use 'vayla-design-lib' as vayla-design;
 
+.track-meter-value-container {
+    display: inline-flex;
+    align-items: center;
+}
+
 .position-pin-container {
+    display: flex;
     cursor: pointer;
-    margin: 0 2px;
-    padding: 4px;
+    padding: 0 4px;
 }
