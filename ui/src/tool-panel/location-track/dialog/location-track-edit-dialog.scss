@@ -11,6 +11,10 @@
 
     &__alert {
       @include vayla-design.typography-caption;
+    }
+
+    &__alert-color {
+      @include vayla-design.typography-caption;
       color: vayla-design.$color-lemon-dark;
     }
 

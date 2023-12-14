@@ -142,3 +142,7 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
         }
     }
 }
+
+.dialog__alert {
+    @include typography.typography-caption;
+}
