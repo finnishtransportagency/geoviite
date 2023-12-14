@@ -26,6 +26,7 @@ import {
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -161,22 +162,26 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <a
-                    qa-id="vertical-geometry-csv-download"
-                    {...(state.searchParameters.locationTrack && {
-                        href: getLocationTrackVerticalGeometryCsv(
-                            state.searchParameters.locationTrack?.id,
-                            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-                        ),
-                    })}>
-                    <Button
-                        className={styles['element-list__download-button']}
-                        disabled={!state.verticalGeometry || state.verticalGeometry.length === 0}
-                        icon={Icons.Download}>
-                        {t(`data-products.search.download-csv`)}
-                    </Button>
-                </a>
+                <PrivilegeRequired privilege="dataproduct-download">
+                    <a
+                        qa-id="vertical-geometry-csv-download"
+                        {...(state.searchParameters.locationTrack && {
+                            href: getLocationTrackVerticalGeometryCsv(
+                                state.searchParameters.locationTrack?.id,
+                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                            ),
+                        })}>
+                        <Button
+                            className={styles['element-list__download-button']}
+                            disabled={
+                                !state.verticalGeometry || state.verticalGeometry.length === 0
+                            }
+                            icon={Icons.Download}>
+                            {t(`data-products.search.download-csv`)}
+                        </Button>
+                    </a>
+                </PrivilegeRequired>
             </div>
         </React.Fragment>
     );

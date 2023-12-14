@@ -19,7 +19,6 @@ import { updatePVDocumentsChangeTime } from 'common/change-time-api';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Oid, TimeStamp } from 'common/common-model';
-import { Link } from 'vayla-design-lib/link/link';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
@@ -32,6 +31,7 @@ import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
+import { PrivilegedLink } from 'user/privileged-link';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -408,11 +408,12 @@ const PVFileListRow = ({
                 </td>
                 <td>{item.project && item.project.name}</td>
                 <td>
-                    <Link
+                    <PrivilegedLink
+                        privilege="inframodel-download"
                         className={styles['projektivelho-file-list__link']}
                         href={projektivelhoDocumentDownloadUri(item.document.id)}>
                         {item.document.name}
-                    </Link>
+                    </PrivilegedLink>
                 </td>
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>

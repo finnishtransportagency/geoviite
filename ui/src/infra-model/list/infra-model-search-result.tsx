@@ -329,7 +329,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td>{linkingSummaryDate(plan.id)}</td>
                                         <td>{linkingSummaryUsers(plan.id)}</td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege="im-download">
+                                            <PrivilegeRequired privilege="inframodel-download">
                                                 <Button
                                                     title={t('im-form.download-file')}
                                                     onClick={() => downloadPlan(plan)}

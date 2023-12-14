@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_PUBLICATION_DOWNLOAD
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -123,7 +124,7 @@ class PublicationController @Autowired constructor(
         )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_PUBLICATION_DOWNLOAD)
     @GetMapping("csv")
     fun getPublicationsAsCsv(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,

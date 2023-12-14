@@ -1,0 +1,21 @@
+import * as React from 'react';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { PrivilegeCode } from './user-model';
+import { Link } from 'vayla-design-lib/link/link';
+
+type PrivilegedLinkProps = {
+    privilege: PrivilegeCode;
+    children: React.ReactNode;
+} & React.HTMLProps<HTMLAnchorElement>;
+
+export const PrivilegedLink: React.FC<PrivilegedLinkProps> = (props: PrivilegedLinkProps) => {
+    const userHasPrivilege = useCommonDataAppSelector((state) =>
+        state.userPrivileges.some((p) => p.code === props.privilege),
+    );
+
+    if (userHasPrivilege) {
+        return <Link {...props}>{props.children}</Link>;
+    } else {
+        return <React.Fragment>{props.children}</React.Fragment>;
+    }
+};

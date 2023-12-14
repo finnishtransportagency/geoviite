@@ -1,6 +1,11 @@
 export type UserId = string;
 export type RoleCode = 'operator' | 'browser';
-export type PrivilegeCode = 'all-write' | 'all-read' | 'im-download';
+export type PrivilegeCode =
+    | 'all-write'
+    | 'ui-read'
+    | 'inframodel-download'
+    | 'dataproduct-download'
+    | 'publications-download';
 
 export type User = {
     details: UserDetails;

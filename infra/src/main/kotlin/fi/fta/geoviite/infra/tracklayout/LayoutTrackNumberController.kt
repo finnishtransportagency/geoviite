@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_DATAPRODUCT_DOWNLOAD
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -13,7 +14,6 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -115,7 +115,7 @@ class LayoutTrackNumberController(
         return trackNumberService.getKmLengths(publishType, id) ?: emptyList()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/{publishType}/{id}/km-lengths/as-csv")
     fun getTrackNumberKmLengthsAsCsv(
         @PathVariable("publishType") publishType: PublishType,
@@ -141,7 +141,7 @@ class LayoutTrackNumberController(
         return getCsvResponseEntity(csv, fileName)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/rail-network/km-lengths/file")
     fun getEntireRailNetworkKmLengthsAsCsv(
         @RequestParam(name = "lang", defaultValue = "fi") lang: String,

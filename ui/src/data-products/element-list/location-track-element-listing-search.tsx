@@ -25,6 +25,7 @@ import {
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -221,27 +222,29 @@ const LocationTrackElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <a
-                    qa-id={'location-track-element-list-csv-download'}
-                    {...(state.searchParameters.locationTrack && {
-                        href: getLocationTrackElementsCsv(
-                            state.searchParameters.locationTrack?.id,
-                            selectedElementTypes(state.searchParameters.searchGeometries),
-                            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-                        ),
-                    })}>
-                    <Button
-                        className={styles['element-list__download-button']}
-                        disabled={
-                            !state.elements ||
-                            state.elements.length === 0 ||
-                            state.searchParameters.locationTrack === undefined
-                        }
-                        icon={Icons.Download}>
-                        {t(`data-products.search.download-csv`)}
-                    </Button>
-                </a>
+                <PrivilegeRequired privilege="dataproduct-download">
+                    <a
+                        qa-id={'location-track-element-list-csv-download'}
+                        {...(state.searchParameters.locationTrack && {
+                            href: getLocationTrackElementsCsv(
+                                state.searchParameters.locationTrack?.id,
+                                selectedElementTypes(state.searchParameters.searchGeometries),
+                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                            ),
+                        })}>
+                        <Button
+                            className={styles['element-list__download-button']}
+                            disabled={
+                                !state.elements ||
+                                state.elements.length === 0 ||
+                                state.searchParameters.locationTrack === undefined
+                            }
+                            icon={Icons.Download}>
+                            {t(`data-products.search.download-csv`)}
+                        </Button>
+                    </a>
+                </PrivilegeRequired>
             </div>
         </React.Fragment>
     );

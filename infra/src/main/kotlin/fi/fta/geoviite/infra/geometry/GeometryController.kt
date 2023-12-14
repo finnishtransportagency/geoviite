@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_DATAPRODUCT_DOWNLOAD
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -171,7 +172,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getElementListing(id, elementTypes)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/plans/{id}/element-listing/file")
     fun getPlanElementListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -196,7 +197,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getElementListing(id, elementTypes, startAddress, endAddress)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/layout/location-tracks/{id}/element-listing/file")
     fun getTrackElementListingCSV(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -211,7 +212,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/rail-network/element-listing/file")
     fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementListCsv")
@@ -234,7 +235,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getVerticalGeometryListing(id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/plans/{id}/vertical-geometry/file")
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -257,7 +258,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getVerticalGeometryListing(publicationType, id, startAddress, endAddress)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/layout/location-tracks/{id}/vertical-geometry/file")
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -271,7 +272,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/rail-network/vertical-geometry/file")
     fun getEntireNetworkVerticalGeometryListingCSV(): ResponseEntity<ByteArray> {
         log.apiCall("getEntireNetworkVerticalGeometryListingCSV")

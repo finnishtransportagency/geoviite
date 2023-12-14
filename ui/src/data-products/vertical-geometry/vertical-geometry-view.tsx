@@ -9,6 +9,7 @@ import { createDelegates } from 'store/store-utils';
 import VerticalGeometryTable from 'data-products/vertical-geometry/vertical-geometry-table';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkVerticalGeometryListing } from 'data-products/vertical-geometry/entire-rail-network-vertical-geometry-listing';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 const VerticalGeometryView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
@@ -39,14 +40,16 @@ const VerticalGeometryView = () => {
                             qaId="select-plan-geometry">
                             {t('data-products.vertical-geometry.plan-vertical-geometry')}
                         </Radio>
-                        <Radio
-                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
-                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}
-                            qaId="select-entire-rail-network">
-                            {t(
-                                'data-products.vertical-geometry.entire-rail-network-vertical-geometry',
-                            )}
-                        </Radio>
+                        <PrivilegeRequired privilege="dataproduct-download">
+                            <Radio
+                                onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                                checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}
+                                qaId="select-entire-rail-network">
+                                {t(
+                                    'data-products.vertical-geometry.entire-rail-network-vertical-geometry',
+                                )}
+                            </Radio>
+                        </PrivilegeRequired>
                     </span>
                 </div>
                 {state.selectedSearch === 'LOCATION_TRACK' && (
