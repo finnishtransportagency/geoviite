@@ -102,7 +102,7 @@ const validateSplitDescription = (
     if (!duplicateOf && description === '')
         errors.push({
             field: 'descriptionBase',
-            reason: 'required',
+            reason: 'mandatory-field',
             type: ValidationErrorType.ERROR,
         });
     return errors;
@@ -184,7 +184,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     };
 
     const sortedSplits = sortSplitsByDistance(splits);
-
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
 
     const initialSplitValidated = {
@@ -200,11 +199,14 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         nameErrors: validateSplitName(s.name, allSplitNames, conflictingLocationTracks),
         descriptionErrors: validateSplitDescription(s.descriptionBase, s.duplicateOf),
     }));
+    const allValidated = [initialSplitValidated, ...splitsValidated];
 
-    const anyErrors =
-        initialSplitValidated.nameErrors.length > 0 ||
-        initialSplitValidated.descriptionErrors.length > 0 ||
-        splitsValidated.some((s) => s.nameErrors.length > 0 || s.descriptionErrors.length > 0);
+    const allErrors = allValidated.flatMap((validated) => [
+        ...validated.descriptionErrors,
+        ...validated.nameErrors,
+    ]);
+    const anyMissingFields = allErrors.some((error) => error.reason === 'mandatory-field');
+    const anyOtherErrors = allErrors.some((error) => error.reason !== 'mandatory-field');
 
     return (
         <React.Fragment>
@@ -251,6 +253,22 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 </MessageBox>
                             </InfoboxContentSpread>
                         )}
+                        {anyMissingFields && (
+                            <InfoboxContentSpread>
+                                <MessageBox>
+                                    {t(
+                                        'tool-panel.location-track.splitting.validation.missing-fields',
+                                    )}
+                                </MessageBox>
+                            </InfoboxContentSpread>
+                        )}
+                        {anyOtherErrors && (
+                            <InfoboxContentSpread>
+                                <MessageBox>
+                                    {t('tool-panel.location-track.splitting.validation.has-errors')}
+                                </MessageBox>
+                            </InfoboxContentSpread>
+                        )}
                         <InfoboxButtons>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
@@ -258,7 +276,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 onClick={cancelSplitting}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button size={ButtonSize.SMALL} disabled={anyErrors}>
+                            <Button
+                                size={ButtonSize.SMALL}
+                                disabled={anyMissingFields || anyOtherErrors}>
                                 {t('tool-panel.location-track.splitting.confirm-split')}
                             </Button>
                         </InfoboxButtons>
