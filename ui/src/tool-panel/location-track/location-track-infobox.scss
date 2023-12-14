@@ -65,8 +65,17 @@
     min-width: 36px;
 }
 
-.location-track-infobox__split-replaces-duplicate {
+.location-track-infobox__split-remark {
     padding-top: 0px;
+
+    > .infobox__field-value {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+.location-track-infobox__split-error .infobox__text {
+    color: vayla-design.$color-red-dark;
 }
 
 .location-track-infobox__split-item-ball {

@@ -604,7 +604,16 @@
                 "end-address": "Loppusijainti (km + m)",
                 "replaces-duplicate": "Korvaa duplikaattiraiteen",
                 "description-base": "Kuvauksen perusosa",
-                "description-suffix": "Kuvauksen lisäosa"
+                "description-suffix": "Kuvauksen lisäosa",
+                "validation": {
+                    "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
+                    "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
+                    "mandatory-field": "Pakollinen kenttä",
+                    "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-name": "Virheellinen sijaintiraidetunnus",
+                    "missing-fields": "Pakollisia tietoja puuttuu",
+                    "has-errors": "Tiedoissa on virheitä"
+                }
             }
         },
         "disabled": {
