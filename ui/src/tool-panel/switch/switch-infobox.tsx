@@ -212,7 +212,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             value={
                                 (switchJointTrackMeters && (
                                     <SwitchInfoboxTrackMeters
-                                        showArea={showArea}
                                         jointTrackMeters={switchJointTrackMeters}
                                         presentationJoint={structure?.presentationJointNumber}
                                     />

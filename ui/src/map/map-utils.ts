@@ -4,7 +4,7 @@ import TileGrid from 'ol/tilegrid/TileGrid';
 import { BoundingBox, Point } from 'model/geometry';
 
 // offset used for defining a suitable boundingBox around a single location (Point)
-const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
+export const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
 export const MAP_POINT_CLOSEUP_BBOX_OFFSET = 78;
 
 // Resolutions to use to load stuff from backend

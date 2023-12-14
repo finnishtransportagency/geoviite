@@ -17,7 +17,6 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { BoundingBox } from 'model/geometry';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
@@ -26,7 +25,6 @@ type LocationTrackGeometryInfoboxProps = {
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
-    showArea: (boundingBox: BoundingBox) => void;
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
@@ -36,7 +34,6 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     contentVisible,
     onContentVisibilityChange,
     onHighlightItem,
-    showArea,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -82,7 +79,6 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                             id={locationTrackId}
                             sections={sections || []}
                             onHighlightItem={onHighlightItem}
-                            showArea={showArea}
                             type={'LOCATION_TRACK'}
                         />
                     )}

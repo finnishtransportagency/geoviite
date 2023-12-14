@@ -9,12 +9,7 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
-import { BoundingBox } from 'model/geometry';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
-import {
-    calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_CLOSEUP_BBOX_OFFSET,
-} from 'map/map-utils';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type HighlightedItemBase = {
     startM: number;
@@ -38,12 +33,11 @@ type AlignmentPlanSectionInfoboxContentProps = {
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
     id: LocationTrackId | LayoutTrackNumberId;
     type: 'LOCATION_TRACK' | 'REFERENCE_LINE';
-    showArea: (boundingBox: BoundingBox) => void;
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections, type, id, onHighlightItem, showArea }) => {
+> = ({ sections, type, id, onHighlightItem }) => {
     const { t } = useTranslation();
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
@@ -156,18 +150,10 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             <div className={styles['alignment-plan-section-infobox__meters']}>
                                 <span>
                                     {section.start ? (
-                                        <TrackMeter
-                                            onClickAction={() =>
-                                                section?.start?.location &&
-                                                showArea(
-                                                    calculateBoundingBoxToShowAroundLocation(
-                                                        section.start.location,
-                                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
-                                                    ),
-                                                )
-                                            }
+                                        <NavigableTrackMeter
+                                            trackMeter={section?.start?.address}
+                                            location={section?.start?.location}
                                             displayDecimals={false}
-                                            trackMeter={section.start.address}
                                         />
                                     ) : (
                                         errorFragment(
@@ -179,18 +165,10 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                 </span>{' '}
                                 <span>
                                     {section.end ? (
-                                        <TrackMeter
-                                            onClickAction={() =>
-                                                section?.end?.location &&
-                                                showArea(
-                                                    calculateBoundingBoxToShowAroundLocation(
-                                                        section.end.location,
-                                                        MAP_POINT_CLOSEUP_BBOX_OFFSET,
-                                                    ),
-                                                )
-                                            }
+                                        <NavigableTrackMeter
+                                            trackMeter={section?.end?.address}
+                                            location={section?.end?.location}
                                             displayDecimals={false}
-                                            trackMeter={section.end.address}
                                         />
                                     ) : (
                                         errorFragment(

@@ -17,7 +17,6 @@ import {
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
-import { BoundingBox } from 'model/geometry';
 
 type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
@@ -27,7 +26,6 @@ type TrackNumberGeometryInfoboxProps = {
     onContentVisibilityChange: () => void;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
     changeTime: TimeStamp;
-    showArea: (boundingBox: BoundingBox) => void;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
@@ -38,7 +36,6 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     onContentVisibilityChange,
     onHighlightItem,
     changeTime,
-    showArea,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -85,7 +82,6 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                             sections={sections || []}
                             onHighlightItem={onHighlightItem}
                             type={'REFERENCE_LINE'}
-                            showArea={showArea}
                         />
                     )}
                 </ProgressIndicatorWrapper>

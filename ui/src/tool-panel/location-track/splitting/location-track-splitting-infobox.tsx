@@ -32,7 +32,6 @@ import {
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
 import { filterNotEmpty } from 'utils/array-utils';
-import { BoundingBox } from 'model/geometry';
 import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
@@ -49,7 +48,6 @@ type LocationTrackSplittingInfoboxContainerProps = {
     locationTrackId: string;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
-    showArea: (boundingBox: BoundingBox) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -65,7 +63,6 @@ type LocationTrackSplittingInfoboxProps = {
     startAndEnd: AlignmentStartAndEnd;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
-    showArea: (boundingBox: BoundingBox) => void;
 };
 
 const validateSplitName = (
@@ -121,7 +118,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     removeSplit,
     cancelSplitting,
     updateSplit,
-    showArea,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT');
     const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
@@ -148,7 +144,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 startAndEnd={startAndEnd}
                 conflictingLocationTracks={conflictingTracks?.map((t) => t.name) || []}
                 locationTrack={locationTrack}
-                showArea={showArea}
             />
         )
     );
@@ -167,7 +162,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     startAndEnd,
     conflictingLocationTracks,
     locationTrack,
-    showArea,
 }) => {
     const { t } = useTranslation();
     const getSplitAddressPoint = (split: Split): AddressPoint | undefined => {
@@ -224,7 +218,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             duplicateOf={initialSplit.duplicateOf}
                             nameErrors={initialSplitValidated.nameErrors}
                             descriptionErrors={initialSplitValidated.descriptionErrors}
-                            showArea={showArea}
                         />
                         {splitsValidated.map(({ split, nameErrors, descriptionErrors }) => {
                             return (
@@ -238,14 +231,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                     duplicateOf={split.duplicateOf}
                                     nameErrors={nameErrors}
                                     descriptionErrors={descriptionErrors}
-                                    showArea={showArea}
                                 />
                             );
                         })}
-                        <LocationTrackSplittingEndpoint
-                            addressPoint={startAndEnd.end}
-                            showArea={showArea}
-                        />
+                        <LocationTrackSplittingEndpoint addressPoint={startAndEnd.end} />
                         {splits.length === 0 && (
                             <InfoboxContentSpread>
                                 <MessageBox>

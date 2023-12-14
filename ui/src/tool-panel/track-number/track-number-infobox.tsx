@@ -24,7 +24,6 @@ import { PublishType } from 'common/common-model';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -43,7 +42,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -187,16 +186,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             qaId="track-number-start-track-meter"
                             label={t('tool-panel.reference-line.start-location')}
                             value={
-                                <TrackMeter
-                                    onClickAction={() =>
-                                        startAndEndPoints?.start &&
-                                        showArea(
-                                            calculateBoundingBoxToShowAroundLocation(
-                                                startAndEndPoints.start.point,
-                                            ),
-                                        )
-                                    }
+                                <NavigableTrackMeter
                                     trackMeter={startAndEndPoints?.start?.address}
+                                    location={startAndEndPoints?.start?.point}
                                 />
                             }
                             onEdit={() => setShowEditDialog(true)}
@@ -206,16 +198,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             qaId="track-number-end-track-meter"
                             label={t('tool-panel.reference-line.end-location')}
                             value={
-                                <TrackMeter
-                                    onClickAction={() =>
-                                        startAndEndPoints?.end &&
-                                        showArea(
-                                            calculateBoundingBoxToShowAroundLocation(
-                                                startAndEndPoints.end.point,
-                                            ),
-                                        )
-                                    }
+                                <NavigableTrackMeter
                                     trackMeter={startAndEndPoints?.end?.address}
+                                    location={startAndEndPoints?.end?.point}
                                 />
                             }
                         />
@@ -323,7 +308,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     viewport={viewport}
                     onHighlightItem={onHighlightItem}
                     changeTime={trackNumberChangeTime}
-                    showArea={showArea}
                 />
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (
