@@ -17,7 +17,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
-import { MAP_POINT_CLOSEUP_BBOX_OFFSET } from 'map/map-utils';
+import { MAP_POINT_NEAR_BBOX_OFFSET } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type EndpointProps = {
@@ -43,7 +43,7 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({ addres
                 <NavigableTrackMeter
                     trackMeter={addressPoint?.address}
                     location={addressPoint?.point}
-                    mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
+                    mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
                 />
             </InfoboxField>
         </div>
@@ -91,7 +91,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         <NavigableTrackMeter
                             trackMeter={addressPoint?.address}
                             location={addressPoint?.point}
-                            mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
+                            mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
                         />
                     </InfoboxField>
                     <InfoboxField
