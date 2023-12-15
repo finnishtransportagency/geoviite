@@ -9,7 +9,7 @@ import {
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 
-type TrackMeterProps = {
+type NavigableTrackMeterProps = {
     trackMeter?: TrackMeterValue;
     location?: Point;
     placeholder?: string;
@@ -17,13 +17,13 @@ type TrackMeterProps = {
     displayDecimals?: boolean;
 };
 
-const NavigableTrackMeter: React.FC<TrackMeterProps> = ({
+const NavigableTrackMeter: React.FC<NavigableTrackMeterProps> = ({
     trackMeter,
     location,
     placeholder,
     mapNavigationBboxOffset = MAP_POINT_DEFAULT_BBOX_OFFSET,
     displayDecimals,
-}: TrackMeterProps) => {
+}: NavigableTrackMeterProps) => {
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     return (
