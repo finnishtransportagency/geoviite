@@ -5,7 +5,8 @@ import { BoundingBox, Point } from 'model/geometry';
 
 // offset used for defining a suitable boundingBox around a single location (Point)
 export const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
-export const MAP_POINT_CLOSEUP_BBOX_OFFSET = 78;
+export const MAP_POINT_NEAR_BBOX_OFFSET = 78;
+export const MAP_POINT_CLOSEUP_BBOX_OFFSET = 38;
 
 // Resolutions to use to load stuff from backend
 const tileResolutions: number[] = [];

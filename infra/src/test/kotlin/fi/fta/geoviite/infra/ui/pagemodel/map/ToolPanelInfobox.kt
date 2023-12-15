@@ -43,7 +43,6 @@ class E2ELayoutKmPostGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2ELayoutKmPostLocationInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val location: String get() = getValueForField("km-post-location")
     val coordinates: String get() = getValueForField("km-post-coordinates")
 }
 
