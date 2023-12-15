@@ -1,6 +1,8 @@
+# Tietomalli
+
 Tässä kuvassa esitetään geoviitteen peruskäsitteet ja miten ne liittyvät toisiinsa. Käsitteistöä on tarkoituksella yksinkertaistettu ollakseen havainnollisempi ja luokkahierarkiat eivät vastaa 1-1 tietokantatauluja (nämä tarkemmin nähtävissä täältä: Tietokanta) tai koodin rakennetta vaan ennenkaikkea geoviitteen kannalta oleellista osaa niiden tietosisällöstä.
 
-![](data_flow.png)
+![](images/data_flow.png)
 
 ## Tarkat geometriat
 
@@ -12,7 +14,7 @@ Geoviitteen toinen esitysmuoto on paikannuspohja (kuvassa vasemmalla), joka on k
 
 Paikannuspohjaan sisältyy myös rataosoitteiston viitekehys, eli sen avulla voidaan laskea sijainnille tai kohteelle rataosoite (rata, km, metrit) ja mikä tahansa rataosoite voidaan kääntäen laskea tiettyy sijaintiin (koordinaatti).
 
-![](tietomalli.png)
+![](images/tietomalli.png)
 
 ## Käsitteiden 3 esitystapaa
 | Käsite         | Geometria | Paikannuspohja | Osoitepisteet                                                                                                                                                                                                                                                                                                          |

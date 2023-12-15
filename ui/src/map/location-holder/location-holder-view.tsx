@@ -100,7 +100,9 @@ export const LocationHolderView: React.FC<LocationHolderProps> = ({
     return (
         <div className={styles['location-holder-view']}>
             <div>{hovered?.alignmentName}</div>
-            <div>{hovered?.address ? <TrackMeter value={hovered.address} /> : ''}</div>
+            <div>
+                <TrackMeter trackMeter={hovered?.address} />
+            </div>
             <div>{hovered?.coordinate ? formatToTM35FINString(hovered.coordinate) : ''}</div>
         </div>
     );

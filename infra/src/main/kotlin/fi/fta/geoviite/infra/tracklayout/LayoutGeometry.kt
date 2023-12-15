@@ -37,6 +37,7 @@ data class SegmentGeometryAndMetadata(
 
 data class PlanSectionPoint(
     val address: TrackMeter,
+    val location: IPoint,
     val m: Double,
 )
 
@@ -74,6 +75,9 @@ interface IAlignment : Loggable {
             segments.filter { s -> s.boundingBox?.intersects(bbox) ?: false }
         }
     }
+
+    fun getClosestPoint(target: IPoint, snapDistance: Double = 0.0): Pair<AlignmentPoint, IntersectType>? =
+        getClosestPointM(target)?.let { (m, type) -> getPointAtM(m, snapDistance)?.let { p -> p to type } }
 
     fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->

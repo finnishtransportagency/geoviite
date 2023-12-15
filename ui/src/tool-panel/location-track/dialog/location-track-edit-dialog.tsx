@@ -39,7 +39,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
     getSaveDisabledReasons,
-    useConflictingTrack,
+    useConflictingTracks,
     useLocationTrack,
     useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
@@ -159,12 +159,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         }
     }
 
-    const trackWithSameName = useConflictingTrack(
+    const trackWithSameName = useConflictingTracks(
         state.locationTrack.trackNumberId,
-        state.locationTrack.name,
-        props.locationTrack?.id,
+        [state.locationTrack.name],
+        props.locationTrack?.id ? [props.locationTrack.id] : [],
         'DRAFT',
-    );
+    )?.[0];
     React.useEffect(() => {
         if (
             locationTrackOwners !== undefined &&
@@ -332,10 +332,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         });
 
     const moveToEditLinkText = (track: LayoutLocationTrack) => {
-        const state = track.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
-        return t('location-track-dialog.move-to-edit', {
-            name: track.name + state,
-        });
+        return track.state === 'DELETED' ? t('location-track-dialog.move-to-edit-deleted') : t('location-track-dialog.move-to-edit', {name: track.name});
     };
     return (
         <React.Fragment>
@@ -413,10 +410,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('name')}>
                             {trackWithSameName && (
                                 <>
-                                    <div className={styles['location-track-edit-dialog__alert']}>
-                                        {t('location-track-dialog.name-in-use')}
+                                    <div className={styles['location-track-edit-dialog__alert-color']}>
+                                        {trackWithSameName.state === 'DELETED' ? t('location-track-dialog.name-in-use-deleted') : t('location-track-dialog.name-in-use')}
                                     </div>
-                                    <Link onClick={() => props.onEditTrack(trackWithSameName.id)}>
+                                    <Link className={styles['location-track-edit-dialog__alert']} onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
                                     </Link>
                                 </>

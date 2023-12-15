@@ -29,7 +29,6 @@ import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dial
 import { BoundingBox } from 'model/geometry';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { LocationTrackOwnerId, PublishType, TimeStamp } from 'common/common-model';
@@ -63,9 +62,10 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
-import { LocationTrackSplittingInfobox } from 'tool-panel/location-track/location-track-splitting-infobox';
+import { LocationTrackSplittingInfoboxContainer } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackOwners } from 'common/common-api';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -319,7 +319,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {splittingState && (
-                <LocationTrackSplittingInfobox
+                <LocationTrackSplittingInfoboxContainer
                     visibilities={visibilities}
                     visibilityChange={visibilityChange}
                     initialSplit={splittingState.initialSplit}
@@ -350,7 +350,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     qaId="location-track-start-track-meter"
                                     label={t('tool-panel.location-track.start-location')}>
                                     {startAndEndPoints?.start?.address ? (
-                                        <TrackMeter value={startAndEndPoints?.start?.address} />
+                                        <NavigableTrackMeter
+                                            trackMeter={startAndEndPoints?.start?.address}
+                                            location={startAndEndPoints?.start?.point}
+                                        />
                                     ) : (
                                         t('tool-panel.location-track.unset')
                                     )}
@@ -359,7 +362,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     qaId="location-track-end-track-meter"
                                     label={t('tool-panel.location-track.end-location')}>
                                     {startAndEndPoints?.end?.address ? (
-                                        <TrackMeter value={startAndEndPoints?.end?.address} />
+                                        <NavigableTrackMeter
+                                            trackMeter={startAndEndPoints?.end?.address}
+                                            location={startAndEndPoints?.end?.point}
+                                        />
                                     ) : (
                                         t('tool-panel.location-track.unset')
                                     )}

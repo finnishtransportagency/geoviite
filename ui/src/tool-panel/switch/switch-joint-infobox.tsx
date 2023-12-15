@@ -21,6 +21,7 @@ type SwitchJointInfobox = {
     jointConnections: LayoutSwitchJointConnection[];
     topologicalJointConnections?: TopologicalJointConnection[];
     publishType: PublishType;
+    onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
 };
 
 const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
@@ -28,6 +29,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     jointConnections,
     topologicalJointConnections,
     publishType,
+    onSelectLocationTrackBadge,
 }) => {
     const { t } = useTranslation();
     const locationTracksEndingAtJoint = combineLocationTrackIds(
@@ -58,6 +60,9 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
         .flat()
         .filter(filterNotEmpty);
 
+    const locationTrackBadgeOnClickHandler = (locationTrackId: LocationTrackId) =>
+        onSelectLocationTrackBadge ? () => onSelectLocationTrackBadge(locationTrackId) : undefined;
+
     function getLocationTracksForJointNumbers(jointNumbers: JointNumber[]) {
         const locationTrackIds = getMatchingLocationTrackIdsForJointNumbers(
             jointNumbers,
@@ -70,7 +75,13 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
         return locationTrackIds
             .map((t) => locationTracks?.find((locationTrack) => locationTrack.id === t))
             .filter(filterNotEmpty)
-            .map((t) => <LocationTrackBadge key={t.id} locationTrack={t} />);
+            .map((t) => (
+                <LocationTrackBadge
+                    key={t.id}
+                    locationTrack={t}
+                    onClick={locationTrackBadgeOnClickHandler(t.id)}
+                />
+            ));
     }
 
     return (

@@ -2,6 +2,7 @@ import {
     AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
+    AlignmentPoint,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
@@ -33,6 +34,7 @@ const locationTrackStartAndEndCache = asyncCache<string, AlignmentStartAndEnd | 
 
 type PlanSectionPoint = {
     address: TrackMeter;
+    location: AlignmentPoint;
     m: number;
 };
 
@@ -89,10 +91,10 @@ export async function getLocationTrackInfoboxExtras(
 
 export async function getLocationTracksByName(
     trackNumberId: LayoutTrackNumberId,
-    locationTrackName: string,
+    locationTrackNames: string[],
     publishType: PublishType,
 ): Promise<LayoutLocationTrack[]> {
-    const params = queryParams({ locationTrackName });
+    const params = queryParams({ locationTrackNames });
     return getNonNull<LayoutLocationTrack[]>(
         `${layoutUri('track-numbers', publishType)}/${trackNumberId}/location-tracks${params}`,
     );

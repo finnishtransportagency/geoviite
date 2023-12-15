@@ -263,7 +263,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             errors={getVisibleErrorsByProp('kmNumber')}>
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                    <Link
+                                    <Link className={dialogStyles['dialog__alert']}
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>

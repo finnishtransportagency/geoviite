@@ -333,7 +333,9 @@
         "description-suffix": "Kuvauksen lisäosa",
         "full-description": "Valmis kuvaus",
         "name-in-use": "Huomaa, että ratanumerolla on toinen sijaintiraide samalla tunnuksella",
-        "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä"
+        "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä",
+        "name-in-use-deleted": "Huomaa, että ratanumerolla on poistettu raide samalla tunnuksella",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
@@ -394,7 +396,6 @@
                 "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
-                "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
@@ -602,7 +603,16 @@
                 "end-address": "Loppusijainti (km + m)",
                 "replaces-duplicate": "Korvaa duplikaattiraiteen",
                 "description-base": "Kuvauksen perusosa",
-                "description-suffix": "Kuvauksen lisäosa"
+                "description-suffix": "Kuvauksen lisäosa",
+                "validation": {
+                    "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
+                    "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
+                    "mandatory-field": "Pakollinen kenttä",
+                    "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-name": "Virheellinen sijaintiraidetunnus",
+                    "missing-fields": "Pakollisia tietoja puuttuu",
+                    "has-errors": "Tiedoissa on virheitä"
+                }
             }
         },
         "disabled": {
@@ -1396,7 +1406,7 @@
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
-        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}"
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}."
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",
@@ -1444,7 +1454,9 @@
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
-        "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä"
+        "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
+        "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",
@@ -1475,7 +1487,7 @@
         "action": {
             "cancel": "Poistu",
             "save": "Tallenna",
-            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}"
+            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}."
         },
         "result": {
             "failed": "Ratanumeron tallennus epäonnistui.",

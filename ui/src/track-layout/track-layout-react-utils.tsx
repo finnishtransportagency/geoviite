@@ -56,8 +56,8 @@ import {
     updateSwitchChangeTime,
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
-import { isNilOrBlank } from 'utils/string-utils';
 import { deduplicate } from 'utils/array-utils';
+import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -222,20 +222,26 @@ export function useLocationTrackInfoboxExtras(
         [id, publishType, changeTime],
     );
 }
-export function useConflictingTrack(
+export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
-    trackName: string | undefined,
-    trackId: LocationTrackId | undefined,
+    trackNames: string[],
+    trackIds: LocationTrackId[],
     publishType: PublishType,
-): LayoutLocationTrack | undefined {
+): LayoutLocationTrack[] | undefined {
+    const properAlignmentNames = trackNames.filter(
+        (name) => validateLocationTrackName(name).length === 0,
+    );
+    // Stringify to make sure React doesn't go nuts with deps changing every time
+    const namesString = JSON.stringify(properAlignmentNames);
+    const trackIdsString = JSON.stringify(trackIds);
     return useLoader(
         () =>
-            trackNumberId === undefined || trackName === undefined || isNilOrBlank(trackName)
+            trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, trackName, publishType).then((tracks) =>
-                      tracks.find((t) => t.id !== trackId),
+                : getLocationTracksByName(trackNumberId, properAlignmentNames, publishType).then(
+                      (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
                   ),
-        [trackNumberId, trackName, trackId, publishType],
+        [trackNumberId, namesString, trackIdsString, publishType],
     );
 }
 

@@ -3,11 +3,12 @@ import styles from './switch-infobox.scss';
 import { SwitchJointTrackMeter } from 'track-layout/track-layout-model';
 import { JointNumber } from 'common/common-model';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { groupBy } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
+import { MAP_POINT_CLOSEUP_BBOX_OFFSET } from 'map/map-utils';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 const formatJointTrackMeter = (
     jointTrackMeter: SwitchJointTrackMeter,
@@ -15,7 +16,14 @@ const formatJointTrackMeter = (
 ) => {
     return (
         <span>
-            <TrackMeter value={jointTrackMeter.trackMeter} placeholder={addressPlaceHolder} />
+            {jointTrackMeter.trackMeter && (
+                <NavigableTrackMeter
+                    trackMeter={jointTrackMeter.trackMeter}
+                    location={jointTrackMeter.location}
+                    mapNavigationBboxOffset={MAP_POINT_CLOSEUP_BBOX_OFFSET}
+                    placeholder={addressPlaceHolder}
+                />
+            )}
             <br />
             <LocationTrackLink
                 locationTrackId={jointTrackMeter.locationTrackId}
@@ -77,7 +85,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                                 })}
                             </h3>
                             <ol className={styles['switch-infobox-track-meters__track-meters']}>
-                                {addresses.map((a) => (
+                                {addresses.map((a: SwitchJointTrackMeter) => (
                                     <li
                                         key={a.locationTrackId}
                                         className={

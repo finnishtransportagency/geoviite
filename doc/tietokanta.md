@@ -1,3 +1,5 @@
+# Tietokanta
+
 Tietokanta on jaettu useisiin skemoihin, jotka kuvataan tässä erikseen. Kuvissa (generoitu per skema) ei näy viivoina viitteet toisiin skemoihin, mutta niitä vastaavat kentät näkyy kuitenkin tauluissa.
 
 Datan merkitystä on helpompi ymmärtää katsomalla yleiskuvausta: [Geoviite tietomalli](geoviite%20tietomalli.md)
@@ -24,13 +26,13 @@ Lähes kaikille tauluille on siis myös versiotaulu, mutta ne eivät näy alla o
 ### Common
 
 Common-skema sisältää Geoviitteen jaetut käsitteet, joita hyödynnetään sekä Geometry- että Layout- puolelta, erityisesti enumeraatioita, vaihdeomistaja, ja vaihteen rakenteet (vaihdekirjasto). Lisäksi sieltä löytyy käyttäjärooleihin (autorisointi) liittyvät asiat, sekä geometrialaskentaan ja koordinaattimuunnoksiin liittyviä kolmioverkkoja ja vastaavia rakenteita.
-![](database_common.png)
+![](images/database_common.png)
 
 ### Geometry
 
 Geometry-skema sisältää geometriasuunnitelmat, eli alkuperäiset suunnitelmatiedostot sekä niistä jäsennetyn geometriatietomallin.
 
-![](database_geometry.png)
+![](images/database_geometry.png)
 
 ### Layout
 
@@ -38,4 +40,4 @@ Layout-skema sisältää paikannuspohjan, eli yhtenäiskoordinaatistoon muunnetu
 
 Layout sisältää myös tiedot julkaisuista, eli versioihin kytketyt viitteet siitä millaisena tieto hyväksyttiin viralliseen paikannuspohjaan. Ratkoon viennit tehdään näiden pohjalta.
 
-![](database_layout.png)
+![](images/database_layout.png)

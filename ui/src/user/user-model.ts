@@ -1,5 +1,6 @@
 export type UserId = string;
-export type RoleCode = string;
+export type RoleCode = 'operator' | 'browser';
+export type PrivilegeCode = 'all-write' | 'all-read' | 'im-download';
 
 export type User = {
     details: UserDetails;
@@ -21,7 +22,7 @@ export type Role = {
 };
 
 export type Privilege = {
-    code: RoleCode;
+    code: PrivilegeCode;
     name: string;
     description: string;
 };

@@ -121,6 +121,7 @@ export const SwitchEditDialog = ({
             return undefined;
         }
     }, [switchName, existingSwitch?.id]);
+
     React.useEffect(() => {
         if (isExistingSwitch) {
             getSwitch(switchId, 'DRAFT').then((s) => {
@@ -296,13 +297,7 @@ export const SwitchEditDialog = ({
     }
 
     const moveToEditLinkText = (s: LayoutSwitch) => {
-        const state =
-            s.stateCategory === 'NOT_EXISTING'
-                ? ` (${t('enum.layout-state-category.NOT_EXISTING')})`
-                : '';
-        return t('switch-dialog.move-to-edit', {
-            name: s.name + state,
-        });
+        return s.stateCategory === 'NOT_EXISTING' ? t('switch-dialog.move-to-edit-deleted') : t('switch-dialog.move-to-edit', {name: s.name});
     };
 
     return (
@@ -368,10 +363,10 @@ export const SwitchEditDialog = ({
                             errors={getVisibleErrorsByProp('name')}>
                             {conflictingSwitch && (
                                 <>
-                                    <div className={styles['switch-edit-dialog__alert']}>
-                                        {t('switch-dialog.name-in-use')}
+                                    <div className={styles['switch-edit-dialog__alert-color']}>
+                                        {conflictingSwitch.stateCategory === 'NOT_EXISTING' ? t('switch-dialog.name-in-use-deleted') : t('switch-dialog.name-in-use')}
                                     </div>
-                                    <Link onClick={() => onEdit(conflictingSwitch.id)}>
+                                    <Link className={styles['switch-edit-dialog__alert']} onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
                                 </>
