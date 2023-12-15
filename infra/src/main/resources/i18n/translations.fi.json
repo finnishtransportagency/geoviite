@@ -396,7 +396,6 @@
                 "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
-                "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",

@@ -153,11 +153,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 onContentVisibilityChange={() => visibilityChange('location')}>
                 <InfoboxContent>
                     <InfoboxField
-                        qaId="km-post-location"
-                        label={t('tool-panel.km-post.layout.location')}
-                        value={kmPost.kmNumber}
-                    />
-                    <InfoboxField
                         qaId="km-post-coordinates"
                         label={t('tool-panel.km-post.layout.coordinates')}
                         value={
