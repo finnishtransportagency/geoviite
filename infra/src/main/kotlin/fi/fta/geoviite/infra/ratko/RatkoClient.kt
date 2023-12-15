@@ -456,9 +456,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     )
 }
 
-private fun combinePaths(vararg paths: Any?) =
+fun combinePaths(vararg paths: Any?) =
     paths
         .mapNotNull { it?.toString() } //otherwise null will toString() to "null"
-        .joinToString("/") { p ->
-            p.dropWhile { c -> c == '/' }.dropLastWhile { c -> c == '/' }
-        }
+        .joinToString("/")
+        .replace(Regex("/+"), "/")
