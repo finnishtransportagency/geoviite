@@ -5,7 +5,7 @@ export type PrivilegeCode =
     | 'ui-read'
     | 'inframodel-download'
     | 'dataproduct-download'
-    | 'publications-download';
+    | 'publication-download';
 
 export type User = {
     details: UserDetails;
