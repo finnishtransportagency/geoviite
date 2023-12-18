@@ -11,6 +11,7 @@ import { useLoader } from 'utils/react-utils';
 import { getPVDocumentCount } from 'infra-model/infra-model-api';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { createDelegates } from 'store/store-utils';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 export type TabsProps = {
     activeTab: InfraModelTabType;
@@ -68,22 +69,24 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     activeTab={activeTab}
                     exclamationPointVisible={false}
                 />
-                <InfraModelTabNavItem
-                    title={t('im-form.tabs.projektivelho-files-waiting', {
-                        number: documentCounts?.suggested,
-                    })}
-                    tabId={InfraModelTabType.WAITING}
-                    activeTab={activeTab}
-                    exclamationPointVisible={!!documentCounts && documentCounts?.suggested > 0}
-                />
-                <InfraModelTabNavItem
-                    title={t('im-form.tabs.projektivelho-files-rejected', {
-                        number: documentCounts?.rejected,
-                    })}
-                    tabId={InfraModelTabType.REJECTED}
-                    activeTab={activeTab}
-                    exclamationPointVisible={false}
-                />
+                <PrivilegeRequired privilege="inframodel-download">
+                    <InfraModelTabNavItem
+                        title={t('im-form.tabs.projektivelho-files-waiting', {
+                            number: documentCounts?.suggested,
+                        })}
+                        tabId={InfraModelTabType.WAITING}
+                        activeTab={activeTab}
+                        exclamationPointVisible={!!documentCounts && documentCounts?.suggested > 0}
+                    />
+                    <InfraModelTabNavItem
+                        title={t('im-form.tabs.projektivelho-files-rejected', {
+                            number: documentCounts?.rejected,
+                        })}
+                        tabId={InfraModelTabType.REJECTED}
+                        activeTab={activeTab}
+                        exclamationPointVisible={false}
+                    />
+                </PrivilegeRequired>
             </ul>
             <div className={styles['tabs__outlet']}>
                 <InfraModelTabContent tabId={InfraModelTabType.PLAN} activeTab={activeTab}>
