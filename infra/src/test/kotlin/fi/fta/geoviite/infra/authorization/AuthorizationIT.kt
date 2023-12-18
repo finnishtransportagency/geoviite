@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -65,18 +66,16 @@ class AuthorizationIT @Autowired constructor(
                 lastName = AuthName("Doe"),
                 organization = AuthName("Test Oy"),
             ),
-            role = authorizationDao.getRole(Code("browser"))
+            role = authorizationDao.getRole(Code("browser")),
         )
     }
 
     @Test
     fun authorizedUserGetsOwnDetailsCorrectly() {
-        assertEquals(testApi.response(user), testApi.doGet(
-            MockMvcRequestBuilders
-                .get("/authorization/own-details")
-                .header(HTTP_HEADER_JWT_DATA, TOKEN),
-            HttpStatus.OK,
-        ))
+        assertEquals(
+            testApi.response(user),
+            testApi.doGet(getRequest("/authorization/own-details"), HttpStatus.OK),
+        )
     }
 
     @Test
@@ -89,32 +88,24 @@ class AuthorizationIT @Autowired constructor(
 
     @Test
     fun callWithPublicApiSucceeds() {
-        assertEquals(testApi.response(OK), testApi.doGet(
-            MockMvcRequestBuilders
-                .get("/test-auth/public")
-                .header(HTTP_HEADER_JWT_DATA, TOKEN),
-            HttpStatus.OK,
-        ))
+        assertEquals(
+            testApi.response(OK),
+            testApi.doGet(getRequest("/test-auth/public"), HttpStatus.OK),
+        )
     }
 
     @Test
     fun callWithOkPrivilegeSucceeds() {
-        assertEquals(testApi.response(OK), testApi.doGet(
-            MockMvcRequestBuilders
-                .get("/test-auth/read")
-                .header(HTTP_HEADER_JWT_DATA, TOKEN),
-            HttpStatus.OK,
-        ))
+        assertEquals(
+            testApi.response(OK),
+            testApi.doGet(getRequest("/test-auth/read"), HttpStatus.OK),
+        )
     }
 
     @Test
     fun callWithNokPrivilegeFailsWith403() {
         testApi.assertErrorResult(
-            testApi.doGet(
-                MockMvcRequestBuilders
-                    .get("/test-auth/write")
-                    .header(HTTP_HEADER_JWT_DATA, TOKEN),
-                HttpStatus.FORBIDDEN),
+            testApi.doGet(getRequest("/test-auth/write"), HttpStatus.FORBIDDEN),
             "Access is denied",
         )
     }
@@ -122,13 +113,15 @@ class AuthorizationIT @Autowired constructor(
     @Test
     fun callWithNonexistingPrivilegeFailsWith403() {
         testApi.assertErrorResult(
-            testApi.doGet(
-                MockMvcRequestBuilders
-                    .get("/test-auth/fail")
-                    .header(HTTP_HEADER_JWT_DATA, TOKEN),
-                HttpStatus.FORBIDDEN
-            ),
+            testApi.doGet(getRequest("/test-auth/fail"), HttpStatus.FORBIDDEN),
             "Access is denied",
         )
     }
+
+    private fun getRequest(url: String) = MockMvcRequestBuilders
+        .get(url)
+        .header(HTTP_HEADER_JWT_DATA, TOKEN)
+        .characterEncoding(Charsets.UTF_8)
+        .contentType(MediaType.APPLICATION_JSON)
+
 }
