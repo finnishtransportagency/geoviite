@@ -71,6 +71,15 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         split.descriptionBase !== '',
     );
 
+    React.useEffect(() => {
+        if (!nameErrors.length) {
+            setNameCommitted(true);
+        }
+        if (!descriptionErrors.length) {
+            setDescriptionCommitted(true);
+        }
+    });
+
     const duplicateLocationTrack = useLocationTrack(
         duplicateOf,
         'DRAFT',
@@ -104,7 +113,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         hasErrors={nameErrorsVisible}>
                         <TextField
                             ref={nameRef}
-                            value={split.name}
+                            defaultValue={split.name}
                             hasError={nameErrorsVisible}
                             onChange={(e) => {
                                 const duplicateId = duplicateLocationTracks.find(
@@ -151,7 +160,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         hasErrors={descriptionErrorsVisible}
                         label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
-                            value={
+                            defaultValue={
                                 duplicateLocationTrack
                                     ? duplicateLocationTrack.descriptionBase
                                     : split.descriptionBase
