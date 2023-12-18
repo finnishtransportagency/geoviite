@@ -301,13 +301,7 @@ class LocationTrackDao(
         publicationState: PublishType,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId).map(::fetch)
-
-    fun list(
-        publicationState: PublishType,
-        includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-        names: List<AlignmentName>,
+        names: List<AlignmentName> = emptyList(),
     ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(

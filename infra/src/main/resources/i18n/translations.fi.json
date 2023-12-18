@@ -611,7 +611,8 @@
                     "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
-                    "has-errors": "Tiedoissa on virheitä"
+                    "has-errors": "Tiedoissa on virheitä",
+                    "show": "näytä"
                 }
             }
         },

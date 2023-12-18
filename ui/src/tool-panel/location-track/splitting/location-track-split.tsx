@@ -32,6 +32,8 @@ type SplitProps = EndpointProps & {
     duplicateOf: LocationTrackId | undefined;
     nameErrors: ValidationError<Split>[];
     descriptionErrors: ValidationError<Split>[];
+    nameRef?: React.RefObject<HTMLInputElement>;
+    descriptionBaseRef?: React.RefObject<HTMLInputElement>;
 };
 
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({ addressPoint }) => {
@@ -59,6 +61,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     nameErrors,
     descriptionErrors,
     duplicateLocationTracks = [],
+    nameRef,
+    descriptionBaseRef,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -99,6 +103,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         label={t('tool-panel.location-track.track-name')}
                         hasErrors={nameErrorsVisible}>
                         <TextField
+                            ref={nameRef}
                             value={split.name}
                             hasError={nameErrorsVisible}
                             onChange={(e) => {
@@ -159,6 +164,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             onBlur={() => {
                                 setDescriptionCommitted(true);
                             }}
+                            ref={descriptionBaseRef}
                         />
                     </InfoboxField>
                     {descriptionErrorsVisible && (
