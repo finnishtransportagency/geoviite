@@ -16,6 +16,7 @@ import {
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { PublicationTableItem } from 'publication/publication-model';
 import { Page } from 'api/api-fetch';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 export type PublicationLogProps = {
     onClose: () => void;
@@ -81,20 +82,22 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                         }
                         errors={endDateErrors}
                     />
-                    <div className={styles['publication-log__export_button']}>
-                        <Button
-                            icon={Icons.Download}
-                            onClick={() =>
-                                (location.href = getPublicationsCsvUri(
-                                    startDate,
-                                    endDate && endOfDay(endDate),
-                                    sortInfo?.propName,
-                                    sortInfo?.direction,
-                                ))
-                            }>
-                            {t('publication-log.export-csv')}
-                        </Button>
-                    </div>
+                    <PrivilegeRequired privilege="publication-download">
+                        <div className={styles['publication-log__export_button']}>
+                            <Button
+                                icon={Icons.Download}
+                                onClick={() =>
+                                    (location.href = getPublicationsCsvUri(
+                                        startDate,
+                                        endDate && endOfDay(endDate),
+                                        sortInfo?.propName,
+                                        sortInfo?.direction,
+                                    ))
+                                }>
+                                {t('publication-log.export-csv')}
+                            </Button>
+                        </div>
+                    </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
                     <span

@@ -19,6 +19,7 @@ import {
     getVisibleErrorsByProp,
 } from 'data-products/data-products-utils';
 import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-slice';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type PlanGeometryElementListingSearchProps = {
     state: PlanGeometrySearchState;
@@ -167,21 +168,23 @@ const PlanGeometryElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <a
-                    qa-id={'plan-element-list-csv-download'}
-                    {...(state.plan && {
-                        href: getGeometryPlanElementsCsv(
-                            state.plan?.id,
-                            selectedElementTypes(state.searchGeometries),
-                        ),
-                    })}>
-                    <Button
-                        className={styles['element-list__download-button']}
-                        disabled={!state.elements || state.elements.length === 0}
-                        icon={Icons.Download}>
-                        {t(`data-products.search.download-csv`)}
-                    </Button>
-                </a>
+                <PrivilegeRequired privilege="dataproduct-download">
+                    <a
+                        qa-id={'plan-element-list-csv-download'}
+                        {...(state.plan && {
+                            href: getGeometryPlanElementsCsv(
+                                state.plan?.id,
+                                selectedElementTypes(state.searchGeometries),
+                            ),
+                        })}>
+                        <Button
+                            className={styles['element-list__download-button']}
+                            disabled={!state.elements || state.elements.length === 0}
+                            icon={Icons.Download}>
+                            {t(`data-products.search.download-csv`)}
+                        </Button>
+                    </a>
+                </PrivilegeRequired>
             </div>
         </React.Fragment>
     );
