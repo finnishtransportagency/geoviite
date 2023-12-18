@@ -4,7 +4,7 @@ with temp(code, name, user_group) as (
     values
       ('operator', 'Operaattori', 'geoviite_operaattori'),
       ('browser', 'Selaaja', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "official"
-      ('ftia-user', 'Virastokäyttäjä', 'geoviite_virasto'),
+      ('authority', 'Virastokäyttäjä', 'geoviite_virasto'),
       ('consultant', 'Konsultti', 'geoviite_konsultti')
 )
 select *
@@ -27,8 +27,8 @@ with temp(role_code, privilege_code) as (
     values
       ('browser', 'ui-read'),
       ('browser', 'publication-download'),
-      ('ftia-user', 'ui-read'),
-      ('ftia-user', 'publication-download'),
+      ('authority', 'ui-read'),
+      ('authority', 'publication-download'),
       ('operator', 'ui-read'),
       ('operator', 'all-write'),
       ('operator', 'inframodel-download'),
