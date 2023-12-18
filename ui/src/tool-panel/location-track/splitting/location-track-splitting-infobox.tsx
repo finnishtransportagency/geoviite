@@ -36,6 +36,7 @@ import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
+import { Link } from 'vayla-design-lib/link/link';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -104,6 +105,26 @@ const validateSplitDescription = (
         });
     return errors;
 };
+
+type ValidatedSplit = {
+    split: Split;
+    nameErrors: ValidationError<Split>[];
+    descriptionErrors: ValidationError<Split>[];
+};
+
+const findErroredIndex = (
+    predicate: (split: ValidatedSplit) => boolean,
+    splits: ValidatedSplit[],
+) => splits.findIndex((s) => predicate(s));
+
+const mandatoryFieldsMissing = (split: ValidatedSplit) =>
+    [...split.nameErrors, ...split.descriptionErrors].some(
+        (error) => error.reason === 'mandatory-field',
+    );
+const otherErrors = (split: ValidatedSplit) =>
+    [...split.nameErrors, ...split.descriptionErrors].some(
+        (error) => error.reason !== 'mandatory-field',
+    );
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
@@ -202,6 +223,33 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const anyMissingFields = allErrors.some((error) => error.reason === 'mandatory-field');
     const anyOtherErrors = allErrors.some((error) => error.reason !== 'mandatory-field');
 
+    const splitComponents = splitsValidated.map((splitValidated) => {
+        const nameRef = React.createRef<HTMLInputElement>();
+        const descriptionBaseRef = React.createRef<HTMLInputElement>();
+
+        const { split, nameErrors, descriptionErrors } = splitValidated;
+        return {
+            component: (
+                <LocationTrackSplit
+                    key={`${split.location.x}_${split.location.y}`}
+                    split={split}
+                    addressPoint={getSplitAddressPoint(split)}
+                    onRemove={removeSplit}
+                    duplicateLocationTracks={duplicateLocationTracks}
+                    updateSplit={updateSplit}
+                    duplicateOf={split.duplicateOf}
+                    nameErrors={nameErrors}
+                    descriptionErrors={descriptionErrors}
+                    nameRef={nameRef}
+                    descriptionBaseRef={descriptionBaseRef}
+                />
+            ),
+            split: splitValidated,
+            nameRef,
+            descriptionBaseRef,
+        };
+    });
+
     return (
         <React.Fragment>
             {startAndEnd?.start && startAndEnd?.end && locationTrack && (
@@ -219,21 +267,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             nameErrors={initialSplitValidated.nameErrors}
                             descriptionErrors={initialSplitValidated.descriptionErrors}
                         />
-                        {splitsValidated.map(({ split, nameErrors, descriptionErrors }) => {
-                            return (
-                                <LocationTrackSplit
-                                    key={`${split.location.x}_${split.location.y}`}
-                                    split={split}
-                                    addressPoint={getSplitAddressPoint(split)}
-                                    onRemove={removeSplit}
-                                    duplicateLocationTracks={duplicateLocationTracks}
-                                    updateSplit={updateSplit}
-                                    duplicateOf={split.duplicateOf}
-                                    nameErrors={nameErrors}
-                                    descriptionErrors={descriptionErrors}
-                                />
-                            );
-                        })}
+                        {splitComponents.map((split) => split.component)}
                         <LocationTrackSplittingEndpoint addressPoint={startAndEnd.end} />
                         {splits.length === 0 && (
                             <InfoboxContentSpread>
@@ -248,6 +282,24 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                     {t(
                                         'tool-panel.location-track.splitting.validation.missing-fields',
                                     )}
+                                    ,{' '}
+                                    <Link
+                                        onClick={() => {
+                                            const invalidSplitIndex = findErroredIndex(
+                                                mandatoryFieldsMissing,
+                                                splitComponents.map((u) => u.split),
+                                            );
+                                            const invalidSplit = splitComponents[invalidSplitIndex];
+                                            if (invalidSplit?.split?.nameErrors?.length) {
+                                                invalidSplit.nameRef?.current?.focus();
+                                            } else if (
+                                                invalidSplit?.split?.descriptionErrors?.length
+                                            ) {
+                                                invalidSplit?.descriptionBaseRef?.current?.focus();
+                                            }
+                                        }}>
+                                        {t('tool-panel.location-track.splitting.validation.show')}
+                                    </Link>
                                 </MessageBox>
                             </InfoboxContentSpread>
                         )}
@@ -255,6 +307,24 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             <InfoboxContentSpread>
                                 <MessageBox>
                                     {t('tool-panel.location-track.splitting.validation.has-errors')}
+                                    ,{' '}
+                                    <Link
+                                        onClick={() => {
+                                            const invalidSplitIndex = findErroredIndex(
+                                                otherErrors,
+                                                splitComponents.map((u) => u.split),
+                                            );
+                                            const invalidSplit = splitComponents[invalidSplitIndex];
+                                            if (invalidSplit?.split?.nameErrors?.length) {
+                                                invalidSplit.nameRef?.current?.focus();
+                                            } else if (
+                                                invalidSplit?.split?.descriptionErrors?.length
+                                            ) {
+                                                invalidSplit?.descriptionBaseRef?.current?.focus();
+                                            }
+                                        }}>
+                                        {t('tool-panel.location-track.splitting.validation.show')}
+                                    </Link>
                                 </MessageBox>
                             </InfoboxContentSpread>
                         )}
