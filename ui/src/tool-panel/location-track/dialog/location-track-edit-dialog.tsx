@@ -132,13 +132,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         qaId: tc.value,
     }));
 
-    const locationTrackOwners = useLoader(
-        () =>
-            getLocationTrackOwners().then((owners) =>
-                owners.sort((a, b) => sortUnknownLocationTrackOwnerAsLast(a.name, b.name)),
-            ),
-        [],
-    );
+    const locationTrackOwners = useLoader(getLocationTrackOwners, []);
 
     const duplicate = useLocationTrack(
         props.locationTrack?.duplicateOf,
@@ -148,16 +142,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     React.useEffect(() => {
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
     }, [duplicate]);
-
-    function sortUnknownLocationTrackOwnerAsLast(a: string, b: string) {
-        if (b === 'Ei tiedossa') {
-            return -1;
-        } else if (a === b) {
-            return 0;
-        } else {
-            return a < b ? -1 : 1;
-        }
-    }
 
     const trackWithSameName = useConflictingTracks(
         state.locationTrack.trackNumberId,
