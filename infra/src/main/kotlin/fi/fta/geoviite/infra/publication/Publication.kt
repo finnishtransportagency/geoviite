@@ -424,6 +424,28 @@ data class KmPostChanges(
     val location: Change<Point>,
 )
 
+enum class SplitState {
+    PENDING,
+    IN_PROGRESS,
+    DONE,
+    FAILED
+}
+
+data class SplitSource(
+    val id: IntId<SplitSource>,
+    val locationTrackId: IntId<LocationTrack>,
+    val state: SplitState,
+    val errorCause: String?,
+    val publicationId: IntId<Publication>?,
+    val targetLocationTracks: List<SplitTarget>,
+)
+
+data class SplitTarget(
+    val splitId: IntId<SplitSource>,
+    val locationTrackId: IntId<LocationTrack>,
+    val segmentIndices: IntRange,
+)
+
 fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
     officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
 )

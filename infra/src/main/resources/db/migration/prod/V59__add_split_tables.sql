@@ -4,9 +4,9 @@ create table publication.split
 (
     id                          int                             primary key generated always as identity,
     state                       publication.split_push_state    not null default 'PENDING',
-    error_cause                 text                            null,
-    publication_id              int                             null,
-    source_location_track_id    int                             not null unique,
+    error_cause                 text                            null default null,
+    publication_id              int                             null default null,
+    source_location_track_id    int                             not null,
 
     constraint split_publication_fkey
         foreign key (publication_id) references publication.publication(id),

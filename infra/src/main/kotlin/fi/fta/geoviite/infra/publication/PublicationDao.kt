@@ -1511,6 +1511,43 @@ class PublicationDao(
             partitionDirectIndirectChanges(trackNumberRows)
         }
     }
+
+    fun fetchUnpublishedSplits(locationTrackId: IntId<LocationTrack>): IntId<SplitSource>? {
+        val sql = """
+            select slt.id
+            from publication.split slt
+            left join publication.split_target_location_track tlt on tlt.split_id = slt.id
+            where slt.state != 'DONE'
+                and slt.publication_id is null
+                and (slt.source_location_track_id = :trackId or tlt.location_track_id = :trackId)
+        """.trimIndent()
+
+        val params = mapOf("trackId" to locationTrackId)
+
+        return jdbcTemplate.queryOptional<IntId<SplitSource>>(sql, params) { rs, _ ->
+            rs.getIntId("id")
+        }.also {
+            logger.daoAccess(FETCH, SplitSource::class, it.toString())
+        }
+    }
+
+    fun fetchUnpublishedSplitsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<SplitSource>> {
+        val sql = """
+            select slt.id
+            from publication.split slt
+            left join publication.split_target_location_track tlt on tlt.split_id = slt.id
+            inner join layout.location_track lt on lt.id = slt.target_location_track_id or lt.id = tlt.location_track_id 
+            where slt.state != 'DONE' 
+                and slt.publication_id is null 
+                and lt.track_number_id = :trackNumberId 
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId)) { rs, _ ->
+            rs.getIntId<SplitSource>("id")
+        }.also { ids ->
+            logger.daoAccess(FETCH, SplitSource::class, ids)
+        }
+    }
 }
 
 private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =

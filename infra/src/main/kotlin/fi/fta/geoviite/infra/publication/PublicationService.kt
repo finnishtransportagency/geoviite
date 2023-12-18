@@ -586,7 +586,10 @@ class PublicationService @Autowired constructor(
         val geocodingErrors = if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
             validateGeocodingContext(cacheKeys[kmPost.trackNumberId], VALIDATION_KM_POST, trackNumber.number)
         } else listOf()
-        return fieldErrors + referenceErrors + geocodingErrors
+
+        val splitErrors = kmPost.trackNumberId?.let(::validateSplitReferencesByTrackNumber) ?: emptyList()
+
+        return fieldErrors + referenceErrors + geocodingErrors + splitErrors
     }
 
     private fun validateSwitch(
@@ -663,7 +666,10 @@ class PublicationService @Autowired constructor(
             } ?: listOf()
             contextErrors + addressErrors
         } else listOf()
-        return referenceErrors + alignmentErrors + geocodingErrors
+
+        val splitErrors = validateSplitReferencesByTrackNumber(referenceLine.trackNumberId)
+
+        return referenceErrors + alignmentErrors + geocodingErrors + splitErrors
     }
 
     private fun validateLocationTrack(
@@ -703,8 +709,7 @@ class PublicationService @Autowired constructor(
             locationTrack, validationVersions
         ) else listOf()
 
-        return fieldErrors + referenceErrors + switchErrorsSegments + topologicallyConnectedSwitchError +
-                duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors + trackNetworkTopologyErrors
+        return fieldErrors + referenceErrors + switchErrorsSegments + topologicallyConnectedSwitchError + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors + trackNetworkTopologyErrors
     }
 
     private fun validateLocationTrackTopologicalConnectivity(
@@ -796,6 +801,33 @@ class PublicationService @Autowired constructor(
                 mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null
         )
+    }
+
+    private fun validateSplitReferences(
+        locationTrackId: IntId<LocationTrack>,
+    ): List<PublishValidationError> {
+        val splitErrors = publicationDao.fetchUnpublishedSplits(locationTrackId)?.let {
+            listOf(
+                PublishValidationError(
+                    ERROR,
+                    "$VALIDATION_LOCATION_TRACK.split-in-progress"
+                )
+            )
+        } ?: emptyList()
+
+        return splitErrors
+    }
+
+    private fun validateSplitReferencesByTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ): List<PublishValidationError> {
+        val splitIds = publicationDao.fetchUnpublishedSplitsByTrackNumber(trackNumberId)
+
+        val splitErrors = if (splitIds.isNotEmpty())
+            listOf(PublishValidationError(ERROR, "$VALIDATION_REFERENCE_LINE.location-track-split-in-progress"))
+        else emptyList()
+
+        return splitErrors
     }
 
     private fun getTrackNumber(
