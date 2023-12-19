@@ -38,7 +38,7 @@ export function createSwitchLayer(
                 ? getSwitches(
                       splittingState.allowedSwitches.map((sw) => sw.switchId),
                       publishType,
-                  )
+                  ).then((switches) => switches.filter((sw) => sw.stateCategory !== 'NOT_EXISTING'))
                 : Promise.all(
                       mapTiles.map((t) =>
                           getSwitchesByTile(changeTimes.layoutSwitch, t, publishType),

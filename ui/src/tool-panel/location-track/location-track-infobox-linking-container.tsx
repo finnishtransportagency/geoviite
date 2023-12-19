@@ -19,6 +19,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     splittingState?: SplittingState;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     onDataChange: () => void;
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
@@ -33,6 +34,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     splittingState,
     publishType,
     locationTrackChangeTime,
+    switchChangeTime,
     onDataChange,
     viewport,
     visibilities,
@@ -64,6 +66,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 showArea={delegates.showArea}
                 publishType={publishType}
                 locationTrackChangeTime={locationTrackChangeTime}
+                switchChangeTime={switchChangeTime}
                 onSelect={delegates.onSelect}
                 onUnselect={delegates.onUnselect}
                 viewport={viewport}
