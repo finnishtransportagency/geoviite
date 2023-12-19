@@ -396,6 +396,7 @@ class LocationTrackDao(
             id,
             name
         from common.location_track_owner
+        order by sort_priority, name
     """.trimIndent()
 
         val locationTrackOwners = jdbcTemplate.query(sql) { rs, _ ->

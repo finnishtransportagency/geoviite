@@ -132,13 +132,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         qaId: tc.value,
     }));
 
-    const locationTrackOwners = useLoader(
-        () =>
-            getLocationTrackOwners().then((owners) =>
-                owners.sort((a, b) => sortUnknownLocationTrackOwnerAsLast(a.name, b.name)),
-            ),
-        [],
-    );
+    const locationTrackOwners = useLoader(getLocationTrackOwners, []);
 
     const duplicate = useLocationTrack(
         props.locationTrack?.duplicateOf,
@@ -148,16 +142,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     React.useEffect(() => {
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
     }, [duplicate]);
-
-    function sortUnknownLocationTrackOwnerAsLast(a: string, b: string) {
-        if (b === 'Ei tiedossa') {
-            return -1;
-        } else if (a === b) {
-            return 0;
-        } else {
-            return a < b ? -1 : 1;
-        }
-    }
 
     const trackWithSameName = useConflictingTracks(
         state.locationTrack.trackNumberId,
@@ -332,7 +316,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         });
 
     const moveToEditLinkText = (track: LayoutLocationTrack) => {
-        return track.state === 'DELETED' ? t('location-track-dialog.move-to-edit-deleted') : t('location-track-dialog.move-to-edit', {name: track.name});
+        return track.state === 'DELETED'
+            ? t('location-track-dialog.move-to-edit-deleted')
+            : t('location-track-dialog.move-to-edit', { name: track.name });
     };
     return (
         <React.Fragment>
@@ -410,10 +396,17 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('name')}>
                             {trackWithSameName && (
                                 <>
-                                    <div className={styles['location-track-edit-dialog__alert-color']}>
-                                        {trackWithSameName.state === 'DELETED' ? t('location-track-dialog.name-in-use-deleted') : t('location-track-dialog.name-in-use')}
+                                    <div
+                                        className={
+                                            styles['location-track-edit-dialog__alert-color']
+                                        }>
+                                        {trackWithSameName.state === 'DELETED'
+                                            ? t('location-track-dialog.name-in-use-deleted')
+                                            : t('location-track-dialog.name-in-use')}
                                     </div>
-                                    <Link className={styles['location-track-edit-dialog__alert']} onClick={() => props.onEditTrack(trackWithSameName.id)}>
+                                    <Link
+                                        className={styles['location-track-edit-dialog__alert']}
+                                        onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
                                     </Link>
                                 </>
