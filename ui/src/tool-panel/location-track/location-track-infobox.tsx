@@ -131,10 +131,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
-    /*const splitInitializationParameters = useLoader(
-        () => getSplittingInitializationParameters(publishType, locationTrack.id),
-        [publishType, locationTrack.id],
-    );*/
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -438,6 +434,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                             variant={ButtonVariant.SECONDARY}
                                             size={ButtonSize.SMALL}
                                             disabled={locationTrack.draftType !== 'OFFICIAL'}
+                                            title={
+                                                locationTrack.draftType !== 'OFFICIAL'
+                                                    ? t(
+                                                          'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                      )
+                                                    : undefined
+                                            }
                                             onClick={() => {
                                                 getSplittingInitializationParameters(
                                                     'DRAFT',
