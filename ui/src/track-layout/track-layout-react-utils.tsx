@@ -49,7 +49,7 @@ import {
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { getChangeTimes, updateAllChangeTimes } from 'common/change-time-api';
+import { updateAllChangeTimes } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
     updateKmPostChangeTime,
@@ -58,6 +58,7 @@ import {
 } from 'common/change-time-api';
 import { deduplicate } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
+import { getMaxTimestampFromArray } from 'utils/date-utils';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -201,25 +202,30 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
-    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
+    ...changeTimes: TimeStamp[]
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () =>
             id && publishType
-                ? getLocationTrackStartAndEnd(id, publishType, changeTime)
+                ? getLocationTrackStartAndEnd(
+                      id,
+                      publishType,
+                      getMaxTimestampFromArray(changeTimes),
+                  )
                 : undefined,
-        [id, publishType, changeTime],
+        [id, publishType, ...changeTimes],
     );
 }
 
 export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
     publishType: PublishType,
-    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
+    locationTrackChangeTime: TimeStamp,
+    switchChangeTime: TimeStamp,
 ): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
-        [id, publishType, changeTime],
+        [id, publishType, locationTrackChangeTime, switchChangeTime],
     );
 }
 export function useConflictingTracks(

@@ -31,6 +31,7 @@ type GeometryAlignmentInfoboxProps = {
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?: LinkingState;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
@@ -53,6 +54,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     selectedLayoutReferenceLine,
     planId,
     locationTrackChangeTime,
+    switchChangeTime,
     trackNumberChangeTime,
     linkingState,
     onLinkingStart,
@@ -121,6 +123,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}
                     planId={planId}
                     locationTrackChangeTime={locationTrackChangeTime}
+                    switchChangeTime={switchChangeTime}
                     trackNumberChangeTime={trackNumberChangeTime}
                     linkingState={linkingState}
                     onLinkingStart={onLinkingStart}

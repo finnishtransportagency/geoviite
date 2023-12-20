@@ -67,6 +67,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
                 changeTimes.layoutReferenceLine,
                 changeTimes.layoutLocationTrack,
             )}
+            switchChangeTime={changeTimes.layoutSwitch}
             trackNumberChangeTime={changeTimes.layoutTrackNumber}
             linkingState={linkingState}
             onLinkingStart={(params) => {

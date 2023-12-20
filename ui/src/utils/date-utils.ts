@@ -71,9 +71,11 @@ export function getMinTimestamp(time1: TimeStamp, ...others: TimeStamp[]) {
     return minOf([time1, ...others], compareTimestamps) as TimeStamp;
 }
 
-export function getMaxTimestamp(time1: TimeStamp, ...others: TimeStamp[]) {
-    return maxOf([time1, ...others], compareTimestamps) as TimeStamp;
-}
+export const getMaxTimestamp = (time1: TimeStamp, ...others: TimeStamp[]) =>
+    getMaxTimestampFromArray([time1, ...others]);
+
+export const getMaxTimestampFromArray = (timestamps: TimeStamp[]) =>
+    maxOf(timestamps, compareTimestamps) as TimeStamp;
 
 export function createYearRange(fromYear: number, toYear: number): number[] {
     const years = [];
