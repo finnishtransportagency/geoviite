@@ -242,21 +242,6 @@ function findAndFocusFirstErroredField(
     }
 }
 
-function findAndScrollIntoView(
-    splitComponents: SplitComponentAndRefs[],
-    predicate: (errorReason: string) => boolean,
-) {
-    const index = splitComponents.findIndex((s) =>
-        hasErrors(
-            s.split.switchErrors.map((err) => err.reason),
-            predicate,
-        ),
-    );
-    if (index !== -1) {
-        splitComponents[index]?.nameRef?.current?.scrollIntoView();
-    }
-}
-
 const getSplitAddressPoint = (
     allowedSwitches: SwitchOnLocationTrack[],
     startAndEnd: AlignmentStartAndEnd | undefined,
@@ -325,7 +310,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ...validated.switchErrors,
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
-    const anyMissingSwitches = allErrors.map((s) => s.reason).some(switchDeleted);
     const anyOtherErrors = allErrors.map((s) => s.reason).some(otherError);
 
     const splitComponents: SplitComponentAndRefs[] = allValidated.map((splitValidated) => {
@@ -337,7 +321,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 (s) => 'switchId' in splitValidated.split && s.id === splitValidated.split.switchId,
             )?.stateCategory !== 'NOT_EXISTING';
 
-        const { split, nameErrors, descriptionErrors } = splitValidated;
+        const { split, nameErrors, descriptionErrors, switchErrors } = splitValidated;
         return {
             component: (
                 <LocationTrackSplit
@@ -350,6 +334,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     duplicateOf={split.duplicateOf}
                     nameErrors={nameErrors}
                     descriptionErrors={descriptionErrors}
+                    switchErrors={switchErrors}
                     editingDisabled={disabled || !switchExists}
                     deletingDisabled={disabled}
                     nameRef={nameRef}
@@ -407,27 +392,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                                     findAndFocusFirstErroredField(
                                                         splitComponents,
                                                         mandatoryFieldMissing,
-                                                    )
-                                                }>
-                                                {t(
-                                                    'tool-panel.location-track.splitting.validation.show',
-                                                )}
-                                            </Link>
-                                        </MessageBox>
-                                    </InfoboxContentSpread>
-                                )}
-                                {anyMissingSwitches && (
-                                    <InfoboxContentSpread>
-                                        <MessageBox>
-                                            {t(
-                                                'tool-panel.location-track.splitting.validation.missing-switch',
-                                            )}
-                                            ,{' '}
-                                            <Link
-                                                onClick={() =>
-                                                    findAndScrollIntoView(
-                                                        splitComponents,
-                                                        switchDeleted,
                                                     )
                                                 }>
                                                 {t(

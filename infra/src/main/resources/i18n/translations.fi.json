@@ -612,7 +612,7 @@
                     "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
-                    "missing-switch": "Katkaisukohdan vaihde on poistettu",
+                    "missing-switch": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä"
                 }

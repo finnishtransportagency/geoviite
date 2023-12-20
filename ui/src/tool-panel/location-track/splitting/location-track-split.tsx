@@ -33,6 +33,7 @@ type SplitProps = EndpointProps & {
     duplicateOf: LocationTrackId | undefined;
     nameErrors: ValidationError<Split>[];
     descriptionErrors: ValidationError<Split>[];
+    switchErrors: ValidationError<Split>[];
     nameRef?: React.RefObject<HTMLInputElement>;
     descriptionBaseRef?: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
@@ -70,6 +71,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     duplicateOf,
     nameErrors,
     descriptionErrors,
+    switchErrors,
     duplicateLocationTracks = [],
     editingDisabled,
     deletingDisabled,
@@ -123,11 +125,21 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 ? t('tool-panel.location-track.splitting.split-address')
                                 : t('tool-panel.location-track.splitting.start-address')
                         }>
-                        <NavigableTrackMeter
-                            trackMeter={addressPoint?.address}
-                            location={addressPoint?.point}
-                            mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
-                        />
+                        <div>
+                            <NavigableTrackMeter
+                                trackMeter={addressPoint?.address}
+                                location={addressPoint?.point}
+                                mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
+                            />
+                            {switchErrors.some((err) => err.reason === 'switch-not-found') && (
+                                <InfoboxText
+                                    className={styles['location-track-infobox__split-error']}
+                                    value={t(
+                                        'tool-panel.location-track.splitting.validation.missing-switch',
+                                    )}
+                                />
+                            )}
+                        </div>
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
