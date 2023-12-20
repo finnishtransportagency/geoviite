@@ -21,7 +21,8 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { PublicationId } from 'publication/publication-model';
+import { PublicationId, PublicationSearch } from 'publication/publication-model';
+import { defaultPublicationSearch } from 'publication/publication-utils';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -47,7 +48,8 @@ export const initialSelectionState: Selection = {
     highlightedItems: createEmptyItemCollections(),
     openPlans: [],
     visiblePlans: [],
-    publication: undefined,
+    publicationId: undefined,
+    publicationSearch: undefined,
 };
 
 function getNewIdCollection<TId extends string>(
@@ -311,11 +313,41 @@ export const selectionReducers = {
     ) {
         updateItemCollectionsByUnselecting(state.selectedItems, payload);
     },
-    onSelectedPublicationChanged: (
+    setSelectedPublicationId: (
         state: Selection,
-        { payload: publication }: PayloadAction<PublicationId | undefined>,
+        { payload: publicationId }: PayloadAction<PublicationId | undefined>,
     ) => {
-        state.publication = publication;
+        state.publicationId = publicationId;
+        state.publicationSearch = undefined;
+    },
+    setSelectedPublicationSearch: (
+        state: Selection,
+        { payload: publicationSearch }: PayloadAction<PublicationSearch | undefined>,
+    ) => {
+        state.publicationId = undefined;
+        state.publicationSearch = publicationSearch;
+    },
+    setSelectedPublicationSearchStartDate: (
+        state: Selection,
+        { payload: newStartDate }: PayloadAction<Date | undefined>,
+    ) => {
+        if (!state.publicationSearch) {
+            state.publicationSearch = defaultPublicationSearch;
+        }
+        state.publicationSearch.startDate = newStartDate;
+    },
+    setSelectedPublicationSearchEndDate: (
+        state: Selection,
+        { payload: newEndDate }: PayloadAction<Date | undefined>,
+    ) => {
+        if (!state.publicationSearch) {
+            state.publicationSearch = defaultPublicationSearch;
+        }
+        state.publicationSearch.endDate = newEndDate;
+    },
+    clearPublicationSelection: (state: Selection) => {
+        state.publicationId = undefined;
+        state.publicationSearch = undefined;
     },
     togglePlanVisibility: (
         state: Selection,
@@ -448,6 +480,7 @@ function toggleVisibility(
 function arePlanPartsVisible(plan: VisiblePlanLayout): boolean {
     return plan.kmPosts.length > 0 || plan.switches.length > 0 || plan.alignments.length > 0;
 }
+
 export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout {
     return {
         id: plan.id,

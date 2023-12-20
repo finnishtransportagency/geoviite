@@ -17,20 +17,80 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { PublicationTableItem } from 'publication/publication-model';
 import { Page } from 'api/api-fetch';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { useAppNavigate } from 'common/navigate';
 
-export type PublicationLogProps = {
-    onClose: () => void;
-};
-
-const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
+const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
 
-    const [startDate, setStartDate] = React.useState<Date | undefined>(subMonths(currentDay, 1));
-    const [endDate, setEndDate] = React.useState<Date | undefined>(currentDay);
+    const selectedPublicationSearch = useTrackLayoutAppSelector(
+        (state) => state.selection.publicationSearch,
+    );
+
+    const initialStartDate = selectedPublicationSearch?.startDate;
+    const initialEndDate = selectedPublicationSearch?.endDate;
+
+    const trackLayoutActionDelegates = React.useMemo(
+        () => createDelegates(trackLayoutActionCreators),
+        [],
+    );
+
+    const [startDate, setStartDate] = React.useState<Date | undefined>(
+        initialStartDate ?? subMonths(currentDay, 1),
+    );
+    const [endDate, setEndDate] = React.useState<Date | undefined>(initialEndDate ?? currentDay);
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
     const [isLoading, setIsLoading] = React.useState(true);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
+
+    // TODO Also the URL & redux state should also be updated when the input values are changed
+    // useEffect(() => {
+    //     const queryParams = new URLSearchParams(urlSearchString);
+    //     // const startDate = toDateOrUndefined(queryParams.get('startDate') ?? '');
+    //     // const endDate = toDateOrUndefined(queryParams.get('endDate') ?? '');
+    //
+    //     if (!startDate || !endDate) {
+    //         console.error('Invalid search params, continuing with defaults.');
+    //         navigate(createPublicationLogSearchAddress(defaultPublicationSearch));
+    //     }
+    //
+    //     trackLayoutActionDelegates.setSelectedPublicationSearch({
+    //         startDate: startDate,
+    //         endDate: endDate,
+    //     });
+    //
+    //     setStartDate(startDate);
+    //     setEndDate(endDate);
+    // }, [urlSearchString]);
+
+    // useEffect(() => {
+    //     const newSearch: PublicationSearch = {
+    //         startDate: startDate,
+    //         endDate: endDate,
+    //     };
+    //
+    //     console.log(startDate);
+    //     console.log(endDate);
+    //     // navigate(createPublicationLogSearchAddress(newSearch));
+    // }, [startDate, endDate]);
+
+    // function updateURL(newStartDate: Date | undefined, newEndDate: Date | undefined) {
+    //     const newSearch: PublicationSearch = {
+    //         startDate: newStartDate,
+    //         endDate: newEndDate,
+    //     };
+    //
+    //     trackLayoutActionDelegates.setSelectedPublicationSearch({
+    //         startDate: newStartDate,
+    //         endDate: newEndDate,
+    //     });
+    //
+    //     navigate(createPublicationLogSearchAddress(newSearch));
+    // }
 
     React.useEffect(() => {
         setIsLoading(true);
@@ -56,7 +116,13 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     return (
         <div className={styles['publication-log']}>
             <div className={styles['publication-log__title']}>
-                <Link onClick={onClose}>{t('frontpage.frontpage-link')}</Link>
+                <Link
+                    onClick={() => {
+                        trackLayoutActionDelegates.setSelectedPublicationSearch(undefined);
+                        navigate('frontpage');
+                    }}>
+                    {t('frontpage.frontpage-link')}
+                </Link>
                 <span className={styles['publication-log__breadcrumbs']}>
                     {' > ' + t('publication-log.breadcrumbs-text')}
                 </span>
@@ -68,7 +134,12 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                         value={
                             <DatePicker
                                 value={startDate}
-                                onChange={(startDate) => setStartDate(startDate)}
+                                onChange={(newStartDate) => {
+                                    setStartDate(newStartDate);
+                                    trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
+                                        newStartDate,
+                                    );
+                                }}
                             />
                         }
                     />
@@ -77,7 +148,12 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                         value={
                             <DatePicker
                                 value={endDate}
-                                onChange={(endDate) => setEndDate(endDate)}
+                                onChange={(newEndDate) => {
+                                    setEndDate(newEndDate);
+                                    trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(
+                                        newEndDate,
+                                    );
+                                }}
                             />
                         }
                         errors={endDateErrors}

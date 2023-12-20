@@ -297,7 +297,9 @@ export const SwitchEditDialog = ({
     }
 
     const moveToEditLinkText = (s: LayoutSwitch) => {
-        return s.stateCategory === 'NOT_EXISTING' ? t('switch-dialog.move-to-edit-deleted') : t('switch-dialog.move-to-edit', {name: s.name});
+        return s.stateCategory === 'NOT_EXISTING'
+            ? t('switch-dialog.move-to-edit-deleted')
+            : t('switch-dialog.move-to-edit', { name: s.name });
     };
 
     return (
@@ -364,9 +366,13 @@ export const SwitchEditDialog = ({
                             {conflictingSwitch && (
                                 <>
                                     <div className={styles['switch-edit-dialog__alert-color']}>
-                                        {conflictingSwitch.stateCategory === 'NOT_EXISTING' ? t('switch-dialog.name-in-use-deleted') : t('switch-dialog.name-in-use')}
+                                        {conflictingSwitch.stateCategory === 'NOT_EXISTING'
+                                            ? t('switch-dialog.name-in-use-deleted')
+                                            : t('switch-dialog.name-in-use')}
                                     </div>
-                                    <Link className={styles['switch-edit-dialog__alert']} onClick={() => onEdit(conflictingSwitch.id)}>
+                                    <Link
+                                        className={styles['switch-edit-dialog__alert']}
+                                        onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
                                 </>

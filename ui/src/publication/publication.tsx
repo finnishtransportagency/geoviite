@@ -1,6 +1,10 @@
 import * as React from 'react';
 import PublicationTable from 'publication/table/publication-table';
-import { PublicationDetails, PublicationTableItem } from 'publication/publication-model';
+import {
+    PublicationDetails,
+    PublicationId,
+    PublicationTableItem,
+} from 'publication/publication-model';
 import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
@@ -11,21 +15,23 @@ import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { useAppNavigate } from 'common/navigate';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
-    onPublicationUnselected: () => void;
+    setSelectedPublicationId: (publicationId: PublicationId | undefined) => void;
     anyFailed: boolean;
     changeTime: TimeStamp;
 };
 
 const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     publication,
-    onPublicationUnselected,
+    setSelectedPublicationId,
     anyFailed,
     changeTime,
 }) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
 
     const waitingAfterFail = !publication.ratkoPushStatus && anyFailed;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
@@ -33,6 +39,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
 
     React.useEffect(() => {
         setIsLoading(true);
+        setSelectedPublicationId(publication.id);
 
         getPublicationAsTableItems(publication.id).then((p) => {
             p && setPublicationItems(p);
@@ -45,7 +52,8 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
             <div className={styles['publication-details__title']}>
                 <Link
                     onClick={() => {
-                        onPublicationUnselected();
+                        setSelectedPublicationId(undefined);
+                        navigate('frontpage');
                     }}>
                     {t('frontpage.frontpage-link')}
                 </Link>

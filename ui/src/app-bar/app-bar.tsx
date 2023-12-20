@@ -6,7 +6,7 @@ import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
-import { useInfraModelAppSelector } from 'store/hooks';
+import { useInfraModelAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { InfraModelLink } from 'app-bar/infra-model-link';
 import { getPVDocumentCount } from 'infra-model/infra-model-api';
@@ -44,6 +44,24 @@ export const AppBar: React.FC = () => {
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
     const exclamationPointVisibility = !!pvDocumentCounts && pvDocumentCounts?.suggested > 0;
 
+    const selectedPublicationId = useTrackLayoutAppSelector(
+        (state) => state.selection.publicationId,
+    );
+
+    const selectedPublicationSearch = useTrackLayoutAppSelector(
+        (state) => state.selection.publicationSearch,
+    );
+
+    function getFrontpageLink(): string {
+        if (selectedPublicationId) {
+            return `/publication-log/${selectedPublicationId}`;
+        } else if (selectedPublicationSearch) {
+            return '/publication-log';
+        }
+
+        return `/`;
+    }
+
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
             case InfraModelTabType.PLAN:
@@ -66,6 +84,47 @@ export const AppBar: React.FC = () => {
              ${isActive ? styles['app-bar__link--active'] : ''}`;
     }
 
+    function getNavLink(link: Link) {
+        switch (link.link) {
+            case '/':
+                return (
+                    <NavLink
+                        to={getFrontpageLink()}
+                        className={({ isActive }) =>
+                            `${styles['app-bar__link']} ${
+                                isActive ? styles['app-bar__link--active'] : ''
+                            }`
+                        }
+                        end>
+                        {t(link.name)}
+                    </NavLink>
+                );
+            case '/infra-model':
+                return (
+                    <NavLink
+                        to={getInfraModelLink()}
+                        className={({ isActive }) => getInfraModelLinkClassName(isActive)}
+                        end>
+                        <InfraModelLink exclamationPointVisibility={exclamationPointVisibility} />
+                    </NavLink>
+                );
+
+            default:
+                return (
+                    <NavLink
+                        to={link.link}
+                        className={({ isActive }) =>
+                            `${styles['app-bar__link']} ${
+                                isActive ? styles['app-bar__link--active'] : ''
+                            }`
+                        }
+                        end>
+                        {t(link.name)}
+                    </NavLink>
+                );
+        }
+    }
+
     return (
         <nav className={styles['app-bar']}>
             <div className={styles['app-bar__title']}>
@@ -76,31 +135,7 @@ export const AppBar: React.FC = () => {
                 {links.map((link) => {
                     return (
                         <EnvRestricted restrictTo={link.type} key={link.name}>
-                            <li qa-id={link.qaId}>
-                                {link.link !== '/infra-model' ? (
-                                    <NavLink
-                                        to={link.link}
-                                        className={({ isActive }) =>
-                                            `${styles['app-bar__link']} ${
-                                                isActive ? styles['app-bar__link--active'] : ''
-                                            }`
-                                        }
-                                        end>
-                                        {t(link.name)}
-                                    </NavLink>
-                                ) : (
-                                    <NavLink
-                                        to={getInfraModelLink()}
-                                        className={({ isActive }) =>
-                                            getInfraModelLinkClassName(isActive)
-                                        }
-                                        end>
-                                        <InfraModelLink
-                                            exclamationPointVisibility={exclamationPointVisibility}
-                                        />
-                                    </NavLink>
-                                )}
-                            </li>
+                            <li qa-id={link.qaId}>{getNavLink(link)}</li>
                         </EnvRestricted>
                     );
                 })}

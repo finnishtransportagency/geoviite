@@ -1,5 +1,11 @@
-import { PublishCandidates, PublishRequestIds } from 'publication/publication-model';
+import { subMonths } from 'date-fns';
+import {
+    PublicationSearch,
+    PublishCandidates,
+    PublishRequestIds,
+} from 'publication/publication-model';
 import { filterByIdNotIn, filterIn, filterNotIn } from 'utils/array-utils';
+import { currentDay } from 'utils/date-utils';
 
 export const addPublishRequestIds = (
     a: PublishRequestIds,
@@ -44,3 +50,8 @@ export const dropIdsFromPublishCandidates = (
     ),
     kmPosts: publishCandidates.kmPosts.filter(filterByIdNotIn(ids.kmPosts, ({ id }) => id)),
 });
+
+export const defaultPublicationSearch: PublicationSearch = {
+    startDate: subMonths(currentDay, 1),
+    endDate: currentDay,
+};

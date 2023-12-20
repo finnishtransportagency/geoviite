@@ -9,10 +9,12 @@ import { useTranslation } from 'react-i18next';
 import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
 import { PublicationDetails } from 'publication/publication-model';
 import { filterUnique } from 'utils/array-utils';
+import { useAppNavigate } from 'common/navigate';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 
 type PublicationListProps = {
     publications: PublicationDetails[];
-    onPublicationSelect: (publication: PublicationDetails) => void;
     anyFailed?: boolean;
 };
 
@@ -25,12 +27,15 @@ const getPublicationTrackNumbers = (publication: PublicationDetails) => {
     ].filter(filterUnique);
 };
 
-export const PublicationList: React.FC<PublicationListProps> = ({
-    publications,
-    onPublicationSelect,
-    anyFailed,
-}) => {
+export const PublicationList: React.FC<PublicationListProps> = ({ publications, anyFailed }) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
+
+    const trackLayoutActionDelegates = React.useMemo(
+        () => createDelegates(trackLayoutActionCreators),
+        [],
+    );
+
     //Track numbers rarely change, therefore we can always use the "latest" version
     const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
@@ -56,7 +61,13 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                             />
                         )}
                         <div className={styles['publication-list-item__text']}>
-                            <Link onClick={() => onPublicationSelect(publication)}>
+                            <Link
+                                onClick={() => {
+                                    trackLayoutActionDelegates.setSelectedPublicationId(
+                                        publication.id,
+                                    );
+                                    navigate('publication-view', publication.id);
+                                }}>
                                 {formatDateFull(publication.publicationTime)}
                             </Link>
                         </div>

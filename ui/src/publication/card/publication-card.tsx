@@ -14,10 +14,13 @@ import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
 import { LoaderStatus } from 'utils/react-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { useEffect } from 'react';
+import { useAppNavigate } from 'common/navigate';
+import { defaultPublicationSearch } from 'publication/publication-utils';
 
 type PublishListProps = {
-    onPublicationSelect: (pub: PublicationDetails) => void;
-    onShowPublicationLog: () => void;
     publicationFetchStatus: LoaderStatus;
     publications: PublicationDetails[];
     ratkoStatus: RatkoStatus | undefined;
@@ -65,12 +68,21 @@ export const MAX_LISTED_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
     publications,
-    onPublicationSelect,
     publicationFetchStatus,
     ratkoStatus,
-    onShowPublicationLog,
 }) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
+
+    const trackLayoutActionDelegates = React.useMemo(
+        () => createDelegates(trackLayoutActionCreators),
+        [],
+    );
+
+    useEffect(() => {
+        trackLayoutActionDelegates.clearPublicationSelection();
+    }, []);
+
     const allPublications = publications.sort(
         (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
     );
@@ -124,7 +136,6 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                             </div>
                                             <PublicationList
                                                 publications={failures}
-                                                onPublicationSelect={onPublicationSelect}
                                                 anyFailed={failures.length > 0}
                                             />
                                         </React.Fragment>
@@ -135,17 +146,20 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 <h3 className={styles['publication-card__subsection-title']}>
                                     {t('publication-card.latest')}
                                 </h3>
-                                <PublicationList
-                                    publications={successes}
-                                    onPublicationSelect={onPublicationSelect}
-                                />
+                                <PublicationList publications={successes} />
                             </section>
                             {successes.length == 0 && failures.length == 0 && (
                                 <div className={styles['publication-card__no-publications']}>
                                     {t('publication-card.no-success-publications')}
                                 </div>
                             )}
-                            <Link onClick={onShowPublicationLog}>
+                            <Link
+                                onClick={() => {
+                                    trackLayoutActionDelegates.setSelectedPublicationSearch(
+                                        defaultPublicationSearch,
+                                    );
+                                    navigate('publication-search');
+                                }}>
                                 {t('publication-card.log-link')}
                             </Link>
                         </React.Fragment>
