@@ -605,12 +605,14 @@
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
                 "validation": {
+                    "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
                     "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
                     "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
                     "mandatory-field": "Pakollinen kenttä",
                     "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
+                    "missing-switch": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä"
                 }

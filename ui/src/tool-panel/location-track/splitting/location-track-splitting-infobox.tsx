@@ -10,6 +10,7 @@ import {
     AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
+    LayoutSwitch,
     LayoutSwitchId,
     LocationTrackDuplicate,
     LocationTrackId,
@@ -25,6 +26,7 @@ import {
     useConflictingTracks,
     useLocationTrack,
     useLocationTrackStartAndEnd,
+    useSwitches,
 } from 'track-layout/track-layout-react-utils';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import {
@@ -37,6 +39,7 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { Link } from 'vayla-design-lib/link/link';
+import { TimeStamp } from 'common/common-model';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -45,10 +48,14 @@ type LocationTrackSplittingInfoboxContainerProps = {
     initialSplit: InitialSplit;
     splits: Split[];
     allowedSwitches: SwitchOnLocationTrack[];
+    switchChangeTime: TimeStamp;
+    disabled: boolean;
     removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrackId: string;
+    locationTrackChangeTime: TimeStamp;
     cancelSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    setSplittingDisabled: (disabled: boolean) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -58,6 +65,8 @@ type LocationTrackSplittingInfoboxProps = {
     initialSplit: InitialSplit;
     splits: Split[];
     allowedSwitches: SwitchOnLocationTrack[];
+    switches: LayoutSwitch[];
+    disabled: boolean;
     removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrack: LayoutLocationTrack;
     conflictingLocationTracks: string[];
@@ -106,10 +115,26 @@ const validateSplitDescription = (
     return errors;
 };
 
+const validateSplitSwitch = (split: Split, switches: LayoutSwitch[]) => {
+    const errors: ValidationError<Split>[] = [];
+    if ('switchId' in split) {
+        const switchAtSplit = switches.find((s) => s.id === split.switchId);
+        if (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING') {
+            errors.push({
+                field: 'switchId',
+                reason: 'switch-not-found',
+                type: ValidationErrorType.ERROR,
+            });
+        }
+    }
+    return errors;
+};
+
 type ValidatedSplit = {
     split: Split | InitialSplit;
     nameErrors: ValidationError<Split>[];
     descriptionErrors: ValidationError<Split>[];
+    switchErrors: ValidationError<Split>[];
 };
 
 type SplitComponentAndRefs = {
@@ -120,30 +145,48 @@ type SplitComponentAndRefs = {
 };
 
 const mandatoryFieldMissing = (error: string) => error === 'mandatory-field';
-const otherError = (error: string) => error !== 'mandatory-field';
+const switchDeleted = (error: string) => error === 'switch-not-found';
+const otherError = (error: string) => !mandatoryFieldMissing(error) && !switchDeleted(error);
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
 > = ({
     locationTrackId,
+    locationTrackChangeTime,
     initialSplit,
     splits,
     duplicateLocationTracks,
     visibilities,
     visibilityChange,
     allowedSwitches,
+    switchChangeTime,
     removeSplit,
     cancelSplitting,
     updateSplit,
+    setSplittingDisabled,
+    disabled,
 }) => {
-    const locationTrack = useLocationTrack(locationTrackId, 'DRAFT');
-    const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT');
+    const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
+    const [startAndEnd, _] = useLocationTrackStartAndEnd(
+        locationTrackId,
+        'DRAFT',
+        locationTrackChangeTime,
+    );
     const conflictingTracks = useConflictingTracks(
         locationTrack?.trackNumberId,
         [initialSplit, ...splits].map((s) => s.name),
         [initialSplit, ...splits].map((s) => s.duplicateOf).filter(filterNotEmpty),
         'DRAFT',
     );
+    const switches = useSwitches(
+        allowedSwitches.map((sw) => sw.switchId),
+        'DRAFT',
+        switchChangeTime,
+    );
+
+    React.useEffect(() => {
+        locationTrack && setSplittingDisabled(locationTrack?.draftType !== 'OFFICIAL');
+    }, [locationTrack, locationTrackChangeTime]);
 
     return (
         locationTrack &&
@@ -155,12 +198,14 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 initialSplit={initialSplit}
                 splits={splits}
                 allowedSwitches={allowedSwitches}
+                switches={switches}
                 removeSplit={removeSplit}
                 cancelSplitting={cancelSplitting}
                 updateSplit={updateSplit}
                 startAndEnd={startAndEnd}
                 conflictingLocationTracks={conflictingTracks?.map((t) => t.name) || []}
                 locationTrack={locationTrack}
+                disabled={disabled}
             />
         )
     );
@@ -197,6 +242,30 @@ function findAndFocusFirstErroredField(
     }
 }
 
+const getSplitAddressPoint = (
+    allowedSwitches: SwitchOnLocationTrack[],
+    startAndEnd: AlignmentStartAndEnd | undefined,
+    split: Split | InitialSplit,
+): AddressPoint | undefined => {
+    if ('switchId' in split) {
+        const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
+
+        if (switchAtSplit?.location && switchAtSplit?.address) {
+            return {
+                point: { ...switchAtSplit.location, m: -1 },
+                address: switchAtSplit.address,
+            };
+        }
+    } else if (startAndEnd && startAndEnd.start) {
+        return {
+            point: startAndEnd.start.point,
+            address: startAndEnd.start.address,
+        };
+    }
+
+    return undefined;
+};
+
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
     duplicateLocationTracks,
     visibilities,
@@ -204,36 +273,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     initialSplit,
     splits,
     allowedSwitches,
+    switches,
     removeSplit,
     cancelSplitting,
     updateSplit,
     startAndEnd,
     conflictingLocationTracks,
     locationTrack,
+    disabled,
 }) => {
     const { t } = useTranslation();
-    const getSplitAddressPoint = (
-        split: Split | InitialSplit,
-        startAndEnd: AlignmentStartAndEnd | undefined,
-    ): AddressPoint | undefined => {
-        if ('switchId' in split) {
-            const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
-
-            if (switchAtSplit?.location && switchAtSplit?.address) {
-                return {
-                    point: { ...switchAtSplit.location, m: -1 },
-                    address: switchAtSplit.address,
-                };
-            }
-        } else if (startAndEnd && startAndEnd.start) {
-            return {
-                point: startAndEnd.start.point,
-                address: startAndEnd.start.address,
-            };
-        }
-
-        return undefined;
-    };
 
     const sortedSplits = sortSplitsByDistance(splits);
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
@@ -245,17 +294,20 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             initialSplit.descriptionBase,
             initialSplit.duplicateOf,
         ),
+        switchErrors: [],
     };
     const splitsValidated = sortedSplits.map((s) => ({
         split: s,
         nameErrors: validateSplitName(s.name, allSplitNames, conflictingLocationTracks),
         descriptionErrors: validateSplitDescription(s.descriptionBase, s.duplicateOf),
+        switchErrors: validateSplitSwitch(s, switches),
     }));
     const allValidated = [initialSplitValidated, ...splitsValidated];
 
     const allErrors = allValidated.flatMap((validated) => [
         ...validated.descriptionErrors,
         ...validated.nameErrors,
+        ...validated.switchErrors,
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
     const anyOtherErrors = allErrors.map((s) => s.reason).some(otherError);
@@ -264,19 +316,27 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         const nameRef = React.createRef<HTMLInputElement>();
         const descriptionBaseRef = React.createRef<HTMLInputElement>();
 
-        const { split, nameErrors, descriptionErrors } = splitValidated;
+        const switchExists =
+            switches.find(
+                (s) => 'switchId' in splitValidated.split && s.id === splitValidated.split.switchId,
+            )?.stateCategory !== 'NOT_EXISTING';
+
+        const { split, nameErrors, descriptionErrors, switchErrors } = splitValidated;
         return {
             component: (
                 <LocationTrackSplit
                     key={`${split.location.x}_${split.location.y}`}
                     split={split}
-                    addressPoint={getSplitAddressPoint(split, startAndEnd)}
+                    addressPoint={getSplitAddressPoint(allowedSwitches, startAndEnd, split)}
                     onRemove={removeSplit}
                     duplicateLocationTracks={duplicateLocationTracks}
                     updateSplit={updateSplit}
                     duplicateOf={split.duplicateOf}
                     nameErrors={nameErrors}
                     descriptionErrors={descriptionErrors}
+                    switchErrors={switchErrors}
+                    editingDisabled={disabled || !switchExists}
+                    deletingDisabled={disabled}
                     nameRef={nameRef}
                     descriptionBaseRef={descriptionBaseRef}
                 />
@@ -296,49 +356,73 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     title={t('tool-panel.location-track.splitting.title')}>
                     <InfoboxContent className={styles['location-track-infobox__split']}>
                         {splitComponents.map((split) => split.component)}
-                        <LocationTrackSplittingEndpoint addressPoint={startAndEnd.end} />
-                        {splits.length === 0 && (
+                        <LocationTrackSplittingEndpoint
+                            addressPoint={startAndEnd.end}
+                            editingDisabled={disabled}
+                        />
+                        {disabled && (
                             <InfoboxContentSpread>
-                                <MessageBox>
-                                    {t('tool-panel.location-track.splitting.splitting-guide')}
-                                </MessageBox>
-                            </InfoboxContentSpread>
-                        )}
-                        {anyMissingFields && (
-                            <InfoboxContentSpread>
-                                <MessageBox>
+                                <MessageBox type={'ERROR'}>
                                     {t(
-                                        'tool-panel.location-track.splitting.validation.missing-fields',
+                                        'tool-panel.location-track.splitting.validation.track-draft-exists',
                                     )}
-                                    ,{' '}
-                                    <Link
-                                        onClick={() =>
-                                            findAndFocusFirstErroredField(
-                                                splitComponents,
-                                                mandatoryFieldMissing,
-                                            )
-                                        }>
-                                        {t('tool-panel.location-track.splitting.validation.show')}
-                                    </Link>
                                 </MessageBox>
                             </InfoboxContentSpread>
                         )}
-                        {anyOtherErrors && (
-                            <InfoboxContentSpread>
-                                <MessageBox>
-                                    {t('tool-panel.location-track.splitting.validation.has-errors')}
-                                    ,{' '}
-                                    <Link
-                                        onClick={() =>
-                                            findAndFocusFirstErroredField(
-                                                splitComponents,
-                                                otherError,
-                                            )
-                                        }>
-                                        {t('tool-panel.location-track.splitting.validation.show')}
-                                    </Link>
-                                </MessageBox>
-                            </InfoboxContentSpread>
+                        {!disabled && (
+                            <React.Fragment>
+                                {splits.length === 0 && (
+                                    <InfoboxContentSpread>
+                                        <MessageBox>
+                                            {t(
+                                                'tool-panel.location-track.splitting.splitting-guide',
+                                            )}
+                                        </MessageBox>
+                                    </InfoboxContentSpread>
+                                )}
+                                {anyMissingFields && (
+                                    <InfoboxContentSpread>
+                                        <MessageBox>
+                                            {t(
+                                                'tool-panel.location-track.splitting.validation.missing-fields',
+                                            )}
+                                            ,{' '}
+                                            <Link
+                                                onClick={() =>
+                                                    findAndFocusFirstErroredField(
+                                                        splitComponents,
+                                                        mandatoryFieldMissing,
+                                                    )
+                                                }>
+                                                {t(
+                                                    'tool-panel.location-track.splitting.validation.show',
+                                                )}
+                                            </Link>
+                                        </MessageBox>
+                                    </InfoboxContentSpread>
+                                )}
+                                {anyOtherErrors && (
+                                    <InfoboxContentSpread>
+                                        <MessageBox>
+                                            {t(
+                                                'tool-panel.location-track.splitting.validation.has-errors',
+                                            )}
+                                            ,{' '}
+                                            <Link
+                                                onClick={() =>
+                                                    findAndFocusFirstErroredField(
+                                                        splitComponents,
+                                                        otherError,
+                                                    )
+                                                }>
+                                                {t(
+                                                    'tool-panel.location-track.splitting.validation.show',
+                                                )}
+                                            </Link>
+                                        </MessageBox>
+                                    </InfoboxContentSpread>
+                                )}
+                            </React.Fragment>
                         )}
                         <InfoboxButtons>
                             <Button
@@ -349,7 +433,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
-                                disabled={anyMissingFields || anyOtherErrors}>
+                                disabled={disabled || anyMissingFields || anyOtherErrors}>
                                 {t('tool-panel.location-track.splitting.confirm-split')}
                             </Button>
                         </InfoboxButtons>

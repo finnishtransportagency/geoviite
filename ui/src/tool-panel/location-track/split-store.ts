@@ -34,6 +34,7 @@ export type SplittingState = {
     duplicateTracks: SplitDuplicate[];
     initialSplit: InitialSplit;
     splits: Split[];
+    disabled: boolean;
 };
 
 type SplitStart = {
@@ -80,6 +81,7 @@ export const splitReducers = {
             duplicateTracks: payload.duplicateTracks,
             splits: [],
             endLocation: payload.endLocation,
+            disabled: payload.locationTrack.draftType !== 'OFFICIAL',
             initialSplit: {
                 name:
                     duplicateTrackClosestToStart &&
@@ -100,12 +102,18 @@ export const splitReducers = {
     cancelSplitting: (state: TrackLayoutState): void => {
         state.splittingState = undefined;
     },
+    setDisabled: (state: TrackLayoutState, { payload }: PayloadAction<boolean>): void => {
+        if (state.splittingState) {
+            state.splittingState.disabled = payload;
+        }
+    },
     addSplit: (state: TrackLayoutState, { payload }: PayloadAction<LayoutSwitchId>): void => {
         const allowedSwitch = state.splittingState?.allowedSwitches?.find(
             (sw) => sw.switchId == payload,
         );
         if (
             state.splittingState &&
+            !state.splittingState.disabled &&
             allowedSwitch?.location &&
             allowedSwitch?.distance &&
             !state.splittingState.splits.some((split) => split.switchId === payload)

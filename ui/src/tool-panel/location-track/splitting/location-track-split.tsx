@@ -22,6 +22,7 @@ import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track
 
 type EndpointProps = {
     addressPoint: AddressPoint | undefined;
+    editingDisabled: boolean;
 };
 
 type SplitProps = EndpointProps & {
@@ -32,15 +33,25 @@ type SplitProps = EndpointProps & {
     duplicateOf: LocationTrackId | undefined;
     nameErrors: ValidationError<Split>[];
     descriptionErrors: ValidationError<Split>[];
+    switchErrors: ValidationError<Split>[];
     nameRef?: React.RefObject<HTMLInputElement>;
     descriptionBaseRef?: React.RefObject<HTMLInputElement>;
+    deletingDisabled: boolean;
 };
 
-export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({ addressPoint }) => {
+export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
+    addressPoint,
+    editingDisabled,
+}) => {
     const { t } = useTranslation();
     return (
         <div className={styles['location-track-infobox__split-container']}>
-            <div className={styles['location-track-infobox__split-item-ball']} />
+            <div
+                className={createClassName(
+                    styles['location-track-infobox__split-item-ball'],
+                    editingDisabled && styles['location-track-infobox__split-item-ball--disabled'],
+                )}
+            />
             <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
                 <NavigableTrackMeter
                     trackMeter={addressPoint?.address}
@@ -60,7 +71,10 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     duplicateOf,
     nameErrors,
     descriptionErrors,
+    switchErrors,
     duplicateLocationTracks = [],
+    editingDisabled,
+    deletingDisabled,
     nameRef,
     descriptionBaseRef,
 }) => {
@@ -91,8 +105,18 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 
     return (
         <div className={styles['location-track-infobox__split-container']}>
-            <div className={styles['location-track-infobox__split-item-line']} />
-            <div className={styles['location-track-infobox__split-item-ball']} />
+            <div
+                className={createClassName(
+                    styles['location-track-infobox__split-item-line'],
+                    editingDisabled && styles['location-track-infobox__split-item-line--disabled'],
+                )}
+            />
+            <div
+                className={createClassName(
+                    styles['location-track-infobox__split-item-ball'],
+                    editingDisabled && styles['location-track-infobox__split-item-ball--disabled'],
+                )}
+            />
             <div className={styles['location-track-infobox__split-fields-container']}>
                 <div>
                     <InfoboxField
@@ -101,11 +125,21 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 ? t('tool-panel.location-track.splitting.split-address')
                                 : t('tool-panel.location-track.splitting.start-address')
                         }>
-                        <NavigableTrackMeter
-                            trackMeter={addressPoint?.address}
-                            location={addressPoint?.point}
-                            mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
-                        />
+                        <div>
+                            <NavigableTrackMeter
+                                trackMeter={addressPoint?.address}
+                                location={addressPoint?.point}
+                                mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
+                            />
+                            {switchErrors.some((err) => err.reason === 'switch-not-found') && (
+                                <InfoboxText
+                                    className={styles['location-track-infobox__split-error']}
+                                    value={t(
+                                        'tool-panel.location-track.splitting.validation.missing-switch',
+                                    )}
+                                />
+                            )}
+                        </div>
                     </InfoboxField>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
@@ -115,6 +149,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             ref={nameRef}
                             defaultValue={split.name}
                             hasError={nameErrorsVisible}
+                            disabled={editingDisabled}
                             onChange={(e) => {
                                 const duplicateId = duplicateLocationTracks.find(
                                     (lt) => lt.name === e.target.value,
@@ -166,7 +201,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     : split.descriptionBase
                             }
                             hasError={descriptionErrorsVisible}
-                            disabled={!!duplicateOf}
+                            disabled={editingDisabled || !!duplicateOf}
                             onChange={(e) => {
                                 updateSplit({ ...split, descriptionBase: e.target.value });
                             }}
@@ -207,15 +242,20 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 updateSplit({ ...split, suffixMode: mode });
                             }}
                             onBlur={() => {}}
-                            disabled={!!duplicateOf}
+                            disabled={editingDisabled || !!duplicateOf}
                         />
                     </InfoboxField>
                 </div>
                 <div className={styles['location-track-infobox__close-split-button-column']}>
                     {onRemove && (
                         <div
-                            className={styles['location-track-infobox__split-close-button']}
-                            onClick={() => switchId && onRemove(switchId)}>
+                            className={createClassName(
+                                styles['location-track-infobox__split-close-button'],
+                                deletingDisabled
+                                    ? styles['location-track-infobox__split-close-button--disabled']
+                                    : styles['location-track-infobox__split-close-button--enabled'],
+                            )}
+                            onClick={() => !deletingDisabled && switchId && onRemove(switchId)}>
                             <Icons.Close size={IconSize.SMALL} color={IconColor.INHERIT} />
                         </div>
                     )}

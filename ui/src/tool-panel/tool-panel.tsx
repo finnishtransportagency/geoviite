@@ -406,6 +406,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             splittingState={splittingState}
                             publishType={publishType}
                             locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                            switchChangeTime={changeTimes.layoutSwitch}
                             onDataChange={onDataChange}
                             viewport={viewport}
                             verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}

@@ -77,6 +77,7 @@ type LocationTrackInfoboxProps = {
     onDataChange: () => void;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
@@ -97,6 +98,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onDataChange,
     publishType,
     locationTrackChangeTime,
+    switchChangeTime,
     onSelect,
     onUnselect,
     viewport,
@@ -129,10 +131,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
-    const splitInitializationParameters = useLoader(
-        () => getSplittingInitializationParameters(publishType, locationTrack.id),
-        [publishType, locationTrack.id],
-    );
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -140,9 +138,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
 
-    function isOfficial(): boolean {
-        return publishType === 'OFFICIAL';
-    }
+    const canEdit = () => publishType === 'OFFICIAL' || !!linkingState || !!splittingState;
 
     function openEditLocationTrackDialog() {
         setShowEditDialog(true);
@@ -231,35 +227,35 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         label={t('tool-panel.location-track.track-name')}
                         value={locationTrack.name}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         qaId="location-track-state"
                         label={t('tool-panel.location-track.state')}
                         value={<LayoutState state={locationTrack.state} />}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         qaId="location-track-type"
                         label={t('tool-panel.location-track.type')}
                         value={<LocationTrackTypeLabel type={locationTrack.type} />}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         qaId="location-track-description"
                         label={t('tool-panel.location-track.description')}
                         value={description}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         qaId="location-track-track-number"
                         label={t('tool-panel.location-track.track-number')}
                         value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxText value={trackNumber?.description} />
                     <InfoboxField
@@ -279,7 +275,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             />
                         }
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
@@ -289,13 +285,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             />
                         }
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.owner')}
                         value={getLocationTrackOwnerName(locationTrack.ownerId)}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={isOfficial()}
+                        iconDisabled={canEdit()}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.start-switch')}
@@ -325,14 +321,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     initialSplit={splittingState.initialSplit}
                     splits={splittingState.splits || []}
                     locationTrackId={splittingState.originLocationTrack.id}
+                    locationTrackChangeTime={locationTrackChangeTime}
                     removeSplit={delegates.removeSplit}
                     cancelSplitting={() => {
                         delegates.cancelSplitting();
                         delegates.hideLayers(['location-track-split-location-layer']);
                     }}
                     allowedSwitches={splittingState.allowedSwitches}
+                    switchChangeTime={switchChangeTime}
                     duplicateLocationTracks={extraInfo?.duplicates || []}
                     updateSplit={delegates.updateSplit}
+                    setSplittingDisabled={delegates.setDisabled}
+                    disabled={splittingState.disabled}
                 />
             )}
             {startAndEndPoints && coordinateSystem && (
@@ -433,27 +433,41 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         <Button
                                             variant={ButtonVariant.SECONDARY}
                                             size={ButtonSize.SMALL}
+                                            disabled={locationTrack.draftType !== 'OFFICIAL'}
+                                            title={
+                                                locationTrack.draftType !== 'OFFICIAL'
+                                                    ? t(
+                                                          'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                      )
+                                                    : undefined
+                                            }
                                             onClick={() => {
-                                                if (
-                                                    startAndEndPoints?.start &&
-                                                    startAndEndPoints?.end
-                                                ) {
-                                                    delegates.onStartSplitting({
-                                                        locationTrack: locationTrack,
-                                                        allowedSwitches:
-                                                            splitInitializationParameters?.switches ||
-                                                            [],
-                                                        duplicateTracks:
-                                                            splitInitializationParameters?.duplicates ||
-                                                            [],
-                                                        startLocation:
-                                                            startAndEndPoints.start.point,
-                                                        endLocation: startAndEndPoints.end.point,
-                                                    });
-                                                    delegates.showLayers([
-                                                        'location-track-split-location-layer',
-                                                    ]);
-                                                }
+                                                getSplittingInitializationParameters(
+                                                    'DRAFT',
+                                                    locationTrack.id,
+                                                ).then((splitInitializationParameters) => {
+                                                    if (
+                                                        startAndEndPoints?.start &&
+                                                        startAndEndPoints?.end
+                                                    ) {
+                                                        delegates.onStartSplitting({
+                                                            locationTrack: locationTrack,
+                                                            allowedSwitches:
+                                                                splitInitializationParameters?.switches ||
+                                                                [],
+                                                            duplicateTracks:
+                                                                splitInitializationParameters?.duplicates ||
+                                                                [],
+                                                            startLocation:
+                                                                startAndEndPoints.start.point,
+                                                            endLocation:
+                                                                startAndEndPoints.end.point,
+                                                        });
+                                                        delegates.showLayers([
+                                                            'location-track-split-location-layer',
+                                                        ]);
+                                                    }
+                                                });
                                             }}>
                                             {t('tool-panel.location-track.start-splitting')}
                                         </Button>
