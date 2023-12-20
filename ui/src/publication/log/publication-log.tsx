@@ -47,51 +47,6 @@ const PublicationLog: React.FC = () => {
     const [isLoading, setIsLoading] = React.useState(true);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
-    // TODO Also the URL & redux state should also be updated when the input values are changed
-    // useEffect(() => {
-    //     const queryParams = new URLSearchParams(urlSearchString);
-    //     // const startDate = toDateOrUndefined(queryParams.get('startDate') ?? '');
-    //     // const endDate = toDateOrUndefined(queryParams.get('endDate') ?? '');
-    //
-    //     if (!startDate || !endDate) {
-    //         console.error('Invalid search params, continuing with defaults.');
-    //         navigate(createPublicationLogSearchAddress(defaultPublicationSearch));
-    //     }
-    //
-    //     trackLayoutActionDelegates.setSelectedPublicationSearch({
-    //         startDate: startDate,
-    //         endDate: endDate,
-    //     });
-    //
-    //     setStartDate(startDate);
-    //     setEndDate(endDate);
-    // }, [urlSearchString]);
-
-    // useEffect(() => {
-    //     const newSearch: PublicationSearch = {
-    //         startDate: startDate,
-    //         endDate: endDate,
-    //     };
-    //
-    //     console.log(startDate);
-    //     console.log(endDate);
-    //     // navigate(createPublicationLogSearchAddress(newSearch));
-    // }, [startDate, endDate]);
-
-    // function updateURL(newStartDate: Date | undefined, newEndDate: Date | undefined) {
-    //     const newSearch: PublicationSearch = {
-    //         startDate: newStartDate,
-    //         endDate: newEndDate,
-    //     };
-    //
-    //     trackLayoutActionDelegates.setSelectedPublicationSearch({
-    //         startDate: newStartDate,
-    //         endDate: newEndDate,
-    //     });
-    //
-    //     navigate(createPublicationLogSearchAddress(newSearch));
-    // }
-
     React.useEffect(() => {
         setIsLoading(true);
 
