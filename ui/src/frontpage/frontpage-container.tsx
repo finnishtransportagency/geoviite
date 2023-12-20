@@ -9,11 +9,9 @@ export const FrontpageContainer: React.FC = () => {
     const ratkoPushChangeTime = useCommonDataAppSelector((state) => state.changeTimes.ratkoPush);
 
     return (
-        <React.Fragment>
-            <Frontpage
-                publicationChangeTime={publicationChangeTime}
-                ratkoPushChangeTime={ratkoPushChangeTime}
-            />
-        </React.Fragment>
+        <Frontpage
+            publicationChangeTime={publicationChangeTime}
+            ratkoPushChangeTime={ratkoPushChangeTime}
+        />
     );
 };
