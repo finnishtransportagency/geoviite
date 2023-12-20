@@ -77,6 +77,7 @@ type LocationTrackInfoboxProps = {
     onDataChange: () => void;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
+    trackNumberChangeTime: TimeStamp;
     switchChangeTime: TimeStamp;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
@@ -98,6 +99,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onDataChange,
     publishType,
     locationTrackChangeTime,
+    trackNumberChangeTime,
     switchChangeTime,
     onSelect,
     onUnselect,
@@ -115,6 +117,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         locationTrack?.id,
         publishType,
         locationTrackChangeTime,
+        trackNumberChangeTime,
     );
     const changeTimes = useLocationTrackChangeTimes(locationTrack?.id, publishType);
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
@@ -199,6 +202,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
         publishType,
+        locationTrackChangeTime,
+        switchChangeTime,
     );
 
     const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
@@ -612,6 +617,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onSave={handleLocationTrackSave}
                     locationTrackId={locationTrack.id}
                     locationTrackChangeTime={locationTrackChangeTime}
+                    switchChangeTime={switchChangeTime}
                 />
             )}
         </React.Fragment>

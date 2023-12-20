@@ -407,6 +407,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             publishType={publishType}
                             locationTrackChangeTime={changeTimes.layoutLocationTrack}
                             switchChangeTime={changeTimes.layoutSwitch}
+                            trackNumberChangeTime={changeTimes.layoutTrackNumber}
                             onDataChange={onDataChange}
                             viewport={viewport}
                             verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}

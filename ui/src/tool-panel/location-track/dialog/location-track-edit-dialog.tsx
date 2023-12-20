@@ -63,6 +63,7 @@ type LocationTrackDialogContainerProps = {
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
 };
 
 export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogContainerProps> = (
@@ -78,6 +79,7 @@ export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogConta
             onClose={props.onClose}
             onSave={props.onSave}
             locationTrackChangeTime={props.locationTrackChangeTime}
+            switchChangeTime={props.switchChangeTime}
             onEditTrack={(id) => setEditTrackId(id)}
         />
     );
@@ -88,6 +90,7 @@ type LocationTrackDialogProps = {
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     onEditTrack: (id: LocationTrackId) => void;
 };
 
@@ -120,7 +123,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.locationTrackChangeTime,
     );
 
-    const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, 'DRAFT');
+    const [extraInfo] = useLocationTrackInfoboxExtras(
+        props.locationTrack?.id,
+        'DRAFT',
+        props.locationTrackChangeTime,
+        props.switchChangeTime,
+    );
 
     const stateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
