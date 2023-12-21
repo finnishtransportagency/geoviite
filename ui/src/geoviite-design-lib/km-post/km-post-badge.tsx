@@ -36,20 +36,17 @@ export const KmPostBadge: React.FC<KmPostBadgeProps> = ({
     );
 
     const Icon = status == KmPostBadgeStatus.SELECTED ? Icons.KmPostSelected : Icons.KmPost;
+    const onTrackNumberTranslation = t('tool-panel.km-post.geometry.linking.track-number', {
+        trackNumber: trackNumber?.number,
+    });
     return (
         <div
             className={classes}
-            title={
-                trackNumber
-                    ? t('tool-panel.km-post.geometry.linking.track-number', {
-                          trackNumber: trackNumber.number,
-                      })
-                    : ''
-            }
+            title={trackNumber ? onTrackNumberTranslation : ''}
             onClick={onClick}>
             <Icon size={IconSize.SMALL} />
             <span>{`${kmPost.kmNumber} ${
-                showTrackNumberInBadge ? `/ ${trackNumber?.number}` : ''
+                showTrackNumberInBadge && trackNumber ? `/ ${onTrackNumberTranslation}` : ''
             }`}</span>
         </div>
     );
