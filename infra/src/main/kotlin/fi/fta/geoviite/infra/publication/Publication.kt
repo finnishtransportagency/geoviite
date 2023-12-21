@@ -446,6 +446,11 @@ data class SplitTarget(
     val segmentIndices: IntRange,
 )
 
+data class SplitTargetSaveRequest(
+    val locationTrackId: IntId<LocationTrack>,
+    val segmentIndices: IntRange,
+)
+
 fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
     officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
 )

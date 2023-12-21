@@ -1512,6 +1512,120 @@ class PublicationDao(
         }
     }
 
+    @Transactional
+    fun saveSplit(
+        locationTrackId: IntId<LocationTrack>,
+        splitTargets: List<SplitTargetSaveRequest>,
+    ): IntId<SplitSource> {
+        val sql = """
+            insert into publication.split(source_location_track_id) values (:id)
+            returning id
+        """.trimIndent()
+
+        val splitId = jdbcTemplate.queryForObject(sql, mapOf("id" to locationTrackId.intValue)) { rs, _ ->
+            rs.getIntId<SplitSource>("id")
+        } ?: error("Failed to save split for location track id=$locationTrackId")
+
+        if (splitTargets.isNotEmpty()) saveSplitTargets(splitId, splitTargets)
+
+        return splitId
+    }
+
+    private fun saveSplitTargets(splitId: IntId<SplitSource>, splitTargets: List<SplitTargetSaveRequest>) {
+        val sql = """
+            insert into publication.split_target_location_track(
+                split_id,
+                location_track_id,
+                source_start_segment_index,
+                source_end_segment_index            
+            )
+            values (
+                :splitId,
+                :trackId,
+                :segmentStart,
+                :segmentEnd
+            )
+        """.trimIndent()
+
+        val params = splitTargets.map { st ->
+            mapOf(
+                "splitId" to splitId,
+                "trackId" to st.locationTrackId,
+                "segmentStart" to st.segmentIndices.first,
+                "segmentEnd" to st.segmentIndices.last
+            )
+        }
+
+        jdbcTemplate.batchUpdate(sql, params.toTypedArray())
+    }
+
+    fun getSplit(splitId: IntId<SplitSource>): SplitSource {
+        val sql = """
+          select
+              slt.id,
+              slt.state,
+              slt.error_cause,
+              slt.publication_id,
+              slt.source_location_track_id
+          from publication.split slt
+          where id = :id
+        """.trimIndent()
+
+        return jdbcTemplate.queryOne(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
+            val targetLocationTracks = getSplitTargets(splitId)
+
+            SplitSource(
+                id = splitId,
+                locationTrackId = rs.getIntId("source_location_track_id"),
+                state = rs.getEnum("state"),
+                errorCause = rs.getString("error_cause"),
+                publicationId = rs.getIntIdOrNull("publication_id"),
+                targetLocationTracks = targetLocationTracks
+            )
+        }
+    }
+
+    @Transactional
+    fun updateSplit(split: SplitSource) {
+        val sql = """
+            update publication.split
+            set 
+                state = :state::publication.split_push_state,
+                error_cause = :errorCause,
+                publication_id = :publicationId
+            where id = :splitId
+        """.trimIndent()
+
+        val params = mapOf(
+            "state" to split.state.name,
+            "errorCause" to split.errorCause,
+            "publicationId" to split.publicationId,
+            "splitId" to split.id.intValue
+        )
+
+        jdbcTemplate.update(sql, params)
+    }
+
+    private fun getSplitTargets(splitId: IntId<SplitSource>): List<SplitTarget> {
+        val sql = """
+          select
+              split_id,
+              location_track_id,
+              source_start_segment_index,
+              source_end_segment_index
+          from publication.split_target_location_track
+          where split_id = :id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
+            SplitTarget(
+                splitId = rs.getIntId("split_id"),
+                locationTrackId = rs.getIntId("location_track_id"),
+                segmentIndices = rs.getInt("source_start_segment_index")..rs.getInt("source_end_segment_index")
+            )
+        }
+    }
+
     fun fetchUnpublishedSplits(locationTrackId: IntId<LocationTrack>): IntId<SplitSource>? {
         val sql = """
             select slt.id
@@ -1522,12 +1636,10 @@ class PublicationDao(
                 and (slt.source_location_track_id = :trackId or tlt.location_track_id = :trackId)
         """.trimIndent()
 
-        val params = mapOf("trackId" to locationTrackId)
+        val params = mapOf("trackId" to locationTrackId.intValue)
 
-        return jdbcTemplate.queryOptional<IntId<SplitSource>>(sql, params) { rs, _ ->
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             rs.getIntId("id")
-        }.also {
-            logger.daoAccess(FETCH, SplitSource::class, it.toString())
         }
     }
 
@@ -1536,16 +1648,14 @@ class PublicationDao(
             select slt.id
             from publication.split slt
             left join publication.split_target_location_track tlt on tlt.split_id = slt.id
-            inner join layout.location_track lt on lt.id = slt.target_location_track_id or lt.id = tlt.location_track_id 
+            inner join layout.location_track lt on lt.id = slt.source_location_track_id or lt.id = tlt.location_track_id 
             where slt.state != 'DONE' 
                 and slt.publication_id is null 
                 and lt.track_number_id = :trackNumberId 
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId)) { rs, _ ->
-            rs.getIntId<SplitSource>("id")
-        }.also { ids ->
-            logger.daoAccess(FETCH, SplitSource::class, ids)
+        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
+            rs.getIntId("id")
         }
     }
 }
