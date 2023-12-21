@@ -250,6 +250,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <KmPostsPanel
                         kmPosts={filteredKmPosts}
+                        publishType={publishType}
                         selectedKmPosts={selectedItems.kmPosts}
                         onToggleKmPostSelection={(kmPost) =>
                             onSelect({

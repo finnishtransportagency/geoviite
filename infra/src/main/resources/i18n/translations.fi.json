@@ -412,7 +412,8 @@
                     "choose-km-post-msg": "Valitse tasakilometripiste, johon linkitetään",
                     "start-linking-command": "Aloita linkitys",
                     "link-command": "Linkitä",
-                    "linking-succeed-msg": "Tasakilometripiste linkitetty onnistuneesti"
+                    "linking-succeed-msg": "Tasakilometripiste linkitetty onnistuneesti",
+                    "track-number": "Ratanumerolla {{trackNumber}}"
                 }
             }
         },
