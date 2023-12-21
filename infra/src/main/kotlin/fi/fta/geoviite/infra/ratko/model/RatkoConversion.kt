@@ -221,7 +221,7 @@ fun convertToRatkoMetadataAsset(
             enumValue = mapToRatkoMeasurementMethod(segmentMetadata.measurementMethod).value,
         ),
         RatkoAssetProperty(
-            name = "created_year", integerValue = segmentMetadata.planTime?.atZone(ZoneId.systemDefault())?.year ?: 0
+            name = "created_year", integerValue = segmentMetadata.planTime?.atZone(ZoneId.systemDefault())?.year ?: 1800
         ),
         RatkoAssetProperty(
             name = "original_crs", stringValue = segmentMetadata.originalSrid?.toString() ?: ""
