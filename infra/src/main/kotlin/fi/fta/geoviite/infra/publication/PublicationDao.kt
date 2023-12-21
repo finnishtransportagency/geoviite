@@ -1586,7 +1586,7 @@ class PublicationDao(
     }
 
     @Transactional
-    fun updateSplit(split: SplitSource) {
+    fun updateSplit(split: SplitSource): IntId<SplitSource> {
         val sql = """
             update publication.split
             set 
@@ -1599,11 +1599,13 @@ class PublicationDao(
         val params = mapOf(
             "state" to split.state.name,
             "errorCause" to split.errorCause,
-            "publicationId" to split.publicationId,
+            "publicationId" to split.publicationId?.intValue,
             "splitId" to split.id.intValue
         )
 
         jdbcTemplate.update(sql, params)
+
+        return split.id
     }
 
     private fun getSplitTargets(splitId: IntId<SplitSource>): List<SplitTarget> {

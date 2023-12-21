@@ -2067,10 +2067,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(
-            locationTrackId = sourceTrack.id,
-            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
-        )
+        publicationDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)))
 
         val validation = publicationService.validateLocationTrack(targetTrack.id, OFFICIAL)
         assertFalse {
@@ -2117,10 +2114,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(
-            locationTrackId = sourceTrack.id,
-            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
-        ).also { splitId ->
+        publicationDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0))).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.IN_PROGRESS))
         }
@@ -2169,10 +2163,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(
-            locationTrackId = sourceTrack.id,
-            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
-        ).also { splitId ->
+        publicationDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0))).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
         }
@@ -2222,11 +2213,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-
-        publicationDao.saveSplit(
-            locationTrackId = sourceTrack.id,
-            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
-        ).also { splitId ->
+        publicationDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0))).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.DONE))
         }
@@ -2267,7 +2254,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList())
+        publicationDao.saveSplit(locationTrack.id, emptyList())
 
         val validation = publicationService.validateLocationTrack(locationTrack.id, OFFICIAL)
         assertFalse {
@@ -2305,7 +2292,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrack.id, emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.IN_PROGRESS))
         }
@@ -2345,7 +2332,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrack.id, emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
         }
@@ -2385,7 +2372,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrack.id, emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.DONE))
         }
@@ -2405,7 +2392,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `km post split validation should fail on unfinished split`() {
         val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("001 SPLIT"))).id
-        val kmPostId = kmPostDao.insert(kmPost(trackNumberId, km = KmNumber.ZERO)).id
+        val kmPostId = kmPostDao.insert(kmPost(trackNumberId = trackNumberId, km = KmNumber.ZERO)).id
 
         val alignmentVersion = alignmentDao.insert(
             alignment(
@@ -2427,7 +2414,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList())
+        publicationDao.saveSplit(locationTrack.id, emptyList())
 
         val validation = publicationService.validateKmPost(kmPostId, OFFICIAL)
         assertContains(
@@ -2471,7 +2458,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList())
+        publicationDao.saveSplit(locationTrack.id, emptyList())
 
         val validation = publicationService.validateTrackNumberAndReferenceLine(trackNumberId, OFFICIAL)
         assertContains(
@@ -2515,7 +2502,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrack.id, emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
         }
@@ -2562,7 +2549,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrack.id, emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.DONE))
         }
