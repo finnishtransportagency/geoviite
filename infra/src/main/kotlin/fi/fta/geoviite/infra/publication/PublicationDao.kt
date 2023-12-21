@@ -1549,8 +1549,8 @@ class PublicationDao(
 
         val params = splitTargets.map { st ->
             mapOf(
-                "splitId" to splitId,
-                "trackId" to st.locationTrackId,
+                "splitId" to splitId.intValue,
+                "trackId" to st.locationTrackId.intValue,
                 "segmentStart" to st.segmentIndices.first,
                 "segmentEnd" to st.segmentIndices.last
             )
@@ -1626,24 +1626,19 @@ class PublicationDao(
         }
     }
 
-    fun fetchUnpublishedSplits(locationTrackId: IntId<LocationTrack>): IntId<SplitSource>? {
+    fun fetchUnpushedSplits(): List<SplitSource> {
         val sql = """
             select slt.id
             from publication.split slt
-            left join publication.split_target_location_track tlt on tlt.split_id = slt.id
             where slt.state != 'DONE'
-                and slt.publication_id is null
-                and (slt.source_location_track_id = :trackId or tlt.location_track_id = :trackId)
         """.trimIndent()
 
-        val params = mapOf("trackId" to locationTrackId.intValue)
-
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            rs.getIntId("id")
+        return jdbcTemplate.query(sql) { rs, _ ->
+            getSplit(rs.getIntId("id"))
         }
     }
 
-    fun fetchUnpublishedSplitsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<SplitSource>> {
+    fun fetchUnpushedSplitsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<SplitSource>> {
         val sql = """
             select slt.id
             from publication.split slt

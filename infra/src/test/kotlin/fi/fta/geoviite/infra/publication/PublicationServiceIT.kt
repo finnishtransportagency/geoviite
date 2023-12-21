@@ -2035,6 +2035,374 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `target location track validation should not fail when the split is still pending`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("009 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val sourceTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "009 SPLIT TRACK"
+            )
+        )
+
+        val targetTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "009 SPLIT TARGET TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(
+            locationTrackId = sourceTrack.id,
+            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
+        )
+
+        val validation = publicationService.validateLocationTrack(targetTrack.id, OFFICIAL)
+        assertFalse {
+            validation.errors.contains(
+                PublishValidationError(
+                    PublishValidationErrorType.ERROR,
+                    LocalizationKey("validation.layout.location-track.split-in-progress"),
+                    LocalizationParams.empty()
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `target location track validation should fail when the split is still in progress`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("010 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val sourceTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "010 SPLIT TRACK"
+            )
+        )
+
+        val targetTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "010 SPLIT TARGET TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(
+            locationTrackId = sourceTrack.id,
+            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
+        ).also { splitId ->
+            val split = publicationDao.getSplit(splitId)
+            publicationDao.updateSplit(split.copy(state = SplitState.IN_PROGRESS))
+        }
+
+        val validation = publicationService.validateLocationTrack(targetTrack.id, OFFICIAL)
+        assertContains(
+            validation.errors,
+            PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationParams.empty()
+            )
+        )
+    }
+
+    @Test
+    fun `target location track validation should fail on failed split`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("011 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val sourceTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "011 SPLIT TRACK"
+            )
+        )
+
+        val targetTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "011 SPLIT TARGET TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(
+            locationTrackId = sourceTrack.id,
+            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
+        ).also { splitId ->
+            val split = publicationDao.getSplit(splitId)
+            publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
+        }
+
+        val validation = publicationService.validateLocationTrack(sourceTrack.id, OFFICIAL)
+        assertContains(
+            validation.errors,
+            PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationParams.empty()
+            )
+        )
+    }
+
+    @Test
+    fun `target location track validation should not fail on finished split`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("012 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val sourceTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "012 SPLIT TRACK"
+            )
+        )
+
+
+        val targetTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "012 SPLIT TARGET TRACK"
+            )
+        )
+
+
+        publicationDao.saveSplit(
+            locationTrackId = sourceTrack.id,
+            splitTargets = listOf(SplitTargetSaveRequest(locationTrackId = targetTrack.id, segmentIndices = 0..0))
+        ).also { splitId ->
+            val split = publicationDao.getSplit(splitId)
+            publicationDao.updateSplit(split.copy(state = SplitState.DONE))
+        }
+
+        val validation = publicationService.validateLocationTrack(targetTrack.id, OFFICIAL)
+        assertFalse {
+            validation.errors.contains(
+                PublishValidationError(
+                    PublishValidationErrorType.ERROR,
+                    LocalizationKey("validation.layout.location-track.split-in-progress"),
+                    LocalizationParams.empty()
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `source location track validation should not fail when the split is still pending`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("005 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "005 SPLIT TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList())
+
+        val validation = publicationService.validateLocationTrack(locationTrack.id, OFFICIAL)
+        assertFalse {
+            validation.errors.contains(
+                PublishValidationError(
+                    PublishValidationErrorType.ERROR,
+                    LocalizationKey("validation.layout.location-track.split-in-progress"),
+                    LocalizationParams.empty()
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `source location track validation should fail when the split is still in progress`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("006 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "006 SPLIT TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+            val split = publicationDao.getSplit(splitId)
+            publicationDao.updateSplit(split.copy(state = SplitState.IN_PROGRESS))
+        }
+
+        val validation = publicationService.validateLocationTrack(locationTrack.id, OFFICIAL)
+        assertContains(
+            validation.errors,
+            PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationParams.empty()
+            )
+        )
+    }
+
+    @Test
+    fun `source location track validation should fail on failed split`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("007 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "007 SPLIT TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+            val split = publicationDao.getSplit(splitId)
+            publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
+        }
+
+        val validation = publicationService.validateLocationTrack(locationTrack.id, OFFICIAL)
+        assertContains(
+            validation.errors,
+            PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationParams.empty()
+            )
+        )
+    }
+
+    @Test
+    fun `source location track validation should not fail on finished split`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("008 SPLIT"))).id
+
+        val alignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                )
+            )
+        )
+
+        val alignment = alignmentDao.fetch(alignmentVersion)
+
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "008 SPLIT TRACK"
+            )
+        )
+
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
+            val split = publicationDao.getSplit(splitId)
+            publicationDao.updateSplit(split.copy(state = SplitState.DONE))
+        }
+
+        val validation = publicationService.validateLocationTrack(locationTrack.id, OFFICIAL)
+        assertFalse {
+            validation.errors.contains(
+                PublishValidationError(
+                    PublishValidationErrorType.ERROR,
+                    LocalizationKey("validation.layout.location-track.split-in-progress"),
+                    LocalizationParams.empty()
+                )
+            )
+        }
+    }
+
+    @Test
     fun `km post split validation should fail on unfinished split`() {
         val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("001 SPLIT"))).id
         val kmPostId = kmPostDao.insert(kmPost(trackNumberId, km = KmNumber.ZERO)).id
@@ -2050,18 +2418,16 @@ class PublicationServiceIT @Autowired constructor(
 
         val alignment = alignmentDao.fetch(alignmentVersion)
 
-        val locationTrackId =
-            locationTrackDao.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    alignment = alignment,
-                    alignmentVersion = alignmentVersion,
-                    name = "001 SPLIT TRACK"
-                )
-            ).id
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "001 SPLIT TRACK"
+            )
+        )
 
-
-        publicationDao.saveSplit(locationTrackId = locationTrackId, splitTargets = emptyList())
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList())
 
         val validation = publicationService.validateKmPost(kmPostId, OFFICIAL)
         assertContains(
@@ -2096,18 +2462,16 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        val locationTrackId =
-            locationTrackDao.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    alignment = alignment,
-                    alignmentVersion = alignmentVersion,
-                    name = "002 SPLIT TRACK"
-                )
-            ).id
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "002 SPLIT TRACK"
+            )
+        )
 
-
-        publicationDao.saveSplit(locationTrackId = locationTrackId, splitTargets = emptyList())
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList())
 
         val validation = publicationService.validateTrackNumberAndReferenceLine(trackNumberId, OFFICIAL)
         assertContains(
@@ -2142,18 +2506,16 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        val locationTrackId =
-            locationTrackDao.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    alignment = alignment,
-                    alignmentVersion = alignmentVersion,
-                    name = "003 SPLIT TRACK"
-                )
-            ).id
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "003 SPLIT TRACK"
+            )
+        )
 
-
-        publicationDao.saveSplit(locationTrackId = locationTrackId, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
         }
@@ -2191,26 +2553,30 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        val locationTrackId =
-            locationTrackDao.insert(
-                locationTrack(
-                    trackNumberId = trackNumberId,
-                    alignment = alignment,
-                    alignmentVersion = alignmentVersion,
-                    name = "004 SPLIT TRACK"
-                )
-            ).id
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignment,
+                alignmentVersion = alignmentVersion,
+                name = "004 SPLIT TRACK"
+            )
+        )
 
-
-        publicationDao.saveSplit(locationTrackId = locationTrackId, splitTargets = emptyList()).also { splitId ->
+        publicationDao.saveSplit(locationTrackId = locationTrack.id, splitTargets = emptyList()).also { splitId ->
             val split = publicationDao.getSplit(splitId)
             publicationDao.updateSplit(split.copy(state = SplitState.DONE))
         }
 
         val validation = publicationService.validateTrackNumberAndReferenceLine(trackNumberId, OFFICIAL)
-        assertNull(validation.errors.firstOrNull { e ->
-            e.localizationKey == LocalizationKey("validation.layout.reference-line.location-track-split-in-progress")
-        })
+        assertFalse {
+            validation.errors.contains(
+                PublishValidationError(
+                    PublishValidationErrorType.ERROR,
+                    LocalizationKey("validation.layout.reference-line.location-track-split-in-progress"),
+                    LocalizationParams.empty()
+                )
+            )
+        }
     }
 
     @Test

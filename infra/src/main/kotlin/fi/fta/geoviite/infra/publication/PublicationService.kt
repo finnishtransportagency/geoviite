@@ -806,14 +806,21 @@ class PublicationService @Autowired constructor(
     private fun validateSplitReferences(
         locationTrackId: IntId<LocationTrack>,
     ): List<PublishValidationError> {
-        val splitErrors = publicationDao.fetchUnpublishedSplits(locationTrackId)?.let {
-            listOf(
-                PublishValidationError(
-                    ERROR,
-                    "$VALIDATION_LOCATION_TRACK.split-in-progress"
-                )
-            )
-        } ?: emptyList()
+        val splitErrors = publicationDao.fetchUnpushedSplits()
+            .filterNot { it.state == SplitState.PENDING }
+            .mapNotNull { split ->
+                if (split.locationTrackId == locationTrackId) {
+                    PublishValidationError(
+                        ERROR,
+                        "$VALIDATION_LOCATION_TRACK.split-in-progress"
+                    )
+                } else if (split.targetLocationTracks.any { it.locationTrackId == locationTrackId }) {
+                    PublishValidationError(
+                        ERROR,
+                        "$VALIDATION_LOCATION_TRACK.split-in-progress"
+                    )
+                } else null
+            }
 
         return splitErrors
     }
@@ -821,7 +828,7 @@ class PublicationService @Autowired constructor(
     private fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<PublishValidationError> {
-        val splitIds = publicationDao.fetchUnpublishedSplitsByTrackNumber(trackNumberId)
+        val splitIds = publicationDao.fetchUnpushedSplitsByTrackNumber(trackNumberId)
 
         val splitErrors = if (splitIds.isNotEmpty())
             listOf(PublishValidationError(ERROR, "$VALIDATION_REFERENCE_LINE.location-track-split-in-progress"))
