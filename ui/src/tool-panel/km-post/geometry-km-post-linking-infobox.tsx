@@ -201,35 +201,32 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                     className={
                                         styles['geometry-km-post-linking-infobox__layout-km-posts']
                                     }>
-                                    {kmPosts.map((layoutKmPostOption) => {
-                                        return (
-                                            <li
-                                                key={layoutKmPostOption.id}
-                                                className={
-                                                    styles[
-                                                        'geometry-km-post-linking-infobox__layout-km-post'
-                                                    ]
+                                    {kmPosts.map((layoutKmPostOption) => (
+                                        <li
+                                            key={layoutKmPostOption.id}
+                                            className={
+                                                styles[
+                                                    'geometry-km-post-linking-infobox__layout-km-post'
+                                                ]
+                                            }
+                                            onClick={() =>
+                                                onSelect({ kmPosts: [layoutKmPostOption.id] })
+                                            }>
+                                            <KmPostBadge
+                                                kmPost={layoutKmPostOption}
+                                                trackNumber={trackNumbers?.find(
+                                                    (tn) =>
+                                                        tn.id == layoutKmPostOption.trackNumberId,
+                                                )}
+                                                showTrackNumberInBadge={true}
+                                                status={
+                                                    layoutKmPostOption.id == layoutKmPost?.id
+                                                        ? KmPostBadgeStatus.SELECTED
+                                                        : KmPostBadgeStatus.DEFAULT
                                                 }
-                                                onClick={() =>
-                                                    onSelect({ kmPosts: [layoutKmPostOption.id] })
-                                                }>
-                                                <KmPostBadge
-                                                    kmPost={layoutKmPostOption}
-                                                    trackNumber={trackNumbers?.find(
-                                                        (tn) =>
-                                                            tn.id ==
-                                                            layoutKmPostOption.trackNumberId,
-                                                    )}
-                                                    showTrackNumberInBadge={true}
-                                                    status={
-                                                        layoutKmPostOption.id == layoutKmPost?.id
-                                                            ? KmPostBadgeStatus.SELECTED
-                                                            : KmPostBadgeStatus.DEFAULT
-                                                    }
-                                                />
-                                            </li>
-                                        );
-                                    })}
+                                            />
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
 
