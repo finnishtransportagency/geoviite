@@ -17,8 +17,8 @@ paikannuspohjaan suoraan.
 
 Luonnosmuutokset voidaan viedä viralliseen paikannuspohjaan julkaisu-toiminnon (Publication) kautta. Luonnostilassa on
 mahdollista olla tilapäistä / osittaista dataa koska sitä ollaan vasta luomassa, mutta sellaista ei voi olla
-virallisessa paikannuspohjassa. Tästä johtuen, julkaisuun sisältyy joukko validointia (publication validation), jonka
-avulla varmistetaan että julkaistavat tiedot muodostavat eheän kokonaisuuden.
+virallisessa paikannuspohjassa. Tästä johtuen, julkaisuun sisältyy joukko validointeja (julkaisuvalidointi, publication
+validation), jonka avulla varmistetaan että julkaistavat tiedot muodostavat eheän kokonaisuuden.
 
 Koska virallisessa paikannuspohjassa olevan käsitteen poisto tehdään vain tilamuutoksella, sekin on oliotasolla vain
 muokkaus. Luonnos kontekstista voidaan kuitenkin poistaa oikeasti sellaisia luonnoskäsitteitä, joita ole vielä julkaistu
@@ -28,16 +28,16 @@ viralliseen paikannuspohjaan. Tätä sanotaan luonnosmuutoksen perumiseksi (Reve
 
 Suunniteltuja paikannuspohjia voi olla monta, sillä ne koostuvat erillisistä suunnitelmista jotka tarjoavat itsenäiset
 joukot suunniteltuja muutoksia. Käyttäjän kannalta ne toimivat pitkälti kuten luonnos paikannuspohja, mutta ne
-ovat kukin omia erillisiä kontekstejaan.
+ovat kukin omia erillisiä kontekstejaan. Suunniteltu paikannuspohja rakentuu aina virallisen paikannuspohjan päälle,
+eikä siis ole mitenkään tietoinen luonnos paikannuspohjasta.
 
 Suunnitelmille tehdään omia julkaisuja (toisin kuin luonnokselle, jonka julkaisu on virallisen paikannuspohjan muutos).
 Julkaistu suunnitelma viedään Ratkoon suunniltuina käsitteinä, jolloin niihin voidaan suunnitella myös muita kohteita
 Ratkon puolella.
 
-Suunniteltu paikannuspohja rakentuu aina virallisen paikannuspohjan päälle, eikä siis ole mitenkään tietoinen luonnos
-paikannuspohjasta. Kun suunnitelman käsitteet kuitenkin valmistuvat, ne viedään ensin luonnoksiksi. Luonnospuolella
-niitä voidaan edelleen muokata ja täydentää ennen kun ne julkaistaan normaalin luonnoksen tapaan viralliseksi. Tässä
-kohtaa myös suunnitelmajulkaisu päivitetään valmistuneeksi.
+Kun suunnitelman käsitteet valmistuvat, ne viedään ensin luonnoksiksi. Luonnospuolella niitä voidaan edelleen muokata
+ja täydentää ennen kun ne julkaistaan normaalin luonnoksen tapaan viralliseksi. Tässä kohtaa myös suunnitelmajulkaisu
+päivitetään valmistuneeksi.
 
 ## ID käsittely ja viittaukset kontekstien välillä
 
