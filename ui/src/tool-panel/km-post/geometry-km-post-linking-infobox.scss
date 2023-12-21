@@ -28,6 +28,9 @@
 
 .geometry-km-post-linking-infobox__layout-km-post {
     padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 
     .km-post-badge {
         cursor: pointer;
