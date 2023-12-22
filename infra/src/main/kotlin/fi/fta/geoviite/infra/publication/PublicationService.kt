@@ -1060,7 +1060,7 @@ class PublicationService @Autowired constructor(
 
         return listOfNotNull(compareChangeValues(
             locationTrackChanges.trackNumberId,
-            { trackNumberCache.findLast { it.id == locationTrackChanges.trackNumberId.new && it.changeTime <= publicationTime }?.number },
+            { tnIdFromChange -> trackNumberCache.findLast { tn -> tn.id == tnIdFromChange && tn.changeTime <= publicationTime }?.number },
             PropKey("track-number"),
         ),
             compareChangeValues(
@@ -1214,7 +1214,7 @@ class PublicationService @Autowired constructor(
     ) = listOfNotNull(
         compareChangeValues(
             changes.trackNumberId,
-            { trackNumberCache.findLast { it.id == changes.trackNumberId.new && it.changeTime <= publicationTime }?.number },
+            { tnIdFromChange -> trackNumberCache.findLast { tn -> tn.id == tnIdFromChange && tn.changeTime <= publicationTime }?.number },
             PropKey("track-number"),
         ),
         compareChangeValues(changes.kmNumber, { it }, PropKey("km-post")),
