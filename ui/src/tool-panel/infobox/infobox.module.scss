@@ -49,6 +49,7 @@
         align-items: start;
         width: 100%;
         max-width: 120px;
+        min-width: 120px;
 
         &--error {
             color: vayla-design.$color-red-dark;

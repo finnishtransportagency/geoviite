@@ -34,8 +34,8 @@ type SplitProps = EndpointProps & {
     nameErrors: ValidationError<Split>[];
     descriptionErrors: ValidationError<Split>[];
     switchErrors: ValidationError<Split>[];
-    nameRef?: React.RefObject<HTMLInputElement>;
-    descriptionBaseRef?: React.RefObject<HTMLInputElement>;
+    nameRef: React.RefObject<HTMLInputElement>;
+    descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
 };
 
@@ -85,6 +85,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         split.descriptionBase !== '',
     );
 
+    // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
         if (!nameErrors.length) {
             setNameCommitted(true);
