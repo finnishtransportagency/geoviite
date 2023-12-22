@@ -242,7 +242,7 @@ async function fetchNonNullAdt<Input, Output>(
     const result = await fetchNullableAdt<Input, Output>(path, method, body);
 
     if (result.isOk() && result.value === undefined) {
-        Snackbar.error('Expected non-null result but got null');
+        Snackbar.error('Expected non-null result but got null', `${method} ${path}`);
 
         return err(undefined);
     } else {
@@ -261,7 +261,7 @@ export async function fetchFormNonNullAdt<Output>(
     );
 
     if (r.isOk() && r.value === undefined) {
-        Snackbar.error('Expected non-null result but got null');
+        Snackbar.error('Expected non-null result but got null', `${method} ${path}`);
 
         return err(undefined);
     } else {

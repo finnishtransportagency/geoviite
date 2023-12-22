@@ -77,9 +77,9 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
                         locationTrackId: locationTrack.id,
                         changedKmNumbers: kms,
                     },
-                ]).then(() => {
-                    setPushDone(true);
-                });
+                ]);
+
+                setPushDone(true);
             } finally {
                 setPushing(false);
             }
