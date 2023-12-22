@@ -120,28 +120,48 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             />
             <div className={styles['location-track-infobox__split-fields-container']}>
                 <div>
-                    <InfoboxField
-                        label={
-                            'switchId' in split
-                                ? t('tool-panel.location-track.splitting.split-address')
-                                : t('tool-panel.location-track.splitting.start-address')
-                        }>
-                        <div>
-                            <NavigableTrackMeter
-                                trackMeter={addressPoint?.address}
-                                location={addressPoint?.point}
-                                mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
-                            />
-                            {switchErrors.some((err) => err.reason === 'switch-not-found') && (
-                                <InfoboxText
-                                    className={styles['location-track-infobox__split-error']}
-                                    value={t(
-                                        'tool-panel.location-track.splitting.validation.missing-switch',
-                                    )}
-                                />
-                            )}
-                        </div>
-                    </InfoboxField>
+                    <div className={styles['location-track-infobox__split-row-with-close-button']}>
+                        <InfoboxField
+                            label={
+                                'switchId' in split
+                                    ? t('tool-panel.location-track.splitting.split-address')
+                                    : t('tool-panel.location-track.splitting.start-address')
+                            }>
+                            <div>
+                                <div>
+                                    <NavigableTrackMeter
+                                        trackMeter={addressPoint?.address}
+                                        location={addressPoint?.point}
+                                        mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
+                                    />
+                                </div>
+                                {switchErrors.some((err) => err.reason === 'switch-not-found') && (
+                                    <InfoboxText
+                                        className={styles['location-track-infobox__split-error']}
+                                        value={t(
+                                            'tool-panel.location-track.splitting.validation.missing-switch',
+                                        )}
+                                    />
+                                )}
+                            </div>
+                        </InfoboxField>
+                        {onRemove && (
+                            <div
+                                className={createClassName(
+                                    styles['location-track-infobox__split-close-button'],
+                                    deletingDisabled
+                                        ? styles[
+                                              'location-track-infobox__split-close-button--disabled'
+                                          ]
+                                        : styles[
+                                              'location-track-infobox__split-close-button--enabled'
+                                          ],
+                                )}
+                                onClick={() => !deletingDisabled && switchId && onRemove(switchId)}>
+                                <Icons.Close size={IconSize.SMALL} color={IconColor.INHERIT} />
+                            </div>
+                        )}
+                    </div>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
                         label={t('tool-panel.location-track.track-name')}
@@ -246,20 +266,6 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             disabled={editingDisabled || !!duplicateOf}
                         />
                     </InfoboxField>
-                </div>
-                <div className={styles['location-track-infobox__close-split-button-column']}>
-                    {onRemove && (
-                        <div
-                            className={createClassName(
-                                styles['location-track-infobox__split-close-button'],
-                                deletingDisabled
-                                    ? styles['location-track-infobox__split-close-button--disabled']
-                                    : styles['location-track-infobox__split-close-button--enabled'],
-                            )}
-                            onClick={() => !deletingDisabled && switchId && onRemove(switchId)}>
-                            <Icons.Close size={IconSize.SMALL} color={IconColor.INHERIT} />
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
