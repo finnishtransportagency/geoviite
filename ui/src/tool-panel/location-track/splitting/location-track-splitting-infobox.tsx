@@ -309,40 +309,44 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
     const anyOtherErrors = allErrors.map((s) => s.reason).some(otherError);
 
-    const splitComponents: SplitComponentAndRefs[] = allValidated.map((splitValidated) => {
-        const nameRef = React.createRef<HTMLInputElement>();
-        const descriptionBaseRef = React.createRef<HTMLInputElement>();
+    const splitComponents: SplitComponentAndRefs[] = allValidated.map(
+        (splitValidated, splitIndex) => {
+            const nameRef = React.createRef<HTMLInputElement>();
+            const descriptionBaseRef = React.createRef<HTMLInputElement>();
 
-        const switchExists =
-            switches.find(
-                (s) => 'switchId' in splitValidated.split && s.id === splitValidated.split.switchId,
-            )?.stateCategory !== 'NOT_EXISTING';
+            const switchExists =
+                switches.find(
+                    (s) =>
+                        'switchId' in splitValidated.split &&
+                        s.id === splitValidated.split.switchId,
+                )?.stateCategory !== 'NOT_EXISTING';
 
-        const { split, nameErrors, descriptionErrors, switchErrors } = splitValidated;
-        return {
-            component: (
-                <LocationTrackSplit
-                    key={`${split.location.x}_${split.location.y}`}
-                    split={split}
-                    addressPoint={getSplitAddressPoint(allowedSwitches, startAndEnd, split)}
-                    onRemove={removeSplit}
-                    duplicateLocationTracks={duplicateLocationTracks}
-                    updateSplit={updateSplit}
-                    duplicateOf={split.duplicateOf}
-                    nameErrors={nameErrors}
-                    descriptionErrors={descriptionErrors}
-                    switchErrors={switchErrors}
-                    editingDisabled={disabled || !switchExists}
-                    deletingDisabled={disabled}
-                    nameRef={nameRef}
-                    descriptionBaseRef={descriptionBaseRef}
-                />
-            ),
-            split: splitValidated,
-            nameRef,
-            descriptionBaseRef,
-        };
-    });
+            const { split, nameErrors, descriptionErrors, switchErrors } = splitValidated;
+            return {
+                component: (
+                    <LocationTrackSplit
+                        key={`${split.location.x}_${split.location.y}`}
+                        split={split}
+                        addressPoint={getSplitAddressPoint(allowedSwitches, startAndEnd, split)}
+                        onRemove={splitIndex > 0 ? removeSplit : undefined}
+                        duplicateLocationTracks={duplicateLocationTracks}
+                        updateSplit={updateSplit}
+                        duplicateOf={split.duplicateOf}
+                        nameErrors={nameErrors}
+                        descriptionErrors={descriptionErrors}
+                        switchErrors={switchErrors}
+                        editingDisabled={disabled || !switchExists}
+                        deletingDisabled={disabled}
+                        nameRef={nameRef}
+                        descriptionBaseRef={descriptionBaseRef}
+                    />
+                ),
+                split: splitValidated,
+                nameRef,
+                descriptionBaseRef,
+            };
+        },
+    );
 
     return (
         <React.Fragment>
@@ -430,7 +434,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
-                                disabled={disabled || anyMissingFields || anyOtherErrors}>
+                                disabled={
+                                    disabled ||
+                                    anyMissingFields ||
+                                    anyOtherErrors ||
+                                    splits.length < 2
+                                }>
                                 {t('tool-panel.location-track.splitting.confirm-split')}
                             </Button>
                         </InfoboxButtons>
