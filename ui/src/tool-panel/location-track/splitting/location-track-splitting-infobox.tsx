@@ -214,10 +214,10 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
 const hasErrors = (errorsReasons: string[], predicate: (errorReason: string) => boolean) =>
     errorsReasons.filter(predicate).length > 0;
 
-function findAndFocusFirstErroredField(
+const findRefToFirstErroredField = (
     splitComponents: SplitComponentAndRefs[],
     predicate: (errorReason: string) => boolean,
-) {
+): React.RefObject<HTMLInputElement> | undefined => {
     const invalidNameIndex = splitComponents.findIndex((s) =>
         hasErrors(
             s.split.nameErrors.map((err) => err.reason),
@@ -230,17 +230,14 @@ function findAndFocusFirstErroredField(
             predicate,
         ),
     );
+    const minIndex = [invalidNameIndex, invalidDescriptionBaseIndex]
+        .filter((i) => i >= 0)
+        .sort()[0];
 
-    if (invalidNameIndex === -1 && invalidDescriptionBaseIndex === -1) return;
-    if (
-        invalidDescriptionBaseIndex === -1 ||
-        (invalidNameIndex >= 0 && invalidNameIndex <= invalidDescriptionBaseIndex)
-    ) {
-        splitComponents[invalidNameIndex]?.nameRef?.current?.focus();
-    } else {
-        splitComponents[invalidDescriptionBaseIndex]?.descriptionBaseRef?.current?.focus();
-    }
-}
+    if (minIndex === undefined) return undefined;
+    else if (minIndex === invalidNameIndex) return splitComponents[minIndex].nameRef;
+    else return splitComponents[minIndex].descriptionBaseRef;
+};
 
 const getSplitAddressPoint = (
     allowedSwitches: SwitchOnLocationTrack[],
@@ -389,10 +386,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                             ,{' '}
                                             <Link
                                                 onClick={() =>
-                                                    findAndFocusFirstErroredField(
+                                                    findRefToFirstErroredField(
                                                         splitComponents,
                                                         mandatoryFieldMissing,
-                                                    )
+                                                    )?.current?.focus()
                                                 }>
                                                 {t(
                                                     'tool-panel.location-track.splitting.validation.show',
@@ -410,10 +407,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                             ,{' '}
                                             <Link
                                                 onClick={() =>
-                                                    findAndFocusFirstErroredField(
+                                                    findRefToFirstErroredField(
                                                         splitComponents,
                                                         otherError,
-                                                    )
+                                                    )?.current?.focus()
                                                 }>
                                                 {t(
                                                     'tool-panel.location-track.splitting.validation.show',

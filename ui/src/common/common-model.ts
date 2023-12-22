@@ -8,6 +8,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
+import i18next from 'i18next';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -78,7 +79,7 @@ export const compareTrackMeterStrings = (a: string, b: string) => {
 };
 
 export const compareNamed = (a: { name: string | undefined }, b: { name: string | undefined }) =>
-    compare(a.name, b.name);
+    a?.name?.localeCompare(b?.name || '', i18next.language) || 0;
 
 export type AddressPoint = {
     point: AlignmentPoint;

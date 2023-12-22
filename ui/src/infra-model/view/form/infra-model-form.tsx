@@ -51,6 +51,7 @@ import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useLoader } from 'utils/react-utils';
+import i18next from 'i18next';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -186,7 +187,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         return [
             ...authors,
             ...(!authorInList && geometryPlan.author ? [geometryPlan.author] : []),
-        ].sort((a, b) => a.companyName.localeCompare(b.companyName));
+        ].sort((a, b) => a.companyName.localeCompare(b.companyName, i18next.language));
     };
 
     React.useEffect(() => {

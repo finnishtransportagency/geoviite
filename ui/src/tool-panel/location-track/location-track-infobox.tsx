@@ -142,7 +142,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
 
-    const canEdit = () => publishType === 'OFFICIAL' || !!linkingState || !!splittingState;
+    const canEdit = publishType === 'OFFICIAL' || !!linkingState || !!splittingState;
 
     function openEditLocationTrackDialog() {
         setShowEditDialog(true);
@@ -233,35 +233,35 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         label={t('tool-panel.location-track.track-name')}
                         value={locationTrack.name}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         qaId="location-track-state"
                         label={t('tool-panel.location-track.state')}
                         value={<LayoutState state={locationTrack.state} />}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         qaId="location-track-type"
                         label={t('tool-panel.location-track.type')}
                         value={<LocationTrackTypeLabel type={locationTrack.type} />}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         qaId="location-track-description"
                         label={t('tool-panel.location-track.description')}
                         value={description}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         qaId="location-track-track-number"
                         label={t('tool-panel.location-track.track-number')}
                         value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxText value={trackNumber?.description} />
                     <InfoboxField
@@ -281,7 +281,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             />
                         }
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
@@ -291,13 +291,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             />
                         }
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.owner')}
                         value={getLocationTrackOwnerName(locationTrack.ownerId)}
                         onEdit={openEditLocationTrackDialog}
-                        iconDisabled={canEdit()}
+                        iconDisabled={canEdit}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.start-switch')}
@@ -321,7 +321,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {splittingState && (
-                <EnvRestricted restrictTo={'dev'}>
+                <EnvRestricted restrictTo="dev">
                     <LocationTrackSplittingInfoboxContainer
                         visibilities={visibilities}
                         visibilityChange={visibilityChange}
@@ -438,7 +438,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 )}
                                 <InfoboxButtons>
                                     {!linkingState && !splittingState && (
-                                        <EnvRestricted restrictTo={'dev'}>
+                                        <EnvRestricted restrictTo="dev">
                                             <Button
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
