@@ -111,12 +111,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         setPublishing(true);
         publishCandidates({ content: props.request, message })
             .then((r) => {
-                if (r.isOk()) {
-                    const result = r.unwrapOr(undefined);
-                    Snackbar.success('publish.publish-success', describeResult(result));
-                    updateChangeTimes(result);
-                    props.onPublish();
-                }
+                Snackbar.success('publish.publish-success', describeResult(r));
+                updateChangeTimes(r);
+                props.onPublish();
             })
             .finally(() => {
                 setPublishConfirmVisible(false);

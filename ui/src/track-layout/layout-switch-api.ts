@@ -6,11 +6,11 @@ import {
     LayoutSwitchJointConnection,
 } from 'track-layout/track-layout-model';
 import {
-    deleteIgnoreError,
+    deleteNonNull,
     getNonNull,
     getNullable,
-    postAdt,
-    putAdt,
+    postNonNullAdt,
+    putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
@@ -106,12 +106,13 @@ export async function getSwitchJointConnections(
 export async function insertSwitch(
     newSwitch: TrackLayoutSwitchSaveRequest,
 ): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await postAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const apiResult = await postNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', 'DRAFT'),
         newSwitch,
-        true,
     );
-    updateSwitchChangeTime();
+
+    await updateSwitchChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -122,12 +123,13 @@ export async function updateSwitch(
     id: LayoutSwitchId,
     updatedSwitch: TrackLayoutSwitchSaveRequest,
 ): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await putAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const apiResult = await putNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', 'DRAFT', id),
         updatedSwitch,
-        true,
     );
-    updateSwitchChangeTime();
+
+    await updateSwitchChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -137,11 +139,8 @@ export async function updateSwitch(
 export async function deleteDraftSwitch(
     switchId: LayoutSwitchId,
 ): Promise<LayoutSwitchId | undefined> {
-    return await deleteIgnoreError<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then(
-        (r) => {
-            updateSwitchChangeTime();
-            return r;
-        },
+    return await deleteNonNull<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then((r) =>
+        updateSwitchChangeTime().then((_) => r),
     );
 }
 

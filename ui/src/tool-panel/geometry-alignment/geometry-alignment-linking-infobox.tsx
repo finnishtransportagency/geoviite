@@ -230,29 +230,25 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
                 const linkingParameters =
                     createLinkingGeometryWithAlignmentParameters(linkingState);
-                const result = await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
+
+                await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
                     ? linkGeometryWithLocationTrack(linkingParameters)
                     : linkGeometryWithReferenceLine(linkingParameters));
-                if (result) {
-                    Snackbar.success(
-                        'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
-                    );
-                    onStopLinking();
-                } else {
-                    Snackbar.error('error.linking.generic');
-                }
+
+                Snackbar.success(
+                    'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
+                );
+
+                onStopLinking();
             } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
                     createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
-                const result = await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
                     ? linkGeometryWithEmptyLocationTrack(linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(linkingParameters));
-                if (result) {
-                    Snackbar.success('tool-panel.alignment.geometry.linking-succeeded');
-                    onStopLinking();
-                } else {
-                    Snackbar.error('error.linking.generic');
-                }
+
+                Snackbar.success('tool-panel.alignment.geometry.linking-succeeded');
+                onStopLinking();
             }
         } finally {
             setLinkingCallInProgress(false);
