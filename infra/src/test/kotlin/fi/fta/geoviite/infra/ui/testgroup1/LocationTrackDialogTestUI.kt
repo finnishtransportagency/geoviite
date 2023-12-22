@@ -18,18 +18,14 @@ class LocationTrackDialogTestUI @Autowired constructor() : SeleniumTest() {
         val firstLoad = page.toolBar.createNewLocationTrack()
         assertEquals(
             "Väylävirasto",
-            firstLoad.ownerDropdown.waitForValue().value
+            firstLoad.ownerDropdown.value
         )
 
         firstLoad.cancel()
 
         assertEquals(
             "Väylävirasto",
-            page
-                .toolBar.createNewLocationTrack()
-                .ownerDropdown
-                .waitForValue()
-                .value
+            page.toolBar.createNewLocationTrack().ownerDropdown.value
         )
     }
 }

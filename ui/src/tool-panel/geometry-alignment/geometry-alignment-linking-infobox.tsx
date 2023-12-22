@@ -111,6 +111,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     planId: GeometryPlanId;
     locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     linkingState?:
         | LinkingGeometryWithAlignment
         | LinkingGeometryWithEmptyAlignment
@@ -134,6 +135,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     selectedLayoutReferenceLine,
     planId,
     locationTrackChangeTime,
+    switchChangeTime,
     trackNumberChangeTime,
     linkingState,
     onLinkingStart,
@@ -425,6 +427,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
                     locationTrackChangeTime={locationTrackChangeTime}
+                    switchChangeTime={switchChangeTime}
                 />
             )}
             {showAddTrackNumberDialog && (

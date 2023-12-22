@@ -104,13 +104,12 @@ export const Dropdown = function <TItemValue>({
             : loadedOptions;
     const filteredOptions = getFilteredOptions();
 
-    const selectedName = props.value
-        ? (props.getName && props.getName(props.value)) ||
-          options?.find((item) => item.value == props.value)?.name ||
-          ''
-        : props.placeholder;
-
-    const selectedQaId = options?.find((i) => i.value == props.value)?.qaId;
+    const selectedName =
+        (props.value !== undefined && props.getName !== undefined
+            ? props.getName(props.value)
+            : undefined) ??
+        options?.find((item) => item.value === props.value)?.name ??
+        '';
 
     function setHasFocus(value: boolean) {
         if (hasFocus && !value) {
@@ -123,6 +122,7 @@ export const Dropdown = function <TItemValue>({
 
     function focusInput() {
         inputRef.current?.focus();
+        inputRef.current?.select();
     }
 
     function openList() {
@@ -324,14 +324,10 @@ export const Dropdown = function <TItemValue>({
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
-                        value={searchTerm}
+                        value={searchTerm || selectedName}
                         onChange={(e) => handleInputChange(e.target.value)}
+                        placeholder={props.placeholder}
                     />
-                    {!searchTerm && (
-                        <div className={styles['dropdown__current-value']} qa-id={selectedQaId}>
-                            <span>{selectedName}</span>
-                        </div>
-                    )}
                 </div>
                 <div className={styles['dropdown__icon']}>
                     {searchable && optionsIsFunc ? (

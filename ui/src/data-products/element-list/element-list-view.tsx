@@ -9,6 +9,7 @@ import ElementTable from 'data-products/element-list/element-table';
 import { useDataProductsAppSelector } from 'store/hooks';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkElementListing } from 'data-products/element-list/entire-rail-network-element-listing';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -38,12 +39,14 @@ const ElementListView = () => {
                             checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.element-list.plan-geometry')}
                         </Radio>
-                        <Radio
-                            qaId={'select-entire-rail-network'}
-                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
-                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
-                            {t('data-products.element-list.entire-rail-network-geometry')}
-                        </Radio>
+                        <PrivilegeRequired privilege="dataproduct-download">
+                            <Radio
+                                qaId={'select-entire-rail-network'}
+                                onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                                checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                                {t('data-products.element-list.entire-rail-network-geometry')}
+                            </Radio>
+                        </PrivilegeRequired>
                     </span>
                 </div>
                 {state.selectedSearch === 'LOCATION_TRACK' && (

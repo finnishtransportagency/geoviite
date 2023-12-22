@@ -208,7 +208,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 }
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         )}
                         <div
@@ -263,7 +263,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             errors={getVisibleErrorsByProp('kmNumber')}>
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                    <Link
+                                    <Link className={dialogStyles['dialog__alert']}
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>
@@ -353,7 +353,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 <KmPostDeleteConfirmationDialog
                     id={props.kmPostId}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}
-                    onSave={props.onSave}
+                    onSave={() => {
+                        props.kmPostId && props.onSave && props.onSave(props.kmPostId);
+                        props.onClose();
+                    }}
                 />
             )}
         </React.Fragment>

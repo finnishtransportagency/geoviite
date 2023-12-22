@@ -96,6 +96,7 @@
         "cancel": "Peruuta",
         "save": "Tallenna",
         "delete": "Poista",
+        "delete-draft": "Poista",
         "ok": "OK",
         "continue": "Jatka",
         "yes": "Kyllä",
@@ -332,7 +333,9 @@
         "description-suffix": "Kuvauksen lisäosa",
         "full-description": "Valmis kuvaus",
         "name-in-use": "Huomaa, että ratanumerolla on toinen sijaintiraide samalla tunnuksella",
-        "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä"
+        "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä",
+        "name-in-use-deleted": "Huomaa, että ratanumerolla on poistettu raide samalla tunnuksella",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
@@ -344,7 +347,7 @@
         "geometry-plan": {
             "general-title": "Suunnitelman perustiedot",
             "quality-title": "Laatutiedot",
-            "remarks": "Huomiot",
+            "observations": "Huomiot",
             "author": "Yritys",
             "project": "Projekti",
             "file": "Tiedosto",
@@ -393,7 +396,6 @@
                 "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
-                "location": "Sijainti (km + m)",
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
@@ -410,7 +412,8 @@
                     "choose-km-post-msg": "Valitse tasakilometripiste, johon linkitetään",
                     "start-linking-command": "Aloita linkitys",
                     "link-command": "Linkitä",
-                    "linking-succeed-msg": "Tasakilometripiste linkitetty onnistuneesti"
+                    "linking-succeed-msg": "Tasakilometripiste linkitetty onnistuneesti",
+                    "track-number": "Ratanumerolla {{trackNumber}}"
                 }
             }
         },
@@ -601,7 +604,19 @@
                 "end-address": "Loppusijainti (km + m)",
                 "replaces-duplicate": "Korvaa duplikaattiraiteen",
                 "description-base": "Kuvauksen perusosa",
-                "description-suffix": "Kuvauksen lisäosa"
+                "description-suffix": "Kuvauksen lisäosa",
+                "validation": {
+                    "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
+                    "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
+                    "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
+                    "mandatory-field": "Pakollinen kenttä",
+                    "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-name": "Virheellinen sijaintiraidetunnus",
+                    "missing-fields": "Pakollisia tietoja puuttuu",
+                    "missing-switch": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
+                    "has-errors": "Tiedoissa on virheitä",
+                    "show": "näytä"
+                }
             }
         },
         "disabled": {
@@ -893,8 +908,8 @@
                 "cant-rotation-point-center": "Kallistuksen mittauspiste (rotationPoint) määritelty keskelle raidetta keskilinjalla {{alignmentName}}",
                 "cant-gauge-invalid": "Ilmoitettu raideleveys \"{{value}}\" keskilinjalla {{alignmentName}} ei vastaa suomen raideleveyttä 1.524",
                 "no-feature-type": "Keskilinjalta {{alignmentName}} puuttuu tyyppikoodi",
-                "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei vastaa raiteilla käytettyjä (111, 281)",
-                "wrong-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodia {{value}} ei pitäisi käyttää raiteilla: keskilinjan koodi on 281",
+                "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei ole tunnettu. Raiteen keskilinjan koodi on 281, pituusmittausraiteen 111.",
+                "wrong-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodia {{value}} ei pitäisi käyttää raiteilla. Raiteen keskilinjan koodi on 281, pituusmittausraiteen 111.",
                 "no-state": "Keskilinjalle {{alignmentName}} ei ole annettu tilatietoa",
                 "multiple-reference-lines": "Suunnitelma sisältää useamman kuin yhden pituusmittauslinjan",
                 "no-reference-lines": "Suunnitelma ei sisällä pituusmittauslinjaa"
@@ -1393,7 +1408,7 @@
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
-        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}"
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}."
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",
@@ -1434,14 +1449,16 @@
         "modified-successfully": "Vaihteen tiedot päivitetty",
         "modify-failed": "Vaihteen päivittäminen epäonnistui",
         "confirmation-title": "Vaihteen päivittäminen",
-        "confirmation-delete-title": "Vaihteen poistaminen",
+        "confirmation-delete-title": "Vaihteen poistaminen paikannuspohjasta",
         "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
         "changed-switch-structure-warning": "Vaihteen vaihdetyyppiä on muokattu.",
-        "switch-will-be-unlinked": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä.",
+        "switch-will-be-unlinked": "Poistettaessa myös vaihteeseen liittyvät sijaintiraidelinkitykset puretaan, eivätkä ne palaudu automaattisesti, vaikka vaihteen tila palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
-        "confirm-switch-delete": "Haluatko varmasti poistaa vaihteen paikannuspohjasta?",
+        "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
-        "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä"
+        "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
+        "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",
@@ -1455,7 +1472,6 @@
             "track-number": "Ratanumero",
             "reference-line": "Pituusmittauslinja",
             "metadata-heading": "Metatiedot",
-            "delete-draft": "Poista",
             "delete-non-draft": "Ratanumeron poistaminen paikannuspohjasta"
         },
         "dialog": {
@@ -1473,7 +1489,7 @@
         "action": {
             "cancel": "Poistu",
             "save": "Tallenna",
-            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}"
+            "move-to-edit": "Siirry muokkaamaan ratanumeroa {{number}}."
         },
         "result": {
             "failed": "Ratanumeron tallennus epäonnistui.",

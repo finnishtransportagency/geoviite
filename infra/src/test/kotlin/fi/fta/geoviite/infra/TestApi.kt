@@ -24,7 +24,7 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
             .perform(requestBuilder)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.contentAsString
+            .andReturn().response.getContentAsString(Charsets.UTF_8)
     }
 
     fun doPost(url: String, body: Any?, expectedStatus: HttpStatus): String {
@@ -33,12 +33,12 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
     }
 
     fun doPostWithString(url: String, body: String?, expectedStatus: HttpStatus): String {
-        val request = MockMvcRequestBuilders.post(url).contentType(APPLICATION_JSON)
+        val request = MockMvcRequestBuilders.post(url).characterEncoding(Charsets.UTF_8).contentType(APPLICATION_JSON)
         return mockMvc
             .perform(if (body != null) request.content(body) else request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.contentAsString
+            .andReturn().response.getContentAsString(Charsets.UTF_8)
     }
 
     fun doPut(url: String, body: Any?, expectedStatus: HttpStatus): String {
@@ -47,12 +47,12 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
     }
 
     fun doPutWithString(url: String, body: String?, expectedStatus: HttpStatus): String {
-        val request = MockMvcRequestBuilders.put(url).contentType(APPLICATION_JSON)
+        val request = MockMvcRequestBuilders.put(url).characterEncoding(Charsets.UTF_8).contentType(APPLICATION_JSON)
         return mockMvc
             .perform(if (body != null) request.content(body) else request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.contentAsString
+            .andReturn().response.getContentAsString(Charsets.UTF_8)
     }
 
     fun assertErrorResult(result: String, vararg messages: String) {

@@ -2,6 +2,7 @@
 
 .switch-edit-dialog__warning {
     fill: vayla-design.$color-red-default;
+    margin-bottom: 14px;
 }
 
 .switch-edit-dialog__delete-button {
@@ -15,6 +16,10 @@
 }
 
 .switch-edit-dialog__alert {
+    @include vayla-design.typography-caption;
+}
+
+.switch-edit-dialog__alert-color {
     @include vayla-design.typography-caption;
     color: vayla-design.$color-lemon-dark;
 }

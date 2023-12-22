@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_INFRAMODEL_DOWNLOAD
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -99,7 +100,7 @@ class InfraModelController @Autowired constructor(
         return geometryService.getPlanLinkedItems(planId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_INFRAMODEL_DOWNLOAD)
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadFile", "id" to id)
@@ -163,7 +164,7 @@ class InfraModelController @Autowired constructor(
         return pvDocumentService.importPVDocument(documentId, overrides, extraInfo)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_INFRAMODEL_DOWNLOAD)
     @GetMapping("/projektivelho/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadPVDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadPVDocument", "documentId" to documentId)

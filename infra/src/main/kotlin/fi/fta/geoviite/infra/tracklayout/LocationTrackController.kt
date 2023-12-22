@@ -232,15 +232,15 @@ class LocationTrackController(
     fun getTrackNumberTracksByName(
         @PathVariable("publicationState") publicationState: PublishType,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
-        @RequestParam("locationTrackName") name: AlignmentName,
+        @RequestParam("locationTrackNames") names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.apiCall(
             "getTrackNumberTracksByName",
             "publicationState" to publicationState,
             "trackNumberId" to trackNumberId,
-            "name" to name,
+            "names" to names,
         )
-        return locationTrackService.list(publicationState, trackNumberId, name)
+        return locationTrackService.list(publicationState, trackNumberId, names)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

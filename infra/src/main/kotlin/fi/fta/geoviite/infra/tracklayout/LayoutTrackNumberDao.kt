@@ -42,6 +42,7 @@ class LayoutTrackNumberDao(
             where :publication_state = any(publication_states)
               and (:number::varchar is null or :number = number)
               and (:include_deleted = true or state != 'DELETED')
+            order by number
         """.trimIndent()
         val params = mapOf(
             "publication_state" to publicationState.name,

@@ -136,22 +136,6 @@ $dropdown-border-error: 2px;
     width: 100%;
 }
 
-.dropdown__current-value {
-    display: flex;
-    align-items: center;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 3px;
-    right: 0;
-
-    > * {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-}
-
 .dropdown__icon {
     margin-left: 4px;
     padding-top: 10px;

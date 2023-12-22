@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.*
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -300,21 +301,21 @@ class LocationTrackDao(
         publicationState: PublishType,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-        name: AlignmentName? = null,
-    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, name).map(::fetch)
+        names: List<AlignmentName> = emptyList(),
+    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-        name: AlignmentName? = null,
+        names: List<AlignmentName> = emptyList(),
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select lt.row_id, lt.row_version 
             from layout.location_track_publication_view lt
             where 
               (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
-              and (cast(:name as varchar) is null or lower(lt.name) = lower(:name))
+              and (:names = '' or lower(lt.name) = any(string_to_array(:names, ',')::varchar[]))
               and :publication_state = any(lt.publication_states)
               and (:include_deleted = true or state != 'DELETED')
         """.trimIndent()
@@ -322,7 +323,7 @@ class LocationTrackDao(
             "track_number_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
             "include_deleted" to includeDeleted,
-            "name" to name,
+            "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
@@ -395,6 +396,7 @@ class LocationTrackDao(
             id,
             name
         from common.location_track_owner
+        order by sort_priority, name
     """.trimIndent()
 
         val locationTrackOwners = jdbcTemplate.query(sql) { rs, _ ->

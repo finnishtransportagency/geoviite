@@ -58,7 +58,7 @@ type GeometryPlansPanelProps = {
 };
 const MAX_PLAN_HEADERS = 50;
 
-type LoadedGeometryPlan = {
+type FetchedGeometryPlan = {
     planLayout: GeometryPlanLayout;
     linkStatus: GeometryPlanLinkStatus;
 };
@@ -84,11 +84,12 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     const { t } = useTranslation();
     const [planHeadersInView, setPlanHeadersInView] = React.useState<GeometryPlanHeader[]>([]);
     const [planHeaderCount, setPlanHeaderCount] = React.useState<number>(0);
-    const [loadedPlans, setLoadedPlan, _, setLoadedPlanMap] = useMapState<
+    const [fetchedPlans, setSingleFetchedPlan, _, setAllFetchedPlans] = useMapState<
         GeometryPlanId,
-        LoadedGeometryPlan
+        FetchedGeometryPlan
     >();
-    const [plansBeingLoaded, startLoadingPlan, finishLoadingPlan] = useSetState<GeometryPlanId>();
+    const [plansBeingFetched, startFetchingPlan, finishFetchingPlan] =
+        useSetState<GeometryPlanId>();
 
     useRateLimitedEffect(
         () => {
@@ -113,7 +114,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     );
 
     React.useEffect(
-        () => [...loadedPlans.keys()].forEach(loadPlanLayout),
+        () => [...fetchedPlans.keys()].forEach(fetchPlanLayout),
         [
             publishType,
             changeTimes.geometryPlan,
@@ -124,18 +125,18 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         ],
     );
 
-    const loadPlanLayout = (id: GeometryPlanId) => {
-        startLoadingPlan(id);
+    const fetchPlanLayout = (id: GeometryPlanId) => {
+        startFetchingPlan(id);
         const rv = Promise.all([
             getTrackLayoutPlan(id, changeTimes.geometryPlan, false),
             getPlanLinkStatus(id, publishType),
         ]).then(([planLayout, linkStatus]) => {
             if (planLayout) {
-                setLoadedPlan(id, { planLayout, linkStatus });
+                setSingleFetchedPlan(id, { planLayout, linkStatus });
             }
             return planLayout;
         });
-        rv.finally(() => finishLoadingPlan(id));
+        rv.finally(() => finishFetchingPlan(id));
         return rv;
     };
 
@@ -150,32 +151,33 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         if (visiblePlansInView.length > 0) {
             visiblePlansInView.forEach(onTogglePlanVisibility);
         } else {
-            planHeadersInView.forEach((h) => startLoadingPlan(h.id));
+            planHeadersInView.forEach((h) => startFetchingPlan(h.id));
             getTrackLayoutPlans(
                 planHeadersInView.map((h) => h.id),
                 changeTimes.geometryPlan,
             )
-                .then((plans) => {
+                .then((plans) =>
                     getPlanLinkStatuses(
                         plans.map((p) => p.id),
                         publishType,
-                    ).then((statuses) => {
-                        const map = new Map(loadedPlans);
-                        plans.forEach((plan) => {
-                            const status = statuses.find((s) => s.id === plan.id);
-                            if (status) {
-                                map.set(plan.id, {
-                                    planLayout: plan,
-                                    linkStatus: status,
-                                });
-                                onTogglePlanVisibility(wholePlanVisibility(plan));
-                            }
-                        });
-                        setLoadedPlanMap(map);
+                    ).then((statuses) => ({ plans: plans, statuses: statuses })),
+                )
+                .then(({ plans, statuses }) => {
+                    const map = new Map(fetchedPlans);
+                    plans.forEach((plan) => {
+                        const status = statuses.find((s) => s.id === plan.id);
+                        if (status) {
+                            map.set(plan.id, {
+                                planLayout: plan,
+                                linkStatus: status,
+                            });
+                            onTogglePlanVisibility(wholePlanVisibility(plan));
+                        }
                     });
+                    setAllFetchedPlans(map);
                 })
                 .finally(() => {
-                    planHeadersInView.forEach((h) => finishLoadingPlan(h.id));
+                    planHeadersInView.forEach((h) => finishFetchingPlan(h.id));
                 });
         }
     };
@@ -264,10 +266,10 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                planLayout={loadedPlans.get(h.id)?.planLayout}
-                                linkStatus={loadedPlans.get(h.id)?.linkStatus}
-                                planBeingLoaded={plansBeingLoaded.has(h.id)}
-                                loadPlanLayout={() => loadPlanLayout(h.id)}
+                                planLayout={fetchedPlans.get(h.id)?.planLayout}
+                                linkStatus={fetchedPlans.get(h.id)?.linkStatus}
+                                planBeingLoaded={plansBeingFetched.has(h.id)}
+                                loadPlanLayout={() => fetchPlanLayout(h.id)}
                             />
                         );
                     })}

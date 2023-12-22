@@ -153,11 +153,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 onContentVisibilityChange={() => visibilityChange('location')}>
                 <InfoboxContent>
                     <InfoboxField
-                        qaId="km-post-location"
-                        label={t('tool-panel.km-post.layout.location')}
-                        value={kmPost.kmNumber}
-                    />
-                    <InfoboxField
                         qaId="km-post-coordinates"
                         label={t('tool-panel.km-post.layout.coordinates')}
                         value={
@@ -191,7 +186,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                             <InfoboxField
                                 label={t('tool-panel.changed')}
-                                value={formatDateShort(kmPostCreatedAndChangedTime.changed)}
+                                value={
+                                    kmPostCreatedAndChangedTime.changed &&
+                                    formatDateShort(kmPostCreatedAndChangedTime.changed)
+                                }
                             />
                         </React.Fragment>
                     )}
@@ -202,7 +200,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         </InfoboxButtons>
                     )}

@@ -49,17 +49,16 @@ import {
 import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { getChangeTimes } from 'common/change-time-api';
+import { updateAllChangeTimes } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
-    updateReferenceLineChangeTime,
-    updateTrackNumberChangeTime,
     updateKmPostChangeTime,
     updateSwitchChangeTime,
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
-import { isNilOrBlank } from 'utils/string-utils';
 import { deduplicate } from 'utils/array-utils';
+import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
+import { getMaxTimestampFromArray } from 'utils/date-utils';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -203,40 +202,52 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
-    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
+    ...changeTimes: TimeStamp[]
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () =>
             id && publishType
-                ? getLocationTrackStartAndEnd(id, publishType, changeTime)
+                ? getLocationTrackStartAndEnd(
+                      id,
+                      publishType,
+                      getMaxTimestampFromArray(changeTimes),
+                  )
                 : undefined,
-        [id, publishType, changeTime],
+        [id, publishType, ...changeTimes],
     );
 }
 
 export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
     publishType: PublishType,
+    locationTrackChangeTime: TimeStamp,
+    switchChangeTime: TimeStamp,
 ): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
-        [id, publishType],
+        [id, publishType, locationTrackChangeTime, switchChangeTime],
     );
 }
-export function useConflictingTrack(
+export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
-    trackName: string | undefined,
-    trackId: LocationTrackId | undefined,
+    trackNames: string[],
+    trackIds: LocationTrackId[],
     publishType: PublishType,
-): LayoutLocationTrack | undefined {
+): LayoutLocationTrack[] | undefined {
+    const properAlignmentNames = trackNames.filter(
+        (name) => validateLocationTrackName(name).length === 0,
+    );
+    // Stringify to make sure React doesn't go nuts with deps changing every time
+    const namesString = JSON.stringify(properAlignmentNames);
+    const trackIdsString = JSON.stringify(trackIds);
     return useLoader(
         () =>
-            trackNumberId === undefined || trackName === undefined || isNilOrBlank(trackName)
+            trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, trackName, publishType).then((tracks) =>
-                      tracks.find((t) => t.id !== trackId),
+                : getLocationTracksByName(trackNumberId, properAlignmentNames, publishType).then(
+                      (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
                   ),
-        [trackNumberId, trackName, trackId, publishType],
+        [trackNumberId, namesString, trackIdsString, publishType],
     );
 }
 
@@ -338,14 +349,12 @@ export function refreshTrackNumberSelection(
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutTrackNumberId) => void {
     return (id) => {
-        Promise.all([updateTrackNumberChangeTime(), updateReferenceLineChangeTime()]).then(
-            ([ts, _]) => {
-                getTrackNumberById(id, publicationState, ts).then((tn) => {
-                    if (tn) onSelect({ trackNumbers: [id] });
-                    else onUnselect({ trackNumbers: [id] });
-                });
-            },
-        );
+        Promise.all([updateAllChangeTimes()]).then(([changeTimes]) => {
+            getTrackNumberById(id, publicationState, changeTimes.layoutTrackNumber).then((tn) => {
+                if (tn) onSelect({ trackNumbers: [id] });
+                else onUnselect({ trackNumbers: [id] });
+            });
+        });
     };
 }
 

@@ -23,7 +23,7 @@ import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edi
 import { filterNotEmpty } from 'utils/array-utils';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { refereshKmPostSelection } from 'track-layout/track-layout-react-utils';
+import { refereshKmPostSelection, useTrackNumbers } from 'track-layout/track-layout-react-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -84,6 +84,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                 : [];
         }, [publishType, geometryKmPost.trackNumberId, geometryKmPost.location, layoutKmPost]) ||
         [];
+    const trackNumbers = useTrackNumbers(publishType);
 
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const canLink = !linkingCallInProgress && linkingState && geometryKmPost && layoutKmPost;
@@ -138,6 +139,9 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             linkedLayoutKmPosts.map((kmPost) => (
                                 <KmPostBadge
                                     key={kmPost.id}
+                                    trackNumber={trackNumbers?.find(
+                                        (tn) => tn.id === kmPost.trackNumberId,
+                                    )}
                                     kmPost={kmPost}
                                     status={KmPostBadgeStatus.DEFAULT}
                                 />
@@ -210,6 +214,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                             }>
                                             <KmPostBadge
                                                 kmPost={layoutKmPostOption}
+                                                trackNumber={trackNumbers?.find(
+                                                    (tn) =>
+                                                        tn.id == layoutKmPostOption.trackNumberId,
+                                                )}
+                                                showTrackNumberInBadge={true}
                                                 status={
                                                     layoutKmPostOption.id == layoutKmPost?.id
                                                         ? KmPostBadgeStatus.SELECTED

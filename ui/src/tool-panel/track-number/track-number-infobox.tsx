@@ -24,7 +24,6 @@ import { PublishType } from 'common/common-model';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -43,6 +42,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -185,14 +185,24 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         <InfoboxField
                             qaId="track-number-start-track-meter"
                             label={t('tool-panel.reference-line.start-location')}
-                            value={<TrackMeter value={startAndEndPoints?.start?.address} />}
+                            value={
+                                <NavigableTrackMeter
+                                    trackMeter={startAndEndPoints?.start?.address}
+                                    location={startAndEndPoints?.start?.point}
+                                />
+                            }
                             onEdit={() => setShowEditDialog(true)}
                             iconDisabled={isOfficial}
                         />
                         <InfoboxField
                             qaId="track-number-end-track-meter"
                             label={t('tool-panel.reference-line.end-location')}
-                            value={<TrackMeter value={startAndEndPoints?.end?.address} />}
+                            value={
+                                <NavigableTrackMeter
+                                    trackMeter={startAndEndPoints?.end?.address}
+                                    location={startAndEndPoints?.end?.point}
+                                />
+                            }
                         />
                         {linkingState === undefined && referenceLine && (
                             <WriteAccessRequired>
@@ -334,7 +344,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}
                                     size={ButtonSize.SMALL}>
-                                    {t('button.delete')}
+                                    {t('button.delete-draft')}
                                 </Button>
                             </InfoboxButtons>
                         )}

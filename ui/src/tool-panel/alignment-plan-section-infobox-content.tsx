@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
@@ -10,6 +9,7 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type HighlightedItemBase = {
     startM: number;
@@ -70,7 +70,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
     return (
         <React.Fragment>
             <div className="infobox__list">
-                {sections.map((section) => (
+                {sections.map((section: AlignmentPlanSection) => (
                     <div
                         className="infobox__list-row"
                         key={section.id}
@@ -149,22 +149,34 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                         <div className="infobox__list-cell">
                             <div className={styles['alignment-plan-section-infobox__meters']}>
                                 <span>
-                                    {section.start
-                                        ? formatTrackMeterWithoutMeters(section.start.address)
-                                        : errorFragment(
-                                              t(
-                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
-                                              ),
-                                          )}
+                                    {section.start ? (
+                                        <NavigableTrackMeter
+                                            trackMeter={section?.start?.address}
+                                            location={section?.start?.location}
+                                            displayDecimals={false}
+                                        />
+                                    ) : (
+                                        errorFragment(
+                                            t(
+                                                'tool-panel.alignment-plan-sections.geocoding-failed',
+                                            ),
+                                        )
+                                    )}
                                 </span>{' '}
                                 <span>
-                                    {section.end
-                                        ? formatTrackMeterWithoutMeters(section.end.address)
-                                        : errorFragment(
-                                              t(
-                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
-                                              ),
-                                          )}
+                                    {section.end ? (
+                                        <NavigableTrackMeter
+                                            trackMeter={section?.end?.address}
+                                            location={section?.end?.location}
+                                            displayDecimals={false}
+                                        />
+                                    ) : (
+                                        errorFragment(
+                                            t(
+                                                'tool-panel.alignment-plan-sections.geocoding-failed',
+                                            ),
+                                        )
+                                    )}
                                 </span>
                             </div>
                         </div>

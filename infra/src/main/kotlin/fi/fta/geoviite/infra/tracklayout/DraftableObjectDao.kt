@@ -156,18 +156,15 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     private val draftableChangeInfoSql = """
       with newest_draft as (
         select 
-          change_time, 
-          draft, 
-          deleted 
+          case when deleted then null else change_time end as change_time,
+          deleted
         from ${table.versionTable} 
-        where id = :id or ${table.draftLink} = :id 
+        where id = :id or ${table.draftLink} = :id and draft = true 
         order by change_time desc limit 1
       ),
       newest_official as (
         select 
-          change_time, 
-          draft, 
-          deleted 
+          change_time
         from ${table.versionTable} 
         where id = :id and draft = false 
         order by change_time desc limit 1
@@ -189,12 +186,12 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             if (publishType == OFFICIAL) {
                 DraftableChangeInfo(
                     created = rs.getInstant("creation_time"),
-                    changed = rs.getInstant("official_change_time"),
+                    changed = rs.getInstantOrNull("official_change_time"),
                 )
             } else {
                 DraftableChangeInfo(
                     created = rs.getInstant("creation_time"),
-                    changed = if (draftDeleted) rs.getInstant("official_change_time") else rs.getInstant("draft_change_time"),
+                    changed = if (draftDeleted) rs.getInstantOrNull("official_change_time") else rs.getInstantOrNull("draft_change_time"),
                 )
             }
         }.firstOrNull()

@@ -20,6 +20,7 @@ import {
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { PlanVerticalGeometrySearchState } from 'data-products/data-products-slice';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type PlanVerticalGeometrySearchProps = {
     state: PlanVerticalGeometrySearchState;
@@ -111,18 +112,22 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                         }
                     />
                 </div>
-                <a
-                    qa-id="vertical-geometry-csv-download"
-                    {...(state.plan && {
-                        href: getGeometryPlanVerticalGeometryCsv(state.plan?.id),
-                    })}>
-                    <Button
-                        className={styles['element-list__download-button']}
-                        disabled={!state.verticalGeometry || state.verticalGeometry.length === 0}
-                        icon={Icons.Download}>
-                        {t(`data-products.search.download-csv`)}
-                    </Button>
-                </a>
+                <PrivilegeRequired privilege="dataproduct-download">
+                    <a
+                        qa-id="vertical-geometry-csv-download"
+                        {...(state.plan && {
+                            href: getGeometryPlanVerticalGeometryCsv(state.plan?.id),
+                        })}>
+                        <Button
+                            className={styles['element-list__download-button']}
+                            disabled={
+                                !state.verticalGeometry || state.verticalGeometry.length === 0
+                            }
+                            icon={Icons.Download}>
+                            {t(`data-products.search.download-csv`)}
+                        </Button>
+                    </a>
+                </PrivilegeRequired>
             </div>
         </React.Fragment>
     );

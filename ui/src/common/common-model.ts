@@ -77,6 +77,9 @@ export const compareTrackMeterStrings = (a: string, b: string) => {
     return kmDiff !== 0 ? kmDiff : letterDiff !== 0 ? letterDiff : meterDiff;
 };
 
+export const compareNamed = (a: { name: string | undefined }, b: { name: string | undefined }) =>
+    compare(a.name, b.name);
+
 export type AddressPoint = {
     point: AlignmentPoint;
     address: TrackMeter;
@@ -93,9 +96,7 @@ export type ElementLocation = {
 
 export type DraftableChangeInfo = {
     created: TimeStamp;
-    changed: TimeStamp;
-    officialChanged?: TimeStamp;
-    draftChanged?: TimeStamp;
+    changed: TimeStamp | undefined;
 };
 
 export type Message = string;

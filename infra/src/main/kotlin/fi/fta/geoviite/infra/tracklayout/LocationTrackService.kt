@@ -161,12 +161,12 @@ class LocationTrackService(
     fun list(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        name: AlignmentName,
+        names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.serviceCall(
-            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "name" to name
+            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "names" to names
         )
-        return dao.list(publicationState, true, trackNumberId, name)
+        return dao.list(publicationState, true, trackNumberId, names)
     }
 
     override fun idMatches(term: String, item: LocationTrack) =
@@ -500,7 +500,7 @@ class LocationTrackService(
             "locationTrackId" to locationTrackId,
             "publishType" to publishType,
         )
-        return get(publishType, locationTrackId)?.let { locationTrack ->
+        return getWithAlignment(publishType, locationTrackId)?.let { (locationTrack, alignment) ->
             val switches = getSwitchesForLocationTrack(locationTrackId, publishType)
                 .mapNotNull { switchDao.fetchVersion(it, publishType) }
                 .map { switchDao.fetch(it) }
@@ -516,7 +516,8 @@ class LocationTrackService(
                     val address = geocodingService
                         .getGeocodingContext(publishType, locationTrack.trackNumberId)
                         ?.getAddressAndM(location)
-                    SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, address?.m)
+                    val mAlongAlignment = alignment.getClosestPointM(location)?.first
+                    SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, mAlongAlignment)
                 }
 
             val duplicateTracks = getLocationTrackDuplicates(locationTrackId, publishType).mapNotNull { duplicate ->

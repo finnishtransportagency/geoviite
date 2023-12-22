@@ -24,6 +24,7 @@ import { TimeStamp } from 'common/common-model';
 import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { ConfirmDownloadUnreliableInfraModelDialog } from 'infra-model/list/confirm-download-unreliable-infra-model-dialog';
 import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -80,7 +81,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
             <InfoboxContent>
                 <InfoboxField
                     qaId="geometry-plan-remarks"
-                    label={t('tool-panel.geometry-plan.message')}
+                    label={t('tool-panel.geometry-plan.observations')}
                     value={planHeader.message}
                 />
                 <InfoboxField
@@ -113,7 +114,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 <InfoboxField
                     qaId="geometry-plan-track-number"
                     label={t('tool-panel.geometry-plan.track-number')}
-                    value={<TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />}
+                    value={
+                        planHeader.trackNumberId && (
+                            <TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />
+                        )
+                    }
                 />
                 <InfoboxField
                     qaId="geometry-plan-start-km"
@@ -196,20 +201,22 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                             onClick={() => navigate('inframodel-edit', planHeader.id)}>
                             {t('tool-panel.geometry-plan.open-inframodel')}
                         </Button>
-                        <Button
-                            size={ButtonSize.SMALL}
-                            variant={ButtonVariant.SECONDARY}
-                            className={styles['geometry-plan-tool-panel__download-link']}
-                            onClick={() => {
-                                if (planHeader.source === 'PAIKANNUSPALVELU') {
-                                    setDownloadConfirmPlan(planHeader);
-                                } else {
-                                    location.href = inframodelDownloadUri(planHeader.id);
-                                }
-                            }}>
-                            <Icons.Download size={IconSize.SMALL} />{' '}
-                            {t('tool-panel.geometry-plan.download-file')}
-                        </Button>
+                        <PrivilegeRequired privilege="inframodel-download">
+                            <Button
+                                size={ButtonSize.SMALL}
+                                variant={ButtonVariant.SECONDARY}
+                                className={styles['geometry-plan-tool-panel__download-link']}
+                                onClick={() => {
+                                    if (planHeader.source === 'PAIKANNUSPALVELU') {
+                                        setDownloadConfirmPlan(planHeader);
+                                    } else {
+                                        location.href = inframodelDownloadUri(planHeader.id);
+                                    }
+                                }}>
+                                <Icons.Download size={IconSize.SMALL} />{' '}
+                                {t('tool-panel.geometry-plan.download-file')}
+                            </Button>
+                        </PrivilegeRequired>
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>

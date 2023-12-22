@@ -346,6 +346,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
                     locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                    switchChangeTime={changeTimes.layoutSwitch}
                 />
             )}
 

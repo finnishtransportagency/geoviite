@@ -33,47 +33,31 @@ alter table private_polygon
 
 create index pp_bb on private_polygon using gist (bounding_box);
 
-create temporary table maybe_private_segment_geometry as
+create temporary table private_segment_geometry_length as
   (
-    select id
+    select id, postgis.st_length(postgis.st_intersection(pp.geom, sg.geometry)) as length
       from layout.segment_geometry sg
-      where exists(select *
-                     from private_polygon pp
-                     where postgis.st_intersects(pp.bounding_box, sg.bounding_box)
-                       and postgis.st_intersects(pp.geom, sg.geometry))
+        join private_polygon pp on postgis.st_intersects(pp.bounding_box, sg.bounding_box)
   );
 
-create index mpsg_id on maybe_private_segment_geometry (id);
+create index psgl_id on private_segment_geometry_length (id);
 
-create temporary table maybe_private_location_track as (
-  select lt.id, lt.version
+create temporary table private_location_track_length as (
+  select
+    lt.id,
+    lt.version,
+    av.length as full_length,
+    (
+      select coalesce(sum(psgl.length), 0)
+        from private_segment_geometry_length psgl
+          join layout.segment_version sv on sv.geometry_id = psgl.id
+        where sv.alignment_id = lt.alignment_id and sv.alignment_version = lt.alignment_version
+    ) as private_length
     from layout.location_track_version lt
-    where exists(select *
-                   from layout.segment_version sv
-                     join maybe_private_segment_geometry mpsg on sv.geometry_id = mpsg.id
-                   where sv.alignment_id = lt.alignment_id
-                     and sv.alignment_version = lt.alignment_version
-      )
+      join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
 );
 
-create index plt_id_ix on maybe_private_location_track (id);
-
-update layout.location_track lt
-set
-  owner_id = (
-    select id
-      from common.location_track_owner
-      where name =
-            case
-              when exists(select *
-                            from maybe_private_location_track plt
-                            where plt.id = lt.id and plt.version = lt.version)
-                then 'Ei tiedossa'
-              else 'Väylävirasto'
-            end
-      limit 1
-  );
-
+create index pltl_id_ix on private_location_track_length (id);
 
 update layout.location_track_version lt
 set
@@ -82,14 +66,19 @@ set
       from common.location_track_owner
       where name =
             case
-              when exists(select *
-                            from maybe_private_location_track plt
-                            where plt.id = lt.id and plt.version = lt.version)
-                then 'Ei tiedossa'
-              else 'Väylävirasto'
+              when private_length < 0.5 then 'Väylävirasto'
+              when full_length - private_length < 0.5 then 'Muu yksityinen'
+              else 'Väylävirasto / yksityinen'
             end
       limit 1
-  );
+  )
+  from private_location_track_length pltl
+  where pltl.id = lt.id and pltl.version = lt.version;
+
+update layout.location_track lt
+set owner_id = ltv.owner_id
+  from layout.location_track_version ltv
+  where lt.id = ltv.id and lt.version = ltv.version;
 
 alter table layout.location_track
   enable trigger version_update_trigger;

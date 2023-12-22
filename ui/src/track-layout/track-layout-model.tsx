@@ -276,6 +276,7 @@ export type SwitchJointTrackMeter = {
     locationTrackId: LocationTrackId;
     locationTrackName: string;
     trackMeter: TrackMeter | undefined;
+    location: Point;
 };
 
 export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {
