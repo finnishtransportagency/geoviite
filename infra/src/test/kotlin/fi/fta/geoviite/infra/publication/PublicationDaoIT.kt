@@ -262,6 +262,82 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
     }
 
+    @Test
+    fun `fetchLinkedLocationTracks works on publication units`() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val switchByAlignment = switchDao.insert(switch(1)).id
+        val switchByTopo = switchDao.insert(switch(2)).id
+        val dummyAlignment = alignmentDao.insert(alignment())
+        val officialLinkedTopo = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId,
+                topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(1)),
+                alignmentVersion = dummyAlignment,
+            )
+        ).rowVersion
+        val draftLinkedTopo = locationTrackDao.insert(draft(
+            locationTrack(
+                trackNumberId,
+                topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(3)),
+                alignmentVersion = dummyAlignment,
+            )
+        )).rowVersion
+        val officialLinkedAlignment = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId, alignmentVersion = alignmentDao.insert(
+                    alignment(
+                        segment(
+                            Point(0.0, 0.0),
+                            Point(1.0, 1.0),
+                            switchId = switchByAlignment,
+                            startJointNumber = JointNumber(1)
+                        )
+                    )
+                )
+            )
+        ).rowVersion
+        val draftLinkedAlignment = locationTrackDao.insert(
+            draft(
+                locationTrack(
+                    trackNumberId, alignmentVersion = alignmentDao.insert(
+                        alignment(
+                            segment(
+                                Point(2.0, 2.0),
+                                Point(3.0, 3.0),
+                                switchId = switchByAlignment,
+                                startJointNumber = JointNumber(3)
+                            )
+                        )
+                    )
+                )
+            )
+        ).rowVersion
+        assertEquals(
+            setOf(officialLinkedAlignment, draftLinkedAlignment),
+            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment))[switchByAlignment]
+        )
+        assertEquals(
+            setOf(officialLinkedAlignment),
+            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment), listOf())[switchByAlignment]
+        )
+        assertEquals(
+            setOf(officialLinkedAlignment, draftLinkedAlignment),
+            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment), listOf(draftLinkedAlignment.id))[switchByAlignment]
+        )
+        assertEquals(
+            setOf(officialLinkedTopo, draftLinkedTopo),
+            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo))[switchByTopo]
+        )
+        assertEquals(
+            setOf(officialLinkedTopo),
+            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf())[switchByTopo]
+        )
+        assertEquals(
+            setOf(officialLinkedTopo, draftLinkedTopo),
+            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf(draftLinkedTopo.id))[switchByTopo]
+        )
+    }
+
     private fun insertAndCheck(trackNumber: TrackLayoutTrackNumber): Pair<RowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
         val (officialId, rowVersion) = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(rowVersion)
