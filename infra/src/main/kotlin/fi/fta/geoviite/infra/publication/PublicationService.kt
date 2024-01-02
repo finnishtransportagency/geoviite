@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
-import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -732,7 +731,7 @@ class PublicationService @Autowired constructor(
             validationVersions.switches.map { it.officialId },
         )
         val trackNetworkTopologyErrors =
-            validateLocationTrackTopologicalConnectivity(version, validationVersions, switchTrackLinks)
+            validateLocationTrackTopologicalConnectivity(version, locationTrack, validationVersions, switchTrackLinks)
         val duplicateErrors = validateDuplicateOf(version, locationTrack, validationVersions)
         val alignmentErrors = if (locationTrack.exists) validateLocationTrackAlignment(alignment)
         else listOf()
@@ -751,6 +750,7 @@ class PublicationService @Autowired constructor(
 
     private fun validateLocationTrackTopologicalConnectivity(
         version: ValidationVersion<LocationTrack>,
+        validatingTrack: LocationTrack,
         validationVersions: ValidationVersions,
         switchTrackLinks: SwitchTrackLinks,
     ): List<PublishValidationError> {
@@ -766,7 +766,7 @@ class PublicationService @Autowired constructor(
                         val track = locationTrackDao.fetch(locationTrackVersion)
                         track.alignmentVersion?.let(alignmentDao::fetch)?.let { track to it }
                     }
-                validateSwitchTopologicalConnectivity(switch, structure, locationTracks)
+                validateSwitchTopologicalConnectivity(switch, structure, locationTracks, validatingTrack)
             }
     }
 
