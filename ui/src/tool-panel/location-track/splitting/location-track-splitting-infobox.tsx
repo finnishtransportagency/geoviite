@@ -178,11 +178,11 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         [initialSplit, ...splits].map((s) => s.duplicateOf).filter(filterNotEmpty),
         'DRAFT',
     );
-    const switches = useSwitches(
-        allowedSwitches.map((sw) => sw.switchId),
-        'DRAFT',
-        switchChangeTime,
+    const allowedSwitchIds = React.useMemo(
+        () => allowedSwitches.map((sw) => sw.switchId),
+        [allowedSwitches],
     );
+    const switches = useSwitches(allowedSwitchIds, 'DRAFT', switchChangeTime);
 
     React.useEffect(() => {
         locationTrack && setSplittingDisabled(locationTrack?.draftType !== 'OFFICIAL');
