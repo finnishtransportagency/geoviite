@@ -1825,7 +1825,7 @@ class PublicationServiceIT @Autowired constructor(
     private fun switchAlignmentNotConnectedTrackValidationError(locationTrackNames: String, switchName: String) =
         PublishValidationError(
             PublishValidationErrorType.WARNING,
-            "validation.layout.switch.track-linkage.switch-alignment-not-connected",
+            "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
             mapOf("locationTracks" to locationTrackNames, "switch" to switchName)
         )
 
@@ -1837,7 +1837,7 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun switchFrontJointNotConnectedError(switchName: String) = PublishValidationError(
         PublishValidationErrorType.WARNING,
-        "validation.layout.switch.track-linkage.front-joint-not-connected",
+        "validation.layout.location-track.switch-linkage.front-joint-not-connected",
         mapOf("switch" to switchName)
     )
 
@@ -2137,11 +2137,11 @@ class PublicationServiceIT @Autowired constructor(
             )
         ).validatedAsPublicationUnit.locationTracks[0].errors
         assertTrue(errorsWhenDeletingStraightTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-not-connected") &&
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
                     error.params.get("locationTracks") == "1-5-2" && error.params.get("switch") == "TV123"
         })
         assertTrue(errorsWhenDeletingStraightTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected") &&
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") &&
                     error.params.get("switch") == "TV123"
         })
 
@@ -2151,11 +2151,11 @@ class PublicationServiceIT @Autowired constructor(
             )
         ).validatedAsPublicationUnit.locationTracks[0].errors
         assertTrue(errorsWhenDeletingBranchingTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-not-connected") &&
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
                     error.params.get("locationTracks") == "1-3" && error.params.get("switch") == "TV123"
         })
         assertFalse(errorsWhenDeletingBranchingTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected") })
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") })
     }
 
     @Test
@@ -2198,7 +2198,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         ).validatedAsPublicationUnit.locationTracks[0].errors
         assertTrue(locationTrackDeletionErrors.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-not-connected") &&
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
                     error.params.get("locationTracks") == "1-5-2" && error.params.get("switch") == "TV123"
         })
         // but it's OK if we link a replacement track
@@ -2218,7 +2218,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         ).validatedAsPublicationUnit.locationTracks[0].errors
         assertFalse(errorsWithReplacementTrackLinked.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-not-connected")
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
         })
     }
 }
