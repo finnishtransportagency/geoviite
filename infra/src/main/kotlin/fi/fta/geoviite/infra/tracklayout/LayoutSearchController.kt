@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FreeText
@@ -24,7 +24,7 @@ class LayoutSearchController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["searchTerm", "limitPerResultType"])
     fun publishTypeSearch(
         @PathVariable("publishType") publishType: PublishType,

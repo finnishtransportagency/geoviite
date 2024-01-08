@@ -13,7 +13,7 @@ class AuthorizationTestController @Autowired constructor() {
     @GetMapping("/test-auth/public")
     fun testPublic() = OK
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/test-auth/read")
     fun testRead() = OK
 

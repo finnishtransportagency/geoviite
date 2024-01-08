@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.authorization.AUTH_PUBLICATION_DOWNLOAD
 import fi.fta.geoviite.infra.common.IntId
@@ -39,21 +39,21 @@ class PublicationController @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/candidates")
     fun getPublishCandidates(): PublishCandidates {
         logger.apiCall("getPublishCandidates")
         return publicationService.collectPublishCandidates()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/validate")
     fun validatePublishCandidates(@RequestBody request: PublishRequestIds): ValidatedPublishCandidates {
         logger.apiCall("validatePublishCandidates", "request" to request)
         return publicationService.validatePublishCandidates(publicationService.collectPublishCandidates(), request)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/calculated-changes")
     fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges", "request" to request)
@@ -72,7 +72,7 @@ class PublicationController @Autowired constructor(
         )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/candidates/revert-request-dependencies")
     fun getRevertRequestDependencies(@RequestBody toDelete: PublishRequestIds): PublishRequestIds {
         logger.apiCall("getRevertRequestDependencies")
@@ -95,7 +95,7 @@ class PublicationController @Autowired constructor(
         )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping
     fun getPublicationsBetween(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
@@ -111,7 +111,7 @@ class PublicationController @Autowired constructor(
         )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("latest")
     fun getLatestPublications(
         @RequestParam("count") count: Int,
@@ -154,7 +154,7 @@ class PublicationController @Autowired constructor(
         return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/table-rows")
     fun getPublicationDetailsAsTableRows(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
@@ -187,7 +187,7 @@ class PublicationController @Autowired constructor(
         )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{id}/table-rows")
     fun getPublicationDetailsAsTableRows(
         @PathVariable("id") id: IntId<Publication>,
@@ -197,7 +197,7 @@ class PublicationController @Autowired constructor(
         return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{id}")
     fun getPublicationDetails(@PathVariable("id") id: IntId<Publication>): PublicationDetails {
         logger.apiCall("getPublicationDetails", "id" to id)
