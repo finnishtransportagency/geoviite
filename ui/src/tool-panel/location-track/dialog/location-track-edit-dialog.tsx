@@ -151,9 +151,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
     }, [duplicate]);
 
+    const validTrackName = !state.validationErrors.some((e) => e.field === 'name')
+        ? state.locationTrack.name
+        : '';
     const trackWithSameName = useConflictingTracks(
         state.locationTrack.trackNumberId,
-        [state.locationTrack.name],
+        [validTrackName],
         props.locationTrack?.id ? [props.locationTrack.id] : [],
         'DRAFT',
     )?.[0];
