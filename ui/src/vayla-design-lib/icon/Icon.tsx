@@ -10,6 +10,7 @@ import switchDirectionSvg from './glyphs/action/switch-direction.svg';
 import setDateSvg from './glyphs/action/set-date.svg';
 import ascending from './glyphs/action/ascending.svg';
 import descending from './glyphs/action/descending.svg';
+import targetSvg from './glyphs/action/target.svg';
 import infoSvg from './glyphs/status/info.svg';
 import deniedSvg from './glyphs/status/denied.svg';
 import selectedSvg from './glyphs/status/selected.svg';
@@ -102,6 +103,7 @@ const iconNameToSvgMap = {
     SetDate: setDateSvg,
     Measure: measureSvg,
     Select: selectSvg,
+    Target: targetSvg,
 
     // Misc
     Layers: layersSvg,
