@@ -86,6 +86,7 @@ data class PublishedItemListing<T>(
 )
 
 data class PublishedTrackNumber(
+    val id: IntId<TrackLayoutTrackNumber>,
     val version: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val operation: Operation,
