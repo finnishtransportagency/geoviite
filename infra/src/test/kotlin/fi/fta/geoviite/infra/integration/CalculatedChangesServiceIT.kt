@@ -366,7 +366,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService
-        ).let { locationTrackService.getWithAlignment(it.rowVersion) }
+        ).let { (id, version) ->
+            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            locationTrackService.getWithAlignment(publishedVersion)
+        }
 
         // Then remove the topology switch info
         removeTopologySwitchesFromLocationTrackAndUpdate(
