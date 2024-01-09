@@ -28,8 +28,17 @@
             margin-left: 12px;
         }
 
+        .text-field {
+            width: 100%;
+        }
+
+        .text-field__input {
+            width: 100%;
+            display: flex;
+        }
+
         input {
-            max-width: 181px;
+            width: 100%;
         }
     }
 }
