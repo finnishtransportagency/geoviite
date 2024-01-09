@@ -1500,6 +1500,7 @@ class PublicationDao(
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             rs.getBoolean("direct_change") to PublishedTrackNumber(
+                id = rs.getIntId("id"),
                 version = rs.getRowVersion("id", "version"),
                 number = rs.getTrackNumber("number"),
                 operation = rs.getEnum("operation"),
