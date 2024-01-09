@@ -287,7 +287,7 @@ export const Dropdown = function <TItemValue>({
                 }
             }
         }
-    }, [open]);
+    }, [open, optionFocusIndex]);
 
     // When options change, update option focus index
     React.useEffect(() => {
