@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geography
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
@@ -17,14 +17,14 @@ class GeographyController(private val geographyService: GeographyService) {
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/coordinate-systems")
     fun getCoordinateSystems(): List<CoordinateSystem> {
         log.apiCall("getCoordinateSystems")
         return geographyService.getCoordinateSystems()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/coordinate-systems/{srid}")
     fun getCoordinateSystem(@PathVariable("srid") srid: Srid): CoordinateSystem {
         log.apiCall("getCoordinateSystem", "srid" to srid)

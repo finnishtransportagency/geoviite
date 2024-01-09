@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -26,7 +26,7 @@ class LayoutSwitchController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}")
     fun getTrackLayoutSwitches(
         @PathVariable("publishType") publishType: PublishType,
@@ -57,7 +57,7 @@ class LayoutSwitchController(
         return pageSwitches(switches, offset ?: 0, limit, comparisonPoint).items
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}")
     fun getTrackLayoutSwitch(
         @PathVariable("publishType") publishType: PublishType,
@@ -67,7 +67,7 @@ class LayoutSwitchController(
         return toResponse(switchService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["ids"])
     fun getTrackLayoutSwitches(
         @PathVariable("publishType") publishType: PublishType,
@@ -77,7 +77,7 @@ class LayoutSwitchController(
         return switchService.getMany(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/joint-connections")
     fun getSwitchJointConnections(
         @PathVariable("publishType") publishType: PublishType,
@@ -87,7 +87,7 @@ class LayoutSwitchController(
         return switchService.getSwitchJointConnections(publishType, id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("{publishType}/{id}/validation")
     fun validateSwitch(
         @PathVariable("publishType") publishType: PublishType,
@@ -121,7 +121,7 @@ class LayoutSwitchController(
         return switchService.deleteDraftSwitch(switchId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/change-times")
     fun getSwitchChangeInfo(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,

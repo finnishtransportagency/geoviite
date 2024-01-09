@@ -3,7 +3,7 @@ create temp table new_role on commit drop as
 with temp(code, name, user_group) as (
     values
       ('operator', 'Operaattori', 'geoviite_operaattori'),
-      ('browser', 'Selaaja', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "official"
+      ('browser', 'Selaaja', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "authority"
       ('authority', 'Virastokäyttäjä', 'geoviite_virasto'),
       ('consultant', 'Konsultti', 'geoviite_konsultti')
 )

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
@@ -27,7 +27,7 @@ class LayoutKmPostController(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}")
     fun getKmPost(
         @PathVariable("publishType") publishType: PublishType,
@@ -37,7 +37,7 @@ class LayoutKmPostController(
         return toResponse(kmPostService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["ids"])
     fun getKmPosts(
         @PathVariable("publishType") publishType: PublishType,
@@ -47,7 +47,7 @@ class LayoutKmPostController(
         return kmPostService.getMany(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/on-track-number/{trackNumberId}")
     fun getKmPostsOnTrackNumber(
         @PathVariable("publishType") publishType: PublishType,
@@ -57,7 +57,7 @@ class LayoutKmPostController(
         return kmPostService.list(publishType, id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["bbox", "step"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
@@ -68,7 +68,7 @@ class LayoutKmPostController(
         return kmPostService.list(publishType, bbox, step)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["location", "offset", "limit"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
@@ -94,7 +94,7 @@ class LayoutKmPostController(
         )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["trackNumberId", "kmNumber"])
     fun getKmPost(
         @PathVariable("publishType") publishType: PublishType,
@@ -112,7 +112,7 @@ class LayoutKmPostController(
         return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber, includeDeleted))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("{publishType}/{id}/validation")
     fun validateKmPost(
         @PathVariable("publishType") publishType: PublishType,
@@ -146,7 +146,7 @@ class LayoutKmPostController(
         return kmPostService.deleteDraft(kmPostId).id
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/change-times")
     fun getKmPostChangeInfo(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
@@ -156,7 +156,7 @@ class LayoutKmPostController(
         return toResponse(kmPostService.getDraftableChangeInfo(kmPostId, publishType))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/km-length")
     fun getKmLength(
         @PathVariable("publishType") publishType: PublishType,

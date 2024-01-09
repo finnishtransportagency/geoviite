@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { PrivilegeRequired } from './privilege-required';
 
 type WriteAccessRequiredProps = {
     children: React.ReactNode;
@@ -8,9 +8,5 @@ type WriteAccessRequiredProps = {
 export const WriteAccessRequired: React.FC<WriteAccessRequiredProps> = ({
     children,
 }: WriteAccessRequiredProps) => {
-    const userHasWriteAccessFromStore = useCommonDataAppSelector((state) =>
-        state.userPrivileges.some((privilege) => privilege.code === 'all-write'),
-    );
-
-    return <React.Fragment>{userHasWriteAccessFromStore && children}</React.Fragment>;
+    return <PrivilegeRequired privilege="all-write">{children}</PrivilegeRequired>;
 };
