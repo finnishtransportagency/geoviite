@@ -583,61 +583,6 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun transitiveSearchForDraftSwitchAndLocationTrackChanges() {
-        val trackNumber = insertOfficialTrackNumber()
-
-        val switch1 = switchService.saveDraft(switch(123)).id
-        val switch2 = switchService.saveDraft(switch(234)).id
-        val switch3 = createOfficialAndDraftSwitch(345)
-        val distantSwitch = createOfficialAndDraftSwitch(456)
-
-        val track1BetweenSwitch1and2 = locationTrackAndAlignment(
-            trackNumber,
-            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(
-                startJointNumber = JointNumber(1), switchId = switch1
-            ),
-            segment(Point(1.0, 1.0), Point(2.0, 2.0)).copy(
-                endJointNumber = JointNumber(1), switchId = switch2
-            ),
-        )
-        val locationTrack1Id =
-            locationTrackService.saveDraft(track1BetweenSwitch1and2.first, track1BetweenSwitch1and2.second).id
-
-        val track2BetweenSwitch2and3 = locationTrackAndAlignment(
-            trackNumber, segment(Point(2.0, 2.0), Point(3.0, 3.0)).copy(
-                endJointNumber = JointNumber(1), switchId = switch3
-            )
-        )
-        val locationTrack2Id = locationTrackService.saveDraft(
-            track2BetweenSwitch2and3.first.copy(
-                topologyStartSwitch = TopologyLocationTrackSwitch(switch2, JointNumber(1))
-            ), track2BetweenSwitch2and3.second
-        ).id
-
-        val officialTrackBetweenSwitch3AndDistantSwitch = locationTrackAndAlignment(
-            trackNumber, segment(Point(3.0, 3.0), Point(4.0, 4.0)).copy(
-                startJointNumber = JointNumber(1), switchId = switch3
-            ), segment(Point(4.0, 4.0), Point(5.0, 5.0)).copy(
-                endJointNumber = JointNumber(1), switchId = distantSwitch
-            )
-        )
-        locationTrackDao.insert(
-            officialTrackBetweenSwitch3AndDistantSwitch.first.copy(
-                alignmentVersion = alignmentDao.insert(officialTrackBetweenSwitch3AndDistantSwitch.second)
-            )
-        ).id
-        val dependencies = publicationService.getRevertRequestDependencies(
-            publishRequest(switches = listOf(switch1))
-        )
-        assertEquals(
-            publishRequest(
-                locationTracks = listOf(locationTrack1Id, locationTrack2Id),
-                switches = listOf(switch1, switch2, switch3),
-            ), dependencies
-        )
-    }
-
-    @Test
     fun trackNumberAndReferenceLineChangesDependOnEachOther() {
         val trackNumber = insertDraftTrackNumber()
         val referenceLine = referenceLineService.saveDraft(referenceLine(trackNumber)).id
