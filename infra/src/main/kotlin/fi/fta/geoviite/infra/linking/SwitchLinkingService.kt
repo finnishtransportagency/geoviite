@@ -1001,37 +1001,46 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
-        logger.serviceCall("getSuggestedSwitch", "location" to location, "switchStructureId" to switchStructureId)
-        val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
-        val nearbyLocationTracks = locationTrackService.getLocationTracksNear(location, DRAFT)
-
-        val suggestedSwitch = createSuggestedSwitchByPoint(
-            location, switchStructure, nearbyLocationTracks
-        )
-
-        return suggestedSwitch
-            ?.let (::createSwitchLinkingParameters)
-            ?.let (::calculateModifiedLocationTracksAndAlignments)
-            ?.let (::assignNewSwitchLinkingToLocationTracksAndAlignments)?.asSequence()
-            ?.filter (::locationTrackHasTemporaryTopologicalSwitchConnection)
-            ?.mapNotNull(::topologicalConnectionJointNumberToLocationTrackId)
-            ?.groupBy (
-                { (jointNumber, _ ) -> jointNumber },
-                { (_, locationTrackId ) -> locationTrackId },
+    fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<SwitchStructure>>>): List<SuggestedSwitch?> {
+        logger.serviceCall("getSuggestedSwitches", "points" to points)
+        return points.map { (location, switchStructureId) ->
+            Triple(
+                location,
+                switchLibraryService.getSwitchStructure(switchStructureId),
+                locationTrackService.getLocationTracksNear(location, DRAFT)
             )
-            ?.map { (jointNumber, locationTrackIds) ->
-                TopologicalJointConnection(jointNumber, locationTrackIds)
-            }
-            ?.sortedBy { temporaryTopologicalJointConnection ->
-                temporaryTopologicalJointConnection.jointNumber
-            }
-            ?.let { temporaryTopologicalJointConnections ->
-                suggestedSwitch.copy(
-                    topologicalJointConnections = temporaryTopologicalJointConnections
-                )
-            } ?: suggestedSwitch
+        }.parallelStream().map { (location, switchStructure, nearbyLocationTracks) ->
+            createSuggestedSwitchByPoint(
+                location, switchStructure, nearbyLocationTracks
+            )
+        }.collect(Collectors.toList()).map(::adjustSuggestedSwitchForNearbyOverlaps)
     }
+
+    private fun adjustSuggestedSwitchForNearbyOverlaps(suggestedSwitch: SuggestedSwitch?) = suggestedSwitch
+        ?.let(::createSwitchLinkingParameters)
+        ?.let(::calculateModifiedLocationTracksForSegmentLinks)
+        ?.let(::assignNewSwitchLinkingToLocationTracksAndAlignments)
+        ?.asSequence()
+        ?.filter(::locationTrackHasTemporaryTopologicalSwitchConnection)
+        ?.mapNotNull(::topologicalConnectionJointNumberToLocationTrackId)
+        ?.groupBy(
+            { (jointNumber, _) -> jointNumber },
+            { (_, locationTrackId) -> locationTrackId },
+        )
+        ?.map { (jointNumber, locationTrackIds) ->
+            TopologicalJointConnection(jointNumber, locationTrackIds)
+        }
+        ?.sortedBy { temporaryTopologicalJointConnection ->
+            temporaryTopologicalJointConnection.jointNumber
+        }
+        ?.let { temporaryTopologicalJointConnections ->
+            suggestedSwitch.copy(
+                topologicalJointConnections = temporaryTopologicalJointConnections
+            )
+        } ?: suggestedSwitch
+
+    fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? =
+        getSuggestedSwitches(listOf(location to switchStructureId))[0]
 
     private fun assignNewSwitchLinkingToLocationTracksAndAlignments(
         locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
