@@ -292,6 +292,11 @@ class PublicationDao(
         includeDeleted: Boolean = false,
     ): Map<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>> {
         if (switchIds.isEmpty()) return mapOf()
+
+        val draftTrackIncludedCondition = if (locationTrackIdsInPublicationUnit == null) "true"
+        else if (locationTrackIdsInPublicationUnit.isEmpty()) "false"
+        else "official_id in (:location_track_ids)"
+
         val sql = """
             select
               lt.row_id,
@@ -303,11 +308,7 @@ class PublicationDao(
                 left join layout.segment_version s on s.alignment_id = lt.alignment_id
                 and s.alignment_version = lt.alignment_version
               where case
-                when ${if (locationTrackIdsInPublicationUnit == null) "true"
-                       else if (locationTrackIdsInPublicationUnit.isEmpty()) "false"
-                       else ("official_id in (:location_track_ids)")}
-                  then 'DRAFT' ELSE 'OFFICIAL' end
-                  = any(lt.publication_states)
+                when $draftTrackIncludedCondition then 'DRAFT' ELSE 'OFFICIAL' end = any(lt.publication_states)
                 and (:include_deleted or lt.state != 'DELETED')
                 and (
                     lt.topology_start_switch_id in (:switch_ids) or
