@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -264,7 +265,7 @@ data class PublishValidationError(
         type: PublishValidationErrorType,
         key: String,
         params: Map<String, Any?> = emptyMap(),
-    ) : this(type, LocalizationKey(key), LocalizationParams(params))
+    ) : this(type, LocalizationKey(key), localizationParams(params))
 }
 
 interface PublishCandidate<T> {

@@ -255,11 +255,48 @@ class PublicationDao(
         return publicationId
     }
 
+    fun fetchLinkedSwitchesBeforeOrAfterPublication(
+        ids: List<IntId<LocationTrack>>,
+    ): Map<IntId<LocationTrack>, List<IntId<TrackLayoutSwitch>>> {
+        if (ids.isEmpty()) return mapOf()
+        val sql = """
+            select lt.id, ss.switch_id
+              from layout.location_track lt,
+                lateral (select distinct switch_id
+                           from (
+                             select topology_start_switch_id as switch_id
+                             union all
+                             select topology_end_switch_id
+                             union all
+                             select switch_id
+                               from layout.segment_version sv
+                               where sv.alignment_id = lt.alignment_id and sv.alignment_version = lt.alignment_version
+                           ) ss
+                           where switch_id is not null) ss
+              where lt.id in (:ids)
+        """.trimIndent()
+        return jdbcTemplate.query(sql, mapOf("ids" to ids.map(IntId<*>::intValue))) { rs, _ ->
+            rs.getIntId<LocationTrack>("id") to rs.getIntId<TrackLayoutSwitch>("switch_id")
+        }.groupBy({ it.first }, { it.second })
+    }
+
+    /**
+     * @param switchIds Switches whose linked tracks to find.
+     * @param locationTrackIdsInPublicationUnit Optionally specify the location tracks in the publication unit. Leave
+     * null to have all draft location tracks considered in the publication unit.
+     * @param includeDeleted Filters location tracks, not switches
+     */
     fun fetchLinkedLocationTracks(
         switchIds: List<IntId<TrackLayoutSwitch>>,
-        publicationStatus: PublishType,
+        locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
+        includeDeleted: Boolean = false,
     ): Map<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>> {
         if (switchIds.isEmpty()) return mapOf()
+
+        val draftTrackIncludedCondition = if (locationTrackIdsInPublicationUnit == null) "true"
+        else if (locationTrackIdsInPublicationUnit.isEmpty()) "false"
+        else "official_id in (:location_track_ids)"
+
         val sql = """
             select
               lt.row_id,
@@ -270,8 +307,9 @@ class PublicationDao(
               from layout.location_track_publication_view lt
                 left join layout.segment_version s on s.alignment_id = lt.alignment_id
                 and s.alignment_version = lt.alignment_version
-              where :publication_status = any(lt.publication_states)
-                and lt.state != 'DELETED'
+              where case
+                when $draftTrackIncludedCondition then 'DRAFT' ELSE 'OFFICIAL' end = any(lt.publication_states)
+                and (:include_deleted or lt.state != 'DELETED')
                 and (
                     lt.topology_start_switch_id in (:switch_ids) or
                     lt.topology_end_switch_id in (:switch_ids) or
@@ -283,7 +321,8 @@ class PublicationDao(
         """.trimIndent()
         val params = mapOf(
             "switch_ids" to switchIds.map(IntId<TrackLayoutSwitch>::intValue),
-            "publication_status" to publicationStatus.name,
+            "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
+            "include_deleted" to includeDeleted,
         )
         val result = mutableMapOf<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>>()
         jdbcTemplate.query(sql, params) { rs, _ ->

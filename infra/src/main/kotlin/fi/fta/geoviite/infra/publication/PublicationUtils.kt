@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -409,4 +410,4 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
 }
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
-    translation.t("publication-details-table.remark.$key", LocalizationParams("value" to value))
+    translation.t("publication-details-table.remark.$key", localizationParams("value" to value))
