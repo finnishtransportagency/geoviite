@@ -731,40 +731,18 @@ class PublicationService @Autowired constructor(
 
     private fun validateDuplicateOf(
         version: ValidationVersion<LocationTrack>,
-        locationTrack: LocationTrack,
+        track: LocationTrack,
         validationVersions: ValidationVersions,
     ): List<PublishValidationError> {
+        // Find the versions in validation set context. These can be null (draft-only that's not included)
         val duplicatesAfterPublication = locationTrackDao
-            .fetchDuplicates(version.officialId)
-            .map(locationTrackDao::fetch)
-            .mapNotNull { duplicate -> fetchPostPublicationVersion(validationVersions, duplicate) }
-            .filter { potentialDuplicate -> potentialDuplicate.duplicateOf == version.officialId }
+            .fetchDuplicateIdsInAnyContext(version.officialId)
+            .mapNotNull { id -> getLocationTrack(id, validationVersions) }
 
-        val duplicateOf = locationTrack.duplicateOf?.let { duplicateId ->
-            getLocationTrack(duplicateId, validationVersions)
-        }
-        return validateDuplicateOfState(
-            locationTrack,
-            duplicateOf,
-            validationVersions.locationTracks.map { it.officialId },
-            duplicatesAfterPublication,
-        )
-    }
-
-    private fun fetchPostPublicationVersion(
-        validationVersions: ValidationVersions,
-        track: LocationTrack,
-    ): LocationTrack? {
-        val trackIsInPublicationUnit =
-            validationVersions.locationTracks.any { validationVersion -> validationVersion.officialId == track.id }
-
-        return if (trackIsInPublicationUnit && track.isOfficial()) {
-            locationTrackDao.fetchVersion(track.id as IntId, DRAFT)?.let(locationTrackDao::fetch) ?: track
-        } else if (!trackIsInPublicationUnit && track.isEditedDraft()) {
-            locationTrackDao.fetchVersion(track.id as IntId, OFFICIAL)?.let(locationTrackDao::fetch)
-        } else {
-            track
-        }
+        val duplicateOf = track.duplicateOf?.let { id -> getLocationTrack(id, validationVersions) }
+        // Draft-only won't be found if it's not in the publication set -> get name from draft for validation errors
+        val duplicateOfDraftName = track.duplicateOf?.let { id -> locationTrackDao.getOrThrow(DRAFT, id).name }
+        return validateDuplicateOfState(track, duplicateOf, duplicateOfDraftName, duplicatesAfterPublication)
     }
 
     private fun validateLocationTrackNameDuplication(
