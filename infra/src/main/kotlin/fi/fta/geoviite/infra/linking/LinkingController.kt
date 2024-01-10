@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -164,5 +165,11 @@ class LinkingController @Autowired constructor(
     fun saveKmPostLinking(@RequestBody linkingParameters: KmPostLinkingParameters): IntId<TrackLayoutKmPost> {
         logger.apiCall("saveKmPostLinking", "linkingParameters" to linkingParameters)
         return linkingService.saveKmPostLinking(linkingParameters).id
+    }
+
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/validate-relinking-track/{id}")
+    fun validateRelinkingTrack(@PathVariable("id") id: IntId<LocationTrack>): List<SwitchRelinkingResult> {
+        return switchLinkingService.validateRelinkingTrack(id)
     }
 }

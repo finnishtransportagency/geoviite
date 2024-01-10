@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -163,4 +164,14 @@ data class KmPostLinkingParameters(
     val geometryPlanId: IntId<GeometryPlan>,
     val geometryKmPostId: IntId<GeometryKmPost>,
     val layoutKmPostId: IntId<TrackLayoutKmPost>,
+)
+
+data class SwitchRelinkingResult(
+    val id: IntId<TrackLayoutSwitch>,
+    val successfulSuggestion: SwitchRelinkingSuggestion?,
+    val validationErrors: List<PublishValidationError>,
+)
+data class SwitchRelinkingSuggestion(
+    val location: Point,
+    val address: TrackMeter,
 )
