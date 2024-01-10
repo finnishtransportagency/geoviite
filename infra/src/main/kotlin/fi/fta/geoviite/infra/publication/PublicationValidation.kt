@@ -244,7 +244,7 @@ private fun validateExcessTracksThroughJoint(
     validatingTrack: LocationTrack?,
 ): PublishValidationError? {
     val excesses = tracksThroughJoint.filter { (joint, tracks) ->
-        joint != connectivityType.sharedJoint && tracks.count { it.getDraftType() != DraftType.OFFICIAL } > 1
+        joint != connectivityType.sharedJoint && tracks.count(LocationTrack::isDraft) > 1
     }
     val someoneElseIsResponsible = validatingTrack?.let {
         excesses.values.flatten().none { excess -> excess.id == validatingTrack.id }

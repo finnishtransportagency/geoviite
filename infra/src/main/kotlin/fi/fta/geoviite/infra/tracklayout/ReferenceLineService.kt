@@ -117,7 +117,7 @@ class ReferenceLineService(
         val referenceLine = requireNotNull(referenceLineDao.getByTrackNumber(DRAFT, trackNumberId)) {
             "Found Track Number without Reference Line $trackNumberId"
         }
-        return if (referenceLine.getDraftType() != DraftType.OFFICIAL) deleteDraft(referenceLine.id as IntId) else null
+        return if (referenceLine.isDraft()) deleteDraft(referenceLine.id as IntId) else null
     }
 
     override fun createDraft(item: ReferenceLine) = draft(item)

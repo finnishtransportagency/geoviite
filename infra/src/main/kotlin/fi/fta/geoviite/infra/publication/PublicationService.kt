@@ -355,12 +355,10 @@ class PublicationService @Autowired constructor(
         val referenceLineTrackNumberIds = referenceLineService.getMany(DRAFT, requestIds.referenceLines).map { rlId ->
             rlId.trackNumberId
         }
-        val revertTrackNumberIds = mutableSetOf<IntId<TrackLayoutTrackNumber>>()
-        val draftOnlyTrackNumberIds = mutableSetOf<IntId<TrackLayoutTrackNumber>>()
-        trackNumberService.getMany(DRAFT, referenceLineTrackNumberIds + requestIds.trackNumbers).forEach { tnId ->
-            if (tnId.getDraftType() != DraftType.OFFICIAL) revertTrackNumberIds.add(tnId.id as IntId)
-            if (tnId.getDraftType() == DraftType.NEW_DRAFT) draftOnlyTrackNumberIds.add(tnId.id as IntId)
-        }
+        val trackNumbers = trackNumberService.getMany(DRAFT, referenceLineTrackNumberIds + requestIds.trackNumbers)
+        val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
+        val draftOnlyTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isNewDraft).map { it.id as IntId }
+
         val revertLocationTrackIds = requestIds.locationTracks.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map(RowVersion<LocationTrack>::id)
@@ -371,7 +369,7 @@ class PublicationService @Autowired constructor(
 
         val referenceLines = requestIds.referenceLines.toSet() + requestIds.trackNumbers.mapNotNull { tnId ->
             referenceLineService.getByTrackNumber(DRAFT, tnId)
-        }.filter { line -> line.getDraftType() != DraftType.OFFICIAL }.map { line -> line.id as IntId }
+        }.filter(ReferenceLine::isDraft).map { line -> line.id as IntId }
 
         return PublishRequestIds(
             trackNumbers = revertTrackNumberIds.toList(),
@@ -763,13 +761,13 @@ class PublicationService @Autowired constructor(
         val trackIsInPublicationUnit =
             validationVersions.locationTracks.any { validationVersion -> validationVersion.officialId == track.id }
 
-        return if (trackIsInPublicationUnit && track.getDraftType() == DraftType.OFFICIAL) locationTrackDao
-            .fetchVersion(track.id as IntId, DRAFT)
-            ?.let(locationTrackDao::fetch) ?: track
-        else if (!trackIsInPublicationUnit && track.getDraftType() == DraftType.EDITED_DRAFT) locationTrackDao
-            .fetchVersion(track.id as IntId, OFFICIAL)
-            ?.let(locationTrackDao::fetch)
-        else track
+        return if (trackIsInPublicationUnit && track.isOfficial()) {
+            locationTrackDao.fetchVersion(track.id as IntId, DRAFT)?.let(locationTrackDao::fetch) ?: track
+        } else if (!trackIsInPublicationUnit && track.isEditedDraft()) {
+            locationTrackDao.fetchVersion(track.id as IntId, OFFICIAL)?.let(locationTrackDao::fetch)
+        } else {
+            track
+        }
     }
 
     private fun validateLocationTrackNameDuplication(
