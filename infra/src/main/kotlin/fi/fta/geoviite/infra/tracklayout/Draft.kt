@@ -24,6 +24,14 @@ interface Draftable<T> : Loggable {
         else if (d.draftRowId == id) DraftType.NEW_DRAFT
         else DraftType.EDITED_DRAFT
     }
+
+    fun isOfficial(): Boolean = draft == null
+
+    fun isDraft(): Boolean = draft != null
+
+    fun isEditedDraft(): Boolean = draft != null && draft?.draftRowId != id
+
+    fun isNewDraft(): Boolean = draft != null && draft?.draftRowId == id
 }
 
 fun draft(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber =

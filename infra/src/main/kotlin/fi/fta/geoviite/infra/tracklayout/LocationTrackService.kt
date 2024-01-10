@@ -76,6 +76,7 @@ class LocationTrackService(
         return if (locationTrack.state != LayoutState.DELETED) {
             saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
         } else {
+            clearDuplicateReferences(id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
             saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, newAlignment), newAlignment)
@@ -137,10 +138,20 @@ class LocationTrackService(
     @Transactional
     override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val draft = dao.getOrThrow(DRAFT, id)
+        if (draft.isNewDraft()) {
+            clearDuplicateReferences(id)
+        }
         val deletedVersion = super.deleteDraft(id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
+
+    @Transactional
+    fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
+        .fetchDuplicates(id, DRAFT, includeDeleted = true)
+        .map(dao::fetch)
+        .map(::draft)
+        .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
 
     override fun createDraft(item: LocationTrack) = draft(item)
 

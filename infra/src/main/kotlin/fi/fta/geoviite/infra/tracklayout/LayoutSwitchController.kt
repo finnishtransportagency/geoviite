@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.SwitchName
@@ -118,7 +118,7 @@ class LayoutSwitchController(
     @DeleteMapping("/draft/{id}")
     fun deleteDraftSwitch(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
         logger.apiCall("deleteDraftSwitch", "switchId" to switchId)
-        return switchService.deleteDraftSwitch(switchId)
+        return switchService.deleteDraft(switchId).id
     }
 
     @PreAuthorize(AUTH_UI_READ)

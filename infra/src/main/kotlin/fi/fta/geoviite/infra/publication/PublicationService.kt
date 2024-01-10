@@ -349,73 +349,35 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getRevertRequestDependencies(publishRequestIds: PublishRequestIds): PublishRequestIds {
-        logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to publishRequestIds)
+    fun getRevertRequestDependencies(requestIds: PublishRequestIds): PublishRequestIds {
+        logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to requestIds)
 
-        val draftOnlyTrackNumbers = (publishRequestIds.referenceLines.mapNotNull { id ->
-            referenceLineService.get(DRAFT, id)?.trackNumberId?.let { trackNumberId ->
-                if (!trackNumberService.officialExists(trackNumberId)) trackNumberId else null
-            }
-        } + publishRequestIds.trackNumbers.filterNot { id -> trackNumberDao.officialExists(id) }).toSet()
-        val locationTracks = publishRequestIds.locationTracks.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
-            locationTrackDao.fetchOnlyDraftVersions(false, trackNumberId)
-        }.map { lt -> lt.id }
-        val kmPosts = publishRequestIds.kmPosts.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
-            kmPostDao.fetchOnlyDraftVersions(false, trackNumberId)
+        val referenceLineTrackNumberIds = referenceLineService.getMany(DRAFT, requestIds.referenceLines).map { rlId ->
+            rlId.trackNumberId
+        }
+        val trackNumbers = trackNumberService.getMany(DRAFT, referenceLineTrackNumberIds + requestIds.trackNumbers)
+        val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
+        val draftOnlyTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isNewDraft).map { it.id as IntId }
+
+        val revertLocationTrackIds = requestIds.locationTracks.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
+            locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
+        }.map(RowVersion<LocationTrack>::id)
+
+        val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
+            kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map { kp -> kp.id }
 
-        val switches = publishRequestIds.switches.toSet()
-        val (allLocationTracks, allSwitches) = getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-            locationTracks, locationTracks, switches, switches
-        )
-        val trackNumbers = (publishRequestIds.trackNumbers + publishRequestIds.referenceLines.mapNotNull { id ->
-            referenceLineService.get(DRAFT, id)
-        }.map { rl -> rl.trackNumberId }.filter(trackNumberService::draftExists)).distinct()
-        val referenceLines = (publishRequestIds.referenceLines + publishRequestIds.trackNumbers.mapNotNull { id ->
-            referenceLineService.getByTrackNumber(DRAFT, id)
-        }.filter { line -> line.draft != null }.map { line -> line.id as IntId }).distinct()
+        val referenceLines = requestIds.referenceLines.toSet() + requestIds.trackNumbers.mapNotNull { tnId ->
+            referenceLineService.getByTrackNumber(DRAFT, tnId)
+        }.filter(ReferenceLine::isDraft).map { line -> line.id as IntId }
 
         return PublishRequestIds(
-            trackNumbers = trackNumbers,
-            referenceLines = referenceLines,
-            locationTracks = allLocationTracks.toList(),
-            switches = allSwitches.toList(),
-            kmPosts = kmPosts.toList()
+            trackNumbers = revertTrackNumberIds.toList(),
+            referenceLines = referenceLines.toList(),
+            locationTracks = revertLocationTrackIds.toList(),
+            switches = requestIds.switches.distinct(),
+            kmPosts = revertKmPostIds.toList()
         )
-    }
-
-    private fun getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-        allPreviouslyFoundLocationTracks: Set<IntId<LocationTrack>>,
-        lastLevelLocationTracks: Set<IntId<LocationTrack>>,
-        allPreviouslyFoundSwitches: Set<IntId<TrackLayoutSwitch>>,
-        lastLevelSwitches: Set<IntId<TrackLayoutSwitch>>,
-    ): Pair<Set<IntId<LocationTrack>>, Set<IntId<TrackLayoutSwitch>>> {
-        val locationTracks = lastLevelLocationTracks.mapNotNull { id ->
-            locationTrackService.getWithAlignment(DRAFT, id)
-        }
-
-        val newSwitches = locationTracks
-            .flatMap { (locationTrack, alignment) -> getConnectedSwitchIds(locationTrack, alignment) }
-            .subtract(allPreviouslyFoundSwitches)
-            .filterTo(HashSet(), switchService::draftExists)
-
-        val newLocationTracks = lastLevelSwitches
-            .flatMap { switchId -> switchService.getSwitchJointConnections(DRAFT, switchId) }
-            .flatMap { connections -> connections.accurateMatches }
-            .map { match -> match.locationTrackId }
-            .subtract(allPreviouslyFoundLocationTracks)
-            .filterTo(HashSet(), locationTrackService::draftExists)
-
-        return if (newSwitches.isNotEmpty() || newLocationTracks.isNotEmpty()) {
-            getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-                allPreviouslyFoundLocationTracks + newLocationTracks,
-                newLocationTracks,
-                allPreviouslyFoundSwitches + newSwitches,
-                newSwitches
-            )
-        } else {
-            (allPreviouslyFoundLocationTracks + newLocationTracks) to (allPreviouslyFoundSwitches + newSwitches)
-        }
     }
 
     @Transactional
@@ -799,13 +761,13 @@ class PublicationService @Autowired constructor(
         val trackIsInPublicationUnit =
             validationVersions.locationTracks.any { validationVersion -> validationVersion.officialId == track.id }
 
-        return if (trackIsInPublicationUnit && track.getDraftType() == DraftType.OFFICIAL) locationTrackDao
-            .fetchVersion(track.id as IntId, DRAFT)
-            ?.let(locationTrackDao::fetch) ?: track
-        else if (!trackIsInPublicationUnit && track.getDraftType() == DraftType.EDITED_DRAFT) locationTrackDao
-            .fetchVersion(track.id as IntId, OFFICIAL)
-            ?.let(locationTrackDao::fetch)
-        else track
+        return if (trackIsInPublicationUnit && track.isOfficial()) {
+            locationTrackDao.fetchVersion(track.id as IntId, DRAFT)?.let(locationTrackDao::fetch) ?: track
+        } else if (!trackIsInPublicationUnit && track.isEditedDraft()) {
+            locationTrackDao.fetchVersion(track.id as IntId, OFFICIAL)?.let(locationTrackDao::fetch)
+        } else {
+            track
+        }
     }
 
     private fun validateLocationTrackNameDuplication(
