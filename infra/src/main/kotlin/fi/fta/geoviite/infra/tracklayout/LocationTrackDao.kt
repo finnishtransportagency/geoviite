@@ -26,28 +26,41 @@ class LocationTrackDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
-    fun fetchDuplicates(
+    fun fetchDuplicateIdsInAnyContext(id: IntId<LocationTrack>): List<IntId<LocationTrack>> {
+        val sql = """
+            select distinct coalesce(draft_of_location_track_id, id) id
+            from layout.location_track
+            where duplicate_of_location_track_id = :id
+              and state != 'DELETED'
+        """.trimIndent()
+        val params = mapOf("id" to id.intValue)
+        val ids = jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LocationTrack>("id") }
+        logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
+        return ids
+    }
+
+    fun fetchDuplicateVersions(
         id: IntId<LocationTrack>,
-        publicationState: PublishType? = null,
+        publicationState: PublishType,
         includeDeleted: Boolean = false,
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select row_id, row_version
             from layout.location_track_publication_view
             where duplicate_of_location_track_id = :id
-              and (:publication_state::varchar is null or :publication_state = any(publication_states))
+              and :publication_state = any(publication_states)
               and (:include_deleted or state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
             "id" to id.intValue,
-            "publication_state" to publicationState?.name,
+            "publication_state" to publicationState.name,
             "include_deleted" to includeDeleted,
         )
-        val locationTracks = jdbcTemplate.query(sql, params) { rs, _ ->
+        val versions = jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<LocationTrack>("row_id", "row_version")
         }
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
-        return locationTracks
+        return versions
     }
 
     override fun fetchInternal(version: RowVersion<LocationTrack>): LocationTrack {
