@@ -738,6 +738,7 @@ class PublicationService @Autowired constructor(
         val duplicatesAfterPublication = locationTrackDao
             .fetchDuplicateIdsInAnyContext(version.officialId)
             .mapNotNull { id -> getLocationTrack(id, validationVersions) }
+            .filter { potentialDuplicate -> potentialDuplicate.duplicateOf == version.officialId }
 
         val duplicateOf = track.duplicateOf?.let { id -> getLocationTrack(id, validationVersions) }
         // Draft-only won't be found if it's not in the publication set -> get name from draft for validation errors
