@@ -832,30 +832,30 @@ class SwitchLinkingServiceIT @Autowired constructor(
             switchStructure,
             0.01, // avoid plan1's bounding box becoming degenerate by slightly rotating the main track
             Point(50.0, 50.0),
-            trackNumberId
         )
 
         val plan1 = makeAndSavePlan(
-            trackNumberId, MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
+            trackNumberId,
+            MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
             switches = listOf(switch),
             alignments = listOf(switchAlignments[0])
         )
 
         val plan2 = makeAndSavePlan(
-            trackNumberId, null,
-            alignments = listOf(switchAlignments[1])
+            trackNumberId,
+            measurementMethod = null,
+            alignments = listOf(switchAlignments[1]),
         )
 
-        val trackNumberIds =
-            (plan1.alignments + plan2.alignments).map { a ->
-                val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
-                    trackNumberId,
-                    a,
-                    kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
-                    kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ)
-                )
-                locationTrackService.saveDraft(locationTrack, alignment)
-            }
+        val trackNumberIds = (plan1.alignments + plan2.alignments).map { a ->
+            val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
+                trackNumberId,
+                a,
+                kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
+                kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ)
+            )
+            locationTrackService.saveDraft(locationTrack, alignment)
+        }
         val mainLocationTrackId = trackNumberIds[0].id
 
         return SuggestedSwitchCreateParams(
@@ -869,9 +869,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 SuggestedSwitchCreateParamsAlignmentMapping(
                     switchAlignment_1_5_2.id as StringId,
                     mainLocationTrackId,
-                    true
-                )
-            )
+                    true,
+                ),
+            ),
         )
     }
 

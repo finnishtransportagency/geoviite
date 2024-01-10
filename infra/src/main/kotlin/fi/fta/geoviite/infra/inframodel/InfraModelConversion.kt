@@ -81,20 +81,14 @@ fun toGvtPlan(
         }
 
         alignments.addAll(group.alignments.map { xmlAlignment ->
-            toGvtAlignment(
-                layoutTrackNumberId,
-                xmlAlignment,
-                units,
-                gvtSwitches,
-                trackNumberState,
-            )
+            toGvtAlignment(xmlAlignment, units, gvtSwitches, trackNumberState)
         })
         kmPosts.addAll(group.alignments.flatMap { alignment ->
             val alignmentState = alignment.state?.let { stateString ->
                 tryParsePlanState("Alignment ${alignment.name} state", stateString)
             }
             alignment.staEquations.map { s ->
-                toGvtKmPost(layoutTrackNumberId, s, alignmentState ?: trackNumberState)
+                toGvtKmPost(s, alignmentState ?: trackNumberState)
             }
         })
     }
@@ -184,7 +178,6 @@ fun toVerticalCoordinateSystem(name: String): VerticalCoordinateSystem? = if (na
 } else null
 
 fun toGvtAlignment(
-    trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     alignment: InfraModelAlignment,
     units: GeometryUnits,
     switches: Map<SwitchKey, GeometrySwitch>,
@@ -207,7 +200,6 @@ fun toGvtAlignment(
         },
         profile = profile,
         cant = cant,
-        trackNumberId = trackNumberId,
     )
 }
 
@@ -217,7 +209,6 @@ private fun getAlignmentImCodingFeatureType(features: List<InfraModelFeature>): 
         ?.let(::tryParseFeatureTypeCode)
 
 fun toGvtKmPost(
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     staEquation: InfraModelStaEquation,
     state: PlanState?,
 ): GeometryKmPost {
@@ -235,7 +226,6 @@ fun toGvtKmPost(
         description = PlanElementName(description),
         location = location,
         state = state,
-        trackNumberId = trackNumberId,
     )
 }
 

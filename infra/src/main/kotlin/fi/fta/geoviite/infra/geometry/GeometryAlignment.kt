@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 
@@ -27,7 +26,6 @@ data class GeometryAlignment(
     val elements: List<GeometryElement>,
     val profile: GeometryProfile? = null,
     val cant: GeometryCant? = null,
-    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val id: DomainId<GeometryAlignment> = StringId(),
 ) : Loggable {
     @get:JsonIgnore

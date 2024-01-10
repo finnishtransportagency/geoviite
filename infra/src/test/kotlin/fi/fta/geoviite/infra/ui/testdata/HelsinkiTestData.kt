@@ -35,9 +35,9 @@ class HelsinkiTestData {
                 units = tmi35GeometryUnit(),
                 trackNumberId = trackLayoutTrackNumberId,
                 trackNumberDescription = PlanElementName(""),
-                alignments = listOf(westGeometryAlignment(trackLayoutTrackNumberId)),
+                alignments = listOf(westGeometryAlignment()),
                 switches = listOf(),
-                kmPosts = listOf(westGeometryKmPost(trackLayoutTrackNumberId)),
+                kmPosts = listOf(westGeometryKmPost()),
                 fileName = FileName("ratapiha.xml"),
                 pvDocumentId = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
@@ -45,16 +45,16 @@ class HelsinkiTestData {
                 measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
-                uploadTime = Instant.now()
+                uploadTime = Instant.now(),
             )
         }
 
-        fun westGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>): GeometryKmPost {
+        fun westGeometryKmPost(): GeometryKmPost {
             val location = HKI_BASE_POINT + Point(x = 710.00, y = 550.00)
-            return createGeometryKmPost(trackNumberId, location, "0001")
+            return createGeometryKmPost(location, "0001")
         }
 
-        fun westGeometryAlignment(trackNumberId: DomainId<TrackLayoutTrackNumber>): GeometryAlignment {
+        fun westGeometryAlignment(): GeometryAlignment {
             val point1 = Point(x = HKI_BASE_POINT_X + 680.00, y = HKI_BASE_POINT_Y + 410.00) //etelä
             val point2 = Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 500.00)
             val point3 = Point(x = HKI_BASE_POINT_X + 700.00, y = HKI_BASE_POINT_Y + 560.00) //pohjoinen
@@ -75,7 +75,6 @@ class HelsinkiTestData {
                     geometryLine("north", "2", point2, point3, staStart, length2)
                 ),
                 profile = null,
-                trackNumberId = trackNumberId,
             )
         }
 

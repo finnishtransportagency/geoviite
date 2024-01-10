@@ -44,7 +44,6 @@ class LinkingServiceIT @Autowired constructor(
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
             trackNumberId.id, Srid(3067), geometryAlignment(
-                trackNumberId.id,
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )

@@ -27,6 +27,7 @@ fun toTrackLayout(
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
     val alignments: List<PlanLayoutAlignment> = toMapAlignments(
+        geometryPlan.trackNumberId,
         geometryPlan.alignments,
         planToLayout,
         pointListStepLength,
@@ -35,7 +36,7 @@ fun toTrackLayout(
         includeGeometryData
     )
 
-    val kmPosts = toTrackLayoutKmPosts(geometryPlan.kmPosts, planToLayout)
+    val kmPosts = toTrackLayoutKmPosts(geometryPlan.trackNumberId, geometryPlan.kmPosts, planToLayout)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
@@ -51,6 +52,7 @@ fun toTrackLayout(
 }
 
 fun toTrackLayoutKmPosts(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     kmPosts: List<GeometryKmPost>,
     planToLayout: Transformation,
 ): List<TrackLayoutKmPost> {
@@ -62,7 +64,7 @@ fun toTrackLayoutKmPosts(
                 location = planToLayout.transform(kmPost.location),
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
-                trackNumberId = kmPost.trackNumberId,
+                trackNumberId = trackNumberId,
             )
         } else null
     }
@@ -95,6 +97,7 @@ fun toTrackLayoutSwitches(
     geometrySwitches.mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }.associate { it }
 
 fun toMapAlignments(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     geometryAlignments: List<GeometryAlignment>,
     planToLayout: Transformation,
     pointListStepLength: Int,
@@ -118,13 +121,14 @@ fun toMapAlignments(
         }
 
         PlanLayoutAlignment(
-            header = toAlignmentHeader(alignment, boundingBoxInLayoutSpace),
+            header = toAlignmentHeader(trackNumberId, alignment, boundingBoxInLayoutSpace),
             segments = mapSegments,
         )
     }
 }
 
 fun toAlignmentHeader(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     alignment: GeometryAlignment,
     boundingBoxInLayoutSpace: BoundingBox? = null,
 ) = AlignmentHeader(
@@ -133,7 +137,7 @@ fun toAlignmentHeader(
     alignmentSource = MapAlignmentSource.GEOMETRY,
     alignmentType = getAlignmentType(alignment.featureTypeCode),
     state = getLayoutStateOrDefault(alignment.state),
-    trackNumberId = alignment.trackNumberId,
+    trackNumberId = trackNumberId,
     boundingBox = boundingBoxInLayoutSpace,
     length = alignment.elements.sumOf(GeometryElement::calculatedLength),
     segmentCount = alignment.elements.size,

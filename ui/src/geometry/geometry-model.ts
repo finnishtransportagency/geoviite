@@ -162,7 +162,6 @@ export type GeometryAlignment = {
     elements: GeometryElement[];
     profile?: GeometryProfile;
     cant?: GeometryCant;
-    trackNumberId: GeometryTrackNumberId;
 };
 
 export type GeometryProfile = {
@@ -201,7 +200,6 @@ export type GeometryKmPost = {
     description: string;
     state?: PlanState;
     location?: Point;
-    trackNumberId: GeometryTrackNumberId;
 };
 
 export type GeometrySwitch = {
