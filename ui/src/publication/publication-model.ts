@@ -280,3 +280,8 @@ export type PublicationTableItem = {
     ratkoPushTime: TimeStamp;
     propChanges: PublicationChange[];
 };
+
+export type PublicationSearch = {
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+};
