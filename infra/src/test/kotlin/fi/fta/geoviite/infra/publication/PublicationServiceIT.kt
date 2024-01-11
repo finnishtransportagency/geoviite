@@ -29,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publish
 import publishRequest
+import validationError
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
 import kotlin.test.*
@@ -1186,6 +1187,56 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals("description-base", diff[3].propKey.key.toString())
         assertEquals("description-suffix", diff[4].propKey.key.toString())
         assertEquals("duplicate-of", diff[5].propKey.key.toString())
+    }
+
+    @Test
+    fun `Don't allow publishing a track that is a duplicate of an unpublished draft-only one`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val (draftOnlyTrack, draftOnlyAlignment) = locationTrackAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(someSegment()),
+            duplicateOf = null,
+        )
+        val draftOnlyId = locationTrackService.saveDraft(draft(draftOnlyTrack), draftOnlyAlignment).id
+
+        val (duplicateTrack, duplicateAlignment) = locationTrackAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(someSegment()),
+            duplicateOf = draftOnlyId,
+        )
+        val duplicateId = locationTrackService.saveDraft(draft(duplicateTrack), duplicateAlignment).id
+
+        // Both tracks in validation set: this is fine
+        assertEquals(listOf(), validateDuplicateOf(toValidate = duplicateId, duplicateId, draftOnlyId))
+        // Only the target (main) track in set: this is also fine
+        assertEquals(listOf(), validateDuplicateOf(toValidate = draftOnlyId, draftOnlyId))
+        // Only the duplicate track in set: this would result in official referring to draft through duplicateOf
+        assertEquals(
+            listOf(
+                validationError(
+                    "validation.layout.location-track.duplicate-of.not-published",
+                    "duplicateTrack" to draftOnlyTrack.name.toString(),
+                ),
+            ),
+            validateDuplicateOf(toValidate = duplicateId, duplicateId),
+        )
+    }
+
+    private fun validateDuplicateOf(
+        toValidate: IntId<LocationTrack>,
+        vararg publicationSet: IntId<LocationTrack>,
+    ): List<PublishValidationError> {
+        val validationVersions = publicationService.getValidationVersions(
+            publishRequest(locationTracks = publicationSet.toList())
+        )
+        val validationVersion = requireNotNull(validationVersions.findLocationTrack(toValidate)) {
+            "Track $toValidate should be in validation set: $validationVersions"
+        }
+        return publicationService.validateDuplicateOf(
+            validationVersion,
+            locationTrackDao.fetch(validationVersion.validatedAssetVersion),
+            validationVersions,
+        )
     }
 
     @Test

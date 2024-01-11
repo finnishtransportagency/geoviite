@@ -271,7 +271,7 @@ class PublicationService @Autowired constructor(
                         candidate.getPublicationVersion(),
                         versions,
                         cacheKeys,
-                        switchTrackLinks
+                        switchTrackLinks,
                     )
                 )
             },
@@ -729,7 +729,8 @@ class PublicationService @Autowired constructor(
             }
     }
 
-    private fun validateDuplicateOf(
+    @Transactional(readOnly = true)
+    fun validateDuplicateOf(
         version: ValidationVersion<LocationTrack>,
         track: LocationTrack,
         validationVersions: ValidationVersions,

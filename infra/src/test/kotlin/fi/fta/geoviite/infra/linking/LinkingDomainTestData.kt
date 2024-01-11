@@ -1,7 +1,9 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.LocalizationKey
 
 fun publishRequest(
     trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
@@ -45,3 +47,9 @@ fun publish(publicationService: PublicationService, request: PublishRequestIds):
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
     return publicationService.publishChanges(versions, calculatedChanges, "Test")
 }
+
+fun validationError(localizationKey: String, vararg params: Pair<String, String>) = PublishValidationError(
+    type = PublishValidationErrorType.ERROR,
+    localizationKey = LocalizationKey(localizationKey),
+    params = LocalizationParams(mapOf(*params))
+)
