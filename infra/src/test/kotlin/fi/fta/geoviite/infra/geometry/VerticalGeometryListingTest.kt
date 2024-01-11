@@ -209,7 +209,6 @@ class VerticalGeometryListingTest() {
                 featureTypeCode = FeatureTypeCode("111"),
                 oidPart = FreeText("123"),
                 state = PlanState.EXISTING,
-                trackNumberId = IntId(1)
             ),
             null,
             null,
@@ -239,7 +238,6 @@ class VerticalGeometryListingTest() {
     @Test
     fun `Returns right coordinate at the intersection of elements`() {
         val alignment = createAlignment(
-            IntId(1),
             GeometryElementType.LINE,
             GeometryElementType.LINE,
         )
@@ -252,7 +250,6 @@ class VerticalGeometryListingTest() {
     @Test
     fun `Returns right coordinate at the beginning of alignment`() {
         val alignment = createAlignment(
-            IntId(1),
             GeometryElementType.LINE,
         )
         val element = alignment.elements.get(0)
@@ -264,7 +261,6 @@ class VerticalGeometryListingTest() {
     @Test
     fun `Returns right coordinate mid-element`() {
         val alignment = createAlignment(
-            IntId(1),
             GeometryElementType.LINE,
             GeometryElementType.LINE,
         )
@@ -279,7 +275,6 @@ class VerticalGeometryListingTest() {
     @Test
     fun `Returns right coordinate at the end of alignment`() {
         val alignment = createAlignment(
-            IntId(1),
             GeometryElementType.LINE,
         )
         val coordinate = alignment.getCoordinateAt(alignment.elements.first().calculatedLength)!!
@@ -290,7 +285,6 @@ class VerticalGeometryListingTest() {
     @Test
     fun `Throws if distance is past the end of alignment`() {
         val alignment = createAlignment(
-            IntId(1),
             GeometryElementType.LINE,
         )
         assertNull(alignment.getCoordinateAt(alignment.elements.first().calculatedLength + 0.5))
@@ -302,7 +296,7 @@ class VerticalGeometryListingTest() {
             start,
             end,
             center,
-            radius
+            radius,
         )
 
     private fun linearSegment(start: Point, end: Point) =
@@ -310,6 +304,6 @@ class VerticalGeometryListingTest() {
             PlanElementName(""),
             start,
             end,
-            true
+            true,
         )
 }

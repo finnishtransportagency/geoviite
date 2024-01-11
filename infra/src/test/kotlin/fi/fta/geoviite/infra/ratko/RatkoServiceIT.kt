@@ -339,7 +339,8 @@ class RatkoServiceIT @Autowired constructor(
                 planTime = Instant.parse("2018-11-30T18:35:24.00Z"),
                 alignments = listOf(
                     geometryAlignment(
-                        trackNumberId, name = "geo name", elements = listOf(lineFromOrigin(1.0))
+                        name = "geo name",
+                        elements = listOf(lineFromOrigin(1.0)),
                     )
                 ),
             ), InfraModelFile(FileName("foobar"), "<a></a>"), null
@@ -794,8 +795,8 @@ class RatkoServiceIT @Autowired constructor(
             trackNumber.id,
             LAYOUT_SRID,
             // elements don't matter, only the names being different matters since that makes the metadatas distinct
-            geometryAlignment(trackNumber.id, elements = listOf(lineFromOrigin(1.0)), name = "foo"),
-            geometryAlignment(trackNumber.id, elements = listOf(lineFromOrigin(1.0)), name = "bar"),
+            geometryAlignment(elements = listOf(lineFromOrigin(1.0)), name = "foo"),
+            geometryAlignment(elements = listOf(lineFromOrigin(1.0)), name = "bar"),
         )
         val fileContent = "<a></a>"
         val planVersion = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)

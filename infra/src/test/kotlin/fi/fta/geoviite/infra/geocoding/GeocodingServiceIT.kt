@@ -32,38 +32,35 @@ class GeocodingServiceIT @Autowired constructor(
     @Test
     fun `geocoding context can be generated from geometry plan`() {
         val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
-        val plan = minimalPlan()
-            .copy(
-                units = GeometryUnits(
-                    coordinateSystemSrid = LAYOUT_SRID,
-                    coordinateSystemName = null,
-                    verticalCoordinateSystem = null,
-                    directionUnit = AngularUnit.GRADS,
-                    linearUnit = LinearUnit.METER,
-                ),
-                alignments = listOf(
-                    geometryAlignment(
-                        trackNumberId,
-                        listOf(
-                            // reference line goes straight up
-                            line(Point(450000.0, 7000000.0), Point(450000.0, 7000020.0)),
-                        ),
-                        featureTypeCode = FeatureTypeCode("111")
+        val plan = minimalPlan().copy(
+            units = GeometryUnits(
+                coordinateSystemSrid = LAYOUT_SRID,
+                coordinateSystemName = null,
+                verticalCoordinateSystem = null,
+                directionUnit = AngularUnit.GRADS,
+                linearUnit = LinearUnit.METER,
+            ),
+            alignments = listOf(
+                geometryAlignment(
+                    listOf(
+                        // reference line goes straight up
+                        line(Point(450000.0, 7000000.0), Point(450000.0, 7000020.0)),
                     ),
-                    geometryAlignment(
-                        trackNumberId,
-                        listOf(
-                            // location track goes somewhere that doesn't matter (but actually just goes diagonally)
-                            line(Point(450000.0, 7000000.0), Point(450020.0, 7000020.0)),
-                        ),
-                        featureTypeCode = FeatureTypeCode("121")
-                    )
+                    featureTypeCode = FeatureTypeCode("111"),
                 ),
-                kmPosts = listOf(
-                    createGeometryKmPost(trackNumberId, null, "0140", staInternal = BigDecimal.valueOf(-100L)),
-                    createGeometryKmPost(trackNumberId, Point(450000.0, 7000010.0), "0141")
-                )
-            )
+                geometryAlignment(
+                    listOf(
+                        // location track goes somewhere that doesn't matter (but actually just goes diagonally)
+                        line(Point(450000.0, 7000000.0), Point(450020.0, 7000020.0)),
+                    ),
+                    featureTypeCode = FeatureTypeCode("121"),
+                ),
+            ),
+            kmPosts = listOf(
+                createGeometryKmPost(null, "0140", staInternal = BigDecimal.valueOf(-100L)),
+                createGeometryKmPost(Point(450000.0, 7000010.0), "0141")
+            ),
+        )
         val planVersion = geometryDao.insertPlan(
             plan, InfraModelFile(plan.fileName, "<plan />"),
             listOf(
@@ -72,7 +69,7 @@ class GeocodingServiceIT @Autowired constructor(
                 Point(460000.0, 7100000.0),
                 Point(450000.0, 7100000.0),
                 Point(450000.0, 7000000.0),
-            )
+            ),
         )
         val context = geocodingService.getGeocodingContext(trackNumberId, planVersion)
         assertNotNull(context)

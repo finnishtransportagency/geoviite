@@ -521,7 +521,7 @@ class GeometryService @Autowired constructor(
                     alignment.segments[lastPlanEndIndex + 1].startM,
                     alignment.segments[thisPlanEndIndex].endM,
                     segmentSources[thisPlanEndIndex].plan?.fileName,
-                    segmentSources[thisPlanEndIndex].alignment?.let(::toAlignmentHeader),
+                    segmentSources[thisPlanEndIndex].alignment?.let { toAlignmentHeader(null, it) },
                     segmentSources[thisPlanEndIndex].plan?.id,
                     segmentSources[thisPlanEndIndex].plan?.units?.verticalCoordinateSystem,
                     segmentSources[thisPlanEndIndex].plan?.elevationMeasurementMethod,
