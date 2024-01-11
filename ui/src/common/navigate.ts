@@ -5,8 +5,8 @@ import { PublicationId } from 'preview/preview-table';
 
 const appPath = {
     'frontpage': '/',
-    'publication-search': '/publication-log',
-    'publication-view': (id: PublicationId) => `/publication-log/${id}`,
+    'publication-search': '/publications',
+    'publication-view': (id: PublicationId) => `/publications/${id}`,
     'inframodel-list': '/infra-model',
     'inframodel-upload': '/infra-model/upload',
     'inframodel-edit': (id: GeometryPlanId) => `/infra-model/edit/${id}`,

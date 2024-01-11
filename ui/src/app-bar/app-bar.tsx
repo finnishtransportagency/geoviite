@@ -54,9 +54,9 @@ export const AppBar: React.FC = () => {
 
     function getFrontpageLink(): string {
         if (selectedPublicationId) {
-            return `/publication-log/${selectedPublicationId}`;
+            return `/publications/${selectedPublicationId}`;
         } else if (selectedPublicationSearch) {
-            return '/publication-log';
+            return '/publications';
         }
 
         return `/`;

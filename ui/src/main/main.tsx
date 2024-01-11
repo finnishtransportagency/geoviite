@@ -48,9 +48,9 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
             <div className={styles.main__content} qa-id="main-content-container">
                 <Routes>
                     <Route path="/" element={<FrontpageContainer />} />
-                    <Route path={'/publication-log'} element={<PublicationLog />} />
+                    <Route path={'/publications'} element={<PublicationLog />} />
                     <Route
-                        path={'/publication-log/:publicationId'}
+                        path={'/publications/:publicationId'}
                         element={<PublicationDetailsContainer />}
                     />
                     <Route
