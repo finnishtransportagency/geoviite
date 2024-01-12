@@ -1,6 +1,6 @@
 import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
-import { drawCircle, drawRoundedRect, getCanvasRenderer } from 'map/layers/utils/rendering';
+import { drawCircle, drawRect, drawRoundedRect, getCanvasRenderer } from 'map/layers/utils/rendering';
 import styles from '../../map.module.scss';
 import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
@@ -20,7 +20,7 @@ import { Rectangle } from 'model/geometry';
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
 
-const TEXT_FONT_LARGE = 12;
+const TEXT_FONT_LARGE = 11;
 const TEXT_FONT_SMALL = 10;
 const CIRCLE_RADIUS_SMALL = 4.5;
 const CIRCLE_RADIUS_LARGE = 6.5;
@@ -129,14 +129,33 @@ export function getSwitchRenderer(
             },
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 if (showLabel) {
-                    ctx.fillStyle = styles.switchTextColor;
+                    ctx.fillStyle = mapStyles['switchBackground'];
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
 
+                    const textWidth = ctx.measureText(name).width;
+                    const textX = x + (circleRadius + textCirclePadding) * pixelRatio;
+                    const textY = y + pixelRatio;
+                    const paddingHor = 2;
+                    const paddingVer = 1;
+                    const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
+                    const backgroundY = textY - fontSize*pixelRatio/2 - paddingVer * pixelRatio
+                    const backgroundWidth = textWidth + paddingHor * 2 * pixelRatio;
+                    const backgroundHeight = fontSize * pixelRatio + paddingVer * 2 * pixelRatio;
+
+                    drawRect(
+                        ctx,
+                        backgroundX,
+                        backgroundY,
+                        backgroundWidth,
+                        backgroundHeight,
+                    );
+
+                    ctx.fillStyle = styles.switchTextColor;
                     ctx.fillText(
                         name,
-                        x + (circleRadius + textCirclePadding) * pixelRatio,
-                        y + pixelRatio,
+                        textX,
+                        textY,
                     );
                 }
             },
