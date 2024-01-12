@@ -25,6 +25,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     private var trackNumberDaoParam: LayoutTrackNumberDao? = null
     private var trackDaoParam: LocationTrackDao? = null
     private var alignmentDaoParam: LayoutAlignmentDao? = null
+    private var referenceLineDaoParam: ReferenceLineDao? = null
 
     @Autowired
     fun setTrackNumberDao(tnDao: LayoutTrackNumberDao) {
@@ -41,11 +42,19 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         alignmentDaoParam = alignmentDao
     }
 
+    @Autowired
+    fun setReferenceLineDao(referenceLineDao: ReferenceLineDao) {
+        referenceLineDaoParam = referenceLineDao
+    }
+
     val jdbc by lazy { jdbcTemplate ?: throw IllegalStateException("JDBC not initialized") }
     val transaction by lazy { transactionTemplate ?: throw IllegalStateException("JDBC not initialized") }
     private val trackNumberDao by lazy { trackNumberDaoParam ?: throw IllegalStateException("JDBC not initialized") }
     private val trackDao by lazy { trackDaoParam ?: throw IllegalStateException("JDBC not initialized") }
     private val alignmentDao by lazy { alignmentDaoParam ?: throw IllegalStateException("JDBC not initialized") }
+    private val referenceLineDao by lazy {
+        referenceLineDaoParam ?: throw java.lang.IllegalStateException("JDBC not initialized")
+    }
 
     val trackNumberDescription by lazy { "Test track number ${this::class.simpleName}" }
 
@@ -96,13 +105,21 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     ): DaoResponse<TrackLayoutTrackNumber> =
         transactional {
             jdbc.setUser()
-            trackNumberDao.insert(trackNumber(
-                number = trackNumber,
-                description = trackNumberDescription,
-                draft = draft,
-                state = state,
-            ))
+            trackNumberDao.insert(
+                trackNumber(
+                    number = trackNumber,
+                    description = trackNumberDescription,
+                    draft = draft,
+                    state = state
+                )
+            )
         }
+
+    fun insertReferenceLine(referenceLine: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
+        return alignmentDao.insert(alignment).let { alignmentVersion ->
+            referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentVersion))
+        }
+    }
 
     fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) =
         insertLocationTrack(trackAndAlignment.first, trackAndAlignment.second)

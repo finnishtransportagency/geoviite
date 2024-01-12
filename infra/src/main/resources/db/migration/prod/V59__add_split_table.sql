@@ -14,3 +14,6 @@ create table publication.split
     constraint split_source_location_track_fkey
         foreign key (source_location_track_id) references layout.location_track(id)
 );
+
+select common.add_metadata_columns('publication', 'split');
+select common.add_table_versioning('publication', 'split');

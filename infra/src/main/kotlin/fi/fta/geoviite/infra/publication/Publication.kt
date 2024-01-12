@@ -438,7 +438,10 @@ data class SplitSource(
     val errorCause: String?,
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
-)
+) {
+    fun isPartOf(trackId: IntId<LocationTrack>): Boolean =
+        trackId == locationTrackId || targetLocationTracks.any { it.locationTrackId == trackId }
+}
 
 data class SplitTarget(
     val splitId: IntId<SplitSource>,

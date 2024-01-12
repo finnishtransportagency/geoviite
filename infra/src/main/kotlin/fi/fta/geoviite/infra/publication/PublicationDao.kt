@@ -6,8 +6,7 @@ import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.INSERT
+import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
@@ -1522,11 +1521,14 @@ class PublicationDao(
             returning id
         """.trimIndent()
 
+        jdbcTemplate.setUser()
         val splitId = jdbcTemplate.queryForObject(sql, mapOf("id" to locationTrackId.intValue)) { rs, _ ->
             rs.getIntId<SplitSource>("id")
         } ?: error("Failed to save split for location track id=$locationTrackId")
 
-        if (splitTargets.isNotEmpty()) saveSplitTargets(splitId, splitTargets)
+        logger.daoAccess(INSERT, SplitSource::class, splitId)
+
+        saveSplitTargets(splitId, splitTargets)
 
         return splitId
     }
@@ -1557,6 +1559,7 @@ class PublicationDao(
         }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
+        logger.daoAccess(INSERT, SplitTarget::class, splitId, splitTargets.map { it.locationTrackId })
     }
 
     fun getSplit(splitId: IntId<SplitSource>): SplitSource {
@@ -1582,6 +1585,8 @@ class PublicationDao(
                 publicationId = rs.getIntIdOrNull("publication_id"),
                 targetLocationTracks = targetLocationTracks
             )
+        }.also {
+            logger.daoAccess(FETCH, SplitSource::class, splitId)
         }
     }
 
@@ -1603,9 +1608,11 @@ class PublicationDao(
             "splitId" to split.id.intValue
         )
 
-        jdbcTemplate.update(sql, params)
-
-        return split.id
+        jdbcTemplate.setUser()
+        return jdbcTemplate.update(sql, params).let {
+            logger.daoAccess(UPDATE, SplitSource::class, split.id)
+            split.id
+        }
     }
 
     private fun getSplitTargets(splitId: IntId<SplitSource>): List<SplitTarget> {
@@ -1625,22 +1632,41 @@ class PublicationDao(
                 locationTrackId = rs.getIntId("location_track_id"),
                 segmentIndices = rs.getInt("source_start_segment_index")..rs.getInt("source_end_segment_index")
             )
+        }.also {
+            logger.daoAccess(FETCH, SplitTarget::class, splitId)
         }
     }
 
-    fun fetchUnpushedSplits(): List<SplitSource> {
+    fun fetchUnfinishedSplits(): List<SplitSource> {
         val sql = """
-            select slt.id
-            from publication.split slt
-            where slt.state != 'DONE'
+          select
+              slt.id,
+              slt.state,
+              slt.error_cause,
+              slt.publication_id,
+              slt.source_location_track_id
+          from publication.split slt
+          where slt.state != 'DONE'
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
-            getSplit(rs.getIntId("id"))
+            val splitId = rs.getIntId<SplitSource>("id")
+            val targetLocationTracks = getSplitTargets(splitId)
+
+            SplitSource(
+                id = splitId,
+                locationTrackId = rs.getIntId("source_location_track_id"),
+                state = rs.getEnum("state"),
+                errorCause = rs.getString("error_cause"),
+                publicationId = rs.getIntIdOrNull("publication_id"),
+                targetLocationTracks = targetLocationTracks
+            )
+        }.also { ids ->
+            logger.daoAccess(FETCH, SplitTarget::class, ids.map { it.id })
         }
     }
 
-    fun fetchUnpushedSplitsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<SplitSource>> {
+    fun fetchUnfinishedSplitsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<SplitSource>> {
         val sql = """
             select slt.id
             from publication.split slt
@@ -1652,7 +1678,9 @@ class PublicationDao(
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
-            rs.getIntId("id")
+            rs.getIntId<SplitSource>("id")
+        }.also { ids ->
+            logger.daoAccess(FETCH, SplitTarget::class, ids)
         }
     }
 }
