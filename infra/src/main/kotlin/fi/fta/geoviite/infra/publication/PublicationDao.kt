@@ -693,7 +693,7 @@ class PublicationDao(
         locationTrackId: IntId<LocationTrack>,
     ): List<GeometryChangeSummary> {
         val sql = """
-            select changed_length_m, max_distance, start_km, end_km
+            select changed_length_m, max_distance, start_km, end_km, start_km_m, end_km_m
             from publication.location_track_geometry_change_summary
             where publication_id = :publicationId and location_track_id = :locationTrackId
             order by remark_order
@@ -705,8 +705,8 @@ class PublicationDao(
             GeometryChangeSummary(
                 changedLengthM = rs.getDouble("changed_length_m"),
                 maxDistance = rs.getDouble("max_distance"),
-                startKm = rs.getKmNumber("start_km"),
-                endKm = rs.getKmNumber("end_km"),
+                startAddress = TrackMeter(rs.getKmNumber("start_km"), rs.getBigDecimal("start_km_m")),
+                endAddress = TrackMeter(rs.getKmNumber("end_km"), rs.getBigDecimal("end_km_m")),
             )
         }
     }
@@ -788,7 +788,9 @@ class PublicationDao(
               :changedLengthM,
               :maxDistance,
               :startKm,
-              :endKm);
+              :endKm,
+              :startKmM,
+              :endKmM);
         """.trimIndent()
         jdbcTemplate.batchUpdate(insertNewsSql, remarks.mapIndexed { index, remark ->
             mapOf(
@@ -797,8 +799,10 @@ class PublicationDao(
                 "remarkOrder" to index,
                 "changedLengthM" to remark.changedLengthM,
                 "maxDistance" to remark.maxDistance,
-                "startKm" to remark.startKm.toString(),
-                "endKm" to remark.endKm.toString()
+                "startKm" to remark.startAddress.kmNumber.toString(),
+                "endKm" to remark.endAddress.kmNumber.toString(),
+                "startKmM" to remark.startAddress.meters,
+                "endKmM" to remark.endAddress.meters,
             )
         }.toTypedArray())
 
