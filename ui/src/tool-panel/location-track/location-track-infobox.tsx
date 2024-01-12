@@ -6,7 +6,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitchIdAndName,
 } from 'track-layout/track-layout-model';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -67,6 +67,7 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackOwners } from 'common/common-api';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { EnvRestricted } from 'environment/env-restricted';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -211,6 +212,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
+    const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
+        (dupe) => dupe.trackNumberId !== trackNumber?.id,
+    );
+
+    const getSplittingDisabledReason = () => {
+        if (locationTrack.draftType !== 'OFFICIAL')
+            return 'tool-panel.location-track.splitting.validation.track-draft-exists';
+        if (duplicatesOnOtherTracks)
+            return 'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number';
+        return '';
+    };
+
     return (
         <React.Fragment>
             <Infobox
@@ -278,6 +291,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
                                 publishType={publishType}
                                 changeTime={locationTrackChangeTime}
+                                currentTrackNumberId={trackNumber?.id}
                             />
                         }
                         onEdit={openEditLocationTrackDialog}
@@ -436,20 +450,26 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         </InfoboxButtons>
                                     </React.Fragment>
                                 )}
-                                <InfoboxButtons>
-                                    {!linkingState && !splittingState && (
-                                        <EnvRestricted restrictTo="dev">
+                                <EnvRestricted restrictTo="dev">
+                                    {duplicatesOnOtherTracks && (
+                                        <InfoboxContentSpread>
+                                            <MessageBox>
+                                                {t(
+                                                    'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                                                )}
+                                            </MessageBox>
+                                        </InfoboxContentSpread>
+                                    )}
+                                    <InfoboxButtons>
+                                        {!linkingState && !splittingState && (
                                             <Button
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
-                                                disabled={locationTrack.draftType !== 'OFFICIAL'}
-                                                title={
-                                                    locationTrack.draftType !== 'OFFICIAL'
-                                                        ? t(
-                                                              'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                          )
-                                                        : undefined
+                                                disabled={
+                                                    locationTrack.draftType !== 'OFFICIAL' ||
+                                                    duplicatesOnOtherTracks
                                                 }
+                                                title={t(getSplittingDisabledReason())}
                                                 onClick={() => {
                                                     getSplittingInitializationParameters(
                                                         'DRAFT',
@@ -480,9 +500,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 }}>
                                                 {t('tool-panel.location-track.start-splitting')}
                                             </Button>
-                                        </EnvRestricted>
-                                    )}
-                                </InfoboxButtons>
+                                        )}
+                                    </InfoboxButtons>
+                                </EnvRestricted>
 
                                 <InfoboxField
                                     qaId="location-track-true-length"

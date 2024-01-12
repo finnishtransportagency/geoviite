@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.error
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
 import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.*
@@ -105,7 +106,7 @@ class DuplicateNameInPublicationException(
     message = "Duplicate $type in publication: $duplicatedName",
     cause = cause,
     localizedMessageKey = "error.publication.duplicate-name-on.${if (type == DuplicateNameInPublication.SWITCH) "switch" else "track-number"}",
-    localizedMessageParams = LocalizationParams("name" to duplicatedName),
+    localizedMessageParams = localizationParams("name" to duplicatedName),
 )
 
 class DuplicateLocationTrackNameInPublicationException(
@@ -117,7 +118,7 @@ class DuplicateLocationTrackNameInPublicationException(
     message = "Duplicate location track $alignmentName in $trackNumber",
     cause = cause,
     localizedMessageKey = "error.publication.duplicate-name-on.location-track",
-    localizedMessageParams = LocalizationParams(
+    localizedMessageParams = localizationParams(
         "locationTrack" to alignmentName,
         "trackNumber" to trackNumber
     )

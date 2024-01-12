@@ -292,9 +292,8 @@ class ValidationTest {
         structure: SwitchStructure,
     ) = structure.alignments.map { structureAlignment ->
         geometryAlignment(
-            trackNumberId = null,
             elements = structureAlignment.jointNumbers.mapIndexedNotNull { index, jointNumber ->
-                structureAlignment.jointNumbers.getOrNull(index+1)?.let { nextJointNumber ->
+                structureAlignment.jointNumbers.getOrNull(index + 1)?.let { nextJointNumber ->
                     val startPoint = switch.getJoint(jointNumber)!!.location
                     val endPoint = switch.getJoint(nextJointNumber)!!.location
                     line(
@@ -305,7 +304,7 @@ class ValidationTest {
                             switchId = switch.id,
                             startJointNumber = jointNumber,
                             endJointNumber = null,
-                        )
+                        ),
                     )
                 }
             },

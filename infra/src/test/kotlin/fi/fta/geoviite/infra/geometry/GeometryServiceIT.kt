@@ -230,7 +230,7 @@ class GeometryServiceIT @Autowired constructor(
             locationTrack(trackNumberId),
             alignment(
                 segment(yRangeToSegmentPoints(0..10)),
-            )
+            ),
         ).id
         kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 8.0)))
         kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 9.0)))
@@ -257,7 +257,6 @@ class GeometryServiceIT @Autowired constructor(
         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
         alignments = listOf(
             geometryAlignment(
-                trackNumberId,
                 elements = listOf(lineFromOrigin(1.0)),
                 name = "foo",
                 profile = GeometryProfile(
@@ -273,9 +272,9 @@ class GeometryServiceIT @Autowired constructor(
                             BigDecimal(155),
                         ),
                         VIPoint(PlanElementName("endpoint"), Point(600.0, 51.0)),
-                    )
-                )
-            )
+                    ),
+                ),
+            ),
         ),
     )
 

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
@@ -22,7 +22,7 @@ class ReferenceLineController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}")
     fun getReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
@@ -32,7 +32,7 @@ class ReferenceLineController(
         return toResponse(referenceLineService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["ids"])
     fun getReferenceLines(
         @PathVariable("publishType") publishType: PublishType,
@@ -42,7 +42,7 @@ class ReferenceLineController(
         return referenceLineService.getMany(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/by-track-number/{trackNumberId}")
     fun getTrackNumberReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
@@ -54,7 +54,7 @@ class ReferenceLineController(
         return toResponse(referenceLineService.getByTrackNumber(publishType, trackNumberId))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}", params = ["bbox"])
     fun getReferenceLinesNear(
         @PathVariable("publishType") publishType: PublishType,
@@ -64,7 +64,7 @@ class ReferenceLineController(
         return referenceLineService.listNear(publishType, bbox)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/start-and-end")
     fun getReferenceLineStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
@@ -76,14 +76,14 @@ class ReferenceLineController(
         })
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/draft/non-linked")
     fun getNonLinkedReferenceLines(): List<ReferenceLine> {
         logger.apiCall("getNonLinkedReferenceLines")
         return referenceLineService.listNonLinked()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/change-times")
     fun getReferenceLineChangeInfo(
         @PathVariable("id") id: IntId<ReferenceLine>,

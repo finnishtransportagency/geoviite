@@ -76,6 +76,7 @@ class LocationTrackService(
         return if (locationTrack.state != LayoutState.DELETED) {
             saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
         } else {
+            clearDuplicateReferences(id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
             saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, newAlignment), newAlignment)
@@ -137,10 +138,20 @@ class LocationTrackService(
     @Transactional
     override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val draft = dao.getOrThrow(DRAFT, id)
+        if (draft.isNewDraft()) {
+            clearDuplicateReferences(id)
+        }
         val deletedVersion = super.deleteDraft(id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
+
+    @Transactional
+    fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
+        .fetchDuplicates(id, DRAFT, includeDeleted = true)
+        .map(dao::fetch)
+        .map(::draft)
+        .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
 
     override fun createDraft(item: LocationTrack) = draft(item)
 
@@ -383,7 +394,7 @@ class LocationTrackService(
             compareValues(
                 duplicateMValues[a.first], duplicateMValues[b.first]
             )
-        }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.name, track.externalId) }
+        }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.trackNumberId, track.name, track.externalId) }
     }
 
     private fun getDuplicateOf(
@@ -392,7 +403,7 @@ class LocationTrackService(
     ) = locationTrack.duplicateOf?.let { duplicateId ->
         get(publishType, duplicateId)?.let { dup ->
             LocationTrackDuplicate(
-                duplicateId, dup.name, dup.externalId
+                duplicateId, dup.trackNumberId, dup.name, dup.externalId
             )
         }
     }
@@ -418,16 +429,17 @@ class LocationTrackService(
         alignment: LayoutAlignment,
         startChanged: Boolean = false,
         endChanged: Boolean = false,
+        overlaidTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> = mapOf(),
     ): LocationTrack {
         val nearbyTracksAroundStart =
-            alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
+            (alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()
+            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
 
         val nearbyTracksAroundEnd =
-            alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
+            (alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()
+            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
 
         return calculateLocationTrackTopology(
             track, alignment, startChanged, endChanged, NearbyTracks(

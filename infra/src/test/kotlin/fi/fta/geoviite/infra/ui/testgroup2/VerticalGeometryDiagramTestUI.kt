@@ -50,7 +50,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
                         linearUnit = LinearUnit.METER,
                     ), alignments = listOf(
                         geometryAlignment(
-                            trackNumber, elements = listOf(
+                            elements = listOf(
                                 line(
                                     DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)
                                 )

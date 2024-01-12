@@ -13,9 +13,7 @@ private val LOCALIZATION_PARAMS_KEY_REGEX = Regex("[a-zA-Z0-9_\\s\\-]*")
 private val LOCALIZATION_PARAMS_PLACEHOLDER_REGEX = Regex("\\{\\{[a-zA-Z0-9_\\s\\-]*\\}\\}")
 
 data class LocalizationParams @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-constructor(@JsonValue val params: Map<String, Any?>) {
-    constructor(vararg params: Pair<String, Any?>) : this(mapOf(*params))
-
+constructor(@JsonValue val params: Map<String, String>) {
     init {
         require(params.none { LOCALIZATION_PARAMS_KEY_REGEX.matchEntire(it.key) == null }) {
             "There are localization keys that do not match with the localization pattern regex. Keys in question are ${
@@ -24,12 +22,17 @@ constructor(@JsonValue val params: Map<String, Any?>) {
         }
     }
 
-    fun get(key: String) = params[key]?.toString() ?: "" //Null values are treated as empty strings instead of "null"
+    fun get(key: String) = params[key] ?: ""
 
     companion object {
-        fun empty() = LocalizationParams()
+        fun empty() = LocalizationParams(mapOf())
     }
 }
+
+fun localizationParams(params: Map<String, Any?>): LocalizationParams =
+    LocalizationParams(params.mapValues { it.value?.toString() ?: "" })
+
+fun localizationParams(vararg params: Pair<String, Any?>): LocalizationParams = localizationParams(mapOf(*params))
 
 data class Translation(val lang: String, val localization: String) {
     private val jsonRoot = JsonMapper().readTree(localization)

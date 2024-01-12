@@ -1,9 +1,10 @@
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 
 export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
+export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
 export const validateLocationTrackName = (name: string): ValidationError<{ name: string }>[] => {
-    if (name && !name.match(ALIGNMENT_NAME_REGEX))
+    if (name && (!name.match(ALIGNMENT_NAME_REGEX) || name.length > ALIGNMENT_NAME_MAX_LENGTH)) {
         return [
             {
                 field: 'name',
@@ -11,7 +12,7 @@ export const validateLocationTrackName = (name: string): ValidationError<{ name:
                 type: ValidationErrorType.ERROR,
             },
         ];
-    if (name.trim() === '')
+    } else if (name.trim() === '') {
         return [
             {
                 field: 'name',
@@ -19,7 +20,9 @@ export const validateLocationTrackName = (name: string): ValidationError<{ name:
                 type: ValidationErrorType.ERROR,
             },
         ];
-    return [];
+    } else {
+        return [];
+    }
 };
 
 export const validateLocationTrackDescriptionBase = (

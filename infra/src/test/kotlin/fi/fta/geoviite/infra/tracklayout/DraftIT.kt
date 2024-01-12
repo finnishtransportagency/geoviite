@@ -315,18 +315,30 @@ class DraftIT @Autowired constructor(
     fun draftTypeOfNewDraftIsReturnedCorrectly() {
         val draft = draft(kmPost(null, someKmNumber()))
         assertEquals(draft.getDraftType(), DraftType.NEW_DRAFT)
+        assertFalse(draft.isOfficial())
+        assertTrue(draft.isDraft())
+        assertTrue(draft.isNewDraft())
+        assertFalse(draft.isEditedDraft())
     }
 
     @Test
     fun draftTypeOfOfficialIsReturnedCorrectly() {
         val official = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
         assertEquals(official.getDraftType(), DraftType.OFFICIAL)
+        assertTrue(official.isOfficial())
+        assertFalse(official.isDraft())
+        assertFalse(official.isNewDraft())
+        assertFalse(official.isEditedDraft())
     }
 
     @Test
     fun draftTypeOfChangedDraftIsReturnedCorrectly() {
         val edited = draft(insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber())))
         assertEquals(edited.getDraftType(), DraftType.EDITED_DRAFT)
+        assertFalse(edited.isOfficial())
+        assertTrue(edited.isDraft())
+        assertFalse(edited.isNewDraft())
+        assertTrue(edited.isEditedDraft())
     }
 
     private fun createReferenceLineAndAlignment(): Pair<ReferenceLine, LayoutAlignment> =

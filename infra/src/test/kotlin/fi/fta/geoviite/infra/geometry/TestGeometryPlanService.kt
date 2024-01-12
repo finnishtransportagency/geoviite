@@ -54,7 +54,7 @@ class TestGeometryPlanService @Autowired constructor(
 
 
         fun kmPost(name: String, location: Point): BuildGeometryPlan {
-            kmPosts.add(createGeometryKmPost(trackNumberId, DEFAULT_BASE_POINT + location, name))
+            kmPosts.add(createGeometryKmPost(DEFAULT_BASE_POINT + location, name))
             return this
         }
 
@@ -82,7 +82,6 @@ class TestGeometryPlanService @Autowired constructor(
             val builtAlignments = alignments.map { build ->
                 createGeometryAlignment(
                     alignmentName = build.name,
-                    trackNumberId = trackNumberId,
                     basePoint = DEFAULT_BASE_POINT + build.firstPoint,
                     incrementPoints = build.incrementPoints,
                     switchData = build.switchData,

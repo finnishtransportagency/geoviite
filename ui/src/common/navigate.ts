@@ -1,8 +1,12 @@
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { useNavigate } from 'react-router-dom';
+import { PublicationId } from 'preview/preview-table';
 
 const appPath = {
+    'frontpage': '/',
+    'publication-search': '/publications',
+    'publication-view': (id: PublicationId) => `/publications/${id}`,
     'inframodel-list': '/infra-model',
     'inframodel-upload': '/infra-model/upload',
     'inframodel-edit': (id: GeometryPlanId) => `/infra-model/edit/${id}`,

@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
@@ -582,61 +583,6 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun transitiveSearchForDraftSwitchAndLocationTrackChanges() {
-        val trackNumber = insertOfficialTrackNumber()
-
-        val switch1 = switchService.saveDraft(switch(123)).id
-        val switch2 = switchService.saveDraft(switch(234)).id
-        val switch3 = createOfficialAndDraftSwitch(345)
-        val distantSwitch = createOfficialAndDraftSwitch(456)
-
-        val track1BetweenSwitch1and2 = locationTrackAndAlignment(
-            trackNumber,
-            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(
-                startJointNumber = JointNumber(1), switchId = switch1
-            ),
-            segment(Point(1.0, 1.0), Point(2.0, 2.0)).copy(
-                endJointNumber = JointNumber(1), switchId = switch2
-            ),
-        )
-        val locationTrack1Id =
-            locationTrackService.saveDraft(track1BetweenSwitch1and2.first, track1BetweenSwitch1and2.second).id
-
-        val track2BetweenSwitch2and3 = locationTrackAndAlignment(
-            trackNumber, segment(Point(2.0, 2.0), Point(3.0, 3.0)).copy(
-                endJointNumber = JointNumber(1), switchId = switch3
-            )
-        )
-        val locationTrack2Id = locationTrackService.saveDraft(
-            track2BetweenSwitch2and3.first.copy(
-                topologyStartSwitch = TopologyLocationTrackSwitch(switch2, JointNumber(1))
-            ), track2BetweenSwitch2and3.second
-        ).id
-
-        val officialTrackBetweenSwitch3AndDistantSwitch = locationTrackAndAlignment(
-            trackNumber, segment(Point(3.0, 3.0), Point(4.0, 4.0)).copy(
-                startJointNumber = JointNumber(1), switchId = switch3
-            ), segment(Point(4.0, 4.0), Point(5.0, 5.0)).copy(
-                endJointNumber = JointNumber(1), switchId = distantSwitch
-            )
-        )
-        locationTrackDao.insert(
-            officialTrackBetweenSwitch3AndDistantSwitch.first.copy(
-                alignmentVersion = alignmentDao.insert(officialTrackBetweenSwitch3AndDistantSwitch.second)
-            )
-        ).id
-        val dependencies = publicationService.getRevertRequestDependencies(
-            publishRequest(switches = listOf(switch1))
-        )
-        assertEquals(
-            publishRequest(
-                locationTracks = listOf(locationTrack1Id, locationTrack2Id),
-                switches = listOf(switch1, switch2, switch3),
-            ), dependencies
-        )
-    }
-
-    @Test
     fun trackNumberAndReferenceLineChangesDependOnEachOther() {
         val trackNumber = insertDraftTrackNumber()
         val referenceLine = referenceLineService.saveDraft(referenceLine(trackNumber)).id
@@ -890,7 +836,7 @@ class PublicationServiceIT @Autowired constructor(
         }
         assertEquals("error.publication.duplicate-name-on.location-track", exception.localizedMessageKey.toString())
         assertEquals(
-            mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN")),
+            mapOf("locationTrack" to "LT", "trackNumber" to "TN"),
             exception.localizedMessageParams.params
         )
     }
@@ -1767,7 +1713,7 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun getTopologicalSwitchConnectionTestData(): TopologicalSwitchConnectionTestData {
         val topologyStartSwitch = createSwitchWithJoints(
-            name = "Topological switch connection start switch", jointPositions = listOf(
+            name = "Topological switch connection test start switch", jointPositions = listOf(
                 JointNumber(1) to Point(0.0, 0.0),
                 JointNumber(3) to Point(1.0, 0.0),
             )
@@ -1821,81 +1767,143 @@ class PublicationServiceIT @Autowired constructor(
         return validationResult.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == locationTrackId }
     }
 
+    private fun switchAlignmentNotConnectedTrackValidationError(locationTrackNames: String, switchName: String) =
+        PublishValidationError(
+            PublishValidationErrorType.WARNING,
+            "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
+            mapOf("locationTracks" to locationTrackNames, "switch" to switchName)
+        )
+
+    private fun switchNotPublishedError(switchName: String) = PublishValidationError(
+        PublishValidationErrorType.ERROR,
+        "validation.layout.location-track.switch.not-published",
+        mapOf("switch" to switchName)
+    )
+
+    private fun switchFrontJointNotConnectedError(switchName: String) = PublishValidationError(
+        PublishValidationErrorType.WARNING,
+        "validation.layout.location-track.switch-linkage.front-joint-not-connected",
+        mapOf("switch" to switchName)
+    )
+
+    private fun assertValidationErrorsForEach(
+        expecteds: List<List<PublishValidationError>>,
+        actuals: List<List<PublishValidationError>>,
+    ) {
+        assertEquals(expecteds.size, actuals.size, "size equals")
+        expecteds.forEachIndexed { i, expected ->
+            assertValidationErrorContentEquals(expected, actuals[i], i)
+        }
+    }
+
+    private fun assertValidationErrorContentEquals(expected: List<PublishValidationError>, actual: List<PublishValidationError>, index: Int) {
+        val allKeys = expected.map { it.localizationKey.toString() } + actual.map { it.localizationKey.toString() }
+        val commonPrefix = allKeys.reduce { acc, next -> acc.take(acc.zip(next) { a, b -> a == b }.takeWhile { it }.count()) }
+        fun cleanupKey(key: LocalizationKey) =
+            key.toString().let { key -> if (commonPrefix.length > 3) "...$key" else key }
+
+        assertEquals(
+            expected.map { cleanupKey(it.localizationKey) }.sorted(),
+            actual.map { cleanupKey(it.localizationKey) }.sorted(),
+            "same errors by localization key, index $index, ")
+
+        val expectedByKey = expected.groupBy { it.localizationKey }
+        val actualByKey = actual.groupBy { it.localizationKey }
+        expectedByKey.keys.forEach { key ->
+            assertEquals(expectedByKey[key]!!.map { it.params }, actualByKey[key]!!.map { it.params }, "params for key $key at index $index, ")
+            assertEquals(expectedByKey[key]!!.map { it.type }, actualByKey[key]!!.map { it.type }, "level for key $key at index $index, ")
+        }
+    }
+
+    private val topoTestDataContextOnLocationTrackValidationError = listOf(PublishValidationError(
+        PublishValidationErrorType.ERROR, "validation.layout.location-track.no-context", mapOf()
+    ))
+    private val topoTestDataStartSwitchNotPublishedError =
+        switchNotPublishedError("Topological switch connection test start switch")
+    private val topoTestDataStartSwitchJointsNotConnectedError = switchAlignmentNotConnectedTrackValidationError(
+        "1-5-2, 1-3", "Topological switch connection test start switch"
+    )
+    private val topoTestDataEndSwitchNotPublishedError =
+        switchNotPublishedError("Topological switch connection test end switch")
+    private val topoTestDataEndSwitchJointsNotConnectedError = switchAlignmentNotConnectedTrackValidationError(
+        "1-5-2, 1-3", "Topological switch connection test end switch"
+    )
+    private val topoTestDataEndSwitchFrontJointNotConnectedError =
+        switchFrontJointNotConnectedError("Topological switch connection test end switch")
+
     @Test
     fun `Location track validation should fail for unofficial and unstaged topologically linked switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val expectedValidationErrors = 1 // Unverified, but expected geocoding error.
-
-        val singleTopologicallyConnectedSwitchValidationErrors = 1
-        val doubleTopologicallyConnectedSwitchValidationErrors = 2
-
-        topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
-            val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size
-
-            when {
-                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
-                    expectedValidationErrors, validationErrorAmount
-                )
-
-                lt.topologyStartSwitch == null -> assertEquals(
-                    expectedValidationErrors + singleTopologicallyConnectedSwitchValidationErrors, validationErrorAmount
-                )
-
-                lt.topologyEndSwitch == null -> assertEquals(
-                    expectedValidationErrors + singleTopologicallyConnectedSwitchValidationErrors, validationErrorAmount
-                )
-
-                else -> assertEquals(
-                    expectedValidationErrors + doubleTopologicallyConnectedSwitchValidationErrors, validationErrorAmount
-                )
-            }
+        val noStart = listOf(
+            topoTestDataStartSwitchNotPublishedError,
+            topoTestDataStartSwitchJointsNotConnectedError,
+            // no error about no track continuing from the front joint, because a track in fact does continue from it
+        )
+        val noEnd = listOf(
+            topoTestDataEndSwitchNotPublishedError,
+            topoTestDataEndSwitchJointsNotConnectedError,
+            topoTestDataEndSwitchFrontJointNotConnectedError,
+        )
+        val expected = listOf(
+            topoTestDataContextOnLocationTrackValidationError,
+            topoTestDataContextOnLocationTrackValidationError + noStart,
+            topoTestDataContextOnLocationTrackValidationError + noEnd,
+            topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
+        )
+        val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
+            getLocationTrackValidationResult(locationTrackId)!!.errors
         }
+        assertValidationErrorsForEach(expected, actual)
     }
 
     @Test
     fun `Location track validation should succeed for unofficial, but staged topologically linked switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val expectedValidationErrors = 1 // Unverified, but expected geocoding error.
-
-        topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
-            val validationErrorAmount = getLocationTrackValidationResult(
-                locationTrackId,
-                topologyTestData.switchIdsUnderTest,
-            )?.errors?.size
-
-            when {
-                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
-                    expectedValidationErrors, validationErrorAmount
-                )
-
-                lt.topologyStartSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
-                lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
-                else -> assertEquals(expectedValidationErrors, validationErrorAmount)
-            }
+        val noStart = listOf(
+            topoTestDataStartSwitchJointsNotConnectedError,
+            // no error about no track continuing from the front joint, because a track in fact does continue from it
+        )
+        val noEnd = listOf(
+            topoTestDataEndSwitchJointsNotConnectedError,
+            topoTestDataEndSwitchFrontJointNotConnectedError,
+        )
+        val expected =  listOf(
+            topoTestDataContextOnLocationTrackValidationError,
+            topoTestDataContextOnLocationTrackValidationError + noStart,
+            topoTestDataContextOnLocationTrackValidationError + noEnd,
+            topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
+        )
+        val actual =  topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
+            getLocationTrackValidationResult(locationTrackId, topologyTestData.switchIdsUnderTest,)!!.errors
         }
+
+        assertValidationErrorsForEach(expected, actual)
     }
 
     @Test
     fun `Location track validation should succeed for topologically linked official switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val expectedValidationErrors = 1 // Unverified, but expected geocoding error.
+
+        val noStart = listOf(
+            topoTestDataStartSwitchJointsNotConnectedError,
+            // no error about no track continuing from the front joint, because a track in fact does continue from it
+        )
+        val noEnd = listOf(
+            topoTestDataEndSwitchJointsNotConnectedError,
+            topoTestDataEndSwitchFrontJointNotConnectedError,
+        )
+        val expected = listOf(
+            topoTestDataContextOnLocationTrackValidationError,
+            topoTestDataContextOnLocationTrackValidationError + noStart,
+            topoTestDataContextOnLocationTrackValidationError + noEnd,
+            topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
+        )
 
         publish(publicationService, switches = topologyTestData.switchIdsUnderTest)
-
-        topologyTestData.locationTracksUnderTest.forEach { (locationTrackId, lt) ->
-            val validationErrorAmount = getLocationTrackValidationResult(locationTrackId)?.errors?.size
-
-            when {
-                lt.topologyStartSwitch == null && lt.topologyEndSwitch == null -> assertEquals(
-                    expectedValidationErrors, validationErrorAmount
-                )
-
-                lt.topologyStartSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
-                lt.topologyEndSwitch == null -> assertEquals(expectedValidationErrors, validationErrorAmount)
-
-                else -> assertEquals(expectedValidationErrors, validationErrorAmount)
-            }
+        val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
+            getLocationTrackValidationResult(locationTrackId)!!.errors
         }
+        assertValidationErrorsForEach(expected, actual)
     }
 
     @Test
@@ -1949,7 +1957,8 @@ class PublicationServiceIT @Autowired constructor(
             switchValidation, PublishValidationError(
                 PublishValidationErrorType.WARNING,
                 "validation.layout.switch.track-linkage.multiple-tracks-through-joint",
-                mapOf("locationTracks" to "3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})")
+                mapOf("locationTracks" to "3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})",
+                    "switch" to "TV123")
             )
         )
     }
@@ -1992,8 +2001,8 @@ class PublicationServiceIT @Autowired constructor(
         assertContains(
             errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment), PublishValidationError(
                 PublishValidationErrorType.WARNING,
-                "validation.layout.switch.track-linkage.front-joint-not-connected",
-                emptyMap()
+                LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected"),
+                LocalizationParams(mapOf("switch" to "TV123")),
             )
         )
 
@@ -2008,7 +2017,7 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.WARNING,
                 "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected",
-                emptyMap()
+                mapOf("switch" to "TV123")
             )
         )
 
@@ -2022,6 +2031,139 @@ class PublicationServiceIT @Autowired constructor(
             e.localizationKey.contains("validation.layout.switch.track-linkage.front-joint-not-connected") || e.localizationKey.contains(
                 "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected"
             )
+        })
+    }
+
+    @Test
+    fun `Location track validation catches only switch topology errors related to its own changes`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val switchId = switchService.saveDraft(
+            switch(
+                123,
+                switchStructureYV60_300_1_9().id as IntId,
+            ).copy(stateCategory = LayoutStateCategory.EXISTING)
+        ).id
+        val officialTrackOn152 = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId, alignmentVersion = alignmentDao.insert(
+                    alignment(
+                        segment(Point(0.0, 5.0), Point(0.0, 0.0)),
+                        segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
+                            switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)
+                        ),
+                        segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
+                            switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)
+                        ),
+                    )
+                )
+            )
+        )
+        val officialTrackOn13 = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId, alignmentVersion = alignmentDao.insert(
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(10.0, 2.0)).copy(
+                            switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(3)
+                        ),
+                    )
+                )
+            )
+        )
+        locationTrackService.saveDraft(
+            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LayoutState.DELETED)
+        )
+        locationTrackService.saveDraft(
+            locationTrackDao.fetch(officialTrackOn13.rowVersion).copy(state = LayoutState.DELETED)
+        )
+
+        val errorsWhenDeletingStraightTrack = publicationService.validatePublishCandidates(
+            publicationService.collectPublishCandidates(), publishRequestIds(
+                locationTracks = listOf(officialTrackOn152.id)
+            )
+        ).validatedAsPublicationUnit.locationTracks[0].errors
+        assertTrue(errorsWhenDeletingStraightTrack.any { error ->
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
+                    error.params.get("locationTracks") == "1-5-2" && error.params.get("switch") == "TV123"
+        })
+        assertTrue(errorsWhenDeletingStraightTrack.any { error ->
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") &&
+                    error.params.get("switch") == "TV123"
+        })
+
+        val errorsWhenDeletingBranchingTrack = publicationService.validatePublishCandidates(
+            publicationService.collectPublishCandidates(), publishRequestIds(
+                locationTracks = listOf(officialTrackOn13.id)
+            )
+        ).validatedAsPublicationUnit.locationTracks[0].errors
+        assertTrue(errorsWhenDeletingBranchingTrack.any { error ->
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
+                    error.params.get("locationTracks") == "1-3" && error.params.get("switch") == "TV123"
+        })
+        assertFalse(errorsWhenDeletingBranchingTrack.any { error ->
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") })
+    }
+
+    @Test
+    fun `Location track validation catches track removal causing switches to go unlinked`() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val switchId = switchService.saveDraft(
+            switch(
+                123,
+                switchStructureYV60_300_1_9().id as IntId,
+            ).copy(stateCategory = LayoutStateCategory.EXISTING)
+        ).id
+        val officialTrackOn152 = locationTrackDao.insert(
+            locationTrack(
+                trackNumberId, alignmentVersion = alignmentDao.insert(
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
+                            switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)
+                        ),
+                        segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
+                            switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)
+                        ),
+                    )
+                )
+            )
+        )
+        locationTrackService.saveDraft(
+            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LayoutState.DELETED)
+        )
+        locationTrackDao.insert(
+            locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(alignment(
+                segment(Point(0.0, 0.0), Point(10.0, 2.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(3)
+                ),
+            )
+        )))
+
+        val locationTrackDeletionErrors = publicationService.validatePublishCandidates(
+            publicationService.collectPublishCandidates(), publishRequestIds(
+                locationTracks = listOf(officialTrackOn152.id)
+            )
+        ).validatedAsPublicationUnit.locationTracks[0].errors
+        assertTrue(locationTrackDeletionErrors.any { error ->
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
+                    error.params.get("locationTracks") == "1-5-2" && error.params.get("switch") == "TV123"
+        })
+        // but it's OK if we link a replacement track
+        val replacementTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId), alignment(
+                segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)
+                ),
+                segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
+                    switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)
+                ),
+            )
+        )
+        val errorsWithReplacementTrackLinked = publicationService.validatePublishCandidates(
+            publicationService.collectPublishCandidates(), publishRequestIds(
+                locationTracks = listOf(officialTrackOn152.id, replacementTrack.id)
+            )
+        ).validatedAsPublicationUnit.locationTracks[0].errors
+        assertFalse(errorsWithReplacementTrackLinked.any { error ->
+            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
         })
     }
 }

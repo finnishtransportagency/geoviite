@@ -45,6 +45,7 @@ enum class TopologicalConnectivityType {
 
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val name: AlignmentName,
     val externalId: Oid<LocationTrack>?,
 )

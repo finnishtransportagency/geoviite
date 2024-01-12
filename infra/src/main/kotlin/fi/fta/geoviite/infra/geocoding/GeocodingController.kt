@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -25,7 +25,7 @@ class GeocodingController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/address/{trackNumberId}")
     fun getTrackAddress(
         @PathVariable("publishType") publishType: PublishType,
@@ -36,7 +36,7 @@ class GeocodingController(
         return toResponse(geocodingService.getAddressIfWithin(publishType, trackNumberId, coordinate))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/location/{locationTrackId}")
     fun getTrackPoint(
         @PathVariable("locationTrackId") locationTrackId: IntId<LocationTrack>,
@@ -46,7 +46,7 @@ class GeocodingController(
         return toResponse(locationTrackService.getTrackPoint(OFFICIAL, locationTrackId, address))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/address-pointlist/{alignmentId}")
     fun getAlignmentAddressPoints(
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,

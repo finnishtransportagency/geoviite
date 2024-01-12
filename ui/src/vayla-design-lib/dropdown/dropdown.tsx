@@ -81,6 +81,7 @@ export const Dropdown = function <TItemValue>({
     const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
+    const [searchCommitted, setSearchTermCommitted] = React.useState(false);
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
 
@@ -146,6 +147,7 @@ export const Dropdown = function <TItemValue>({
     function select(value: TItemValue | undefined) {
         props.onChange && props.onChange(value);
         closeList();
+        setSearchTermCommitted(false);
         searchFor('');
     }
 
@@ -180,6 +182,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputChange(value: string) {
         if (searchable) {
+            setSearchTermCommitted(true);
             searchFor(value);
             setOptionFocusIndex(0);
         }
@@ -284,7 +287,7 @@ export const Dropdown = function <TItemValue>({
                 }
             }
         }
-    }, [open]);
+    }, [open, optionFocusIndex]);
 
     // When options change, update option focus index
     React.useEffect(() => {
@@ -324,7 +327,7 @@ export const Dropdown = function <TItemValue>({
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
-                        value={searchTerm || selectedName}
+                        value={searchCommitted ? searchTerm : selectedName}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder={props.placeholder}
                     />

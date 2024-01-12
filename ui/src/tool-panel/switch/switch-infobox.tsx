@@ -10,7 +10,7 @@ import {
     SwitchJointTrackMeter,
 } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { makeSwitchImage } from 'geoviite-design-lib/switch/switch-icons';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -324,7 +324,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         </InfoboxButtons>
                     </WriteAccessRequired>
                     {placingSwitchLinkingState && (
-                        <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
+                        <InfoboxContentSpread>
+                            <MessageBox>
+                                {t('tool-panel.switch.layout.switch-placing-help')}
+                            </MessageBox>
+                        </InfoboxContentSpread>
                     )}
                 </InfoboxContent>
             </Infobox>

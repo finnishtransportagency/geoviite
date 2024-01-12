@@ -68,16 +68,18 @@ class LayoutSwitchService @Autowired constructor(
     }
 
     @Transactional
-    fun deleteDraftSwitch(switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
-        logger.serviceCall("deleteDraftSwitch", "switchId" to switchId)
-        clearSwitchInformationFromSegments(switchId)
-        return deleteDraft(switchId).id
+    override fun deleteDraft(id: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
+        val draft = dao.getOrThrow(DRAFT, id)
+        if (draft.isNewDraft()) {
+            clearSwitchInformationFromSegments(id)
+        }
+        return super.deleteDraft(id)
     }
 
     @Transactional
     fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
         getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
-            val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
+            val (updatedLocationTrack, updatedAlignment) = clearLinksToSwitch(
                 locationTrack,
                 alignment,
                 layoutSwitchId,
@@ -222,7 +224,7 @@ fun <T> compareByDistanceNullsFirst(
     }
 }
 
-fun clearSwitchInformationFromSegments(
+fun clearLinksToSwitch(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     layoutSwitchId: IntId<TrackLayoutSwitch>,

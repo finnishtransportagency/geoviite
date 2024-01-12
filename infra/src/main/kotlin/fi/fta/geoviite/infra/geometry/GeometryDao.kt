@@ -20,9 +20,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
-import fi.fta.geoviite.infra.publication.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -538,27 +536,27 @@ class GeometryDao @Autowired constructor(
     private fun insertKmPosts(kmPostParams: List<Map<String, Any?>>) {
         val sql = """
             insert into geometry.km_post(
-              track_number_id, 
               km_post_index,
               plan_id,
-              sta_back, 
-              sta_ahead, 
-              sta_internal, 
-              km_number, 
+              sta_back,
+              sta_ahead,
+              sta_internal,
+              km_number,
               description,
               location,
-              state)
+              state
+            )
             values (
-             :track_number_id, 
-             :km_post_index, 
-             :plan_id,
-             :sta_back, 
-             :sta_ahead, 
-             :sta_internal, 
-             :km_number, 
-             :description,
-             postgis.st_point(:x, :y),
-             :state::geometry.plan_state)
+              :km_post_index,
+              :plan_id,
+              :sta_back,
+              :sta_ahead,
+              :sta_internal,
+              :km_number,
+              :description,
+              postgis.st_point(:x, :y),
+              :state::geometry.plan_state
+            )
             """
         jdbcTemplate.batchUpdate(sql, kmPostParams.toTypedArray())
     }
@@ -569,7 +567,6 @@ class GeometryDao @Autowired constructor(
     ): List<Map<String, Any?>> {
         return kmPosts.mapIndexed { index, kmPost ->
             mapOf(
-                "track_number_id" to kmPost.trackNumberId?.intValue,
                 "km_post_index" to index,
                 "plan_id" to planId.intValue,
                 "sta_back" to kmPost.staBack,
@@ -1076,7 +1073,7 @@ class GeometryDao @Autowired constructor(
     ): List<GeometryAlignment> {
         val sql = """
             select 
-              alignment.id, alignment.track_number_id, alignment.oid_part, 
+              alignment.id, alignment.oid_part, 
               alignment.name, alignment.state, alignment.description,
               alignment.sta_start,
               alignment.profile_name,
@@ -1086,7 +1083,7 @@ class GeometryDao @Autowired constructor(
             from geometry.alignment 
             where (:plan_id::int is null or alignment.plan_id = :plan_id)
               and (:alignment_id::int is null or alignment.id = :alignment_id)
-            order by alignment.track_number_id, alignment.id
+            order by alignment.id
         """.trimIndent()
         return jdbcTemplate.query(
             sql, mapOf("plan_id" to planId?.intValue, "alignment_id" to geometryAlignmentId?.intValue)
@@ -1097,7 +1094,6 @@ class GeometryDao @Autowired constructor(
             val featureTypeCode = rs.getFeatureTypeCodeOrNull("feature_type_code")
             GeometryAlignment(
                 id = alignmentId,
-                trackNumberId = rs.getIntIdOrNull("track_number_id"),
                 name = AlignmentName(rs.getString("name")),
                 description = rs.getFreeTextOrNull("description"),
                 oidPart = rs.getFreeTextOrNull("oid_part"),
@@ -1192,7 +1188,6 @@ class GeometryDao @Autowired constructor(
         val sql = """
             select
               km_post.id,
-              km_post.track_number_id, 
               km_post.km_post_index, 
               km_post.sta_back, 
               km_post.sta_ahead,
@@ -1212,7 +1207,6 @@ class GeometryDao @Autowired constructor(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             GeometryKmPost(
                 id = rs.getIntId("id"),
-                trackNumberId = rs.getIntIdOrNull("track_number_id"),
                 staBack = rs.getBigDecimal("sta_back"),
                 staAhead = rs.getBigDecimal("sta_ahead"),
                 staInternal = rs.getBigDecimal("sta_internal"),
@@ -1347,58 +1341,6 @@ class GeometryDao @Autowired constructor(
                 )
             }
         }
-    }
-
-    @Transactional
-    fun removeReferencesToTrackNumber(id: IntId<TrackLayoutTrackNumber>): RemovedTrackNumberReferenceIds {
-        return RemovedTrackNumberReferenceIds(
-            kmPostIds = removeKmPostReferenceToTrackNumber(id),
-            alignmentIds = removeAlignmentReferenceToTrackNumber(id),
-            planIds = removePlanReferenceToTrackNumber(id)
-        )
-    }
-
-    private fun removeKmPostReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryKmPost>> {
-        val sql = """
-          update geometry.km_post
-          set track_number_id = null 
-          where track_number_id = :id
-          returning id as km_post_id
-        """.trimIndent()
-
-        return jdbcTemplate.query<IntId<GeometryKmPost>>(
-            sql, mapOf("id" to id.intValue)
-        ) { rs, _ -> IntId(rs.getInt("km_post_id")) }
-            .also { ids -> logger.daoAccess(UPDATE, GeometryKmPost::class, ids) }
-    }
-
-
-    private fun removeAlignmentReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryAlignment>> {
-        val sql = """
-          update geometry.alignment
-          set track_number_id = null 
-          where track_number_id = :id
-          returning id as alignment_id
-        """.trimIndent()
-
-        return jdbcTemplate.query<IntId<GeometryAlignment>>(
-            sql, mapOf("id" to id.intValue)
-        ) { rs, _ -> IntId(rs.getInt("alignment_id")) }
-            .also { ids -> logger.daoAccess(UPDATE, GeometryAlignment::class, ids) }
-
-    }
-
-    private fun removePlanReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryPlan>> {
-        val sql = """
-          update geometry.plan
-          set track_number_id = null 
-          where track_number_id = :id
-          returning id as plan_id
-        """.trimIndent()
-
-        return jdbcTemplate.query<IntId<GeometryPlan>>(
-            sql, mapOf("id" to id.intValue)
-        ) { rs, _ -> IntId(rs.getInt("plan_id")) }.also { ids -> logger.daoAccess(UPDATE, GeometryPlan::class, ids) }
     }
 
     private fun getElementData(rs: ResultSet): ElementData {

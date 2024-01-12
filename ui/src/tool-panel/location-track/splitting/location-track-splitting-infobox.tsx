@@ -438,7 +438,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                     disabled ||
                                     anyMissingFields ||
                                     anyOtherErrors ||
-                                    splits.length < 2
+                                    splits.length < 1
                                 }>
                                 {t('tool-panel.location-track.splitting.confirm-split')}
                             </Button>

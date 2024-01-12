@@ -12,8 +12,8 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
-import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
@@ -163,10 +163,11 @@ class PublicationService @Autowired constructor(
         )
 
         val cacheKeys = collectCacheKeys(versions)
+        val switchTrackLinks = collectSwitchTrackLinks(versions, if (publishType == DRAFT) null else listOf())
 
         return ValidatedAsset(
             validateLocationTrack(
-                version = toValidationVersion(locationTrack), validationVersions = versions, cacheKeys = cacheKeys
+                version = toValidationVersion(locationTrack), validationVersions = versions, cacheKeys = cacheKeys, switchTrackLinks = switchTrackLinks
             ),
             locationTrackId,
         )
@@ -193,8 +194,9 @@ class PublicationService @Autowired constructor(
             switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
-        val linkedTracks =
-            publicationDao.fetchLinkedLocationTracks(switchIds, DRAFT).mapValues { (_, tracks) -> tracks.toSet() }
+        val linkedTracks = publicationDao
+            .fetchLinkedLocationTracks(switchIds, if (publishType == DRAFT) null else listOf())
+            .mapValues { (_, tracks) -> tracks.toSet() }
         val allOfficialSwitches = switchService.list(OFFICIAL)
         return switches.map { switch ->
             ValidatedAsset(
@@ -255,11 +257,7 @@ class PublicationService @Autowired constructor(
         val versions = candidates.getValidationVersions()
         val cacheKeys = collectCacheKeys(versions)
         precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
-        // TODO: This does not respect the candidate versions
-        val switchTrackLinks = publicationDao.fetchLinkedLocationTracks(
-            candidates.switches.map { s -> s.id },
-            DRAFT,
-        )
+        val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
                 candidate.copy(errors = validateTrackNumber(candidate.getPublicationVersion(), versions, cacheKeys))
@@ -268,14 +266,21 @@ class PublicationService @Autowired constructor(
                 candidate.copy(errors = validateReferenceLine(candidate.getPublicationVersion(), versions, cacheKeys))
             },
             locationTracks = candidates.locationTracks.map { candidate ->
-                candidate.copy(errors = validateLocationTrack(candidate.getPublicationVersion(), versions, cacheKeys))
+                candidate.copy(
+                    errors = validateLocationTrack(
+                        candidate.getPublicationVersion(),
+                        versions,
+                        cacheKeys,
+                        switchTrackLinks
+                    )
+                )
             },
             switches = candidates.switches.map { candidate ->
                 candidate.copy(
                     errors = validateSwitch(
                         candidate.getPublicationVersion(),
                         versions,
-                        switchTrackLinks.getOrDefault(candidate.id, setOf()),
+                        switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
                     )
                 )
             },
@@ -300,6 +305,7 @@ class PublicationService @Autowired constructor(
     fun validatePublishRequest(versions: ValidationVersions) {
         logger.serviceCall("validatePublishRequest", "versions" to versions)
         val cacheKeys = collectCacheKeys(versions)
+        val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
         versions.trackNumbers.forEach { version ->
             assertNoErrors(version, validateTrackNumber(version, versions, cacheKeys))
         }
@@ -310,87 +316,68 @@ class PublicationService @Autowired constructor(
             assertNoErrors(version, validateReferenceLine(version, versions, cacheKeys))
         }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(version, validateLocationTrack(version, versions, cacheKeys))
+            assertNoErrors(version, validateLocationTrack(version, versions, cacheKeys, switchTrackLinks))
         }
-        // TODO: This does not respect the validation versions
-        val switchTrackLinks =
-            publicationDao.fetchLinkedLocationTracks(versions.switches.map { v -> v.officialId }, DRAFT)
+
         versions.switches.forEach { version ->
             assertNoErrors(
                 version,
-                validateSwitch(version, versions, switchTrackLinks.getOrDefault(version.officialId, setOf())),
+                validateSwitch(
+                    version,
+                    versions,
+                    switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(version.officialId, setOf())
+                ),
             )
         }
+    }
+
+    data class SwitchTrackLinks(
+        val switchIdsByTrackBeforeOrAfterPublication: Map<IntId<LocationTrack>, List<IntId<TrackLayoutSwitch>>>,
+        val trackVersionsBySwitchAfterPublication:  Map<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>>,
+    )
+
+    private fun collectSwitchTrackLinks(
+        versions: ValidationVersions,
+        trackIdsInPublicationUnit: List<IntId<LocationTrack>>?,
+    ): SwitchTrackLinks {
+        val switchIdsInPublicationUnit = versions.switches.map { v -> v.officialId }
+        val linkedSwitchIds =
+            publicationDao.fetchLinkedSwitchesBeforeOrAfterPublication(versions.locationTracks.map { v -> v.officialId })
+        val allSwitchesForValidation = (switchIdsInPublicationUnit + linkedSwitchIds.values.flatten()).distinct()
+        val trackLinks = publicationDao.fetchLinkedLocationTracks(allSwitchesForValidation, trackIdsInPublicationUnit)
+        return SwitchTrackLinks(linkedSwitchIds, trackLinks)
     }
 
     @Transactional(readOnly = true)
-    fun getRevertRequestDependencies(publishRequestIds: PublishRequestIds): PublishRequestIds {
-        logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to publishRequestIds)
+    fun getRevertRequestDependencies(requestIds: PublishRequestIds): PublishRequestIds {
+        logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to requestIds)
 
-        val draftOnlyTrackNumbers = (publishRequestIds.referenceLines.mapNotNull { id ->
-            referenceLineService.get(DRAFT, id)?.trackNumberId?.let { trackNumberId ->
-                if (!trackNumberService.officialExists(trackNumberId)) trackNumberId else null
-            }
-        } + publishRequestIds.trackNumbers.filterNot { id -> trackNumberDao.officialExists(id) }).toSet()
-        val locationTracks = publishRequestIds.locationTracks.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
-            locationTrackDao.fetchOnlyDraftVersions(false, trackNumberId)
-        }.map { lt -> lt.id }
-        val kmPosts = publishRequestIds.kmPosts.toSet() + draftOnlyTrackNumbers.flatMap { trackNumberId ->
-            kmPostDao.fetchOnlyDraftVersions(false, trackNumberId)
+        val referenceLineTrackNumberIds = referenceLineService.getMany(DRAFT, requestIds.referenceLines).map { rlId ->
+            rlId.trackNumberId
+        }
+        val trackNumbers = trackNumberService.getMany(DRAFT, referenceLineTrackNumberIds + requestIds.trackNumbers)
+        val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
+        val draftOnlyTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isNewDraft).map { it.id as IntId }
+
+        val revertLocationTrackIds = requestIds.locationTracks.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
+            locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
+        }.map(RowVersion<LocationTrack>::id)
+
+        val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
+            kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map { kp -> kp.id }
 
-        val switches = publishRequestIds.switches.toSet()
-        val (allLocationTracks, allSwitches) = getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-            locationTracks, locationTracks, switches, switches
-        )
-        val trackNumbers = (publishRequestIds.trackNumbers + publishRequestIds.referenceLines.mapNotNull { id ->
-            referenceLineService.get(DRAFT, id)
-        }.map { rl -> rl.trackNumberId }.filter(trackNumberService::draftExists)).distinct()
-        val referenceLines = (publishRequestIds.referenceLines + publishRequestIds.trackNumbers.mapNotNull { id ->
-            referenceLineService.getByTrackNumber(DRAFT, id)
-        }.filter { line -> line.draft != null }.map { line -> line.id as IntId }).distinct()
+        val referenceLines = requestIds.referenceLines.toSet() + requestIds.trackNumbers.mapNotNull { tnId ->
+            referenceLineService.getByTrackNumber(DRAFT, tnId)
+        }.filter(ReferenceLine::isDraft).map { line -> line.id as IntId }
 
         return PublishRequestIds(
-            trackNumbers = trackNumbers,
-            referenceLines = referenceLines,
-            locationTracks = allLocationTracks.toList(),
-            switches = allSwitches.toList(),
-            kmPosts = kmPosts.toList()
+            trackNumbers = revertTrackNumberIds.toList(),
+            referenceLines = referenceLines.toList(),
+            locationTracks = revertLocationTrackIds.toList(),
+            switches = requestIds.switches.distinct(),
+            kmPosts = revertKmPostIds.toList()
         )
-    }
-
-    private fun getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-        allPreviouslyFoundLocationTracks: Set<IntId<LocationTrack>>,
-        lastLevelLocationTracks: Set<IntId<LocationTrack>>,
-        allPreviouslyFoundSwitches: Set<IntId<TrackLayoutSwitch>>,
-        lastLevelSwitches: Set<IntId<TrackLayoutSwitch>>,
-    ): Pair<Set<IntId<LocationTrack>>, Set<IntId<TrackLayoutSwitch>>> {
-        val locationTracks = lastLevelLocationTracks.mapNotNull { id ->
-            locationTrackService.getWithAlignment(DRAFT, id)
-        }
-
-        val newSwitches = locationTracks
-            .flatMap { (locationTrack, alignment) -> getConnectedSwitchIds(locationTrack, alignment) }
-            .subtract(allPreviouslyFoundSwitches)
-            .filterTo(HashSet(), switchService::draftExists)
-
-        val newLocationTracks = lastLevelSwitches
-            .flatMap { switchId -> switchService.getSwitchJointConnections(DRAFT, switchId) }
-            .flatMap { connections -> connections.accurateMatches }
-            .map { match -> match.locationTrackId }
-            .subtract(allPreviouslyFoundLocationTracks)
-            .filterTo(HashSet(), locationTrackService::draftExists)
-
-        return if (newSwitches.isNotEmpty() || newLocationTracks.isNotEmpty()) {
-            getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-                allPreviouslyFoundLocationTracks + newLocationTracks,
-                newLocationTracks,
-                allPreviouslyFoundSwitches + newSwitches,
-                newSwitches
-            )
-        } else {
-            (allPreviouslyFoundLocationTracks + newLocationTracks) to (allPreviouslyFoundSwitches + newSwitches)
-        }
     }
 
     @Transactional
@@ -401,10 +388,7 @@ class PublicationService @Autowired constructor(
         alignmentDao.deleteOrphanedAlignments()
         val switchCount = toDelete.switches.map { id -> switchService.deleteDraft(id) }.size
         val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteDraft(id) }.size
-        val trackNumberCount = toDelete.trackNumbers.map { id ->
-            geometryDao.removeReferencesToTrackNumber(id)
-            trackNumberService.deleteDraft(id)
-        }.size
+        val trackNumberCount = toDelete.trackNumbers.map { id -> trackNumberService.deleteDraft(id) }.size
 
         return PublishResult(
             publishId = null,
@@ -686,6 +670,7 @@ class PublicationService @Autowired constructor(
         version: ValidationVersion<LocationTrack>,
         validationVersions: ValidationVersions,
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
+        switchTrackLinks: SwitchTrackLinks,
     ): List<PublishValidationError> {
         val (locationTrack, alignment) = getLocationTrackAndAlignment(version.validatedAssetVersion)
         val trackNumber = getTrackNumber(locationTrack.trackNumberId, validationVersions)
@@ -700,10 +685,12 @@ class PublicationService @Autowired constructor(
             getSegmentSwitches(alignment, validationVersions),
             validationVersions.switches.map { it.officialId },
         )
-        val switchErrorsTopological = validateTopologicallyConnectedSwitchReferences(
+        val topologicallyConnectedSwitchError = validateTopologicallyConnectedSwitchReferences(
             getTopologicallyConnectedSwitches(locationTrack, validationVersions),
             validationVersions.switches.map { it.officialId },
         )
+        val trackNetworkTopologyErrors =
+            validateLocationTrackTopologicalConnectivity(version, locationTrack, validationVersions, switchTrackLinks)
         val duplicateErrors = validateDuplicateOf(version, locationTrack, validationVersions)
         val alignmentErrors = if (locationTrack.exists) validateLocationTrackAlignment(alignment)
         else listOf()
@@ -716,7 +703,30 @@ class PublicationService @Autowired constructor(
             locationTrack, validationVersions
         ) else listOf()
 
-        return fieldErrors + referenceErrors + switchErrorsSegments + switchErrorsTopological + duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors
+        return fieldErrors + referenceErrors + switchErrorsSegments + topologicallyConnectedSwitchError +
+                duplicateErrors + alignmentErrors + geocodingErrors + duplicateNameErrors + trackNetworkTopologyErrors
+    }
+
+    private fun validateLocationTrackTopologicalConnectivity(
+        version: ValidationVersion<LocationTrack>,
+        validatingTrack: LocationTrack,
+        validationVersions: ValidationVersions,
+        switchTrackLinks: SwitchTrackLinks,
+    ): List<PublishValidationError> {
+        return switchTrackLinks.switchIdsByTrackBeforeOrAfterPublication
+            .getOrDefault(version.officialId, listOf())
+            .map { switchId -> getSwitchForValidation(switchId, validationVersions) }
+            .filter(TrackLayoutSwitch::exists)
+            .flatMap { switch ->
+                val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
+                val locationTracks = switchTrackLinks.trackVersionsBySwitchAfterPublication
+                    .getOrDefault(switch.id, listOf())
+                    .mapNotNull { locationTrackVersion ->
+                        val track = locationTrackDao.fetch(locationTrackVersion)
+                        track.alignmentVersion?.let(alignmentDao::fetch)?.let { track to it }
+                    }
+                validateSwitchTopologicalConnectivity(switch, structure, locationTracks, validatingTrack)
+            }
     }
 
     private fun validateDuplicateOf(
@@ -727,7 +737,7 @@ class PublicationService @Autowired constructor(
         val duplicatesAfterPublication = locationTrackDao
             .fetchDuplicates(version.officialId)
             .map(locationTrackDao::fetch)
-            .mapNotNull { duplicate -> fetchRelevantTrackVersionForDuplicateCheck(validationVersions, duplicate) }
+            .mapNotNull { duplicate -> fetchPostPublicationVersion(validationVersions, duplicate) }
             .filter { potentialDuplicate -> potentialDuplicate.duplicateOf == version.officialId }
 
         val duplicateOf = locationTrack.duplicateOf?.let { duplicateId ->
@@ -741,20 +751,20 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    private fun fetchRelevantTrackVersionForDuplicateCheck(
+    private fun fetchPostPublicationVersion(
         validationVersions: ValidationVersions,
         track: LocationTrack,
     ): LocationTrack? {
         val trackIsInPublicationUnit =
             validationVersions.locationTracks.any { validationVersion -> validationVersion.officialId == track.id }
 
-        return if (trackIsInPublicationUnit && track.getDraftType() == DraftType.OFFICIAL) locationTrackDao
-            .fetchVersion(track.id as IntId, DRAFT)
-            ?.let(locationTrackDao::fetch) ?: track
-        else if (!trackIsInPublicationUnit && track.getDraftType() == DraftType.EDITED_DRAFT) locationTrackDao
-            .fetchVersion(track.id as IntId, OFFICIAL)
-            ?.let(locationTrackDao::fetch)
-        else track
+        return if (trackIsInPublicationUnit && track.isOfficial()) {
+            locationTrackDao.fetchVersion(track.id as IntId, DRAFT)?.let(locationTrackDao::fetch) ?: track
+        } else if (!trackIsInPublicationUnit && track.isEditedDraft()) {
+            locationTrackDao.fetchVersion(track.id as IntId, OFFICIAL)?.let(locationTrackDao::fetch)
+        } else {
+            track
+        }
     }
 
     private fun validateLocationTrackNameDuplication(
@@ -1244,7 +1254,7 @@ class PublicationService @Autowired constructor(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
             val jointPropKeyParams =
-                LocalizationParams("trackNumber" to trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
+                localizationParams("trackNumber" to trackNumberCache.findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }?.number?.value,
                     "switchType" to changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) })
             val oldAddress = oldLocation?.let {
                 geocodingContextGetter(

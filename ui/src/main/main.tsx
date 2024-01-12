@@ -29,6 +29,8 @@ import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geome
 import { commonActionCreators } from 'common/common-slice';
 import { getOwnUser } from 'user/user-api';
 import Licenses from 'licenses/licenses';
+import PublicationLog from 'publication/log/publication-log';
+import { PublicationDetailsContainer } from 'publication/publication-details-container';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -46,6 +48,11 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
             <div className={styles.main__content} qa-id="main-content-container">
                 <Routes>
                     <Route path="/" element={<FrontpageContainer />} />
+                    <Route path={'/publications'} element={<PublicationLog />} />
+                    <Route
+                        path={'/publications/:publicationId'}
+                        element={<PublicationDetailsContainer />}
+                    />
                     <Route
                         path="/track-layout"
                         element={
