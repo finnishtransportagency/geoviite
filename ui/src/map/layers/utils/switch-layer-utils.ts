@@ -11,8 +11,6 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
-import { Circle, Fill, RegularShape, Stroke } from 'ol/style';
-import mapStyles from 'map/map.module.scss';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
@@ -356,24 +354,3 @@ export function findMatchingSwitches(
 function setSwitchFeatureProperty(feature: Feature<OlPoint>, data: SwitchFeatureProperty) {
     feature.set(SWITCH_FEATURE_DATA_PROPERTY, data);
 }
-
-export const endPointStyle = [
-    new Style({
-        image: new Circle({
-            radius: 6,
-            fill: new Fill({ color: mapStyles.locationTrackEndPoint }),
-            stroke: new Stroke({ color: mapStyles.locationTrackEndPointBorder }),
-        }),
-        zIndex: 4,
-    }),
-    new Style({
-        image: new RegularShape({
-            stroke: new Stroke({ color: mapStyles.locationTrackEndPointCross }),
-            points: 4,
-            radius: 4,
-            radius2: 0,
-            angle: 0,
-        }),
-        zIndex: 4,
-    }),
-];

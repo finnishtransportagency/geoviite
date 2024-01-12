@@ -7,17 +7,12 @@ import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
 import { clearFeatures, findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
-import { endPointStyle, getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
+import { getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-
-// The older switch linking joint layer (red circles with crosses)
-// should no longer be displayed, but the code regarding it is not
-// yet determined to be removed completely (see GVT-2176).
-const DISPLAY_DEPRECATED_SWITCH_LINKING_JOINTS = false;
 
 let newestLayerId = 0;
 
@@ -42,21 +37,6 @@ function createSwitchFeatures(
             setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
             features.push(f);
         });
-    } else if (DISPLAY_DEPRECATED_SWITCH_LINKING_JOINTS) {
-        const presentationJoint = suggestedSwitch.joints.find(
-            (joint) => joint.number == suggestedSwitch.switchStructure.presentationJointNumber,
-        );
-
-        if (presentationJoint) {
-            const f = new Feature({
-                geometry: new OlPoint(pointToCoords(presentationJoint.location)),
-            });
-
-            f.setStyle(endPointStyle);
-            setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
-
-            features.push(f);
-        }
     }
 
     return features;
