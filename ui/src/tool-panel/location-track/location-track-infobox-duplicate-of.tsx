@@ -19,10 +19,29 @@ export type LocationTrackInfoboxDuplicateOfProps = {
     currentTrackNumberId: LayoutTrackNumberId | undefined;
 };
 
-const findTrackNumber = (
+const getTrackNumberName = (
     trackNumbers: LayoutTrackNumber[] | undefined,
     trackNumberId: LayoutTrackNumberId,
-) => trackNumbers?.find((tn) => tn.id === trackNumberId)?.number;
+) => trackNumbers?.find((tn) => tn.id === trackNumberId)?.number || '';
+
+type LocationTrackDuplicateTrackNumberWarningProps = {
+    differingTrackNumberName: string;
+};
+
+const LocationTrackDuplicateTrackNumberWarning: React.FC<
+    LocationTrackDuplicateTrackNumberWarningProps
+> = ({ differingTrackNumberName }) => {
+    const { t } = useTranslation();
+    return (
+        <span
+            title={t('tool-panel.location-track.duplicate-on-different-track-number', {
+                trackNumber: differingTrackNumberName,
+            })}
+            className={styles['location-track-infobox-duplicate-of__on-different-track']}>
+            <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
+        </span>
+    );
+};
 
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
     existingDuplicate,
@@ -30,7 +49,6 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
     currentTrackNumberId,
     publishType,
 }: LocationTrackInfoboxDuplicateOfProps) => {
-    const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(publishType);
     return existingDuplicate ? (
         <React.Fragment>
@@ -38,15 +56,14 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                 locationTrackId={existingDuplicate.id}
                 locationTrackName={existingDuplicate.name}
             />
+            &nbsp;
             {currentTrackNumberId !== existingDuplicate.trackNumberId && (
-                <span
-                    className={styles['location-track-infobox-duplicate-of__on-different-track']}
-                    title={t('tool-panel.location-track.duplicate-on-different-track-number', {
-                        trackNumber: findTrackNumber(trackNumbers, existingDuplicate.trackNumberId),
-                    })}>
-                    &nbsp;
-                    <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
-                </span>
+                <LocationTrackDuplicateTrackNumberWarning
+                    differingTrackNumberName={getTrackNumberName(
+                        trackNumbers,
+                        existingDuplicate.trackNumberId,
+                    )}
+                />
             )}
         </React.Fragment>
     ) : duplicatesOfLocationTrack ? (
@@ -56,24 +73,15 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                     <LocationTrackLink
                         locationTrackId={duplicate.id}
                         locationTrackName={duplicate.name}
-                    />{' '}
+                    />
+                    &nbsp;
                     {currentTrackNumberId !== duplicate.trackNumberId && (
-                        <span
-                            className={
-                                styles['location-track-infobox-duplicate-of__on-different-track']
-                            }
-                            title={t(
-                                'tool-panel.location-track.duplicate-on-different-track-number',
-                                {
-                                    trackNumber: findTrackNumber(
-                                        trackNumbers,
-                                        duplicate.trackNumberId,
-                                    ),
-                                },
-                            )}>
-                            &nbsp;
-                            <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
-                        </span>
+                        <LocationTrackDuplicateTrackNumberWarning
+                            differingTrackNumberName={getTrackNumberName(
+                                trackNumbers,
+                                duplicate.trackNumberId,
+                            )}
+                        />
                     )}
                 </li>
             ))}
