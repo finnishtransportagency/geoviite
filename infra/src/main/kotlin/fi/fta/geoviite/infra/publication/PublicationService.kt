@@ -1047,26 +1047,26 @@ class PublicationService @Autowired constructor(
     ): List<PublicationChange<*>> {
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
         val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
-        val oldStartPointAndM = if (addressesChanged) locationTrackChanges.startPoint.old?.let { oldStart ->
+        val oldStartPointAndM = locationTrackChanges.startPoint.old?.let { oldStart ->
             locationTrackChanges.trackNumberId.old?.let {
                 getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldStart)
             }
-        } else null
-        val oldEndPointAndM = if (addressesChanged) locationTrackChanges.endPoint.old?.let { oldEnd ->
+        }
+        val oldEndPointAndM =locationTrackChanges.endPoint.old?.let { oldEnd ->
             locationTrackChanges.trackNumberId.old?.let {
                 getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldEnd)
             }
-        } else null
-        val newStartPointAndM = if (addressesChanged) locationTrackChanges.startPoint.new?.let { newStart ->
+        }
+        val newStartPointAndM = locationTrackChanges.startPoint.new?.let { newStart ->
             locationTrackChanges.trackNumberId.new?.let {
                 getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
             }
-        } else null
-        val newEndPointAndM = if (addressesChanged) locationTrackChanges.endPoint.new?.let { newEnd ->
+        }
+        val newEndPointAndM = locationTrackChanges.endPoint.new?.let { newEnd ->
             locationTrackChanges.trackNumberId.new?.let {
                 getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
             }
-        } else null
+        }
 
         return listOfNotNull(compareChangeValues(
             locationTrackChanges.trackNumberId,
@@ -1130,9 +1130,7 @@ class PublicationService @Autowired constructor(
                 newStartPointAndM?.address,
                 { it.toString() },
                 PropKey("start-address"),
-                remark = getAddressMovedRemarkOrNull(
-                    translation, oldStartPointAndM?.address, newStartPointAndM?.address
-                )
+                null
             ),
             compareChange(
                 { !pointsAreSame(locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new) },
