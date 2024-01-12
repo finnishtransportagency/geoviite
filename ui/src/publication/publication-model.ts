@@ -282,6 +282,6 @@ export type PublicationTableItem = {
 };
 
 export type PublicationSearch = {
-    startDate: Date | undefined;
-    endDate: Date | undefined;
+    startDate: TimeStamp | undefined;
+    endDate: TimeStamp | undefined;
 };

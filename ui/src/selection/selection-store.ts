@@ -23,6 +23,7 @@ import {
 } from 'geometry/geometry-model';
 import { PublicationId, PublicationSearch } from 'publication/publication-model';
 import { defaultPublicationSearch } from 'publication/publication-utils';
+import { TimeStamp } from 'common/common-model';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -329,7 +330,7 @@ export const selectionReducers = {
     },
     setSelectedPublicationSearchStartDate: (
         state: Selection,
-        { payload: newStartDate }: PayloadAction<Date | undefined>,
+        { payload: newStartDate }: PayloadAction<TimeStamp | undefined>,
     ) => {
         if (!state.publicationSearch) {
             state.publicationSearch = defaultPublicationSearch;
@@ -338,7 +339,7 @@ export const selectionReducers = {
     },
     setSelectedPublicationSearchEndDate: (
         state: Selection,
-        { payload: newEndDate }: PayloadAction<Date | undefined>,
+        { payload: newEndDate }: PayloadAction<TimeStamp | undefined>,
     ) => {
         if (!state.publicationSearch) {
             state.publicationSearch = defaultPublicationSearch;

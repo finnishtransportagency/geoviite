@@ -52,6 +52,6 @@ export const dropIdsFromPublishCandidates = (
 });
 
 export const defaultPublicationSearch: PublicationSearch = {
-    startDate: subMonths(currentDay, 1),
-    endDate: currentDay,
+    startDate: subMonths(currentDay, 1).toISOString(),
+    endDate: currentDay.toISOString(),
 };
