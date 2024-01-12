@@ -122,7 +122,7 @@ data class TopologyLocationTrackSwitch(
 val locationTrackDescriptionLength = 4..256
 
 enum class DescriptionSuffixType {
-    NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER
+    NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER, SWITCH_TO_OWNERSHIP_BOUNDARY
 }
 
 data class LayoutSwitchIdAndName(val id: IntId<TrackLayoutSwitch>, val name: SwitchName)

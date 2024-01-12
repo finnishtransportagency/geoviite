@@ -326,6 +326,7 @@ class LocationTrackService(
         else alignment.segments.lastOrNull()?.switchId as IntId?
 
     private val BUFFER_TRANSLATION = "Puskin"
+    private val OWNERSHIP_BOUNDARY_TRANSLATION = "Omistusraja"
 
     @Transactional(readOnly = true)
     fun getFullDescription(publishType: PublishType, locationTrack: LocationTrack): FreeText {
@@ -347,6 +348,7 @@ class LocationTrackService(
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
             DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION")
             DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+            DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $OWNERSHIP_BOUNDARY_TRANSLATION")
         }
     }
 
