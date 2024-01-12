@@ -13,6 +13,12 @@
     margin: 0; /* Remove margins */
 }
 
+.location-track-infobox-duplicate-of__on-different-track {
+    .icon {
+        fill: vayla-design.$color-red-dark;
+    }
+}
+
 .location-track-infobox__split {
     padding-left: 11px;
 

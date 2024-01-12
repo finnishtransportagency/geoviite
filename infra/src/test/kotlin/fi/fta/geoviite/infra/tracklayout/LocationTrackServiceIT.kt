@@ -552,7 +552,7 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack) =
-        LocationTrackDuplicate(locationTrack.id as IntId, locationTrack.name, locationTrack.externalId)
+        LocationTrackDuplicate(locationTrack.id as IntId, locationTrack.trackNumberId, locationTrack.name, locationTrack.externalId)
 
     private fun insertAndFetch(switch: TrackLayoutSwitch) = switchDao.fetch(switchService.saveDraft(switch).rowVersion)
 

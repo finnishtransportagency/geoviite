@@ -394,7 +394,7 @@ class LocationTrackService(
             compareValues(
                 duplicateMValues[a.first], duplicateMValues[b.first]
             )
-        }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.name, track.externalId) }
+        }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.trackNumberId, track.name, track.externalId) }
     }
 
     private fun getDuplicateOf(
@@ -403,7 +403,7 @@ class LocationTrackService(
     ) = locationTrack.duplicateOf?.let { duplicateId ->
         get(publishType, duplicateId)?.let { dup ->
             LocationTrackDuplicate(
-                duplicateId, dup.name, dup.externalId
+                duplicateId, dup.trackNumberId, dup.name, dup.externalId
             )
         }
     }

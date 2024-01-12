@@ -110,6 +110,7 @@ export type LayoutLocationTrack = {
 
 export type LocationTrackDuplicate = {
     id: LocationTrackId;
+    trackNumberId: LayoutTrackNumberId;
     name: string;
     externalId: Oid;
 };
