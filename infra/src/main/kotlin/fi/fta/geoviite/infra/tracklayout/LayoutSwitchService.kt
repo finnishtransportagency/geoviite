@@ -79,7 +79,7 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
         getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
-            val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
+            val (updatedLocationTrack, updatedAlignment) = clearLinksToSwitch(
                 locationTrack,
                 alignment,
                 layoutSwitchId,
@@ -224,7 +224,7 @@ fun <T> compareByDistanceNullsFirst(
     }
 }
 
-fun clearSwitchInformationFromSegments(
+fun clearLinksToSwitch(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     layoutSwitchId: IntId<TrackLayoutSwitch>,

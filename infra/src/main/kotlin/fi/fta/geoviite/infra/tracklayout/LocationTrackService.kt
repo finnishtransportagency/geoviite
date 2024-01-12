@@ -429,16 +429,17 @@ class LocationTrackService(
         alignment: LayoutAlignment,
         startChanged: Boolean = false,
         endChanged: Boolean = false,
+        overlaidTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> = mapOf(),
     ): LocationTrack {
         val nearbyTracksAroundStart =
-            alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
+            (alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()
+            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
 
         val nearbyTracksAroundEnd =
-            alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
+            (alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()
+            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
 
         return calculateLocationTrackTopology(
             track, alignment, startChanged, endChanged, NearbyTracks(

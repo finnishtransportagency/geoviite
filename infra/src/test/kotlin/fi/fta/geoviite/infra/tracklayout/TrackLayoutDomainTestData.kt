@@ -67,13 +67,18 @@ fun switchAndMatchingAlignments(
             }
             jointNumber to point
         }
-        val points = toSegmentPoints(*(alignmentPoints.map { (_, point) -> point }.toTypedArray()))
         locationTrackAndAlignment(
-            trackNumberId, segment(points).copy(
-                switchId = switchId,
-                startJointNumber = alignmentPoints.first().first,
-                endJointNumber = alignmentPoints.last().first,
-            )
+            trackNumberId, alignmentPoints.zipWithNext { start, end ->
+                val (startJoint, startPoint) = start
+                val (endJoint, endPoint) = end
+                val length = lineLength(startPoint, endPoint)
+                segment(
+                    points(length.toInt(), startPoint.x..endPoint.x, startPoint.y..endPoint.y),
+                    switchId = switchId,
+                    startJointNumber = startJoint,
+                    endJointNumber = endJoint,
+                )
+            }
         )
     }
     val switch = switch(

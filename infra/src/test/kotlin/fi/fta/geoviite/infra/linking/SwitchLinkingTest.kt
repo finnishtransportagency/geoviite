@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
@@ -323,7 +324,7 @@ class SwitchLinkingTest {
             topologyStartSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(2)),
             topologyEndSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(1)),
         )
-        val (locationTrackWithStartLinkCleared, _) = clearSwitchInformationFromSegments(
+        val (locationTrackWithStartLinkCleared, _) = clearLinksToSwitch(
             locationTrackWithStartLink,
             alignment(someSegment()),
             testLayoutSwitchId,
@@ -338,7 +339,7 @@ class SwitchLinkingTest {
             topologyStartSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(2)),
             topologyEndSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(1)),
         )
-        val (locationTrackWithEndLinkCleared, _) = clearSwitchInformationFromSegments(
+        val (locationTrackWithEndLinkCleared, _) = clearLinksToSwitch(
             locationTrackWithEndLink,
             alignment(someSegment()),
             testLayoutSwitchId,
@@ -353,7 +354,7 @@ class SwitchLinkingTest {
             IntId(0), testLayoutSwitchId, otherLayoutSwitchId, locationTrackId = IntId(0)
         )
 
-        val (_, clearedAlignment) = clearSwitchInformationFromSegments(
+        val (_, clearedAlignment) = clearLinksToSwitch(
             origLocationTrack,
             origAlignment,
             testLayoutSwitchId,
@@ -1131,6 +1132,54 @@ class SwitchLinkingTest {
         )
 
         assertNotNull(suggestedSwitch)
+    }
+
+    @Test
+    fun `getSwitchBoundsFromTracks handles topology and segment points`() {
+        val topoLinkedTrack = locationTrack(
+            IntId(1), topologyEndSwitch = TopologyLocationTrackSwitch(IntId(1), JointNumber(1))
+        )
+        // let's say the switch's main joint is at (5.0, 5.0), this geometry incidentally doesn't *quite* come to the
+        // front joint, but close enough to link anyway
+        val topoAlignment = alignment(segment(Point(4.0, 5.0), Point(4.9, 5.0)))
+
+        val alignmentOn152 = alignment(
+            segment(
+                Point(5.0, 5.0),
+                Point(6.0, 5.0),
+                switchId = IntId(1),
+                startJointNumber = JointNumber(1),
+                endJointNumber = JointNumber(5)
+            ),
+            segment(
+                Point(6.0, 5.0),
+                Point(7.0, 5.0),
+                switchId = IntId(1),
+                startJointNumber = JointNumber(5),
+                endJointNumber = JointNumber(2)
+            ),
+            segment(Point(7.0, 5.0), Point(8.0, 5.0))
+        )
+        val alignmentOn13 = alignment(
+            segment(
+                Point(5.0, 5.0),
+                Point(6.0, 6.0),
+                switchId = IntId(1),
+                startJointNumber = JointNumber(1),
+                endJointNumber = JointNumber(3)
+            )
+        )
+        val tracks = listOf(
+            topoLinkedTrack to topoAlignment,
+            locationTrack(IntId(1)) to alignmentOn152,
+            locationTrack(IntId(1)) to alignmentOn13
+        )
+        assertEquals(
+            boundingBoxAroundPoints(listOf(Point(4.9, 5.0), Point(7.0, 6.0))), getSwitchBoundsFromTracks(
+                tracks, IntId(1)
+            )
+        )
+        assertEquals(null, getSwitchBoundsFromTracks(tracks, IntId(2)))
     }
 }
 
