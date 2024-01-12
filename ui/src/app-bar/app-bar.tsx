@@ -38,7 +38,7 @@ export const AppBar: React.FC = () => {
     function getNavLink(link: Link) {
         switch (link.link) {
             case '/':
-                return <FrontpageLink linkTranslation={t(link.name)} />;
+                return <FrontpageLink />;
 
             case '/infra-model':
                 return <InfraModelLink />;

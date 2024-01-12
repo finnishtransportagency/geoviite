@@ -2,12 +2,11 @@ import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import styles from 'app-bar/app-bar.scss';
+import { useTranslation } from 'react-i18next';
 
-type FrontpageLinkProps = {
-    linkTranslation: string;
-};
+export const FrontpageLink: React.FC = () => {
+    const { t } = useTranslation();
 
-export const FrontpageLink: React.FC<FrontpageLinkProps> = ({ linkTranslation }) => {
     const selectedPublicationId = useTrackLayoutAppSelector(
         (state) => state.selection.publicationId,
     );
@@ -33,7 +32,7 @@ export const FrontpageLink: React.FC<FrontpageLinkProps> = ({ linkTranslation })
                 `${styles['app-bar__link']} ${isActive ? styles['app-bar__link--active'] : ''}`
             }
             end>
-            {linkTranslation}
+            {t('app-bar.frontpage')}
         </NavLink>
     );
 };
