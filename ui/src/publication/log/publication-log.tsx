@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
-import { endOfDay, startOfDay, subMonths } from 'date-fns';
+import { endOfDay, parseISO, startOfDay, subMonths } from 'date-fns';
 import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
@@ -39,9 +39,11 @@ const PublicationLog: React.FC = () => {
     );
 
     const [startDate, setStartDate] = React.useState<Date | undefined>(
-        initialStartDate ?? subMonths(currentDay, 1),
+        initialStartDate ? parseISO(initialStartDate) : subMonths(currentDay, 1),
     );
-    const [endDate, setEndDate] = React.useState<Date | undefined>(initialEndDate ?? currentDay);
+    const [endDate, setEndDate] = React.useState<Date | undefined>(
+        initialEndDate ? parseISO(initialEndDate) : currentDay,
+    );
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
     const [isLoading, setIsLoading] = React.useState(true);

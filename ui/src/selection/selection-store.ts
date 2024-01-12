@@ -334,7 +334,7 @@ export const selectionReducers = {
         if (!state.publicationSearch) {
             state.publicationSearch = defaultPublicationSearch;
         }
-        state.publicationSearch.startDate = newStartDate;
+        state.publicationSearch.startDate = newStartDate?.toISOString();
     },
     setSelectedPublicationSearchEndDate: (
         state: Selection,
@@ -343,7 +343,7 @@ export const selectionReducers = {
         if (!state.publicationSearch) {
             state.publicationSearch = defaultPublicationSearch;
         }
-        state.publicationSearch.endDate = newEndDate;
+        state.publicationSearch.endDate = newEndDate?.toISOString();
     },
     clearPublicationSelection: (state: Selection) => {
         state.publicationId = undefined;
