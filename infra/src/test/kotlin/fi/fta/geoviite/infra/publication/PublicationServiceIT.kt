@@ -1173,7 +1173,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             emptySet()
         ) { _, _ -> null }
         assertEquals(6, diff.size)
@@ -1222,7 +1221,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             emptySet()
         ) { _, _ -> null }
         assertEquals(1, diff.size)
@@ -1504,7 +1502,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             setOf(),
         ) { _, _ -> null }
         assertEquals(1, diff.size)
@@ -1551,7 +1548,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             latestPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             setOf(KmNumber(0)),
         ) { _, _ -> null }
         print(diff)
