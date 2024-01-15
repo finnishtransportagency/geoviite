@@ -21,6 +21,9 @@ import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 
+const val BUFFER_TRANSLATION = "Puskin"
+const val OWNERSHIP_BOUNDARY_TRANSLATION = "Omistusraja"
+
 @Service
 class LocationTrackService(
     locationTrackDao: LocationTrackDao,
@@ -325,8 +328,6 @@ class LocationTrackService(
         if (alignment.segments.lastOrNull()?.endJointNumber == null) locationTrack.topologyEndSwitch?.switchId
         else alignment.segments.lastOrNull()?.switchId as IntId?
 
-    private val BUFFER_TRANSLATION = "Puskin"
-
     @Transactional(readOnly = true)
     fun getFullDescription(publishType: PublishType, locationTrack: LocationTrack): FreeText {
         val alignmentVersion = locationTrack.alignmentVersion
@@ -345,8 +346,12 @@ class LocationTrackService(
 
         return when (locationTrack.descriptionSuffix) {
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
-            DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION")
-            DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+            DescriptionSuffixType.SWITCH_TO_BUFFER ->
+                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION")
+            DescriptionSuffixType.SWITCH_TO_SWITCH ->
+                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+            DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $OWNERSHIP_BOUNDARY_TRANSLATION")
         }
     }
 

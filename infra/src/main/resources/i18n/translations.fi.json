@@ -212,6 +212,7 @@
         "location-track-description-suffix": {
             "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",
             "SWITCH_TO_BUFFER": "Vaihde - Puskin",
+            "SWITCH_TO_OWNERSHIP_BOUNDARY": "Vaihde - Omistusraja",
             "NONE": "Ei lisäosaa"
         }
     },
@@ -329,6 +330,7 @@
         "end-switch": "Vaihde raiteen lopussa",
         "no-start-or-end-switch": "Ei vaihdetta",
         "buffer": "Puskin",
+        "ownership-boundary": "Omistusraja",
         "description-base": "Kuvauksen perusosa",
         "description-suffix": "Kuvauksen lisäosa",
         "full-description": "Valmis kuvaus",
