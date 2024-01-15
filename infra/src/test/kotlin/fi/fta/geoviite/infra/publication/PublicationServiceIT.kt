@@ -29,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publish
 import publishRequest
+import validationError
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
 import kotlin.test.*
@@ -875,12 +876,12 @@ class PublicationServiceIT @Autowired constructor(
     fun `Publication validation rejects duplication by another referencing track`() {
         val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"))).id
         val dummyAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
-        // small wants to duplicate middle, middle initially duplicates nothing but wants to duplicate big
+        // Initial state, all official: Small duplicates middle, middle and big don't duplicate anything
         val middleTrack = locationTrackDao.insert(
             locationTrack(
                 trackNumberId,
                 name = "middle track",
-                alignmentVersion = dummyAlignment
+                alignmentVersion = dummyAlignment,
             )
         )
         val smallTrack = locationTrackDao.insert(
@@ -888,29 +889,35 @@ class PublicationServiceIT @Autowired constructor(
                 trackNumberId,
                 name = "small track",
                 duplicateOf = middleTrack.id,
-                alignmentVersion = dummyAlignment
+                alignmentVersion = dummyAlignment,
             )
         )
         val bigTrack =
             locationTrackDao.insert(locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment))
+
+        // In new draft, middle wants to duplicate big (leading to: small->middle->big)
         locationTrackService.saveDraft(locationTrackDao.fetch(middleTrack.rowVersion).copy(duplicateOf = bigTrack.id))
 
         fun getPublishingDuplicateWhileDuplicatedValidationError(vararg publishableTracks: IntId<LocationTrack>): PublishValidationError? {
             val validation = publicationService.validatePublishCandidates(
-                publicationService.collectPublishCandidates(), PublishRequestIds(
+                publicationService.collectPublishCandidates(),
+                PublishRequestIds(
                     trackNumbers = listOf(),
                     locationTracks = listOf(*publishableTracks),
                     kmPosts = listOf(),
                     referenceLines = listOf(),
                     switches = listOf()
-                )
+                ),
             )
             val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].errors
-            return trackErrors.find { error -> error.localizationKey == LocalizationKey("validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated") }
+            return trackErrors.find { error ->
+                error.localizationKey == LocalizationKey(
+                    "validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated"
+                )
+            }
         }
 
-        // if we're only trying to publish the middle track, but there is an official small track that wants to duplicate
-        // it, we pop
+        // if we're only trying to publish the middle track, but the small is still duplicating it, we pop
         val duplicateError = getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id)
         assertNotNull(duplicateError, "small track duplicates to-be-published middle track which duplicates big track")
         assertEquals("small track", duplicateError.params.get("otherDuplicates"))
@@ -921,7 +928,7 @@ class PublicationServiceIT @Autowired constructor(
         locationTrackService.saveDraft(locationTrackDao.fetch(smallTrack.rowVersion).copy(duplicateOf = null))
         assertNotNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id),
-            "only saving a draft of small track"
+            "only saving a draft of small track",
         )
 
         // but if we have the new non-duplicating small track in the same publication unit, it's fine
@@ -936,13 +943,11 @@ class PublicationServiceIT @Autowired constructor(
             locationTrack(
                 trackNumberId,
                 name = "other small track",
-                alignmentVersion = dummyAlignment
+                alignmentVersion = dummyAlignment,
             )
         )
         locationTrackService.saveDraft(
-            locationTrackDao
-                .fetch(otherSmallTrack.rowVersion)
-                .copy(duplicateOf = middleTrack.id)
+            locationTrackDao.fetch(otherSmallTrack.rowVersion).copy(duplicateOf = middleTrack.id)
         )
         assertNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
@@ -953,7 +958,6 @@ class PublicationServiceIT @Autowired constructor(
             "publishing new small track with other small track added and in publication unit"
         )
     }
-
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
         val officialVersion = switchDao.insert(switch(seed)).rowVersion
@@ -1182,6 +1186,56 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals("description-base", diff[3].propKey.key.toString())
         assertEquals("description-suffix", diff[4].propKey.key.toString())
         assertEquals("duplicate-of", diff[5].propKey.key.toString())
+    }
+
+    @Test
+    fun `Don't allow publishing a track that is a duplicate of an unpublished draft-only one`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val (draftOnlyTrack, draftOnlyAlignment) = locationTrackAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(someSegment()),
+            duplicateOf = null,
+        )
+        val draftOnlyId = locationTrackService.saveDraft(draft(draftOnlyTrack), draftOnlyAlignment).id
+
+        val (duplicateTrack, duplicateAlignment) = locationTrackAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(someSegment()),
+            duplicateOf = draftOnlyId,
+        )
+        val duplicateId = locationTrackService.saveDraft(draft(duplicateTrack), duplicateAlignment).id
+
+        // Both tracks in validation set: this is fine
+        assertEquals(listOf(), validateDuplicateOf(toValidate = duplicateId, duplicateId, draftOnlyId))
+        // Only the target (main) track in set: this is also fine
+        assertEquals(listOf(), validateDuplicateOf(toValidate = draftOnlyId, draftOnlyId))
+        // Only the duplicate track in set: this would result in official referring to draft through duplicateOf
+        assertEquals(
+            listOf(
+                validationError(
+                    "validation.layout.location-track.duplicate-of.not-published",
+                    "duplicateTrack" to draftOnlyTrack.name.toString(),
+                ),
+            ),
+            validateDuplicateOf(toValidate = duplicateId, duplicateId),
+        )
+    }
+
+    private fun validateDuplicateOf(
+        toValidate: IntId<LocationTrack>,
+        vararg publicationSet: IntId<LocationTrack>,
+    ): List<PublishValidationError> {
+        val validationVersions = publicationService.getValidationVersions(
+            publishRequest(locationTracks = publicationSet.toList())
+        )
+        val validationVersion = requireNotNull(validationVersions.findLocationTrack(toValidate)) {
+            "Track $toValidate should be in validation set: $validationVersions"
+        }
+        return publicationService.validateDuplicateOf(
+            validationVersion,
+            locationTrackDao.fetch(validationVersion.validatedAssetVersion),
+            validationVersions,
+        )
     }
 
     @Test

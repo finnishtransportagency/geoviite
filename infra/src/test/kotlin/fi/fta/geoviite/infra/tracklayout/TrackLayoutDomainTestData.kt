@@ -180,15 +180,19 @@ fun locationTrackAndAlignment(
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment(IntId(0), segments.toList(), name = name, description = description)
 
-
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
-): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(trackNumberId, segments.toList(), name = name, description = description)
-
+    duplicateOf: IntId<LocationTrack>? = null,
+): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
+    trackNumberId,
+    segments.toList(),
+    name = name,
+    description = description,
+    duplicateOf = duplicateOf,
+)
 
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -197,9 +201,18 @@ fun locationTrackAndAlignment(
     draft: Draft<LocationTrack>? = null,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
+    duplicateOf: IntId<LocationTrack>? = null,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
-    val locationTrack = locationTrack(trackNumberId, alignment, id, draft, name, description = description)
+    val locationTrack = locationTrack(
+        trackNumberId = trackNumberId,
+        alignment = alignment,
+        id = id,
+        draft = draft,
+        name = name,
+        description = description,
+        duplicateOf = duplicateOf,
+    )
     return locationTrack to alignment
 }
 
