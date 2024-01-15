@@ -175,15 +175,19 @@ fun locationTrackAndAlignment(
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment(IntId(0), segments.toList(), name = name, description = description)
 
-
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
-): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(trackNumberId, segments.toList(), name = name, description = description)
-
+    duplicateOf: IntId<LocationTrack>? = null,
+): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
+    trackNumberId,
+    segments.toList(),
+    name = name,
+    description = description,
+    duplicateOf = duplicateOf,
+)
 
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,

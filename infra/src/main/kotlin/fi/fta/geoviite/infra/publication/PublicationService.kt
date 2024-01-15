@@ -737,7 +737,7 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         // Find the versions in validation set context. These can be null (draft-only that's not included)
         val duplicatesAfterPublication = locationTrackDao
-            .fetchDuplicateIdsInAnyContext(version.officialId)
+            .fetchDuplicateIdsInAnyLayoutContext(version.officialId)
             .mapNotNull { id -> getLocationTrack(id, validationVersions) }
             .filter { potentialDuplicate -> potentialDuplicate.duplicateOf == version.officialId }
 

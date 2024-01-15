@@ -26,7 +26,7 @@ class LocationTrackDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
-    fun fetchDuplicateIdsInAnyContext(id: IntId<LocationTrack>): List<IntId<LocationTrack>> {
+    fun fetchDuplicateIdsInAnyLayoutContext(id: IntId<LocationTrack>): List<IntId<LocationTrack>> {
         val sql = """
             select distinct coalesce(draft_of_location_track_id, id) id
             from layout.location_track
