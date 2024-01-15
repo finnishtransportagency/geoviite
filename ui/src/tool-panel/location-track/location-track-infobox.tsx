@@ -326,6 +326,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
                             qa-id="zoom-to-location-track"
+                            title={
+                                !locationTrack.boundingBox
+                                    ? t('tool-panel.location-track.no-geometry')
+                                    : ''
+                            }
+                            disabled={!locationTrack.boundingBox}
                             onClick={() =>
                                 locationTrack.boundingBox && showArea(locationTrack.boundingBox)
                             }>

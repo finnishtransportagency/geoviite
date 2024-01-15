@@ -137,6 +137,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
+                            title={
+                                !kmPost.location ? t('tool-panel.km-post.layout.no-location') : ''
+                            }
                             disabled={!kmPost.location}
                             variant={ButtonVariant.SECONDARY}
                             qa-id="zoom-to-km-post"
