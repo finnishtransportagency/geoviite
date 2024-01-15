@@ -4,6 +4,7 @@ import Infobox from 'tool-panel/infobox/infobox';
 import {
     LAYOUT_SRID,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LayoutSwitchIdAndName,
 } from 'track-layout/track-layout-model';
 import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
@@ -68,6 +69,7 @@ import { getLocationTrackOwners } from 'common/common-api';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { EnvRestricted } from 'environment/env-restricted';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { filterNotEmpty } from 'utils/array-utils';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -223,6 +225,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             return 'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number';
         return '';
     };
+
+    const isStartOrEndSwitch = (switchId: LayoutSwitchId) =>
+        switchId === extraInfo?.switchAtStart?.id || switchId === extraInfo?.switchAtEnd?.id;
 
     return (
         <React.Fragment>
@@ -482,8 +487,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                             delegates.onStartSplitting({
                                                                 locationTrack: locationTrack,
                                                                 allowedSwitches:
-                                                                    splitInitializationParameters?.switches ||
-                                                                    [],
+                                                                    splitInitializationParameters?.switches.filter(
+                                                                        (sw) =>
+                                                                            !isStartOrEndSwitch(
+                                                                                sw.switchId,
+                                                                            ),
+                                                                    ) || [],
+                                                                startAndEndSwitches: [
+                                                                    extraInfo?.switchAtStart?.id,
+                                                                    extraInfo?.switchAtEnd?.id,
+                                                                ].filter(filterNotEmpty),
                                                                 duplicateTracks:
                                                                     splitInitializationParameters?.duplicates ||
                                                                     [],
