@@ -619,7 +619,8 @@
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä"
                 }
-            }
+            },
+            "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
