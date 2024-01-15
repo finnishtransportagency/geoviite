@@ -1041,7 +1041,6 @@ class PublicationService @Autowired constructor(
         publicationTime: Instant,
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
-        addressesChanged: Boolean,
         changedKmNumbers: Set<KmNumber>,
         getGeocodingContext: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
@@ -1471,7 +1470,6 @@ class PublicationService @Autowired constructor(
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
-                    publicationTrackNumberChanges.any { tn -> tn.key == lt.trackNumberId },
                     lt.changedKmNumbers,
                     geocodingContextGetter,
                 ),
@@ -1539,7 +1537,6 @@ class PublicationService @Autowired constructor(
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
-                    true,
                     lt.changedKmNumbers,
                     geocodingContextGetter,
                 ),
