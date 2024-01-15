@@ -38,6 +38,7 @@ import {
     refreshTrackNumberSelection,
 } from 'track-layout/track-layout-react-utils';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -52,6 +53,7 @@ export type ToolbarParams = {
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
+    splittingState: SplittingState | undefined;
 };
 
 type LocationTrackItemValue = {
@@ -139,6 +141,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayers,
+    splittingState,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -311,13 +314,17 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {publishType === 'DRAFT' && (
                     <React.Fragment>
                         <Button
+                            disabled={!!splittingState}
                             variant={ButtonVariant.SECONDARY}
+                            title={t('tool-bar.splitting-in-progress')}
                             onClick={() => moveToOfficialPublishType()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
                         <Button
+                            disabled={!!splittingState}
                             icon={Icons.VectorRight}
                             variant={ButtonVariant.PRIMARY}
+                            title={t('tool-bar.splitting-in-progress')}
                             qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
                             {t('tool-bar.preview-mode.enable')}

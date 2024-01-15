@@ -1382,7 +1382,8 @@
         "new-track-number": "Uusi ratanumero",
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
-        "new-km-post": "Uusi tasakilometripiste"
+        "new-km-post": "Uusi tasakilometripiste",
+        "splitting-in-progress": "Raiteen jakaminen on kesken"
     },
     "user-card": {
         "my-details": "Omat tiedot",
