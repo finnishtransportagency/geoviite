@@ -29,9 +29,8 @@ class PublicationGeometryChangeRemarksUpdateService(
     }
 
     @Scheduled(initialDelay = 1000 * 30, fixedDelay = 24 * 60 * 60 * 1000)
-    @Transactional
     fun updateUnprocessedGeometryChangeRemarks() {
-        lockDao.runWithLock(DatabaseLock.PUBLICATION_GEOMETRY_CHANGE_CALCULATION, Duration.ofMinutes(1)) {
+        lockDao.runWithLock(DatabaseLock.PUBLICATION_GEOMETRY_CHANGE_CALCULATION, Duration.ofMinutes(60)) {
             var unprocessedRemarksWereLeft = true
             while (unprocessedRemarksWereLeft) {
                 val unprocessed = publicationDao.fetchUnprocessedGeometryChangeRemarks(GEOMETRY_CHANGE_BATCH_SIZE)

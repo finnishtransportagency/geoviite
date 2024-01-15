@@ -148,7 +148,7 @@ class LocationTrackService(
 
     @Transactional
     fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
-        .fetchDuplicates(id, DRAFT, includeDeleted = true)
+        .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
         .map(dao::fetch)
         .map(::draft)
         .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
@@ -383,7 +383,7 @@ class LocationTrackService(
         publishType: PublishType,
     ): List<LocationTrackDuplicate> {
         val originalAndAlignment = getWithAlignmentOrThrow(publishType, id)
-        val duplicates = dao.fetchDuplicates(id, publishType).map(dao::fetch)
+        val duplicates = dao.fetchDuplicateVersions(id, publishType).map(dao::fetch)
 
         val duplicateMValues = duplicates.map { duplicate ->
             duplicate.alignmentVersion?.let { alignmentVersion ->

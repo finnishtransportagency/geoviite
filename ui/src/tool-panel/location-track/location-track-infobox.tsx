@@ -400,7 +400,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 qa-id="modify-start-or-end"
+                                                title={
+                                                    splittingState
+                                                        ? t(
+                                                              'tool-panel.location-track.splitting-blocks-geometry-changes',
+                                                          )
+                                                        : ''
+                                                }
                                                 disabled={
+                                                    !!splittingState ||
                                                     !startAndEndPoints.start?.point ||
                                                     !startAndEndPoints.end?.point
                                                 }

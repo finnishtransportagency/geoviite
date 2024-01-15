@@ -332,20 +332,21 @@ private fun alignmentHasSwitchJointLink(
 fun validateDuplicateOfState(
     locationTrack: LocationTrack,
     duplicateOfLocationTrack: LocationTrack?,
-    publishLocationTrackIds: List<IntId<LocationTrack>>,
+    duplicateOfLocationTrackDraftName: AlignmentName?,
     duplicates: List<LocationTrack>,
 ): List<PublishValidationError> {
-    return if (duplicateOfLocationTrack == null) listOf()
-    else {
-        val duplicateNameParams = localizationParams("duplicateTrack" to duplicateOfLocationTrack.name)
-
+    val duplicateNameParams = localizationParams(
+        "duplicateTrack" to (duplicateOfLocationTrack?.name ?: duplicateOfLocationTrackDraftName)
+    )
+    return if (duplicateOfLocationTrack == null) {
         listOfNotNull(
-            validateWithParams(locationTrack.duplicateOf == duplicateOfLocationTrack.id) {
-                "$VALIDATION_REFERENCE_LINE.duplicate-of.not-official" to duplicateNameParams
-            },
-            validateWithParams(isPublished(duplicateOfLocationTrack, publishLocationTrackIds)) {
+            // Non-null reference, but the duplicateOf track doesn't exist in validation context
+            validateWithParams(locationTrack.duplicateOf == null) {
                 "$VALIDATION_LOCATION_TRACK.duplicate-of.not-published" to duplicateNameParams
             },
+        )
+    } else {
+        listOfNotNull(
             validateWithParams(locationTrack.state.isRemoved() || duplicateOfLocationTrack.state.isLinkable()) {
                 "$VALIDATION_LOCATION_TRACK.duplicate-of.state.${duplicateOfLocationTrack.state}" to duplicateNameParams
             },

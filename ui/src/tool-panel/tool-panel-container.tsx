@@ -48,10 +48,11 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
                 linkingState.location,
                 linkingState.layoutSwitch.switchStructureId,
             ).then((suggestedSwitches) => {
-                delegates.hideLayers(['switch-linking-layer']);
                 delegates.stopLinking();
                 if (suggestedSwitches.length) {
                     startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
+                } else {
+                    delegates.hideLayers(['switch-linking-layer']);
                 }
             });
         }

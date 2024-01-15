@@ -616,7 +616,7 @@ class PublicationValidationTest {
         val lt = locationTrack(IntId(0)).copy(duplicateOf = IntId(0))
         assertContainsError(
             true,
-            validateDuplicateOfState(lt, lt, listOf(IntId(0)), listOf()),
+            validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), listOf()),
             "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated"
         )
     }
