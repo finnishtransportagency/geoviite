@@ -191,13 +191,29 @@ fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
     point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
 
 fun getLengthChangedRemarkOrNull(translation: Translation, length1: Double?, length2: Double?) =
-    if (length1 != null && length2 != null) lengthDifference(length1, length2).let { lengthDifference ->
-        if (lengthDifference > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
-            translation, "changed-x-meters", formatDistance(lengthDifference)
-        )
-        else null
+    if (length1 == null || length2 == null) {
+        null
+    } else {
+        (length2 - length1).let { directionalLengthDifference ->
+            when {
+                abs(directionalLengthDifference) <= DISTANCE_CHANGE_THRESHOLD -> null
+
+                (directionalLengthDifference < 0) -> publicationChangeRemark(
+                    translation,
+                    "shortened-x-meters",
+                    formatDistance(abs(directionalLengthDifference))
+                )
+
+                (directionalLengthDifference > 0) -> publicationChangeRemark(
+                    translation,
+                    "lengthened-x-meters",
+                    formatDistance(abs(directionalLengthDifference))
+                )
+
+                else -> null
+            }
+        }
     }
-    else null
 
 fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
     newPoint?.let { p2 ->
