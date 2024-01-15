@@ -15,6 +15,9 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitSource
+import fi.fta.geoviite.infra.split.SplitTargetSaveRequest
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -52,6 +55,7 @@ class PublicationServiceIT @Autowired constructor(
     val calculatedChangesService: CalculatedChangesService,
     val localizationService: LocalizationService,
     val switchStructureDao: SwitchStructureDao,
+    val splitDao: SplitDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -2047,8 +2051,8 @@ class PublicationServiceIT @Autowired constructor(
     fun `split target location track validation should fail when the split is still in progress`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.IN_PROGRESS))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.IN_PROGRESS))
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
@@ -2056,7 +2060,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2067,8 +2071,8 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.FAILED))
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
@@ -2076,7 +2080,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2087,8 +2091,8 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.DONE))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.DONE))
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
@@ -2109,8 +2113,8 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.IN_PROGRESS))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.IN_PROGRESS))
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
@@ -2118,7 +2122,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2129,8 +2133,8 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.FAILED))
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
@@ -2138,7 +2142,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.location-track.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2149,8 +2153,8 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.DONE))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.DONE))
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
@@ -2176,7 +2180,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.reference-line.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2211,7 +2215,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.reference-line.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2229,8 +2233,8 @@ class PublicationServiceIT @Autowired constructor(
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
         saveSplit(locationTrackId).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.FAILED))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.FAILED))
         }
 
         val validation = publicationService.validatePublishCandidates(
@@ -2244,7 +2248,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.reference-line.split-in-progress"),
+                LocalizationKey("validation.layout.split.split-in-progress"),
                 LocalizationParams.empty()
             )
         )
@@ -2262,8 +2266,8 @@ class PublicationServiceIT @Autowired constructor(
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
         saveSplit(locationTrackId).also { splitId ->
-            val split = publicationDao.getSplit(splitId)
-            publicationDao.updateSplit(split.copy(state = SplitState.DONE))
+            val split = splitDao.getSplit(splitId)
+            splitDao.updateSplitState(split.copy(state = SplitState.DONE))
         }
 
         val validation = publicationService.validatePublishCandidates(
@@ -2317,7 +2321,7 @@ class PublicationServiceIT @Autowired constructor(
 
         assertTrue {
             errors.any {
-                it.localizationKey == LocalizationKey("validation.layout.location-track.split-source-geometry-changed")
+                it.localizationKey == LocalizationKey("validation.layout.split.source-geometry-changed")
             }
         }
     }
@@ -2357,7 +2361,7 @@ class PublicationServiceIT @Autowired constructor(
         val errors = validateLocationTracks(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
         assertTrue {
             errors.any {
-                it.localizationKey == LocalizationKey("validation.layout.location-track.split-target-geometry-changed")
+                it.localizationKey == LocalizationKey("validation.layout.split.target-geometry-changed")
             }
         }
     }
@@ -2372,7 +2376,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.location-track.split-missing-location-tracks"),
+                LocalizationKey("validation.layout.split.split-missing-location-tracks"),
                 LocalizationParams.empty()
             )
         )
@@ -2388,7 +2392,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.location-track.split-missing-location-tracks"),
+                LocalizationKey("validation.layout.split.split-missing-location-tracks"),
                 LocalizationParams.empty()
             )
         )
@@ -2408,7 +2412,7 @@ class PublicationServiceIT @Autowired constructor(
         sourceTrackId: IntId<LocationTrack>,
         vararg targetTrackIds: IntId<LocationTrack>,
     ): IntId<SplitSource> {
-        return publicationDao.saveSplit(
+        return splitDao.saveSplit(
             sourceTrackId,
             targetTrackIds.map {
                 SplitTargetSaveRequest(it, 0..0)

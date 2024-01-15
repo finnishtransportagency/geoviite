@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.Translation
@@ -19,6 +18,8 @@ import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.split.SplitPublishValidationErrors
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.SortOrder
@@ -34,8 +35,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.max
-import kotlin.math.min
 
 @Service
 class PublicationService @Autowired constructor(
@@ -56,10 +55,10 @@ class PublicationService @Autowired constructor(
     private val calculatedChangesService: CalculatedChangesService,
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
-    private val geometryDao: GeometryDao,
     private val geocodingCacheService: GeocodingCacheService,
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
+    private val splitService: SplitService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -173,7 +172,6 @@ class PublicationService @Autowired constructor(
                 validationVersions = versions,
                 cacheKeys = cacheKeys,
                 switchTrackLinks = switchTrackLinks,
-                splits = emptyList(),
             ),
             locationTrackId,
         )
@@ -264,28 +262,32 @@ class PublicationService @Autowired constructor(
         val cacheKeys = collectCacheKeys(versions)
         precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
-        val splits = publicationDao.fetchUnfinishedSplits()
-        val splitErrors = validateSplit(candidates.locationTracks.map { it.getPublicationVersion() }, splits)
+        val splitErrors = splitService.validateSplit(versions)
+
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
-                candidate.copy(errors = validateTrackNumber(candidate.getPublicationVersion(), versions, cacheKeys))
+                val tnSplitErrors = splitErrors.trackNumbers[candidate.id] ?: emptyList()
+                val validationErrors = validateTrackNumber(candidate.getPublicationVersion(), versions, cacheKeys)
+
+                candidate.copy(errors = tnSplitErrors + validationErrors)
             },
             referenceLines = candidates.referenceLines.map { candidate ->
-                candidate.copy(errors = validateReferenceLine(candidate.getPublicationVersion(), versions, cacheKeys))
+                val rlSplitErrors = splitErrors.referenceLines[candidate.id] ?: emptyList()
+                val validationErrors = validateReferenceLine(candidate.getPublicationVersion(), versions, cacheKeys)
+
+                candidate.copy(errors = rlSplitErrors + validationErrors)
             },
             locationTracks = candidates.locationTracks.map { candidate ->
-                val ltSplitErrors = splitErrors.filter { (split, _) -> split.isPartOf(candidate.id) }.map { it.second }
-                val ltErrors = validateLocationTrack(
+                val ltSplitErrors = splitErrors.locationTracks[candidate.id] ?: emptyList()
+
+                val validationErrors = validateLocationTrack(
                     version = candidate.getPublicationVersion(),
                     validationVersions = versions,
                     cacheKeys = cacheKeys,
                     switchTrackLinks = switchTrackLinks,
-                    splits = splits,
                 )
 
-                candidate.copy(
-                    errors = ltErrors + ltSplitErrors
-                )
+                candidate.copy(errors = validationErrors + ltSplitErrors)
             },
             switches = candidates.switches.map { candidate ->
                 candidate.copy(
@@ -297,7 +299,10 @@ class PublicationService @Autowired constructor(
                 )
             },
             kmPosts = candidates.kmPosts.map { candidate ->
-                candidate.copy(errors = validateKmPost(candidate.getPublicationVersion(), versions, cacheKeys))
+                val kpSplitErrors = splitErrors.kmPosts[candidate.id] ?: emptyList()
+                val validationErrors = validateKmPost(candidate.getPublicationVersion(), versions, cacheKeys)
+
+                candidate.copy(errors = validationErrors + kpSplitErrors)
             },
         )
     }
@@ -317,8 +322,10 @@ class PublicationService @Autowired constructor(
     fun validatePublishRequest(versions: ValidationVersions) {
         logger.serviceCall("validatePublishRequest", "versions" to versions)
         val cacheKeys = collectCacheKeys(versions)
-        val splits = publicationDao.fetchUnfinishedSplits()
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
+        val splitErrors = splitService.validateSplit(versions)
+
+        assertNoSplitErrors(splitErrors)
 
         versions.trackNumbers.forEach { version ->
             assertNoErrors(version, validateTrackNumber(version, versions, cacheKeys))
@@ -330,7 +337,7 @@ class PublicationService @Autowired constructor(
             assertNoErrors(version, validateReferenceLine(version, versions, cacheKeys))
         }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(version, validateLocationTrack(version, versions, cacheKeys, switchTrackLinks, splits))
+            assertNoErrors(version, validateLocationTrack(version, versions, cacheKeys, switchTrackLinks))
         }
 
         versions.switches.forEach { version ->
@@ -490,6 +497,21 @@ class PublicationService @Autowired constructor(
         }
     }
 
+    private fun assertNoSplitErrors(errors: SplitPublishValidationErrors) {
+        val splitErrors = (errors.kmPosts + errors.trackNumbers + errors.referenceLines + errors.kmPosts)
+            .values
+            .flatten()
+            .filter { error -> error.type == ERROR }
+
+        if (splitErrors.isNotEmpty()) {
+            logger.warn("Validation errors in split: errors=$splitErrors")
+            throw PublicationFailureException(
+                message = "Cannot publish split due to split validation errors: $splitErrors",
+                localizedMessageKey = "validation-failed",
+            )
+        }
+    }
+
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(versions)
 
@@ -601,9 +623,7 @@ class PublicationService @Autowired constructor(
             validateGeocodingContext(cacheKeys[kmPost.trackNumberId], VALIDATION_KM_POST, trackNumber.number)
         } else listOf()
 
-        val splitErrors = kmPost.trackNumberId?.let(::validateSplitReferencesByTrackNumber) ?: emptyList()
-
-        return fieldErrors + referenceErrors + geocodingErrors + splitErrors
+        return fieldErrors + referenceErrors + geocodingErrors
     }
 
     private fun validateSwitch(
@@ -681,9 +701,7 @@ class PublicationService @Autowired constructor(
             contextErrors + addressErrors
         } else listOf()
 
-        val splitErrors = validateSplitReferencesByTrackNumber(referenceLine.trackNumberId)
-
-        return referenceErrors + alignmentErrors + geocodingErrors + splitErrors
+        return referenceErrors + alignmentErrors + geocodingErrors
     }
 
     private fun validateLocationTrack(
@@ -691,7 +709,6 @@ class PublicationService @Autowired constructor(
         validationVersions: ValidationVersions,
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
         switchTrackLinks: SwitchTrackLinks,
-        splits: List<SplitSource>,
     ): List<PublishValidationError> {
         val (locationTrack, alignment) = getLocationTrackAndAlignment(version.validatedAssetVersion)
         val trackNumber = getTrackNumber(locationTrack.trackNumberId, validationVersions)
@@ -724,8 +741,6 @@ class PublicationService @Autowired constructor(
             locationTrack, validationVersions
         ) else listOf()
 
-        val splitErrors = validateSplitForLocationTrack(version.officialId, splits)
-
         return (fieldErrors +
                 referenceErrors +
                 switchErrorsSegments +
@@ -734,8 +749,7 @@ class PublicationService @Autowired constructor(
                 alignmentErrors +
                 geocodingErrors +
                 duplicateNameErrors +
-                trackNetworkTopologyErrors +
-                splitErrors)
+                trackNetworkTopologyErrors)
     }
 
     private fun validateLocationTrackTopologicalConnectivity(
@@ -827,116 +841,6 @@ class PublicationService @Autowired constructor(
                 mapOf("locationTrack" to locationTrack.name, "trackNumber" to trackNumberName)
             ) else null
         )
-    }
-
-    private fun validateSplitForLocationTrack(
-        locationTrackId: IntId<LocationTrack>,
-        splits: List<SplitSource>,
-    ): List<PublishValidationError> {
-        val targetGeometryErrors = splits
-            .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == locationTrackId } }
-            ?.let { split -> validateSplitTargetGeometry(locationTrackId, split) }
-
-        val sourceGeometryErrors = splits
-            .firstOrNull { it.locationTrackId == locationTrackId }
-            ?.let { validateSplitSourceGeometry(it.locationTrackId) }
-
-        val statusErrors = splits
-            .filterNot { it.state == SplitState.PENDING }
-            .firstOrNull { it.isPartOf(locationTrackId) }
-            ?.let { PublishValidationError(ERROR, "$VALIDATION_LOCATION_TRACK.split-in-progress") }
-
-        return listOfNotNull(statusErrors, targetGeometryErrors, sourceGeometryErrors)
-    }
-
-    private fun validateSplitSourceGeometry(
-        locationTrackId: IntId<LocationTrack>,
-    ): PublishValidationError? {
-        val draftPoints = geocodingService.getAddressPoints(locationTrackId, DRAFT)?.allPoints
-        val officialPoints = geocodingService.getAddressPoints(locationTrackId, OFFICIAL)?.allPoints
-
-        return if (draftPoints == null || officialPoints == null) {
-            PublishValidationError(ERROR, "$VALIDATION_LOCATION_TRACK.split-source-no-geometry")
-        } else {
-            draftPoints
-                .withIndex()
-                .firstOrNull { (targetIndex, targetPoint) ->
-                    val idx = min(officialPoints.lastIndex, targetIndex)
-                    !targetPoint.isSame(officialPoints[idx])
-                }?.let { (_, point) ->
-                    PublishValidationError(
-                        ERROR,
-                        "$VALIDATION_LOCATION_TRACK.split-source-geometry-changed",
-                        mapOf("point" to point)
-                    )
-                }
-        }
-    }
-
-    private fun validateSplitTargetGeometry(
-        locationTrackId: IntId<LocationTrack>,
-        split: SplitSource,
-    ): PublishValidationError? {
-        val targetAddresses = geocodingService.getAddressPoints(locationTrackId, DRAFT)
-        val sourceAddresses = geocodingService.getAddressPoints(split.locationTrackId, OFFICIAL)
-
-        return if (targetAddresses == null || sourceAddresses == null) {
-            PublishValidationError(
-                ERROR,
-                "$VALIDATION_LOCATION_TRACK.split-target-no-geometry"
-            )
-        } else {
-            val sourcePoints = sourceAddresses.allPoints
-            val startIndex = max(0, sourcePoints.indexOfFirst { it.isSame(targetAddresses.startPoint) })
-
-            targetAddresses.allPoints
-                .withIndex()
-                .firstOrNull { (targetIndex, targetPoint) ->
-                    val idx = min(sourcePoints.lastIndex, startIndex + targetIndex)
-                    !targetPoint.isSame(sourcePoints[idx])
-                }?.let { (_, point) ->
-                    PublishValidationError(
-                        ERROR,
-                        "$VALIDATION_LOCATION_TRACK.split-target-geometry-changed",
-                        mapOf("point" to point)
-                    )
-                }
-        }
-    }
-
-    private fun validateSplit(
-        versions: List<ValidationVersion<LocationTrack>>,
-        splits: List<SplitSource>,
-    ): List<Pair<SplitSource, PublishValidationError>> {
-        val splitsInValidation = splits.filter { split ->
-            versions.any { lt -> split.isPartOf(lt.officialId) }
-        }
-
-        return splitsInValidation
-            .filterNot { split ->
-                val containsSource = versions.any { it.officialId == split.locationTrackId }
-
-                containsSource && split.targetLocationTracks.all { tlt ->
-                    versions.any { it.officialId == tlt.locationTrackId }
-                }
-            }.map { split ->
-                split to PublishValidationError(
-                    ERROR,
-                    "$VALIDATION_LOCATION_TRACK.split-missing-location-tracks"
-                )
-            }
-    }
-
-    private fun validateSplitReferencesByTrackNumber(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<PublishValidationError> {
-        val splitIds = publicationDao.fetchUnfinishedSplitsByTrackNumber(trackNumberId)
-
-        val splitErrors = if (splitIds.isNotEmpty())
-            listOf(PublishValidationError(ERROR, "$VALIDATION_REFERENCE_LINE.split-in-progress"))
-        else emptyList()
-
-        return splitErrors
     }
 
     private fun getTrackNumber(
