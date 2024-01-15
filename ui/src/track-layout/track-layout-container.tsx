@@ -27,6 +27,7 @@ export const TrackLayoutContainer: React.FC = () => {
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
+            splittingState={trackLayoutState.splittingState}
             showVerticalGeometryDiagram={showVerticalGeometryDiagram}
             visibleMapLayers={trackLayoutState.map.visibleLayers}
         />
