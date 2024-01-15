@@ -401,7 +401,8 @@
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
-                "negative-kilometer-length": "Virheellinen sijainti"
+                "negative-kilometer-length": "Virheellinen sijainti",
+                "no-location": "Ei sijaintia"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -489,7 +490,8 @@
             "end-coordinates": "Loppukoordinaatit",
             "end-points-updated": "Pituusmittauslinjan päätepisteet päivitetty",
             "reference-line-singular": "Pituusmittauslinja",
-            "reference-line-plural": "Pituusmittauslinjat"
+            "reference-line-plural": "Pituusmittauslinjat",
+            "no-geometry": "Pituusmittauslinjalla ei ole geometriaa"
         },
         "alignment": {
             "geometry": {
@@ -563,6 +565,7 @@
             "show-on-map": "Kohdista kartalla",
             "unpublished": "Julkaisematon",
             "modify-start-or-end": "Lyhennä alkua ja/tai loppua",
+            "no-geometry": "Sijaintiraiteella ei ole geometriaa",
             "ready": "Valmis",
             "location-track-endpoints-updated": "Raiteen päätepisteet päivitetty",
             "choose-start-and-end-points": "Valitse kartalta alku- ja loppusijainti",
