@@ -127,7 +127,7 @@ export function getSwitchRenderer(
             },
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 if (showLabel) {
-                    ctx.fillStyle = mapStyles['switchBackground'];
+                    ctx.fillStyle = styles['switchBackground'];
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
 
