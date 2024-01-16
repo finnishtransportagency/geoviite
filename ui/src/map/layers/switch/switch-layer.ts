@@ -34,11 +34,14 @@ export function createSwitchLayer(
     const layerId = ++newestLayerId;
     const getSwitchesFromApi = () => {
         if (resolution <= Limits.SWITCH_SHOW) {
+            const switchIds =
+                splittingState?.allowedSwitches
+                    .map((sw) => sw.switchId)
+                    .concat(splittingState?.startAndEndSwitches) || [];
             return splittingState
-                ? getSwitches(
-                      splittingState.allowedSwitches.map((sw) => sw.switchId),
-                      publishType,
-                  ).then((switches) => switches.filter((sw) => sw.stateCategory !== 'NOT_EXISTING'))
+                ? getSwitches(switchIds, publishType).then((switches) =>
+                      switches.filter((sw) => sw.stateCategory !== 'NOT_EXISTING'),
+                  )
                 : Promise.all(
                       mapTiles.map((t) =>
                           getSwitchesByTile(changeTimes.layoutSwitch, t, publishType),
