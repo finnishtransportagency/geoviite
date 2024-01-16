@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -39,6 +40,7 @@ class LinkingService @Autowired constructor(
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
     private val coordinateTransformationService: CoordinateTransformationService,
+    private val splitService: SplitService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -74,7 +76,9 @@ class LinkingService @Autowired constructor(
 
     @Transactional
     fun saveLocationTrackLinking(parameters: LinkingParameters<LocationTrack>): IntId<LocationTrack> {
+        verifyLocationTrackNotDeleted(parameters.layoutInterval.alignmentId)
         verifyPlanNotHidden(parameters.geometryPlanId)
+        verifyAllSplitsDone(parameters.layoutInterval.alignmentId)
 
         val locationTrackId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
@@ -249,6 +253,18 @@ class LinkingService @Autowired constructor(
     fun verifyPlanNotHidden(id: IntId<GeometryPlan>) {
         if (geometryService.getPlanHeader(id).isHidden) throw LinkingFailureException(
             message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
+        )
+    }
+
+    fun verifyAllSplitsDone(id: IntId<LocationTrack>) {
+        if (splitService.locationTrackHasAnySplitsNotDone(id)) throw LinkingFailureException(
+            message = "Cannot link a location track that has unfinished splits", localizedMessageKey = "unfinished-splits"
+        )
+    }
+
+    fun verifyLocationTrackNotDeleted(id: IntId<LocationTrack>) {
+        if (!locationTrackService.getOrThrow(DRAFT, id).exists) throw LinkingFailureException(
+            message = "Cannot link a location track that is deleted", localizedMessageKey = "location-track-deleted"
         )
     }
 }

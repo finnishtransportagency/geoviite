@@ -71,7 +71,7 @@ class SplitDao(
         val sql = """
           select
               slt.id,
-              slt.state,
+              slt.bulk_transfer_state,
               slt.error_cause,
               slt.publication_id,
               slt.source_location_track_id
@@ -85,7 +85,7 @@ class SplitDao(
             SplitSource(
                 id = splitId,
                 locationTrackId = rs.getIntId("source_location_track_id"),
-                state = rs.getEnum("state"),
+                bulkTransferState = rs.getEnum("bulk_transfer_state"),
                 errorCause = rs.getString("error_cause"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
                 targetLocationTracks = targetLocationTracks
@@ -100,14 +100,14 @@ class SplitDao(
         val sql = """
             update publication.split
             set 
-                state = :state::publication.split_push_state,
+                bulk_transfer_state = :bulk_transfer_state::publication.bulk_transfer_state,
                 error_cause = :errorCause,
                 publication_id = :publicationId
             where id = :splitId
         """.trimIndent()
 
         val params = mapOf(
-            "state" to split.state.name,
+            "bulk_transfer_state" to split.bulkTransferState.name,
             "errorCause" to split.errorCause,
             "publicationId" to split.publicationId?.intValue,
             "splitId" to split.id.intValue
@@ -146,12 +146,12 @@ class SplitDao(
         val sql = """
           select
               slt.id,
-              slt.state,
+              slt.bulk_transfer_state,
               slt.error_cause,
               slt.publication_id,
               slt.source_location_track_id
           from publication.split slt
-          where slt.state != 'DONE'
+          where slt.bulk_transfer_state != 'DONE'
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
@@ -161,7 +161,7 @@ class SplitDao(
             SplitSource(
                 id = splitId,
                 locationTrackId = rs.getIntId("source_location_track_id"),
-                state = rs.getEnum("state"),
+                bulkTransferState = rs.getEnum("bulk_transfer_state"),
                 errorCause = rs.getString("error_cause"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
                 targetLocationTracks = targetLocationTracks
@@ -177,7 +177,7 @@ class SplitDao(
             from publication.split slt
             left join publication.split_target_location_track tlt on tlt.split_id = slt.id
             inner join layout.location_track lt on lt.id = slt.source_location_track_id or lt.id = tlt.location_track_id 
-            where slt.state != 'DONE' 
+            where slt.bulk_transfer_state != 'DONE' 
                 and slt.publication_id is null 
                 and lt.track_number_id = :trackNumberId 
         """.trimIndent()
@@ -186,6 +186,35 @@ class SplitDao(
             rs.getIntId<SplitSource>("id")
         }.also { ids ->
             logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids)
+        }
+    }
+
+    fun fetchSplitsPendingMassTransfer(): List<SplitSource> {
+        val sql = """
+          select
+              slt.id,
+              slt.bulk_transfer_state,
+              slt.error_cause,
+              slt.publication_id,
+              slt.source_location_track_id
+          from publication.split slt
+          where slt.bulk_transfer_state != 'DONE'
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql) { rs, _ ->
+            val splitId = rs.getIntId<SplitSource>("id")
+            val targetLocationTracks = getSplitTargets(splitId)
+
+            SplitSource(
+                id = splitId,
+                locationTrackId = rs.getIntId("source_location_track_id"),
+                bulkTransferState = rs.getEnum("bulk_transfer_state"),
+                errorCause = rs.getString("error_cause"),
+                publicationId = rs.getIntIdOrNull("publication_id"),
+                targetLocationTracks = targetLocationTracks
+            )
+        }.also { ids ->
+            logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id })
         }
     }
 }

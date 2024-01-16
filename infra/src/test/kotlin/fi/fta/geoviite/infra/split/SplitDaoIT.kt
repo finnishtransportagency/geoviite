@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.publication.SplitState
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.draft
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -55,7 +54,7 @@ class SplitDaoIT @Autowired constructor(
         val split = splitDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)))
             .let(splitDao::getSplit)
 
-        assertTrue { split.state == SplitState.PENDING }
+        assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
         assertNull(split.errorCause)
         assertNull(split.publicationId)
         assertEquals(sourceTrack.id, split.locationTrackId)
@@ -74,20 +73,19 @@ class SplitDaoIT @Autowired constructor(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
-
         val split = splitDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)))
             .let(splitDao::getSplit)
 
         val publicationId = publicationDao.createPublication("SPLIT PUBLICATION")
         val updatedSplit = splitDao.updateSplitState(
             split.copy(
-                state = SplitState.FAILED,
+                bulkTransferState = BulkTransferState.FAILED,
                 errorCause = "TEST",
                 publicationId = publicationId
             )
         ).let(splitDao::getSplit)
 
-        assertEquals(SplitState.FAILED, updatedSplit.state)
+        assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransferState)
         assertEquals("TEST", updatedSplit.errorCause)
         assertEquals(publicationId, updatedSplit.publicationId)
     }
@@ -108,13 +106,12 @@ class SplitDaoIT @Autowired constructor(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
-
         val doneSplit = splitDao.saveSplit(
             sourceTrack.id,
             listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0))
         ).also { splitId ->
             val split = splitDao.getSplit(splitId)
-            splitDao.updateSplitState(split.copy(state = SplitState.DONE))
+            splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
         }
 
         val pendingSplitId = splitDao.saveSplit(
@@ -127,6 +124,4 @@ class SplitDaoIT @Autowired constructor(
         assertTrue { splits.any { s -> s.id == pendingSplitId } }
         assertTrue { splits.none { s -> s.id == doneSplit } }
     }
-
-
 }
