@@ -1,19 +1,24 @@
 package fi.fta.geoviite.infra.linking
 
-
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.SplitTargetSaveRequest
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -30,6 +35,7 @@ class LinkingServiceIT @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val kmPostService: LayoutKmPostService,
+    private val splitDao: SplitDao,
 ) : DBTestBase() {
 
     @Test
@@ -127,7 +133,6 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun kmPostGeometryLinkingWorks() {
-
         val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber())
         val kmPostId = kmPostDao.insert(kmPost).id
         val officialKmPost = kmPostService.get(OFFICIAL, kmPostId)
@@ -155,6 +160,224 @@ class LinkingServiceIT @Autowired constructor(
         assertNotEquals(officialKmPost, draftKmPost)
 
         assertEquals(geometryKmPostId, draftKmPost.sourceId)
+    }
+
+    @Test
+    fun `Linking alignments throws if alignment is deleted`() {
+        val trackNumberId = trackNumberDao.insert(
+            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
+        )
+
+        val geometryStart = Point(377680.0, 6676160.0)
+        // 6m of geometry to replace
+        val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
+        val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
+        val plan = plan(
+            trackNumberId.id, Srid(3067), geometryAlignment(
+                line(geometryStart, geometrySegmentChange),
+                line(geometrySegmentChange, geometryEnd),
+            )
+        )
+
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
+        val (geometryLayoutPlan, _) = planLayoutService.getLayoutPlan(geometryPlanId.id)
+
+        val geometryLayoutAlignment = geometryLayoutPlan?.alignments?.get(0)!!
+        val geometryStartSegment = geometryLayoutAlignment.segments.first()
+        val geometryEndSegment = geometryLayoutAlignment.segments.last()
+
+        // Geometry is about 6m and we need 1m for transition on both sides
+        // Build layout so that we keep first point, replacing the next 8: 4 from first, 4 from second segment
+        val start = geometryStart - Point(1.0, 1.5)
+        val segment1 = segment(
+            start, start + 1.0, start + 2.0, start + 3.0, start + 4.0,
+            startM = 0.0,
+        )
+        val segment2 = segment(
+            start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0,
+            startM = segment1.length,
+        )
+        val segment3 = segment(
+            start + 9.0, start + 10.0, start + 11.0,
+            startM = segment2.length,
+        )
+
+        val (locationTrack, alignment) = locationTrackAndAlignment(
+            insertOfficialTrackNumber(), segment1, segment2, segment3, state = LayoutState.DELETED
+        )
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
+        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+
+        val (_, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+
+        // Pick the whole geometry as interval
+        val geometryInterval = GeometryInterval(
+            alignmentId = geometryLayoutAlignment.id as IntId,
+            mRange = Range(
+                geometryStartSegment.alignmentPoints.first().m,
+                geometryEndSegment.alignmentPoints.last().m,
+            ),
+        )
+
+        // Pick layout interval to cut after first 2 point, skipping to 5th point of second interval
+        val layoutInterval = LayoutInterval(
+            alignmentId = locationTrackId,
+            mRange = Range(
+                officialAlignment.segments[0].alignmentPoints.first().m,
+                officialAlignment.segments[1].alignmentPoints[4].m,
+            ),
+        )
+
+        val ex = assertThrows<LinkingFailureException> {
+            linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval))
+        }
+        assertEquals("Linking failed: Cannot link a location track that is deleted", ex.message)
+    }
+
+    @Test
+    fun `Linking alignments throws if alignment has splits`() {
+        val trackNumberId = trackNumberDao.insert(
+            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
+        )
+
+        val geometryStart = Point(377680.0, 6676160.0)
+        // 6m of geometry to replace
+        val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
+        val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
+        val plan = plan(
+            trackNumberId.id, Srid(3067), geometryAlignment(
+                line(geometryStart, geometrySegmentChange),
+                line(geometrySegmentChange, geometryEnd),
+            )
+        )
+
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
+        val (geometryLayoutPlan, _) = planLayoutService.getLayoutPlan(geometryPlanId.id)
+
+        val geometryLayoutAlignment = geometryLayoutPlan?.alignments?.get(0)!!
+        val geometryStartSegment = geometryLayoutAlignment.segments.first()
+        val geometryEndSegment = geometryLayoutAlignment.segments.last()
+
+        // Geometry is about 6m and we need 1m for transition on both sides
+        // Build layout so that we keep first point, replacing the next 8: 4 from first, 4 from second segment
+        val start = geometryStart - Point(1.0, 1.5)
+        val segment1 = segment(
+            start, start + 1.0, start + 2.0, start + 3.0, start + 4.0,
+            startM = 0.0,
+        )
+        val segment2 = segment(
+            start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0,
+            startM = segment1.length,
+        )
+        val segment3 = segment(
+            start + 9.0, start + 10.0, start + 11.0,
+            startM = segment2.length,
+        )
+
+        val (locationTrack, alignment) = locationTrackAndAlignment(
+            insertOfficialTrackNumber(), segment1, segment2, segment3
+        )
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
+        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+
+        val (_, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+
+        // Pick the whole geometry as interval
+        val geometryInterval = GeometryInterval(
+            alignmentId = geometryLayoutAlignment.id as IntId,
+            mRange = Range(
+                geometryStartSegment.alignmentPoints.first().m,
+                geometryEndSegment.alignmentPoints.last().m,
+            ),
+        )
+
+        // Pick layout interval to cut after first 2 point, skipping to 5th point of second interval
+        val layoutInterval = LayoutInterval(
+            alignmentId = locationTrackId,
+            mRange = Range(
+                officialAlignment.segments[0].alignmentPoints.first().m,
+                officialAlignment.segments[1].alignmentPoints[4].m,
+            ),
+        )
+
+        splitDao.saveSplit(locationTrackId, listOf(SplitTargetSaveRequest(locationTrackId, 0..1)))
+
+        val ex = assertThrows<LinkingFailureException> {
+            linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval))
+        }
+        assertEquals("Linking failed: Cannot link a location track that has unfinished splits", ex.message)
+    }
+
+    @Test
+    fun `Linking alignments works if all alignment splits are finished`() {
+        val trackNumberId = trackNumberDao.insert(
+            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
+        )
+
+        val geometryStart = Point(377680.0, 6676160.0)
+        // 6m of geometry to replace
+        val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
+        val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
+        val plan = plan(
+            trackNumberId.id, Srid(3067), geometryAlignment(
+                line(geometryStart, geometrySegmentChange),
+                line(geometrySegmentChange, geometryEnd),
+            )
+        )
+
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
+        val (geometryLayoutPlan, _) = planLayoutService.getLayoutPlan(geometryPlanId.id)
+
+        val geometryLayoutAlignment = geometryLayoutPlan?.alignments?.get(0)!!
+        val geometryStartSegment = geometryLayoutAlignment.segments.first()
+        val geometryEndSegment = geometryLayoutAlignment.segments.last()
+
+        // Geometry is about 6m and we need 1m for transition on both sides
+        // Build layout so that we keep first point, replacing the next 8: 4 from first, 4 from second segment
+        val start = geometryStart - Point(1.0, 1.5)
+        val segment1 = segment(
+            start, start + 1.0, start + 2.0, start + 3.0, start + 4.0,
+            startM = 0.0,
+        )
+        val segment2 = segment(
+            start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0,
+            startM = segment1.length,
+        )
+        val segment3 = segment(
+            start + 9.0, start + 10.0, start + 11.0,
+            startM = segment2.length,
+        )
+
+        val (locationTrack, alignment) = locationTrackAndAlignment(
+            insertOfficialTrackNumber(), segment1, segment2, segment3
+        )
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
+        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+
+        val (_, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+
+        // Pick the whole geometry as interval
+        val geometryInterval = GeometryInterval(
+            alignmentId = geometryLayoutAlignment.id as IntId,
+            mRange = Range(
+                geometryStartSegment.alignmentPoints.first().m,
+                geometryEndSegment.alignmentPoints.last().m,
+            ),
+        )
+
+        // Pick layout interval to cut after first 2 point, skipping to 5th point of second interval
+        val layoutInterval = LayoutInterval(
+            alignmentId = locationTrackId,
+            mRange = Range(
+                officialAlignment.segments[0].alignmentPoints.first().m,
+                officialAlignment.segments[1].alignmentPoints[4].m,
+            ),
+        )
+
+        val split = splitDao.getSplit(splitDao.saveSplit(locationTrackId, listOf(SplitTargetSaveRequest(locationTrackId, 0..1))))
+        splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
+
+        assertDoesNotThrow { linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval)) }
 
     }
 

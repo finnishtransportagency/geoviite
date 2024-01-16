@@ -3,16 +3,22 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublishValidationError
-import fi.fta.geoviite.infra.publication.SplitState
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 
+enum class BulkTransferState {
+    PENDING,
+    IN_PROGRESS,
+    DONE,
+    FAILED
+}
+
 data class SplitSource(
     val id: IntId<SplitSource>,
     val locationTrackId: IntId<LocationTrack>,
-    val state: SplitState,
+    val bulkTransferState: BulkTransferState,
     val errorCause: String?,
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,

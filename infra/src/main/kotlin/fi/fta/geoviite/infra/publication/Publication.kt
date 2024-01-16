@@ -424,13 +424,6 @@ data class KmPostChanges(
     val location: Change<Point>,
 )
 
-enum class SplitState {
-    PENDING,
-    IN_PROGRESS,
-    DONE,
-    FAILED
-}
-
 fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
     officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
 )

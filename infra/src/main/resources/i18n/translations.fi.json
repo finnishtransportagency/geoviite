@@ -8,7 +8,9 @@
             "generic": "Linkityksessä tapahtui virhe",
             "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",
             "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
-            "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu"
+            "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu",
+            "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
+            "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",

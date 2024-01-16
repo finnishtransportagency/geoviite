@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType
-import fi.fta.geoviite.infra.publication.SplitState
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -74,7 +73,7 @@ class SplitService(
             }
 
         val statusErrors = splits
-            .filterNot { it.state == SplitState.PENDING }
+            .filterNot { it.bulkTransferState == BulkTransferState.PENDING }
             .firstOrNull { it.isPartOf(locationTrackId) }
             ?.let {
                 PublishValidationError(
@@ -97,4 +96,7 @@ class SplitService(
             )
         else null
     }
+
+    fun locationTrackHasAnySplitsNotDone(locationTrackId: IntId<LocationTrack>): Boolean =
+        splitDao.fetchUnfinishedSplits().any { it.isPartOf(locationTrackId) && it.bulkTransferState != BulkTransferState.DONE }
 }

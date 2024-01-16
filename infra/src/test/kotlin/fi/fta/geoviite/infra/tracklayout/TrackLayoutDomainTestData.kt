@@ -186,8 +186,9 @@ fun locationTrackAndAlignment(
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
+    state: LayoutState = LayoutState.IN_USE,
 ): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(trackNumberId, segments.toList(), name = name, description = description)
+    locationTrackAndAlignment(trackNumberId, segments.toList(), name = name, description = description, state = state)
 
 
 fun locationTrackAndAlignment(
@@ -197,9 +198,10 @@ fun locationTrackAndAlignment(
     draft: Draft<LocationTrack>? = null,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
+    state: LayoutState = LayoutState.IN_USE,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
-    val locationTrack = locationTrack(trackNumberId, alignment, id, draft, name, description = description)
+    val locationTrack = locationTrack(trackNumberId, alignment, id, draft, name, description = description, state = state)
     return locationTrack to alignment
 }
 
