@@ -45,11 +45,11 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                 state.searchParams.sortBy,
                 state.searchParams.sortOrder,
             )
-                .then((page) => {
+                .then((result) => {
                     infraModelListDelegates.onPlansFetchReady({
-                        plans: page.items,
+                        plans: result.planHeaders.items,
                         searchParams: state.searchParams,
-                        totalCount: page.totalCount,
+                        totalCount: result.planHeaders.totalCount,
                     });
                 })
                 .catch((e) => infraModelListDelegates.onPlanFetchError(e?.toString()));

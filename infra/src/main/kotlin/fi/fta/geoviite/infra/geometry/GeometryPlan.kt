@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
 
 
@@ -132,3 +133,8 @@ data class GeometryPlanLinkedItems(
 ) {
     val isEmpty = locationTracks.isEmpty() && switches.isEmpty() && kmPosts.isEmpty()
 }
+
+data class GeometryPlanHeadersSearchResult(
+    val planHeaders: Page<GeometryPlanHeader>,
+    val remainingIds: List<IntId<GeometryPlan>>,
+)

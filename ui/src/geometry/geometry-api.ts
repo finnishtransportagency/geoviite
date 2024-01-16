@@ -85,6 +85,10 @@ async function getPlanAreas(bbox: BoundingBox): Promise<PlanArea[]> {
     const path = `${GEOMETRY_URI}/plans/areas${params}`;
     return getNonNull<PlanArea[]>(path);
 }
+export interface GeometryPlanHeadersSearchResult {
+    planHeaders: Page<GeometryPlanHeader>;
+    remainingIds: GeometryPlanId[];
+}
 
 export async function getGeometryPlanHeadersBySearchTerms(
     limit: number,
@@ -95,7 +99,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
     freeText?: string,
     sortField?: GeometrySortBy,
     sortOrder?: GeometrySortOrder,
-): Promise<Page<GeometryPlanHeader>> {
+): Promise<GeometryPlanHeadersSearchResult> {
     const params = queryParams({
         bbox: bbox ? bboxString(bbox) : undefined,
         sources: sources,
@@ -114,7 +118,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
         lang: i18next.language,
     });
 
-    return getNonNull<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`);
+    return getNonNull<GeometryPlanHeadersSearchResult>(`${GEOMETRY_URI}/plan-headers${params}`);
 }
 
 export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<GeometryPlanHeader> {

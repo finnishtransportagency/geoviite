@@ -23,7 +23,7 @@ export const searchGeometryPlanHeaders = async (
         [],
         searchTerm,
     );
-    return t.items;
+    return t.planHeaders.items;
 };
 
 export const getGeometryPlanOptions = (
