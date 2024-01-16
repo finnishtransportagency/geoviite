@@ -1055,9 +1055,9 @@ class SwitchLinkingService @Autowired constructor(
     ): List<LocationTrack> {
         // It is unnecessary to get the original switch bounds as well, as the new switch
         // is not linked to anywhere beforehand.
-        val updatedArea = getSwitchBoundsFromTracksAndAlignments(
-            switchId,
+        val updatedArea = getSwitchBoundsFromTracks(
             locationTracksAndAlignments,
+            switchId,
         )
 
         val nearbyTracks =
@@ -1186,9 +1186,10 @@ class SwitchLinkingService @Autowired constructor(
 
     fun validateRelinkingTrack(trackId: IntId<LocationTrack>): List<SwitchRelinkingResult> {
         val track = locationTrackDao.fetchDraftVersionOrThrow(trackId).let(locationTrackDao::fetch)
+        checkNotNull(track.alignmentVersion)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
-            ?: throw IllegalStateException("Could not geocode for location track $trackId")
-        val alignment = track.alignmentVersion?.let(alignmentDao::fetch) ?: throw IllegalStateException("no alignment on track $trackId")
+        checkNotNull(geocodingContext)
+        val alignment = track.alignmentVersion.let(alignmentDao::fetch)
 
         val switchIds = alignment.segments.mapNotNull { it.switchId as? IntId }.distinct()
         val replacementSwitchLocations = switchIds.map { switchId ->
@@ -1454,46 +1455,6 @@ private fun createSwitchLinkingParameters(
     )
 }
 
-private fun getSwitchBoundsFromTracksAndAlignments(
-    switchId: IntId<TrackLayoutSwitch>,
-    locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
-): BoundingBox? {
-    return locationTracksAndAlignments.flatMap { (locationTrack, alignment) ->
-        val lastSegmentIndex = alignment.segments.lastIndex
-
-        alignment.segments
-            .filterIndexed { segmentIndex, layoutSegment ->
-                val layoutSegmentSwitchIdMatches =
-                    layoutSegment.switchId == switchId
-
-                val topologyStartSwitchMatches =
-                    segmentIndex == 0 && locationTrack.topologyStartSwitch?.switchId == switchId
-
-                val topologyEndSwitchMatches =
-                    segmentIndex == lastSegmentIndex && locationTrack.topologyEndSwitch?.switchId == switchId
-
-                layoutSegmentSwitchIdMatches || topologyStartSwitchMatches || topologyEndSwitchMatches
-            }
-            .flatMapIndexed { segmentIndex, layoutSegment ->
-                val startIsJoint =
-                    layoutSegment.switchId == switchId && layoutSegment.startJointNumber != null ||
-                            segmentIndex == 0 && locationTrack.topologyStartSwitch?.switchId == switchId
-
-                val endIsJoint =
-                    layoutSegment.switchId == switchId && layoutSegment.endJointNumber != null ||
-                            segmentIndex == lastSegmentIndex && locationTrack.topologyEndSwitch?.switchId == switchId
-
-                listOfNotNull(
-                    if (startIsJoint) layoutSegment.geometry.segmentPoints.first() else null,
-                    if (endIsJoint) layoutSegment.geometry.segmentPoints.last() else null,
-                )
-            }
-    }
-    .let {
-        layoutPoints -> boundingBoxAroundPointsOrNull(layoutPoints)
-    }
-}
-
 private fun locationTrackHasTemporaryTopologicalSwitchConnection(
     locationTrack: LocationTrack,
     switchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
@@ -1518,7 +1479,8 @@ fun getSwitchBoundsFromTracks(
     tracks: Collection<Pair<LocationTrack, LayoutAlignment>>,
     switchId: IntId<TrackLayoutSwitch>,
 ): BoundingBox? = tracks.flatMap { (track, alignment) ->
-    listOfNotNull(track.topologyStartSwitch?.let { ts -> if (ts.switchId == switchId) alignment.firstSegmentStart else null },
+    listOfNotNull(
+        track.topologyStartSwitch?.let { ts -> if (ts.switchId == switchId) alignment.firstSegmentStart else null },
         track.topologyEndSwitch?.let { ts -> if (ts.switchId == switchId) alignment.lastSegmentEnd else null }) + alignment.segments.flatMap { segment ->
         if (segment.switchId != switchId) listOf() else listOfNotNull(
             if (segment.startJointNumber != null) segment.segmentStart else null,
