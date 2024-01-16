@@ -15,8 +15,8 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitSource
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitTargetSaveRequest
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
@@ -2424,7 +2424,7 @@ class PublicationServiceIT @Autowired constructor(
     private fun saveSplit(
         sourceTrackId: IntId<LocationTrack>,
         vararg targetTrackIds: IntId<LocationTrack>,
-    ): IntId<SplitSource> {
+    ): IntId<Split> {
         return splitDao.saveSplit(
             sourceTrackId,
             targetTrackIds.map {

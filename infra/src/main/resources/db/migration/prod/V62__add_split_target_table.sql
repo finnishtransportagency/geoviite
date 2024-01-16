@@ -7,6 +7,6 @@ create table publication.split_target_location_track
 
     primary key (split_id, location_track_id),
 
-    constraint split_fkey foreign key (split_id) references publication.split(id),
+    constraint split_fkey foreign key (split_id) references publication.split(id) on delete cascade,
     constraint split_target_location_track_fkey foreign key (location_track_id) references layout.location_track(id)
 );

@@ -15,8 +15,8 @@ enum class BulkTransferState {
     FAILED
 }
 
-data class SplitSource(
-    val id: IntId<SplitSource>,
+data class Split(
+    val id: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
     val bulkTransferState: BulkTransferState,
     val errorCause: String?,
@@ -28,7 +28,7 @@ data class SplitSource(
 }
 
 data class SplitTarget(
-    val splitId: IntId<SplitSource>,
+    val splitId: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndices: IntRange,
 )

@@ -61,7 +61,7 @@ class SplitService(
 
     private fun validateSplitForTargetLocationTrack(
         locationTrackId: IntId<LocationTrack>,
-        splits: List<SplitSource>,
+        splits: List<Split>,
     ): List<PublishValidationError> {
         val targetGeometryErrors = splits
             .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == locationTrackId } }
@@ -97,7 +97,7 @@ class SplitService(
     fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): PublishValidationError? {
-        val splitIds = splitDao.fetchUnfinishedSplitsByTrackNumber(trackNumberId)
+        val splitIds = splitDao.fetchUnfinishedSplitIdsByTrackNumber(trackNumberId)
         return if (splitIds.isNotEmpty())
             PublishValidationError(
                 PublishValidationErrorType.ERROR,

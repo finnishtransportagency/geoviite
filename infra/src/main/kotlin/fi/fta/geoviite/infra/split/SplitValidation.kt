@@ -41,8 +41,8 @@ internal fun validateSourceGeometry(
 
 internal fun validateSplitContent(
     versions: List<ValidationVersion<LocationTrack>>,
-    splits: List<SplitSource>,
-): List<Pair<SplitSource, PublishValidationError>> {
+    splits: List<Split>,
+): List<Pair<Split, PublishValidationError>> {
     val splitsInValidation = splits.filter { split ->
         versions.any { lt -> split.isPartOf(lt.officialId) }
     }
