@@ -23,8 +23,11 @@ data class Split(
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
 ) {
-    fun isPartOf(trackId: IntId<LocationTrack>): Boolean =
-        trackId == locationTrackId || targetLocationTracks.any { it.locationTrackId == trackId }
+    val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + locationTrackId }
+
+    val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
+
+    fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
 }
 
 data class SplitTarget(

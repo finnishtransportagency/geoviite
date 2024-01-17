@@ -380,9 +380,11 @@ class PublicationService @Autowired constructor(
         val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
         val draftOnlyTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isNewDraft).map { it.id as IntId }
 
-        val revertLocationTrackIds = requestIds.locationTracks.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
+        val revertLocationTrackIds = requestIds.locationTracks + draftOnlyTrackNumberIds.flatMap { tnId ->
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map(RowVersion<LocationTrack>::id)
+
+        val revertSplitTracks = splitService.findUnfinishedSplits(revertLocationTrackIds).flatMap { it.locationTracks }
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
             kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
@@ -395,7 +397,7 @@ class PublicationService @Autowired constructor(
         return PublishRequestIds(
             trackNumbers = revertTrackNumberIds.toList(),
             referenceLines = referenceLines.toList(),
-            locationTracks = revertLocationTrackIds.toList(),
+            locationTracks = (revertLocationTrackIds + revertSplitTracks).distinct(),
             switches = requestIds.switches.distinct(),
             kmPosts = revertKmPostIds.toList()
         )
@@ -404,6 +406,12 @@ class PublicationService @Autowired constructor(
     @Transactional
     fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
+
+        splitService.findUnfinishedSplits(toDelete.locationTracks)
+            .map { it.id }
+            .distinct()
+            .forEach(splitService::deleteSplit)
+
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(id) }.size
         alignmentDao.deleteOrphanedAlignments()
@@ -542,12 +550,14 @@ class PublicationService @Autowired constructor(
         val switches = versions.switches.map(switchService::publish).map { r -> r.rowVersion }
         val referenceLines = versions.referenceLines.map(referenceLineService::publish).map { r -> r.rowVersion }
         val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
-        val publishId = publicationDao.createPublication(message)
-        publicationDao.insertCalculatedChanges(publishId, calculatedChanges)
-        publicationGeometryChangeRemarksUpdateService.processPublication(publishId)
+        val publicationId = publicationDao.createPublication(message)
+        publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
+        publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
+
+        splitService.publishSplit(versions.locationTracks.map { it.officialId }, publicationId)
 
         return PublishResult(
-            publishId = publishId,
+            publishId = publicationId,
             trackNumbers = trackNumbers.size,
             referenceLines = referenceLines.size,
             locationTracks = locationTracks.size,

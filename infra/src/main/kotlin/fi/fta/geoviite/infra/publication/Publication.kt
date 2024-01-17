@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -224,6 +225,10 @@ data class ValidationVersions(
     fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
 }
 
+data class SplitPublishGroup(
+    val id: IntId<Split>,
+)
+
 data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
 
 data class PublishRequestIds(
@@ -318,6 +323,7 @@ data class LocationTrackPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val group: SplitPublishGroup?,
     val boundingBox: BoundingBox?,
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK

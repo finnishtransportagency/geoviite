@@ -41,13 +41,10 @@ internal fun validateSourceGeometry(
 
 internal fun validateSplitContent(
     versions: List<ValidationVersion<LocationTrack>>,
-    splits: List<Split>,
+    splits: Collection<Split>,
 ): List<Pair<Split, PublishValidationError>> {
-    val splitsInValidation = splits.filter { split ->
-        versions.any { lt -> split.isPartOf(lt.officialId) }
-    }
-
-    return splitsInValidation
+    return splits
+        .filter { it.isPending }
         .filterNot { split ->
             val containsSource = versions.any { it.officialId == split.locationTrackId }
 
@@ -91,10 +88,9 @@ internal fun validateTargetGeometry(
 }
 
 internal fun validateSplitSourceLocationTrack(
-    source: SplitSource,
     locationTrack: LocationTrack,
 ): PublishValidationError? {
-    return if (source.locationTrackId == locationTrack.id && locationTrack.exists) PublishValidationError(
+    return if (locationTrack.exists) PublishValidationError(
         PublishValidationErrorType.ERROR, "$VALIDATION_SPLIT.source-not-deleted"
     )
     else null

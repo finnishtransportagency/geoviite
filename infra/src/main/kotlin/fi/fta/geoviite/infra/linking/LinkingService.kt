@@ -257,7 +257,7 @@ class LinkingService @Autowired constructor(
     }
 
     fun verifyAllSplitsDone(id: IntId<LocationTrack>) {
-        if (splitService.locationTrackHasAnySplitsNotDone(id)) throw LinkingFailureException(
+        if (splitService.findUnfinishedSplits(listOf(id)).isNotEmpty()) throw LinkingFailureException(
             message = "Cannot link a location track that has unfinished splits", localizedMessageKey = "unfinished-splits"
         )
     }

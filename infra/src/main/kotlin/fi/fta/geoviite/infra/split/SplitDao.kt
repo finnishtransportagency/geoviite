@@ -19,10 +19,11 @@ class SplitDao(
     @Transactional
     fun saveSplit(
         locationTrackId: IntId<LocationTrack>,
-        splitTargets: List<SplitTargetSaveRequest>,
+        splitTargets: Collection<SplitTargetSaveRequest>,
     ): IntId<Split> {
         val sql = """
-            insert into publication.split(source_location_track_id, state, error_cause, publication_id) values (:id, 'PENDING', null, null)
+            insert into publication.split(source_location_track_id, bulk_transfer_state, error_cause, publication_id) 
+            values (:id, 'PENDING', null, null)
             returning id
         """.trimIndent()
 
@@ -38,7 +39,19 @@ class SplitDao(
         return splitId
     }
 
-    private fun saveSplitTargets(splitId: IntId<Split>, splitTargets: List<SplitTargetSaveRequest>) {
+    @Transactional
+    fun deleteSplit(splitId: IntId<Split>) {
+        val sql = """
+            delete from publication.split where id = :id 
+        """.trimIndent()
+
+        jdbcTemplate.setUser()
+        jdbcTemplate.update(sql, mapOf("id" to splitId.intValue)).also {
+            logger.daoAccess(AccessType.DELETE, Split::class, splitId)
+        }
+    }
+
+    private fun saveSplitTargets(splitId: IntId<Split>, splitTargets: Collection<SplitTargetSaveRequest>) {
         val sql = """
             insert into publication.split_target_location_track(
                 split_id,
@@ -175,9 +188,7 @@ class SplitDao(
                 left join publication.split_target_location_track tlt on tlt.split_id = slt.id
                 inner join layout.location_track lt 
                     on lt.id = slt.source_location_track_id or lt.id = tlt.location_track_id 
-            where slt.bulk_transfer_state != 'DONE' 
-                and slt.publication_id is null 
-                and lt.track_number_id = :trackNumberId 
+            where slt.bulk_transfer_state != 'DONE' and lt.track_number_id = :trackNumberId 
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
