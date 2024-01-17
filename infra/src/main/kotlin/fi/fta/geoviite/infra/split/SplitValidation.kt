@@ -90,7 +90,10 @@ internal fun validateTargetGeometry(
     }
 }
 
-internal fun validateSplitSources(source: SplitSource, locationTrack: LocationTrack): PublishValidationError? {
+internal fun validateSplitSourceLocationTrack(
+    source: SplitSource,
+    locationTrack: LocationTrack,
+): PublishValidationError? {
     return if (source.locationTrackId == locationTrack.id && locationTrack.exists) PublishValidationError(
         PublishValidationErrorType.ERROR, "$VALIDATION_SPLIT.source-not-deleted"
     )

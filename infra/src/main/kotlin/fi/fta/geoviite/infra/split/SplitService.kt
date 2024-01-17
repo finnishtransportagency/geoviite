@@ -22,15 +22,6 @@ class SplitService(
         val splits = splitDao.fetchUnfinishedSplits()
         val splitErrors = validateSplitContent(candidates.locationTracks, splits)
 
-        val sourceTrackSplitErrors = splits.mapNotNull { splitSource ->
-            candidates.locationTracks.find { (id, _) ->
-                id == splitSource.locationTrackId
-            }?.let { (id, version) ->
-                validateSplitSources(splitSource, locationTrackDao.fetch(version))
-                    ?.let { error -> id to listOf(error) }
-            }
-        }.toMap()
-
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id))
         }.filterValues { it.isNotEmpty() }
@@ -45,8 +36,17 @@ class SplitService(
             id to listOfNotNull(trackNumberId?.let(::validateSplitReferencesByTrackNumber))
         }.filterValues { it.isNotEmpty() }
 
+        val sourceTrackSplitErrors = splits.mapNotNull { splitSource ->
+            candidates.locationTracks.find { (id, _) ->
+                id == splitSource.locationTrackId
+            }?.let { (id, version) ->
+                validateSplitSourceLocationTrack(splitSource, locationTrackDao.fetch(version))
+                    ?.let { error -> id to listOf(error) }
+            }
+        }.toMap()
+
         val targetTrackSplitErrors = candidates.locationTracks.associate { (id, _) ->
-            val ltSplitErrors = validateSplitForLocationTrack(id, splits)
+            val ltSplitErrors = validateSplitForTargetLocationTrack(id, splits)
             val contentErrors = splitErrors.mapNotNull { (split, error) ->
                 if (split.isPartOf(id)) error else null
             }
@@ -59,7 +59,7 @@ class SplitService(
         return SplitPublishValidationErrors(tnSplitErrors, rlSplitErrors, kpSplitErrors, trackSplitErrors)
     }
 
-    private fun validateSplitForLocationTrack(
+    private fun validateSplitForTargetLocationTrack(
         locationTrackId: IntId<LocationTrack>,
         splits: List<SplitSource>,
     ): List<PublishValidationError> {
