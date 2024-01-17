@@ -2163,6 +2163,18 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `split source location track validation should fail if source location track isn't deleted`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup(LayoutState.IN_USE)
+
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+            val split = splitDao.getSplit(splitId)
+        }
+
+        val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        assertTrue { errors.size == 1 }
+    }
+
+    @Test
     fun `km post split validation should fail on unfinished split`() {
         val trackNumberId = insertOfficialTrackNumber()
         val kmPostId = kmPostDao.insert(draft(kmPost(trackNumberId = trackNumberId, km = KmNumber.ZERO))).id
@@ -2421,7 +2433,7 @@ class PublicationServiceIT @Autowired constructor(
         )
     }
 
-    private fun simpleSplitSetup(): Triple<DaoResponse<LocationTrack>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
+    private fun simpleSplitSetup(sourceLocationTrackState: LayoutState = LayoutState.DELETED): Triple<DaoResponse<LocationTrack>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
         val trackNumberId = insertOfficialTrackNumber()
         insertReferenceLine(
             referenceLine(trackNumberId = trackNumberId),
@@ -2435,7 +2447,7 @@ class PublicationServiceIT @Autowired constructor(
 
         locationTrackDao
             .fetch(sourceTrack.rowVersion)
-            .copy(state = LayoutState.DELETED)
+            .copy(state = sourceLocationTrackState)
             .also(locationTrackService::saveDraft)
 
         val startTrack = insertLocationTrack(

@@ -6,10 +6,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.*
 import org.springframework.stereotype.Service
 
 @Service
@@ -18,11 +15,21 @@ class SplitService(
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
     private val geocodingService: GeocodingService,
+    private val locationTrackDao: LocationTrackDao,
 ) {
 
     fun validateSplit(candidates: ValidationVersions): SplitPublishValidationErrors {
         val splits = splitDao.fetchUnfinishedSplits()
         val splitErrors = validateSplitContent(candidates.locationTracks, splits)
+
+        val sourceTrackSplitErrors = splits.mapNotNull { splitSource ->
+            candidates.locationTracks.find { (id, _) ->
+                id == splitSource.locationTrackId
+            }?.let { (id, version) ->
+                validateSplitSources(splitSource, locationTrackDao.fetch(version))
+                    ?.let { error -> id to listOf(error) }
+            }
+        }.toMap()
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id))
@@ -38,7 +45,7 @@ class SplitService(
             id to listOfNotNull(trackNumberId?.let(::validateSplitReferencesByTrackNumber))
         }.filterValues { it.isNotEmpty() }
 
-        val trackSplitErrors = candidates.locationTracks.associate { (id, _) ->
+        val targetTrackSplitErrors = candidates.locationTracks.associate { (id, _) ->
             val ltSplitErrors = validateSplitForLocationTrack(id, splits)
             val contentErrors = splitErrors.mapNotNull { (split, error) ->
                 if (split.isPartOf(id)) error else null
@@ -46,6 +53,8 @@ class SplitService(
 
             id to ltSplitErrors + contentErrors
         }.filterValues { it.isNotEmpty() }
+
+        val trackSplitErrors = sourceTrackSplitErrors + targetTrackSplitErrors
 
         return SplitPublishValidationErrors(tnSplitErrors, rlSplitErrors, kpSplitErrors, trackSplitErrors)
     }
