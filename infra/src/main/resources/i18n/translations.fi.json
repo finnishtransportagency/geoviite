@@ -1243,6 +1243,9 @@
                 "km-posts-invalid": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
                 "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta",
                 "start-km-too-long": "Alkukilometri ottaen huomioon alkupisteen metrit on liian pitkä"
+            },
+            "split": {
+                "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa"
             }
         }
     },
