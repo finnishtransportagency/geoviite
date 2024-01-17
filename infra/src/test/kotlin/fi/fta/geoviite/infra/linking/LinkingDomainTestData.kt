@@ -1,6 +1,8 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.*
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.WARNING
 import fi.fta.geoviite.infra.tracklayout.*
 
 fun publishRequest(
@@ -45,3 +47,13 @@ fun publish(publicationService: PublicationService, request: PublishRequestIds):
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
     return publicationService.publishChanges(versions, calculatedChanges, "Test")
 }
+
+fun validationError(
+    localizationKey: String,
+    vararg params: Pair<String, Any?>,
+) = PublishValidationError(ERROR, localizationKey, params.associate { it })
+
+fun validationWarning(
+    localizationKey: String,
+    vararg params: Pair<String, Any?>,
+) = PublishValidationError(WARNING, localizationKey, params.associate { it })

@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra
 
-import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.BeforeEach
@@ -26,6 +26,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     private var trackDaoParam: LocationTrackDao? = null
     private var alignmentDaoParam: LayoutAlignmentDao? = null
     private var referenceLineDaoParam: ReferenceLineDao? = null
+    private var switchDaoParam: LayoutSwitchDao? = null
 
     @Autowired
     fun setTrackNumberDao(tnDao: LayoutTrackNumberDao) {
@@ -47,6 +48,11 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         referenceLineDaoParam = referenceLineDao
     }
 
+    @Autowired
+    fun setSwitchDao(switchDao: LayoutSwitchDao) {
+        switchDaoParam = switchDao
+    }
+
     val jdbc by lazy { jdbcTemplate ?: throw IllegalStateException("JDBC not initialized") }
     val transaction by lazy { transactionTemplate ?: throw IllegalStateException("JDBC not initialized") }
     private val trackNumberDao by lazy { trackNumberDaoParam ?: throw IllegalStateException("JDBC not initialized") }
@@ -55,6 +61,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     private val referenceLineDao by lazy {
         referenceLineDaoParam ?: throw java.lang.IllegalStateException("JDBC not initialized")
     }
+    private val switchDao by lazy { switchDaoParam ?: throw IllegalStateException("JDBC not initialized") }
 
     val trackNumberDescription by lazy { "Test track number ${this::class.simpleName}" }
 
@@ -89,31 +96,44 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     )
 
     fun getUnusedTrackNumber(): TrackNumber {
-        val sql = "select max(id) max_id from layout.track_number_version"
-        val maxId = jdbc.queryForObject(sql, mapOf<String,Any>()) { rs, _ -> rs.getInt("max_id") }!!
+        return TrackNumber(getUniqueName(DbTable.LAYOUT_TRACK_NUMBER, trackNumberLength.last))
+    }
+
+    fun getUnusedSwitchName(): SwitchName {
+        return SwitchName(getUniqueName(DbTable.LAYOUT_SWITCH, switchNameLength.last))
+    }
+
+    private fun getUniqueName(table: DbTable, maxLength: Int): String {
+        val sql = "select max(id) max_id from ${table.versionTable}"
+        val maxId = jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ -> rs.getInt("max_id") }!!
+        val baseNameLength = maxLength - 8 // allow 7 unique digits + space
         val baseName = this::class.simpleName!!.let { className ->
-            if (className.length > 24) className.substring(0, 24)
+            if (className.length > baseNameLength) className.substring(0, baseNameLength)
             else className
         }
-        return TrackNumber("$baseName ${maxId+1}")
+        return "$baseName ${maxId + 1}"
     }
 
     fun insertNewTrackNumber(
         trackNumber: TrackNumber,
         draft: Boolean,
         state: LayoutState = LayoutState.IN_USE,
-    ): DaoResponse<TrackLayoutTrackNumber> =
-        transactional {
-            jdbc.setUser()
-            trackNumberDao.insert(
-                trackNumber(
-                    number = trackNumber,
-                    description = trackNumberDescription,
-                    draft = draft,
-                    state = state,
-                )
+    ): DaoResponse<TrackLayoutTrackNumber> = transactional {
+        jdbc.setUser()
+        trackNumberDao.insert(
+            trackNumber(
+                number = trackNumber,
+                description = trackNumberDescription,
+                draft = draft,
+                state = state,
             )
-        }
+        )
+    }
+
+    fun insertUniqueSwitch(): DaoResponse<TrackLayoutSwitch> = transactional {
+        jdbc.setUser()
+        switchDao.insert(switch(name = getUnusedSwitchName().toString()))
+    }
 
     fun insertReferenceLine(referenceLine: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
         return alignmentDao.insert(alignment).let { alignmentVersion ->

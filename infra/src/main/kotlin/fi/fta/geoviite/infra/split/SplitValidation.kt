@@ -2,10 +2,12 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.publication.PublishValidationError
-import fi.fta.geoviite.infra.publication.PublishValidationErrorType
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import kotlin.math.max
 import kotlin.math.min
 
@@ -17,7 +19,7 @@ internal fun validateSourceGeometry(
 ): PublishValidationError? {
     return if (draftAddresses == null || officialAddressPoint == null) {
         PublishValidationError(
-            PublishValidationErrorType.ERROR,
+            ERROR,
             "$VALIDATION_SPLIT.source-no-geometry",
         )
     } else {
@@ -31,7 +33,7 @@ internal fun validateSourceGeometry(
                 !targetPoint.isSame(officialPoints[idx])
             }?.let { (_, point) ->
                 PublishValidationError(
-                    PublishValidationErrorType.ERROR,
+                    ERROR,
                     "$VALIDATION_SPLIT.source-geometry-changed",
                     mapOf("point" to point),
                 )
@@ -40,22 +42,26 @@ internal fun validateSourceGeometry(
 }
 
 internal fun validateSplitContent(
-    versions: List<ValidationVersion<LocationTrack>>,
+    trackVersions: List<ValidationVersion<LocationTrack>>,
+    switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
     splits: Collection<Split>,
 ): List<Pair<Split, PublishValidationError>> {
     return splits
         .filter { it.isPending }
-        .filterNot { split ->
-            val containsSource = versions.any { it.officialId == split.locationTrackId }
-
-            containsSource && split.targetLocationTracks.all { tlt ->
-                versions.any { it.officialId == tlt.locationTrackId }
+        .flatMap { split ->
+            val containsSource = trackVersions.any { it.officialId == split.locationTrackId }
+            val containsTargets = split.targetLocationTracks.all { tlt ->
+                trackVersions.any { it.officialId == tlt.locationTrackId }
             }
-        }.map { split ->
-            split to PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                "$VALIDATION_SPLIT.split-missing-location-tracks",
-            )
+            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.officialId == s } }
+            listOfNotNull(
+                validate(containsSource && containsTargets, ERROR) {
+                    "$VALIDATION_SPLIT.split-missing-location-tracks"
+                },
+                validate(containsSwitches, ERROR) {
+                    "$VALIDATION_SPLIT.split-missing-switches"
+                },
+            ).map { e -> split to e }
         }
 }
 
@@ -65,7 +71,7 @@ internal fun validateTargetGeometry(
 ): PublishValidationError? {
     return if (targetAddresses == null || sourceAddresses == null) {
         PublishValidationError(
-            PublishValidationErrorType.ERROR,
+            ERROR,
             "$VALIDATION_SPLIT.target-no-geometry",
         )
     } else {
@@ -79,7 +85,7 @@ internal fun validateTargetGeometry(
                 !targetPoint.isSame(sourcePoints[idx])
             }?.let { (_, point) ->
                 PublishValidationError(
-                    PublishValidationErrorType.ERROR,
+                    ERROR,
                     "$VALIDATION_SPLIT.target-geometry-changed",
                     mapOf("point" to point),
                 )
@@ -90,18 +96,25 @@ internal fun validateTargetGeometry(
 internal fun validateTargetTrackNumber(
     sourceLocationTrack: LocationTrack,
     targetLocationTrack: LocationTrack,
-) = if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) PublishValidationError(
-    PublishValidationErrorType.ERROR,
-    "$VALIDATION_SPLIT.duplicate-on-different-track-number",
-    mapOf("duplicateTrack" to targetLocationTrack.name)
-)
-else null
+) = if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
+    PublishValidationError(
+        ERROR,
+        "$VALIDATION_SPLIT.duplicate-on-different-track-number",
+        mapOf("duplicateTrack" to targetLocationTrack.name)
+    )
+} else {
+    null
+}
 
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
 ): PublishValidationError? {
-    return if (locationTrack.exists) PublishValidationError(
-        PublishValidationErrorType.ERROR, "$VALIDATION_SPLIT.source-not-deleted"
-    )
-    else null
+    return if (locationTrack.exists) {
+        PublishValidationError(
+            ERROR,
+            "$VALIDATION_SPLIT.source-not-deleted"
+        )
+    } else {
+        null
+    }
 }

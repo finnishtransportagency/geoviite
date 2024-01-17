@@ -21,12 +21,15 @@ data class Split(
     val errorCause: String?,
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
+    val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
 ) {
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + locationTrackId }
 
     val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
 
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
+
+    fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }
 
 data class SplitTarget(
@@ -45,6 +48,7 @@ data class SplitPublishValidationErrors(
     val referenceLines: Map<IntId<ReferenceLine>, List<PublishValidationError>>,
     val kmPosts: Map<IntId<TrackLayoutKmPost>, List<PublishValidationError>>,
     val locationTracks: Map<IntId<LocationTrack>, List<PublishValidationError>>,
+    val switches: Map<IntId<TrackLayoutSwitch>, List<PublishValidationError>>,
 )
 
 data class SplitRequestTarget(

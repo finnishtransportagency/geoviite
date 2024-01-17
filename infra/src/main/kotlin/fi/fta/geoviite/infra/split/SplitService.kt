@@ -37,14 +37,16 @@ class SplitService(
     fun saveSplit(
         locationTrackId: IntId<LocationTrack>,
         splitTargets: Collection<SplitTargetSaveRequest>,
+        relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
     ): IntId<Split> {
         logger.serviceCall(
             "saveSplit",
             "locationTrackId" to locationTrackId,
-            "splitTargets" to splitTargets
+            "splitTargets" to splitTargets,
+            "relinkedSwitches" to relinkedSwitches,
         )
 
-        return splitDao.saveSplit(locationTrackId, splitTargets)
+        return splitDao.saveSplit(locationTrackId, splitTargets, relinkedSwitches)
     }
 
     fun findPendingSplits(locationTracks: Collection<IntId<LocationTrack>>) =
@@ -84,7 +86,7 @@ class SplitService(
 
     fun validateSplit(candidates: ValidationVersions): SplitPublishValidationErrors {
         val splits = findUnfinishedSplits(candidates.locationTracks.map { it.officialId })
-        val splitErrors = validateSplitContent(candidates.locationTracks, splits)
+        val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits)
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id))
@@ -108,8 +110,19 @@ class SplitService(
 
             id to ltSplitErrors + contentErrors
         }.filterValues { it.isNotEmpty() }
+        val switchSplitErrors = candidates.switches.associate { (id, _) ->
+            id to splitErrors.mapNotNull { (split, error) ->
+                if (split.containsSwitch(id)) error else null
+            }
+        }
 
-        return SplitPublishValidationErrors(tnSplitErrors, rlSplitErrors, kpSplitErrors, trackSplitErrors)
+        return SplitPublishValidationErrors(
+            tnSplitErrors,
+            rlSplitErrors,
+            kpSplitErrors,
+            trackSplitErrors,
+            switchSplitErrors,
+        )
     }
 
     private fun validateSplitForLocationTrack(
@@ -180,8 +193,8 @@ class SplitService(
     fun split(request: SplitRequest): IntId<Split> {
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(sourceTrack))
-        suggestions.forEach { (id, suggestion) ->
-            switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestion, id))
+        val relinkedSwitches = suggestions.map { (id, suggestion) ->
+            switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestion, id)).id
         }
 
         // Fetch post-re-linking track & alignment
@@ -194,7 +207,7 @@ class SplitService(
         val splitTargets = targetTracks.map(::saveTargetTrack)
 
         locationTrackService.updateState(request.sourceTrackId, LayoutState.DELETED)
-        return splitDao.saveSplit(request.sourceTrackId, splitTargets)
+        return splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
     }
 
     private fun saveTargetTrack(target: SplitTargetResult): SplitTargetSaveRequest {

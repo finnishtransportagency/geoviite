@@ -34,14 +34,20 @@ class SplitDaoIT @Autowired constructor(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
-        val split = splitDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)))
-            .let(splitDao::getSplit)
+        val relinkedSwitchId = insertUniqueSwitch().id
+
+        val split = splitDao.saveSplit(
+            sourceTrack.id,
+            listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)),
+            listOf(relinkedSwitchId),
+        ).let(splitDao::getSplit)
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
         assertNull(split.errorCause)
         assertNull(split.publicationId)
         assertEquals(sourceTrack.id, split.locationTrackId)
         assertContains(split.targetLocationTracks, SplitTarget(split.id, targetTrack.id, 0..0))
+        assertContains(split.relinkedSwitches, relinkedSwitchId)
     }
 
     @Test
@@ -56,15 +62,20 @@ class SplitDaoIT @Autowired constructor(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
-        val split = splitDao.saveSplit(sourceTrack.id, listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)))
-            .let(splitDao::getSplit)
+        val relinkedSwitchId = insertUniqueSwitch().id
+
+        val split = splitDao.saveSplit(
+            sourceTrack.id,
+            listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)),
+            listOf(relinkedSwitchId),
+        ).let(splitDao::getSplit)
 
         val publicationId = publicationDao.createPublication("SPLIT PUBLICATION")
         val updatedSplit = splitDao.updateSplitState(
             split.copy(
                 bulkTransferState = BulkTransferState.FAILED,
                 errorCause = "TEST",
-                publicationId = publicationId
+                publicationId = publicationId,
             )
         ).let(splitDao::getSplit)
 
@@ -89,9 +100,13 @@ class SplitDaoIT @Autowired constructor(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
+        val relinkedSwitchId1 = insertUniqueSwitch().id
+        val relinkedSwitchId2 = insertUniqueSwitch().id
+
         val doneSplit = splitDao.saveSplit(
             sourceTrack.id,
-            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0))
+            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0)),
+            listOf(relinkedSwitchId1),
         ).also { splitId ->
             val split = splitDao.getSplit(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
@@ -99,7 +114,8 @@ class SplitDaoIT @Autowired constructor(
 
         val pendingSplitId = splitDao.saveSplit(
             sourceTrack.id,
-            listOf(SplitTargetSaveRequest(targetTrack2.id, 0..0))
+            listOf(SplitTargetSaveRequest(targetTrack2.id, 0..0)),
+            listOf(relinkedSwitchId2),
         )
 
         val splits = splitDao.fetchUnfinishedSplits()
@@ -120,9 +136,12 @@ class SplitDaoIT @Autowired constructor(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
+        val relinkedSwitchId = insertUniqueSwitch().id
+
         val splitId = splitDao.saveSplit(
             sourceTrack.id,
-            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0))
+            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0)),
+            listOf(relinkedSwitchId),
         )
 
         assertTrue { splitDao.fetchUnfinishedSplits().any { it.id == splitId } }
@@ -131,6 +150,4 @@ class SplitDaoIT @Autowired constructor(
 
         assertTrue { splitDao.fetchUnfinishedSplits().none { it.id == splitId } }
     }
-
-
 }

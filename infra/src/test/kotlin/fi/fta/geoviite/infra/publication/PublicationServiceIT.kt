@@ -33,6 +33,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publish
 import publishRequest
+import validationError
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
 import kotlin.test.*
@@ -285,7 +286,6 @@ class PublicationServiceIT @Autowired constructor(
         )
     }
 
-
     @Test
     fun publishingReferenceLineChangesWorks() {
         val alignmentVersion = alignmentDao.insert(alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))))
@@ -309,7 +309,6 @@ class PublicationServiceIT @Autowired constructor(
             referenceLineService.get(OFFICIAL, officialId)!!.startAddress,
             referenceLineService.get(DRAFT, officialId)!!.startAddress,
         )
-
 
         assertEquals(1, referenceLineService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
         assertEquals(2, referenceLineService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments.size)
@@ -493,7 +492,6 @@ class PublicationServiceIT @Autowired constructor(
             trackNumberService.get(DRAFT, officialId)!!.description,
         )
     }
-
 
     @Test
     fun fetchingPublicationListingWorks() {
@@ -939,7 +937,7 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals("error.publication.duplicate-name-on.location-track", exception.localizedMessageKey.toString())
         assertEquals(
             mapOf("locationTrack" to "LT", "trackNumber" to "TN"),
-            exception.localizedMessageParams.params
+            exception.localizedMessageParams.params,
         )
     }
 
@@ -982,7 +980,7 @@ class PublicationServiceIT @Autowired constructor(
             locationTrack(
                 trackNumberId,
                 name = "middle track",
-                alignmentVersion = dummyAlignment
+                alignmentVersion = dummyAlignment,
             )
         )
         val smallTrack = locationTrackDao.insert(
@@ -990,7 +988,7 @@ class PublicationServiceIT @Autowired constructor(
                 trackNumberId,
                 name = "small track",
                 duplicateOf = middleTrack.id,
-                alignmentVersion = dummyAlignment
+                alignmentVersion = dummyAlignment,
             )
         )
         val bigTrack =
@@ -1023,13 +1021,13 @@ class PublicationServiceIT @Autowired constructor(
         locationTrackService.saveDraft(locationTrackDao.fetch(smallTrack.rowVersion).copy(duplicateOf = null))
         assertNotNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id),
-            "only saving a draft of small track"
+            "only saving a draft of small track",
         )
 
         // but if we have the new non-duplicating small track in the same publication unit, it's fine
         assertNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
-            "publishing new small track"
+            "publishing new small track",
         )
 
         // finally, if we have a track whose official version doesn't duplicate the middle track, but the draft does,
@@ -1038,13 +1036,11 @@ class PublicationServiceIT @Autowired constructor(
             locationTrack(
                 trackNumberId,
                 name = "other small track",
-                alignmentVersion = dummyAlignment
+                alignmentVersion = dummyAlignment,
             )
         )
         locationTrackService.saveDraft(
-            locationTrackDao
-                .fetch(otherSmallTrack.rowVersion)
-                .copy(duplicateOf = middleTrack.id)
+            locationTrackDao.fetch(otherSmallTrack.rowVersion).copy(duplicateOf = middleTrack.id)
         )
         assertNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
@@ -1054,14 +1050,6 @@ class PublicationServiceIT @Autowired constructor(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id, otherSmallTrack.id),
             "publishing new small track with other small track added and in publication unit"
         )
-    }
-
-
-    fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
-        val officialVersion = switchDao.insert(switch(seed)).rowVersion
-        return switchService.saveDraft(switchDao.fetch(officialVersion).let { official ->
-            official.copy(name = SwitchName("${official.name}_D"))
-        }).id
     }
 
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
@@ -1907,7 +1895,8 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(
             expected.map { cleanupKey(it.localizationKey) }.sorted(),
             actual.map { cleanupKey(it.localizationKey) }.sorted(),
-            "same errors by localization key, index $index, ")
+            "same errors by localization key, index $index, ",
+        )
 
         val expectedByKey = expected.groupBy { it.localizationKey }
         val actualByKey = actual.groupBy { it.localizationKey }
@@ -2154,14 +2143,7 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2174,14 +2156,7 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2216,14 +2191,7 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2236,14 +2204,7 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2307,19 +2268,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val validation = publicationService.validatePublishCandidates(
             publicationService.collectPublishCandidates(),
-            publishRequestIds(kmPosts = listOf(kmPostId))
+            publishRequestIds(kmPosts = listOf(kmPostId)),
         )
 
         val errors = validation.validatedAsPublicationUnit.kmPosts.flatMap { it.errors }
 
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2328,14 +2282,14 @@ class PublicationServiceIT @Autowired constructor(
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val referenceLineVersion = insertReferenceLine(
             referenceLine(trackNumberId = trackNumberId),
-            alignment
+            alignment,
         ).rowVersion
 
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
         val locationTrackId = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)),
-            alignment
+            alignment,
         ).id
 
         saveSplit(locationTrackId)
@@ -2347,14 +2301,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val errors = validation.validatedAsPublicationUnit.referenceLines.flatMap { it.errors }
 
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2380,14 +2327,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val errors = validation.validatedAsPublicationUnit.referenceLines.flatMap { it.errors }
 
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-in-progress"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
@@ -2416,26 +2356,25 @@ class PublicationServiceIT @Autowired constructor(
         assertTrue { errors.isEmpty() }
     }
 
-
     @Test
     fun `split geometry validation should fail on geometry changes in source track`() {
         val trackNumberId = insertOfficialTrackNumber()
 
         insertReferenceLine(
             referenceLine(trackNumberId = trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
         val sourceTrackVersion = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         ).rowVersion
 
         alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(5.0, 5.0), Point(10.0, 0.0))))
             .also { newAlignment ->
                 val lt = locationTrackDao.fetch(sourceTrackVersion).copy(
                     state = LayoutState.DELETED,
-                    alignmentVersion = newAlignment
+                    alignmentVersion = newAlignment,
                 )
 
                 locationTrackService.saveDraft(lt)
@@ -2443,12 +2382,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val startTargetTrackId = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0)))
+            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
         ).id
 
         val endTargetTrackId = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)),
-            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         ).id
 
         saveSplit(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
@@ -2468,12 +2407,12 @@ class PublicationServiceIT @Autowired constructor(
 
         insertReferenceLine(
             referenceLine(trackNumberId = trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
         val sourceTrackVersion = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         ).rowVersion.also { version ->
             val lt = locationTrackDao.fetch(version).copy(
                 state = LayoutState.DELETED
@@ -2484,12 +2423,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val startTargetTrackId = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 10.0)))
+            alignment(segment(Point(0.0, 0.0), Point(5.0, 10.0))),
         ).id
 
         val endTargetTrackId = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)),
-            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         ).id
 
         saveSplit(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
@@ -2508,14 +2447,7 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
 
         val errors = validateLocationTracks(startTargetTrack.id, endTargetTrack.id)
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-missing-location-tracks"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-missing-location-tracks"))
     }
 
     @Test
@@ -2524,21 +2456,14 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
 
         val errors = validateLocationTracks(startTargetTrack.id, endTargetTrack.id)
-        assertContains(
-            errors,
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.split-missing-location-tracks"),
-                LocalizationParams.empty()
-            )
-        )
+        assertContains(errors, validationError("validation.layout.split.split-missing-location-tracks"))
     }
 
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<PublishValidationError> {
         val publishRequest = publishRequestIds(locationTracks = locationTracks.asList())
         val validation = publicationService.validatePublishCandidates(
             publicationService.collectPublishCandidates(),
-            publishRequest
+            publishRequest,
         )
 
         return validation.validatedAsPublicationUnit.locationTracks.flatMap { it.errors }
@@ -2552,7 +2477,8 @@ class PublicationServiceIT @Autowired constructor(
             sourceTrackId,
             targetTrackIds.map {
                 SplitTargetSaveRequest(it, 0..0)
-            }
+            },
+            listOf(),
         )
     }
 
@@ -2802,7 +2728,6 @@ private fun <T : Draftable<T>> verifyVersions(ids: List<IntId<T>>, versions: Lis
     assertEquals(ids.size, versions.size)
     ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
 }
-
 
 private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
     dao: S,

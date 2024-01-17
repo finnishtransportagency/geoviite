@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -20,6 +21,7 @@ class SplitDao(
     fun saveSplit(
         locationTrackId: IntId<LocationTrack>,
         splitTargets: Collection<SplitTargetSaveRequest>,
+        relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
     ): IntId<Split> {
         val sql = """
             insert into publication.split(source_location_track_id, bulk_transfer_state, error_cause, publication_id) 
@@ -35,8 +37,25 @@ class SplitDao(
         logger.daoAccess(AccessType.INSERT, Split::class, splitId)
 
         saveSplitTargets(splitId, splitTargets)
+        saveRelinkedSwitches(splitId, relinkedSwitches)
 
         return splitId
+    }
+
+    private fun saveRelinkedSwitches(splitId: IntId<Split>, relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>) {
+        val sql = """
+            insert into publication.split_switch(split_id, switch_id)
+            values (:splitId, :switchId)
+        """.trimIndent()
+
+        val params = relinkedSwitches.map { switchId ->
+            mapOf(
+                "splitId" to splitId.intValue,
+                "switchId" to switchId.intValue,
+            )
+        }
+
+        jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
 
     @Transactional
@@ -82,13 +101,16 @@ class SplitDao(
     fun getSplit(splitId: IntId<Split>): Split {
         val sql = """
           select
-              slt.id,
-              slt.bulk_transfer_state,
-              slt.error_cause,
-              slt.publication_id,
-              slt.source_location_track_id
-          from publication.split slt
+              split.id,
+              split.bulk_transfer_state,
+              split.error_cause,
+              split.publication_id,
+              split.source_location_track_id,
+              array_agg(split_switch.switch_id) as switch_ids
+          from publication.split 
+              left join publication.split_switch on split.id = split_switch.split_id
           where id = :id
+          group by split.id
         """.trimIndent()
 
         return jdbcTemplate.queryOne(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
@@ -100,7 +122,8 @@ class SplitDao(
                 bulkTransferState = rs.getEnum("bulk_transfer_state"),
                 errorCause = rs.getString("error_cause"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
-                targetLocationTracks = targetLocationTracks
+                targetLocationTracks = targetLocationTracks,
+                relinkedSwitches = rs.getIntIdArray("switch_ids"),
             )
         }.also {
             logger.daoAccess(AccessType.FETCH, Split::class, splitId)
@@ -155,13 +178,16 @@ class SplitDao(
     fun fetchUnfinishedSplits(): List<Split> {
         val sql = """
           select
-              slt.id,
-              slt.bulk_transfer_state,
-              slt.error_cause,
-              slt.publication_id,
-              slt.source_location_track_id
-          from publication.split slt
-          where slt.bulk_transfer_state != 'DONE'
+              split.id,
+              split.bulk_transfer_state,
+              split.error_cause,
+              split.publication_id,
+              split.source_location_track_id,
+              array_agg(split_switch.switch_id) as switch_ids
+          from publication.split 
+              left join publication.split_switch on split.id = split_switch.split_id
+          where split.bulk_transfer_state != 'DONE'
+          group by split.id
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
@@ -174,7 +200,8 @@ class SplitDao(
                 bulkTransferState = rs.getEnum("bulk_transfer_state"),
                 errorCause = rs.getString("error_cause"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
-                targetLocationTracks = targetLocationTracks
+                targetLocationTracks = targetLocationTracks,
+                relinkedSwitches = rs.getIntIdArray("switch_ids"),
             )
         }.also { ids ->
             logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id })

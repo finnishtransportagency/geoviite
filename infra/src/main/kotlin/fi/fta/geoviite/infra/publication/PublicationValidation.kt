@@ -715,7 +715,7 @@ private fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boole
     else if (address1.kmNumber != address2.kmNumber) true
     else (address2.meters - address1.meters).toDouble() in 0.0..MAX_LAYOUT_METER_LENGTH
 
-private fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
+fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
     validateWithParams(valid, type) { error() to LocalizationParams.empty() }
 
 private fun validateWithParams(

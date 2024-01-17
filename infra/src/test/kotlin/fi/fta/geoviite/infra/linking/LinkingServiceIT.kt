@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTargetSaveRequest
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
@@ -300,7 +299,7 @@ class LinkingServiceIT @Autowired constructor(
             ),
         )
 
-        splitDao.saveSplit(locationTrackId, listOf(SplitTargetSaveRequest(locationTrackId, 0..1)))
+        splitDao.saveSplit(locationTrackId, listOf(SplitTargetSaveRequest(locationTrackId, 0..1)), emptyList())
 
         val ex = assertThrows<LinkingFailureException> {
             linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval))
@@ -374,7 +373,13 @@ class LinkingServiceIT @Autowired constructor(
             ),
         )
 
-        val split = splitDao.getSplit(splitDao.saveSplit(locationTrackId, listOf(SplitTargetSaveRequest(locationTrackId, 0..1))))
+        val split = splitDao.getSplit(
+            splitDao.saveSplit(
+                locationTrackId,
+                listOf(SplitTargetSaveRequest(locationTrackId, 0..1)),
+                emptyList(),
+            )
+        )
         splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
 
         assertDoesNotThrow { linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval)) }
