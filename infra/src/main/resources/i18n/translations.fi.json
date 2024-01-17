@@ -1278,6 +1278,8 @@
         "not-calculated": "Ei laskettu",
         "remark": {
             "changed-x-meters": "Muutos {{value}} m",
+            "shortened-x-meters": "Lyhentynyt {{value}} m",
+            "lengthened-x-meters": "Pidentynyt {{value}} m",
             "moved-x-meters": "Siirtynyt {{value}} m",
             "geometry-change-info-not-calculated": "Geometriamuutostietoja ei vielä laskettu",
             "changed-km-number": "Muuttunut kilometriltä {{value}}",
