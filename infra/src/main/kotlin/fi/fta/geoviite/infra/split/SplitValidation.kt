@@ -18,10 +18,7 @@ internal fun validateSourceGeometry(
     officialAddressPoint: AlignmentAddresses?,
 ): PublishValidationError? {
     return if (draftAddresses == null || officialAddressPoint == null) {
-        PublishValidationError(
-            ERROR,
-            "$VALIDATION_SPLIT.source-no-geometry",
-        )
+        PublishValidationError(ERROR, "$VALIDATION_SPLIT.source-no-geometry")
     } else {
         val officialPoints = officialAddressPoint.allPoints
 
@@ -70,10 +67,7 @@ internal fun validateTargetGeometry(
     sourceAddresses: AlignmentAddresses?,
 ): PublishValidationError? {
     return if (targetAddresses == null || sourceAddresses == null) {
-        PublishValidationError(
-            ERROR,
-            "$VALIDATION_SPLIT.target-no-geometry",
-        )
+        PublishValidationError(ERROR, "$VALIDATION_SPLIT.target-no-geometry")
     } else {
         val sourcePoints = sourceAddresses.allPoints
         val startIndex = max(0, sourcePoints.indexOfFirst { it.isSame(targetAddresses.startPoint) })
@@ -110,10 +104,7 @@ internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
 ): PublishValidationError? {
     return if (locationTrack.exists) {
-        PublishValidationError(
-            ERROR,
-            "$VALIDATION_SPLIT.source-not-deleted"
-        )
+        PublishValidationError(ERROR, "$VALIDATION_SPLIT.source-not-deleted")
     } else {
         null
     }
