@@ -1,4 +1,4 @@
-import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
+import { LayoutSwitch, LayoutSwitchId, LayoutSwitchJoint } from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
 import { drawCircle, drawRoundedRect, getCanvasRenderer } from 'map/layers/utils/rendering';
 import styles from '../../map.module.scss';
@@ -14,6 +14,7 @@ import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-util
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
+import { ValidatedAsset } from 'publication/publication-model';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -99,6 +100,7 @@ export function getSwitchRenderer(
     large: boolean,
     showLabel: boolean,
     linked: boolean,
+    isValid: boolean
 ): RenderFunction {
     const fontSize = large ? TEXT_FONT_LARGE : TEXT_FONT_SMALL;
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
@@ -126,8 +128,8 @@ export function getSwitchRenderer(
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
             ({ name }, [x, y], ctx, { pixelRatio }) => {
-                if (showLabel) {
-                    ctx.fillStyle = styles.switchTextColor;
+                if (showLabel)  {
+                    ctx.fillStyle = isValid ? styles.switchTextColor : 'red';
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
 
@@ -225,6 +227,7 @@ export function createSwitchFeatures(
     showLabels: boolean,
     planId?: GeometryPlanId,
     switchStructures?: SwitchStructure[],
+    getValidationResult?: (id:LayoutSwitchId) => Promise<ValidatedAsset>
 ): Feature<OlPoint>[] {
     return layoutSwitches
         .filter((s) => s.joints.length > 0)
@@ -246,6 +249,7 @@ export function createSwitchFeatures(
                 showLabels,
                 planId,
                 presentationJointNumber,
+                getValidationResult ? getValidationResult(layoutSwitch.id) : undefined
             );
         });
 }
@@ -259,6 +263,7 @@ function createSwitchFeature(
     showLabel: boolean,
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
+    validationResult?: Promise<ValidatedAsset> | undefined
 ): Feature<OlPoint>[] {
     const presentationJoint = layoutSwitch.joints.find(
         (joint) => joint.number == presentationJointNumber,
@@ -274,8 +279,20 @@ function createSwitchFeature(
     switchFeature.setStyle(
         selected || highlighted
             ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked)
-            : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked),
+            : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked, true),
     );
+
+    validationResult?.then(res => {
+        if (res.errors?.length) {
+            switchFeature.setStyle(
+                selected || highlighted
+                    ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked)
+                    : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked, false),
+
+            )
+        }
+    });
+
 
     setSwitchFeatureProperty(switchFeature, { switch: layoutSwitch, planId: planId });
 
@@ -306,11 +323,13 @@ function getUnselectedSwitchStyle(
     large: boolean,
     textLabel: boolean,
     linked: boolean,
+    isValid: boolean
 ): Style {
-    return new Style({
+    const style = new Style({
         zIndex: 0,
-        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked),
+        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked, isValid),
     });
+    return style;
 }
 
 function getSelectedSwitchStyle(

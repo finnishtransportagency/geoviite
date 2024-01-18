@@ -3,7 +3,7 @@ import OlView from 'ol/View';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
-import { getSwitches, getSwitchesByTile } from 'track-layout/layout-switch-api';
+import { getSwitches, getSwitchesByTile, getSwitchValidation } from 'track-layout/layout-switch-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
@@ -17,6 +17,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { ValidatedAsset } from 'publication/publication-model';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
@@ -80,6 +81,18 @@ export function createSwitchLayer(
                 return selection.highlightedItems.switches.some((s) => s === switchItem.id);
             };
 
+            const validationResultBySwitchId = switches
+                .reduce(
+                    (current, result, index) => {
+                        const switchId = switches[index].id;
+                        return {
+                            ...current,
+                            [switchId]: getSwitchValidation(publishType, result.id)
+                        }
+                    },
+                    {} as {[k:LayoutSwitchId]:Promise<ValidatedAsset>}
+                );
+
             const features = createSwitchFeatures(
                 switches,
                 isSelected,
@@ -89,6 +102,7 @@ export function createSwitchLayer(
                 showLabels,
                 undefined,
                 switchStructures,
+                (id) => validationResultBySwitchId[id]
             );
 
             clearFeatures(vectorSource);

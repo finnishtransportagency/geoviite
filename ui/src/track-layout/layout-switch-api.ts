@@ -1,18 +1,7 @@
 import { BoundingBox, Point } from 'model/geometry';
 import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
-import {
-    LayoutSwitch,
-    LayoutSwitchId,
-    LayoutSwitchJointConnection,
-} from 'track-layout/track-layout-model';
-import {
-    deleteNonNull,
-    getNonNull,
-    getNullable,
-    postNonNullAdt,
-    putNonNullAdt,
-    queryParams,
-} from 'api/api-fetch';
+import { LayoutSwitch, LayoutSwitchId, LayoutSwitchJointConnection } from 'track-layout/track-layout-model';
+import { deleteNonNull, getNonNull, getNullable, postNonNullAdt, putNonNullAdt, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
@@ -25,6 +14,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
+const switchValidationCache = asyncCache<string, ValidatedAsset>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
 
@@ -148,7 +138,13 @@ export async function getSwitchValidation(
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
+    const changeTimes = getChangeTimes();
+    const maxTime = changeTimes.layoutSwitch>changeTimes.layoutLocationTrack ? changeTimes.layoutSwitch : changeTimes.layoutLocationTrack;
+    return switchValidationCache.get(
+        maxTime,
+        id,
+        () => getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`)
+    )
 }
 
 export const getSwitchChangeTimes = (
