@@ -15,9 +15,9 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitSource
 import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTargetSaveRequest
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
@@ -585,6 +585,103 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(revertResult.switches, 1)
         assertNull(switchService.get(DRAFT, switch1))
         assertDoesNotThrow { switchService.get(DRAFT, switch2) }
+    }
+
+    @Test
+    fun `reverting split source track will remove the whole split`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        assertTrue {
+            splitDao.fetchUnfinishedSplits().any { split -> split.locationTrackId == sourceTrack.id }
+        }
+
+        publicationService.revertPublishCandidates(publishRequest(locationTracks = listOf(sourceTrack.id)))
+
+        assertTrue {
+            splitDao.fetchUnfinishedSplits().none { split -> split.locationTrackId == sourceTrack.id }
+        }
+    }
+
+    @Test
+    fun `reverting one of the split target tracks will remove the whole split`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        assertTrue {
+            splitDao.fetchUnfinishedSplits().any { split -> split.containsLocationTrack(endTargetTrack.id) }
+        }
+
+        publicationService.revertPublishCandidates(publishRequest(locationTracks = listOf(startTargetTrack.id)))
+
+        assertTrue {
+            splitDao.fetchUnfinishedSplits().none { split -> split.containsLocationTrack(endTargetTrack.id) }
+        }
+    }
+
+    @Test
+    fun `publication id should be added to splits that have location tracks published`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        val splitBeforePublish = splitDao.fetchUnfinishedSplits().first { split ->
+            split.locationTrackId == sourceTrack.id
+        }
+
+        assertNull(splitBeforePublish.publicationId)
+
+        val publishId = publicationService.getValidationVersions(
+            publishRequest(locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id))
+        ).let { versions ->
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
+        }
+
+        assertEquals(publishId, splitDao.getSplit(splitBeforePublish.id).publicationId)
+    }
+
+
+    @Test
+    fun `split source and target location tracks depend on each other`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        val sourceDependencies = publicationService.getRevertRequestDependencies(
+            publishRequest(locationTracks = listOf(sourceTrack.id))
+        )
+
+        val startDependencies = publicationService.getRevertRequestDependencies(
+            publishRequest(locationTracks = listOf(startTargetTrack.id))
+        )
+
+        assertContains(
+            sourceDependencies.locationTracks,
+            sourceTrack.id
+        )
+
+        assertContains(
+            sourceDependencies.locationTracks,
+            startTargetTrack.id
+        )
+
+        assertContains(
+            sourceDependencies.locationTracks,
+            endTargetTrack.id
+        )
+
+        assertContains(
+            startDependencies.locationTracks,
+            sourceTrack.id
+        )
+
+        assertContains(
+            startDependencies.locationTracks,
+            startTargetTrack.id
+        )
+
+        assertContains(
+            startDependencies.locationTracks,
+            endTargetTrack.id
+        )
     }
 
     @Test
@@ -2450,7 +2547,7 @@ class PublicationServiceIT @Autowired constructor(
     private fun saveSplit(
         sourceTrackId: IntId<LocationTrack>,
         vararg targetTrackIds: IntId<LocationTrack>,
-    ): IntId<SplitSource> {
+    ): IntId<Split> {
         return splitDao.saveSplit(
             sourceTrackId,
             targetTrackIds.map {

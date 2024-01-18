@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.draft
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,22 +22,6 @@ class SplitDaoIT @Autowired constructor(
     val splitDao: SplitDao,
     val publicationDao: PublicationDao,
 ) : DBTestBase() {
-
-    @BeforeEach
-    fun setup() {
-        deleteFromTables(
-            "layout",
-            "location_track",
-            "reference_line",
-            "alignment",
-            "segment_version",
-            "switch_joint",
-            "switch",
-            "km_post",
-            "track_number"
-        )
-    }
-
     @Test
     fun `should save split in pending state`() {
         val trackNumberId = insertOfficialTrackNumber()
@@ -124,4 +107,30 @@ class SplitDaoIT @Autowired constructor(
         assertTrue { splits.any { s -> s.id == pendingSplitId } }
         assertTrue { splits.none { s -> s.id == doneSplit } }
     }
+
+    @Test
+    fun `should delete split`() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val sourceTrack = insertLocationTrack(
+            locationTrack(trackNumberId = trackNumberId) to alignment
+        )
+
+        val targetTrack1 = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+        )
+
+        val splitId = splitDao.saveSplit(
+            sourceTrack.id,
+            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0))
+        )
+
+        assertTrue { splitDao.fetchUnfinishedSplits().any { it.id == splitId } }
+
+        splitDao.deleteSplit(splitId)
+
+        assertTrue { splitDao.fetchUnfinishedSplits().none { it.id == splitId } }
+    }
+
+
 }

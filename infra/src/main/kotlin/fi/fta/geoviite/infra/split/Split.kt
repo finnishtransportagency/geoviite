@@ -15,20 +15,23 @@ enum class BulkTransferState {
     FAILED
 }
 
-data class SplitSource(
-    val id: IntId<SplitSource>,
+data class Split(
+    val id: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
     val bulkTransferState: BulkTransferState,
     val errorCause: String?,
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
 ) {
-    fun isPartOf(trackId: IntId<LocationTrack>): Boolean =
-        trackId == locationTrackId || targetLocationTracks.any { it.locationTrackId == trackId }
+    val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + locationTrackId }
+
+    val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
+
+    fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
 }
 
 data class SplitTarget(
-    val splitId: IntId<SplitSource>,
+    val splitId: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndices: IntRange,
 )

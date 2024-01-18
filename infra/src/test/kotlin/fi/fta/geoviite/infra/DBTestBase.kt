@@ -110,7 +110,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
                     number = trackNumber,
                     description = trackNumberDescription,
                     draft = draft,
-                    state = state
+                    state = state,
                 )
             )
         }
