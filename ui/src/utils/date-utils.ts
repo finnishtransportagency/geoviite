@@ -1,6 +1,6 @@
 import { TimeStamp } from 'common/common-model';
 import { maxOf, minOf } from 'utils/array-utils';
-import { format, getYear, startOfToday } from 'date-fns';
+import { format, getYear, parseISO, startOfToday } from 'date-fns';
 
 export const currentDay = startOfToday();
 
@@ -87,4 +87,12 @@ export function createYearRange(fromYear: number, toYear: number): number[] {
 
 export function createYearRangeFromCurrentYear(backwards: number, forwards: number): number[] {
     return createYearRange(currentYear - backwards, currentYear + forwards);
+}
+
+export function parseISOOrUndefined(timestamp: TimeStamp | undefined): Date | undefined {
+    if (!timestamp || timestamp.length === 0) {
+        return undefined;
+    }
+
+    return parseISO(timestamp);
 }

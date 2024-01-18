@@ -214,6 +214,7 @@
         "location-track-description-suffix": {
             "SWITCH_TO_SWITCH": "Vaihde alussa - vaihde lopussa",
             "SWITCH_TO_BUFFER": "Vaihde - Puskin",
+            "SWITCH_TO_OWNERSHIP_BOUNDARY": "Vaihde - Omistusraja",
             "NONE": "Ei lisäosaa"
         }
     },
@@ -331,6 +332,7 @@
         "end-switch": "Vaihde raiteen lopussa",
         "no-start-or-end-switch": "Ei vaihdetta",
         "buffer": "Puskin",
+        "ownership-boundary": "Omistusraja",
         "description-base": "Kuvauksen perusosa",
         "description-suffix": "Kuvauksen lisäosa",
         "full-description": "Valmis kuvaus",
@@ -401,7 +403,8 @@
                 "coordinates": "Koordinaatit (TM35FIN)",
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
-                "negative-kilometer-length": "Virheellinen sijainti"
+                "negative-kilometer-length": "Virheellinen sijainti",
+                "no-location": "Ei sijaintia"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -489,7 +492,8 @@
             "end-coordinates": "Loppukoordinaatit",
             "end-points-updated": "Pituusmittauslinjan päätepisteet päivitetty",
             "reference-line-singular": "Pituusmittauslinja",
-            "reference-line-plural": "Pituusmittauslinjat"
+            "reference-line-plural": "Pituusmittauslinjat",
+            "no-geometry": "Pituusmittauslinjalla ei ole geometriaa"
         },
         "alignment": {
             "geometry": {
@@ -563,6 +567,7 @@
             "show-on-map": "Kohdista kartalla",
             "unpublished": "Julkaisematon",
             "modify-start-or-end": "Lyhennä alkua ja/tai loppua",
+            "no-geometry": "Sijaintiraiteella ei ole geometriaa",
             "ready": "Valmis",
             "location-track-endpoints-updated": "Raiteen päätepisteet päivitetty",
             "choose-start-and-end-points": "Valitse kartalta alku- ja loppusijainti",
@@ -621,7 +626,8 @@
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä"
                 }
-            }
+            },
+            "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
@@ -1282,8 +1288,7 @@
             "geometry-change-info-not-calculated": "Geometriamuutostietoja ei vielä laskettu",
             "changed-km-number": "Muuttunut kilometriltä {{value}}",
             "changed-km-numbers": "Muuttunut kilometreiltä {{value}}",
-            "geometry-changed-many-km": "Muuttunut kilometriväliltä {{addressRange}}. Sivuttaissiirtymää laajuudella {{changedLengthM}} m, maksimipoikkeama {{maxDistance}} m",
-            "geometry-changed": "Muuttunut kilometriltä {{addressRange}}. Sivuttaissiirtymää laajuudella {{changedLengthM}} m, maksimipoikkeama {{maxDistance}} m",
+            "geometry-changed": "Muutos välillä {{addressRange}}, sivusuuntainen muutos {{maxDistance}} m",
             "km-number-changed": "Siirtynyt ratakilometrille {{value}}",
             "switch-link-added-singular": "Vaihde {{value}} linkitetty",
             "switch-link-added-plural": "Vaihteet {{value}} linkitetty",
@@ -1310,8 +1315,8 @@
             "owner": "Omistaja",
             "length": "Pituus",
             "location": "Sijainti",
-            "start-location": "Alkusijainti",
-            "end-location": "Loppusijainti",
+            "start-location": "Alkukoordinaatit (TM35FIN)",
+            "end-location": "Loppukoordinaatit (TM35FIN)",
             "geometry": "Geometria",
             "start-address": "Alkuosoite",
             "end-address": "Loppuosoite",
@@ -1388,7 +1393,8 @@
         "new-track-number": "Uusi ratanumero",
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
-        "new-km-post": "Uusi tasakilometripiste"
+        "new-km-post": "Uusi tasakilometripiste",
+        "splitting-in-progress": "Raiteen jakaminen on kesken"
     },
     "user-card": {
         "my-details": "Omat tiedot",

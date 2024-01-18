@@ -61,7 +61,11 @@ export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
 export type DraftType = 'NEW_DRAFT' | 'EDITED_DRAFT' | 'OFFICIAL';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
-export type LocationTrackDescriptionSuffixMode = 'NONE' | 'SWITCH_TO_SWITCH' | 'SWITCH_TO_BUFFER';
+export type LocationTrackDescriptionSuffixMode =
+    | 'NONE'
+    | 'SWITCH_TO_SWITCH'
+    | 'SWITCH_TO_BUFFER'
+    | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
 
 export type LayoutReferenceLine = {
     id: ReferenceLineId;

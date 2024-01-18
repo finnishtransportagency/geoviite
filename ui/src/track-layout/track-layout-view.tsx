@@ -15,11 +15,13 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { MapViewContainer } from 'map/map-view-container';
 import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geometry-diagram-container';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
     publishType: PublishType;
     linkingState: LinkingState | undefined;
+    splittingState: SplittingState | undefined;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
@@ -36,6 +38,7 @@ export type TrackLayoutViewProps = {
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     publishType,
     linkingState,
+    splittingState,
     onSelect,
     onUnselect,
     onPublishTypeChange,
@@ -76,6 +79,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 onMapLayerChange={onLayerMenuItemChange}
                 mapLayerMenuGroups={mapLayerMenuGroups}
                 visibleLayers={visibleMapLayers}
+                splittingState={splittingState}
             />
 
             <div className={styles['track-layout__main-view']}>

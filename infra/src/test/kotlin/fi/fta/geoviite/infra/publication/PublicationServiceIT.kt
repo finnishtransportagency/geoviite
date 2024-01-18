@@ -975,7 +975,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `Publication validation rejects duplication by another referencing track`() {
         val trackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"))).id
         val dummyAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
-        // small wants to duplicate middle, middle initially duplicates nothing but wants to duplicate big
+        // Initial state, all official: Small duplicates middle, middle and big don't duplicate anything
         val middleTrack = locationTrackDao.insert(
             locationTrack(
                 trackNumberId,
@@ -993,24 +993,30 @@ class PublicationServiceIT @Autowired constructor(
         )
         val bigTrack =
             locationTrackDao.insert(locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment))
+
+        // In new draft, middle wants to duplicate big (leading to: small->middle->big)
         locationTrackService.saveDraft(locationTrackDao.fetch(middleTrack.rowVersion).copy(duplicateOf = bigTrack.id))
 
         fun getPublishingDuplicateWhileDuplicatedValidationError(vararg publishableTracks: IntId<LocationTrack>): PublishValidationError? {
             val validation = publicationService.validatePublishCandidates(
-                publicationService.collectPublishCandidates(), PublishRequestIds(
+                publicationService.collectPublishCandidates(),
+                PublishRequestIds(
                     trackNumbers = listOf(),
                     locationTracks = listOf(*publishableTracks),
                     kmPosts = listOf(),
                     referenceLines = listOf(),
                     switches = listOf()
-                )
+                ),
             )
             val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].errors
-            return trackErrors.find { error -> error.localizationKey == LocalizationKey("validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated") }
+            return trackErrors.find { error ->
+                error.localizationKey == LocalizationKey(
+                    "validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated"
+                )
+            }
         }
 
-        // if we're only trying to publish the middle track, but there is an official small track that wants to duplicate
-        // it, we pop
+        // if we're only trying to publish the middle track, but the small is still duplicating it, we pop
         val duplicateError = getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id)
         assertNotNull(duplicateError, "small track duplicates to-be-published middle track which duplicates big track")
         assertEquals("small track", duplicateError.params.get("otherDuplicates"))
@@ -1263,7 +1269,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             emptySet()
         ) { _, _ -> null }
         assertEquals(6, diff.size)
@@ -1273,6 +1278,56 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals("description-base", diff[3].propKey.key.toString())
         assertEquals("description-suffix", diff[4].propKey.key.toString())
         assertEquals("duplicate-of", diff[5].propKey.key.toString())
+    }
+
+    @Test
+    fun `Don't allow publishing a track that is a duplicate of an unpublished draft-only one`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val (draftOnlyTrack, draftOnlyAlignment) = locationTrackAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(someSegment()),
+            duplicateOf = null,
+        )
+        val draftOnlyId = locationTrackService.saveDraft(draft(draftOnlyTrack), draftOnlyAlignment).id
+
+        val (duplicateTrack, duplicateAlignment) = locationTrackAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(someSegment()),
+            duplicateOf = draftOnlyId,
+        )
+        val duplicateId = locationTrackService.saveDraft(draft(duplicateTrack), duplicateAlignment).id
+
+        // Both tracks in validation set: this is fine
+        assertEquals(listOf(), validateDuplicateOf(toValidate = duplicateId, duplicateId, draftOnlyId))
+        // Only the target (main) track in set: this is also fine
+        assertEquals(listOf(), validateDuplicateOf(toValidate = draftOnlyId, draftOnlyId))
+        // Only the duplicate track in set: this would result in official referring to draft through duplicateOf
+        assertEquals(
+            listOf(
+                validationError(
+                    "validation.layout.location-track.duplicate-of.not-published",
+                    "duplicateTrack" to draftOnlyTrack.name.toString(),
+                ),
+            ),
+            validateDuplicateOf(toValidate = duplicateId, duplicateId),
+        )
+    }
+
+    private fun validateDuplicateOf(
+        toValidate: IntId<LocationTrack>,
+        vararg publicationSet: IntId<LocationTrack>,
+    ): List<PublishValidationError> {
+        val validationVersions = publicationService.getValidationVersions(
+            publishRequest(locationTracks = publicationSet.toList())
+        )
+        val validationVersion = requireNotNull(validationVersions.findLocationTrack(toValidate)) {
+            "Track $toValidate should be in validation set: $validationVersions"
+        }
+        return publicationService.validateDuplicateOf(
+            validationVersion,
+            locationTrackDao.fetch(validationVersion.validatedAssetVersion),
+            validationVersions,
+        )
     }
 
     @Test
@@ -1312,7 +1367,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             emptySet()
         ) { _, _ -> null }
         assertEquals(1, diff.size)
@@ -1594,7 +1648,6 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             setOf(),
         ) { _, _ -> null }
         assertEquals(1, diff.size)
@@ -1641,13 +1694,12 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             latestPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
-            false,
             setOf(KmNumber(0)),
         ) { _, _ -> null }
         print(diff)
         assertEquals(1, diff.size)
         assertEquals(
-            "Muuttunut kilometriltä 0000. Sivuttaissiirtymää laajuudella 8.0 m, maksimipoikkeama 10.0 m",
+            "Muutos välillä 0000+0001.000-0000+0009.000, sivusuuntainen muutos 10.0 m",
             diff[0].remark
         )
     }

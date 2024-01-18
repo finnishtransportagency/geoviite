@@ -244,6 +244,9 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxButtons>
                             <Button
                                 size={ButtonSize.SMALL}
+                                title={
+                                    !switchLocation ? t('tool-panel.switch.layout.no-location') : ''
+                                }
                                 disabled={!switchLocation}
                                 variant={ButtonVariant.SECONDARY}
                                 qa-id="zoom-to-switch"

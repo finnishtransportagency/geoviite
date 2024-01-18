@@ -784,42 +784,22 @@ class PublicationService @Autowired constructor(
             }
     }
 
-    private fun validateDuplicateOf(
+    @Transactional(readOnly = true)
+    fun validateDuplicateOf(
         version: ValidationVersion<LocationTrack>,
-        locationTrack: LocationTrack,
+        track: LocationTrack,
         validationVersions: ValidationVersions,
     ): List<PublishValidationError> {
+        // Find the versions in validation set context. These can be null (draft-only that's not included)
         val duplicatesAfterPublication = locationTrackDao
-            .fetchDuplicates(version.officialId)
-            .map(locationTrackDao::fetch)
-            .mapNotNull { duplicate -> fetchPostPublicationVersion(validationVersions, duplicate) }
+            .fetchDuplicateIdsInAnyLayoutContext(version.officialId)
+            .mapNotNull { id -> getLocationTrack(id, validationVersions) }
             .filter { potentialDuplicate -> potentialDuplicate.duplicateOf == version.officialId }
 
-        val duplicateOf = locationTrack.duplicateOf?.let { duplicateId ->
-            getLocationTrack(duplicateId, validationVersions)
-        }
-        return validateDuplicateOfState(
-            locationTrack,
-            duplicateOf,
-            validationVersions.locationTracks.map { it.officialId },
-            duplicatesAfterPublication,
-        )
-    }
-
-    private fun fetchPostPublicationVersion(
-        validationVersions: ValidationVersions,
-        track: LocationTrack,
-    ): LocationTrack? {
-        val trackIsInPublicationUnit =
-            validationVersions.locationTracks.any { validationVersion -> validationVersion.officialId == track.id }
-
-        return if (trackIsInPublicationUnit && track.isOfficial()) {
-            locationTrackDao.fetchVersion(track.id as IntId, DRAFT)?.let(locationTrackDao::fetch) ?: track
-        } else if (!trackIsInPublicationUnit && track.isEditedDraft()) {
-            locationTrackDao.fetchVersion(track.id as IntId, OFFICIAL)?.let(locationTrackDao::fetch)
-        } else {
-            track
-        }
+        val duplicateOf = track.duplicateOf?.let { id -> getLocationTrack(id, validationVersions) }
+        // Draft-only won't be found if it's not in the publication set -> get name from draft for validation errors
+        val duplicateOfDraftName = track.duplicateOf?.let { id -> locationTrackDao.getOrThrow(DRAFT, id).name }
+        return validateDuplicateOfState(track, duplicateOf, duplicateOfDraftName, duplicatesAfterPublication)
     }
 
     private fun validateLocationTrackNameDuplication(
@@ -1096,32 +1076,31 @@ class PublicationService @Autowired constructor(
         publicationTime: Instant,
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
-        addressesChanged: Boolean,
         changedKmNumbers: Set<KmNumber>,
         getGeocodingContext: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
         val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
-        val oldStartPointAndM = if (addressesChanged) locationTrackChanges.startPoint.old?.let { oldStart ->
+        val oldStartPointAndM = locationTrackChanges.startPoint.old?.let { oldStart ->
             locationTrackChanges.trackNumberId.old?.let {
                 getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldStart)
             }
-        } else null
-        val oldEndPointAndM = if (addressesChanged) locationTrackChanges.endPoint.old?.let { oldEnd ->
+        }
+        val oldEndPointAndM =locationTrackChanges.endPoint.old?.let { oldEnd ->
             locationTrackChanges.trackNumberId.old?.let {
                 getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldEnd)
             }
-        } else null
-        val newStartPointAndM = if (addressesChanged) locationTrackChanges.startPoint.new?.let { newStart ->
+        }
+        val newStartPointAndM = locationTrackChanges.startPoint.new?.let { newStart ->
             locationTrackChanges.trackNumberId.new?.let {
                 getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
             }
-        } else null
-        val newEndPointAndM = if (addressesChanged) locationTrackChanges.endPoint.new?.let { newEnd ->
+        }
+        val newEndPointAndM = locationTrackChanges.endPoint.new?.let { newEnd ->
             locationTrackChanges.trackNumberId.new?.let {
                 getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
             }
-        } else null
+        }
 
         return listOfNotNull(compareChangeValues(
             locationTrackChanges.trackNumberId,
@@ -1185,9 +1164,7 @@ class PublicationService @Autowired constructor(
                 newStartPointAndM?.address,
                 { it.toString() },
                 PropKey("start-address"),
-                remark = getAddressMovedRemarkOrNull(
-                    translation, oldStartPointAndM?.address, newStartPointAndM?.address
-                )
+                null
             ),
             compareChange(
                 { !pointsAreSame(locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new) },
@@ -1528,7 +1505,6 @@ class PublicationService @Autowired constructor(
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
-                    publicationTrackNumberChanges.any { tn -> tn.key == lt.trackNumberId },
                     lt.changedKmNumbers,
                     geocodingContextGetter,
                 ),
@@ -1596,7 +1572,6 @@ class PublicationService @Autowired constructor(
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
-                    true,
                     lt.changedKmNumbers,
                     geocodingContextGetter,
                 ),
