@@ -217,7 +217,7 @@ private fun updateDuplicateToSplitTarget(
         type = sourceTrack.type,
 
         // Geometry fields come from alignment
-        // TODO: Check that these are updated in withSegments!
+        // TODO: GVT-2154 Check that these are updated in withSegments!
         segmentCount = newAlignment.segments.size,
         length = newAlignment.length,
         boundingBox = newAlignment.boundingBox,
