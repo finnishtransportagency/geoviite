@@ -43,6 +43,16 @@ class LinkingFailureException(
     }
 }
 
+class SplitFailureException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "generic",
+) : ClientException(BAD_REQUEST, "Split failed: $message", cause, "${LinkingFailureException.LOCALIZATION_KEY_BASE}.$localizedMessageKey") {
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "error.split"
+    }
+}
+
 class PublicationFailureException(
     message: String,
     cause: Throwable? = null,

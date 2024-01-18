@@ -1060,19 +1060,18 @@ class SwitchLinkingService @Autowired constructor(
             locationTracksAndAlignments,
         )
 
-        val nearbyTracks =
-            (locationTracksAndAlignments + listDraftTracksNearArea(updatedArea))
+        val nearbyTracks = (locationTracksAndAlignments + listDraftTracksNearArea(updatedArea))
 
         return nearbyTracks
             .distinctBy { t -> t.first.id }
             .map { (locationTrack, alignment) ->
                 locationTrackService.calculateLocationTrackTopology(
-                    locationTrack,
-                    alignment,
+                    track = locationTrack,
+                    alignment = alignment,
                     nearbyTracks = NearbyTracks(
                         aroundStart = nearbyTracks,
                         aroundEnd = nearbyTracks,
-                    )
+                    ),
                 )
             }
     }
@@ -1153,12 +1152,12 @@ class SwitchLinkingService @Autowired constructor(
         val topologicalLinksMade = getPotentiallyChangedTracks(
             originalTracks,
             linkingParameters.layoutSwitchId,
-            segmentLinksMadeOverlay
+            segmentLinksMadeOverlay,
         ).mapNotNull { (locationTrack, alignment) ->
             val updated = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 locationTrack,
                 alignment,
-                overlaidTracks = segmentLinksMadeOverlay
+                overlaidTracks = segmentLinksMadeOverlay,
             )
             if (updated != locationTrack) updated else null
         }
@@ -1169,7 +1168,8 @@ class SwitchLinkingService @Autowired constructor(
         return LocationTrackChangesFromLinkingSwitch(
             onlyDelinked,
             topologicalLinksMade,
-            segmentLinksMade.filter { (track) -> !topoLinksMadeIds.contains(track.id) })
+            segmentLinksMade.filter { (track) -> !topoLinksMadeIds.contains(track.id) },
+        )
     }
 
     private fun getPotentiallyChangedTracks(
@@ -1184,19 +1184,15 @@ class SwitchLinkingService @Autowired constructor(
             .map { t -> segmentLinksMadeOverlay.getOrDefault(t.first.id, t) }
     }
 
+    @Transactional(readOnly = true)
     fun validateRelinkingTrack(trackId: IntId<LocationTrack>): List<SwitchRelinkingResult> {
-        val track = locationTrackDao.fetchDraftVersionOrThrow(trackId).let(locationTrackDao::fetch)
-        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
-            ?: throw IllegalStateException("Could not geocode for location track $trackId")
-        val alignment = track.alignmentVersion?.let(alignmentDao::fetch) ?: throw IllegalStateException("no alignment on track $trackId")
-
-        val switchIds = alignment.segments.mapNotNull { it.switchId as? IntId }.distinct()
-        val replacementSwitchLocations = switchIds.map { switchId ->
-            val switch = switchService.getOrThrow(OFFICIAL, switchId)
-            switchService.getPresentationJointOrThrow(switch).location to switch.switchStructureId
+        val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(trackId)
+        val track = trackVersion.let(locationTrackDao::fetch)
+        val switchSuggestions = getTrackSwitchSuggestions(track)
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)) {
+            "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
         }
-        val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
-        return switchSuggestions.zip(switchIds) { suggestedSwitch, switchId ->
+        return switchSuggestions.map { (switchId, suggestedSwitch) ->
             if (suggestedSwitch == null) SwitchRelinkingResult(switchId, null, listOf())
             else {
                 val (validationResults, presentationJointLocation) = validateSwitchLinkingParametersForSplit(
@@ -1204,15 +1200,31 @@ class SwitchLinkingService @Autowired constructor(
                         layoutSwitchId = switchId
                     )
                 )
-                val address = geocodingContext.getAddress(presentationJointLocation)
-                    ?: throw IllegalStateException("Could not geocode relinked location for switch $switchId on track $trackId")
+                val address = requireNotNull(geocodingContext.getAddress(presentationJointLocation)) {
+                    "Could not geocode relinked location for switch $switchId on track $track"
+                }
                 SwitchRelinkingResult(
                     switchId,
                     SwitchRelinkingSuggestion(presentationJointLocation, address.first),
-                    validationResults
+                    validationResults,
                 )
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun getTrackSwitchSuggestions(track: LocationTrack): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
+        val alignment = requireNotNull(track.alignmentVersion) {
+            "No alignment on track ${track.toLog()}"
+        }.let(alignmentDao::fetch)
+
+        val switchIds = alignment.segments.mapNotNull { it.switchId as? IntId }.distinct()
+        val replacementSwitchLocations = switchIds.map { switchId ->
+            val switch = switchService.getOrThrow(OFFICIAL, switchId)
+            switchService.getPresentationJointOrThrow(switch).location to switch.switchStructureId
+        }
+        val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
+        return switchIds.mapIndexed { index, id -> id to switchSuggestions[index] }
     }
 
     fun validateSwitchLinkingParametersForSplit(
@@ -1227,8 +1239,8 @@ class SwitchLinkingService @Autowired constructor(
             createdSwitch,
             switchStructure,
             trackChanges.alignmentLinkEdited + trackChanges.onlyTopoLinkEdited.mapNotNull { track ->
-                    track.alignmentVersion?.let { track to alignmentDao.fetch(it) }
-                }
+                track.alignmentVersion?.let { track to alignmentDao.fetch(it) }
+            },
         ) to presentationJointLocation
     }
 
@@ -1290,22 +1302,21 @@ class SwitchLinkingService @Autowired constructor(
                         } else {
                             switchLinkingSegment
                         }
-                    }
+                    },
                 )
             }
 
-            val updatedAlignment =
-                updateAlignmentSegmentsWithSwitchLinking(
-                    alignment = alignment,
-                    layoutSwitchId = linkingParameters.layoutSwitchId,
-                    matchingJoints = switchJointsWithSlightlyOverlappingSegmentsSnapped,
-                )
+            val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
+                alignment = alignment,
+                layoutSwitchId = linkingParameters.layoutSwitchId,
+                matchingJoints = switchJointsWithSlightlyOverlappingSegmentsSnapped,
+            )
 
             val locationTrackWithUpdatedTopology =
                 locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                     locationTrack,
                     updatedAlignment,
-                    overlaidTracks = overlaidTracks
+                    overlaidTracks = overlaidTracks,
                 )
 
             locationTrackWithUpdatedTopology to updatedAlignment
@@ -1335,7 +1346,7 @@ class SwitchLinkingService @Autowired constructor(
         }
 
         for (i in searchIndexRange) {
-            val segment = layoutSegments[i];
+            val segment = layoutSegments[i]
 
             val existingSwitchIdMatchesSegment = existingSwitchId == segment.switchId
             if (!existingSwitchIdMatchesSegment) {
@@ -1429,7 +1440,7 @@ class SwitchLinkingService @Autowired constructor(
     }
 }
 
-private fun createSwitchLinkingParameters(
+fun createSwitchLinkingParameters(
     suggestedSwitch: SuggestedSwitch,
     layoutSwitchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): SwitchLinkingParameters {
@@ -1463,8 +1474,7 @@ private fun getSwitchBoundsFromTracksAndAlignments(
 
         alignment.segments
             .filterIndexed { segmentIndex, layoutSegment ->
-                val layoutSegmentSwitchIdMatches =
-                    layoutSegment.switchId == switchId
+                val layoutSegmentSwitchIdMatches = layoutSegment.switchId == switchId
 
                 val topologyStartSwitchMatches =
                     segmentIndex == 0 && locationTrack.topologyStartSwitch?.switchId == switchId
@@ -1488,18 +1498,14 @@ private fun getSwitchBoundsFromTracksAndAlignments(
                     if (endIsJoint) layoutSegment.geometry.segmentPoints.last() else null,
                 )
             }
-    }
-    .let {
-        layoutPoints -> boundingBoxAroundPointsOrNull(layoutPoints)
-    }
+    }.let { layoutPoints -> boundingBoxAroundPointsOrNull(layoutPoints) }
 }
 
 private fun locationTrackHasTemporaryTopologicalSwitchConnection(
     locationTrack: LocationTrack,
     switchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): Boolean =
-    locationTrack.topologyStartSwitch?.switchId == switchId
-    || locationTrack.topologyEndSwitch?.switchId == switchId
+    locationTrack.topologyStartSwitch?.switchId == switchId || locationTrack.topologyEndSwitch?.switchId == switchId
 
 private fun topologicalConnectionJointNumberToLocationTrackId(
     locationTrack: LocationTrack,

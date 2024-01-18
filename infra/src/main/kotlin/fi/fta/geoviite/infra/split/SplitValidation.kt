@@ -18,7 +18,7 @@ internal fun validateSourceGeometry(
     return if (draftAddresses == null || officialAddressPoint == null) {
         PublishValidationError(
             PublishValidationErrorType.ERROR,
-            "$VALIDATION_SPLIT.source-no-geometry"
+            "$VALIDATION_SPLIT.source-no-geometry",
         )
     } else {
         val officialPoints = officialAddressPoint.allPoints
@@ -33,7 +33,7 @@ internal fun validateSourceGeometry(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "$VALIDATION_SPLIT.source-geometry-changed",
-                    mapOf("point" to point)
+                    mapOf("point" to point),
                 )
             }
     }
@@ -54,7 +54,7 @@ internal fun validateSplitContent(
         }.map { split ->
             split to PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                "$VALIDATION_SPLIT.split-missing-location-tracks"
+                "$VALIDATION_SPLIT.split-missing-location-tracks",
             )
         }
 }
@@ -66,7 +66,7 @@ internal fun validateTargetGeometry(
     return if (targetAddresses == null || sourceAddresses == null) {
         PublishValidationError(
             PublishValidationErrorType.ERROR,
-            "$VALIDATION_SPLIT.target-no-geometry"
+            "$VALIDATION_SPLIT.target-no-geometry",
         )
     } else {
         val sourcePoints = sourceAddresses.allPoints
@@ -81,7 +81,7 @@ internal fun validateTargetGeometry(
                 PublishValidationError(
                     PublishValidationErrorType.ERROR,
                     "$VALIDATION_SPLIT.target-geometry-changed",
-                    mapOf("point" to point)
+                    mapOf("point" to point),
                 )
             }
     }
