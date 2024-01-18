@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import org.springframework.stereotype.Service
+import java.util.stream.Collectors
 
 @Service
 class PlanLayoutService(
@@ -14,12 +15,9 @@ class PlanLayoutService(
         planVersion: RowVersion<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> {
-        val (layout, error) = planLayoutCache.getPlanLayout(planVersion, includeGeometryData)
-        return if (layout != null && includeGeometryData && pointListStepLength > 0) {
-            layout.withLayoutGeometry(pointListStepLength) to error
-        } else layout to error
-    }
+    ): Pair<GeometryPlanLayout?, TransformationError?> = handlePointListStepLength(
+        planLayoutCache.getPlanLayout(planVersion, includeGeometryData), includeGeometryData, pointListStepLength
+    )
 
     fun getLayoutPlan(
         geometryPlanId: IntId<GeometryPlan>,
@@ -29,9 +27,26 @@ class PlanLayoutService(
         getLayoutPlan(geometryDao.fetchPlanVersion(geometryPlanId), includeGeometryData, pointListStepLength)
 
     fun getManyLayoutPlans(
-        planVersions: List<IntId<GeometryPlan>>,
+        planIds: List<IntId<GeometryPlan>>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): List<Pair<GeometryPlanLayout?, TransformationError?>> =
-        planVersions.map { getLayoutPlan(it, includeGeometryData, pointListStepLength) }
+    ): List<Pair<GeometryPlanLayout?, TransformationError?>> = planIds
+        .map { planId ->
+            val planVersion = geometryDao.fetchPlanVersion(planId)
+            planLayoutCache.prepareGetPlanLayout(planVersion, includeGeometryData)
+        }
+        .parallelStream()
+        .map { process -> handlePointListStepLength(process(), includeGeometryData, pointListStepLength) }
+        .collect(Collectors.toList())
+
+    private fun handlePointListStepLength(
+        layoutResult: Pair<GeometryPlanLayout?, TransformationError?>,
+        includeGeometryData: Boolean,
+        pointListStepLength: Int,
+    ): Pair<GeometryPlanLayout?, TransformationError?> {
+        val (layout, error) = layoutResult
+        return if (layout != null && includeGeometryData && pointListStepLength > 0) {
+            layout.withLayoutGeometry(pointListStepLength) to error
+        } else layout to error
+    }
 }

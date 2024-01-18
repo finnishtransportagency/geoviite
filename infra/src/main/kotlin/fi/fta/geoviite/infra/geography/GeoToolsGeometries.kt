@@ -45,16 +45,16 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
 private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = mutableMapOf()
 fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
+private val geometryFactory = JTSFactoryFinder.getGeometryFactory()
 fun toJtsPolygon(polygonPoints: List<IPoint>, ref: CoordinateReferenceSystem): Polygon? {
     val geometryPointList = polygonPoints.map { point -> toJtsPoint(point, ref) }
-    val geometryFactory = JTSFactoryFinder.getGeometryFactory()
     val geometryCollection = geometryFactory.createGeometryCollection(geometryPointList.toTypedArray()).coordinates
     return geometryFactory.createPolygon(geometryCollection)
 }
 
 fun toJtsPoint(point: IPoint, ref: CoordinateReferenceSystem): org.locationtech.jts.geom.Point {
     val coordinate = toCoordinate(point, ref)
-    return JTSFactoryFinder.getGeometryFactory().createPoint(coordinate)
+    return geometryFactory.createPoint(coordinate)
 }
 
 fun toGvtPoint(point: org.locationtech.jts.geom.Point, ref: CoordinateReferenceSystem): Point {
