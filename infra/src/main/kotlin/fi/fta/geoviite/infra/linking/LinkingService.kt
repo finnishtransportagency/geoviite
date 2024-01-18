@@ -76,18 +76,18 @@ class LinkingService @Autowired constructor(
 
     @Transactional
     fun saveLocationTrackLinking(parameters: LinkingParameters<LocationTrack>): IntId<LocationTrack> {
-        verifyLocationTrackNotDeleted(parameters.layoutInterval.alignmentId)
+        val locationTrackId = parameters.layoutInterval.alignmentId
+        val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+
+        verifyLocationTrackNotDeleted(locationTrack)
         verifyPlanNotHidden(parameters.geometryPlanId)
         verifyAllSplitsDone(parameters.layoutInterval.alignmentId)
 
-        val locationTrackId = parameters.layoutInterval.alignmentId
         logger.serviceCall(
             "saveLocationTrackLinking",
             "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
             "locationTrackId" to locationTrackId,
         )
-
-        val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
 
         val newAlignment = linkGeometry(layoutAlignment, parameters)
         val newLocationTrack = updateTopology(locationTrack, layoutAlignment, newAlignment)
@@ -262,8 +262,8 @@ class LinkingService @Autowired constructor(
         )
     }
 
-    fun verifyLocationTrackNotDeleted(id: IntId<LocationTrack>) {
-        if (!locationTrackService.getOrThrow(DRAFT, id).exists) throw LinkingFailureException(
+    fun verifyLocationTrackNotDeleted(locationTrack: LocationTrack) {
+        if (!locationTrack.exists) throw LinkingFailureException(
             message = "Cannot link a location track that is deleted", localizedMessageKey = "location-track-deleted"
         )
     }
