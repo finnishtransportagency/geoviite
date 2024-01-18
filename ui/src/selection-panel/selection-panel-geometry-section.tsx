@@ -82,7 +82,10 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     onSelect,
 }) => {
     const { t } = useTranslation();
-    const [planHeadersInView, setPlanHeadersInView] = React.useState<GeometryPlanHeader[]>([]);
+    const [planHeadersDisplayableInPanel, setPlanHeadersDisplayableInPanel] = React.useState<
+        GeometryPlanHeader[]
+    >([]);
+    const [planIdsInViewport, setPlanIdsInViewport] = React.useState<GeometryPlanId[]>([]);
     const [planHeaderCount, setPlanHeaderCount] = React.useState<number>(0);
     const [fetchedPlans, setSingleFetchedPlan, _, setAllFetchedPlans] = useMapState<
         GeometryPlanId,
@@ -103,9 +106,12 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     undefined,
                     GeometrySortBy.UPLOADED_AT,
                     GeometrySortOrder.ASCENDING,
-                ).then((page) => {
-                    setPlanHeadersInView(page.items);
-                    setPlanHeaderCount(page.totalCount);
+                ).then((result) => {
+                    setPlanHeadersDisplayableInPanel(result.planHeaders.items);
+                    setPlanHeaderCount(result.planHeaders.totalCount);
+                    setPlanIdsInViewport(
+                        result.planHeaders.items.map(({ id }) => id).concat(result.remainingIds),
+                    );
                 });
             }
         },
@@ -140,20 +146,17 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         return rv;
     };
 
-    const selectedPlanHeadersInView = planHeadersInView.filter((headerInView) =>
-        visiblePlans.some((p) => p.id === headerInView.id),
-    );
     const visiblePlansInView = visiblePlans.filter((p) =>
-        selectedPlanHeadersInView.some((ph) => ph.id === p.id),
+        planIdsInViewport.some((planId) => planId === p.id),
     );
 
     const toggleAllPlanVisibilities = () => {
         if (visiblePlansInView.length > 0) {
             visiblePlansInView.forEach(onTogglePlanVisibility);
-        } else {
-            planHeadersInView.forEach((h) => startFetchingPlan(h.id));
+        } else if (planHeadersDisplayableInPanel.length === planHeaderCount) {
+            planHeadersDisplayableInPanel.forEach((h) => startFetchingPlan(h.id));
             getTrackLayoutPlans(
-                planHeadersInView.map((h) => h.id),
+                planHeadersDisplayableInPanel.map((h) => h.id),
                 changeTimes.geometryPlan,
             )
                 .then((plans) =>
@@ -177,7 +180,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     setAllFetchedPlans(map);
                 })
                 .finally(() => {
-                    planHeadersInView.forEach((h) => finishFetchingPlan(h.id));
+                    planHeadersDisplayableInPanel.forEach((h) => finishFetchingPlan(h.id));
                 });
         }
     };
@@ -186,12 +189,12 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         <section>
             <h3 className={styles['selection-panel__title']}>
                 {`${t('selection-panel.geometries-title')} (${
-                    planHeadersInView.length
+                    planHeadersDisplayableInPanel.length
                 }/${planHeaderCount})`}{' '}
-                {planHeadersInView.length > 1 && planHeadersInView.length === planHeaderCount && (
+                {planHeadersDisplayableInPanel.length > 1 && (
                     <Eye
                         onVisibilityToggle={toggleAllPlanVisibilities}
-                        visibility={visiblePlans.length > 0}
+                        visibility={visiblePlansInView.length > 0}
                     />
                 )}
             </h3>
@@ -200,8 +203,8 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     styles['selection-panel__content'],
                     styles['selection-panel__content--unpadded'],
                 )}>
-                {planHeadersInView.length == planHeaderCount &&
-                    planHeadersInView.map((h) => {
+                {planHeadersDisplayableInPanel.length == planHeaderCount &&
+                    planHeadersDisplayableInPanel.map((h) => {
                         return (
                             <GeometryPlanPanel
                                 key={h.id}
@@ -273,13 +276,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                             />
                         );
                     })}
-                {planHeadersInView.length < planHeaderCount && (
+                {planHeadersDisplayableInPanel.length < planHeaderCount && (
                     <span className={styles['selection-panel__subtitle']}>{`${t(
                         'selection-panel.zoom-closer',
                     )}`}</span>
                 )}
 
-                {planHeadersInView.length === 0 && (
+                {planHeadersDisplayableInPanel.length === 0 && (
                     <span className={styles['selection-panel__subtitle']}>
                         {`${t('selection-panel.no-results')}`}{' '}
                     </span>

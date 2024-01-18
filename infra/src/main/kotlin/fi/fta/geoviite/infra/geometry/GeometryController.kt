@@ -46,12 +46,16 @@ class GeometryController @Autowired constructor(
         @RequestParam("sortField") sortField: GeometryPlanSortField?,
         @RequestParam("sortOrder") sortOrder: SortOrder?,
         @RequestParam("lang") lang: String,
-    ): Page<GeometryPlanHeader> {
+    ): GeometryPlanHeadersSearchResult {
         log.apiCall("getPlanHeaders", "sources" to sources)
         val filter = geometryService.getFilter(freeText, trackNumberIds ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
         val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
-        return page(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
+        val results = pageAndRest(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
+        return GeometryPlanHeadersSearchResult(
+            planHeaders = results.page,
+            remainingIds = results.rest.map { plan -> plan.id },
+        )
     }
 
     @PreAuthorize(AUTH_UI_READ)

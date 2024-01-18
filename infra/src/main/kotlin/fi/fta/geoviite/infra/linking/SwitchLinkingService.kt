@@ -1162,7 +1162,7 @@ class SwitchLinkingService @Autowired constructor(
             if (updated != locationTrack) updated else null
         }
         val topoLinksMadeIds = topologicalLinksMade.map { track -> track.id as IntId }.toSet()
-        val onlyDelinked = originalTracks.entries
+        val onlyDelinked = existingLinksCleared.entries
             .filter { (id) -> !segmentLinksMadeOverlay.containsKey(id) && !topoLinksMadeIds.contains(id) }
             .map { (_, track) -> track }
         return LocationTrackChangesFromLinkingSwitch(
@@ -1286,7 +1286,9 @@ class SwitchLinkingService @Autowired constructor(
             .filter { it.value.isNotEmpty() }
 
         return switchJointsByLocationTrack.map { (locationTrackId, switchJoints) ->
-            val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+            val (locationTrack, alignment) = overlaidTracks.getOrElse(locationTrackId) {
+                locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+            }
 
             val switchJointsWithSlightlyOverlappingSegmentsSnapped = switchJoints.map { switchLinkingJoint ->
                 switchLinkingJoint.copy(
