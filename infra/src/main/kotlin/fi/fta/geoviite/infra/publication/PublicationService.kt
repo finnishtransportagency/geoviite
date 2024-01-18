@@ -290,13 +290,15 @@ class PublicationService @Autowired constructor(
                 candidate.copy(errors = validationErrors + ltSplitErrors)
             },
             switches = candidates.switches.map { candidate ->
-                candidate.copy(
-                    errors = validateSwitch(
-                        candidate.getPublicationVersion(),
-                        versions,
-                        switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
-                    )
+                val sSplitErrors = splitErrors.switches[candidate.id] ?: emptyList()
+
+                val validationErrors = validateSwitch(
+                    candidate.getPublicationVersion(),
+                    versions,
+                    switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
                 )
+
+                candidate.copy(errors = validationErrors + sSplitErrors)
             },
             kmPosts = candidates.kmPosts.map { candidate ->
                 val kpSplitErrors = splitErrors.kmPosts[candidate.id] ?: emptyList()
