@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 class SplitController(val splitService: SplitService) {
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping
-    fun splitLocationTrack(@RequestBody request: SplitRequest): IntId<SplitSource> {
+    fun splitLocationTrack(@RequestBody request: SplitRequest): IntId<Split> {
         return splitService.split(request)
     }
 }

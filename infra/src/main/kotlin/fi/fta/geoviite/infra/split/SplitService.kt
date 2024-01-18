@@ -2,24 +2,22 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.createSwitchLinkingParameters
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import fi.fta.geoviite.infra.tracklayout.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -178,12 +176,8 @@ class SplitService(
         else null
     }
 
-    fun locationTrackHasAnySplitsNotDone(locationTrackId: IntId<LocationTrack>): Boolean = splitDao
-        .fetchUnfinishedSplits()
-        .any { it.isPartOf(locationTrackId) && it.bulkTransferState != BulkTransferState.DONE }
-
     @Transactional
-    fun split(request: SplitRequest): IntId<SplitSource> {
+    fun split(request: SplitRequest): IntId<Split> {
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(sourceTrack))
         suggestions.forEach { (id, suggestion) ->
