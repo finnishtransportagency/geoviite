@@ -2166,12 +2166,38 @@ class PublicationServiceIT @Autowired constructor(
     fun `split source location track validation should fail if source location track isn't deleted`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup(LayoutState.IN_USE)
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
-        }
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::getSplit)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertTrue { errors.size == 1 }
+        assertContains(
+            errors,
+            PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                LocalizationKey("validation.layout.split.source-not-deleted"),
+                LocalizationParams.empty()
+            )
+        )
+    }
+
+    @Test
+    fun `split location track validation should fail if a target is on a different track number`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        val startTarget = locationTrackDao.fetch(startTargetTrack.rowVersion)
+        locationTrackDao.update(
+            startTarget.copy(trackNumberId = getUnusedTrackNumberId())
+        )
+
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::getSplit)
+
+        val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        assertContains(
+            errors,
+            PublishValidationError(
+                PublishValidationErrorType.ERROR,
+                LocalizationKey("validation.layout.split.duplicate-on-different-track-number"),
+                LocalizationParams(mapOf("duplicateTrack" to startTarget.name.toString()))
+            )
+        )
     }
 
     @Test
@@ -2433,7 +2459,8 @@ class PublicationServiceIT @Autowired constructor(
         )
     }
 
-    private fun simpleSplitSetup(sourceLocationTrackState: LayoutState = LayoutState.DELETED): Triple<DaoResponse<LocationTrack>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
+    private fun simpleSplitSetup(sourceLocationTrackState: LayoutState = LayoutState.DELETED):
+            Triple<DaoResponse<LocationTrack>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
         val trackNumberId = insertOfficialTrackNumber()
         insertReferenceLine(
             referenceLine(trackNumberId = trackNumberId),

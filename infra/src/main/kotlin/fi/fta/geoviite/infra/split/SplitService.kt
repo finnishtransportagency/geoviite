@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType
@@ -16,6 +17,7 @@ class SplitService(
     private val referenceLineDao: ReferenceLineDao,
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao,
+    private val locationTrackService: LocationTrackService,
 ) {
 
     fun validateSplit(candidates: ValidationVersions): SplitPublishValidationErrors {
@@ -36,17 +38,8 @@ class SplitService(
             id to listOfNotNull(trackNumberId?.let(::validateSplitReferencesByTrackNumber))
         }.filterValues { it.isNotEmpty() }
 
-        val sourceTrackSplitErrors = splits.mapNotNull { splitSource ->
-            candidates.locationTracks.find { (id, _) ->
-                id == splitSource.locationTrackId
-            }?.let { (id, version) ->
-                validateSplitSourceLocationTrack(splitSource, locationTrackDao.fetch(version))
-                    ?.let { error -> id to listOf(error) }
-            }
-        }.toMap()
-
-        val targetTrackSplitErrors = candidates.locationTracks.associate { (id, _) ->
-            val ltSplitErrors = validateSplitForTargetLocationTrack(id, splits)
+        val trackSplitErrors = candidates.locationTracks.associate { (id, version) ->
+            val ltSplitErrors = validateSplitForLocationTrack(id, splits)
             val contentErrors = splitErrors.mapNotNull { (split, error) ->
                 if (split.isPartOf(id)) error else null
             }
@@ -54,12 +47,10 @@ class SplitService(
             id to ltSplitErrors + contentErrors
         }.filterValues { it.isNotEmpty() }
 
-        val trackSplitErrors = sourceTrackSplitErrors + targetTrackSplitErrors
-
         return SplitPublishValidationErrors(tnSplitErrors, rlSplitErrors, kpSplitErrors, trackSplitErrors)
     }
 
-    private fun validateSplitForTargetLocationTrack(
+    private fun validateSplitForLocationTrack(
         locationTrackId: IntId<LocationTrack>,
         splits: List<SplitSource>,
     ): List<PublishValidationError> {
@@ -81,6 +72,22 @@ class SplitService(
                 validateSourceGeometry(draftAddresses, officialAddresses)
             }
 
+        val splitSourceLocationTrackErrors = splits
+            .firstOrNull { it.locationTrackId == locationTrackId }
+            ?.let { split ->
+                validateSplitSourceLocationTrack(split, locationTrackService.getOrThrow(PublishType.DRAFT, locationTrackId))
+            }
+
+        val sourceDuplicateTrackErrors = splits
+            .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == locationTrackId } }
+            ?.let { split ->
+                val sourceLocationTrack = locationTrackDao.getOrThrow(PublishType.DRAFT, split.locationTrackId)
+                split.targetLocationTracks.mapNotNull { targetLt ->
+                    val targetLocationTrack = locationTrackService.getOrThrow(PublishType.DRAFT, targetLt.locationTrackId)
+                    validateTargetTrackNumber(sourceLocationTrack, targetLocationTrack)
+                }
+            } ?: emptyList()
+
         val statusErrors = splits
             .filterNot { it.bulkTransferState == BulkTransferState.PENDING }
             .firstOrNull { it.isPartOf(locationTrackId) }
@@ -91,7 +98,7 @@ class SplitService(
                 )
             }
 
-        return listOfNotNull(statusErrors, targetGeometryErrors, sourceGeometryErrors)
+        return listOfNotNull(statusErrors, targetGeometryErrors, sourceGeometryErrors, splitSourceLocationTrackErrors) + sourceDuplicateTrackErrors
     }
 
     fun validateSplitReferencesByTrackNumber(
