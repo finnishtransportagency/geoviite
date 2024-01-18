@@ -87,6 +87,16 @@ internal fun validateTargetGeometry(
     }
 }
 
+internal fun validateTargetTrackNumber(
+    sourceLocationTrack: LocationTrack,
+    targetLocationTrack: LocationTrack,
+) = if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) PublishValidationError(
+    PublishValidationErrorType.ERROR,
+    "$VALIDATION_SPLIT.duplicate-on-different-track-number",
+    mapOf("duplicateTrack" to targetLocationTrack.name)
+)
+else null
+
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
 ): PublishValidationError? {

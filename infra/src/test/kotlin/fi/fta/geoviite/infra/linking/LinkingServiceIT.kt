@@ -378,7 +378,6 @@ class LinkingServiceIT @Autowired constructor(
         splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
 
         assertDoesNotThrow { linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval)) }
-
     }
 
     fun assertMatches(
