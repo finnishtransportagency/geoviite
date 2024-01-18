@@ -1245,7 +1245,8 @@
                 "start-km-too-long": "Alkukilometri ottaen huomioon alkupisteen metrit on liian pitkä"
             },
             "split": {
-                "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa"
+                "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa",
+                "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide"
             }
         }
     },
