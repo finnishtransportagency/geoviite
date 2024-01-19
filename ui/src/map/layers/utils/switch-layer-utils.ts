@@ -19,6 +19,10 @@ import { ValidatedAsset } from 'publication/publication-model';
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
 
+const switchErrorImage: HTMLImageElement = new Image();
+// TODO: Color hack to be solved!
+switchErrorImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon.replace('black', styles.errorDefault))}`;
+
 const TEXT_FONT_LARGE = 11;
 const TEXT_FONT_SMALL = 10;
 const CIRCLE_RADIUS_SMALL = 4.5;
@@ -26,22 +30,23 @@ const CIRCLE_RADIUS_LARGE = 6.5;
 
 export function getSelectedSwitchLabelRenderer(
     layoutSwitch: LayoutSwitch,
-    large: boolean,
+    _large: boolean,
     linked: boolean,
+    isValid: boolean
 ): RenderFunction {
     const paddingX = 6;
     const paddingY = 4;
     const iconTextPaddingX = 6;
     const fontSize = TEXT_FONT_LARGE;
-    const labelOffset = (large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL) + 4;
+    const stokeWidth = isValid ? 1 : 2;
+    const labelOffset = CIRCLE_RADIUS_SMALL + 4 + stokeWidth * 2;
     const iconSize = 14;
     const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
-
     return getCanvasRenderer(
         layoutSwitch,
         (ctx, { pixelRatio }) => {
             ctx.font = `bold ${pixelRatio * fontSize}px sans-serif`;
-            ctx.lineWidth = pixelRatio;
+            ctx.lineWidth = stokeWidth * pixelRatio;
         },
         [
             ({ name }, [x, y], ctx, { pixelRatio }) => {
@@ -51,11 +56,11 @@ export function getSelectedSwitchLabelRenderer(
                         : styles.unlinkedSwitchLabel
                     : styles.switchLabel;
 
-                ctx.strokeStyle = styles.switchLabelBorder;
+                ctx.strokeStyle = isValid ? styles.switchLabelBorder : styles.errorBright;
                 const textSize = ctx.measureText(name);
                 const height = (Math.max(iconSize, fontSize) + 2 * paddingY) * pixelRatio;
                 const width =
-                    textSize.width + (iconSize + 2 * paddingX + iconTextPaddingX) * pixelRatio;
+                    textSize.width + (iconSize + 2 * paddingX + iconTextPaddingX + stokeWidth/2) * pixelRatio;
 
                 drawRoundedRect(
                     ctx,
@@ -67,12 +72,12 @@ export function getSelectedSwitchLabelRenderer(
                 );
             },
             (_, [x, y], ctx, { pixelRatio }) => {
-                ctx.fillStyle = styles.switchTextColor;
+                ctx.fillStyle = isValid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
                 ctx.drawImage(
-                    switchImage,
+                    isValid ? switchImage : switchErrorImage,
                     x + (labelOffset + paddingX) * pixelRatio,
                     y - (iconSize / 2) * pixelRatio,
                     iconSize * pixelRatio,
@@ -82,13 +87,14 @@ export function getSelectedSwitchLabelRenderer(
 
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 ctx.fillStyle = styles.switchTextColor;
+                ctx.fillStyle = isValid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
                 ctx.fillText(
                     name,
                     x + (labelOffset + iconSize + paddingX + iconTextPaddingX) * pixelRatio,
-                    y + 2 * pixelRatio,
+                    y + 2 * pixelRatio - stokeWidth/2,
                 );
             },
         ],
@@ -123,13 +129,14 @@ export function getSwitchRenderer(
                     ? linked
                         ? styles.linkedSwitchJointBorder
                         : styles.unlinkedSwitchJointBorder
-                    : styles.switchJointBorder;
+                    : (isValid ? styles.switchJointBorder : styles.errorBright);
+                ctx.lineWidth = (isValid ? 1 : 3) * pixelRatio;
 
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 if (showLabel) {
-                    ctx.fillStyle = isValid ? styles.switchBackground : 'red';
+                    ctx.fillStyle = styles.switchBackground; //isValid ? styles.switchBackground : 'red';
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
 
@@ -138,10 +145,13 @@ export function getSwitchRenderer(
                     const textY = y + pixelRatio;
                     const paddingHor = 2;
                     const paddingVer = 1;
+                    const contentWidth = textWidth + (isValid ? 0 : 15);
                     const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
                     const backgroundY = textY - fontSize*pixelRatio/2 - paddingVer * pixelRatio
-                    const backgroundWidth = textWidth + paddingHor * 2 * pixelRatio;
+                    const backgroundWidth = contentWidth + paddingHor * 2 * pixelRatio;
                     const backgroundHeight = fontSize * pixelRatio + paddingVer * 2 * pixelRatio;
+
+
 
                     drawRect(
                         ctx,
@@ -163,20 +173,21 @@ export function getSwitchRenderer(
     );
 }
 
-export function getJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean): RenderFunction {
+export function getJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean, isValid:boolean = true): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
-    const circleRadius = CIRCLE_RADIUS_LARGE;
+    const showErrorStyle = !isValid && mainJoint;
+    const circleRadius = (showErrorStyle ? CIRCLE_RADIUS_LARGE+1 : CIRCLE_RADIUS_LARGE);
 
     return getCanvasRenderer(
         joint,
         (ctx, { pixelRatio }) => {
             ctx.font = `bold ${pixelRatio * fontSize}px sans-serif`;
-            ctx.lineWidth = pixelRatio;
+            ctx.lineWidth = (!isValid && mainJoint ? 3 : 1) * pixelRatio;
         },
         [
             (_, [x, y], ctx, { pixelRatio }) => {
                 ctx.fillStyle = mainJoint ? styles.switchMainJoint : styles.switchJoint;
-                ctx.strokeStyle = mainJoint
+                ctx.strokeStyle = showErrorStyle ?  styles.errorBright : mainJoint
                     ? styles.switchMainJointBorder
                     : styles.switchJointBorder;
 
@@ -297,7 +308,7 @@ function createSwitchFeature(
 
     switchFeature.setStyle(
         selected || highlighted
-            ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked)
+            ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked, true)
             : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked, true),
     );
 
@@ -305,7 +316,7 @@ function createSwitchFeature(
         if (res.errors?.length) {
             switchFeature.setStyle(
                 selected || highlighted
-                    ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked)
+                    ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked, false)
                     : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked, false),
 
             )
@@ -329,6 +340,20 @@ function createSwitchFeature(
                           presentationJoint ? joint.number === presentationJointNumber : index == 0,
                       ),
                   );
+
+                validationResult?.then(res => {
+                    if (res.errors?.length) {
+                        feature.setStyle(
+                            getSwitchJointStyle(
+                                joint,
+                                // Again, use presentation joint as main joint if found, otherwise use first one
+                                presentationJoint ? joint.number === presentationJointNumber : index == 0,
+                                false
+                            )
+
+                        )
+                    }
+                });
 
                   return feature;
               })
@@ -355,17 +380,18 @@ function getSelectedSwitchStyle(
     layoutSwitch: LayoutSwitch,
     large: boolean,
     linked: boolean,
+    isValid: boolean = true
 ): Style {
     return new Style({
         zIndex: 1,
-        renderer: getSelectedSwitchLabelRenderer(layoutSwitch, large, linked),
+        renderer: getSelectedSwitchLabelRenderer(layoutSwitch, large, linked, isValid),
     });
 }
 
-function getSwitchJointStyle(joint: LayoutSwitchJoint, mainJoint: boolean): Style {
+function getSwitchJointStyle(joint: LayoutSwitchJoint, mainJoint: boolean, isValid:boolean = true): Style {
     return new Style({
         zIndex: mainJoint ? 3 : 2,
-        renderer: getJointRenderer(joint, mainJoint),
+        renderer: getJointRenderer(joint, mainJoint, isValid),
     });
 }
 
