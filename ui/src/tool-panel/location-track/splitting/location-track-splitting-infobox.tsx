@@ -382,6 +382,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         },
     );
 
+    const firstChangedDuplicateInSplits = duplicateLocationTracks.find(
+        (dupe) => dupe.draftType !== 'OFFICIAL',
+    );
+
     return (
         <React.Fragment>
             {startAndEnd?.start && startAndEnd?.end && locationTrack && (
@@ -457,6 +461,27 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                         </MessageBox>
                                     </InfoboxContentSpread>
                                 )}
+                                {firstChangedDuplicateInSplits && (
+                                    <InfoboxContentSpread>
+                                        <MessageBox type={'ERROR'}>
+                                            <div>
+                                                {t(
+                                                    'tool-panel.location-track.splitting.validation.duplicate-not-published',
+                                                    {
+                                                        duplicateName:
+                                                            firstChangedDuplicateInSplits.name,
+                                                    },
+                                                )}
+                                            </div>
+                                            <br />
+                                            <div>
+                                                {t(
+                                                    'tool-panel.location-track.splitting.validation.publish-duplicate',
+                                                )}
+                                            </div>
+                                        </MessageBox>
+                                    </InfoboxContentSpread>
+                                )}
                             </React.Fragment>
                         )}
                         <InfoboxButtons>
@@ -482,6 +507,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                     disabled ||
                                     anyMissingFields ||
                                     anyOtherErrors ||
+                                    !!firstChangedDuplicateInSplits ||
                                     splits.length < 1
                                 }>
                                 {t('tool-panel.location-track.splitting.confirm-split')}

@@ -29,4 +29,8 @@
 .message-box__icon {
     fill: vayla-design.$color-black-lighter;
     margin-right: 12px;
+
+    &--error {
+        fill: vayla-design.$color-red-dark;
+    }
 }
