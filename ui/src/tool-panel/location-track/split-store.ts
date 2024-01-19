@@ -31,6 +31,7 @@ export type SplittingState = {
     endLocation: AlignmentPoint;
     originLocationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
+    startAndEndSwitches: LayoutSwitchId[];
     duplicateTracks: SplitDuplicate[];
     initialSplit: InitialSplit;
     splits: Split[];
@@ -40,6 +41,7 @@ export type SplittingState = {
 type SplitStart = {
     locationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
+    startAndEndSwitches: LayoutSwitchId[];
     duplicateTracks: SplitDuplicate[];
     startLocation: AlignmentPoint;
     endLocation: AlignmentPoint;
@@ -78,6 +80,7 @@ export const splitReducers = {
         state.splittingState = {
             originLocationTrack: payload.locationTrack,
             allowedSwitches: payload.allowedSwitches,
+            startAndEndSwitches: payload.startAndEndSwitches,
             duplicateTracks: payload.duplicateTracks,
             splits: [],
             endLocation: payload.endLocation,

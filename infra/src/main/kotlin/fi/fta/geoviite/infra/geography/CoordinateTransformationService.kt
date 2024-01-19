@@ -13,6 +13,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.opengis.referencing.operation.MathTransform
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 
 data class Transformation private constructor(
     val sourceSrid: Srid,
@@ -91,12 +92,12 @@ data class Transformation private constructor(
 class CoordinateTransformationService @Autowired constructor(
     private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao
 ) {
-    private val transformations = mutableMapOf<Pair<Srid, Srid>, Transformation>()
+    private val transformations = ConcurrentHashMap<Pair<Srid, Srid>, Transformation>()
 
     fun getLayoutTransformation(sourceSrid: Srid) = getTransformation(sourceSrid, LAYOUT_SRID)
 
     fun getTransformation(sourceSrid: Srid, targetSrid: Srid): Transformation =
-        transformations.getOrPut(Pair(sourceSrid, targetSrid)) {
+        transformations.computeIfAbsent(Pair(sourceSrid, targetSrid)) {
             Transformation.possiblyTriangulableTransform(
                 sourceSrid,
                 targetSrid,

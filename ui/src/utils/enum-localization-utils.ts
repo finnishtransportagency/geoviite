@@ -78,7 +78,7 @@ export const topologicalConnectivityTypes: LocalizedEnum<TopologicalConnectivity
 
 export const descriptionSuffixModes: LocalizedEnum<LocationTrackDescriptionSuffixMode>[] = values(
     'location-track-description-suffix',
-    ['NONE', 'SWITCH_TO_SWITCH', 'SWITCH_TO_BUFFER'],
+    ['NONE', 'SWITCH_TO_SWITCH', 'SWITCH_TO_BUFFER', 'SWITCH_TO_OWNERSHIP_BOUNDARY'],
 );
 
 export const planPhases: LocalizedEnum<PlanPhase>[] = values('plan-phase', [

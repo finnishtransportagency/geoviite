@@ -289,6 +289,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
                                 qa-id="zoom-to-track-number"
+                                title={
+                                    !referenceLine?.boundingBox
+                                        ? t('tool-panel.reference-line.layout.no-geometry')
+                                        : ''
+                                }
+                                disabled={!referenceLine?.boundingBox}
                                 onClick={() =>
                                     referenceLine?.boundingBox &&
                                     showArea(referenceLine.boundingBox)

@@ -291,6 +291,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             '???'
         } - ${t('location-track-dialog.buffer')}`;
 
+    const switchToOwnershipBoundaryDescriptionSuffix = () =>
+        `${
+            shortenSwitchName(extraInfo?.switchAtStart?.name) ??
+            shortenSwitchName(extraInfo?.switchAtEnd?.name) ??
+            '???'
+        } - ${t('location-track-dialog.ownership-boundary')}`;
+
     const descriptionSuffix = (mode: LocationTrackDescriptionSuffixMode) => {
         switch (mode) {
             case 'NONE':
@@ -299,6 +306,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 return switchToSwitchDescriptionSuffix();
             case 'SWITCH_TO_BUFFER':
                 return switchToBufferDescriptionSuffix();
+            case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
+                return switchToOwnershipBoundaryDescriptionSuffix();
             default:
                 exhaustiveMatchingGuard(mode);
         }
