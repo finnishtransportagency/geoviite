@@ -12,7 +12,6 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
-    LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
@@ -20,11 +19,14 @@ import {
     InitialSplit,
     sortSplitsByDistance,
     Split,
+    SplitRequest,
+    SplitRequestTarget,
     SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
 import {
     useConflictingTracks,
     useLocationTrack,
+    useLocationTracks,
     useLocationTrackStartAndEnd,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
@@ -33,16 +35,17 @@ import {
     LocationTrackSplit,
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, findById } from 'utils/array-utils';
 import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { Link } from 'vayla-design-lib/link/link';
 import { TimeStamp } from 'common/common-model';
+import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackSplittingInfoboxContainerProps = {
-    duplicateLocationTracks: LocationTrackDuplicate[];
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     initialSplit: InitialSplit;
@@ -59,7 +62,6 @@ type LocationTrackSplittingInfoboxContainerProps = {
 };
 
 type LocationTrackSplittingInfoboxProps = {
-    duplicateLocationTracks: LocationTrackDuplicate[];
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     initialSplit: InitialSplit;
@@ -155,7 +157,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     locationTrackChangeTime,
     initialSplit,
     splits,
-    duplicateLocationTracks,
     visibilities,
     visibilityChange,
     allowedSwitches,
@@ -192,7 +193,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         locationTrack &&
         startAndEnd && (
             <LocationTrackSplittingInfobox
-                duplicateLocationTracks={duplicateLocationTracks}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
                 initialSplit={initialSplit}
@@ -263,8 +263,32 @@ const getSplitAddressPoint = (
     return undefined;
 };
 
+const splitRequest = (
+    sourceTrackId: LocationTrackId,
+    initialSplit: InitialSplit,
+    splits: Split[],
+    allDuplicates: LayoutLocationTrack[],
+): SplitRequest => ({
+    sourceTrackId,
+    targetTracks: [initialSplit, ...splits].map((s, i) => {
+        const dupe = s.duplicateOf ? findById(allDuplicates, s.duplicateOf) : undefined;
+        return splitToRequestTarget(s, splits[i + 1], dupe);
+    }),
+});
+
+const splitToRequestTarget = (
+    split: Split | InitialSplit,
+    nextSplit: Split | undefined,
+    duplicate: LayoutLocationTrack | undefined,
+): SplitRequestTarget => ({
+    name: duplicate ? duplicate.name : split.name,
+    descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
+    descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
+    duplicateTrackId: split.duplicateOf,
+    endsAtSwitch: nextSplit?.switchId,
+});
+
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
-    duplicateLocationTracks,
     visibilities,
     visibilityChange,
     initialSplit,
@@ -300,6 +324,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         switchErrors: validateSplitSwitch(s, switches),
     }));
     const allValidated = [initialSplitValidated, ...splitsValidated];
+    const duplicateLocationTracks = useLocationTracks(
+        allValidated.map((s) => s.split.duplicateOf).filter(filterNotEmpty),
+        'DRAFT',
+        getChangeTimes().layoutLocationTrack,
+    );
 
     const allErrors = allValidated.flatMap((validated) => [
         ...validated.descriptionErrors,
@@ -329,7 +358,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         split={split}
                         addressPoint={getSplitAddressPoint(allowedSwitches, startAndEnd, split)}
                         onRemove={splitIndex > 0 ? removeSplit : undefined}
-                        duplicateLocationTracks={duplicateLocationTracks}
                         updateSplit={updateSplit}
                         duplicateOf={split.duplicateOf}
                         nameErrors={nameErrors}
@@ -339,6 +367,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         deletingDisabled={disabled}
                         nameRef={nameRef}
                         descriptionBaseRef={descriptionBaseRef}
+                        allDuplicateLocationTracks={duplicateLocationTracks}
+                        duplicateLocationTrack={
+                            split.duplicateOf
+                                ? findById(duplicateLocationTracks, split.duplicateOf)
+                                : undefined
+                        }
                     />
                 ),
                 split: splitValidated,
@@ -434,6 +468,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
+                                onClick={() =>
+                                    postSplitLocationTrack(
+                                        splitRequest(
+                                            locationTrack.id,
+                                            initialSplit,
+                                            splits,
+                                            duplicateLocationTracks,
+                                        ),
+                                    )
+                                }
                                 disabled={
                                     disabled ||
                                     anyMissingFields ||

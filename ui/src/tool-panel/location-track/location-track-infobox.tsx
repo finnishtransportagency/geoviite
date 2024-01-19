@@ -361,7 +361,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         }}
                         allowedSwitches={splittingState.allowedSwitches}
                         switchChangeTime={switchChangeTime}
-                        duplicateLocationTracks={extraInfo?.duplicates || []}
                         updateSplit={delegates.updateSplit}
                         setSplittingDisabled={delegates.setDisabled}
                         disabled={splittingState.disabled}

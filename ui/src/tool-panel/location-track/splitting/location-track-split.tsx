@@ -1,7 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocationTrack } from 'track-layout/track-layout-react-utils';
-import { getChangeTimes } from 'common/change-time-api';
 import { ValidationError } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -12,8 +10,8 @@ import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import {
     AddressPoint,
+    LayoutLocationTrack,
     LayoutSwitchId,
-    LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
@@ -28,7 +26,6 @@ type EndpointProps = {
 type SplitProps = EndpointProps & {
     split: Split | InitialSplit;
     onRemove?: (switchId: LayoutSwitchId) => void;
-    duplicateLocationTracks?: LocationTrackDuplicate[];
     updateSplit: (updateSplit: Split | InitialSplit) => void;
     duplicateOf: LocationTrackId | undefined;
     nameErrors: ValidationError<Split>[];
@@ -37,6 +34,8 @@ type SplitProps = EndpointProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
+    allDuplicateLocationTracks: LayoutLocationTrack[];
+    duplicateLocationTrack: LayoutLocationTrack | undefined;
 };
 
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
@@ -72,11 +71,12 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     nameErrors,
     descriptionErrors,
     switchErrors,
-    duplicateLocationTracks = [],
     editingDisabled,
     deletingDisabled,
     nameRef,
     descriptionBaseRef,
+    allDuplicateLocationTracks,
+    duplicateLocationTrack,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -94,12 +94,6 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             setDescriptionCommitted(true);
         }
     });
-
-    const duplicateLocationTrack = useLocationTrack(
-        duplicateOf,
-        'DRAFT',
-        getChangeTimes().layoutLocationTrack,
-    );
 
     const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;
@@ -172,7 +166,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasError={nameErrorsVisible}
                             disabled={editingDisabled}
                             onChange={(e) => {
-                                const duplicateId = duplicateLocationTracks.find(
+                                const duplicateId = allDuplicateLocationTracks.find(
                                     (lt) => lt.name === e.target.value,
                                 )?.id;
                                 updateSplit({
