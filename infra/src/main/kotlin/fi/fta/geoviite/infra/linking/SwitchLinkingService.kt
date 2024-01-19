@@ -1158,7 +1158,7 @@ class SwitchLinkingService @Autowired constructor(
             val updated = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 locationTrack,
                 alignment,
-                overlaidTracks = segmentLinksMadeOverlay
+                overlaidTracks = existingLinksCleared + segmentLinksMadeOverlay
             )
             if (updated != locationTrack) updated else null
         }
@@ -1432,7 +1432,7 @@ class SwitchLinkingService @Autowired constructor(
     }
 }
 
-private fun createSwitchLinkingParameters(
+fun createSwitchLinkingParameters(
     suggestedSwitch: SuggestedSwitch,
     layoutSwitchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): SwitchLinkingParameters {
