@@ -20,11 +20,14 @@ import {
     InitialSplit,
     sortSplitsByDistance,
     Split,
+    SplitRequest,
+    SplitRequestTarget,
     SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
 import {
     useConflictingTracks,
     useLocationTrack,
+    useLocationTracks,
     useLocationTrackStartAndEnd,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
@@ -33,13 +36,15 @@ import {
     LocationTrackSplit,
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, findById } from 'utils/array-utils';
 import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { Link } from 'vayla-design-lib/link/link';
 import { TimeStamp } from 'common/common-model';
+import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
+import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     duplicateLocationTracks: LocationTrackDuplicate[];
@@ -263,6 +268,31 @@ const getSplitAddressPoint = (
     return undefined;
 };
 
+const splitRequest = (
+    sourceTrackId: LocationTrackId,
+    initialSplit: InitialSplit,
+    splits: Split[],
+    allDuplicates: LayoutLocationTrack[],
+): SplitRequest => ({
+    sourceTrackId,
+    targetTracks: [initialSplit, ...splits].map((s, i) => {
+        const dupe = s.duplicateOf ? findById(allDuplicates, s.duplicateOf) : undefined;
+        return splitToRequestTarget(s, splits[i + 1], dupe);
+    }),
+});
+
+const splitToRequestTarget = (
+    split: Split | InitialSplit,
+    nextSplit: Split | undefined,
+    duplicate: LayoutLocationTrack | undefined,
+): SplitRequestTarget => ({
+    name: duplicate ? duplicate.name : split.name,
+    descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
+    descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
+    duplicateTrackId: split.duplicateOf,
+    endsAtSwitch: nextSplit?.switchId,
+});
+
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
     duplicateLocationTracks,
     visibilities,
@@ -283,6 +313,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
 
     const sortedSplits = sortSplitsByDistance(splits);
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
+    const dupelicateLocationTracks = useLocationTracks(
+        sortedSplits.map((split) => split.duplicateOf).filter(filterNotEmpty),
+        'DRAFT',
+        getChangeTimes().layoutLocationTrack,
+    );
 
     const initialSplitValidated = {
         split: initialSplit,
@@ -339,6 +374,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         deletingDisabled={disabled}
                         nameRef={nameRef}
                         descriptionBaseRef={descriptionBaseRef}
+                        duplicateLocationTrack={
+                            split.duplicateOf
+                                ? findById(dupelicateLocationTracks, split.duplicateOf)
+                                : undefined
+                        }
                     />
                 ),
                 split: splitValidated,
@@ -434,6 +474,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
+                                onClick={() =>
+                                    postSplitLocationTrack(
+                                        splitRequest(
+                                            locationTrack.id,
+                                            initialSplit,
+                                            splits,
+                                            dupelicateLocationTracks,
+                                        ),
+                                    )
+                                }
                                 disabled={
                                     disabled ||
                                     anyMissingFields ||

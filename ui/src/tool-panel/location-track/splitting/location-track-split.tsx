@@ -1,7 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocationTrack } from 'track-layout/track-layout-react-utils';
-import { getChangeTimes } from 'common/change-time-api';
 import { ValidationError } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -12,6 +10,7 @@ import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import {
     AddressPoint,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackDuplicate,
     LocationTrackId,
@@ -37,6 +36,7 @@ type SplitProps = EndpointProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
+    duplicateLocationTrack: LayoutLocationTrack | undefined;
 };
 
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
@@ -77,6 +77,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     deletingDisabled,
     nameRef,
     descriptionBaseRef,
+    duplicateLocationTrack,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -94,12 +95,6 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             setDescriptionCommitted(true);
         }
     });
-
-    const duplicateLocationTrack = useLocationTrack(
-        duplicateOf,
-        'DRAFT',
-        getChangeTimes().layoutLocationTrack,
-    );
 
     const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;

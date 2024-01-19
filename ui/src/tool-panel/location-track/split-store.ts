@@ -54,6 +54,19 @@ export type SwitchOnLocationTrack = {
     distance: number | undefined;
 };
 
+export type SplitRequest = {
+    sourceTrackId: LocationTrackId;
+    targetTracks: SplitRequestTarget[];
+};
+
+export type SplitRequestTarget = {
+    duplicateTrackId: LocationTrackId | undefined;
+    endsAtSwitch: LayoutSwitchId | undefined;
+    name: string;
+    descriptionBase: string;
+    descriptionSuffix: LocationTrackDescriptionSuffixMode;
+};
+
 export const sortSplitsByDistance = (splits: Split[]) =>
     [...splits].sort((a, b) => a.distance - b.distance);
 
