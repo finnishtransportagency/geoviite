@@ -12,7 +12,6 @@ import {
     AddressPoint,
     LayoutLocationTrack,
     LayoutSwitchId,
-    LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
@@ -27,7 +26,6 @@ type EndpointProps = {
 type SplitProps = EndpointProps & {
     split: Split | InitialSplit;
     onRemove?: (switchId: LayoutSwitchId) => void;
-    duplicateLocationTracks?: LocationTrackDuplicate[];
     updateSplit: (updateSplit: Split | InitialSplit) => void;
     duplicateOf: LocationTrackId | undefined;
     nameErrors: ValidationError<Split>[];
@@ -36,6 +34,7 @@ type SplitProps = EndpointProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
+    allDuplicateLocationTracks: LayoutLocationTrack[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
 };
 
@@ -72,11 +71,11 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     nameErrors,
     descriptionErrors,
     switchErrors,
-    duplicateLocationTracks = [],
     editingDisabled,
     deletingDisabled,
     nameRef,
     descriptionBaseRef,
+    allDuplicateLocationTracks,
     duplicateLocationTrack,
 }) => {
     const { t } = useTranslation();
@@ -167,7 +166,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasError={nameErrorsVisible}
                             disabled={editingDisabled}
                             onChange={(e) => {
-                                const duplicateId = duplicateLocationTracks.find(
+                                const duplicateId = allDuplicateLocationTracks.find(
                                     (lt) => lt.name === e.target.value,
                                 )?.id;
                                 updateSplit({

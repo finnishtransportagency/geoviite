@@ -12,7 +12,6 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
-    LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
@@ -47,7 +46,6 @@ import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
 import { getChangeTimes } from 'common/change-time-api';
 
 type LocationTrackSplittingInfoboxContainerProps = {
-    duplicateLocationTracks: LocationTrackDuplicate[];
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     initialSplit: InitialSplit;
@@ -64,7 +62,6 @@ type LocationTrackSplittingInfoboxContainerProps = {
 };
 
 type LocationTrackSplittingInfoboxProps = {
-    duplicateLocationTracks: LocationTrackDuplicate[];
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     initialSplit: InitialSplit;
@@ -160,7 +157,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     locationTrackChangeTime,
     initialSplit,
     splits,
-    duplicateLocationTracks,
     visibilities,
     visibilityChange,
     allowedSwitches,
@@ -197,7 +193,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         locationTrack &&
         startAndEnd && (
             <LocationTrackSplittingInfobox
-                duplicateLocationTracks={duplicateLocationTracks}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
                 initialSplit={initialSplit}
@@ -294,7 +289,6 @@ const splitToRequestTarget = (
 });
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
-    duplicateLocationTracks,
     visibilities,
     visibilityChange,
     initialSplit,
@@ -313,11 +307,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
 
     const sortedSplits = sortSplitsByDistance(splits);
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
-    const dupelicateLocationTracks = useLocationTracks(
-        sortedSplits.map((split) => split.duplicateOf).filter(filterNotEmpty),
-        'DRAFT',
-        getChangeTimes().layoutLocationTrack,
-    );
 
     const initialSplitValidated = {
         split: initialSplit,
@@ -335,6 +324,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         switchErrors: validateSplitSwitch(s, switches),
     }));
     const allValidated = [initialSplitValidated, ...splitsValidated];
+    const duplicateLocationTracks = useLocationTracks(
+        allValidated.map((s) => s.split.duplicateOf).filter(filterNotEmpty),
+        'DRAFT',
+        getChangeTimes().layoutLocationTrack,
+    );
 
     const allErrors = allValidated.flatMap((validated) => [
         ...validated.descriptionErrors,
@@ -364,7 +358,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         split={split}
                         addressPoint={getSplitAddressPoint(allowedSwitches, startAndEnd, split)}
                         onRemove={splitIndex > 0 ? removeSplit : undefined}
-                        duplicateLocationTracks={duplicateLocationTracks}
                         updateSplit={updateSplit}
                         duplicateOf={split.duplicateOf}
                         nameErrors={nameErrors}
@@ -374,9 +367,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         deletingDisabled={disabled}
                         nameRef={nameRef}
                         descriptionBaseRef={descriptionBaseRef}
+                        allDuplicateLocationTracks={duplicateLocationTracks}
                         duplicateLocationTrack={
                             split.duplicateOf
-                                ? findById(dupelicateLocationTracks, split.duplicateOf)
+                                ? findById(duplicateLocationTracks, split.duplicateOf)
                                 : undefined
                         }
                     />
@@ -480,7 +474,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                             locationTrack.id,
                                             initialSplit,
                                             splits,
-                                            dupelicateLocationTracks,
+                                            duplicateLocationTracks,
                                         ),
                                     )
                                 }
