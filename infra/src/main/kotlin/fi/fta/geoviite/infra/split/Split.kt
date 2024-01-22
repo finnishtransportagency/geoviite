@@ -53,7 +53,7 @@ data class SplitPublishValidationErrors(
 
 data class SplitRequestTarget(
     val duplicateTrackId: IntId<LocationTrack>?,
-    val endsAtSwitch: IntId<TrackLayoutSwitch>?,
+    val startAtSwitch: IntId<TrackLayoutSwitch>?,
     val name: AlignmentName,
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
