@@ -26,6 +26,7 @@ import {
 import {
     useConflictingTracks,
     useLocationTrack,
+    useLocationTrackInfoboxExtras,
     useLocationTracks,
     useLocationTrackStartAndEnd,
     useSwitches,
@@ -324,10 +325,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         switchErrors: validateSplitSwitch(s, switches),
     }));
     const allValidated = [initialSplitValidated, ...splitsValidated];
-    const duplicateLocationTracks = useLocationTracks(
+    const currentDuplicateTracks = useLocationTracks(
         allValidated.map((s) => s.split.duplicateOf).filter(filterNotEmpty),
         'DRAFT',
         getChangeTimes().layoutLocationTrack,
+    );
+    const [locationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
+        locationTrack.id,
+        'DRAFT',
+        getChangeTimes().layoutLocationTrack,
+        getChangeTimes().layoutSwitch,
     );
 
     const allErrors = allValidated.flatMap((validated) => [
@@ -367,10 +374,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         deletingDisabled={disabled}
                         nameRef={nameRef}
                         descriptionBaseRef={descriptionBaseRef}
-                        allDuplicateLocationTracks={duplicateLocationTracks}
+                        allDuplicateLocationTracks={locationTrackInfoboxExtras?.duplicates ?? []}
                         duplicateLocationTrack={
                             split.duplicateOf
-                                ? findById(duplicateLocationTracks, split.duplicateOf)
+                                ? findById(currentDuplicateTracks, split.duplicateOf)
                                 : undefined
                         }
                     />
@@ -382,7 +389,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         },
     );
 
-    const firstChangedDuplicateInSplits = duplicateLocationTracks.find(
+    const firstChangedDuplicateInSplits = currentDuplicateTracks.find(
         (dupe) => dupe.draftType !== 'OFFICIAL',
     );
 
@@ -499,7 +506,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                             locationTrack.id,
                                             initialSplit,
                                             splits,
-                                            duplicateLocationTracks,
+                                            currentDuplicateTracks,
                                         ),
                                     )
                                 }
