@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
-    LayoutLocationTrack,
     AlignmentPoint,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
@@ -61,7 +61,7 @@ export type SplitRequest = {
 
 export type SplitRequestTarget = {
     duplicateTrackId: LocationTrackId | undefined;
-    endsAtSwitch: LayoutSwitchId | undefined;
+    startAtSwitchId: LayoutSwitchId | undefined;
     name: string;
     descriptionBase: string;
     descriptionSuffix: LocationTrackDescriptionSuffixMode;
