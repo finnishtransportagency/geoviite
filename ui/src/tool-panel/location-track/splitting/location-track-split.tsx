@@ -37,6 +37,7 @@ type SplitProps = EndpointProps & {
     deletingDisabled: boolean;
     allDuplicateLocationTracks: LocationTrackDuplicate[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
+    underlyingAssetExists: boolean;
 };
 
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
@@ -78,6 +79,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     descriptionBaseRef,
     allDuplicateLocationTracks,
     duplicateLocationTrack,
+    underlyingAssetExists,
 }) => {
     const { t } = useTranslation();
     const switchId = 'switchId' in split ? split.switchId : undefined;
@@ -104,13 +106,15 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             <div
                 className={createClassName(
                     styles['location-track-infobox__split-item-line'],
-                    editingDisabled && styles['location-track-infobox__split-item-line--disabled'],
+                    !underlyingAssetExists &&
+                        styles['location-track-infobox__split-item-line--disabled'],
                 )}
             />
             <div
                 className={createClassName(
                     styles['location-track-infobox__split-item-ball'],
-                    editingDisabled && styles['location-track-infobox__split-item-ball--disabled'],
+                    !underlyingAssetExists &&
+                        styles['location-track-infobox__split-item-ball--disabled'],
                 )}
             />
             <div className={styles['location-track-infobox__split-fields-container']}>
