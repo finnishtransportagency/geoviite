@@ -14,7 +14,7 @@ import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
 
 const DUPLICATE_MAX_DISTANCE = 1.0;
 
-export type InitialSplit = {
+type SplitBase = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
@@ -23,7 +23,12 @@ export type InitialSplit = {
     new: boolean;
 };
 
-export type Split = InitialSplit & {
+export type InitialSplit = SplitBase & {
+    type: 'INITIAL_SPLIT';
+};
+
+export type Split = SplitBase & {
+    type: 'SPLIT';
     switchId: LayoutSwitchId;
     distance: number;
 };
@@ -102,6 +107,7 @@ export const splitReducers = {
             endLocation: payload.endLocation,
             disabled: payload.locationTrack.draftType !== 'OFFICIAL',
             initialSplit: {
+                type: 'INITIAL_SPLIT',
                 name:
                     duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
@@ -144,6 +150,7 @@ export const splitReducers = {
             );
             state.splittingState.splits = state.splittingState.splits.concat([
                 {
+                    type: 'SPLIT',
                     switchId: payload,
                     name:
                         closestDupe && closestDupe.distance <= DUPLICATE_MAX_DISTANCE
@@ -191,7 +198,7 @@ export const splitReducers = {
         { payload }: PayloadAction<Split | InitialSplit>,
     ): void => {
         if (state.splittingState) {
-            if ('switchId' in payload) {
+            if (payload.type === 'SPLIT') {
                 state.splittingState.splits = state.splittingState.splits
                     .filter((split) => split.switchId !== payload.switchId)
                     .concat([payload]);
