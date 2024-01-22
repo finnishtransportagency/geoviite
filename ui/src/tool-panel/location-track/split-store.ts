@@ -28,6 +28,7 @@ export type Split = InitialSplit & {
 };
 
 export type SplittingState = {
+    state: 'SETUP' | 'POSTING';
     endLocation: AlignmentPoint;
     originLocationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
@@ -91,6 +92,7 @@ export const splitReducers = {
         );
         state.publishType = 'DRAFT';
         state.splittingState = {
+            state: 'SETUP',
             originLocationTrack: payload.locationTrack,
             allowedSwitches: payload.allowedSwitches,
             startAndEndSwitches: payload.startAndEndSwitches,
@@ -115,7 +117,7 @@ export const splitReducers = {
             },
         };
     },
-    cancelSplitting: (state: TrackLayoutState): void => {
+    stopSplitting: (state: TrackLayoutState): void => {
         state.splittingState = undefined;
     },
     setDisabled: (state: TrackLayoutState, { payload }: PayloadAction<boolean>): void => {
@@ -176,6 +178,16 @@ export const splitReducers = {
             } else {
                 state.splittingState.initialSplit = payload;
             }
+        }
+    },
+    postSplit: (state: TrackLayoutState): void => {
+        if (state.splittingState) {
+            state.splittingState.state = 'POSTING';
+        }
+    },
+    splittingFailed: (state: TrackLayoutState): void => {
+        if (state.splittingState) {
+            state.splittingState.state = 'SETUP';
         }
     },
 };

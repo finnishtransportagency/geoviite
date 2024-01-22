@@ -57,9 +57,12 @@ type LocationTrackSplittingInfoboxContainerProps = {
     removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrackId: string;
     locationTrackChangeTime: TimeStamp;
-    cancelSplitting: () => void;
+    stopSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
     setSplittingDisabled: (disabled: boolean) => void;
+    isPostingSplit: boolean;
+    splittingFailed: () => void;
+    startPostingSplit: () => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -74,8 +77,11 @@ type LocationTrackSplittingInfoboxProps = {
     locationTrack: LayoutLocationTrack;
     conflictingLocationTracks: string[];
     startAndEnd: AlignmentStartAndEnd;
-    cancelSplitting: () => void;
+    stopSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    isPostingSplit: boolean;
+    splittingFailed: () => void;
+    startPostingSplit: () => void;
 };
 
 const validateSplitName = (
@@ -163,10 +169,13 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     allowedSwitches,
     switchChangeTime,
     removeSplit,
-    cancelSplitting,
+    stopSplitting,
     updateSplit,
     setSplittingDisabled,
     disabled,
+    isPostingSplit,
+    splittingFailed,
+    startPostingSplit,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
     const [startAndEnd, _] = useLocationTrackStartAndEnd(
@@ -201,12 +210,15 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 allowedSwitches={allowedSwitches}
                 switches={switches}
                 removeSplit={removeSplit}
-                cancelSplitting={cancelSplitting}
+                stopSplitting={stopSplitting}
                 updateSplit={updateSplit}
                 startAndEnd={startAndEnd}
                 conflictingLocationTracks={conflictingTracks?.map((t) => t.name) || []}
                 locationTrack={locationTrack}
                 disabled={disabled}
+                isPostingSplit={isPostingSplit}
+                splittingFailed={splittingFailed}
+                startPostingSplit={startPostingSplit}
             />
         )
     );
@@ -296,12 +308,15 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     allowedSwitches,
     switches,
     removeSplit,
-    cancelSplitting,
+    stopSplitting,
     updateSplit,
     startAndEnd,
     conflictingLocationTracks,
     locationTrack,
     disabled,
+    isPostingSplit,
+    splittingFailed,
+    startPostingSplit,
 }) => {
     const { t } = useTranslation();
 
@@ -369,8 +384,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         nameErrors={nameErrors}
                         descriptionErrors={descriptionErrors}
                         switchErrors={switchErrors}
-                        editingDisabled={disabled || !switchExists}
-                        deletingDisabled={disabled}
+                        editingDisabled={disabled || !switchExists || isPostingSplit}
+                        deletingDisabled={disabled || isPostingSplit}
                         nameRef={nameRef}
                         descriptionBaseRef={descriptionBaseRef}
                         allDuplicateLocationTracks={locationTrackInfoboxExtras?.duplicates ?? []}
@@ -379,6 +394,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 ? findById(duplicateTracksInCurrentSplits, split.duplicateOf)
                                 : undefined
                         }
+                        underlyingAssetExists={switchExists}
                     />
                 ),
                 split: splitValidated,
@@ -391,6 +407,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const firstChangedDuplicateInSplits = duplicateTracksInCurrentSplits.find(
         (dupe) => dupe.draftType !== 'OFFICIAL',
     );
+
+    const postSplit = () => {
+        startPostingSplit();
+        postSplitLocationTrack(
+            splitRequest(locationTrack.id, initialSplit, splits, duplicateTracksInCurrentSplits),
+        )
+            .then(() => stopSplitting())
+            .catch(() => splittingFailed())
+            .finally();
+    };
 
     return (
         <React.Fragment>
@@ -494,27 +520,21 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
-                                onClick={cancelSplitting}>
+                                disabled={isPostingSplit}
+                                onClick={stopSplitting}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
                                 size={ButtonSize.SMALL}
-                                onClick={() =>
-                                    postSplitLocationTrack(
-                                        splitRequest(
-                                            locationTrack.id,
-                                            initialSplit,
-                                            splits,
-                                            duplicateTracksInCurrentSplits,
-                                        ),
-                                    )
-                                }
+                                onClick={() => postSplit()}
+                                isProcessing={isPostingSplit}
                                 disabled={
                                     disabled ||
                                     anyMissingFields ||
                                     anyOtherErrors ||
                                     !!firstChangedDuplicateInSplits ||
-                                    splits.length < 1
+                                    splits.length < 1 ||
+                                    isPostingSplit
                                 }>
                                 {t('tool-panel.location-track.splitting.confirm-split')}
                             </Button>
