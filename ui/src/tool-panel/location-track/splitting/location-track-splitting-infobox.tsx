@@ -325,7 +325,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         switchErrors: validateSplitSwitch(s, switches),
     }));
     const allValidated = [initialSplitValidated, ...splitsValidated];
-    const currentDuplicateTracks = useLocationTracks(
+    const duplicateTracksInCurrentSplits = useLocationTracks(
         allValidated.map((s) => s.split.duplicateOf).filter(filterNotEmpty),
         'DRAFT',
         getChangeTimes().layoutLocationTrack,
@@ -377,7 +377,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         allDuplicateLocationTracks={locationTrackInfoboxExtras?.duplicates ?? []}
                         duplicateLocationTrack={
                             split.duplicateOf
-                                ? findById(currentDuplicateTracks, split.duplicateOf)
+                                ? findById(duplicateTracksInCurrentSplits, split.duplicateOf)
                                 : undefined
                         }
                     />
@@ -389,7 +389,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         },
     );
 
-    const firstChangedDuplicateInSplits = currentDuplicateTracks.find(
+    const firstChangedDuplicateInSplits = duplicateTracksInCurrentSplits.find(
         (dupe) => dupe.draftType !== 'OFFICIAL',
     );
 
@@ -506,7 +506,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                             locationTrack.id,
                                             initialSplit,
                                             splits,
-                                            currentDuplicateTracks,
+                                            duplicateTracksInCurrentSplits,
                                         ),
                                     )
                                 }
