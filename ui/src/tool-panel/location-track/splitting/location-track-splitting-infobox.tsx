@@ -324,8 +324,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         switchErrors: validateSplitSwitch(s, switches),
     }));
     const allValidated = [initialSplitValidated, ...splitsValidated];
+    const currentlyUsedLocationTracks = allValidated
+        .map((s) => s.split.duplicateOf)
+        .filter(filterNotEmpty);
     const duplicateTracksInCurrentSplits = useLocationTracks(
-        allValidated.map((s) => s.split.duplicateOf).filter(filterNotEmpty),
+        currentlyUsedLocationTracks,
         'DRAFT',
         getChangeTimes().layoutLocationTrack,
     );
