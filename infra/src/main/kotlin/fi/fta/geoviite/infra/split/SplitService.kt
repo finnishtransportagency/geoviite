@@ -344,10 +344,14 @@ private fun calculateTopologicalConnectivity(
 ): TopologicalConnectivityType {
     val startConnected = if (0 == segmentIndices.start) {
         sourceTrack.topologicalConnectivity.isStartConnected()
-    } else true
+    } else {
+        true
+    }
     val endConnected = if (sourceSegments == segmentIndices.endInclusive + 1) {
         sourceTrack.topologicalConnectivity.isEndConnected()
-    } else true
+    } else {
+        true
+    }
     return topologicalConnectivityTypeOf(startConnected, endConnected)
 }
 
@@ -356,8 +360,8 @@ private fun findSplitIndices(
     startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
     endSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
 ): IntRange {
-    val startIndex = startSwitch?.let { s -> findIndex(alignment, s) } ?: 0
-    val endIndex = endSwitch?.let { s -> findIndex(alignment, s) } ?: alignment.segments.lastIndex
+    val startIndex = startSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: 0
+    val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: alignment.segments.lastIndex
 
     return if (startIndex < 0 || endIndex > alignment.segments.lastIndex || endIndex < startIndex) {
         throw SplitFailureException(
@@ -369,8 +373,8 @@ private fun findSplitIndices(
     }
 }
 
-private fun findIndex(alignment: LayoutAlignment, switchLink: Pair<IntId<TrackLayoutSwitch>, JointNumber>): Int =
-    alignment.segments.indexOfFirst { s -> s.switchId == switchLink.first && s.endJointNumber == switchLink.second }
+private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int =
+    alignment.segments.indexOfFirst { s -> s.switchId == switchId && s.startJointNumber == joint }
 
 private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<Int>): List<LayoutSegment> =
     fixSegmentStarts(alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1))
