@@ -63,6 +63,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
     isPostingSplit: boolean;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
+    markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -82,6 +83,7 @@ type LocationTrackSplittingInfoboxProps = {
     isPostingSplit: boolean;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
+    markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
 };
 
 const validateSplitName = (
@@ -126,15 +128,13 @@ const validateSplitDescription = (
 
 const validateSplitSwitch = (split: Split, switches: LayoutSwitch[]) => {
     const errors: ValidationError<Split>[] = [];
-    if ('switchId' in split) {
-        const switchAtSplit = switches.find((s) => s.id === split.switchId);
-        if (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING') {
-            errors.push({
-                field: 'switchId',
-                reason: 'switch-not-found',
-                type: ValidationErrorType.ERROR,
-            });
-        }
+    const switchAtSplit = switches.find((s) => s.id === split.switchId);
+    if (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING') {
+        errors.push({
+            field: 'switchId',
+            reason: 'switch-not-found',
+            type: ValidationErrorType.ERROR,
+        });
     }
     return errors;
 };
@@ -176,6 +176,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     isPostingSplit,
     returnToSplitting,
     startPostingSplit,
+    markSplitOld,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
     const [startAndEnd, _] = useLocationTrackStartAndEnd(
@@ -219,6 +220,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 isPostingSplit={isPostingSplit}
                 returnToSplitting={returnToSplitting}
                 startPostingSplit={startPostingSplit}
+                markSplitOld={markSplitOld}
             />
         )
     );
@@ -257,7 +259,7 @@ const getSplitAddressPoint = (
     startAndEnd: AlignmentStartAndEnd | undefined,
     split: Split | InitialSplit,
 ): AddressPoint | undefined => {
-    if ('switchId' in split) {
+    if (split.type === 'SPLIT') {
         const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
 
         if (switchAtSplit?.location && switchAtSplit?.address) {
@@ -297,7 +299,7 @@ const splitToRequestTarget = (
     descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
     descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
     duplicateTrackId: split.duplicateOf,
-    startAtSwitchId: 'switchId' in split ? split?.switchId : undefined,
+    startAtSwitchId: split.type === 'SPLIT' ? split?.switchId : undefined,
 });
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
@@ -317,6 +319,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     isPostingSplit,
     returnToSplitting,
     startPostingSplit,
+    markSplitOld,
 }) => {
     const { t } = useTranslation();
 
@@ -367,7 +370,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             const switchExists =
                 switches.find(
                     (s) =>
-                        'switchId' in splitValidated.split &&
+                        splitValidated.split.type === 'SPLIT' &&
                         s.id === splitValidated.split.switchId,
                 )?.stateCategory !== 'NOT_EXISTING';
 
@@ -416,6 +419,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             .then(() => stopSplitting())
             .catch(() => returnToSplitting());
     };
+
+    React.useEffect(() => {
+        const newSplit = splitComponents.find((s) => s.split.split.new);
+        if (newSplit) {
+            newSplit.nameRef.current?.focus();
+            markSplitOld(
+                newSplit.split.split.type === 'SPLIT' ? newSplit.split.split.switchId : undefined,
+            );
+        }
+    });
 
     return (
         <React.Fragment>

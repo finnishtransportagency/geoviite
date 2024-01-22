@@ -82,7 +82,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     underlyingAssetExists,
 }) => {
     const { t } = useTranslation();
-    const switchId = 'switchId' in split ? split.switchId : undefined;
+    const switchId = split.type === 'SPLIT' ? split.switchId : undefined;
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
@@ -122,7 +122,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                     <div className={styles['location-track-infobox__split-row-with-close-button']}>
                         <InfoboxField
                             label={
-                                'switchId' in split
+                                split.type === 'SPLIT'
                                     ? t('tool-panel.location-track.splitting.split-address')
                                     : t('tool-panel.location-track.splitting.start-address')
                             }>
