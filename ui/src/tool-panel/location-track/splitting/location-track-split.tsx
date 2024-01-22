@@ -12,6 +12,7 @@ import {
     AddressPoint,
     LayoutLocationTrack,
     LayoutSwitchId,
+    LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
@@ -34,7 +35,7 @@ type SplitProps = EndpointProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
-    allDuplicateLocationTracks: LayoutLocationTrack[];
+    allDuplicateLocationTracks: LocationTrackDuplicate[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
 };
 
