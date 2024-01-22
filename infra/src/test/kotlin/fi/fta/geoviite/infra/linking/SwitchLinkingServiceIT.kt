@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
@@ -960,6 +961,15 @@ class SwitchLinkingServiceIT @Autowired constructor(
             null,
             null,
             listOf(0.0..134.4 to null, 134.5 .. 168.8 to switch.id, 168.9 .. 268.86 to null)
+        )
+    }
+
+    @Test
+    fun `null is suggested when no switch is applicable`() {
+        assertNull(
+            switchLinkingService.getSuggestedSwitch(
+                Point(123.0, 456.0), switchLibraryService.getSwitchStructuresById().keys.first()
+            )
         )
     }
 

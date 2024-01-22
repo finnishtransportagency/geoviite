@@ -1047,7 +1047,7 @@ class SwitchLinkingService @Autowired constructor(
         } ?: suggestedSwitch
 
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? =
-        getSuggestedSwitches(listOf(location to switchStructureId))[0]
+        getSuggestedSwitches(listOf(location to switchStructureId)).getOrNull(0)
 
     private fun assignNewSwitchLinkingToLocationTracksAndAlignments(
         locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
