@@ -228,7 +228,7 @@ class SplitService(
         suggestions: List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch>>,
     ): List<SplitTargetParams> {
         return targets.map { target ->
-            val startSwitch = target.startAtSwitch?.let { switchId ->
+            val startSwitch = target.startAtSwitchId?.let { switchId ->
                 val jointNumber = suggestions
                     .find { (id, _) -> id == switchId }
                     ?.let { (_, suggestion) -> suggestion.switchStructure.presentationJointNumber }
