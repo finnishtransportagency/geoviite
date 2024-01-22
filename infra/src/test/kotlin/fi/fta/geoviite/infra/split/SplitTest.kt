@@ -42,9 +42,9 @@ class SplitTest {
             linearSegment(8..9, switchId = IntId(1), startJoint = 2, endJoint = 1),
             // Split point 2: id=2 & joint = 3
             linearSegment(9..11, switchId = IntId(2), startJoint = 3, endJoint = 2),
-            // Split point 3: id=3 & joint = 2
-            linearSegment(11..12, switchId = IntId(3), startJoint = 2, endJoint = 1),
-            linearSegment(12..15, switchId = null, startJoint = null, endJoint = null),
+            linearSegment(11..12, switchId = IntId(3), startJoint = 5, endJoint = 2),
+            // Split point 3: id=3 & joint = 2 -- but it was mentioned only at the end of the previous
+            linearSegment(12..13, switchId = null, startJoint = null, endJoint = null),
         )
         val targets = listOf(
             targetParams(null, null, "split1", "split desc 1", NONE),
@@ -57,8 +57,8 @@ class SplitTest {
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
         assertSegmentsMatch(alignment.segments.subList(0, 2), resultTracks[0].alignment)
         assertSegmentsMatch(alignment.segments.subList(2, 5), resultTracks[1].alignment)
-        assertSegmentsMatch(alignment.segments.subList(5, 6), resultTracks[2].alignment)
-        assertSegmentsMatch(alignment.segments.subList(6, 8), resultTracks[3].alignment)
+        assertSegmentsMatch(alignment.segments.subList(5, 7), resultTracks[2].alignment)
+        assertSegmentsMatch(alignment.segments.subList(7, 8), resultTracks[3].alignment)
     }
 }
 

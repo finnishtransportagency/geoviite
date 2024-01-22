@@ -372,8 +372,10 @@ private fun findSplitIndices(
     val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) - 1 } ?: alignment.segments.lastIndex
 
     return if (startIndex < 0 || endIndex > alignment.segments.lastIndex || endIndex < startIndex) {
+        val aligmentDesc = alignment.segments.map { s -> s.switchId to "${s.startJointNumber}..${s.endJointNumber}" }
+        val debug = "result=$startIndex..$endIndex start=$startSwitch end=$endSwitch alignment=$aligmentDesc"
         throw SplitFailureException(
-            message = "Failed to map split switches to segment indices",
+            message = "Failed to map split switches to segment indices: $debug",
             localizedMessageKey = "segment-allocation-failed",
         )
     } else {
@@ -381,8 +383,13 @@ private fun findSplitIndices(
     }
 }
 
-private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int =
-    alignment.segments.indexOfFirst { s -> s.switchId == switchId && s.startJointNumber == joint }
+private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int {
+    alignment.segments.forEachIndexed { index, segment ->
+        if (segment.switchId == switchId && segment.startJointNumber == joint) return index
+        else if (segment.switchId == switchId && segment.endJointNumber == joint) return index + 1
+    }
+    return -1
+}
 
 private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<Int>): List<LayoutSegment> =
     fixSegmentStarts(alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1))
