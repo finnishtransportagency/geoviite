@@ -243,18 +243,19 @@ class SplitService(
     }
 }
 
-private data class SplitTargetParams(
+data class SplitTargetParams(
     val request: SplitRequestTarget,
     val startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
     val duplicate: Pair<LocationTrack, LayoutAlignment>?,
 )
-private data class SplitTargetResult(
+
+data class SplitTargetResult(
     val locationTrack: LocationTrack,
     val alignment: LayoutAlignment,
     val indices: IntRange,
 )
 
-private fun splitLocationTrack(
+fun splitLocationTrack(
     track: LocationTrack,
     alignment: LayoutAlignment,
     targets: List<SplitTargetParams>,
@@ -268,7 +269,14 @@ private fun splitLocationTrack(
             updateDuplicateToSplitTarget(track, track, alignment, target.request, segments, connectivityType)
         } ?: createSplitTarget(track, target.request, segments, connectivityType)
         SplitTargetResult(newTrack, newAlignment, segmentIndices)
-    }
+    }.also { result -> validateSplitResult(result, alignment) }
+}
+
+fun validateSplitResult(result: List<SplitTargetResult>, alignment: LayoutAlignment) {
+    if (result.sumOf { r -> r.alignment.segments.size } != alignment.segments.size) throw SplitFailureException(
+        message = "Not all segments were allocated in the split",
+        localizedMessageKey = "segment-allocation-failed",
+    )
 }
 
 private fun updateDuplicateToSplitTarget(
@@ -361,7 +369,7 @@ private fun findSplitIndices(
     endSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
 ): IntRange {
     val startIndex = startSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: 0
-    val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: alignment.segments.lastIndex
+    val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) - 1 } ?: alignment.segments.lastIndex
 
     return if (startIndex < 0 || endIndex > alignment.segments.lastIndex || endIndex < startIndex) {
         throw SplitFailureException(
