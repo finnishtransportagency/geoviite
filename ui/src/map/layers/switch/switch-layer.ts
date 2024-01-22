@@ -32,23 +32,20 @@ export function createSwitchLayer(
     onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
-    const getSwitchesFromApi = () => {
-        if (resolution <= Limits.SWITCH_SHOW) {
+    const getSwitchesFromApi = async () => {
+        if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
             const switchIds =
                 splittingState?.allowedSwitches
                     .map((sw) => sw.switchId)
                     .concat(splittingState?.startAndEndSwitches) || [];
-            return splittingState
-                ? getSwitches(switchIds, publishType).then((switches) =>
-                      switches.filter((sw) => sw.stateCategory !== 'NOT_EXISTING'),
-                  )
-                : Promise.all(
-                      mapTiles.map((t) =>
-                          getSwitchesByTile(changeTimes.layoutSwitch, t, publishType),
-                      ),
-                  ).then((switchGroups) =>
-                      switchGroups.flat().filter(filterUniqueById((s) => s.id)),
-                  );
+
+            const switches = await getSwitches(switchIds, publishType);
+            return switches.filter((sw_1) => sw_1.stateCategory !== 'NOT_EXISTING');
+        } else if (resolution <= Limits.SWITCH_SHOW) {
+            const switchGroups = await Promise.all(
+                mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
+            );
+            return switchGroups.flat().filter(filterUniqueById((s) => s.id));
         } else {
             return getSwitches(selection.selectedItems.switches, publishType);
         }
