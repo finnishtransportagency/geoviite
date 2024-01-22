@@ -61,7 +61,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
     setSplittingDisabled: (disabled: boolean) => void;
     isPostingSplit: boolean;
-    splittingFailed: () => void;
+    returnToSplitting: () => void;
     startPostingSplit: () => void;
 };
 
@@ -80,7 +80,7 @@ type LocationTrackSplittingInfoboxProps = {
     stopSplitting: () => void;
     updateSplit: (updatedSplit: Split | InitialSplit) => void;
     isPostingSplit: boolean;
-    splittingFailed: () => void;
+    returnToSplitting: () => void;
     startPostingSplit: () => void;
 };
 
@@ -174,7 +174,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     setSplittingDisabled,
     disabled,
     isPostingSplit,
-    splittingFailed,
+    returnToSplitting,
     startPostingSplit,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
@@ -217,7 +217,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 locationTrack={locationTrack}
                 disabled={disabled}
                 isPostingSplit={isPostingSplit}
-                splittingFailed={splittingFailed}
+                returnToSplitting={returnToSplitting}
                 startPostingSplit={startPostingSplit}
             />
         )
@@ -315,7 +315,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     locationTrack,
     disabled,
     isPostingSplit,
-    splittingFailed,
+    returnToSplitting,
     startPostingSplit,
 }) => {
     const { t } = useTranslation();
@@ -414,8 +414,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             splitRequest(locationTrack.id, initialSplit, splits, duplicateTracksInCurrentSplits),
         )
             .then(() => stopSplitting())
-            .catch(() => splittingFailed())
-            .finally();
+            .catch(() => returnToSplitting());
     };
 
     return (

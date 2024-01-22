@@ -180,12 +180,12 @@ export const splitReducers = {
             }
         }
     },
-    postSplit: (state: TrackLayoutState): void => {
+    startPostingSplit: (state: TrackLayoutState): void => {
         if (state.splittingState) {
             state.splittingState.state = 'POSTING';
         }
     },
-    splittingFailed: (state: TrackLayoutState): void => {
+    returnToSplitting: (state: TrackLayoutState): void => {
         if (state.splittingState) {
             state.splittingState.state = 'SETUP';
         }
