@@ -367,6 +367,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         isPostingSplit={splittingState.state === 'POSTING'}
                         startPostingSplit={delegates.startPostingSplit}
                         returnToSplitting={delegates.returnToSplitting}
+                        markSplitOld={delegates.markSplitOld}
                     />
                 </EnvRestricted>
             )}

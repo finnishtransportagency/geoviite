@@ -63,6 +63,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
     isPostingSplit: boolean;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
+    markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -82,6 +83,7 @@ type LocationTrackSplittingInfoboxProps = {
     isPostingSplit: boolean;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
+    markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
 };
 
 const validateSplitName = (
@@ -176,6 +178,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     isPostingSplit,
     returnToSplitting,
     startPostingSplit,
+    markSplitOld,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
     const [startAndEnd, _] = useLocationTrackStartAndEnd(
@@ -219,6 +222,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 isPostingSplit={isPostingSplit}
                 returnToSplitting={returnToSplitting}
                 startPostingSplit={startPostingSplit}
+                markSplitOld={markSplitOld}
             />
         )
     );
@@ -317,6 +321,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     isPostingSplit,
     returnToSplitting,
     startPostingSplit,
+    markSplitOld,
 }) => {
     const { t } = useTranslation();
 
@@ -416,6 +421,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             .then(() => stopSplitting())
             .catch(() => returnToSplitting());
     };
+
+    React.useEffect(() => {
+        const newSplit = splitComponents.find((s) => s.split.split.new);
+        if (newSplit) {
+            newSplit.nameRef.current?.focus();
+            markSplitOld(
+                'switchId' in newSplit.split.split ? newSplit.split.split.switchId : undefined,
+            );
+        }
+    });
 
     return (
         <React.Fragment>

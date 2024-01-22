@@ -20,6 +20,7 @@ export type InitialSplit = {
     suffixMode: LocationTrackDescriptionSuffixMode;
     duplicateOf?: LocationTrackId;
     location: Point;
+    new: boolean;
 };
 
 export type Split = InitialSplit & {
@@ -114,6 +115,7 @@ export const splitReducers = {
                 descriptionBase: '',
                 suffixMode: 'NONE',
                 location: payload.startLocation,
+                new: true,
             },
         };
     },
@@ -155,8 +157,26 @@ export const splitReducers = {
                     suffixMode: 'NONE',
                     location: allowedSwitch.location,
                     distance: allowedSwitch.distance,
+                    new: true,
                 },
             ]);
+        }
+    },
+    markSplitOld: (
+        state: TrackLayoutState,
+        { payload }: PayloadAction<LayoutSwitchId | undefined>,
+    ): void => {
+        if (state.splittingState) {
+            if (payload) {
+                state.splittingState.splits = state.splittingState.splits.map((split) =>
+                    split.switchId === payload ? { ...split, new: false } : split,
+                );
+            } else {
+                state.splittingState.initialSplit = {
+                    ...state.splittingState.initialSplit,
+                    new: false,
+                };
+            }
         }
     },
     removeSplit: (state: TrackLayoutState, { payload }: PayloadAction<LayoutSwitchId>): void => {
