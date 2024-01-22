@@ -870,12 +870,11 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrack(trackNumberId, name = "through track"), alignment(
                 pasteTrackSegmentsWithSpacers(
                     listOf(
-                        // plop a pre-track section so that with the 10m-long spacers, the start ends up right on (0, 0)
-                        listOf(segment(Point(-11.0, 0.0), Point(-10.0, 0.0))),
+                        listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
                         setSwitchId(templateThroughTrackSegments, okSwitch.id),
                         setSwitchId(templateThroughTrackSegments, okButValidationErrorSwitch.id),
                         setSwitchId(templateThroughTrackSegments, unsaveableSwitch.id)
-                    ), Point(10.0, 0.0)
+                    ), Point(10.0, 0.0), Point(-11.0, 0.0)
                 ).flatten()
             )
         )
@@ -1032,24 +1031,35 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 assertEquals(
                     switchId,
                     alignment.segments[i].switchId,
-                    "switch at segment index $i (asserted m-range ${range.start}..${range.endInclusive}, segment m-range ${alignment.segments[i].startM}..${alignment.segments[i].endM}"
+                    "switch at segment index $i (asserted m-range ${range.start}..${
+                        range.endInclusive
+                    }, segment m-range ${alignment.segments[i].startM}..${alignment.segments[i].endM}"
                 )
             }
         }
     }
 
-    private fun pasteTrackSegmentsWithSpacers(segmentss: List<List<LayoutSegment>>, spacerVector: Point): List<List<LayoutSegment>> {
+    private fun pasteTrackSegmentsWithSpacers(
+        segmentss: List<List<LayoutSegment>>,
+        spacerVector: Point,
+        alignmentShift: Point = Point(0.0, 0.0),
+    ): List<List<LayoutSegment>> {
         val acc = mutableListOf<List<LayoutSegment>>()
-        var shift = Point(0.0, 0.0)
+        var shift = alignmentShift
         segmentss.forEach { segments ->
             acc += segments.map { segment ->
-                segment.copy(
+                val segmentStart = Point(0.0, 0.0) - segment.segmentStart.toPoint()
+                val s = segment.copy(
                     geometry = segment.geometry.copy(segmentPoints = segment.geometry.segmentPoints.map { point ->
-                        point.copy(x = point.x + shift.x, y = point.y + shift.y)
+                        point.copy(
+                            x = point.x + shift.x + segmentStart.x,
+                            y = point.y + shift.y + segmentStart.y)
                     })
                 )
+                shift += s.segmentEnd.toPoint() - s.segmentStart.toPoint()
+                s
             }
-            shift += segments.last().segmentEnd.toPoint() - segments.first().segmentStart.toPoint()
+
             acc += listOf(segment(shift, shift + spacerVector))
             shift += spacerVector
         }
