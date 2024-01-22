@@ -1,14 +1,13 @@
 package fi.fta.geoviite.infra.split
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.*
-import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import targetParams
 
 class SplitTest {
 
@@ -21,7 +20,7 @@ class SplitTest {
         )
         val targets = listOf(
             targetParams(null, null, "split1", "split desc 1"),
-            targetParams(1, 1, "split2", "split desc 2"),
+            targetParams(IntId(1), JointNumber(1), "split2", "split desc 2"),
         )
         val resultTracks = splitLocationTrack(track, alignment, targets)
         assertEquals(targets.size, resultTracks.size)
@@ -48,9 +47,9 @@ class SplitTest {
         )
         val targets = listOf(
             targetParams(null, null, "split1", "split desc 1", NONE),
-            targetParams(1, 4, "split2", "split desc 2", SWITCH_TO_BUFFER),
-            targetParams(2, 3, "split3", "split desc 3", SWITCH_TO_OWNERSHIP_BOUNDARY),
-            targetParams(3, 2, "split4", "split desc 4", SWITCH_TO_SWITCH),
+            targetParams(IntId(1), JointNumber(4), "split2", "split desc 2", SWITCH_TO_BUFFER),
+            targetParams(IntId(2), JointNumber(3), "split3", "split desc 3", SWITCH_TO_OWNERSHIP_BOUNDARY),
+            targetParams(IntId(3), JointNumber(2), "split4", "split desc 4", SWITCH_TO_SWITCH),
         )
         val resultTracks = splitLocationTrack(track, alignment, targets)
         assertEquals(targets.size, resultTracks.size)
@@ -61,6 +60,18 @@ class SplitTest {
         assertSegmentsMatch(alignment.segments.subList(7, 8), resultTracks[3].alignment)
     }
 }
+
+fun linearSegment(
+    points: IntRange,
+    switchId: IntId<TrackLayoutSwitch>? = null,
+    startJoint: Int? = null,
+    endJoint: Int? = null,
+): LayoutSegment = segment(
+    points = points.map { value -> Point(value.toDouble(), 0.0) }.toTypedArray(),
+    switchId = switchId,
+    startJointNumber = startJoint?.let(::JointNumber),
+    endJointNumber = endJoint?.let(::JointNumber),
+)
 
 private fun assertSegmentsMatch(expectedSegments: List<LayoutSegment>, result: LayoutAlignment) {
     assertEquals(expectedSegments.size, result.segments.size)
@@ -73,18 +84,6 @@ private fun assertSegmentsMatch(expectedSegments: List<LayoutSegment>, result: L
     }
 }
 
-private fun linearSegment(
-    points: IntRange,
-    switchId: IntId<TrackLayoutSwitch>?,
-    startJoint: Int?,
-    endJoint: Int?,
-): LayoutSegment = segment(
-    points = points.map { value -> Point(value.toDouble(), 0.0) }.toTypedArray(),
-    switchId = switchId,
-    startJointNumber = startJoint?.let(::JointNumber),
-    endJointNumber = endJoint?.let(::JointNumber),
-)
-
 private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestTarget, result: SplitTargetResult) {
     assertEquals(track.trackNumberId, result.locationTrack.trackNumberId)
     assertEquals(track.type, result.locationTrack.type)
@@ -94,26 +93,4 @@ private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestT
     assertEquals(request.descriptionBase, result.locationTrack.descriptionBase)
     assertEquals(request.descriptionSuffix, result.locationTrack.descriptionSuffix)
     assertEquals(null, result.locationTrack.duplicateOf)
-}
-
-private fun targetParams(
-    startSwitchIdInt: Int?,
-    startSwitchJoint: Int?,
-    name: String = "split$startSwitchIdInt",
-    descriptionBase: String = "split desc $startSwitchIdInt",
-    descriptionSuffixType: DescriptionSuffixType = NONE,
-): SplitTargetParams {
-    val switchId = startSwitchIdInt?.let{ id -> IntId<TrackLayoutSwitch>(id) }
-    val switchJoint = startSwitchJoint?.let{ j -> JointNumber(j) }
-    return SplitTargetParams(
-        startSwitch = if (switchId != null && switchJoint != null) (switchId to switchJoint) else null,
-        request = SplitRequestTarget(
-            duplicateTrackId = null,
-            startAtSwitchId = switchId,
-            name = AlignmentName(name),
-            descriptionBase = FreeText(descriptionBase),
-            descriptionSuffix = descriptionSuffixType,
-        ),
-        duplicate = null,
-    )
 }
