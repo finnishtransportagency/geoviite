@@ -228,7 +228,7 @@ class SplitService(
         suggestions: List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch>>,
     ): List<SplitTargetParams> {
         return targets.map { target ->
-            val endSwitch = target.endsAtSwitch?.let { switchId ->
+            val startSwitch = target.startAtSwitchId?.let { switchId ->
                 val jointNumber = suggestions
                     .find { (id, _) -> id == switchId }
                     ?.let { (_, suggestion) -> suggestion.switchStructure.presentationJointNumber }
@@ -238,14 +238,14 @@ class SplitService(
             val duplicate = target.duplicateTrackId?.let { id ->
                 locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
             }
-            SplitTargetParams(target, endSwitch, duplicate)
+            SplitTargetParams(target, startSwitch, duplicate)
         }
     }
 }
 
 private data class SplitTargetParams(
     val request: SplitRequestTarget,
-    val endSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
+    val startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
     val duplicate: Pair<LocationTrack, LayoutAlignment>?,
 )
 private data class SplitTargetResult(
@@ -259,10 +259,9 @@ private fun splitLocationTrack(
     alignment: LayoutAlignment,
     targets: List<SplitTargetParams>,
 ): List<SplitTargetResult> {
-    var startIndex = 0
-    return targets.map { target ->
-        val segmentIndices = findSplitIndices(alignment, target.endSwitch, startIndex)
-            .also { range -> startIndex = range.endInclusive + 1 }
+    return targets.mapIndexed { index, target ->
+        val nextSwitch = targets.getOrNull(index + 1)?.startSwitch
+        val segmentIndices = findSplitIndices(alignment, target.startSwitch, nextSwitch)
         val segments = cutSegments(alignment, segmentIndices)
         val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
         val (newTrack, newAlignment) = target.duplicate?.let { (track, alignment) ->
@@ -345,36 +344,37 @@ private fun calculateTopologicalConnectivity(
 ): TopologicalConnectivityType {
     val startConnected = if (0 == segmentIndices.start) {
         sourceTrack.topologicalConnectivity.isStartConnected()
-    } else true
+    } else {
+        true
+    }
     val endConnected = if (sourceSegments == segmentIndices.endInclusive + 1) {
         sourceTrack.topologicalConnectivity.isEndConnected()
-    } else true
+    } else {
+        true
+    }
     return topologicalConnectivityTypeOf(startConnected, endConnected)
 }
 
 private fun findSplitIndices(
     alignment: LayoutAlignment,
+    startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
     endSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
-    startIndex: Int,
 ): IntRange {
-    return if (startIndex > alignment.segments.lastIndex) {
+    val startIndex = startSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: 0
+    val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: alignment.segments.lastIndex
+
+    return if (startIndex < 0 || endIndex > alignment.segments.lastIndex || endIndex < startIndex) {
         throw SplitFailureException(
             message = "Failed to map split switches to segment indices",
             localizedMessageKey = "segment-allocation-failed",
         )
-    } else if (endSwitch == null) {
-        (startIndex..alignment.segments.lastIndex)
     } else {
-        val endIndex = alignment.segments.indexOfFirst { s ->
-            s.switchId == endSwitch.first && s.endJointNumber == endSwitch.second
-        }
-        if (endIndex < startIndex) throw SplitFailureException(
-            message = "Failed to map split switches to segment indices",
-            localizedMessageKey = "segment-allocation-failed",
-        )
         (startIndex..endIndex)
     }
 }
+
+private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int =
+    alignment.segments.indexOfFirst { s -> s.switchId == switchId && s.startJointNumber == joint }
 
 private fun cutSegments(alignment: LayoutAlignment, segmentIndices: ClosedRange<Int>): List<LayoutSegment> =
     fixSegmentStarts(alignment.segments.subList(segmentIndices.start, segmentIndices.endInclusive + 1))

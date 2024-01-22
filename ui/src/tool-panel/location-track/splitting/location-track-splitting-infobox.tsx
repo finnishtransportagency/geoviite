@@ -271,22 +271,21 @@ const splitRequest = (
     allDuplicates: LayoutLocationTrack[],
 ): SplitRequest => ({
     sourceTrackId,
-    targetTracks: [initialSplit, ...splits].map((s, i) => {
+    targetTracks: [initialSplit, ...splits].map((s) => {
         const dupe = s.duplicateOf ? findById(allDuplicates, s.duplicateOf) : undefined;
-        return splitToRequestTarget(s, splits[i + 1], dupe);
+        return splitToRequestTarget(s, dupe);
     }),
 });
 
 const splitToRequestTarget = (
     split: Split | InitialSplit,
-    nextSplit: Split | undefined,
     duplicate: LayoutLocationTrack | undefined,
 ): SplitRequestTarget => ({
     name: duplicate ? duplicate.name : split.name,
     descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
     descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
     duplicateTrackId: split.duplicateOf,
-    endsAtSwitch: nextSplit?.switchId,
+    startAtSwitchId: 'switchId' in split ? split?.switchId : undefined,
 });
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
