@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
@@ -964,6 +965,15 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `null is suggested when no switch is applicable`() {
+        assertNull(
+            switchLinkingService.getSuggestedSwitch(
+                Point(123.0, 456.0), switchLibraryService.getSwitchStructuresById().keys.first()
+            )
+        )
+    }
+
+    @Test
     fun `re-linking switch cleans up topological connections`() {
         val trackNumberId = getUnusedTrackNumberId()
         referenceLineDao.insert(
@@ -1010,6 +1020,63 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertTrackDraftVersionSwitchLinks(oneFiveTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(fiveTwoTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(threeFourTrack.id, null, null, listOf(0.0..10.4 to switch.id))
+    }
+
+    @Test
+    fun `mislinked track with wrong alignment link gets replaced with topology link`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+            )
+        )
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
+        val templateThroughTrackSegments = templateTrackSections[0].second.segments
+        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
+        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val shift =
+            templateThroughTrackSegments.last().segmentEnd.toPoint() - templateThroughTrackSegments.first().segmentStart.toPoint()
+        val fullShift = shift + Point(100.0, 0.0)
+
+        val throughTrackStart = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "through track start"), alignment(
+                setSwitchId(templateThroughTrackSegments + listOf(segment(shift, fullShift)), switch.id),
+            )
+        )
+        val throughTrackSwitchAndEnd = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "through track switch and end"), alignment(
+                shiftTrack(templateThroughTrackSegments, switch.id, fullShift)
+            )
+        )
+        val originallyLinkedBranchingTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "originally linked branching track"),
+            alignment(setSwitchId(templateBranchingTrackSegments, switch.id))
+        )
+        val newBranchingTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "new branching track"),
+            alignment(shiftTrack(templateBranchingTrackSegments, switch.id, fullShift))
+        )
+
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, templateSwitch.switchStructureId)!!
+        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+
+        assertTrackDraftVersionSwitchLinks(
+            throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null)
+        )
+
+        assertTrackDraftVersionSwitchLinks(
+            throughTrackSwitchAndEnd.id, null, null, listOf(0.0..34.4 to switch.id)
+        )
+
+        assertTrackDraftVersionSwitchLinks(
+            originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null)
+        )
+
+        assertTrackDraftVersionSwitchLinks(
+            newBranchingTrack.id, null, null, listOf(0.0..34.3 to switch.id)
+        )
     }
 
     private fun assertTrackDraftVersionSwitchLinks(
