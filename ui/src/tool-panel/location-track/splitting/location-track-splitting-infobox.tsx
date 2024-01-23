@@ -150,7 +150,7 @@ type ValidatedSplit = {
 
 type SplitComponentAndRefs = {
     component: JSX.Element;
-    split: ValidatedSplit;
+    splitAndValidation: ValidatedSplit;
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
 };
@@ -237,13 +237,13 @@ const findRefToFirstErroredField = (
 ): React.RefObject<HTMLInputElement> | undefined => {
     const invalidNameIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.split.nameErrors.map((err) => err.reason),
+            s.splitAndValidation.nameErrors.map((err) => err.reason),
             predicate,
         ),
     );
     const invalidDescriptionBaseIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.split.descriptionErrors.map((err) => err.reason),
+            s.splitAndValidation.descriptionErrors.map((err) => err.reason),
             predicate,
         ),
     );
@@ -403,7 +403,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         underlyingAssetExists={switchExists}
                     />
                 ),
-                split: splitValidated,
+                splitAndValidation: splitValidated,
                 nameRef,
                 descriptionBaseRef,
             };
@@ -424,11 +424,13 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     };
 
     React.useEffect(() => {
-        const newSplit = splitComponents.find((s) => s.split.split.new);
-        if (newSplit) {
-            newSplit.nameRef.current?.focus();
+        const newSplitComponent = splitComponents.find((s) => s.splitAndValidation.split.new);
+        if (newSplitComponent) {
+            newSplitComponent.nameRef.current?.focus();
             markSplitOld(
-                newSplit.split.split.type === 'SPLIT' ? newSplit.split.split.switchId : undefined,
+                newSplitComponent.splitAndValidation.split.type === 'SPLIT'
+                    ? newSplitComponent.splitAndValidation.split.switchId
+                    : undefined,
             );
         }
     });
