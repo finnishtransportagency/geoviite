@@ -47,7 +47,6 @@ import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
 import { getChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -571,7 +570,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 {t('tool-panel.location-track.splitting.back')}
                             </Button>
                             <Button
-                                icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 onClick={() => {
                                     setConfirmExit(false);
