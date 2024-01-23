@@ -1136,40 +1136,45 @@ class SwitchLinkingService @Autowired constructor(
     private fun getLocationTrackChangesFromLinkingSwitch(
         linkingParameters: SwitchLinkingParameters,
     ): LocationTrackChangesFromLinkingSwitch {
+        val switchId = linkingParameters.layoutSwitchId
         val originalTracks = switchDao
-            .findLocationTracksLinkedToSwitch(DRAFT, linkingParameters.layoutSwitchId)
-            .associateBy({ ids -> ids.rowVersion.id }, { ids ->
-                locationTrackService.getWithAlignment(ids.rowVersion)
-            })
+            .findLocationTracksLinkedToSwitch(DRAFT, switchId)
+            .associate { ids ->
+                val trackAndAlignment = locationTrackService.getWithAlignment(ids.rowVersion)
+                // ids can have the draft ID in it, but we want to key by official ID
+                (trackAndAlignment.first.id as IntId) to trackAndAlignment
+            }
 
         val existingLinksCleared = originalTracks.mapValues { (_, trackAndAlignment) ->
             val (track, alignment) = trackAndAlignment
-            clearLinksToSwitch(track, alignment, linkingParameters.layoutSwitchId)
+            clearLinksToSwitch(track, alignment, switchId)
         }
 
         val segmentLinksMade = calculateModifiedLocationTracksForSegmentLinks(linkingParameters, existingLinksCleared)
         val segmentLinksMadeOverlay = segmentLinksMade.associateBy { (track) -> track.id as IntId }
 
-        val topologicalLinksMade = getPotentiallyChangedTracks(
+        val withTopologicalLinks = getPotentiallyChangedTracks(
             originalTracks,
-            linkingParameters.layoutSwitchId,
+            switchId,
             segmentLinksMadeOverlay
         ).mapNotNull { (locationTrack, alignment) ->
-            val updated = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
+            val linked = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 locationTrack,
                 alignment,
                 overlaidTracks = existingLinksCleared + segmentLinksMadeOverlay
             )
-            if (updated != locationTrack) updated else null
+            val hasTopoLink =
+                linked.topologyStartSwitch?.switchId == switchId || linked.topologyEndSwitch?.switchId == switchId
+            if (hasTopoLink) linked else null
         }
-        val topoLinksMadeIds = topologicalLinksMade.map { track -> track.id as IntId }.toSet()
+        val withTopologicalLinksIds = withTopologicalLinks.map { track -> track.id as IntId }.toSet()
         val onlyDelinked = existingLinksCleared.entries
-            .filter { (id) -> !segmentLinksMadeOverlay.containsKey(id) && !topoLinksMadeIds.contains(id) }
+            .filter { (id) -> !segmentLinksMadeOverlay.containsKey(id) && !withTopologicalLinksIds.contains(id) }
             .map { (_, track) -> track }
         return LocationTrackChangesFromLinkingSwitch(
             onlyDelinked,
-            topologicalLinksMade,
-            segmentLinksMade.filter { (track) -> !topoLinksMadeIds.contains(track.id) })
+            withTopologicalLinks.filter { track -> !segmentLinksMadeOverlay.contains(track.id) },
+            segmentLinksMade)
     }
 
     private fun getPotentiallyChangedTracks(
