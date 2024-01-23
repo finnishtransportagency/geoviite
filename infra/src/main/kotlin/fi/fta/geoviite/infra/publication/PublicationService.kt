@@ -1184,7 +1184,7 @@ class PublicationService @Autowired constructor(
                 newEndPointAndM?.address,
                 { it.toString() },
                 PropKey("end-address"),
-                remark = getAddressMovedRemarkOrNull(translation, oldEndPointAndM?.address, newEndPointAndM?.address)
+                null
             ),
             if (changedKmNumbers.isNotEmpty()) {
                 PublicationChange(

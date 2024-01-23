@@ -352,6 +352,7 @@ export const Dropdown = function <TItemValue>({
                     onClickOutside={closeList}
                     className={styles['dropdown__list-container']}
                     offsetY={36}
+                    maxHeight={270}
                     positionRef={menuRef}>
                     <ul className={styles['dropdown__list']} ref={listRef}>
                         {showEmptyOption && (
