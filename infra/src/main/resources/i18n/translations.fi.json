@@ -613,6 +613,10 @@
                 "replaces-duplicate": "Korvaa duplikaattiraiteen",
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
+                "exit-title": "Poistu raiteen jakamisesta",
+                "confirm-exit": "Tähän mennessä tehdyt jakamismuutokset peruutetaan. Haluatko varmasti poistua?",
+                "back": "Jatka jakamista",
+                "exit": "Poistu",
                 "validation": {
                     "duplicates-on-different-track-number": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista sijaitsee eri ratanumerolla.",
                     "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
