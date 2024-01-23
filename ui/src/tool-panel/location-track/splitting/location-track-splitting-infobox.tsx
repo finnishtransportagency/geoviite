@@ -45,6 +45,9 @@ import { Link } from 'vayla-design-lib/link/link';
 import { TimeStamp } from 'common/common-model';
 import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
 import { getChangeTimes } from 'common/change-time-api';
+import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
+import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -322,6 +325,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     markSplitOld,
 }) => {
     const { t } = useTranslation();
+    const [confirmExit, setConfirmExit] = React.useState(false);
 
     const sortedSplits = sortSplitsByDistance(splits);
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
@@ -533,7 +537,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
                                 disabled={isPostingSplit}
-                                onClick={stopSplitting}>
+                                onClick={() => setConfirmExit(true)}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
@@ -553,6 +557,32 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         </InfoboxButtons>
                     </InfoboxContent>
                 </Infobox>
+            )}
+            {confirmExit && (
+                <Dialog
+                    title={t('tool-panel.location-track.splitting.exit-title')}
+                    allowClose={false}
+                    variant={DialogVariant.DARK}
+                    footerContent={
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
+                            <Button
+                                onClick={() => setConfirmExit(false)}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('tool-panel.location-track.splitting.back')}
+                            </Button>
+                            <Button
+                                icon={Icons.Delete}
+                                variant={ButtonVariant.WARNING}
+                                onClick={() => {
+                                    setConfirmExit(false);
+                                    stopSplitting();
+                                }}>
+                                {t('tool-panel.location-track.splitting.exit')}
+                            </Button>
+                        </div>
+                    }>
+                    {t('tool-panel.location-track.splitting.confirm-exit')}
+                </Dialog>
             )}
         </React.Fragment>
     );
