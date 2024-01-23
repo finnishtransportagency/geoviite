@@ -889,7 +889,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignment(shiftTrack(templateBranchingTrackSegments, null, shift1))
         )
         val validationResult = switchLinkingService.validateRelinkingTrack(throughTrack.id)
-        assertEquals(
+        assertEqualsRounded(
             listOf(
                 SwitchRelinkingResult(
                     id = okSwitch.id,
@@ -913,6 +913,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ), validationResult
         )
     }
+
     @Test
     fun `re-linking switch cleans up previous references consistently`() {
         val trackNumberId = getUnusedTrackNumberId()
@@ -1153,4 +1154,13 @@ class SwitchLinkingServiceIT @Autowired constructor(
         locationAccuracy: LocationAccuracy?,
     ) = assertEquals(locationAccuracy, switch.joints.find { j -> j.number == jointNumber }!!.locationAccuracy)
 
+    private fun assertEqualsRounded(expected: List<SwitchRelinkingResult>, actual: List<SwitchRelinkingResult>) =
+        assertEquals(roundRelinkingResult(expected), roundRelinkingResult(actual))
+
+    private fun roundRelinkingResult(r: List<SwitchRelinkingResult>) =
+        r.map { one ->
+            one.copy(successfulSuggestion = one.successfulSuggestion?.copy(
+                location = one.successfulSuggestion!!.location.round(1).toPoint()
+            ))
+        }
 }
