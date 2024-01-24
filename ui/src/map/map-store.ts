@@ -25,14 +25,15 @@ export function getEmptyShownItems(): ShownItems {
     };
 }
 
-export const isLayerEnabledByProxy = (
+export const isLayerInProxyLayerCollection = (
     menuItemName: MapLayerMenuItemName,
     visibleLayers: MapLayerName[],
+    proxyLayerCollection: LayerCollection,
 ): boolean => {
     const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
-    const key = Object.keys(relatedMapLayers).find(
+    const key = Object.keys(proxyLayerCollection).find(
         (key) =>
-            relatedMapLayers[key as MapLayerName]?.find((layer) =>
+            proxyLayerCollection[key as MapLayerName]?.find((layer) =>
                 layersFromMenuItem.includes(layer),
             ),
     );
@@ -43,7 +44,7 @@ const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
 type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
 
-const relatedMapLayers: LayerCollection = {
+export const relatedMapLayers: LayerCollection = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'switch-linking-layer': ['switch-layer', 'geometry-switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
@@ -63,12 +64,14 @@ const relatedMapLayers: LayerCollection = {
     ],
 };
 
-const layersToHideByProxy: LayerCollection = {
+export const layersToHideByProxy: LayerCollection = {
     'location-track-split-location-layer': [
         'location-track-badge-layer',
         'geometry-alignment-layer',
         'geometry-switch-layer',
         'geometry-km-post-layer',
+        'plan-area-layer',
+        'track-number-diagram-layer',
     ],
 };
 

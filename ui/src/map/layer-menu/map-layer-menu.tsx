@@ -12,7 +12,11 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
-import { isLayerEnabledByProxy } from 'map/map-store';
+import {
+    isLayerInProxyLayerCollection,
+    layersToHideByProxy,
+    relatedMapLayers,
+} from 'map/map-store';
 
 type MapLayerMenuProps = {
     onMenuChange: (change: MapLayerMenuChange) => void;
@@ -73,14 +77,23 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
         <React.Fragment>
             <div className={styles['map-layer-menu__title']}>{title}</div>
             {menuItemVisibilities.flatMap((setting) => {
-                const enabledByProxy = isLayerEnabledByProxy(setting.name, mapLayerVisibilities);
+                const enabledByProxy = isLayerInProxyLayerCollection(
+                    setting.name,
+                    mapLayerVisibilities,
+                    relatedMapLayers,
+                );
+                const disabledByProxy = isLayerInProxyLayerCollection(
+                    setting.name,
+                    mapLayerVisibilities,
+                    layersToHideByProxy,
+                );
                 return [
                     <MapLayer
                         key={setting.name}
                         qa-id={setting.qaId}
                         label={t(`map-layer-menu.${setting.name}`)}
-                        visible={enabledByProxy || setting.visible}
-                        disabled={enabledByProxy}
+                        visible={(enabledByProxy || setting.visible) && !disabledByProxy}
+                        disabled={enabledByProxy || disabledByProxy}
                         onChange={() =>
                             onMenuChange({
                                 name: setting.name,
@@ -89,17 +102,23 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                         }
                     />,
                     setting.subMenu?.map((subSetting) => {
-                        const enabledByProxy = isLayerEnabledByProxy(
+                        const enabledByProxy = isLayerInProxyLayerCollection(
                             subSetting.name,
                             mapLayerVisibilities,
+                            relatedMapLayers,
+                        );
+                        const disabledByProxy = isLayerInProxyLayerCollection(
+                            setting.name,
+                            mapLayerVisibilities,
+                            layersToHideByProxy,
                         );
                         return (
                             <MapLayer
                                 key={subSetting.name}
                                 qa-id={setting.qaId}
                                 label={t(`map-layer-menu.${subSetting.name}`)}
-                                visible={enabledByProxy || subSetting.visible}
-                                disabled={enabledByProxy || !setting.visible}
+                                visible={(enabledByProxy || subSetting.visible) && !disabledByProxy}
+                                disabled={enabledByProxy || disabledByProxy || !setting.visible}
                                 indented={true}
                                 onChange={() =>
                                     onMenuChange({
