@@ -579,14 +579,18 @@ class LocationTrackService(
         logger.serviceCall(
             "getSwitchesForLocationTrack", "locationTrackId" to locationTrackId, "publishType" to publishType
         )
-        val ltAndAlignment = getWithAlignment(publishType, locationTrackId)
-        val topologySwitches = listOfNotNull(
-            ltAndAlignment?.first?.topologyStartSwitch?.switchId, ltAndAlignment?.first?.topologyEndSwitch?.switchId
-        )
-        val segmentSwitches =
-            ltAndAlignment?.second?.segments?.mapNotNull { segment -> segment.switchId as IntId? } ?: emptyList()
-        return (topologySwitches + segmentSwitches).distinct()
+        return getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
+            collectAllSwitches(track, alignment)
+        } ?: emptyList()
     }
+}
+
+fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {
+    val topologySwitches = listOfNotNull(
+        locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId
+    )
+    val segmentSwitches = alignment.segments.mapNotNull { segment -> segment.switchId as IntId? }
+    return (topologySwitches + segmentSwitches).distinct()
 }
 
 data class NearbyTracks(

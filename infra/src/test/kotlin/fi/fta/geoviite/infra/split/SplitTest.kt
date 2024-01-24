@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.*
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -25,6 +26,29 @@ class SplitTest {
         val resultTracks = splitLocationTrack(track, alignment, targets)
         assertEquals(targets.size, resultTracks.size)
         resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
+        assertSegmentsMatch(alignment.segments.subList(0, 1), resultTracks[0].alignment)
+        assertSegmentsMatch(alignment.segments.subList(1, 2), resultTracks[1].alignment)
+    }
+
+    @Test
+    fun `location track split works when overriding existing duplicate`() {
+        val track = locationTrack(trackNumberId = IntId(123))
+        val alignment = alignment(
+            linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
+            linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
+        )
+        val dupTrack = locationTrack(trackNumberId = IntId(123))
+        // over-large duplicate, but the geometry should be overridden anyhow, so just make it different
+        val dupAlignment = alignment(linearSegment(-1..5))
+        val targets = listOf(
+            targetParams(null, null, name = "split1", duplicate = dupTrack to dupAlignment),
+            targetParams(IntId(1), JointNumber(1), "split2"),
+        )
+        val resultTracks = splitLocationTrack(track, alignment, targets)
+        assertEquals(targets.size, resultTracks.size)
+        resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
+        assertEquals(dupTrack.id, resultTracks[0].locationTrack.id)
+        assertEquals(dupTrack.externalId, resultTracks[0].locationTrack.externalId)
         assertSegmentsMatch(alignment.segments.subList(0, 1), resultTracks[0].alignment)
         assertSegmentsMatch(alignment.segments.subList(1, 2), resultTracks[1].alignment)
     }
@@ -93,4 +117,10 @@ private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestT
     assertEquals(request.descriptionBase, result.locationTrack.descriptionBase)
     assertEquals(request.descriptionSuffix, result.locationTrack.descriptionSuffix)
     assertEquals(null, result.locationTrack.duplicateOf)
+    assertEquals(
+        boundingBoxCombining(result.alignment.segments.mapNotNull { s -> s.boundingBox }),
+        result.locationTrack.boundingBox,
+    )
+    assertEquals(result.alignment.segments.sumOf { s -> s.length }, result.locationTrack.length)
+    assertEquals(result.alignment.segments.size, result.locationTrack.segmentCount)
 }

@@ -266,19 +266,19 @@ class PublicationService @Autowired constructor(
 
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
-                val tnSplitErrors = splitErrors.trackNumbers[candidate.id] ?: emptyList()
+                val trackNumberSplitErrors = splitErrors.trackNumbers[candidate.id] ?: emptyList()
                 val validationErrors = validateTrackNumber(candidate.getPublicationVersion(), versions, cacheKeys)
 
-                candidate.copy(errors = tnSplitErrors + validationErrors)
+                candidate.copy(errors = trackNumberSplitErrors + validationErrors)
             },
             referenceLines = candidates.referenceLines.map { candidate ->
-                val rlSplitErrors = splitErrors.referenceLines[candidate.id] ?: emptyList()
+                val referenceLineSplitErrors = splitErrors.referenceLines[candidate.id] ?: emptyList()
                 val validationErrors = validateReferenceLine(candidate.getPublicationVersion(), versions, cacheKeys)
 
-                candidate.copy(errors = rlSplitErrors + validationErrors)
+                candidate.copy(errors = referenceLineSplitErrors + validationErrors)
             },
             locationTracks = candidates.locationTracks.map { candidate ->
-                val ltSplitErrors = splitErrors.locationTracks[candidate.id] ?: emptyList()
+                val locationTrackSplitErrors = splitErrors.locationTracks[candidate.id] ?: emptyList()
 
                 val validationErrors = validateLocationTrack(
                     version = candidate.getPublicationVersion(),
@@ -287,10 +287,10 @@ class PublicationService @Autowired constructor(
                     switchTrackLinks = switchTrackLinks,
                 )
 
-                candidate.copy(errors = validationErrors + ltSplitErrors)
+                candidate.copy(errors = validationErrors + locationTrackSplitErrors)
             },
             switches = candidates.switches.map { candidate ->
-                val sSplitErrors = splitErrors.switches[candidate.id] ?: emptyList()
+                val switchSplitErrors = splitErrors.switches[candidate.id] ?: emptyList()
 
                 val validationErrors = validateSwitch(
                     candidate.getPublicationVersion(),
@@ -298,13 +298,13 @@ class PublicationService @Autowired constructor(
                     switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
                 )
 
-                candidate.copy(errors = validationErrors + sSplitErrors)
+                candidate.copy(errors = validationErrors + switchSplitErrors)
             },
             kmPosts = candidates.kmPosts.map { candidate ->
-                val kpSplitErrors = splitErrors.kmPosts[candidate.id] ?: emptyList()
+                val kmPostSplitErrors = splitErrors.kmPosts[candidate.id] ?: emptyList()
                 val validationErrors = validateKmPost(candidate.getPublicationVersion(), versions, cacheKeys)
 
-                candidate.copy(errors = validationErrors + kpSplitErrors)
+                candidate.copy(errors = validationErrors + kmPostSplitErrors)
             },
         )
     }
@@ -373,7 +373,7 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getRevertRequestDependencies(requestIds: PublishRequestIds): PublishRequestIds {
-        logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to requestIds)
+        logger.serviceCall("getRevertRequestDependencies", "requestIds" to requestIds)
 
         val referenceLineTrackNumberIds = referenceLineService.getMany(DRAFT, requestIds.referenceLines).map { rlId ->
             rlId.trackNumberId

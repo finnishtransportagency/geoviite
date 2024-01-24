@@ -160,13 +160,8 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<SwitchValidationWithSuggestedSwitch> {
         logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
-        val switchIds = locationTrackService.getSwitchesForLocationTrack(id, publishType)
-        val switchValidation = publicationService.validateSwitches(switchIds, publishType)
-        // TODO: GVT-2154 Check if this can be replace by getTrackSwitchSuggestions
-        val switchSuggestions = switchLinkingService.getSuggestedSwitchesAtPresentationJointLocations(
-            switchIds
-                .distinct()
-                .let { swId -> switchService.getMany(publishType, swId) })
+        val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(publishType, id)
+        val switchValidation = publicationService.validateSwitches(switchSuggestions.map { (id, _) -> id }, publishType)
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id, validatedAsset, switchSuggestions.find { it.first == validatedAsset.id }?.second
