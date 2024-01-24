@@ -1102,25 +1102,6 @@ class SwitchLinkingService @Autowired constructor(
         )
     }
 
-    @Transactional(readOnly = true)
-    fun getSuggestedSwitchesAtPresentationJointLocations(switches: List<TrackLayoutSwitch>): List<Pair<DomainId<TrackLayoutSwitch>, SuggestedSwitch?>> {
-        logger.serviceCall("getSuggestedSwitchesAtPresentationJointLocations", "switches" to switches.map(TrackLayoutSwitch::toLog))
-        val switchSuggestionCalculationData = switches.map { switch ->
-            val location = switchService.getPresentationJointOrThrow(switch).location
-            val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-            val locationTracks = locationTrackService.getLocationTracksNear(location, DRAFT)
-
-            Pair(switch.id, Triple(location, structure, locationTracks))
-        }
-
-        return switchSuggestionCalculationData.parallelStream().map { (switchId, triple) ->
-            val (location, structure, locationTracks) = triple
-            createSuggestedSwitchByPoint(location, structure, locationTracks)?.let { switchSuggestion ->
-                switchId to switchSuggestion
-            }
-        }.collect(Collectors.toList())
-    }
-
     @Transactional
     fun saveSwitchLinking(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("saveSwitchLinking", "linkingParameters" to linkingParameters)
@@ -1223,12 +1204,16 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
+    fun getTrackSwitchSuggestions(publishType: PublishType, trackId: IntId<LocationTrack>) =
+        getTrackSwitchSuggestions(locationTrackDao.getOrThrow(publishType, trackId))
+
+    @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(track: LocationTrack): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
         val alignment = requireNotNull(track.alignmentVersion) {
             "No alignment on track ${track.toLog()}"
         }.let(alignmentDao::fetch)
 
-        val switchIds = alignment.segments.mapNotNull { it.switchId as? IntId }.distinct()
+        val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
             val switch = switchService.getOrThrow(OFFICIAL, switchId)
             switchService.getPresentationJointOrThrow(switch).location to switch.switchStructureId

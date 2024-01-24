@@ -293,7 +293,9 @@ private fun updateDuplicateToSplitTarget(
         descriptionBase = request.descriptionBase,
         descriptionSuffix = request.descriptionSuffix,
 
+        // After split, the track is no longer duplicate
         duplicateOf = null,
+        // Topology is re-resolved after tracks and switches are updated
         topologyStartSwitch = null,
         topologyEndSwitch = null,
         topologicalConnectivity = topologicalConnectivityType,
@@ -305,7 +307,6 @@ private fun updateDuplicateToSplitTarget(
         type = sourceTrack.type,
 
         // Geometry fields come from alignment
-        // TODO: GVT-2154 Check that these are updated in withSegments!
         segmentCount = newAlignment.segments.size,
         length = newAlignment.length,
         boundingBox = newAlignment.boundingBox,
@@ -325,10 +326,11 @@ private fun createSplitTarget(
         descriptionBase = request.descriptionBase,
         descriptionSuffix = request.descriptionSuffix,
 
+        externalId = null, // New track -> no external ID
+        // After split, tracks are not duplicates
         duplicateOf = null,
-        externalId = null,
-        topologyStartSwitch = null,
-        topologyEndSwitch = null,
+        topologyStartSwitch = null, // Topology is re-resolved after tracks and switches are updated
+        topologyEndSwitch = null, // Topology is re-resolved after tracks and switches are updated
         topologicalConnectivity = topologicalConnectivityType,
 
         state = sourceTrack.state,
