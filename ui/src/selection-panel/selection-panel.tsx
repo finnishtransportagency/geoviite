@@ -44,6 +44,7 @@ import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 import { ChangeTimes } from 'common/common-slice';
 import { Eye } from 'geoviite-design-lib/eye/eye';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -70,6 +71,7 @@ type SelectionPanelProps = {
     mapLayerSettings: MapLayerSettings;
     onMapLayerMenuItemChange: (change: MapLayerMenuChange) => void;
     mapLayoutMenu: MapLayerMenuItem[];
+    splittingState: SplittingState | undefined;
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
@@ -97,6 +99,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     mapLayerSettings,
     onMapLayerMenuItemChange,
     mapLayoutMenu,
+    splittingState,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -202,17 +205,19 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             <section>
                 <h3 className={styles['selection-panel__title']}>
                     {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
-                    <Eye
-                        onVisibilityToggle={() => {
-                            if (diagramLayerMenuItem) {
-                                onMapLayerMenuItemChange({
-                                    name: 'track-number-diagram',
-                                    visible: !diagramLayerMenuItem.visible,
-                                });
-                            }
-                        }}
-                        visibility={diagramLayerMenuItem?.visible ?? false}
-                    />
+                    {!splittingState && (
+                        <Eye
+                            onVisibilityToggle={() => {
+                                if (diagramLayerMenuItem) {
+                                    onMapLayerMenuItemChange({
+                                        name: 'track-number-diagram',
+                                        visible: !diagramLayerMenuItem.visible,
+                                    });
+                                }
+                            }}
+                            visibility={diagramLayerMenuItem?.visible ?? false}
+                        />
+                    )}
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
@@ -221,6 +226,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
                         onSelectColor={onTrackNumberColorSelection}
+                        canSelect={!splittingState}
                     />
                 </div>
             </section>
@@ -241,6 +247,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 selectedTrackNumbers={selectedTrackNumberIds}
                 togglePlanOpen={togglePlanOpen}
                 onSelect={onSelect}
+                canSelect={!splittingState}
             />
             <section>
                 <h3 className={styles['selection-panel__title']}>

@@ -18,6 +18,7 @@ type TrackNumberPanelProps = {
     onSelectColor: (trackNumberId: LayoutTrackNumberId, color: TrackNumberColorKey) => void;
     selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
+    canSelect?: boolean;
 };
 
 const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
@@ -27,6 +28,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     onSelectColor,
     selectedTrackNumbers,
     max = 16,
+    canSelect = true,
 }: TrackNumberPanelProps) => {
     const { t } = useTranslation();
     const [sortedTrackNumbers, setSortedTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -51,8 +53,12 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                                 className={styles['track-number-panel__track-number']}
                                 key={trackNumber.id}>
                                 <div>
-                                    <span onMouseUp={() => onSelectTrackNumber(trackNumber)}>
+                                    <span
+                                        onMouseUp={() =>
+                                            canSelect && onSelectTrackNumber(trackNumber)
+                                        }>
                                         <Radio
+                                            disabled={!canSelect}
                                             checked={isSelected}
                                             readOnly={true}
                                             name={trackNumber.number}

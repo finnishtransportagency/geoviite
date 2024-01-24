@@ -16,6 +16,7 @@ type AccordionProps = {
     headerSelected?: boolean;
     fetchingContent?: boolean;
     disabled?: boolean;
+    eyeHidden?: boolean;
     qaId?: string;
 };
 
@@ -32,6 +33,7 @@ export const Accordion: React.FC<AccordionProps> = ({
     fetchingContent = false,
     disabled,
     qaId,
+    eyeHidden = false,
 }: AccordionProps) => {
     const accordionClasses = createClassName(
         styles['accordion__header'],
@@ -58,7 +60,7 @@ export const Accordion: React.FC<AccordionProps> = ({
                     {header}
                     {subheader && <div className="accordion__subheader">{subheader}</div>}
                 </span>
-                {onVisibilityToggle && (
+                {onVisibilityToggle && !eyeHidden && (
                     <Eye
                         onVisibilityToggle={onVisibilityToggle}
                         visibility={visibility}

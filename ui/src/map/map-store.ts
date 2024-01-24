@@ -64,7 +64,12 @@ const relatedMapLayers: LayerCollection = {
 };
 
 const layersToHideByProxy: LayerCollection = {
-    'location-track-split-location-layer': ['location-track-badge-layer'],
+    'location-track-split-location-layer': [
+        'location-track-badge-layer',
+        'geometry-alignment-layer',
+        'geometry-switch-layer',
+        'geometry-km-post-layer',
+    ],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {

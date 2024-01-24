@@ -64,7 +64,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
             <ToolBar
                 disableNewMenu={
                     linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-                    linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+                    linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
+                    !!splittingState
                 }
                 publishType={publishType}
                 showArea={showArea}
@@ -80,6 +81,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 mapLayerMenuGroups={mapLayerMenuGroups}
                 visibleLayers={visibleMapLayers}
                 splittingState={splittingState}
+                linkingState={linkingState}
             />
 
             <div className={styles['track-layout__main-view']}>
