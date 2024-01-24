@@ -47,6 +47,9 @@ export const getLatestPublications = (count: number) => {
     return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
 };
 
+export const getPublication = (id: PublicationId) =>
+    getNonNull<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
+
 export const getPublicationAsTableItems = (id: PublicationId) =>
     getNonNull<PublicationTableItem[]>(
         `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
