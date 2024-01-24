@@ -18,6 +18,7 @@ type AccordionProps = {
     disabled?: boolean;
     eyeHidden?: boolean;
     qaId?: string;
+    className?: string;
 };
 
 export const Accordion: React.FC<AccordionProps> = ({
@@ -34,6 +35,7 @@ export const Accordion: React.FC<AccordionProps> = ({
     disabled,
     qaId,
     eyeHidden = false,
+    className,
 }: AccordionProps) => {
     const accordionClasses = createClassName(
         styles['accordion__header'],
@@ -45,8 +47,10 @@ export const Accordion: React.FC<AccordionProps> = ({
         onHeaderClick && styles['accordion__header-title--clickable'],
     );
 
+    const classes = createClassName('accordion', className);
+
     return (
-        <div className="accordion" qa-id={qaId}>
+        <div className={classes} qa-id={qaId}>
             <h4 className={accordionClasses}>
                 <AccordionToggle
                     onToggle={disabled ? undefined : onToggle}

@@ -226,7 +226,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
                         onSelectColor={onTrackNumberColorSelection}
-                        canSelect={!splittingState}
+                        disabled={!!splittingState}
                     />
                 </div>
             </section>
@@ -247,7 +247,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 selectedTrackNumbers={selectedTrackNumberIds}
                 togglePlanOpen={togglePlanOpen}
                 onSelect={onSelect}
-                canSelect={!splittingState}
+                disabled={!!splittingState}
             />
             <section>
                 <h3 className={styles['selection-panel__title']}>
@@ -266,6 +266,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                 isToggle: true,
                             })
                         }
+                        disabled={!!splittingState}
                     />
                 </div>
             </section>
@@ -282,6 +283,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedItems.trackNumbers}
                         canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
+                        disabled={!!splittingState}
                     />
                 </div>
             </section>

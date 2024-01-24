@@ -55,7 +55,7 @@ type GeometryPlansPanelProps = {
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
     onSelect: (options: OnSelectOptions) => void;
-    canSelect?: boolean;
+    disabled?: boolean;
 };
 const MAX_PLAN_HEADERS = 50;
 
@@ -81,7 +81,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
     onSelect,
-    canSelect = true,
+    disabled = false,
 }) => {
     const { t } = useTranslation();
     const [planHeadersDisplayableInPanel, setPlanHeadersDisplayableInPanel] = React.useState<
@@ -193,7 +193,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 {`${t('selection-panel.geometries-title')} (${
                     planHeadersDisplayableInPanel.length
                 }/${planHeaderCount})`}{' '}
-                {planHeadersDisplayableInPanel.length > 1 && canSelect && (
+                {planHeadersDisplayableInPanel.length > 1 && !disabled && (
                     <Eye
                         onVisibilityToggle={toggleAllPlanVisibilities}
                         visibility={visiblePlansInView.length > 0}
@@ -275,7 +275,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 linkStatus={fetchedPlans.get(h.id)?.linkStatus}
                                 planBeingLoaded={plansBeingFetched.has(h.id)}
                                 loadPlanLayout={() => fetchPlanLayout(h.id)}
-                                canSelect={canSelect}
+                                disabled={disabled}
                             />
                         );
                     })}

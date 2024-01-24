@@ -10,6 +10,7 @@ import {
     TrackNumberColorKey,
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import ColorSelector from 'selection-panel/track-number-panel/color-selector/color-selector';
+import { createClassName } from 'vayla-design-lib/utils';
 
 type TrackNumberPanelProps = {
     trackNumbers: LayoutTrackNumber[];
@@ -18,7 +19,7 @@ type TrackNumberPanelProps = {
     onSelectColor: (trackNumberId: LayoutTrackNumberId, color: TrackNumberColorKey) => void;
     selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
-    canSelect?: boolean;
+    disabled?: boolean;
 };
 
 const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
@@ -28,7 +29,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     onSelectColor,
     selectedTrackNumbers,
     max = 16,
-    canSelect = true,
+    disabled = false,
 }: TrackNumberPanelProps) => {
     const { t } = useTranslation();
     const [sortedTrackNumbers, setSortedTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -41,6 +42,10 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
 
         setSortedTrackNumbers(visibleTrackNumbers.sort(fieldComparator((tn) => tn.number)));
     }, [trackNumbers, selectedTrackNumbers]);
+    const trackNumberClassNames = createClassName(
+        styles['track-number-panel__track-number'],
+        disabled && styles['track-number-panel__track-number--disabled'],
+    );
 
     return (
         <div>
@@ -49,32 +54,32 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                     {sortedTrackNumbers.map((trackNumber) => {
                         const isSelected = selectedTrackNumbers?.some((s) => s == trackNumber.id);
                         return (
-                            <li
-                                className={styles['track-number-panel__track-number']}
-                                key={trackNumber.id}>
+                            <li className={trackNumberClassNames} key={trackNumber.id}>
                                 <div>
                                     <span
                                         onMouseUp={() =>
-                                            canSelect && onSelectTrackNumber(trackNumber)
+                                            !disabled && onSelectTrackNumber(trackNumber)
                                         }>
                                         <Radio
-                                            disabled={!canSelect}
+                                            disabled={disabled}
                                             checked={isSelected}
                                             readOnly={true}
                                             name={trackNumber.number}
                                         />
                                         {trackNumber.number}
                                     </span>
-                                    <ColorSelector
-                                        color={
-                                            settings[trackNumber.id]?.color ??
-                                            getDefaultColorKey(trackNumber.id)
-                                        }
-                                        onSelectColor={(color) =>
-                                            onSelectColor(trackNumber.id, color)
-                                        }
-                                        className={'track-number-panel__color-selector'}
-                                    />
+                                    {!disabled && (
+                                        <ColorSelector
+                                            color={
+                                                settings[trackNumber.id]?.color ??
+                                                getDefaultColorKey(trackNumber.id)
+                                            }
+                                            onSelectColor={(color) =>
+                                                onSelectColor(trackNumber.id, color)
+                                            }
+                                            className={'track-number-panel__color-selector'}
+                                        />
+                                    )}
                                 </div>
                             </li>
                         );

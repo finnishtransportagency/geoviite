@@ -26,6 +26,7 @@ type ReferenceLinesPanelProps = {
     selectedTrackNumbers?: LayoutTrackNumberId[];
     canSelectReferenceLine: boolean;
     max?: number;
+    disabled: boolean;
 };
 
 const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
@@ -36,6 +37,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
     selectedTrackNumbers,
     canSelectReferenceLine,
     max = 16,
+    disabled,
 }: ReferenceLinesPanelProps) => {
     const { t } = useTranslation();
     const [linesCount, setLinesCount] = React.useState(0);
@@ -70,6 +72,11 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                             'reference-lines-panel__reference-line--can-select',
                     );
                     const trackNumber = trackNumbers?.find((tn) => tn.id == line.trackNumberId);
+                    const status = () => {
+                        if (disabled) return ReferenceLineBadgeStatus.DISABLED;
+                        else if (isSelected) return ReferenceLineBadgeStatus.SELECTED;
+                        else return undefined;
+                    };
                     return trackNumber ? (
                         <li
                             key={line.id}
@@ -78,11 +85,15 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                                 canSelectReferenceLine &&
                                 onToggleReferenceLineSelection(line.trackNumberId, line.id)
                             }>
-                            <ReferenceLineBadge
-                                trackNumber={trackNumber}
-                                status={isSelected ? ReferenceLineBadgeStatus.SELECTED : undefined}
-                            />
-                            <span>{t('reference-line')}</span>
+                            <ReferenceLineBadge trackNumber={trackNumber} status={status()} />
+                            <span
+                                className={
+                                    disabled
+                                        ? styles['reference-lines-panel__reference-line--disabled']
+                                        : undefined
+                                }>
+                                {t('reference-line')}
+                            </span>
                         </li>
                     ) : (
                         <React.Fragment key={line.id} />
