@@ -39,6 +39,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { LinkingState } from 'linking/linking-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -54,6 +55,7 @@ export type ToolbarParams = {
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
+    linkingState: LinkingState | undefined;
 };
 
 type LocationTrackItemValue = {
@@ -142,6 +144,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     mapLayerMenuGroups,
     visibleLayers,
     splittingState,
+    linkingState,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -264,6 +267,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
 
+    const modeNavigationButtonsDisabledReason = () => {
+        if (splittingState) {
+            return t('tool-bar.splitting-in-progress');
+        } else if (linkingState?.state === 'allSet' || linkingState?.state === 'setup') {
+            return t('tool-bar.linking-in-progress');
+        } else {
+            return undefined;
+        }
+    };
+
     return (
         <div className={`tool-bar tool-bar--${publishType.toLowerCase()}`}>
             <div className={styles['tool-bar__left-section']}>
@@ -314,17 +327,25 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {publishType === 'DRAFT' && (
                     <React.Fragment>
                         <Button
-                            disabled={!!splittingState}
+                            disabled={
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
                             variant={ButtonVariant.SECONDARY}
-                            title={t('tool-bar.splitting-in-progress')}
+                            title={modeNavigationButtonsDisabledReason()}
                             onClick={() => moveToOfficialPublishType()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
                         <Button
-                            disabled={!!splittingState}
+                            disabled={
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
                             icon={Icons.VectorRight}
                             variant={ButtonVariant.PRIMARY}
-                            title={t('tool-bar.splitting-in-progress')}
+                            title={modeNavigationButtonsDisabledReason()}
                             qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
                             {t('tool-bar.preview-mode.enable')}

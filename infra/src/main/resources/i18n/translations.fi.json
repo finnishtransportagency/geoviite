@@ -1402,7 +1402,8 @@
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
-        "splitting-in-progress": "Raiteen jakaminen on kesken"
+        "splitting-in-progress": "Raiteen jakaminen on kesken",
+        "linking-in-progress": "Linkitys on kesken"
     },
     "user-card": {
         "my-details": "Omat tiedot",

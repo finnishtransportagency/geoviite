@@ -20,6 +20,7 @@ import navigationDownSvg from './glyphs/navigation/down.svg';
 import statusErrorSvg from './glyphs/status/error.svg';
 import kmPostSvg from './glyphs/misc/kmpost.svg';
 import kmPostSelectedSvg from './glyphs/misc/kmpost-selected.svg';
+import kmPostDisabledSvg from './glyphs/misc/kmpost-disabled.svg';
 import switchSvg from './glyphs/misc/switch.svg';
 import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
@@ -115,6 +116,7 @@ const iconNameToSvgMapStaticColor = {
     // Misc
     KmPost: kmPostSvg,
     KmPostSelected: kmPostSelectedSvg,
+    KmPostDisabled: kmPostDisabledSvg,
 };
 
 export enum IconSize {

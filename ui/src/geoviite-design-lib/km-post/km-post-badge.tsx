@@ -21,6 +21,12 @@ export enum KmPostBadgeStatus {
     DISABLED = 'km-post-badge--disabled',
 }
 
+const statusToIcon = (status: KmPostBadgeStatus) => {
+    if (status === KmPostBadgeStatus.DISABLED) return Icons.KmPostDisabled;
+    else if (status === KmPostBadgeStatus.SELECTED) return Icons.KmPostSelected;
+    else return Icons.KmPost;
+};
+
 export const KmPostBadge: React.FC<KmPostBadgeProps> = ({
     kmPost,
     trackNumber,
@@ -35,7 +41,7 @@ export const KmPostBadge: React.FC<KmPostBadgeProps> = ({
         onClick && styles['km-post-badge--clickable'],
     );
 
-    const Icon = status == KmPostBadgeStatus.SELECTED ? Icons.KmPostSelected : Icons.KmPost;
+    const Icon = statusToIcon(status);
     const onTrackNumberTranslation = t('tool-panel.km-post.geometry.linking.track-number', {
         trackNumber: trackNumber?.number,
     });
