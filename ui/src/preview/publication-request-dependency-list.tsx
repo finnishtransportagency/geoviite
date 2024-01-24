@@ -14,7 +14,6 @@ import {
     useLocationTrack,
     useReferenceLine,
     useSwitch,
-    useTrackNumbers,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -32,7 +31,7 @@ const TrackNumberItem: React.FC<{ trackNumberId: LayoutTrackNumberId; changeTime
     props,
 ) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers('DRAFT', props.changeTime);
+    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT', props.changeTime);
     const trackNumber = trackNumbers && trackNumbers.find((tn) => tn.id === props.trackNumberId);
     return trackNumber === undefined ? (
         <li />
