@@ -102,8 +102,7 @@ $text-field-input-border-error: 2px;
 }
 
 // Hover
-
-.text-field:hover:not(.text-field--disabled) {
+.text-field:hover {
     .text-field__input-element {
         @include text-field-shadow(
             $color: colors.$color-black-lighter,
@@ -129,93 +128,101 @@ $text-field-input-border-error: 2px;
 }
 
 // Focus
-
 .text-field--focus {
-    .text-field__icon svg {
-        fill: colors.$color-blue-dark;
-    }
+    &,
+    &:hover {
+        .text-field__icon svg {
+            fill: colors.$color-blue-dark;
+        }
 
-    .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-blue-dark,
-            $width: $text-field-input-border-thick
-        );
-    }
+        .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-blue-dark,
+                $width: $text-field-input-border-thick
+            );
+        }
 
-    &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-blue-dark,
-            $width: $text-field-input-border-thick,
-            $icon: left
-        );
-    }
+        &.text-field--with-left-icon .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-blue-dark,
+                $width: $text-field-input-border-thick,
+                $icon: left
+            );
+        }
 
-    &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-blue-dark,
-            $width: $text-field-input-border-thick,
-            $icon: right
-        );
+        &.text-field--with-right-icon .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-blue-dark,
+                $width: $text-field-input-border-thick,
+                $icon: right
+            );
+        }
     }
 }
 
 // Error
 
 .text-field--has-error {
-    .text-field__input-element {
-        color: colors.$color-red-dark;
-        @include text-field-shadow(
-            $color: colors.$color-red-dark,
-            $width: $text-field-input-border-error
-        );
-    }
+    &,
+    &:hover {
+        .text-field__input-element {
+            color: colors.$color-red-dark;
+            @include text-field-shadow(
+                $color: colors.$color-red-dark,
+                $width: $text-field-input-border-error
+            );
+        }
 
-    &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-red-dark,
-            $width: $text-field-input-border-error,
-            $icon: left
-        );
-    }
+        &.text-field--with-left-icon .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-red-dark,
+                $width: $text-field-input-border-error,
+                $icon: left
+            );
+        }
 
-    &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-red-dark,
-            $width: $text-field-input-border-error,
-            $icon: right
-        );
+        &.text-field--with-right-icon .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-red-dark,
+                $width: $text-field-input-border-error,
+                $icon: right
+            );
+        }
     }
 }
 
 // Disabled
 
 .text-field--disabled {
-    .text-field__icon {
-        fill: colors.$color-black-lighter;
-    }
+    &,
+    &:hover {
+        .text-field__icon {
+            fill: colors.$color-black-lighter;
+        }
 
-    .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-white-darker,
-            $width: $text-field-input-border-default
-        );
-        color: colors.$color-black-lighter;
-    }
+        .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-white-darker,
+                $width: $text-field-input-border-default
+            );
+            color: colors.$color-black-lighter;
+        }
 
-    &.text-field--with-left-icon .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-white-darker,
-            $width: $text-field-input-border-default,
-            $icon: left
-        );
-    }
+        &.text-field--with-left-icon .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-white-darker,
+                $width: $text-field-input-border-default,
+                $icon: left
+            );
+        }
 
-    &.text-field--with-right-icon .text-field__input-element {
-        @include text-field-shadow(
-            $color: colors.$color-white-darker,
-            $width: $text-field-input-border-default,
-            $icon: right
-        );
+        &.text-field--with-right-icon .text-field__input-element {
+            @include text-field-shadow(
+                $color: colors.$color-white-darker,
+                $width: $text-field-input-border-default,
+                $icon: right
+            );
+        }
     }
 }
 

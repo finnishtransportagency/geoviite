@@ -70,8 +70,7 @@ $text-area-input-border-thick: 2px;
 }
 
 // Hover
-
-.text-area:hover:not(.text-area--disabled) {
+.text-area:hover {
     .text-area__input-element {
         @include text-area-shadow(
             $color: colors.$color-black-lighter,
@@ -90,70 +89,78 @@ $text-area-input-border-thick: 2px;
 }
 
 // Focus
-
 .text-area--focus {
-    .text-area__input-element {
-        @include text-area-shadow(
-            $color: colors.$color-blue-dark,
-            $width: $text-area-input-border-thick,
-            $has-icon: false
-        );
-    }
+    &,
+    &:hover {
+        .text-area__input-element {
+            @include text-area-shadow(
+                $color: colors.$color-blue-dark,
+                $width: $text-area-input-border-thick,
+                $has-icon: false
+            );
+        }
 
-    &.text-area--with-icon .text-area__input-element {
-        @include text-area-shadow(
-            $color: colors.$color-blue-dark,
-            $width: $text-area-input-border-thick,
-            $has-icon: true
-        );
+        &.text-area--with-icon .text-area__input-element {
+            @include text-area-shadow(
+                $color: colors.$color-blue-dark,
+                $width: $text-area-input-border-thick,
+                $has-icon: true
+            );
+        }
     }
 }
 
 // Error
 
 .text-area--has-error {
-    .text-area__input-element {
-        @include text-area-shadow(
-            $color: colors.$color-red-dark,
-            $width: $text-area-input-border-thick,
-            $has-icon: false
-        );
-    }
+    &,
+    &:hover {
+        .text-area__input-element {
+            @include text-area-shadow(
+                $color: colors.$color-red-dark,
+                $width: $text-area-input-border-thick,
+                $has-icon: false
+            );
+        }
 
-    &.text-area--with-icon .text-area__input-element {
-        @include text-area-shadow(
-            $color: colors.$color-red-dark,
-            $width: $text-area-input-border-thick,
-            $has-icon: true
-        );
-    }
+        &.text-area--with-icon .text-area__input-element {
+            @include text-area-shadow(
+                $color: colors.$color-red-dark,
+                $width: $text-area-input-border-thick,
+                $has-icon: true
+            );
+        }
 
-    .text-area__icon {
-        fill: colors.$color-red-dark;
+        .text-area__icon {
+            fill: colors.$color-red-dark;
+        }
     }
 }
 
 // Disabled
 
 .text-area--disabled {
-    .text-area__icon {
-        fill: colors.$color-black-lighter;
-    }
+    &,
+    &:hover {
+        .text-area__icon {
+            fill: colors.$color-black-lighter;
+        }
 
-    .text-area__input-element {
-        @include text-area-shadow(
-            $color: colors.$color-white-darker,
-            $width: $text-area-input-border-default,
-            $has-icon: false
-        );
-        color: colors.$color-black-lighter;
-    }
+        .text-area__input-element {
+            @include text-area-shadow(
+                $color: colors.$color-white-darker,
+                $width: $text-area-input-border-default,
+                $has-icon: false
+            );
+            color: colors.$color-black-lighter;
+        }
 
-    &.text-area--with-icon .text-area__input-element {
-        @include text-area-shadow(
-            $color: colors.$color-white-darker,
-            $width: $text-area-input-border-default,
-            $has-icon: true
-        );
+        &.text-area--with-icon .text-area__input-element {
+            @include text-area-shadow(
+                $color: colors.$color-white-darker,
+                $width: $text-area-input-border-default,
+                $has-icon: true
+            );
+        }
     }
 }

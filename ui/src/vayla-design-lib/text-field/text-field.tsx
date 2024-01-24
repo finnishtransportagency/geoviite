@@ -2,7 +2,6 @@ import * as React from 'react';
 import styles from './text-field.scss';
 import { IconColor, IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
-import { useCloneRef } from 'utils/react-utils';
 
 export enum TextFieldVariant {
     NO_BORDER = 'text-field--no-border',
@@ -24,22 +23,17 @@ export type TextFieldProps = {
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const TextField = React.forwardRef(
-    (
-        {
-            variant,
-            Icon,
-            iconPosition = TextInputIconPosition.LEFT,
-            hasError = false,
-            wide,
-            attachLeft,
-            attachRight,
-            ...props
-        }: TextFieldProps,
-        forwardedRef,
-    ) => {
-        const localRef = useCloneRef(forwardedRef);
-
-        const hasFocus = document.activeElement == localRef.current;
+    ({
+        variant,
+        Icon,
+        iconPosition = TextInputIconPosition.LEFT,
+        hasError = false,
+        wide,
+        attachLeft,
+        attachRight,
+        ...props
+    }: TextFieldProps) => {
+        const [hasFocus, setHasFocus] = React.useState(false);
 
         const className = createClassName(
             styles['text-field'],
@@ -67,14 +61,13 @@ export const TextField = React.forwardRef(
                             styles['text-field__input-element'],
                             props.className,
                         )}
-                        ref={(instance) => {
-                            localRef.current = instance;
-                        }}
                         onFocus={(e) => {
                             props.onFocus && props.onFocus(e);
+                            setHasFocus(true);
                         }}
                         onBlur={(e) => {
                             props.onBlur && props.onBlur(e);
+                            setHasFocus(false);
                         }}
                     />
                 </div>
