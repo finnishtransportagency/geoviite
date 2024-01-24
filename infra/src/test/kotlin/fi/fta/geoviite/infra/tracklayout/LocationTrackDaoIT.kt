@@ -66,9 +66,10 @@ class LocationTrackDaoIT @Autowired constructor(
             locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track4Id)).copy(duplicateOf = trackId)).id,
         )
 
+        // Find all but 3 (which isn't duplicate) and don't double-report 4
         assertEquals(
-            listOf(track1Id, track2Id, track4Id), // Find all but 3 (which isn't duplicate) and don't double-report 4
-            locationTrackDao.fetchDuplicateIdsInAnyLayoutContext(trackId),
+            listOf(track1Id, track2Id, track4Id).sortedBy { id -> id.intValue },
+            locationTrackDao.fetchDuplicateIdsInAnyLayoutContext(trackId).sortedBy { id -> id.intValue },
         )
     }
 
