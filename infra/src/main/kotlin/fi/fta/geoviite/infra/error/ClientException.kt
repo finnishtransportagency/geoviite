@@ -9,24 +9,24 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.*
 import kotlin.reflect.KClass
 
-interface HasLocalizeMessageKey {
-    val localizedMessageKey: LocalizationKey
-    val localizedMessageParams: LocalizationParams
+interface HasLocalizedMessage {
+    val localizationKey: LocalizationKey
+    val localizationParams: LocalizationParams
 }
 
 sealed class ClientException(
     val status: HttpStatus,
     message: String,
     cause: Throwable? = null,
-    override val localizedMessageKey: LocalizationKey,
-    override val localizedMessageParams: LocalizationParams = LocalizationParams.empty(),
-) : RuntimeException(message, cause), HasLocalizeMessageKey {
+    override val localizationKey: LocalizationKey,
+    override val localizationParams: LocalizationParams = LocalizationParams.empty,
+) : RuntimeException(message, cause), HasLocalizedMessage {
     constructor(
         status: HttpStatus,
         message: String,
         cause: Throwable?,
         localizedMessageKey: String,
-        localizedMessageParams: LocalizationParams = LocalizationParams.empty(),
+        localizedMessageParams: LocalizationParams = LocalizationParams.empty,
     ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
 }
 
@@ -73,26 +73,27 @@ class InputValidationException(
     message: String,
     type: KClass<*>,
     cause: Throwable? = null,
-    localizedMessageKey: String = "error.input.validation.${type.simpleName}",
-) : ClientException(BAD_REQUEST, "Input validation failed: $message", cause, localizedMessageKey)
+    localizationKey: String = "error.input.validation.${type.simpleName}",
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(BAD_REQUEST, "Input validation failed: $message", cause, localizationKey, localizationParams)
 
 class ApiUnauthorizedException(
     message: String,
     cause: Throwable? = null,
-    localizedMessageKey: String = "error.unauthorized",
+    localizedMessageKey: String = "error.authentication.unauthorized",
 ) : ClientException(UNAUTHORIZED, "API request unauthorized: $message", cause, localizedMessageKey)
 
 class InframodelParsingException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = INFRAMODEL_PARSING_KEY_GENERIC,
-    localizedMessageParams: LocalizationParams = LocalizationParams.empty(),
+    localizedMessageParams: LocalizationParams = LocalizationParams.empty,
 ) : ClientException(
     BAD_REQUEST,
     "InfraModel could not be parsed: $message",
     cause,
     localizedMessageKey,
-    localizedMessageParams
+    localizedMessageParams,
 )
 
 class NoSuchEntityException(
@@ -130,10 +131,9 @@ class DuplicateLocationTrackNameInPublicationException(
     localizedMessageKey = "error.publication.duplicate-name-on.location-track",
     localizedMessageParams = localizationParams(
         "locationTrack" to alignmentName,
-        "trackNumber" to trackNumber
+        "trackNumber" to trackNumber,
     )
 )
-
 
 enum class Integration { RATKO, PROJEKTIVELHO }
 class IntegrationNotConfiguredException(type: Integration) : ClientException(

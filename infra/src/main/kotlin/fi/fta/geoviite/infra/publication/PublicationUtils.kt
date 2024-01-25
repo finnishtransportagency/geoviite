@@ -105,27 +105,27 @@ private fun formatInstant(time: Instant, timeZone: ZoneId) =
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
     Operation.CREATE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.MODIFY -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.DELETE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.RESTORE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.CALCULATED -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 }
 

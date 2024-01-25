@@ -49,11 +49,21 @@
                 "BigDecimal": "Reaaliluvun muoto on virheellinen"
             }
         },
+        "bad-request": {
+            "invalid-path": "Virhe: pyynnön polku oli virheellinen ({{method}})",
+            "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
+            "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
+            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}"
+        },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",
             "plan-linked": "Suunnitelmaa ei voida poistaa, koska se on linkitettynä paikannuspohjaan."
         },
-        "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
+        "authentication": {
+            "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
+            "token-expired": "Toimintoa ei voida suorittaa, koska istunto on vanhentunut",
+            "invalid-token": "Toimintoa ei voida suorittaa, koska kirjautumisessa tapahtui virhe"
+        },
         "infra-model": {
             "request-failed": "Pyyntö taustapalvelimelle epäonnistui",
             "missing-file": "Tiedosto on tyhjä",
@@ -89,6 +99,8 @@
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
         "request-failed": "Pyyntö epäonnistui: {{path}}",
         "copied-to-clipboard": "Kopioitu leikepöydälle",
+        "xml-unmarshal-failed": "XML-tiedoston jäsentäminen epäonnistui",
+        "coordinate-transformation-failed": "Koordinaattimuunnos epäonnistui",
         "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
         "expected-non-null": "Pyyntö palautti null-arvon"
     },

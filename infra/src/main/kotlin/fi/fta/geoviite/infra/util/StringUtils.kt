@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.util
 
 import fi.fta.geoviite.infra.error.InputValidationException
+import fi.fta.geoviite.infra.localization.localizationParams
 
 
 val lineBreakRegex = Regex("[\n\r\t]")
@@ -46,7 +47,8 @@ fun removeLogUnsafe(input: String) = input.replace(UNSAFE_LOG_CHARACTERS, UNSAFE
 fun removeLinebreaks(input: String) = input.replace(lineBreakRegex, LINE_BREAK_REPLACEMENT)
 
 fun normalizeLinebreaksToUnixFormat(input: String) = input.replace(linebreakNormalizationRegex, UNIX_LINEBREAK)
-fun normalizeLinebreaksToUnixFormat(input: FreeTextWithNewLines) = FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(input.toString()))
+fun normalizeLinebreaksToUnixFormat(input: FreeTextWithNewLines) =
+    FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(input.toString()))
 
 fun isSanitized(
     stringValue: String,
@@ -64,19 +66,31 @@ inline fun <reified T> assertSanitized(
     allowBlank: Boolean = true,
 ) {
     length?.let { l -> assertLength<T>(stringValue, l) }
-    assertInput<T>(allowBlank || stringValue.isNotBlank()) {
+    assertInput<T>(allowBlank || stringValue.isNotBlank(), stringValue) {
         "Invalid (blank) value for ${T::class.simpleName}: ${formatForException(stringValue)}"
     }
-    assertInput<T>(stringValue.matches(regex)) {
+    assertInput<T>(stringValue.matches(regex), stringValue, ) {
         "Invalid characters in ${T::class.simpleName}: ${formatForException(stringValue)}"
     }
 }
 
-inline fun <reified T> assertLength(value: String, length: ClosedRange<Int>) =
-    assertInput<T>(value.length in length) {
-        "Invalid length for ${T::class.simpleName} ${value.length} not in [${length.start}..${length.endInclusive}]"
+inline fun <reified T> assertLength(value: String, length: IntRange) =
+    assertInput<T>(value.length in length, value, "[${length.first},${length.last}]") {
+        "Invalid length for ${T::class.simpleName} ${value.length} not in [${length.first}..${length.last}]"
     }
 
-inline fun <reified T> assertInput(condition: Boolean, lazyMessage: () -> String) {
-    if (!condition) throw InputValidationException(message = lazyMessage(), type = T::class)
+inline fun <reified T> assertInput(
+    condition: Boolean,
+    value: String,
+    limit: String? = null,
+    lazyMessage: () -> String,
+) {
+    if (!condition) throw InputValidationException(
+        message = lazyMessage(),
+        type = T::class,
+        localizationParams = localizationParams(
+            "value" to formatForException(value),
+            "limit" to limit,
+        ),
+    )
 }

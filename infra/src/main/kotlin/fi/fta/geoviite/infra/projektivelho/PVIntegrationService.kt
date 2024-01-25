@@ -188,7 +188,7 @@ class PVIntegrationService @Autowired constructor(
             else InfraModelCheckResult(SUGGESTED)
         } catch (e: InframodelParsingException) {
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
-            InfraModelCheckResult(NOT_IM, e.localizedMessageKey.toString())
+            InfraModelCheckResult(NOT_IM, e.localizationKey.toString())
         } catch (e: Exception) {
             logger.warn("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
             InfraModelCheckResult(NOT_IM, INFRAMODEL_PARSING_KEY_GENERIC)

@@ -4,8 +4,8 @@ import com.auth0.jwt.exceptions.*
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
-import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
 import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
 import org.opengis.referencing.operation.TransformException
@@ -36,45 +36,46 @@ import org.springframework.web.servlet.NoHandlerFoundException
 fun createResponse(exception: Exception, correlationId: String): ResponseEntity<ApiErrorResponse>? {
     val causeChain = getCauseChain(exception)
     val status = getStatusCode(causeChain)
-    val localizedMessage = causeChain.firstNotNullOfOrNull(::getLocalizationKey)
     return status?.let { s ->
-        if (s.is5xxServerError) createStatusOnlyErrorResponse(correlationId, s, localizedMessage)
-        else createDescriptiveErrorResponse(correlationId, s, causeChain, localizedMessage)
+        if (s.is5xxServerError) {
+            createTerseErrorResponse(correlationId, s)
+        } else {
+            createDescriptiveErrorResponse(correlationId, s, causeChain)
+        }
     }
 }
 
-fun createStatusOnlyErrorResponse(
-    correlationId: String,
-    status: HttpStatus,
-    localizedMessage: Pair<LocalizationKey, LocalizationParams>? = null,
-) = createResponse(listOf(status.reasonPhrase), status, correlationId, localizedMessage)
+fun createTerseErrorResponse(correlationId: String, status: HttpStatus): ResponseEntity<ApiErrorResponse> =
+    createResponse(listOf(describe(status)), status, correlationId)
 
 fun createDescriptiveErrorResponse(
     correlationId: String,
     status: HttpStatus,
     causeChain: List<Exception>,
-    localizedMessage: Pair<LocalizationKey, LocalizationParams>?,
-) = createResponse(causeChain.mapNotNull(::describe), status, correlationId, localizedMessage)
+): ResponseEntity<ApiErrorResponse> = createResponse(causeChain.mapNotNull(::describe), status, correlationId)
 
 fun createResponse(
-    messageRows: List<String>,
+    messageRows: List<ErrorDescription>,
     status: HttpStatus,
     correlationId: String,
-    localizedMessage: Pair<LocalizationKey, LocalizationParams>?,
 ): ResponseEntity<ApiErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
+    val description = getPrimaryDescription(messageRows, status)
     return ResponseEntity(
         ApiErrorResponse(
-            messageRows,
-            correlationId,
-            localizedMessage?.first,
-            localizedMessage?.second ?: LocalizationParams.empty()
+            messageRows = messageRows.map { m -> m.message },
+            localizationKey = description.localizationKey,
+            localizationParams = description.localizationParams,
+            correlationId = correlationId,
         ),
         headers,
-        status
+        status,
     )
 }
+
+fun getPrimaryDescription(messageRows: List<ErrorDescription>, status: HttpStatus): ErrorDescription =
+    messageRows.minByOrNull { r -> r.priority } ?: describe(status)
 
 fun getCauseChain(exception: Exception): List<Exception> {
     val chain = mutableListOf<Exception>()
@@ -82,7 +83,7 @@ fun getCauseChain(exception: Exception): List<Exception> {
     while (current != null) {
         when (current) {
             is Exception -> chain.add(current)
-            is Error -> throw IllegalStateException("Errors are not meant to be caught! Tried to handle $current")
+            is Error -> error("Errors are not meant to be caught! Tried to handle $current")
         }
         current = current.cause
     }
@@ -118,39 +119,163 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     else -> null
 }
 
-fun getLocalizationKey(exception: Exception): Pair<LocalizationKey, LocalizationParams>? =
-    if (exception is HasLocalizeMessageKey) exception.localizedMessageKey to exception.localizedMessageParams
-    else null
+fun describe(status: HttpStatus) = ErrorDescription(
+    message = status.reasonPhrase,
+    key = if (status.is4xxClientError) {
+        "error.client-error"
+    } else {
+        "error.internal-server-error"
+    },
+    params = localizationParams("code" to status.value()),
+)
 
-fun describe(exception: Exception): String? = when (exception) {
-    // Our own exceptions
-    is ClientException -> exception.message
-    is AccessDeniedException -> exception.message
-    // General Kotlin exceptions
-    is IllegalArgumentException -> exception.message
-    // Spring exceptions
-    is HttpRequestMethodNotSupportedException -> exception.message
-    is MissingServletRequestParameterException -> "Missing parameter: ${exception.parameterName} of type ${exception.parameterType}"
-    is HttpMessageNotReadableException -> "Request body not readable"
-    is NoHandlerFoundException -> "No handler found: ${exception.httpMethod} ${exception.requestURL}"
-    is MethodArgumentTypeMismatchException -> "Argument type mismatch: ${exception.parameter}"
-    is ConversionFailedException -> "Conversion failed for value \"${exception.value}\": [${exception.sourceType?.type?.simpleName}] -> [${exception.targetType.type.simpleName}]"
-    is MissingKotlinParameterException -> "Missing parameter \"${exception.parameter.name}\""
-    is MismatchedInputException -> exception.toString()
-    is JsonParseException -> "Failed to parse JSON input"
-    is ValueInstantiationException -> "Failed to instantiate ${exception.type.genericSignature}"
-    // Jaxb exceptions (XML parsing)
-    is UnmarshalException -> exception.message
-    // Geotools exceptions
-    is TransformException -> exception.message
-    // Token decoding: JWT.java
-    is JWTDecodeException -> "JWT - Unparseable token: ${exception.message}"
-    // Token verification: JWTVerifier.java
-    is InvalidClaimException -> "JWT - Invalid claim: ${exception.message}"
-    is TokenExpiredException -> "JWT - Token expired: ${exception.message}"
-    is SignatureVerificationException -> "JWT - Invalid signature: ${exception.message}"
-    is AlgorithmMismatchException -> "JWT - Wrong signature algorithm: ${exception.message}"
-    // Switch to this if you want to see what types end up in the chain:
-//    else -> "<${exception::class.simpleName}>"
-    else -> null
+fun describe(ex: Exception): ErrorDescription {
+    val message = ex.message ?: "${ex::class.simpleName}"
+    return when (ex) {
+        // Our own exceptions: prioritized for error display as they likely contain the most understandable message
+        is HasLocalizedMessage -> ErrorDescription(
+            message = message,
+            localizationKey = ex.localizationKey,
+            localizationParams = ex.localizationParams,
+            priority = ErrorPriority.HIGH,
+        )
+
+        // General Kotlin exceptions
+        is IllegalArgumentException -> ErrorDescription(
+            message = message,
+            key = "error.exception.illegal-argument",
+            priority = ErrorPriority.LOW,
+        )
+
+        // Spring exceptions
+        is AccessDeniedException -> ErrorDescription(message, "error.authentication.unauthorized")
+
+        is HttpMessageNotReadableException -> ErrorDescription(
+            message = "Request body not readable",
+            key = "error.bad-request.invalid-body",
+        )
+
+        is HttpRequestMethodNotSupportedException -> ErrorDescription(
+            message = message,
+            key = "error.bad-request.invalid-path",
+            params = localizationParams("method" to ex.method),
+        )
+
+        is NoHandlerFoundException -> ErrorDescription(
+            message = "No handler found: ${ex.httpMethod} ${ex.requestURL}",
+            key = "error.bad-request.invalid-path",
+            params = localizationParams("method" to ex.httpMethod),
+        )
+
+        is MissingServletRequestParameterException -> ErrorDescription(
+            message = "Missing parameter: ${ex.parameterName} of type ${ex.parameterType}",
+            key = "error.bad-request.missing-parameter",
+            params = localizationParams("param" to ex.parameterName, "type" to ex.parameterType),
+        )
+
+        is MethodArgumentTypeMismatchException -> ErrorDescription(
+            message = "Argument type mismatch: ${ex.name} (type ${ex.requiredType?.simpleName}) ${ex.parameter}",
+            key = "error.bad-request.conversion-failed",
+            params = localizationParams(
+                "name" to ex.name,
+                "parameter" to ex.parameter,
+                "target" to ex.requiredType?.simpleName,
+            ),
+        )
+
+        is ConversionFailedException -> ErrorDescription(
+            message = "Conversion failed for value \"${ex.value}\": [${ex.sourceType?.type?.simpleName}] -> [${ex.targetType.type.simpleName}]",
+            key = "error.bad-request.conversion-failed",
+            params = localizationParams("target" to ex.targetType.type.simpleName),
+            priority = ErrorPriority.LOW,
+        )
+
+        // Jackson exceptions
+        is MismatchedInputException -> ErrorDescription(
+            message = message,
+            key = "error.bad-request.conversion-failed",
+            params = localizationParams("target" to ex.targetType.simpleName),
+            priority = ErrorPriority.LOW,
+        )
+
+        is JsonParseException -> ErrorDescription(
+            message = "Failed to parse JSON input",
+            key = "error.bad-request.invalid-body",
+        )
+
+        is ValueInstantiationException -> ErrorDescription(
+            message = "Failed to instantiate ${ex.type.genericSignature}",
+            key = "error.bad-request.conversion-failed",
+            params = localizationParams("target" to ex.type.genericSignature),
+            priority = ErrorPriority.LOW,
+        )
+
+        // Jaxb exceptions (XML parsing)
+        is UnmarshalException -> ErrorDescription(
+            message = message,
+            key = "error.xml-unmarshal-failed",
+        )
+
+        // Geotools exceptions
+        is TransformException -> ErrorDescription(
+            message = message,
+            key = "error.coordinate-transformation-failed",
+        )
+
+        // Token decoding: JWT.java
+        is JWTDecodeException -> ErrorDescription(
+            message = "JWT - Unparseable token: $message",
+            key = "error.authentication.invalid-token",
+        )
+
+        // Token verification: JWTVerifier.java
+        is TokenExpiredException -> ErrorDescription(
+            message = "JWT - Token expired: $message",
+            key = "error.authentication.token-expired",
+        )
+
+        is InvalidClaimException -> ErrorDescription(
+            message = "JWT - Invalid claim: $message",
+            key = "error.authentication.invalid-token",
+        )
+
+        is SignatureVerificationException -> ErrorDescription(
+            message = "JWT - Invalid signature: $message",
+            key = "error.authentication.invalid-token",
+        )
+
+        is AlgorithmMismatchException -> ErrorDescription(
+            message = "JWT - Wrong signature algorithm: $message",
+            key = "error.authentication.invalid-token",
+        )
+
+        // Switch to this if you want to see what types end up in the chain:
+        else -> ErrorDescription(
+            message = message,
+            key = "error.exception",
+            params = localizationParams("type" to ex::class.simpleName),
+        )
+//        else -> null
+    }
+}
+
+enum class ErrorPriority { HIGH, AVERAGE, LOW }
+
+data class ErrorDescription(
+    val message: String,
+    val localizationKey: LocalizationKey,
+    val localizationParams: LocalizationParams,
+    val priority: ErrorPriority,
+) {
+    constructor(
+        message: String,
+        key: String,
+        params: LocalizationParams = LocalizationParams.empty,
+        priority: ErrorPriority = ErrorPriority.AVERAGE,
+    ) : this(
+        message,
+        LocalizationKey(key),
+        params,
+        priority,
+    )
 }

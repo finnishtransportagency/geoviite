@@ -1,10 +1,11 @@
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import i18n from 'i18next';
 import { err, ok, Result } from 'neverthrow';
-import { filterNotEmpty } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
 import { LocalizationParams } from 'i18n/config';
 import i18next from 'i18next';
+import { TimeStamp } from 'common/common-model';
 
 export const API_URI = '/api';
 
@@ -33,10 +34,10 @@ export type ApiError = {
 
 export type ApiErrorResponse = {
     messageRows: string[];
+    localizationKey: string;
+    localizationParams: LocalizationParams;
     correlationId: string;
-    timestamp: string;
-    localizedMessageKey?: string;
-    localizedMessageParams: LocalizationParams;
+    timestamp: TimeStamp;
     status: number;
 };
 
@@ -296,23 +297,22 @@ async function executeBodyRequestInternal<Output>(
         return ok(await response.json());
     } else {
         const errorResponse: ApiError = await convertResponseToError(response);
-
-        if (
-            retryOnTokenExpired &&
+        const errorIsTokenExpiry =
             response.status === 401 &&
-            errorResponse.response.localizedMessageKey === TOKEN_EXPIRED
-        ) {
+            (response.headers.has('session-expired') ||
+                errorContains(errorResponse.response, TOKEN_EXPIRED));
+
+        if (retryOnTokenExpired && errorIsTokenExpiry) {
             return executeBodyRequestInternal(fetchFunction, false);
         } else {
-            if (
-                response.status === 401 &&
-                (response.headers.has('session-expired') ||
-                    errorResponse.response.localizedMessageKey === TOKEN_EXPIRED)
-            )
-                Snackbar.sessionExpired();
+            if (errorIsTokenExpiry) Snackbar.sessionExpired();
             return err(errorResponse.response);
         }
     }
+}
+
+function errorContains(error: ApiErrorResponse, localizationKey: string): boolean {
+    return error.messageRows.some((r) => r.localizationKey === localizationKey);
 }
 
 async function getFormResponse(
@@ -369,5 +369,16 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
 }
 
 const showHttpError = (path: string, response: ApiErrorResponse) => {
-    Snackbar.error(i18n.t('error.request-failed', { path }), response);
+    Snackbar.error(getLocalizedError(response, 'error.request-failed', { path }), response);
+};
+
+export const getLocalizedError = (
+    response: ApiErrorResponse | undefined,
+    defaultKey: string,
+    defaultParams: LocalizationParams = {},
+): string => {
+    const error = getMainError(response);
+    const key = error?.localizationKey || defaultKey;
+    const params = error?.localizationParams || defaultParams;
+    return i18n.t(key, params);
 };
