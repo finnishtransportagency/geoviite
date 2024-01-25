@@ -4,8 +4,8 @@ import { Button } from 'vayla-design-lib/button/button';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 
 export const SnackbarExamples: React.FC = () => {
-    const [header, setHeader] = React.useState<string>('Tetson stetson');
-    const [body, setBody] = React.useState<string>('balleballe');
+    const [header, setHeader] = React.useState<string>('');
+    const [body, setBody] = React.useState<string>('');
 
     const infoSnackbar = () => {
         Snackbar.info(header, body);

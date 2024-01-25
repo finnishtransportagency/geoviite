@@ -148,7 +148,7 @@ export async function getSwitchValidation(
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validations`);
+    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }
 
 export const getSwitchChangeTimes = (
