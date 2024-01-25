@@ -472,7 +472,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         </InfoboxButtons>
                                     </React.Fragment>
                                 )}
-                                <EnvRestricted restrictTo="dev">
+                                <EnvRestricted restrictTo="test">
                                     {duplicatesOnOtherTracks && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
