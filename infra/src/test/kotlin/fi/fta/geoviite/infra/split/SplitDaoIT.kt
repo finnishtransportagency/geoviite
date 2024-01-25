@@ -43,7 +43,6 @@ class SplitDaoIT @Autowired constructor(
         ).let(splitDao::getSplit)
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
-        assertNull(split.errorCause)
         assertNull(split.publicationId)
         assertEquals(sourceTrack.id, split.locationTrackId)
         assertContains(split.targetLocationTracks, SplitTarget(split.id, targetTrack.id, 0..0))
@@ -74,13 +73,11 @@ class SplitDaoIT @Autowired constructor(
         val updatedSplit = splitDao.updateSplitState(
             split.copy(
                 bulkTransferState = BulkTransferState.FAILED,
-                errorCause = "TEST",
                 publicationId = publicationId,
             )
         ).let(splitDao::getSplit)
 
         assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransferState)
-        assertEquals("TEST", updatedSplit.errorCause)
         assertEquals(publicationId, updatedSplit.publicationId)
     }
 
