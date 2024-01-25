@@ -166,8 +166,10 @@ export const getSwitchesValidation = async (publishType: PublishType, ids: Layou
                 getNonNull<ValidatedAsset[]>(
                     `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
                 ).then((switches) => {
-                    const switchMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(switches);
-                    return (id) => switchMap.get(id) as ValidatedAsset;
+                    const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(
+                        switches,
+                    );
+                    return (id) => switchValidationMap.get(id) as ValidatedAsset;
                 }),
         )
         .then((switches) => switches.filter(filterNotEmpty));
