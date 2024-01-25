@@ -8,7 +8,9 @@
             "generic": "Linkityksessä tapahtui virhe",
             "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",
             "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
-            "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu"
+            "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu",
+            "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
+            "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",
@@ -611,6 +613,10 @@
                 "replaces-duplicate": "Korvaa duplikaattiraiteen",
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
+                "exit-title": "Poistu raiteen jakamisesta",
+                "confirm-exit": "Tähän mennessä tehdyt jakamismuutokset peruutetaan. Haluatko varmasti poistua?",
+                "back": "Jatka jakamista",
+                "exit": "Poistu",
                 "validation": {
                     "duplicates-on-different-track-number": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista sijaitsee eri ratanumerolla.",
                     "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
@@ -621,6 +627,8 @@
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
                     "missing-switch": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
+                    "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden massasiirrossa Ratkossa.",
+                    "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä"
                 }
@@ -1247,6 +1255,10 @@
                 "km-posts-invalid": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
                 "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta",
                 "start-km-too-long": "Alkukilometri ottaen huomioon alkupisteen metrit on liian pitkä"
+            },
+            "split": {
+                "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa",
+                "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide"
             }
         }
     },
@@ -1390,7 +1402,8 @@
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
-        "splitting-in-progress": "Raiteen jakaminen on kesken"
+        "splitting-in-progress": "Raiteen jakaminen on kesken",
+        "linking-in-progress": "Linkitys on kesken"
     },
     "user-card": {
         "my-details": "Omat tiedot",

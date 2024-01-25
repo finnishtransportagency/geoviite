@@ -93,7 +93,7 @@ export function useReferenceLines(
     return (
         useLoader(
             () => (ids ? getReferenceLines(ids, publishType, changeTime) : undefined),
-            [ids, publishType, changeTime],
+            [JSON.stringify(ids), publishType, changeTime],
         ) || []
     );
 }
@@ -117,7 +117,7 @@ export function useLocationTracks(
     return (
         useLoader(
             () => (ids ? getLocationTracks(ids, publishType, changeTime) : undefined),
-            [ids, publishType, changeTime],
+            [JSON.stringify(ids), publishType, changeTime],
         ) || []
     );
 }
@@ -141,7 +141,7 @@ export function useSwitches(
     return (
         useLoader(
             () => (ids ? getSwitches(ids, publishType, changeTime) : undefined),
-            [ids, publishType, changeTime],
+            [JSON.stringify(ids), publishType, changeTime],
         ) || []
     );
 }
@@ -328,7 +328,7 @@ export function useKmPosts(
     return (
         useLoader(
             () => (ids ? getKmPosts(ids, publishType, changeTime) : undefined),
-            [ids, publishType, changeTime],
+            [JSON.stringify(ids), publishType, changeTime],
         ) || []
     );
 }

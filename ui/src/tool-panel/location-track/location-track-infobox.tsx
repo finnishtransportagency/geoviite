@@ -355,16 +355,19 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         locationTrackId={splittingState.originLocationTrack.id}
                         locationTrackChangeTime={locationTrackChangeTime}
                         removeSplit={delegates.removeSplit}
-                        cancelSplitting={() => {
-                            delegates.cancelSplitting();
+                        stopSplitting={() => {
+                            delegates.stopSplitting();
                             delegates.hideLayers(['location-track-split-location-layer']);
                         }}
                         allowedSwitches={splittingState.allowedSwitches}
                         switchChangeTime={switchChangeTime}
-                        duplicateLocationTracks={extraInfo?.duplicates || []}
                         updateSplit={delegates.updateSplit}
                         setSplittingDisabled={delegates.setDisabled}
                         disabled={splittingState.disabled}
+                        isPostingSplit={splittingState.state === 'POSTING'}
+                        startPostingSplit={delegates.startPostingSplit}
+                        returnToSplitting={delegates.returnToSplitting}
+                        markSplitOld={delegates.markSplitOld}
                     />
                 </EnvRestricted>
             )}

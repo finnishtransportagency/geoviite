@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
-    LayoutLocationTrack,
     AlignmentPoint,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
@@ -14,20 +14,27 @@ import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
 
 const DUPLICATE_MAX_DISTANCE = 1.0;
 
-export type InitialSplit = {
+type SplitBase = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
     duplicateOf?: LocationTrackId;
     location: Point;
+    new: boolean;
 };
 
-export type Split = InitialSplit & {
+export type InitialSplit = SplitBase & {
+    type: 'INITIAL_SPLIT';
+};
+
+export type Split = SplitBase & {
+    type: 'SPLIT';
     switchId: LayoutSwitchId;
     distance: number;
 };
 
 export type SplittingState = {
+    state: 'SETUP' | 'POSTING';
     endLocation: AlignmentPoint;
     originLocationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
@@ -54,6 +61,19 @@ export type SwitchOnLocationTrack = {
     distance: number | undefined;
 };
 
+export type SplitRequest = {
+    sourceTrackId: LocationTrackId;
+    targetTracks: SplitRequestTarget[];
+};
+
+export type SplitRequestTarget = {
+    duplicateTrackId: LocationTrackId | undefined;
+    startAtSwitchId: LayoutSwitchId | undefined;
+    name: string;
+    descriptionBase: string;
+    descriptionSuffix: LocationTrackDescriptionSuffixMode;
+};
+
 export const sortSplitsByDistance = (splits: Split[]) =>
     [...splits].sort((a, b) => a.distance - b.distance);
 
@@ -78,6 +98,7 @@ export const splitReducers = {
         );
         state.publishType = 'DRAFT';
         state.splittingState = {
+            state: 'SETUP',
             originLocationTrack: payload.locationTrack,
             allowedSwitches: payload.allowedSwitches,
             startAndEndSwitches: payload.startAndEndSwitches,
@@ -86,6 +107,7 @@ export const splitReducers = {
             endLocation: payload.endLocation,
             disabled: payload.locationTrack.draftType !== 'OFFICIAL',
             initialSplit: {
+                type: 'INITIAL_SPLIT',
                 name:
                     duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
@@ -99,10 +121,11 @@ export const splitReducers = {
                 descriptionBase: '',
                 suffixMode: 'NONE',
                 location: payload.startLocation,
+                new: true,
             },
         };
     },
-    cancelSplitting: (state: TrackLayoutState): void => {
+    stopSplitting: (state: TrackLayoutState): void => {
         state.splittingState = undefined;
     },
     setDisabled: (state: TrackLayoutState, { payload }: PayloadAction<boolean>): void => {
@@ -127,6 +150,7 @@ export const splitReducers = {
             );
             state.splittingState.splits = state.splittingState.splits.concat([
                 {
+                    type: 'SPLIT',
                     switchId: payload,
                     name:
                         closestDupe && closestDupe.distance <= DUPLICATE_MAX_DISTANCE
@@ -140,8 +164,26 @@ export const splitReducers = {
                     suffixMode: 'NONE',
                     location: allowedSwitch.location,
                     distance: allowedSwitch.distance,
+                    new: true,
                 },
             ]);
+        }
+    },
+    markSplitOld: (
+        state: TrackLayoutState,
+        { payload }: PayloadAction<LayoutSwitchId | undefined>,
+    ): void => {
+        if (state.splittingState) {
+            if (payload) {
+                state.splittingState.splits = state.splittingState.splits.map((split) =>
+                    split.switchId === payload ? { ...split, new: false } : split,
+                );
+            } else {
+                state.splittingState.initialSplit = {
+                    ...state.splittingState.initialSplit,
+                    new: false,
+                };
+            }
         }
     },
     removeSplit: (state: TrackLayoutState, { payload }: PayloadAction<LayoutSwitchId>): void => {
@@ -156,13 +198,23 @@ export const splitReducers = {
         { payload }: PayloadAction<Split | InitialSplit>,
     ): void => {
         if (state.splittingState) {
-            if ('switchId' in payload) {
+            if (payload.type === 'SPLIT') {
                 state.splittingState.splits = state.splittingState.splits
                     .filter((split) => split.switchId !== payload.switchId)
                     .concat([payload]);
             } else {
                 state.splittingState.initialSplit = payload;
             }
+        }
+    },
+    startPostingSplit: (state: TrackLayoutState): void => {
+        if (state.splittingState) {
+            state.splittingState.state = 'POSTING';
+        }
+    },
+    returnToSplitting: (state: TrackLayoutState): void => {
+        if (state.splittingState) {
+            state.splittingState.state = 'SETUP';
         }
     },
 };

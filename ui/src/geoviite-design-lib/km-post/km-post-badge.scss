@@ -30,9 +30,10 @@
     }
 
     &--disabled {
-        background-color: vayla-design.$color-white-dark;
-        border-color: rgba(vayla-design.$color-black-default, 0.3);
-        color: vayla-design.$color-black-light;
+        pointer-events: none;
+        border-color: vayla-design.$color-black-lighter;
+        fill: vayla-design.$color-black-lighter;
+        color: vayla-design.$color-black-lighter;
     }
 
     &--clickable {

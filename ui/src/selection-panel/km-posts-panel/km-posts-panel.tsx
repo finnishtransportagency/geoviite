@@ -12,6 +12,7 @@ type KmPostsPanelProps = {
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
     selectedKmPosts?: LayoutKmPostId[];
     max?: number;
+    disabled: boolean;
 };
 
 export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
@@ -20,6 +21,7 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
     onToggleKmPostSelection,
     selectedKmPosts,
     max = 16,
+    disabled,
 }: KmPostsPanelProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(publishType);
@@ -47,12 +49,17 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
                     const isSelected = selectedKmPosts?.some(
                         (selectedPost) => selectedPost == kmPost.id,
                     );
+                    const status = () => {
+                        if (disabled) return KmPostBadgeStatus.DISABLED;
+                        else if (isSelected) return KmPostBadgeStatus.SELECTED;
+                        else return undefined;
+                    };
                     return (
                         <li key={kmPost.id}>
                             <KmPostBadge
                                 kmPost={kmPost}
                                 onClick={() => onToggleKmPostSelection(kmPost)}
-                                status={isSelected ? KmPostBadgeStatus.SELECTED : undefined}
+                                status={status()}
                                 trackNumber={trackNumbers?.find(
                                     (tn) => tn.id === kmPost.trackNumberId,
                                 )}

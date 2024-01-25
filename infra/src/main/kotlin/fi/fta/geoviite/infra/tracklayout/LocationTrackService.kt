@@ -87,6 +87,22 @@ class LocationTrackService(
     }
 
     @Transactional
+    fun updateState(id: IntId<LocationTrack>, state: LayoutState): DaoResponse<LocationTrack> {
+        logger.serviceCall("update", "id" to id, "state" to state)
+        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
+        val locationTrack = originalTrack.copy(state = state)
+
+        return if (locationTrack.state != LayoutState.DELETED) {
+            saveDraft(locationTrack)
+        } else {
+            clearDuplicateReferences(id)
+            val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
+            val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
+            saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, newAlignment), newAlignment)
+        }
+    }
+
+    @Transactional
     override fun saveDraft(draft: LocationTrack): DaoResponse<LocationTrack> =
         super.saveDraft(draft.copy(alignmentVersion = updatedAlignmentVersion(draft)))
 
@@ -563,14 +579,18 @@ class LocationTrackService(
         logger.serviceCall(
             "getSwitchesForLocationTrack", "locationTrackId" to locationTrackId, "publishType" to publishType
         )
-        val ltAndAlignment = getWithAlignment(publishType, locationTrackId)
-        val topologySwitches = listOfNotNull(
-            ltAndAlignment?.first?.topologyStartSwitch?.switchId, ltAndAlignment?.first?.topologyEndSwitch?.switchId
-        )
-        val segmentSwitches =
-            ltAndAlignment?.second?.segments?.mapNotNull { segment -> segment.switchId as IntId? } ?: emptyList()
-        return (topologySwitches + segmentSwitches).distinct()
+        return getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
+            collectAllSwitches(track, alignment)
+        } ?: emptyList()
     }
+}
+
+fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {
+    val topologySwitches = listOfNotNull(
+        locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId
+    )
+    val segmentSwitches = alignment.segments.mapNotNull { segment -> segment.switchId as IntId? }
+    return (topologySwitches + segmentSwitches).distinct()
 }
 
 data class NearbyTracks(

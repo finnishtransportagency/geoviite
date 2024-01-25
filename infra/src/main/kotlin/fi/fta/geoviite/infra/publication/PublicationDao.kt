@@ -6,10 +6,10 @@ import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.INSERT
+import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
@@ -109,6 +109,16 @@ class PublicationDao(
 
     fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
+            with splits as (
+                select
+                    split.id as split_id,
+                    split.source_location_track_id as source_track_id,
+                    array_agg(stlt.location_track_id) as target_track_ids
+                from publication.split
+                    inner join publication.split_target_location_track stlt on stlt.split_id = split.id
+                where split.bulk_transfer_state = 'PENDING' and split.publication_id is null
+                group by split.id, split.source_location_track_id
+            )
             select 
               draft_location_track.row_id,
               draft_location_track.row_version,
@@ -122,14 +132,18 @@ class PublicationDao(
                 official_location_track.state,
                 draft_location_track.state
               ) as operation,
-              postgis.st_astext(alignment_version.bounding_box) as bounding_box
+              postgis.st_astext(alignment_version.bounding_box) as bounding_box,
+              splits.split_id
             from layout.location_track_publication_view draft_location_track
-              left join layout.location_track_publication_view official_location_track
-                on official_location_track.official_id = draft_location_track.official_id
-                  and 'OFFICIAL' = any(official_location_track.publication_states)
-              left join layout.alignment_version alignment_version
-                on draft_location_track.alignment_id = alignment_version.id
-                  and draft_location_track.alignment_version = alignment_version.version
+                left join layout.location_track_publication_view official_location_track
+                    on official_location_track.official_id = draft_location_track.official_id
+                        and 'OFFICIAL' = any(official_location_track.publication_states)
+                left join layout.alignment_version alignment_version
+                    on draft_location_track.alignment_id = alignment_version.id
+                        and draft_location_track.alignment_version = alignment_version.version
+                left join splits 
+                    on splits.source_track_id = draft_location_track.official_id 
+                        or draft_location_track.official_id = any(splits.target_track_ids)
             where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -142,7 +156,8 @@ class PublicationDao(
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
-                boundingBox = rs.getBboxOrNull("bounding_box")
+                boundingBox = rs.getBboxOrNull("bounding_box"),
+                group = rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublishGroup)
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))

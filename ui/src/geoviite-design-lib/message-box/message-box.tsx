@@ -16,18 +16,28 @@ export const MessageBox: React.FC<MessageBoxProps> = ({
     pop,
     type = 'INFO',
 }: MessageBoxProps) => {
+    const showingError = type === 'ERROR';
+
     const classes = createClassName(
         styles['message-box'],
         pop != undefined && styles['message-box--poppable'],
         pop && styles['message-box--popped'],
-        type === 'ERROR' && styles['message-box--error'],
+        showingError && styles['message-box--error'],
     );
 
+    const iconClasses = createClassName(
+        styles['message-box__icon'],
+        showingError && styles['message-box__icon--error'],
+    );
     return (
         <div className={classes}>
             <div className="message-box__inner">
-                <span className={styles['message-box__icon']}>
-                    <Icons.Info color={IconColor.INHERIT} />
+                <span className={iconClasses}>
+                    {showingError ? (
+                        <Icons.StatusError color={IconColor.INHERIT} />
+                    ) : (
+                        <Icons.Info color={IconColor.INHERIT} />
+                    )}
                 </span>
                 <span>{children}</span>
             </div>

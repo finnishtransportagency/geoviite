@@ -90,6 +90,30 @@ fun switchAndMatchingAlignments(
     return switch to alignments
 }
 
+fun segmentsFromSwitchStructure(
+    start: Point,
+    switchId: IntId<TrackLayoutSwitch>,
+    structure: SwitchStructure,
+    line: List<Int>,
+): List<LayoutSegment> {
+    val expectedJoints = line.map(::JointNumber)
+    val switchAlignment = requireNotNull(structure.alignments.find { a -> a.jointNumbers == expectedJoints })
+    return segmentsFromSwitchAlignment(start, switchId, switchAlignment)
+}
+
+fun segmentsFromSwitchAlignment(
+    start: Point,
+    switchId: IntId<TrackLayoutSwitch>,
+    alignment: SwitchAlignment,
+): List<LayoutSegment> = alignment.elements.mapIndexed { i, e ->
+    segment(
+        points = toSegmentPoints(start + e.start, start + e.end),
+        switchId = switchId,
+        startJointNumber = alignment.jointNumbers[i],
+        endJointNumber = alignment.jointNumbers[i + 1],
+    )
+}
+
 fun switchOwnerVayla(): SwitchOwner {
     return SwitchOwner(
         id = IntId(1),
@@ -186,12 +210,14 @@ fun locationTrackAndAlignment(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
+    state: LayoutState = LayoutState.IN_USE,
 ): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
     trackNumberId,
     segments.toList(),
     name = name,
     description = description,
     duplicateOf = duplicateOf,
+    state = state,
 )
 
 fun locationTrackAndAlignment(
@@ -202,6 +228,7 @@ fun locationTrackAndAlignment(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
+    state: LayoutState = LayoutState.IN_USE,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
     val locationTrack = locationTrack(
@@ -212,6 +239,7 @@ fun locationTrackAndAlignment(
         name = name,
         description = description,
         duplicateOf = duplicateOf,
+        state = state,
     )
     return locationTrack to alignment
 }
@@ -662,6 +690,17 @@ fun segments(vararg endPoints: IPoint): List<LayoutSegment> {
     }
 }
 
+fun switchFromDbStructure(name: String, switchStart: Point, structure: SwitchStructure): TrackLayoutSwitch = switch(
+    name = name,
+    structureId = structure.id as IntId,
+    joints = structure.joints.map { j ->
+        TrackLayoutSwitchJoint(
+            number = j.number,
+            location = switchStart + j.location,
+            locationAccuracy = null,
+        )
+    },
+)
 
 fun switch(
     seed: Int = 1,
