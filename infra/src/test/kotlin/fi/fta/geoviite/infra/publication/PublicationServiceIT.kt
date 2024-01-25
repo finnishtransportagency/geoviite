@@ -783,8 +783,9 @@ class PublicationServiceIT @Autowired constructor(
     fun `Validating official switch should work`() {
         val switchId = switchDao.insert(switch(123)).id
 
-        val validation = publicationService.validateSwitch(switchId, OFFICIAL)
-        assertEquals(3, validation.errors.size)
+        val validation = publicationService.validateSwitches(listOf(switchId), OFFICIAL)
+        assertEquals(1, validation.size)
+        assertEquals(3, validation[0].errors.size)
     }
 
     @Test

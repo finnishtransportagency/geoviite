@@ -216,12 +216,6 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun validateSwitch(
-        switchId: IntId<TrackLayoutSwitch>,
-        publishType: PublishType,
-    ): ValidatedAsset<TrackLayoutSwitch> = validateSwitches(listOf(switchId), publishType).single()
-
-    @Transactional(readOnly = true)
     fun validateKmPost(
         kmPostId: IntId<TrackLayoutKmPost>,
         publishType: PublishType,

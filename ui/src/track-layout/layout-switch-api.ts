@@ -25,6 +25,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
+const switchValidationCache = asyncCache<string, ValidatedAsset>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
 
@@ -144,12 +145,35 @@ export async function deleteDraftSwitch(
     );
 }
 
-export async function getSwitchValidation(
+export const getSwitchValidation = async (
     publishType: PublishType,
     id: LayoutSwitchId,
-): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
-}
+): Promise<ValidatedAsset> =>
+    getSwitchesValidation(publishType, [id]).then((switches) => switches[0]);
+
+export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
+    const changeTimes = getChangeTimes();
+    const maxTime =
+        changeTimes.layoutSwitch > changeTimes.layoutLocationTrack
+            ? changeTimes.layoutSwitch
+            : changeTimes.layoutLocationTrack;
+    return switchValidationCache
+        .getMany(
+            maxTime,
+            ids,
+            (id) => id,
+            (fetchIds) =>
+                getNonNull<ValidatedAsset[]>(
+                    `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
+                ).then((switches) => {
+                    const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(
+                        switches,
+                    );
+                    return (id) => switchValidationMap.get(id) as ValidatedAsset;
+                }),
+        )
+        .then((switches) => switches.filter(filterNotEmpty));
+};
 
 export const getSwitchChangeTimes = (
     id: LayoutSwitchId,
