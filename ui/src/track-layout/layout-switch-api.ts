@@ -1,7 +1,18 @@
 import { BoundingBox, Point } from 'model/geometry';
 import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
-import { LayoutSwitch, LayoutSwitchId, LayoutSwitchJointConnection } from 'track-layout/track-layout-model';
-import { deleteNonNull, getNonNull, getNullable, postNonNullAdt, putNonNullAdt, queryParams } from 'api/api-fetch';
+import {
+    LayoutSwitch,
+    LayoutSwitchId,
+    LayoutSwitchJointConnection,
+} from 'track-layout/track-layout-model';
+import {
+    deleteNonNull,
+    getNonNull,
+    getNullable,
+    postNonNullAdt,
+    putNonNullAdt,
+    queryParams,
+} from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
@@ -134,18 +145,33 @@ export async function deleteDraftSwitch(
     );
 }
 
-export async function getSwitchValidation(
+export const getSwitchValidation = async (
     publishType: PublishType,
     id: LayoutSwitchId,
-): Promise<ValidatedAsset> {
+): Promise<ValidatedAsset> =>
+    getSwitchesValidation(publishType, [id]).then((switches) => switches[0]);
+
+export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
     const changeTimes = getChangeTimes();
-    const maxTime = changeTimes.layoutSwitch>changeTimes.layoutLocationTrack ? changeTimes.layoutSwitch : changeTimes.layoutLocationTrack;
-    return switchValidationCache.get(
-        maxTime,
-        id,
-        () => getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`)
-    )
-}
+    const maxTime =
+        changeTimes.layoutSwitch > changeTimes.layoutLocationTrack
+            ? changeTimes.layoutSwitch
+            : changeTimes.layoutLocationTrack;
+    return switchValidationCache
+        .getMany(
+            maxTime,
+            ids,
+            (id) => id,
+            (fetchIds) =>
+                getNonNull<ValidatedAsset[]>(
+                    `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
+                ).then((switches) => {
+                    const switchMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(switches);
+                    return (id) => switchMap.get(id) as ValidatedAsset;
+                }),
+        )
+        .then((switches) => switches.filter(filterNotEmpty));
+};
 
 export const getSwitchChangeTimes = (
     id: LayoutSwitchId,

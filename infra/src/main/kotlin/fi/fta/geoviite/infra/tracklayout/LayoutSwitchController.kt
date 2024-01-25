@@ -88,13 +88,13 @@ class LayoutSwitchController(
     }
 
     @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("{publishType}/{id}/validation")
+    @GetMapping("{publishType}/validation")
     fun validateSwitch(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
-    ): ValidatedAsset<TrackLayoutSwitch> {
-        logger.apiCall("validateSwitch", "publishType" to publishType, "id" to id)
-        return publicationService.validateSwitch(id, publishType)
+        @RequestParam("ids") ids: List<IntId<TrackLayoutSwitch>>,
+    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        logger.apiCall("validateSwitch", "publishType" to publishType, "ids" to ids)
+        return publicationService.validateSwitches(ids, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
