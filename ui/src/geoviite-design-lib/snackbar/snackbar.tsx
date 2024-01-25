@@ -5,8 +5,13 @@ import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import './snackbar.scss';
 import styles from './snackbar.scss';
 import i18n from 'i18next';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { ApiErrorResponse } from 'api/api-fetch';
+import i18next from 'i18next';
 
 type ToastId = string | number;
+
+const COPY_CONFIRM_AUTO_CLOSE_TIMEOUT = 2000;
 
 let snacksInQueue: ToastId[] = [];
 let blockToasts = false;
@@ -19,6 +24,7 @@ type SnackbarButtonOptions = {
 type ToastOpts = {
     toastId?: ToastId;
     className?: string;
+    autoClose?: number;
 };
 
 function addToQueue(toastId: ToastId): (() => void) | undefined {
@@ -53,6 +59,59 @@ function getToast(headerKey: string, bodyKey?: string, button?: SnackbarButtonOp
                     <p className={styles['Toastify__toast-text-body']} title={body}>
                         {body}
                     </p>
+                )}
+            </div>
+            {button && (
+                <div
+                    className={styles['Toastify__button']}
+                    onClick={button.onClick}
+                    title={buttonText}>
+                    {buttonText}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function getErrorToast(
+    headerKey: string,
+    errorObj?: ApiErrorResponse,
+    button?: SnackbarButtonOptions,
+) {
+    const t = i18n.t;
+
+    const header = t(headerKey);
+    const buttonText = button ? t(button.text) : undefined;
+    const copyToClipboard = () => {
+        if (errorObj) {
+            navigator.clipboard.writeText(JSON.stringify(errorObj));
+            success(t('error.copied-to-clipboard'), undefined, {
+                autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
+            });
+        }
+    };
+
+    return (
+        <div className={styles['Toastify__toast-content']}>
+            <div className={styles['Toastify__toast-text']}>
+                <span className={styles['Toastify__toast-header-container']}>
+                    <span className={styles['Toastify__toast-header']} title={header}>
+                        {header}
+                    </span>
+                    {errorObj && (
+                        <Button
+                            title={t('error.copy-details-to-clipboard')}
+                            onClick={copyToClipboard}
+                            variant={ButtonVariant.GHOST}
+                            size={ButtonSize.SMALL}
+                            icon={Icons.Copy}
+                        />
+                    )}
+                </span>
+                {errorObj && (
+                    <div className={styles['Toastify__toast-footer']}>{`${new Date(
+                        errorObj.timestamp,
+                    ).toLocaleString(i18next.language)} | ${errorObj.correlationId}`}</div>
                 )}
             </div>
             {button && (
@@ -105,21 +164,18 @@ export function success(header: string, body?: string, opts?: ToastOpts) {
     }
 }
 
-export function error(header: string, body?: string, opts?: ToastOpts) {
-    const { toastId: id, ...options } = opts ?? {};
-
-    const toastId = id ?? getToastId(header, body);
+export function error(header: string, errorResponse?: ApiErrorResponse) {
+    const toastId = getToastId(header);
     const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.error(getToast(header, body), {
+        toast.error(getErrorToast(header, errorResponse), {
             toastId: toastId,
             autoClose: false,
             closeOnClick: false,
             closeButton: CloseButton,
             onClose: removeFunction,
             icon: <Icons.StatusError />,
-            ...options,
         });
     }
 }

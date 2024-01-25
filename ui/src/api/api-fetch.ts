@@ -242,7 +242,7 @@ async function fetchNonNullAdt<Input, Output>(
     const result = await fetchNullableAdt<Input, Output>(path, method, body);
 
     if (result.isOk() && result.value === undefined) {
-        Snackbar.error('Expected non-null result but got null', `${method} ${path}`);
+        Snackbar.error('Expected non-null result but got null');
 
         return err(undefined);
     } else {
@@ -261,7 +261,7 @@ export async function fetchFormNonNullAdt<Output>(
     );
 
     if (r.isOk() && r.value === undefined) {
-        Snackbar.error('Expected non-null result but got null', `${method} ${path}`);
+        Snackbar.error('Expected non-null result but got null');
 
         return err(undefined);
     } else {
@@ -368,11 +368,5 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
 }
 
 const showHttpError = (path: string, response: ApiErrorResponse) => {
-    const msg =
-        response.localizedMessageKey &&
-        i18n.t(response.localizedMessageKey, response.localizedMessageParams);
-
-    const content = msg || response.messageRows.map((r) => `${r}`).join('\n');
-
-    Snackbar.error(i18n.t('error.request-failed', { path }), content);
+    Snackbar.error(i18n.t('error.request-failed', { path }), response);
 };

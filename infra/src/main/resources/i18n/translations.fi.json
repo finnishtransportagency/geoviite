@@ -84,8 +84,10 @@
             }
         },
         "entity-not-found": "Tietoa ei löydy",
-        "entity-not-found-on-path": "Tietoa ei löytynyt kutsussa polkuun {{path}}",
-        "request-failed": "Pyyntö epäonnistui kutsussa polkuun {{path}}"
+        "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
+        "request-failed": "Pyyntö epäonnistui: {{path}}",
+        "copied-to-clipboard": "Kopioitu leikepöydälle",
+        "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",
