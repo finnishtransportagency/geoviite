@@ -1135,6 +1135,35 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
     }
 
+    @Test
+    fun `relinking removes misplaced topological switch link`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+            )
+        )
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
+        val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
+        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        templateTrackSections.forEach { (_, a) ->
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId),
+                alignment(setSwitchId(a.segments, null))
+            )
+        }
+        val otherLocationTrackWithTopoSwitchLink = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, topologyEndSwitch = TopologyLocationTrackSwitch(switch.id, JointNumber(1))),
+            alignment(segment(Point(456.7, 345.5), Point(457.8, 346.9)))
+        )
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), templateSwitch.switchStructureId)!!
+        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        assertTrackDraftVersionSwitchLinks(
+            otherLocationTrackWithTopoSwitchLink.id, null, null, listOf(0.0..1.7 to null)
+        )
+    }
+
     private fun assertTrackDraftVersionSwitchLinks(
         trackId: IntId<LocationTrack>,
         topologyStartSwitchId: IntId<TrackLayoutSwitch>?,
