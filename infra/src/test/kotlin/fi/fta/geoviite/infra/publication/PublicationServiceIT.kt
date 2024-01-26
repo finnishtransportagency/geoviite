@@ -1700,7 +1700,7 @@ class PublicationServiceIT @Autowired constructor(
         print(diff)
         assertEquals(1, diff.size)
         assertEquals(
-            "Muutos välillä 0000+0001.000-0000+0009.000, sivusuuntainen muutos 10.0 m",
+            "Muutos välillä 0000+0001-0000+0009, sivusuuntainen muutos 10.0 m",
             diff[0].remark
         )
     }

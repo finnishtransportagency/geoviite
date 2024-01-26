@@ -363,7 +363,7 @@ fun getKmNumbersChangedRemarkOrNull(
             mapOf(
                 "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
                 "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
-                "addressRange" to "${summary.startAddress}-${summary.endAddress}"
+                "addressRange" to "${summary.startAddress.round(0)}-${summary.endAddress.round(0)}"
             )
         )
     )
