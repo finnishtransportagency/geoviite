@@ -9,54 +9,37 @@ import { combineReducers } from 'redux';
 import thunk from 'redux-thunk';
 import { commonReducer } from 'common/common-slice';
 
-const trackLayoutPersistConfig = {
-    key: 'rootTracklayout',
-    storage,
-};
-
-const trackLayoutAppLevelReducer: typeof trackLayoutReducer = (state, action) => {
-    return trackLayoutReducer(state, action);
-};
-
 const persistedTrackLayoutReducer = persistReducer(
-    trackLayoutPersistConfig,
-    trackLayoutAppLevelReducer,
+    {
+        key: 'rootTracklayout',
+        storage,
+    },
+    trackLayoutReducer,
 );
 
-const infraModelPersistConfig = {
-    key: 'rootInfraModel',
-    storage,
-};
-const infraModelAppLevelReducer: typeof infraModelReducer = (state, action) => {
-    return infraModelReducer(state, action);
-};
 const persistedInfraModelReducer = persistReducer(
-    infraModelPersistConfig,
-    infraModelAppLevelReducer,
+    {
+        key: 'rootInfraModel',
+        storage,
+    },
+    infraModelReducer,
 );
-
-const dataProductsPersistConfig = {
-    key: 'rootDataProducts',
-    storage,
-};
-const dataProductsAppLevelReducer: typeof dataProductsReducer = (state, action) => {
-    return dataProductsReducer(state, action);
-};
 
 const persistedDataProductsReducer = persistReducer(
-    dataProductsPersistConfig,
-    dataProductsAppLevelReducer,
+    {
+        key: 'rootDataProducts',
+        storage,
+    },
+    dataProductsReducer,
 );
 
-const commonPersistConfig = {
-    key: 'common',
-    storage,
-};
-const commonAppLevelReducer: typeof commonReducer = (state, action) => {
-    return commonReducer(state, action);
-};
-
-const persistedCommonReducer = persistReducer(commonPersistConfig, commonAppLevelReducer);
+const persistedCommonReducer = persistReducer(
+    {
+        key: 'common',
+        storage,
+    },
+    commonReducer,
+);
 
 export const appStore = configureStore({
     reducer: combineReducers({
