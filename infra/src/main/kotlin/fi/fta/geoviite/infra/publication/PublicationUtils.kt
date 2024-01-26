@@ -379,6 +379,8 @@ private data class ComparisonPoints(
     fun distance() = calculateDistance(LAYOUT_SRID, oldPoint, newPoint)
 }
 
+const val MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES = 10.0
+
 fun summarizeAlignmentChanges(
     geocodingContext: GeocodingContext,
     oldAlignment: LayoutAlignment,
@@ -395,20 +397,28 @@ fun summarizeAlignmentChanges(
                 }?.let { comparison -> if (comparison.roughDistance < changeThreshold) null else comparison }
             }
         }
+        val changedPointsRangesFirstIndices =
+            changedPoints
+                .zipWithNext { a, b -> b.mOnReferenceLine - a.mOnReferenceLine > MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES }
+                .mapIndexedNotNull { index, jump -> (index + 1).takeIf { jump } }
+        val changedPointsRanges =
+            (listOf(0) + changedPointsRangesFirstIndices + changedPoints.size).zipWithNext { a, b -> a to b}
 
-        if (changedPoints.isEmpty()) null else {
-            val startAddress = geocodingContext.getAddress(oldPoints[changedPoints.first().oldPointIndex])?.first
-            val endAddress = geocodingContext.getAddress(oldPoints[changedPoints.last().oldPointIndex])?.first
+        if (changedPoints.isEmpty()) null else changedPointsRanges.mapNotNull { (from, to) ->
+            val start = changedPoints[from]
+            val end = changedPoints[to - 1]
+            val startAddress = geocodingContext.getAddress(oldPoints[start.oldPointIndex])?.first
+            val endAddress = geocodingContext.getAddress(oldPoints[end.oldPointIndex])?.first
 
             if (startAddress == null || endAddress == null) null
             else GeometryChangeSummary(
-                changedPoints.last().mOnReferenceLine - changedPoints.first().mOnReferenceLine,
-                changedPoints.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
+                end.mOnReferenceLine - start.mOnReferenceLine,
+                changedPoints.subList(from, to).maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
                 startAddress,
                 endAddress,
             )
         }
-    }
+    }.flatten()
 }
 
 private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment): List<List<LayoutSegment>> {

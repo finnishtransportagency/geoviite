@@ -660,15 +660,24 @@ fun someSegment() = segment(3, 10.0, 20.0, 10.0, 20.0)
 fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
     segment(points = rawPoints(points, minX, maxX, minY, maxY))
 
+fun segment(points: Int, start: Point, end: Point) =
+    segment(points, start.x, end.x, start.y, end.y)
+
 fun segment(from: IPoint, to: IPoint): LayoutSegment {
-    val middlePoints =
-        (1 until lineLength(from, to).toInt()).map { i -> (from + (to - from).normalized() * i.toDouble()) }
-    return segment(toSegmentPoints(to3DMPoints((listOf(from) + middlePoints + listOf(to)).distinct())))
+    return segment(toSegmentPoints(to3DMPoints((listOf(from) + middlePoints(from, to) + listOf(to)).distinct())))
 }
+
+private fun middlePoints(from: IPoint, to: IPoint) =
+    (1 until lineLength(from, to).toInt()).map { i -> (from + (to - from).normalized() * i.toDouble()) }
 
 fun segments(from: IPoint, to: IPoint, segmentCount: Int): List<LayoutSegment> {
     return segments(from, to, lineLength(from, to) / segmentCount)
 }
+
+fun singleSegmentWithInterpolatedPoints(vararg points: IPoint): LayoutSegment =
+    segment(toSegmentPoints(to3DMPoints(points.toList().zipWithNext { a, b ->
+        listOf(a) + middlePoints(a, b)
+    }.flatten() + points.last())))
 
 fun segments(from: IPoint, to: IPoint, segmentLength: Double): List<LayoutSegment> {
     val dir = (to - from).normalized()
