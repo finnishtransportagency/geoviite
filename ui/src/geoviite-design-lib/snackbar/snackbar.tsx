@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { toast } from 'react-toastify';
+import { toast, ToastOptions } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.minimal.css';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import './snackbar.scss';
@@ -16,9 +16,10 @@ type SnackbarButtonOptions = {
     onClick: () => void;
 };
 
-type ToastOpts = {
+type SnackbarOptions = {
     toastId?: ToastId;
     className?: string;
+    showCloseButton?: boolean;
 };
 
 function addToQueue(toastId: ToastId): (() => void) | undefined {
@@ -36,7 +37,12 @@ function getToastId(header: string, body?: string): string {
     return `toast-${header}${body ? '-' + body : ''}`;
 }
 
-function getToast(headerKey: string, bodyKey?: string, button?: SnackbarButtonOptions) {
+function getToast(
+    headerKey: string,
+    bodyKey?: string,
+    children?: React.ReactNode,
+    button?: SnackbarButtonOptions,
+) {
     const t = i18n.t;
 
     const header = t(headerKey);
@@ -54,6 +60,7 @@ function getToast(headerKey: string, bodyKey?: string, button?: SnackbarButtonOp
                         {body}
                     </p>
                 )}
+                {children}
             </div>
             {button && (
                 <div
@@ -73,46 +80,63 @@ const CloseButton = ({ closeToast }: never) => (
     </button>
 );
 
-export function info(header: string, body?: string, opts?: ToastOpts) {
-    const { toastId: id, ...options } = opts ?? {};
+export function info(
+    header: string,
+    body?: string,
+    opts?: SnackbarOptions,
+    children?: React.ReactNode,
+) {
+    const { toastId: id, showCloseButton, ...options } = opts ?? {};
 
     const toastId = id ?? getToastId(header, body);
     const removeFunction = addToQueue(toastId);
 
+    const toastOptions: ToastOptions = {
+        toastId: toastId,
+        onClose: removeFunction,
+        icon: <Icons.Info />,
+        ...(showCloseButton
+            ? {
+                  autoClose: false,
+                  closeOnClick: false,
+                  closeButton: CloseButton,
+                  className: styles['Toastify__toast--with-close-button'],
+              }
+            : {}),
+        ...options,
+    };
+
     if (removeFunction && !blockToasts) {
-        toast.warn(getToast(header, body), {
-            toastId: toastId,
-            onClose: removeFunction,
-            icon: <Icons.Info />,
-            ...options,
-        });
+        toast.warn(getToast(header, body, children), toastOptions);
     }
 }
 
-export function success(header: string, body?: string, opts?: ToastOpts) {
+export function success(header: string, body?: string, opts?: SnackbarOptions) {
     const { toastId: id, ...options } = opts ?? {};
 
     const toastId = id ?? getToastId(header, body);
     const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.success(getToast(header, body), {
+        const toastOptions = {
             toastId: toastId,
             onClose: removeFunction,
             icon: <Icons.Selected />,
             ...options,
-        });
+        };
+
+        toast.success(getToast(header, body), toastOptions);
     }
 }
 
-export function error(header: string, body?: string, opts?: ToastOpts) {
+export function error(header: string, body?: string, opts?: SnackbarOptions) {
     const { toastId: id, ...options } = opts ?? {};
 
     const toastId = id ?? getToastId(header, body);
     const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.error(getToast(header, body), {
+        const toastOptions: ToastOptions = {
             toastId: toastId,
             autoClose: false,
             closeOnClick: false,
@@ -120,7 +144,9 @@ export function error(header: string, body?: string, opts?: ToastOpts) {
             onClose: removeFunction,
             icon: <Icons.StatusError />,
             ...options,
-        });
+        };
+
+        toast.error(getToast(header, body), toastOptions);
     }
 }
 
@@ -132,17 +158,21 @@ export function sessionExpired() {
         toast.dismiss();
         toast.clearWaitingQueue();
 
+        const buttonOptions = {
+            text: 'unauthorized-request.button',
+            onClick: () => location.reload(),
+        };
+
+        const toastOptions: ToastOptions = {
+            autoClose: false,
+            closeButton: false,
+            closeOnClick: false,
+            icon: <Icons.StatusError />,
+        };
+
         toast.error(
-            getToast('unauthorized-request.title', undefined, {
-                text: 'unauthorized-request.button',
-                onClick: () => location.reload(),
-            }),
-            {
-                autoClose: false,
-                closeButton: false,
-                closeOnClick: false,
-                icon: <Icons.StatusError />,
-            },
+            getToast('unauthorized-request.title', undefined, undefined, buttonOptions),
+            toastOptions,
         );
     }
 }

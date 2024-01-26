@@ -95,13 +95,19 @@
     }
 
     &--warning {
+        display: flex;
         cursor: pointer;
+
         border: 1px solid vayla-design.$color-lemon;
         background-color: vayla-design.$color-lemon-light;
 
         .icon {
             fill: vayla-design.$color-black-light;
         }
+    }
+
+    &--with-close-button {
+        cursor: default;
     }
 
     &--error {
