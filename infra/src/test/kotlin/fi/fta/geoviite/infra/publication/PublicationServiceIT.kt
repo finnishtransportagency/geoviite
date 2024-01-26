@@ -1951,8 +1951,8 @@ class PublicationServiceIT @Autowired constructor(
             "same errors by localization key, index $index, ",
         )
 
-        val expectedByKey = expected.groupBy { it.localizationKey }
-        val actualByKey = actual.groupBy { it.localizationKey }
+        val expectedByKey = expected.sortedBy { it.toString() } .groupBy { it.localizationKey }
+        val actualByKey = actual.sortedBy { it.toString() }.groupBy { it.localizationKey }
         expectedByKey.keys.forEach { key ->
             assertEquals(expectedByKey[key]!!.map { it.params }, actualByKey[key]!!.map { it.params }, "params for key $key at index $index, ")
             assertEquals(expectedByKey[key]!!.map { it.type }, actualByKey[key]!!.map { it.type }, "level for key $key at index $index, ")
