@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
     isPropEditFieldCommitted,
     PropEdit,
@@ -21,6 +21,7 @@ import {
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import { wrapReducers } from 'store/store-utils';
+import { PURGE } from 'redux-persist';
 
 type SearchGeometries = {
     searchLines: boolean;
@@ -491,6 +492,11 @@ const initialDataProductsState: DataProductsState = {
 const dataProductsSlice = createSlice({
     name: 'dataProducts',
     initialState: initialDataProductsState,
+    extraReducers: (builder: ActionReducerMapBuilder<DataProductsState>) => {
+        builder.addCase(PURGE, (_state, _action) => {
+            return initialDataProductsState;
+        });
+    },
     reducers: {
         setSelectedElementListSearch: function (
             state: DataProductsState,

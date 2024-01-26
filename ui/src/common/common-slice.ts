@@ -1,7 +1,8 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
 import { Privilege } from 'user/user-model';
+import { PURGE } from 'redux-persist';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -51,6 +52,11 @@ const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time
 const commonSlice = createSlice({
     name: 'common',
     initialState: initialCommonState,
+    extraReducers: (builder: ActionReducerMapBuilder<CommonState>) => {
+        builder.addCase(PURGE, (_state, _action) => {
+            return initialCommonState;
+        });
+    },
     reducers: {
         setVersion: (state: CommonState, { payload: version }: PayloadAction<string>): void => {
             state.version = version;

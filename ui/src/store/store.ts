@@ -2,16 +2,12 @@ import { configureStore } from '@reduxjs/toolkit';
 import { trackLayoutReducer } from 'track-layout/track-layout-slice';
 import { infraModelReducer } from 'infra-model/infra-model-slice';
 import { dataProductsReducer } from 'data-products/data-products-slice';
-import { persistReducer } from 'redux-persist';
+import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';
 
 import thunk from 'redux-thunk';
 import { commonReducer } from 'common/common-slice';
-
-export const RESET_STORE_ACTION = {
-    type: 'RESET_STORE',
-};
 
 const trackLayoutPersistConfig = {
     key: 'rootTracklayout',
@@ -19,7 +15,7 @@ const trackLayoutPersistConfig = {
 };
 
 const trackLayoutAppLevelReducer: typeof trackLayoutReducer = (state, action) => {
-    return trackLayoutReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
+    return trackLayoutReducer(state, action);
 };
 
 const persistedTrackLayoutReducer = persistReducer(
@@ -32,7 +28,7 @@ const infraModelPersistConfig = {
     storage,
 };
 const infraModelAppLevelReducer: typeof infraModelReducer = (state, action) => {
-    return infraModelReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
+    return infraModelReducer(state, action);
 };
 const persistedInfraModelReducer = persistReducer(
     infraModelPersistConfig,
@@ -44,7 +40,7 @@ const dataProductsPersistConfig = {
     storage,
 };
 const dataProductsAppLevelReducer: typeof dataProductsReducer = (state, action) => {
-    return dataProductsReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
+    return dataProductsReducer(state, action);
 };
 
 const persistedDataProductsReducer = persistReducer(
@@ -57,7 +53,7 @@ const commonPersistConfig = {
     storage,
 };
 const commonAppLevelReducer: typeof commonReducer = (state, action) => {
-    return commonReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
+    return commonReducer(state, action);
 };
 
 const persistedCommonReducer = persistReducer(commonPersistConfig, commonAppLevelReducer);
@@ -71,9 +67,9 @@ export const appStore = configureStore({
     }),
     middleware: (getDefaultMiddleware) => [
         ...getDefaultMiddleware({
-            // For now we don't need to store our redux store and therefore
-            // we don't need to ensure that everything in the store is serializable.
-            serializableCheck: false,
+            serializableCheck: {
+                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+            },
         }),
         thunk,
     ],
