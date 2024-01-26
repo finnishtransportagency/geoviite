@@ -357,7 +357,7 @@ fun getKmNumbersChangedRemarkOrNull(
         if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
         formatChangedKmNumbers(changedKmNumbers.toList())
     )
-} else summaries.joinToString(".") { summary ->
+} else summaries.joinToString(". ") { summary ->
     translation.t(
         "publication-details-table.remark.geometry-changed", LocalizationParams(
             mapOf(
