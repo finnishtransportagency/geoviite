@@ -2,6 +2,7 @@ import * as React from 'react';
 import styles from './text-field.scss';
 import { IconColor, IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
+import { useCloneRef } from 'utils/react-utils';
 
 export enum TextFieldVariant {
     NO_BORDER = 'text-field--no-border',
@@ -22,17 +23,21 @@ export type TextFieldProps = {
     attachRight?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
-export const TextField = React.forwardRef(
-    ({
-        variant,
-        Icon,
-        iconPosition = TextInputIconPosition.LEFT,
-        hasError = false,
-        wide,
-        attachLeft,
-        attachRight,
-        ...props
-    }: TextFieldProps) => {
+export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
+    (
+        {
+            variant,
+            Icon,
+            iconPosition = TextInputIconPosition.LEFT,
+            hasError = false,
+            wide,
+            attachLeft,
+            attachRight,
+            ...props
+        }: TextFieldProps,
+        forwardedRef,
+    ) => {
+        const localRef = useCloneRef<HTMLInputElement>(forwardedRef);
         const [hasFocus, setHasFocus] = React.useState(false);
 
         const className = createClassName(
@@ -57,6 +62,7 @@ export const TextField = React.forwardRef(
                     )}
                     <input
                         {...props}
+                        ref={localRef}
                         className={createClassName(
                             styles['text-field__input-element'],
                             props.className,
