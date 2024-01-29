@@ -125,13 +125,13 @@ class SplitService(
         )
     }
 
-    fun getSplitsByPublicationId(publicationId: IntId<Publication>): Split? {
+    fun getSplitByPublicationId(publicationId: IntId<Publication>): Split? {
         logger.serviceCall(
-            "getSplitsByPublicationId",
+            "getSplitByPublicationId",
             "publicationId" to publicationId,
         )
 
-        return splitDao.fetchSplitIdsByPublication(publicationId)?.let(splitDao::getSplit)
+        return splitDao.fetchSplitIdByPublication(publicationId)?.let(splitDao::getSplit)
     }
 
     private fun validateSplitForLocationTrack(

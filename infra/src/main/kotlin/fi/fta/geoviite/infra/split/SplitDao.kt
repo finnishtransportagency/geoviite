@@ -221,7 +221,7 @@ class SplitDao(
     }
 
     // TODO add proper tests once splits can be properly linked to publications
-    fun fetchSplitIdsByPublication(publicationId: IntId<Publication>): IntId<Split>? {
+    fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
         val sql = """
             select id from publication.split where publication_id = :publication_id
         """.trimIndent()
