@@ -326,11 +326,13 @@ private fun createSplitTarget(
         descriptionBase = request.descriptionBase,
         descriptionSuffix = request.descriptionSuffix,
 
-        externalId = null, // New track -> no external ID
+        // New track -> no external ID
+        externalId = null,
         // After split, tracks are not duplicates
         duplicateOf = null,
-        topologyStartSwitch = null, // Topology is re-resolved after tracks and switches are updated
-        topologyEndSwitch = null, // Topology is re-resolved after tracks and switches are updated
+        // Topology is re-resolved after tracks and switches are updated
+        topologyStartSwitch = null,
+        topologyEndSwitch = null,
         topologicalConnectivity = topologicalConnectivityType,
 
         state = sourceTrack.state,

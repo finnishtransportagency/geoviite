@@ -1209,6 +1209,8 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(track: LocationTrack): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
+        logger.serviceCall("getTrackSwitchSuggestions", "track" to track)
+
         val alignment = requireNotNull(track.alignmentVersion) {
             "No alignment on track ${track.toLog()}"
         }.let(alignmentDao::fetch)
