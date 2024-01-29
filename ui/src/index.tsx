@@ -16,6 +16,14 @@ import './style.scss';
 
 const persistor = persistStore(appStore);
 
+export const purgePersistentState = () => {
+    persistor.pause();
+    persistor
+        .flush()
+        .then(() => persistor.purge())
+        .then(() => persistor.persist());
+};
+
 const rootElement = document.getElementById('root');
 if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);

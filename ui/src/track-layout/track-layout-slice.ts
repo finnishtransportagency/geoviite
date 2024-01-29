@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
@@ -34,6 +34,7 @@ import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { subtractPublishRequestIds } from 'publication/publication-utils';
+import { PURGE } from 'redux-persist';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -265,6 +266,11 @@ function filterItemSelectOptions(
 const trackLayoutSlice = createSlice({
     name: 'trackLayout',
     initialState: initialTrackLayoutState,
+    extraReducers: (builder: ActionReducerMapBuilder<TrackLayoutState>) => {
+        builder.addCase(PURGE, (_state, _action) => {
+            return initialTrackLayoutState;
+        });
+    },
     reducers: {
         ...wrapReducers((state: TrackLayoutState) => state.map, mapReducers),
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
