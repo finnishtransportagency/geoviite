@@ -16,7 +16,7 @@ const appPath = {
     'inframodel-rejected': '/infra-model/rejected',
 } as const;
 
-type AppNavigateFunction = <K extends keyof typeof appPath>(
+export type AppNavigateFunction = <K extends keyof typeof appPath>(
     key: K,
     ...args: (typeof appPath)[K] extends (...args: unknown[]) => string
         ? Parameters<(typeof appPath)[K]>

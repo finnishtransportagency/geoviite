@@ -6,17 +6,17 @@ import styles from 'publication/card/publication-list.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { useAppNavigate } from 'common/navigate';
-import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
+import { AppNavigateFunction } from 'common/navigate';
 
-type PublicationRowProps = {
+type PublicationListRowProps = {
     publication: PublicationDetails;
+    setSelectedPublicationId: (id: string) => void;
+    navigate: AppNavigateFunction;
 };
 
 const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
@@ -53,14 +53,12 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
     }
 };
 
-export const PublicationRow: React.FC<PublicationRowProps> = ({ publication }) => {
+export const PublicationListRow: React.FC<PublicationListRowProps> = ({
+    publication,
+    setSelectedPublicationId,
+    navigate,
+}) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
-
-    const trackLayoutActionDelegates = React.useMemo(
-        () => createDelegates(trackLayoutActionCreators),
-        [],
-    );
 
     const [open, setOpen] = React.useState(false);
     const buttonClassNames = createClassName(
@@ -82,7 +80,7 @@ export const PublicationRow: React.FC<PublicationRowProps> = ({ publication }) =
                     <span className={styles['publication-list-item__text']}>
                         <Link
                             onClick={() => {
-                                trackLayoutActionDelegates.setSelectedPublicationId(publication.id);
+                                setSelectedPublicationId(publication.id);
                                 navigate('publication-view', publication.id);
                             }}>
                             {formatDateFull(publication.publicationTime)}
