@@ -17,11 +17,6 @@ data class ValidationResponse(
     val source: PlanSource,
 )
 
-data class InsertResponse(
-    val message: String,
-    val planId: IntId<GeometryPlan>,
-)
-
 data class ExtraInfoParameters(
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
@@ -41,18 +36,19 @@ data class OverrideParameters(
     val source: PlanSource?,
 )
 
-fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse =
-    try {
-        op()
-    } catch (e: Exception) {
-        logger.warn("Failed to parse InfraModel", e)
-        ValidationResponse(
-            validationErrors = listOf(ParsingError(
+fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse = try {
+    op()
+} catch (e: Exception) {
+    logger.warn("Failed to parse InfraModel", e)
+    ValidationResponse(
+        validationErrors = listOf(
+            ParsingError(
                 if (e is HasLocalizeMessageKey) e.localizedMessageKey
                 else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)
-            )),
-            geometryPlan = null,
-            planLayout = null,
-            source = source ?: PlanSource.GEOMETRIAPALVELU
-        )
-    }
+            ),
+        ),
+        geometryPlan = null,
+        planLayout = null,
+        source = source ?: PlanSource.GEOMETRIAPALVELU,
+    )
+}

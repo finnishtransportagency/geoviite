@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.authorization.AUTH_INFRAMODEL_DOWNLOAD
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -20,7 +20,6 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
-
 @RestController
 @RequestMapping("/inframodel")
 class InfraModelController @Autowired constructor(
@@ -37,15 +36,14 @@ class InfraModelController @Autowired constructor(
         @RequestPart(value = "file") file: MultipartFile,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
         @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
-    ): InsertResponse {
+    ): IntId<GeometryPlan> {
         logger.apiCall(
             "saveInfraModel",
             "file.originalFilename" to file.originalFilename,
             "overrides" to overrides,
             "extraInfo" to extraInfo,
         )
-        val id = infraModelService.saveInfraModel(file, overrides, extraInfo).id
-        return InsertResponse("New plan inserted successfully", id)
+        return infraModelService.saveInfraModel(file, overrides, extraInfo).id
     }
 
     @PreAuthorize(AUTH_UI_READ)
@@ -78,9 +76,9 @@ class InfraModelController @Autowired constructor(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
         @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
-    ): GeometryPlan {
+    ): IntId<GeometryPlan> {
         logger.apiCall("updateInfraModel", "overrides" to overrides, "extraInfo" to extraInfo)
-        return infraModelService.updateInfraModel(planId, overrides, extraInfo)
+        return infraModelService.updateInfraModel(planId, overrides, extraInfo).id
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
