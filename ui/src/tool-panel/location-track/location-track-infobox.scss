@@ -137,3 +137,15 @@
         margin-top: 10px;
     }
 }
+
+.location-track-infobox__split-validated-switches {
+    > a {
+        cursor: pointer;
+        color: vayla-design.$color-blue-dark;
+    }
+
+    > a:not(:last-child):after {
+        content: ', ';
+        white-space: pre;
+    }
+}

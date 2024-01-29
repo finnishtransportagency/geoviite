@@ -5,10 +5,14 @@ import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    LocationTrackInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import {
     AddressPoint,
     AlignmentStartAndEnd,
+    getSwitchPresentationJoint,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
@@ -47,6 +51,12 @@ import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
 import { getChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import { createDelegates } from 'store/store-utils';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
+import { getSwitchStructures } from 'common/common-api';
+import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
+import { showTrackSwitchRelinkingValidations } from 'tool-panel/location-track/switch-relinking-validation';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -86,6 +96,7 @@ type LocationTrackSplittingInfoboxProps = {
     returnToSplitting: () => void;
     startPostingSplit: () => void;
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
+    onShowSwitch: (layoutSwitch: LayoutSwitch) => void;
 };
 
 const validateSplitName = (
@@ -181,6 +192,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     markSplitOld,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
+
     const [startAndEnd, _] = useLocationTrackStartAndEnd(
         locationTrackId,
         'DRAFT',
@@ -197,6 +209,24 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         [allowedSwitches],
     );
     const switches = useSwitches(allowedSwitchIds, 'DRAFT', switchChangeTime);
+
+    const switchStructures = useLoader(() => getSwitchStructures(), []);
+    const delegates = createDelegates(TrackLayoutActions);
+
+    const onShowSwitch = (layoutSwitch: LayoutSwitch) => {
+        const presentationJoint = switchStructures?.find(
+            (s) => s.id == layoutSwitch.switchStructureId,
+        )?.presentationJointNumber;
+
+        const switchLocation = presentationJoint
+            ? getSwitchPresentationJoint(layoutSwitch, presentationJoint)?.location
+            : undefined;
+
+        if (switchLocation) {
+            delegates.showArea(calculateBoundingBoxToShowAroundLocation(switchLocation));
+            delegates.onSelect({ switches: [layoutSwitch.id] });
+        }
+    };
 
     React.useEffect(() => {
         locationTrack && setSplittingDisabled(locationTrack?.draftType !== 'OFFICIAL');
@@ -223,6 +253,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 returnToSplitting={returnToSplitting}
                 startPostingSplit={startPostingSplit}
                 markSplitOld={markSplitOld}
+                onShowSwitch={onShowSwitch}
             />
         )
     );
@@ -322,12 +353,17 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     returnToSplitting,
     startPostingSplit,
     markSplitOld,
+    onShowSwitch,
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
 
     const sortedSplits = sortSplitsByDistance(splits);
     const allSplitNames = [initialSplit, ...splits].map((s) => s.name);
+    const [switchRelinkingErrors, switchRelinkingState] = useLoaderWithStatus(async () => {
+        const validations = await validateLocationTrackSwitchRelinking(locationTrack.id);
+        return validations.filter((v) => v.validationErrors.length > 0).map((r) => r.id);
+    }, [getChangeTimes().layoutLocationTrack, getChangeTimes().layoutSwitch]);
 
     const initialSplitValidated = {
         split: initialSplit,
@@ -459,6 +495,40 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         )}
                         {!disabled && (
                             <React.Fragment>
+                                <InfoboxContentSpread>
+                                    {switchRelinkingState == LoaderStatus.Ready &&
+                                        switchRelinkingErrors &&
+                                        switchRelinkingErrors.length > 0 && (
+                                            <MessageBox>
+                                                {t(
+                                                    'tool-panel.location-track.switch-relinking.relink-message',
+                                                )}
+                                                <br />
+                                                <Link
+                                                    onClick={() => {
+                                                        stopSplitting();
+                                                        showTrackSwitchRelinkingValidations(
+                                                            locationTrack,
+                                                            onShowSwitch,
+                                                        );
+                                                    }}>
+                                                    {t(
+                                                        'tool-panel.location-track.switch-relinking.cancel-and-relink',
+                                                        {
+                                                            count: switchRelinkingErrors.length,
+                                                        },
+                                                    )}
+                                                </Link>
+                                            </MessageBox>
+                                        )}
+                                    {switchRelinkingState == LoaderStatus.Loading && (
+                                        <MessageBox>
+                                            {t(
+                                                'tool-panel.location-track.switch-relinking.validation-in-progress',
+                                            )}
+                                        </MessageBox>
+                                    )}
+                                </InfoboxContentSpread>
                                 {splits.length === 0 && (
                                     <InfoboxContentSpread>
                                         <MessageBox>
