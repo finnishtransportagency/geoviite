@@ -2,8 +2,13 @@ package fi.fta.geoviite.infra.inframodel
 
 import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.InframodelParsingException
-import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -13,6 +18,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.context.ActiveProfiles
+import java.time.Duration
+import java.time.Instant
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -67,10 +75,77 @@ class InfraModelServiceIT @Autowired constructor(
         assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))
     }
 
+    @Test
+    fun `InfraModel update works`() {
+        val file = getMockedMultipartFile(TESTFILE_SIMPLE)
+
+        val overrides1 = OverrideParameters(
+            encoding = null,
+            coordinateSystemSrid = null,
+            verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
+            projectId = geometryDao.insertProject(project(getUnusedProjectName().toString())).id,
+            authorId = geometryDao.insertAuthor(author(getUnusedAuthorCompanyName().toString())).id,
+            trackNumberId = insertOfficialTrackNumber(),
+            createdDate = Instant.now().minusSeconds(Duration.ofDays(5L).toSeconds()),
+            source = PlanSource.GEOMETRIAPALVELU,
+        )
+        val extraInfo1 = ExtraInfoParameters(
+            planPhase = PlanPhase.RAILWAY_PLAN,
+            decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
+            measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
+            elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_RAIL,
+            message = FreeTextWithNewLines("test message 1"),
+        )
+
+        val overrides2 = OverrideParameters(
+            encoding = null,
+            coordinateSystemSrid = null,
+            verticalCoordinateSystem = VerticalCoordinateSystem.N60,
+            projectId = geometryDao.insertProject(project(getUnusedProjectName().toString())).id,
+            authorId = geometryDao.insertAuthor(author(getUnusedAuthorCompanyName().toString())).id,
+            trackNumberId = insertOfficialTrackNumber(),
+            createdDate = Instant.now(),
+            source = PlanSource.PAIKANNUSPALVELU,
+        )
+        val extraInfo2 = ExtraInfoParameters(
+            planPhase = PlanPhase.RENOVATION_PLAN,
+            decisionPhase = PlanDecisionPhase.UNDER_CONSTRUCTION,
+            measurementMethod = MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
+            elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
+            message = FreeTextWithNewLines("test message 2"),
+        )
+
+        val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id
+        assertOverrides(planId, overrides1, extraInfo1)
+        infraModelService.updateInfraModel(planId, overrides2, extraInfo2)
+        assertOverrides(planId, overrides2, extraInfo2)
+    }
+
     fun getMockedMultipartFile(fileLocation: String): MockMultipartFile = MockMultipartFile(
         "file",
         "file.xml",
         MediaType.TEXT_XML_VALUE,
-        classpathResourceToString(fileLocation).byteInputStream()
+        classpathResourceToString(fileLocation).byteInputStream(),
     )
+
+    private fun assertOverrides(
+        planId: IntId<GeometryPlan>,
+        overrides: OverrideParameters,
+        extraInfo: ExtraInfoParameters,
+    ) {
+        val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
+
+        assertEquals(overrides.verticalCoordinateSystem, plan.units.verticalCoordinateSystem)
+        assertEquals(overrides.projectId, plan.project.id as IntId)
+        assertEquals(overrides.authorId, plan.author?.id as IntId)
+        assertEquals(overrides.trackNumberId, plan.trackNumberId)
+        assertEquals(overrides.createdDate?.toEpochMilli(), plan.planTime?.toEpochMilli())
+        assertEquals(overrides.source, plan.source)
+
+        assertEquals(extraInfo.planPhase, plan.planPhase)
+        assertEquals(extraInfo.decisionPhase, plan.decisionPhase)
+        assertEquals(extraInfo.measurementMethod, plan.measurementMethod)
+        assertEquals(extraInfo.elevationMeasurementMethod, plan.elevationMeasurementMethod)
+        assertEquals(extraInfo.message, plan.message)
+    }
 }

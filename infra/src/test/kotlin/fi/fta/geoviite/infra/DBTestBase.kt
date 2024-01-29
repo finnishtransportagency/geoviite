@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.configuration.USER_HEADER
+import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
@@ -102,6 +103,14 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     fun getUnusedSwitchName(): SwitchName {
         return SwitchName(getUniqueName(DbTable.LAYOUT_SWITCH, switchNameLength.last))
     }
+
+    fun getUnusedProjectName(): ProjectName = ProjectName(
+        getUniqueName(DbTable.GEOMETRY_PLAN_PROJECT, 100)
+    )
+
+    fun getUnusedAuthorCompanyName(): MetaDataName = MetaDataName(
+        getUniqueName(DbTable.GEOMETRY_PLAN_AUTHOR, 100)
+    )
 
     private fun getUniqueName(table: DbTable, maxLength: Int): String {
         val sql = "select max(id) max_id from ${table.versionTable}"
