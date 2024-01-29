@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -215,7 +216,20 @@ class SplitDao(
         return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
             rs.getIntId<Split>("id")
         }.also { ids ->
-            logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids)
+            logger.daoAccess(AccessType.FETCH, Split::class, ids)
+        }
+    }
+
+    // TODO add proper tests once splits can be properly linked to publications
+    fun fetchSplitIdsByPublication(publicationId: IntId<Publication>): IntId<Split>? {
+        val sql = """
+            select id from publication.split where publication_id = :publication_id
+        """.trimIndent()
+
+        return jdbcTemplate.queryOptional(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            rs.getIntId<Split>("id")
+        }.also { ids ->
+            logger.daoAccess(AccessType.FETCH, Split::class, publicationId)
         }
     }
 }

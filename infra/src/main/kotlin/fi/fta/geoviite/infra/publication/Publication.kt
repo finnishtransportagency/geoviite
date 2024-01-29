@@ -144,6 +144,7 @@ data class PublicationDetails(
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
+    val split: Split?,
 ) : Publication(id, publicationTime, publicationUser, message) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks

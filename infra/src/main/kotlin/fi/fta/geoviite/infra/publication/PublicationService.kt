@@ -885,6 +885,7 @@ class PublicationService @Autowired constructor(
         val (publishedDirectTrackNumbers, publishedIndirectTrackNumbers) = publicationDao.fetchPublishedTrackNumbers(id)
         val (publishedDirectTracks, publishedIndirectTracks) = publicationDao.fetchPublishedLocationTracks(id)
         val (publishedDirectSwitches, publishedIndirectSwitches) = publicationDao.fetchPublishedSwitches(id)
+        val split = splitService.getSplitsByPublicationId(id)
 
         return PublicationDetails(
             id = publication.id,
@@ -902,7 +903,8 @@ class PublicationService @Autowired constructor(
                 trackNumbers = publishedIndirectTrackNumbers,
                 locationTracks = publishedIndirectTracks,
                 switches = publishedIndirectSwitches
-            )
+            ),
+            split = split,
         )
     }
 

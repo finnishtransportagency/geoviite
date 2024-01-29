@@ -109,6 +109,15 @@ export type ValidatedPublishCandidates = {
     allChangesValidated: PublishCandidates;
 };
 
+export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
+
+export type PublishedSplitHeader = {
+    id: string;
+    locationTrackId: LocationTrackId;
+    bulkTransferState: BulkTransferState;
+    publicationId?: PublicationId;
+};
+
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
@@ -122,6 +131,7 @@ export type PublicationDetails = {
     ratkoPushTime?: TimeStamp;
     calculatedChanges: PublishedCalculatedChanges;
     message?: string;
+    split?: PublishedSplitHeader;
 };
 
 export type PublishedTrackNumber = {

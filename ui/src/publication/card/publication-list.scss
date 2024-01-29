@@ -4,10 +4,12 @@
     margin-bottom: 12px;
 }
 
-.publication-list-item {
-    @include vayla-design.typography-body-strong;
+.publication-list-item-container {
     margin-bottom: 12px;
-    display: flex;
+}
+
+.publication-list-item {
+    display: inline-flex;
 
     > div {
         margin-top: auto;
@@ -33,34 +35,63 @@
         }
     }
 
-    &__text {
-        white-space: pre;
-    }
-
-    &__track-numbers {
-        margin-left: 6px;
+    &__timestamp {
         display: inline-flex;
-        flex-flow: wrap;
-        height: 20px;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        align-items: center;
+        margin-right: 6px;
+        margin-bottom: auto;
 
-        .alignment-badge {
-            margin-left: 4px;
+        .icon,
+        .spinner {
+            margin-right: 6px;
         }
     }
 
-    &__issue {
-        margin-left: auto;
-        padding-left: 6px;
+    &__text {
+        @include vayla-design.typography-body-strong;
         white-space: pre;
+    }
 
-        &--info {
-            fill: vayla-design.$color-black-lighter;
+    &__split {
+        margin-top: 8px;
+        margin-left: 22px;
+    }
+
+    &__split-detail-row {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 6px;
+
+        > :first-child {
+            margin-right: 6px;
         }
+    }
 
-        &--error {
-            fill: vayla-design.$color-red-default;
+    &__split-detail-no-icon {
+        display: block;
+        width: 12px;
+    }
+
+    &--error {
+        fill: vayla-design.$color-red-default;
+    }
+
+    &__split-action-button {
+        margin-left: 18px;
+        margin-bottom: 22px;
+
+        &--open {
+            .icon {
+                transform: rotate(180deg);
+            }
+        }
+    }
+
+    &__split-actions {
+        display: flex;
+        > :not(:last-child) {
+            margin-right: 6px;
         }
     }
 }
