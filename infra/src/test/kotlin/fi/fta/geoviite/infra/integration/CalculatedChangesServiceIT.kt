@@ -792,7 +792,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val changes = getCalculatedChanges(kmPostIds = listOf(kmPost.id as IntId))
 
-        assertEquals(2, changes.indirectChanges.switchChanges.size)
+        assertEquals(1, changes.indirectChanges.switchChanges.size)
         assertEquals(0, changes.directChanges.switchChanges.size)
         assertContainsSwitchJoint152Change(
             changes = changes.indirectChanges.switchChanges,

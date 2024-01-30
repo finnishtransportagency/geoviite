@@ -57,10 +57,15 @@ $dropdown-border-error: 2px;
     height: 36px;
     box-sizing: border-box;
     padding: 8px;
-    border: 1px solid colors.$color-black-lighter;
     border-radius: 4px;
     background: colors.$color-white-default;
     cursor: pointer;
+
+    @include dropdown-shadow(
+        $color: colors.$color-black-lighter,
+        $width: $dropdown-border-default,
+        $has-icon: false
+    );
 }
 
 .dropdown__header:hover {

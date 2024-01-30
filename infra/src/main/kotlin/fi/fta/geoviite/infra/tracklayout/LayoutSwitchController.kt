@@ -88,13 +88,25 @@ class LayoutSwitchController(
     }
 
     @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("{publishType}/{id}/validation")
-    fun validateSwitch(
+    @GetMapping("{publishType}/validation")
+    fun validateSwitches(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
-    ): ValidatedAsset<TrackLayoutSwitch> {
-        logger.apiCall("validateSwitch", "publishType" to publishType, "id" to id)
-        return publicationService.validateSwitch(id, publishType)
+        @RequestParam("ids") ids: List<IntId<TrackLayoutSwitch>>,
+    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        logger.apiCall("validateSwitches", "publishType" to publishType, "ids" to ids)
+        return publicationService.validateSwitches(ids, publishType)
+    }
+
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/{publishType}/validation/{bbox}")
+    fun validateSwitchesInTile(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("bbox") bbox: BoundingBox,
+    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        logger.apiCall("validateSwitchesInTile", "publishType" to publishType, "bbox" to bbox)
+        val filter = switchFilter(null, null, null, bbox, false)
+        val switches = switchService.listWithStructure(publishType, false).filter(filter)
+        return publicationService.validateSwitches(switches.map { (switch, _) -> switch.id as IntId }, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

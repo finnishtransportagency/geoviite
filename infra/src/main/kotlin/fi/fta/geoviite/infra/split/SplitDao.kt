@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -24,8 +25,8 @@ class SplitDao(
         relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
     ): IntId<Split> {
         val sql = """
-            insert into publication.split(source_location_track_id, bulk_transfer_state, error_cause, publication_id) 
-            values (:id, 'PENDING', null, null)
+            insert into publication.split(source_location_track_id, bulk_transfer_state, publication_id) 
+            values (:id, 'PENDING', null)
             returning id
         """.trimIndent()
 
@@ -44,7 +45,7 @@ class SplitDao(
 
     private fun saveRelinkedSwitches(splitId: IntId<Split>, relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>) {
         val sql = """
-            insert into publication.split_switch(split_id, switch_id)
+            insert into publication.split_relinked_switch(split_id, switch_id)
             values (:splitId, :switchId)
         """.trimIndent()
 
@@ -103,12 +104,11 @@ class SplitDao(
           select
               split.id,
               split.bulk_transfer_state,
-              split.error_cause,
               split.publication_id,
               split.source_location_track_id,
-              array_agg(split_switch.switch_id) as switch_ids
+              array_agg(split_relinked_switch.switch_id) as switch_ids
           from publication.split 
-              left join publication.split_switch on split.id = split_switch.split_id
+              left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
           where id = :id
           group by split.id
         """.trimIndent()
@@ -120,7 +120,6 @@ class SplitDao(
                 id = splitId,
                 locationTrackId = rs.getIntId("source_location_track_id"),
                 bulkTransferState = rs.getEnum("bulk_transfer_state"),
-                errorCause = rs.getString("error_cause"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
                 targetLocationTracks = targetLocationTracks,
                 relinkedSwitches = rs.getIntIdArray("switch_ids"),
@@ -130,20 +129,42 @@ class SplitDao(
         }
     }
 
+    fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
+        val sql = """
+          select
+              split.id,
+              split.bulk_transfer_state,
+              split.publication_id,
+              split.source_location_track_id
+          from publication.split 
+          where id = :id
+          group by split.id
+        """.trimIndent()
+
+        return jdbcTemplate.queryOne(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
+            SplitHeader(
+                id = splitId,
+                locationTrackId = rs.getIntId("source_location_track_id"),
+                bulkTransferState = rs.getEnum("bulk_transfer_state"),
+                publicationId = rs.getIntIdOrNull("publication_id"),
+            )
+        }.also {
+            logger.daoAccess(AccessType.FETCH, SplitHeader::class, splitId)
+        }
+    }
+
     @Transactional
     fun updateSplitState(split: Split): IntId<Split> {
         val sql = """
             update publication.split
             set 
                 bulk_transfer_state = :bulk_transfer_state::publication.bulk_transfer_state,
-                error_cause = :errorCause,
                 publication_id = :publicationId
             where id = :splitId
         """.trimIndent()
 
         val params = mapOf(
             "bulk_transfer_state" to split.bulkTransferState.name,
-            "errorCause" to split.errorCause,
             "publicationId" to split.publicationId?.intValue,
             "splitId" to split.id.intValue
         )
@@ -180,12 +201,11 @@ class SplitDao(
           select
               split.id,
               split.bulk_transfer_state,
-              split.error_cause,
               split.publication_id,
               split.source_location_track_id,
-              array_agg(split_switch.switch_id) as switch_ids
+              array_agg(split_relinked_switch.switch_id) as switch_ids
           from publication.split 
-              left join publication.split_switch on split.id = split_switch.split_id
+              left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
           where split.bulk_transfer_state != 'DONE'
           group by split.id
         """.trimIndent()
@@ -198,7 +218,6 @@ class SplitDao(
                 id = splitId,
                 locationTrackId = rs.getIntId("source_location_track_id"),
                 bulkTransferState = rs.getEnum("bulk_transfer_state"),
-                errorCause = rs.getString("error_cause"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
                 targetLocationTracks = targetLocationTracks,
                 relinkedSwitches = rs.getIntIdArray("switch_ids"),
@@ -221,7 +240,20 @@ class SplitDao(
         return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
             rs.getIntId<Split>("id")
         }.also { ids ->
-            logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids)
+            logger.daoAccess(AccessType.FETCH, Split::class, ids)
+        }
+    }
+
+    // TODO add proper tests once splits can be properly linked to publications
+    fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
+        val sql = """
+            select id from publication.split where publication_id = :publication_id
+        """.trimIndent()
+
+        return jdbcTemplate.queryOptional(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            rs.getIntId<Split>("id")
+        }.also { ids ->
+            logger.daoAccess(AccessType.FETCH, Split::class, publicationId)
         }
     }
 }

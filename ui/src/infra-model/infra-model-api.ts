@@ -7,7 +7,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updatePlanChangeTime } from 'common/change-time-api';
 import {
@@ -23,11 +23,6 @@ import {
 } from './projektivelho/pv-model';
 import { asyncCache } from 'cache/cache';
 import { Oid, TimeStamp } from 'common/common-model';
-
-export interface InsertResponse {
-    message: string;
-    planId?: number;
-}
 
 export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
     validationErrors: [],
@@ -91,9 +86,9 @@ export const saveInfraModelFile = async (
     file?: Blob,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
-): Promise<InsertResponse | undefined> => {
+): Promise<GeometryPlanId | undefined> => {
     const formData = createFormData(file, extraParameters, overrideParameters);
-    const response = await postFormNonNullAdt<InsertResponse>(INFRAMODEL_URI, formData);
+    const response = await postFormNonNullAdt<GeometryPlanId>(INFRAMODEL_URI, formData);
 
     if (response.isOk()) {
         Snackbar.success('infra-model.upload.success');
@@ -109,9 +104,12 @@ export async function updateGeometryPlan(
     planId: GeometryPlanId,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
-): Promise<GeometryPlan | undefined> {
+): Promise<GeometryPlanId | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
-    const response = await putFormNonNullAdt<GeometryPlan>(`${INFRAMODEL_URI}/${planId}`, formData);
+    const response = await putFormNonNullAdt<GeometryPlanId>(
+        `${INFRAMODEL_URI}/${planId}`,
+        formData,
+    );
 
     if (response.isOk()) {
         Snackbar.success('infra-model.edit.success');

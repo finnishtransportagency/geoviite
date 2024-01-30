@@ -25,6 +25,23 @@
         font-weight: 600;
         line-height: 20px;
         white-space: nowrap;
+        overflow: hidden;
+    }
+
+    &__toast-header-container {
+        display: flex;
+        align-items: center;
+        flex: 1;
+    }
+
+    &__toast-body-content {
+        display: flex;
+    }
+
+    &__toast-footer {
+        margin-top: 4px;
+        font-weight: 600;
+        font-size: 12px;
     }
 
     &__toast-text-body {

@@ -279,10 +279,7 @@ class GeometryDao @Autowired constructor(
     }
 
     @Transactional
-    fun updatePlan(
-        planId: IntId<GeometryPlan>,
-        geometryPlan: GeometryPlan,
-    ): GeometryPlan {
+    fun updatePlan(planId: IntId<GeometryPlan>, geometryPlan: GeometryPlan): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
         val sql = """
             update geometry.plan
@@ -304,6 +301,7 @@ class GeometryDao @Autowired constructor(
               source = :source::geometry.plan_source,
               hidden = :hidden
             where id = :id
+            returning id, version
         """.trimIndent()
 
         val params = mapOf(
@@ -326,12 +324,11 @@ class GeometryDao @Autowired constructor(
             "hidden" to geometryPlan.isHidden,
         )
 
-        check(jdbcTemplate.update(sql, params) > 0)
-
-        logger.daoAccess(UPDATE, GeometryPlan::class, planId)
-
-        // TODO: GVT-1794 This appears unused -> just return rowversion/id
-        return geometryPlan
+        return getOne(planId, jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion<GeometryPlan>("id", "version")
+        }).also {
+            logger.daoAccess(UPDATE, GeometryPlan::class, planId)
+        }
     }
 
     @Transactional

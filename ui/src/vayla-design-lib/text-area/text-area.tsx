@@ -17,13 +17,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
     maxlength,
     ...props
 }: TextAreaProps) => {
-    const inputRef = React.useRef<HTMLTextAreaElement>(null);
     const [hasFocus, setHasFocus] = React.useState(false);
-
-    // Set initial "hasFocus"
-    React.useEffect(() => {
-        setHasFocus(document.activeElement == inputRef.current);
-    });
 
     const className = createClassName(
         styles['text-area'],
@@ -45,7 +39,6 @@ export const TextArea: React.FC<TextAreaProps> = ({
                 <textarea
                     className={styles['text-area__input-element']}
                     {...props}
-                    ref={inputRef}
                     maxLength={maxlength}
                     onFocus={() => setHasFocus(true)}
                     onBlur={() => setHasFocus(false)}

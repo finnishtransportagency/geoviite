@@ -86,8 +86,11 @@
             }
         },
         "entity-not-found": "Tietoa ei löydy",
-        "entity-not-found-on-path": "Tietoa ei löytynyt kutsussa polkuun {{path}}",
-        "request-failed": "Pyyntö epäonnistui kutsussa polkuun {{path}}"
+        "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
+        "request-failed": "Pyyntö epäonnistui: {{path}}",
+        "copied-to-clipboard": "Kopioitu leikepöydälle",
+        "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
+        "expected-non-null": "Pyyntö palautti null-arvon"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",
@@ -1354,11 +1357,17 @@
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
     },
     "publication-card": {
-        "latest": "Viimeisimmät",
+        "latest": "Viimeisimmät viedyt julkaisut",
+        "waiting": "Odottaa Ratkoon vientiä",
         "title": "Julkaisut",
         "log-link": "Hae julkaisuja",
-        "publish-issues": "Ongelmat Ratko-integraatiossa",
-        "no-success-publications": "Ei julkaisuja."
+        "no-success-publications": "Ei julkaisuja.",
+        "show-more": "Näytä lisää",
+        "publication-status": "Raiteiden ja vaihteiden vienti",
+        "bulk-transfer-status": "Kohteiden siirto jaetulta raiteelta",
+        "actions": "Toiminnot",
+        "mark-as-successful": "Merkitse siirto onnistuneeksi",
+        "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua"
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",

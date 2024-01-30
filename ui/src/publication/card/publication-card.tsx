@@ -1,28 +1,32 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
-import { PublicationDetails } from 'publication/publication-model';
 import { PublicationList } from 'publication/card/publication-list';
-import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
-import { ratkoPushFailed } from 'ratko/ratko-model';
+import { ratkoPushFailed, ratkoPushSucceeded } from 'ratko/ratko-model';
 import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
 import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import { LoaderStatus } from 'utils/react-utils';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { useEffect } from 'react';
 import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { getLatestPublications } from 'publication/publication-api';
+import { TimeStamp } from 'common/common-model';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type PublishListProps = {
-    publicationFetchStatus: LoaderStatus;
-    publications: PublicationDetails[];
+    publicationChangeTime: TimeStamp;
+    ratkoPushChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
 };
 
@@ -67,8 +71,8 @@ const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
 export const MAX_LISTED_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
-    publications,
-    publicationFetchStatus,
+    publicationChangeTime,
+    ratkoPushChangeTime,
     ratkoStatus,
 }) => {
     const { t } = useTranslation();
@@ -83,22 +87,38 @@ const PublicationCard: React.FC<PublishListProps> = ({
         trackLayoutActionDelegates.clearPublicationSelection();
     }, []);
 
-    const allPublications = publications.sort(
-        (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
+    const [pageCount, setPageCount] = React.useState(1);
+    const [publications, publicationFetchStatus] = useLoaderWithStatus(
+        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount),
+        [publicationChangeTime, ratkoPushChangeTime, pageCount],
     );
 
-    const failures =
-        allPublications
-            .filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
-            .slice(0, MAX_LISTED_PUBLICATIONS) || [];
+    const allPublications =
+        publications
+            ?.sort((i1, i2) => compareTimestamps(i1.publicationTime, i2.publicationTime))
+            ?.reverse() ?? [];
 
-    const successes =
-        allPublications
-            .filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
-            .slice(0, MAX_LISTED_PUBLICATIONS) || [];
+    const nonSuccesses = allPublications.filter(
+        (publication) => !ratkoPushSucceeded(publication.ratkoPushStatus),
+    );
+
+    const successes = allPublications.filter((publication) =>
+        ratkoPushSucceeded(publication.ratkoPushStatus),
+    );
+
+    const latestFailure = allPublications.filter((publication) =>
+        ratkoPushFailed(publication.ratkoPushStatus),
+    )?.[0];
 
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
+
+    const allWaiting = nonSuccesses.every((publication) => !publication.ratkoPushStatus);
+
+    const navigateToPublicationLog = () => {
+        trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);
+        navigate('publication-search');
+    };
 
     return (
         <Card
@@ -108,62 +128,62 @@ const PublicationCard: React.FC<PublishListProps> = ({
                     <h2 className={styles['publication-card__title']}>
                         {t('publication-card.title')}
                     </h2>
-                    {publicationFetchStatus !== LoaderStatus.Ready ? (
-                        <Spinner />
-                    ) : (
-                        <React.Fragment>
-                            {(failures.length > 0 || ratkoConnectionError) && (
-                                <section>
-                                    <h3 className={styles['publication-card__subsection-title']}>
-                                        {t('publication-card.publish-issues')}
-                                    </h3>
-                                    {ratkoConnectionError && (
-                                        <p className={styles['publication-card__title-errors']}>
-                                            {parseRatkoOfflineStatus(ratkoStatus)}
-                                        </p>
-                                    )}
-                                    {failures.length > 0 && (
-                                        <React.Fragment>
-                                            <RatkoPushErrorDetails latestFailure={failures[0]} />
-                                            <div
-                                                className={
-                                                    styles['publication-card__ratko-push-button']
-                                                }>
-                                                <RatkoPublishButton
-                                                    size={ButtonSize.SMALL}
-                                                    disabled={ratkoConnectionError}
-                                                />
-                                            </div>
-                                            <PublicationList
-                                                publications={failures}
-                                                anyFailed={failures.length > 0}
-                                            />
-                                        </React.Fragment>
-                                    )}
-                                </section>
-                            )}
+                    <ProgressIndicatorWrapper
+                        indicator={ProgressIndicatorType.Area}
+                        inProgress={publicationFetchStatus !== LoaderStatus.Ready}>
+                        {(nonSuccesses.length > 0 || ratkoConnectionError) && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
-                                    {t('publication-card.latest')}
+                                    {t('publication-card.waiting')}
                                 </h3>
-                                <PublicationList publications={successes} />
+                                {ratkoConnectionError && (
+                                    <p className={styles['publication-card__title-errors']}>
+                                        {parseRatkoOfflineStatus(ratkoStatus)}
+                                    </p>
+                                )}
+                                {latestFailure && (
+                                    <RatkoPushErrorDetails latestFailure={latestFailure} />
+                                )}
+                                <PublicationList publications={nonSuccesses} />
+                                {allWaiting && (
+                                    <div className={styles['publication-card__waiting-text']}>
+                                        <Icons.SetTime
+                                            size={IconSize.SMALL}
+                                            color={IconColor.INHERIT}
+                                        />
+                                        <span>{t('publication-card.transfer-starts-shortly')}</span>
+                                    </div>
+                                )}
+                                {latestFailure && (
+                                    <div className={styles['publication-card__ratko-push-button']}>
+                                        <RatkoPublishButton disabled={ratkoConnectionError} />
+                                    </div>
+                                )}
                             </section>
-                            {successes.length == 0 && failures.length == 0 && (
-                                <div className={styles['publication-card__no-publications']}>
-                                    {t('publication-card.no-success-publications')}
-                                </div>
-                            )}
-                            <Link
-                                onClick={() => {
-                                    trackLayoutActionDelegates.setSelectedPublicationSearch(
-                                        defaultPublicationSearch,
-                                    );
-                                    navigate('publication-search');
-                                }}>
+                        )}
+                        <section>
+                            <h3 className={styles['publication-card__subsection-title']}>
+                                {t('publication-card.latest')}
+                            </h3>
+                            <PublicationList publications={successes} />
+                        </section>
+                        {successes.length == 0 && nonSuccesses.length == 0 && (
+                            <div className={styles['publication-card__no-publications']}>
+                                {t('publication-card.no-success-publications')}
+                            </div>
+                        )}
+                        <div>
+                            <Link onClick={() => setPageCount(pageCount + 1)}>
+                                {t('publication-card.show-more')}
+                            </Link>
+                        </div>
+                        <br />
+                        <div>
+                            <Link onClick={() => navigateToPublicationLog()}>
                                 {t('publication-card.log-link')}
                             </Link>
-                        </React.Fragment>
-                    )}
+                        </div>
+                    </ProgressIndicatorWrapper>
                 </React.Fragment>
             }
         />

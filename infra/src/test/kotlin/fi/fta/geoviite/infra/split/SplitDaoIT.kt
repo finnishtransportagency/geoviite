@@ -43,7 +43,6 @@ class SplitDaoIT @Autowired constructor(
         ).let(splitDao::getSplit)
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
-        assertNull(split.errorCause)
         assertNull(split.publicationId)
         assertEquals(sourceTrack.id, split.locationTrackId)
         assertContains(split.targetLocationTracks, SplitTarget(split.id, targetTrack.id, 0..0))
@@ -74,13 +73,11 @@ class SplitDaoIT @Autowired constructor(
         val updatedSplit = splitDao.updateSplitState(
             split.copy(
                 bulkTransferState = BulkTransferState.FAILED,
-                errorCause = "TEST",
                 publicationId = publicationId,
             )
         ).let(splitDao::getSplit)
 
         assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransferState)
-        assertEquals("TEST", updatedSplit.errorCause)
         assertEquals(publicationId, updatedSplit.publicationId)
     }
 
@@ -149,5 +146,31 @@ class SplitDaoIT @Autowired constructor(
         splitDao.deleteSplit(splitId)
 
         assertTrue { splitDao.fetchUnfinishedSplits().none { it.id == splitId } }
+    }
+
+    @Test
+    fun `Should fetch split header`() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val sourceTrack = insertLocationTrack(
+            locationTrack(trackNumberId = trackNumberId) to alignment
+        )
+
+        val targetTrack1 = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+        )
+
+        val relinkedSwitchId = insertUniqueSwitch().id
+
+        val splitId = splitDao.saveSplit(
+            sourceTrack.id,
+            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0)),
+            listOf(relinkedSwitchId),
+        )
+
+        val splitHeader = splitDao.getSplitHeader(splitId)
+        assertEquals(splitId, splitHeader.id)
+        assertEquals(sourceTrack.id, splitHeader.locationTrackId)
+        assertEquals(BulkTransferState.PENDING, splitHeader.bulkTransferState)
     }
 }

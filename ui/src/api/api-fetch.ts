@@ -1,5 +1,6 @@
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import i18n from 'i18next';
+import i18next from 'i18next';
 import { err, ok, Result } from 'neverthrow';
 import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
@@ -242,7 +243,7 @@ async function fetchNonNullAdt<Input, Output>(
     const result = await fetchNullableAdt<Input, Output>(path, method, body);
 
     if (result.isOk() && result.value === undefined) {
-        Snackbar.error('Expected non-null result but got null', `${method} ${path}`);
+        Snackbar.error(i18next.t('error.expected-non-null'));
 
         return err(undefined);
     } else {
@@ -261,7 +262,7 @@ export async function fetchFormNonNullAdt<Output>(
     );
 
     if (r.isOk() && r.value === undefined) {
-        Snackbar.error('Expected non-null result but got null', `${method} ${path}`);
+        Snackbar.error(i18next.t('error.expected-non-null'));
 
         return err(undefined);
     } else {
@@ -368,11 +369,5 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
 }
 
 const showHttpError = (path: string, response: ApiErrorResponse) => {
-    const msg =
-        response.localizedMessageKey &&
-        i18n.t(response.localizedMessageKey, response.localizedMessageParams);
-
-    const content = msg || response.messageRows.map((r) => `${r}`).join('\n');
-
-    Snackbar.error(i18n.t('error.request-failed', { path }), content);
+    Snackbar.apiError(i18n.t('error.request-failed', { path }), response);
 };

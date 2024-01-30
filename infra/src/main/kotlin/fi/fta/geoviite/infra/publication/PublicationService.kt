@@ -216,12 +216,6 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun validateSwitch(
-        switchId: IntId<TrackLayoutSwitch>,
-        publishType: PublishType,
-    ): ValidatedAsset<TrackLayoutSwitch> = validateSwitches(listOf(switchId), publishType).single()
-
-    @Transactional(readOnly = true)
     fun validateKmPost(
         kmPostId: IntId<TrackLayoutKmPost>,
         publishType: PublishType,
@@ -891,6 +885,7 @@ class PublicationService @Autowired constructor(
         val (publishedDirectTrackNumbers, publishedIndirectTrackNumbers) = publicationDao.fetchPublishedTrackNumbers(id)
         val (publishedDirectTracks, publishedIndirectTracks) = publicationDao.fetchPublishedLocationTracks(id)
         val (publishedDirectSwitches, publishedIndirectSwitches) = publicationDao.fetchPublishedSwitches(id)
+        val splitHeader = splitService.getSplitHeaderByPublicationId(id)
 
         return PublicationDetails(
             id = publication.id,
@@ -908,7 +903,8 @@ class PublicationService @Autowired constructor(
                 trackNumbers = publishedIndirectTrackNumbers,
                 locationTracks = publishedIndirectTracks,
                 switches = publishedIndirectSwitches
-            )
+            ),
+            split = splitHeader,
         )
     }
 

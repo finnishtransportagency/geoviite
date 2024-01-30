@@ -783,8 +783,9 @@ class PublicationServiceIT @Autowired constructor(
     fun `Validating official switch should work`() {
         val switchId = switchDao.insert(switch(123)).id
 
-        val validation = publicationService.validateSwitch(switchId, OFFICIAL)
-        assertEquals(3, validation.errors.size)
+        val validation = publicationService.validateSwitches(listOf(switchId), OFFICIAL)
+        assertEquals(1, validation.size)
+        assertEquals(3, validation[0].errors.size)
     }
 
     @Test
@@ -1699,7 +1700,7 @@ class PublicationServiceIT @Autowired constructor(
         print(diff)
         assertEquals(1, diff.size)
         assertEquals(
-            "Muutos välillä 0000+0001.000-0000+0009.000, sivusuuntainen muutos 10.0 m",
+            "Muutos välillä 0000+0001-0000+0009, sivusuuntainen muutos 10.0 m",
             diff[0].remark
         )
     }
@@ -1950,8 +1951,8 @@ class PublicationServiceIT @Autowired constructor(
             "same errors by localization key, index $index, ",
         )
 
-        val expectedByKey = expected.groupBy { it.localizationKey }
-        val actualByKey = actual.groupBy { it.localizationKey }
+        val expectedByKey = expected.sortedBy { it.toString() } .groupBy { it.localizationKey }
+        val actualByKey = actual.sortedBy { it.toString() }.groupBy { it.localizationKey }
         expectedByKey.keys.forEach { key ->
             assertEquals(expectedByKey[key]!!.map { it.params }, actualByKey[key]!!.map { it.params }, "params for key $key at index $index, ")
             assertEquals(expectedByKey[key]!!.map { it.type }, actualByKey[key]!!.map { it.type }, "level for key $key at index $index, ")

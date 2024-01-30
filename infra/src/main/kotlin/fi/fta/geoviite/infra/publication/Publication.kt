@@ -16,12 +16,12 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
-
 
 enum class PublicationTableColumn {
     NAME,
@@ -144,6 +144,7 @@ data class PublicationDetails(
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
+    val split: SplitHeader?,
 ) : Publication(id, publicationTime, publicationUser, message) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
