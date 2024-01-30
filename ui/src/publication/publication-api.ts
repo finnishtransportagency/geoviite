@@ -44,7 +44,7 @@ export const getLatestPublications = (count: number) => {
         count,
     });
 
-    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latsest${params}`);
+    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
 };
 
 export const getPublication = (id: PublicationId) =>
