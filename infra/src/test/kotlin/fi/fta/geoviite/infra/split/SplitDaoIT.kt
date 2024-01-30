@@ -147,4 +147,30 @@ class SplitDaoIT @Autowired constructor(
 
         assertTrue { splitDao.fetchUnfinishedSplits().none { it.id == splitId } }
     }
+
+    @Test
+    fun `Should fetch split header`() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val sourceTrack = insertLocationTrack(
+            locationTrack(trackNumberId = trackNumberId) to alignment
+        )
+
+        val targetTrack1 = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+        )
+
+        val relinkedSwitchId = insertUniqueSwitch().id
+
+        val splitId = splitDao.saveSplit(
+            sourceTrack.id,
+            listOf(SplitTargetSaveRequest(targetTrack1.id, 0..0)),
+            listOf(relinkedSwitchId),
+        )
+
+        val splitHeader = splitDao.getSplitHeader(splitId)
+        assertEquals(splitId, splitHeader.id)
+        assertEquals(sourceTrack.id, splitHeader.locationTrackId)
+        assertEquals(BulkTransferState.PENDING, splitHeader.bulkTransferState)
+    }
 }
