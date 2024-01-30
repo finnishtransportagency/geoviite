@@ -196,7 +196,7 @@ fun describe(ex: Exception): ErrorDescription? {
         is MismatchedInputException -> ErrorDescription(
             message = message,
             key = "error.bad-request.conversion-failed",
-            params = localizationParams("target" to ex.targetType.simpleName),
+            params = localizationParams("target" to ex.targetType?.simpleName),
             priority = ErrorPriority.LOW,
         )
 
@@ -206,9 +206,9 @@ fun describe(ex: Exception): ErrorDescription? {
         )
 
         is ValueInstantiationException -> ErrorDescription(
-            message = "Failed to instantiate ${ex.type.genericSignature}",
+            message = "Failed to instantiate ${ex.type?.genericSignature}",
             key = "error.bad-request.conversion-failed",
-            params = localizationParams("target" to ex.type.genericSignature),
+            params = localizationParams("target" to ex.type?.genericSignature),
             priority = ErrorPriority.LOW,
         )
 

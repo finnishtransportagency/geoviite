@@ -2285,8 +2285,8 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 LocalizationKey("validation.layout.split.source-not-deleted"),
-                LocalizationParams.empty()
-            )
+                LocalizationParams.empty,
+            ),
         )
     }
 
@@ -2306,8 +2306,8 @@ class PublicationServiceIT @Autowired constructor(
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
                 LocalizationKey("validation.layout.split.duplicate-on-different-track-number"),
-                LocalizationParams(mapOf("duplicateTrack" to startTarget.name.toString()))
-            )
+                LocalizationParams(mapOf("duplicateTrack" to startTarget.name.toString())),
+            ),
         )
     }
 

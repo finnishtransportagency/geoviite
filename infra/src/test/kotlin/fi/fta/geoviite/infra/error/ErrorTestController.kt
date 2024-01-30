@@ -3,26 +3,25 @@ package fi.fta.geoviite.infra.hello
 import com.fasterxml.jackson.annotation.JsonCreator
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.error.ServerException
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 
 data class ErrorTestParam(val value: Int) {
     @JsonCreator constructor(stringValue: String): this(stringValue.toInt())
     init {
-        if (value <= 0) throw InputValidationException("ErrorTestParam value too small", ErrorTestParam::class)
+        if (value <= 0) throw InputValidationException("ErrorTestParam value too small", ErrorTestParam::class, "test")
     }
 }
 
 data class ErrorTestBody @JsonCreator constructor(val name: String, val value: Int) {
     init {
-        if (value <= 0) throw InputValidationException("ErrorTestBody value too small", ErrorTestParam::class)
+        if (value <= 0) throw InputValidationException("ErrorTestBody value too small", ErrorTestParam::class, "test")
     }
 }
 
 data class ErrorTestResponse(val message: String = "Request success")
 
 @RestController
-class ErrorTestController @Autowired constructor() {
+class ErrorTestController {
 
     @GetMapping("/error-test-path/{variable}")
     fun requestWithPathVariable(@PathVariable("variable") value: ErrorTestParam) : ErrorTestResponse {
@@ -51,7 +50,7 @@ class ErrorTestController @Autowired constructor() {
 
     @GetMapping("/error-test/client")
     fun clientException() : ErrorTestResponse {
-        throw InputValidationException("Client error", ErrorTestParam::class)
+        throw InputValidationException("Client error", ErrorTestParam::class, "test")
     }
 
     @GetMapping("/error-test/server")
@@ -61,6 +60,6 @@ class ErrorTestController @Autowired constructor() {
 
     @GetMapping("/error-test/wrapped")
     fun serverExceptionWrappedInClientException(): ErrorTestResponse {
-        throw InputValidationException("Client error", ErrorTestParam::class, ServerException("Server error"))
+        throw InputValidationException("Client error", ErrorTestParam::class, "test", ServerException("Server error"))
     }
 }

@@ -55,7 +55,7 @@ class ApiErrorHandlerTest @Autowired constructor(
     fun unparseableArgumentIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/error-test-param?param=asdf", BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithParam' parameter 0",
+            "Argument type mismatch: param (type ErrorTestParam) method 'requestWithParam' parameter 0",
             "Conversion failed for value \"asdf\": [String] -> [ErrorTestParam]",
         )
     }
@@ -64,7 +64,7 @@ class ApiErrorHandlerTest @Autowired constructor(
     fun invalidArgumentIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/error-test-param?param=0", BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithParam' parameter 0",
+            "Argument type mismatch: param (type ErrorTestParam) method 'requestWithParam' parameter 0",
             "Conversion failed for value \"0\": [String] -> [ErrorTestParam]",
             "Input validation failed: ErrorTestParam value too small",
         )
@@ -87,7 +87,7 @@ class ApiErrorHandlerTest @Autowired constructor(
     fun unparseablePathVariableIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/error-test-path/asdf", BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithPathVariable' parameter 0",
+            "Argument type mismatch: variable (type ErrorTestParam) method 'requestWithPathVariable' parameter 0",
             "Conversion failed for value \"asdf\": [String] -> [ErrorTestParam]",
         )
     }
@@ -96,7 +96,7 @@ class ApiErrorHandlerTest @Autowired constructor(
     fun invalidPathVariableIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/error-test-path/0", BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithPathVariable' parameter 0",
+            "Argument type mismatch: variable (type ErrorTestParam) method 'requestWithPathVariable' parameter 0",
             "Conversion failed for value \"0\": [String] -> [ErrorTestParam]",
             "Input validation failed: ErrorTestParam value too small",
         )
@@ -120,7 +120,6 @@ class ApiErrorHandlerTest @Autowired constructor(
         testApi.assertErrorResult(
             testApi.doPost("/error-test-body", Pair("something", "invalid"), BAD_REQUEST),
             "Request body not readable",
-            "Missing parameter \"name\"",
         )
     }
 

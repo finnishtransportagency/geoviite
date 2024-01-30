@@ -99,7 +99,7 @@ class GeometryDaoIT @Autowired constructor(
 
         val fetchedAuthor = geometryDao.getAuthor(authorId.id)
 
-        assertEquals(MetaDataName("${TEST_NAME_PREFIX}Company 1"), fetchedAuthor.companyName)
+        assertEquals(CompanyName("${TEST_NAME_PREFIX}Company 1"), fetchedAuthor.companyName)
     }
 
     @Test
@@ -110,10 +110,10 @@ class GeometryDaoIT @Autowired constructor(
         geometryDao.insertAuthor(author1)
         geometryDao.insertAuthor(author2)
 
-        val author = geometryDao.findAuthor(MetaDataName("${TEST_NAME_PREFIX}COMPANY            mAtCH"))
+        val author = geometryDao.findAuthor(CompanyName("${TEST_NAME_PREFIX}COMPANY            mAtCH"))
 
         assertNotNull(author)
-        assertEquals(MetaDataName("${TEST_NAME_PREFIX}Company match"), author.companyName)
+        assertEquals(CompanyName("${TEST_NAME_PREFIX}Company match"), author.companyName)
     }
 
     @Test
@@ -176,7 +176,8 @@ class GeometryDaoIT @Autowired constructor(
     fun minimalElementInsertsWork() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
         val plan = plan(
-            trackNumberId = insertOfficialTrackNumber(), fileName = file.name,
+            trackNumberId = insertOfficialTrackNumber(),
+            fileName = file.name,
             alignments = listOf(
                 geometryAlignment(
                     elements = listOf(minimalLine(), minimalCurve(), minimalClothoid()),
@@ -205,7 +206,8 @@ class GeometryDaoIT @Autowired constructor(
         val planVersion = geometryDao.insertPlan(plan, file, null)
         val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
         val track = locationTrackAndAlignment(
-            trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
+            trackNumberId,
+            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id),
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))
