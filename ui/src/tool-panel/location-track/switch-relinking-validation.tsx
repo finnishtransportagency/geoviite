@@ -58,7 +58,7 @@ export function showTrackSwitchRelinkingValidations(
             locationTrack: locationTrack.name,
         }),
         undefined,
-        { showCloseButton: true },
+        { toastId: 'switch-relinking-validation', replace: true, showCloseButton: true },
         <SwitchRelinkingValidationBody
             locationTrackId={locationTrack.id}
             onSwitchClick={onSwitchClick}
