@@ -38,6 +38,15 @@ function addToQueue(toastId: ToastId): (() => void) | undefined {
     }
 }
 
+const isApiErrorResponse = (
+    allegedApiErrorResponse: unknown,
+): allegedApiErrorResponse is ApiErrorResponse =>
+    typeof allegedApiErrorResponse === 'object' &&
+    allegedApiErrorResponse !== null &&
+    allegedApiErrorResponse !== undefined &&
+    'timestamp' in allegedApiErrorResponse &&
+    'correlationId' in allegedApiErrorResponse;
+
 function getToastId(header: string, body?: string): string {
     return `toast-${header}${body ? '-' + body : ''}`;
 }
@@ -73,21 +82,31 @@ function getToast(headerKey: string, bodyKey?: string, button?: SnackbarButtonOp
     );
 }
 
-function getErrorToast(
-    headerKey: string,
-    errorObj?: ApiErrorResponse,
-    button?: SnackbarButtonOptions,
-) {
+function getErrorToast(headerKey: string, errorObj?: unknown, button?: SnackbarButtonOptions) {
     const t = i18n.t;
+
+    const validError = isApiErrorResponse(errorObj);
 
     const header = t(headerKey);
     const buttonText = button ? t(button.text) : undefined;
+    const date =
+        validError && errorObj
+            ? new Date(errorObj.timestamp).toLocaleString(i18next.language)
+            : undefined;
     const copyToClipboard = () => {
         if (errorObj) {
-            navigator.clipboard.writeText(JSON.stringify(errorObj));
-            success(t('error.copied-to-clipboard'), undefined, {
-                autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
-            });
+            navigator.clipboard
+                .writeText(JSON.stringify(errorObj))
+                .then(() =>
+                    success(t('error.copied-to-clipboard'), undefined, {
+                        autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
+                    }),
+                )
+                .catch(() =>
+                    error(t('error.copy-to-clipboard-failed'), undefined, {
+                        autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
+                    }),
+                );
         }
     };
 
@@ -98,7 +117,7 @@ function getErrorToast(
                     <span className={styles['Toastify__toast-header']} title={header}>
                         {header}
                     </span>
-                    {errorObj && (
+                    {validError && errorObj && (
                         <Button
                             title={t('error.copy-details-to-clipboard')}
                             onClick={copyToClipboard}
@@ -108,10 +127,11 @@ function getErrorToast(
                         />
                     )}
                 </span>
-                {errorObj && (
-                    <div className={styles['Toastify__toast-footer']}>{`${new Date(
-                        errorObj.timestamp,
-                    ).toLocaleString(i18next.language)} | ${errorObj.correlationId}`}</div>
+                {validError && errorObj && (
+                    <div
+                        className={
+                            styles['Toastify__toast-footer']
+                        }>{`${date} | ${errorObj.correlationId}`}</div>
                 )}
             </div>
             {button && (
@@ -164,7 +184,7 @@ export function success(header: string, body?: string, opts?: ToastOpts) {
     }
 }
 
-export function error(header: string, errorResponse?: ApiErrorResponse) {
+export function error(header: string, errorResponse?: ApiErrorResponse, options?: ToastOpts) {
     const toastId = getToastId(header);
     const removeFunction = addToQueue(toastId);
 
@@ -176,6 +196,7 @@ export function error(header: string, errorResponse?: ApiErrorResponse) {
             closeButton: CloseButton,
             onClose: removeFunction,
             icon: <Icons.StatusError />,
+            ...options,
         });
     }
 }

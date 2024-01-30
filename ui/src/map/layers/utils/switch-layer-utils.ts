@@ -1,4 +1,8 @@
-import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LayoutSwitch,
+    LayoutSwitchJoint,
+} from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
 import {
     drawCircle,
@@ -11,7 +15,7 @@ import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
 import SwitchErrorIcon from 'vayla-design-lib/icon/glyphs/misc/switch-error.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
-import { SuggestedSwitchJoint } from 'linking/linking-model';
+import { GeometryPlanLinkStatus, SuggestedSwitchJoint } from 'linking/linking-model';
 import { SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
@@ -21,6 +25,8 @@ import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
 import { ValidatedAsset } from 'publication/publication-model';
+import { Selection } from 'selection/selection-model';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -250,7 +256,70 @@ export function getLinkingJointRenderer(
     );
 }
 
-export function createSwitchFeatures(
+export const createGeometrySwitchFeatures = (
+    status: GeometryPlanLinkStatus | undefined,
+    visibleSwitches: (string | undefined)[],
+    planLayout: GeometryPlanLayout,
+    isSelected: (switchItem: LayoutSwitch) => boolean,
+    isHighlighted: (switchItem: LayoutSwitch) => boolean,
+    showLargeSymbols: boolean,
+    showLabels: boolean,
+    switchStructures: SwitchStructure[],
+) => {
+    const switchLinkedStatus = status
+        ? new Map(
+              status.switches
+                  .filter((s) => visibleSwitches.includes(s.id))
+                  .map((switchItem) => [switchItem.id, switchItem.isLinked]),
+          )
+        : undefined;
+
+    const isSwitchLinked = (switchItem: LayoutSwitch) =>
+        (switchItem.sourceId && switchLinkedStatus?.get(switchItem.sourceId)) || false;
+
+    return createSwitchFeatures(
+        planLayout.switches.filter((s) => s.sourceId && visibleSwitches.includes(s.sourceId)),
+        isSelected,
+        isHighlighted,
+        isSwitchLinked,
+        showLargeSymbols,
+        showLabels,
+        planLayout.id,
+        switchStructures,
+    );
+};
+
+export const createLayoutSwitchFeatures = (
+    resolution: number,
+    selection: Selection,
+    switches: LayoutSwitch[],
+    switchStructures: SwitchStructure[],
+    validationResult: ValidatedAsset[],
+) => {
+    const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+    const showLabels = resolution <= Limits.SWITCH_LABELS;
+    const isSelected = (switchItem: LayoutSwitch) => {
+        return selection.selectedItems.switches.some((s) => s === switchItem.id);
+    };
+
+    const isHighlighted = (switchItem: LayoutSwitch) => {
+        return selection.highlightedItems.switches.some((s) => s === switchItem.id);
+    };
+
+    return createSwitchFeatures(
+        switches,
+        isSelected,
+        isHighlighted,
+        () => false,
+        largeSymbols,
+        showLabels,
+        undefined,
+        switchStructures,
+        validationResult,
+    );
+};
+
+function createSwitchFeatures(
     layoutSwitches: LayoutSwitch[],
     isSelected: (switchItem: LayoutSwitch) => boolean,
     isHighlighted: (switchItem: LayoutSwitch) => boolean,

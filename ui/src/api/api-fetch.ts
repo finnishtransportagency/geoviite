@@ -4,6 +4,7 @@ import { err, ok, Result } from 'neverthrow';
 import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
 import { LocalizationParams } from 'i18n/config';
+import i18next from 'i18next';
 
 export const API_URI = '/api';
 
@@ -242,7 +243,7 @@ async function fetchNonNullAdt<Input, Output>(
     const result = await fetchNullableAdt<Input, Output>(path, method, body);
 
     if (result.isOk() && result.value === undefined) {
-        Snackbar.error('Expected non-null result but got null');
+        Snackbar.error(i18next.t('error.expected-non-null'));
 
         return err(undefined);
     } else {
@@ -261,7 +262,7 @@ export async function fetchFormNonNullAdt<Output>(
     );
 
     if (r.isOk() && r.value === undefined) {
-        Snackbar.error('Expected non-null result but got null');
+        Snackbar.error(i18next.t('error.expected-non-null'));
 
         return err(undefined);
     } else {

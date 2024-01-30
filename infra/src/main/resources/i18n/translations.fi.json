@@ -89,7 +89,8 @@
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
         "request-failed": "Pyyntö epäonnistui: {{path}}",
         "copied-to-clipboard": "Kopioitu leikepöydälle",
-        "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle"
+        "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
+        "expected-non-null": "Pyyntö palautti null-arvon"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",

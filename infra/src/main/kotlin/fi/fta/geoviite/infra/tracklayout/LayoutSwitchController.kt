@@ -97,6 +97,18 @@ class LayoutSwitchController(
         return publicationService.validateSwitches(ids, publishType)
     }
 
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/{publishType}/validation/{bbox}")
+    fun validateSwitchesInTile(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("bbox") bbox: BoundingBox,
+    ): List<ValidatedAsset<TrackLayoutSwitch>> {
+        logger.apiCall("validateSwitchesInTile", "publishType" to publishType, "bbox" to bbox)
+        val filter = switchFilter(null, null, null, bbox, false)
+        val switches = switchService.listWithStructure(publishType, false).filter(filter)
+        return publicationService.validateSwitches(switches.map { (switch, _) -> switch.id as IntId }, publishType)
+    }
+
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/draft")
     fun insertTrackLayoutSwitch(@RequestBody request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
