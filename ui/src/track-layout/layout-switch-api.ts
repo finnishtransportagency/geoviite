@@ -26,6 +26,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 const switchValidationCache = asyncCache<string, ValidatedAsset>();
+const tiledSwitchValidationCache = asyncCache<string, ValidatedAsset[]>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
 
@@ -173,6 +174,19 @@ export const getSwitchesValidation = async (publishType: PublishType, ids: Layou
                 }),
         )
         .then((switches) => switches.filter(filterNotEmpty));
+};
+
+export const getSwitchesValidationByTile = async (
+    changeTime: TimeStamp,
+    mapTile: MapTile,
+    publishType: PublishType,
+): Promise<ValidatedAsset[]> => {
+    const tileKey = `${mapTile.id}_${publishType}`;
+    return tiledSwitchValidationCache.get(changeTime, tileKey, () =>
+        getNonNull<ValidatedAsset[]>(
+            `${layoutUri('switches', publishType)}/validation/${bboxString(mapTile.area)}`,
+        ),
+    );
 };
 
 export const getSwitchChangeTimes = (
