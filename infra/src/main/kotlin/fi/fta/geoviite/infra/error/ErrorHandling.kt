@@ -30,6 +30,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.ServletRequestBindingException
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.multipart.MaxUploadSizeExceededException
 import org.springframework.web.multipart.support.MissingServletRequestPartException
 import org.springframework.web.servlet.NoHandlerFoundException
 
@@ -115,6 +116,7 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     is BindException -> BAD_REQUEST
     is NoHandlerFoundException -> NOT_FOUND
     is AsyncRequestTimeoutException -> SERVICE_UNAVAILABLE
+    is MaxUploadSizeExceededException -> BAD_REQUEST
     // We don't know -> return nothing to continue resolving through the cause chain
     else -> null
 }
@@ -129,7 +131,7 @@ fun describe(status: HttpStatus) = ErrorDescription(
     params = localizationParams("code" to status.value()),
 )
 
-fun describe(ex: Exception): ErrorDescription {
+fun describe(ex: Exception): ErrorDescription? {
     val message = ex.message ?: "${ex::class.simpleName}"
     return when (ex) {
         // Our own exceptions: prioritized for error display as they likely contain the most understandable message
@@ -249,13 +251,18 @@ fun describe(ex: Exception): ErrorDescription {
             key = "error.authentication.invalid-token",
         )
 
-        // Switch to this if you want to see what types end up in the chain:
-        else -> ErrorDescription(
-            message = message,
-            key = "error.exception",
-            params = localizationParams("type" to ex::class.simpleName),
+        is MaxUploadSizeExceededException -> ErrorDescription(
+            message = "Maximum upload size exceeded: ${ex.mostSpecificCause.message}",
+            key = "error.file-size-limit-exceeded",
         )
-//        else -> null
+
+        // Switch to this if you want to see what types end up in the chain:
+//        else -> ErrorDescription(
+//            message = message,
+//            key = "error.exception",
+//            params = localizationParams("type" to ex::class.simpleName),
+//        )
+        else -> null
     }
 }
 

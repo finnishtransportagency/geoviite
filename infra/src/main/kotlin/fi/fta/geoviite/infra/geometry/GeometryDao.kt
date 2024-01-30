@@ -908,7 +908,7 @@ class GeometryDao @Autowired constructor(
                 source = rs.getEnum<PlanSource>("source"),
                 project = getProject(rs.getIntId("plan_project_id")),
                 author = authorId?.let { id ->
-                    Author(id = id, companyName = MetaDataName(rs.getString("author_company_name")))
+                    Author(id = id, companyName = CompanyName(rs.getString("author_company_name")))
                 },
                 application = Application(
                     id = rs.getIntId("application_id"),
@@ -1004,7 +1004,7 @@ class GeometryDao @Autowired constructor(
 
     fun fetchAuthorChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN_AUTHOR)
 
-    fun findAuthor(companyName: MetaDataName): Author? {
+    fun findAuthor(companyName: CompanyName): Author? {
         val sql = """
             select
               id
@@ -1017,7 +1017,7 @@ class GeometryDao @Autowired constructor(
         val author = jdbcTemplate.query(sql, params) { rs, _ ->
             Author(
                 id = rs.getIntId("id"),
-                companyName = MetaDataName(rs.getString("company_name")),
+                companyName = CompanyName(rs.getString("company_name")),
             )
         }.firstOrNull()
 
@@ -1038,7 +1038,7 @@ class GeometryDao @Autowired constructor(
         val author = jdbcTemplate.query(sql, params) { rs, _ ->
             Author(
                 id = rs.getIntId("id"),
-                companyName = MetaDataName(rs.getString("company_name")),
+                companyName = CompanyName(rs.getString("company_name")),
             )
         }.firstOrNull() ?: throw NoSuchEntityException(Project::class, authorId)
         logger.daoAccess(FETCH, Author::class, author.id)
@@ -1055,7 +1055,7 @@ class GeometryDao @Autowired constructor(
         val authors = jdbcTemplate.query(sql) { rs, _ ->
             Author(
                 id = rs.getIntId("id"),
-                companyName = MetaDataName(rs.getString("company_name")),
+                companyName = CompanyName(rs.getString("company_name")),
             )
         }
 

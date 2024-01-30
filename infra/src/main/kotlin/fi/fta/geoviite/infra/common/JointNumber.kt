@@ -10,7 +10,7 @@ private const val JOINT_PREFIX = "JOINT_"
 
 data class JointNumber @JsonCreator(mode = DISABLED) constructor(val intValue: Int) : Comparable<JointNumber> {
     @JsonCreator(mode = DELEGATING)
-    constructor(value: String) : this(parsePrefixedInt(JOINT_PREFIX, value))
+    constructor(value: String) : this(parsePrefixedInt<JointNumber>(JOINT_PREFIX, value))
 
     init { require(intValue >= 0) { "Invalid joint number: \"$intValue\"" } }
 

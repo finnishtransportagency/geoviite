@@ -51,6 +51,7 @@ inline fun <reified T> parseMandatory(name: String, value: String, function: (St
         throw InputValidationException(
             message = "Cannot parse ${formatForException(name)} from value ${formatForException(value)}",
             type = T::class,
+            value = value,
             cause = e,
         )
     }

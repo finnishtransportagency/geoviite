@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.formatForException
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.*
 import kotlin.reflect.KClass
@@ -72,10 +73,16 @@ class DeletingFailureException(
 class InputValidationException(
     message: String,
     type: KClass<*>,
+    value: String,
     cause: Throwable? = null,
     localizationKey: String = "error.input.validation.${type.simpleName}",
-    localizationParams: LocalizationParams = LocalizationParams.empty,
-) : ClientException(BAD_REQUEST, "Input validation failed: $message", cause, localizationKey, localizationParams)
+) : ClientException(
+    BAD_REQUEST,
+    "Input validation failed: $message",
+    cause,
+    localizationKey,
+    localizationParams("value" to formatForException(value)),
+)
 
 class ApiUnauthorizedException(
     message: String,

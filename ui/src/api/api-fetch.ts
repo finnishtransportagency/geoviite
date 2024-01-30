@@ -1,7 +1,7 @@
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import i18n from 'i18next';
 import { err, ok, Result } from 'neverthrow';
-import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 import Cookies from 'js-cookie';
 import { LocalizationParams } from 'i18n/config';
 import i18next from 'i18next';
@@ -300,7 +300,7 @@ async function executeBodyRequestInternal<Output>(
         const errorIsTokenExpiry =
             response.status === 401 &&
             (response.headers.has('session-expired') ||
-                errorContains(errorResponse.response, TOKEN_EXPIRED));
+                errorResponse.response.localizationKey === TOKEN_EXPIRED);
 
         if (retryOnTokenExpired && errorIsTokenExpiry) {
             return executeBodyRequestInternal(fetchFunction, false);
@@ -309,10 +309,6 @@ async function executeBodyRequestInternal<Output>(
             return err(errorResponse.response);
         }
     }
-}
-
-function errorContains(error: ApiErrorResponse, localizationKey: string): boolean {
-    return error.messageRows.some((r) => r.localizationKey === localizationKey);
 }
 
 async function getFormResponse(
@@ -377,8 +373,7 @@ export const getLocalizedError = (
     defaultKey: string,
     defaultParams: LocalizationParams = {},
 ): string => {
-    const error = getMainError(response);
-    const key = error?.localizationKey || defaultKey;
-    const params = error?.localizationParams || defaultParams;
+    const key = response?.localizationKey || defaultKey;
+    const params = response?.localizationParams || defaultParams;
     return i18n.t(key, params);
 };
