@@ -470,48 +470,6 @@ class LocationTrackService(
         )
     }
 
-    fun calculateLocationTrackTopology(
-        track: LocationTrack,
-        alignment: LayoutAlignment,
-        startChanged: Boolean = false,
-        endChanged: Boolean = false,
-        nearbyTracks: NearbyTracks,
-    ): LocationTrack {
-        val startPoint = alignment.firstSegmentStart
-        val endPoint = alignment.lastSegmentEnd
-        val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
-
-        val startSwitch = if (!track.exists || startPoint == null) null
-        else if (startChanged) findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null)
-        else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
-
-        val endSwitch = if (!track.exists || endPoint == null) null
-        else if (endChanged) findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null)
-        else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch)
-
-        return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
-            track
-        } else if (startSwitch?.switchId != null && startSwitch.switchId == endSwitch?.switchId) {
-            // Remove topology links if both ends would connect to the same switch.
-            // In this case, the alignment should be part of the internal switch geometry
-            track.copy(topologyStartSwitch = null, topologyEndSwitch = null)
-        } else {
-            track.copy(topologyStartSwitch = startSwitch, topologyEndSwitch = endSwitch)
-        }
-    }
-
-    fun findBestTopologySwitchMatch(
-        target: IPoint,
-        ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
-        nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
-        currentTopologySwitch: TopologyLocationTrackSwitch?,
-    ): TopologyLocationTrackSwitch? {
-        val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
-        else currentTopologySwitch
-        return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracksForSearch) ?: defaultSwitch
-        ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracksForSearch)
-    }
-
     @Transactional(readOnly = true)
     fun getLocationTrackEndpoints(bbox: BoundingBox, publishType: PublishType): List<LocationTrackEndpoint> {
         logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
@@ -597,6 +555,48 @@ data class NearbyTracks(
     val aroundStart: List<Pair<LocationTrack, LayoutAlignment>>,
     val aroundEnd: List<Pair<LocationTrack, LayoutAlignment>>,
 )
+
+fun calculateLocationTrackTopology(
+    track: LocationTrack,
+    alignment: LayoutAlignment,
+    startChanged: Boolean = false,
+    endChanged: Boolean = false,
+    nearbyTracks: NearbyTracks,
+): LocationTrack {
+    val startPoint = alignment.firstSegmentStart
+    val endPoint = alignment.lastSegmentEnd
+    val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
+
+    val startSwitch = if (!track.exists || startPoint == null) null
+    else if (startChanged) findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null)
+    else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
+
+    val endSwitch = if (!track.exists || endPoint == null) null
+    else if (endChanged) findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null)
+    else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch)
+
+    return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
+        track
+    } else if (startSwitch?.switchId != null && startSwitch.switchId == endSwitch?.switchId) {
+        // Remove topology links if both ends would connect to the same switch.
+        // In this case, the alignment should be part of the internal switch geometry
+        track.copy(topologyStartSwitch = null, topologyEndSwitch = null)
+    } else {
+        track.copy(topologyStartSwitch = startSwitch, topologyEndSwitch = endSwitch)
+    }
+}
+
+fun findBestTopologySwitchMatch(
+    target: IPoint,
+    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
+    currentTopologySwitch: TopologyLocationTrackSwitch?,
+): TopologyLocationTrackSwitch? {
+    val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
+    else currentTopologySwitch
+    return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracksForSearch) ?: defaultSwitch
+    ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracksForSearch)
+}
 
 private fun findBestTopologySwitchFromSegments(
     target: IPoint,
