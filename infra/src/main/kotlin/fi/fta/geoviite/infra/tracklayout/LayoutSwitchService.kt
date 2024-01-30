@@ -286,7 +286,7 @@ private fun structureMatchesType(structure: SwitchStructure, searchString: Strin
     structure.type.typeName.contains(t, ignoreCase = true)
 } ?: true
 
-private fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
+fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
     (includeSwitchesWithNoJoints && switch.joints.isEmpty()) || (bbox?.let { bb ->
         (switch.joints.any { joint -> bb.contains(joint.location) })
     } ?: true)

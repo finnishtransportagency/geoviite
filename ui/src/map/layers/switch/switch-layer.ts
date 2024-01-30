@@ -6,6 +6,7 @@ import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import {
     getSwitches,
     getSwitchesByTile,
+    getSwitchesValidation,
     getSwitchesValidationByTile,
 } from 'track-layout/layout-switch-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
@@ -67,6 +68,23 @@ export function createSwitchLayer(
         }
     };
 
+    const getSwitchValidation = () => {
+        if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
+            const switchIds =
+                splittingState?.allowedSwitches
+                    .map((sw) => sw.switchId)
+                    .concat(splittingState?.startAndEndSwitches) || [];
+
+            return getSwitchesValidation(publishType, switchIds);
+        } else if (resolution <= Limits.SWITCH_SHOW) {
+            return getTiledSwitchValidation(mapTiles, publishType, changeTimes.layoutSwitch).then(
+                (tile) => tile.flat(),
+            );
+        } else {
+            return getSwitchesValidation(publishType, selection.selectedItems.switches);
+        }
+    };
+
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
@@ -82,11 +100,7 @@ export function createSwitchLayer(
     let inFlight = true;
     const resolution = olView.getResolution() || 0;
 
-    Promise.all([
-        getSwitchesFromApi(),
-        getSwitchStructures(),
-        getTiledSwitchValidation(mapTiles, publishType, changeTimes.layoutSwitch),
-    ])
+    Promise.all([getSwitchesFromApi(), getSwitchStructures(), getSwitchValidation()])
         .then(([switches, switchStructures, validationResult]) => {
             if (layerId !== newestLayerId) return;
             const features = createLayoutSwitchFeatures(
