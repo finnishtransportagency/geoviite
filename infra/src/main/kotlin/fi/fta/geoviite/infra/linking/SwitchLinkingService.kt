@@ -1113,32 +1113,21 @@ class SwitchLinkingService @Autowired constructor(
         return updateLayoutSwitch(linkingParameters)
     }
 
-    private fun collectTracksByVersion(
-        foundTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-        versions: Collection<RowVersion<LocationTrack>>,
-    ) = foundTracks + versions
-        .filter { version -> !foundTracks.containsKey(version.id) }
-        .associate { version -> locationTrackService.getWithAlignment(version).let { (lt, a) -> lt.id as IntId to (lt to a) } }
-
     private fun findLocationTracksAndAlignmentsForSwitchLinking(linkingParameters: SwitchLinkingParameters): Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> {
         val switchId = linkingParameters.layoutSwitchId
 
-        val originalTracks = switchDao
-            .findLocationTracksLinkedToSwitch(DRAFT, switchId)
-            .associate { ids ->
+        fun indexTracksInBounds(boundingBox: BoundingBox?) = boundingBox
+            ?.let { bounds -> locationTrackDao.fetchVersionsNear(DRAFT, bounds) }
+            ?.map(locationTrackService::getWithAlignment)
+            ?.associate { trackAndAlignment -> trackAndAlignment.first.id as IntId to trackAndAlignment } ?: mapOf()
+
+        val originalTracks = switchDao.findLocationTracksLinkedToSwitch(DRAFT, switchId).associate { ids ->
                 val trackAndAlignment = locationTrackService.getWithAlignment(ids.rowVersion)
                 (trackAndAlignment.first.id as IntId) to trackAndAlignment
             }
-        val withTracksFromOriginalSwitchBounds =
-            collectTracksByVersion(originalTracks, getSwitchBoundsFromTracks(originalTracks.values, switchId)?.let { bounds ->
-                locationTrackDao.fetchVersionsNear(DRAFT, bounds)
-            } ?: listOf())
-        return collectTracksByVersion(
-            withTracksFromOriginalSwitchBounds,
-            getSwitchBoundsFromSwitchLinkingParameters(linkingParameters)?.let { bounds ->
-                locationTrackDao.fetchVersionsNear(DRAFT, bounds)
-            } ?: listOf()
-        )
+        return originalTracks + indexTracksInBounds(
+            getSwitchBoundsFromTracks(originalTracks.values, switchId)
+        ) + indexTracksInBounds(getSwitchBoundsFromSwitchLinkingParameters(linkingParameters))
     }
 
     private fun getLocationTrackChangesFromLinkingSwitch(
