@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.minimal.css';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import './snackbar.scss';
 import styles from './snackbar.scss';
-import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 let blockToasts = false;
 
@@ -24,27 +24,25 @@ function getToastId(header: string, body?: string): Id {
     return `toast-${header}${body ? '-' + body : ''}`;
 }
 
-function getToast(
-    headerKey: string,
-    bodyKey?: string,
-    children?: React.ReactNode,
-    button?: SnackbarButtonOptions,
-) {
-    const t = i18n.t;
+type ToastContentProps = {
+    header: string;
+    body?: string;
+    children?: React.ReactNode;
+    button?: SnackbarButtonOptions;
+};
 
-    const header = t(headerKey);
-    const body = bodyKey ? t(bodyKey) : undefined;
-    const buttonText = button ? t(button.text) : undefined;
+const ToastContent: React.FC<ToastContentProps> = ({ header, body, button, children }) => {
+    const { t } = useTranslation();
 
     return (
         <div className={styles['Toastify__toast-content']}>
             <div className={styles['Toastify__toast-text']}>
-                <span className={styles['Toastify__toast-header']} title={header}>
-                    {header}
+                <span className={styles['Toastify__toast-header']} title={t(header)}>
+                    {t(header)}
                 </span>
                 {body && (
-                    <p className={styles['Toastify__toast-text-body']} title={body}>
-                        {body}
+                    <p className={styles['Toastify__toast-text-body']} title={t(body)}>
+                        {t(body)}
                     </p>
                 )}
                 {children}
@@ -53,13 +51,13 @@ function getToast(
                 <div
                     className={styles['Toastify__button']}
                     onClick={button.onClick}
-                    title={buttonText}>
-                    {buttonText}
+                    title={t(button.text)}>
+                    {t(button.text)}
                 </div>
             )}
         </div>
     );
-}
+};
 
 const CloseButton = ({ closeToast }: never) => (
     <button className={styles['Toastify__close-button']} onClick={closeToast}>
@@ -78,23 +76,27 @@ export function info(
     const toastId = id ?? getToastId(header, body);
     const exists = toast.isActive(toastId);
 
-    const toastOptions: ToastOptions = {
-        toastId: toastId,
-        icon: <Icons.Info />,
-        ...(showCloseButton
-            ? {
-                  autoClose: false,
-                  closeOnClick: false,
-                  closeButton: CloseButton,
-                  className: styles['Toastify__toast--with-close-button'],
-              }
-            : {}),
-        ...options,
-    };
-
-    const toastContent = getToast(header, body, children);
-
     if (!blockToasts) {
+        const toastOptions: ToastOptions = {
+            toastId: toastId,
+            icon: <Icons.Info />,
+            ...(showCloseButton
+                ? {
+                      autoClose: false,
+                      closeOnClick: false,
+                      closeButton: CloseButton,
+                      className: styles['Toastify__toast--with-close-button'],
+                  }
+                : {}),
+            ...options,
+        };
+
+        const toastContent = (
+            <ToastContent header={header} body={body}>
+                {children}
+            </ToastContent>
+        );
+
         if (exists && replace) {
             toast.update(toastId, {
                 render: toastContent,
@@ -112,15 +114,15 @@ export function success(header: string, body?: string, opts?: SnackbarOptions) {
     const toastId = id ?? getToastId(header, body);
     const exists = toast.isActive(toastId);
 
-    const toastOptions = {
-        toastId: toastId,
-        icon: <Icons.Selected />,
-        ...options,
-    };
-
-    const toastContent = getToast(header, body);
-
     if (!blockToasts) {
+        const toastOptions = {
+            toastId: toastId,
+            icon: <Icons.Selected />,
+            ...options,
+        };
+
+        const toastContent = <ToastContent header={header} body={body} />;
+
         if (exists && replace) {
             toast.update(toastId, {
                 render: toastContent,
@@ -138,18 +140,18 @@ export function error(header: string, body?: string, opts?: SnackbarOptions) {
     const toastId = id ?? getToastId(header, body);
     const exists = toast.isActive(toastId);
 
-    const toastOptions: ToastOptions = {
-        toastId: toastId,
-        autoClose: false,
-        closeOnClick: false,
-        closeButton: CloseButton,
-        icon: <Icons.StatusError />,
-        ...options,
-    };
-
-    const toastContent = getToast(header, body);
-
     if (!blockToasts) {
+        const toastOptions: ToastOptions = {
+            toastId: toastId,
+            autoClose: false,
+            closeOnClick: false,
+            closeButton: CloseButton,
+            icon: <Icons.StatusError />,
+            ...options,
+        };
+
+        const toastContent = <ToastContent header={header} body={body} />;
+
         if (exists && replace) {
             toast.update(toastId, {
                 render: toastContent,
@@ -181,7 +183,7 @@ export function sessionExpired() {
         };
 
         toast.error(
-            getToast('unauthorized-request.title', undefined, undefined, buttonOptions),
+            <ToastContent header="unauthorized-request.title" button={buttonOptions} />,
             toastOptions,
         );
     }
