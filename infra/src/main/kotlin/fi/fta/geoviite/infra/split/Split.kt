@@ -15,6 +15,20 @@ enum class BulkTransferState {
     TEMPORARY_FAILURE,
 }
 
+data class SplitHeader(
+    val id: IntId<Split>,
+    val locationTrackId: IntId<LocationTrack>,
+    val bulkTransferState: BulkTransferState,
+    val publicationId: IntId<Publication>?,
+) {
+    constructor(split: Split) : this(
+        id = split.id,
+        locationTrackId = split.locationTrackId,
+        bulkTransferState = split.bulkTransferState,
+        publicationId = split.publicationId,
+    )
+}
+
 data class Split(
     val id: IntId<Split>,
     val locationTrackId: IntId<LocationTrack>,

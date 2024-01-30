@@ -129,6 +129,30 @@ class SplitDao(
         }
     }
 
+    fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
+        val sql = """
+          select
+              split.id,
+              split.bulk_transfer_state,
+              split.publication_id,
+              split.source_location_track_id
+          from publication.split 
+          where id = :id
+          group by split.id
+        """.trimIndent()
+
+        return jdbcTemplate.queryOne(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
+            SplitHeader(
+                id = splitId,
+                locationTrackId = rs.getIntId("source_location_track_id"),
+                bulkTransferState = rs.getEnum("bulk_transfer_state"),
+                publicationId = rs.getIntIdOrNull("publication_id"),
+            )
+        }.also {
+            logger.daoAccess(AccessType.FETCH, SplitHeader::class, splitId)
+        }
+    }
+
     @Transactional
     fun updateSplitState(split: Split): IntId<Split> {
         val sql = """

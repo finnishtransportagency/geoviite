@@ -94,9 +94,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
     );
 
     const allPublications =
-        publications?.sort(
-            (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
-        ) ?? [];
+        publications
+            ?.sort((i1, i2) => compareTimestamps(i1.publicationTime, i2.publicationTime))
+            ?.reverse() ?? [];
 
     const nonSuccesses = allPublications.filter(
         (publication) => !ratkoPushSucceeded(publication.ratkoPushStatus),
@@ -108,7 +108,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const latestFailure = allPublications.filter((publication) =>
         ratkoPushFailed(publication.ratkoPushStatus),
-    )[0];
+    )?.[0];
 
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
