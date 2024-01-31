@@ -81,8 +81,12 @@ class InputValidationException(
     "Input validation failed: $message",
     cause,
     localizationKey,
-    localizationParams("value" to formatForException(value)),
-)
+    localizationParams("value" to formatForException(value, VALUE_MAX_LENGTH)),
+) {
+    companion object {
+        const val VALUE_MAX_LENGTH = 25
+    }
+}
 
 class ApiUnauthorizedException(
     message: String,
