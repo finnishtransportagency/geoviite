@@ -37,6 +37,7 @@ type ToastButtonContentProps = {
 
 type ApiErrorToastProps = {
     header: string;
+    path: string;
     apiError: ApiErrorResponse;
 };
 
@@ -71,14 +72,14 @@ const ToastContent: React.FC<ToastContentProps> = ({ children }) => {
     return <div className={styles['Toastify__toast-content']}>{children}</div>;
 };
 
-const ApiErrorToast: React.FC<ApiErrorToastProps> = ({ header, apiError }) => {
+const ApiErrorToast: React.FC<ApiErrorToastProps> = ({ header, path, apiError }) => {
     const { t, i18n } = useTranslation();
 
     const date = new Date(apiError.timestamp).toLocaleString(i18n.language);
 
     const copyToClipboard = () => {
         navigator.clipboard
-            .writeText(JSON.stringify({ path: header, error: apiError }))
+            .writeText(JSON.stringify({ path: path, error: apiError }))
             .then(() => success(t('error.copied-to-clipboard')))
             .catch(() => error(t('error.copy-to-clipboard-failed')));
     };
@@ -262,6 +263,11 @@ export function sessionExpired() {
     }
 }
 
-export function apiError(header: string, apiError: ApiErrorResponse): Id | undefined {
-    return error('', undefined, undefined, <ApiErrorToast header={header} apiError={apiError} />);
+export function apiError(header: string, path: string, apiError: ApiErrorResponse): Id | undefined {
+    return error(
+        '',
+        undefined,
+        undefined,
+        <ApiErrorToast header={header} apiError={apiError} path={path} />,
+    );
 }

@@ -32,11 +32,17 @@ data class Application(
     val id: DomainId<Application> = StringId(),
 )
 
-data class Author(val companyName: MetaDataName, val id: DomainId<Author> = StringId())
-
+data class Author(val companyName: CompanyName, val id: DomainId<Author> = StringId())
 
 val metaDataNameLength = 1..100
 val metaDataNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-/+&,.:()]+\$")
+
+data class CompanyName @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
+    init { assertSanitized<CompanyName>(value, metaDataNameRegex, metaDataNameLength) }
+
+    @JsonValue
+    override fun toString(): String = value
+}
 
 data class MetaDataName @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
     init { assertSanitized<MetaDataName>(value, metaDataNameRegex, metaDataNameLength) }

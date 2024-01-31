@@ -567,7 +567,7 @@ fun validateAddressPoints(
         PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()),
     )
 } catch (e: ClientException) {
-    listOf(PublishValidationError(ERROR, e.localizedMessageKey))
+    listOf(PublishValidationError(ERROR, e.localizationKey))
 }
 
 fun validateAddressPoints(
@@ -717,7 +717,7 @@ private fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boole
     else (address2.meters - address1.meters).toDouble() in 0.0..MAX_LAYOUT_METER_LENGTH
 
 fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
-    validateWithParams(valid, type) { error() to LocalizationParams.empty() }
+    validateWithParams(valid, type) { error() to LocalizationParams.empty }
 
 private fun validateWithParams(
     valid: Boolean,

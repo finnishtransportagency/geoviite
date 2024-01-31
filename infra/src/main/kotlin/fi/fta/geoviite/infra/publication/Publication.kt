@@ -67,9 +67,9 @@ data class PublicationChange<T>(
 
 data class PropKey(
     val key: LocalizationKey,
-    val params: LocalizationParams = LocalizationParams.empty(),
+    val params: LocalizationParams = LocalizationParams.empty,
 ) {
-    constructor(key: String, params: LocalizationParams = LocalizationParams.empty()) : this(
+    constructor(key: String, params: LocalizationParams = LocalizationParams.empty) : this(
         LocalizationKey(key), params
     )
 }
@@ -266,7 +266,7 @@ enum class PublishValidationErrorType { ERROR, WARNING }
 data class PublishValidationError(
     val type: PublishValidationErrorType,
     val localizationKey: LocalizationKey,
-    val params: LocalizationParams = LocalizationParams.empty(),
+    val params: LocalizationParams = LocalizationParams.empty,
 ) {
     constructor(
         type: PublishValidationErrorType,

@@ -1,6 +1,7 @@
 import {
     API_URI,
     ApiErrorResponse,
+    getLocalizedError,
     getNonNull,
     postFormNonNullAdt,
     putFormNonNullAdt,
@@ -47,7 +48,7 @@ const defaultValidationErrorHandler = (
     ...EMPTY_VALIDATION_RESPONSE,
     validationErrors: [
         {
-            localizationKey: response?.localizedMessageKey || 'error.infra-model.request-failed',
+            localizationKey: getLocalizedError(response, 'error.infra-model.request-failed'),
             errorType: 'REQUEST_ERROR',
         },
     ],

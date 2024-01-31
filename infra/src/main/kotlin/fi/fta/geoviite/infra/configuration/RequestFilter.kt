@@ -67,9 +67,7 @@ class RequestFilter @Autowired constructor(
     private val objectMapper: ObjectMapper by lazy { SpringContextUtility.getBean() }
 
     private val jwkProvider: UrlJwkProvider by lazy {
-        if (jwksUrl.isBlank()) {
-            throw IllegalStateException("Invalid configuration: set property geoviite.jwt.validation.url")
-        }
+        check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }
         UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
     }
     private val localUser by lazy {
@@ -90,7 +88,7 @@ class RequestFilter @Autowired constructor(
                 code = Code("health-check"),
                 name = AuthName("Service Health Check"),
                 privileges = listOf(),
-            )
+            ),
         )
     }
 
@@ -166,11 +164,12 @@ class RequestFilter @Autowired constructor(
             }
             JWT.require(algorithm).withIssuer(jwksUrl).build().verify(jwt)
             log.debug("JWT access token validated")
-        }
-        catch(ex: TokenExpiredException) {
-            throw ApiUnauthorizedException("JWT access token expired.", localizedMessageKey="error.unauthorized.token-expired")
-        }
-        catch (ex: Exception) {
+        } catch (ex: TokenExpiredException) {
+            throw ApiUnauthorizedException(
+                message = "JWT access token expired.",
+                localizedMessageKey="error.unauthorized.token-expired",
+            )
+        } catch (ex: Exception) {
             throw ApiUnauthorizedException("JWT access token validation failed.", ex)
         }
     }
@@ -183,8 +182,11 @@ class RequestFilter @Autowired constructor(
             }
             JWT.require(algorithm).withIssuer(jwksUrl).build().verify(jwt)
             log.debug("JWT data token validated")
-        } catch(ex: TokenExpiredException) {
-            throw ApiUnauthorizedException("JWT access token expired.", localizedMessageKey="error.unauthorized.token-expired")
+        } catch (ex: TokenExpiredException) {
+            throw ApiUnauthorizedException(
+                message = "JWT access token expired.",
+                localizedMessageKey = "error.unauthorized.token-expired",
+            )
         } catch (ex: Exception) {
             throw ApiUnauthorizedException("JWT data token validation failed.", ex)
         }
@@ -194,14 +196,12 @@ class RequestFilter @Autowired constructor(
         val jwk = jwkProvider.get(keyId)
         val publicKey = jwk.publicKey as? RSAPublicKey
             ?: throw IllegalArgumentException("Invalid key type: ${jwk.publicKey::class.qualifiedName}")
-        if (jwk.algorithm != ALGORITHM_RS256) {
-            throw IllegalArgumentException("Unsupported JWK RSA algorithm: ${jwk.algorithm}")
-        }
+        check(jwk.algorithm == ALGORITHM_RS256) { "Unsupported JWK RSA algorithm: ${jwk.algorithm}" }
         return Algorithm.RSA256(publicKey, null)
     }
 
     private fun getElbValidationAlgorithm(keyId: String): Algorithm {
-        if (elbJwtUrl.isBlank()) throw IllegalStateException("Configuration error: No ELB JWT key url defined")
+        check(elbJwtUrl.isNotBlank()) { "Configuration error: No ELB JWT key url defined" }
         val keyString = UrlResource("$elbJwtUrl/$keyId").inputStream.reader().readText()
         val keyData = unwrapPublicKey(keyString)
         val kf: KeyFactory = KeyFactory.getInstance("EC")
@@ -214,6 +214,7 @@ class RequestFilter @Autowired constructor(
 
 const val PUBLIC_KEY_PREFIX = "-----BEGIN PUBLIC KEY-----"
 const val PUBLIC_KEY_POSTFIX = "-----END PUBLIC KEY-----"
+
 private fun unwrapPublicKey(keyData: String): String = keyData
     .replace("\n", "")
     .trim()
@@ -237,15 +238,15 @@ private fun jwtDataContent(dataToken: DecodedJWT) = JwtContent(
         lastName = dataToken.getOptionalClaim(JwtClaim.LAST_NAME)?.let(::AuthName),
         organization = dataToken.getOptionalClaim(JwtClaim.ORGANIZATION)?.let(::AuthName),
     ),
-    groupNames = dataToken.getMandatoryClaim(JwtClaim.ROLES)
+    groupNames = dataToken
+        .getMandatoryClaim(JwtClaim.ROLES)
         .split(",")
         .filter(::isValidCode)
         .map(::Code),
 )
 
 private fun extractJwtToken(request: HttpServletRequest, header: String): DecodedJWT {
-    val tokenString = request.getHeader(header)
-        ?: throw ApiUnauthorizedException("JWT header is missing: $header")
+    val tokenString = request.getHeader(header) ?: throw ApiUnauthorizedException("JWT header is missing: $header")
     return decodeJwt(tokenString)
 }
 

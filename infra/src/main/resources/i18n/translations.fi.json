@@ -26,16 +26,18 @@
             "generic": "Tarkasta syötekentät ja yritä uudestaan",
             "validation": {
                 "Oid": "OID on virheellinen",
-                "Srid": "SRID (EPSG-koodi) on virheellinen",
+                "Srid": "SRID (EPSG-koodi) {{value}} on virheellinen",
                 "VerticalCoordinateSystem": "Korkeusjärjestelmän määritys on virheellinen",
-                "Code": "Kentän sisältö on virheellinen",
-                "FreeText": "Tekstikentän sisältö on virheellinen",
-                "ProjectName": "Projektin nimi on virheellinen",
-                "MetaDataName": "Suunnitelman metatiedon nimi on virheellinen",
-                "AlignmentName": "Sijaintiraiteen tunnus on virheellinen",
-                "SwitchName": "Vaihteen tunnus on virheellinen",
-                "TrackNumber": "Ratanumeron tunnus on virheellinen",
-                "KmNumber": "Tasakilometripisteen tunnus on virheellinen",
+                "Code": "Kentän sisältö {{value}} on virheellinen",
+                "FreeText": "Tekstikentän sisältö {{value}} on virheellinen",
+                "ProjectName": "Projektin nimi {{value}} on virheellinen",
+                "CompanyName": "Yrityksen nimi {{value}} on virheellinen",
+                "MetaDataName": "Syötteen {{value}} muoto on virheellinen",
+                "AlignmentName": "Sijaintiraiteen tunnus {{value}} on virheellinen",
+                "SwitchName": "Vaihteen tunnus {{value}} on virheellinen",
+                "TrackNumber": "Ratanumeron tunnus {{value}} on virheellinen",
+                "KmNumber": "Tasakilometripisteen tunnus {{value}} on virheellinen",
+                "JointNumber": "Vaihdepisteen numero {{value}} on virheellinen",
                 "FileName": "Tiedoston nimessä on virhe",
                 "AngularUnit": "Suuntakulmien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
                 "LinearUnit": "Pituuksien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
@@ -49,11 +51,21 @@
                 "BigDecimal": "Reaaliluvun muoto on virheellinen"
             }
         },
+        "bad-request": {
+            "invalid-path": "Virhe: pyynnön polku oli virheellinen ({{method}})",
+            "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
+            "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
+            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}"
+        },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",
             "plan-linked": "Suunnitelmaa ei voida poistaa, koska se on linkitettynä paikannuspohjaan."
         },
-        "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
+        "authentication": {
+            "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
+            "token-expired": "Toimintoa ei voida suorittaa, koska istunto on vanhentunut",
+            "invalid-token": "Toimintoa ei voida suorittaa, koska kirjautumisessa tapahtui virhe"
+        },
         "infra-model": {
             "request-failed": "Pyyntö taustapalvelimelle epäonnistui",
             "missing-file": "Tiedosto on tyhjä",
@@ -89,8 +101,11 @@
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
         "request-failed": "Pyyntö epäonnistui: {{path}}",
         "copied-to-clipboard": "Kopioitu leikepöydälle",
+        "xml-unmarshal-failed": "XML-tiedoston jäsentäminen epäonnistui",
+        "coordinate-transformation-failed": "Koordinaattimuunnos epäonnistui",
         "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
-        "expected-non-null": "Pyyntö palautti null-arvon"
+        "expected-non-null": "Pyyntö palautti null-arvon",
+        "file-size-limit-exceeded": "Tiedosto ylittää suurimman sallitun koon"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",

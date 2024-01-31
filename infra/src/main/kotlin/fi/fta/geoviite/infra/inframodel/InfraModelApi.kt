@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
+import fi.fta.geoviite.infra.error.HasLocalizedMessage
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -43,7 +43,7 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
     ValidationResponse(
         validationErrors = listOf(
             ParsingError(
-                if (e is HasLocalizeMessageKey) e.localizedMessageKey
+                if (e is HasLocalizedMessage) e.localizationKey
                 else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)
             ),
         ),

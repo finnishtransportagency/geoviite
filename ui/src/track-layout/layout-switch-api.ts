@@ -184,7 +184,9 @@ export const getSwitchesValidationByTile = async (
     const tileKey = `${mapTile.id}_${publishType}`;
     return tiledSwitchValidationCache.get(changeTime, tileKey, () =>
         getNonNull<ValidatedAsset[]>(
-            `${layoutUri('switches', publishType)}/validation/${bboxString(mapTile.area)}`,
+            `${layoutUri('switches', publishType)}/validation${queryParams({
+                bbox: bboxString(mapTile.area),
+            })}`,
         ),
     );
 };
