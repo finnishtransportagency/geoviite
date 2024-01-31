@@ -153,13 +153,10 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce(
-        (acc, item) => {
-            (acc[getKey(item)] ||= []).push(item);
-            return acc;
-        },
-        {} as Record<K, T[]>,
-    );
+    return array.reduce((acc, item) => {
+        (acc[getKey(item)] ||= []).push(item);
+        return acc;
+    }, {} as Record<K, T[]>);
 }
 
 /**
@@ -236,6 +233,10 @@ export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | un
 
 export function addIfExists<T>(originalCollection: T[], newValue: T | undefined): T[] {
     return newValue ? [...originalCollection, newValue] : [...originalCollection];
+}
+
+export function addAllIfExists<T>(originalCollection: T[], newValues: T[] | undefined): T[] {
+    return newValues ? [...originalCollection, ...newValues] : [...originalCollection];
 }
 
 export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, Obj> {

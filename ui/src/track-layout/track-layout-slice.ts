@@ -28,12 +28,12 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addIfExists } from 'utils/array-utils';
+import { addAllIfExists, addIfExists } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
-import { subtractPublishRequestIds } from 'publication/publication-utils';
+import { addPublishRequestIds, subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
 
 export type SelectedPublishChange = {
@@ -347,6 +347,7 @@ const trackLayoutSlice = createSlice({
                 }
             }
         },
+
         onPreviewSelect: function (
             state: TrackLayoutState,
             action: PayloadAction<SelectedPublishChange>,
@@ -379,6 +380,17 @@ const trackLayoutSlice = createSlice({
                 switches: switches,
                 kmPosts: kmPosts,
             };
+        },
+
+        // TODO Remove the above onPreviewSelect and rename this one?
+        onPublishPreviewSelectMultiple: function (
+            state: TrackLayoutState,
+            action: PayloadAction<PublishRequestIds>,
+        ): void {
+            const stateCandidates = state.stagedPublicationRequestIds;
+            const toAdd = action.payload;
+
+            state.stagedPublicationRequestIds = addPublishRequestIds(stateCandidates, toAdd);
         },
 
         onPublishPreviewRemove: function (

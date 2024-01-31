@@ -4,7 +4,12 @@ import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { Operation, PublishValidationError } from 'publication/publication-model';
+import {
+    Operation,
+    PublicationGroup,
+    PublicationStage,
+    PublishValidationError,
+} from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -18,6 +23,7 @@ export type PreviewTableItemProps = {
     errors: PublishValidationError[];
     changeTime: TimeStamp;
     operation?: Operation;
+    publicationGroup?: PublicationGroup;
     userName: string;
     pendingValidation: boolean;
     onPublishItemSelect?: () => void;
@@ -25,7 +31,10 @@ export type PreviewTableItemProps = {
     changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
     boundingBox?: BoundingBox;
+    publicationGroupSize?: number;
     onShowOnMap: (bbox: BoundingBox) => void;
+    setPublicationGroupStage: (publicationGroup: PublicationGroup, stage: PublicationStage) => void;
+    setStageOfAllShownChanges: (stage: PublicationStage) => void;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -34,6 +43,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     errors,
     changeTime,
     operation,
+    publicationGroup,
     userName,
     pendingValidation,
     onPublishItemSelect,
@@ -41,7 +51,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     publish = false,
     changesBeingReverted,
     boundingBox,
+    publicationGroupSize,
     onShowOnMap,
+    setPublicationGroupStage,
+    setStageOfAllShownChanges,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -62,7 +75,39 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
 
     const actionMenuRef = React.useRef(null);
 
+    const movePublicationGroup = () => {
+        publicationGroup &&
+            setPublicationGroupStage(
+                publicationGroup,
+                publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED,
+            );
+        setActionMenuVisible(false);
+    };
+
+    const moveAllChanges = () => {
+        setStageOfAllShownChanges(publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED);
+        setActionMenuVisible(false);
+    };
+
+    const movePublicationGroupMenuOption = publicationGroup
+        ? [
+              {
+                  onSelect: movePublicationGroup,
+                  name: t('publish.move-publication-group', {
+                      amount: publicationGroupSize,
+                  }),
+              },
+          ]
+        : [];
+
     const menuOptions = [
+        ...movePublicationGroupMenuOption,
+        {
+            onSelect: () => moveAllChanges,
+            name: publish
+                ? t('publish.unstage-all-shown-changes')
+                : t('publish.stage-all-shown-changes'),
+        },
         {
             disabled: !boundingBox,
             onSelect: () => {
@@ -83,7 +128,9 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
-                <td>{itemName}</td>
+                <td>
+                    {publicationGroup?.id} {itemName}
+                </td>
                 <td>{trackNumber ? trackNumber : ''}</td>
                 <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
                 <td>{formatDateFull(changeTime)}</td>

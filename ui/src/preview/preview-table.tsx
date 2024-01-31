@@ -27,8 +27,16 @@ import {
     trackNumberToChangeTableEntry,
 } from 'preview/change-table-entry-mapping';
 import { PreviewTableItem } from 'preview/preview-table-item';
-import { PublishValidationError } from 'publication/publication-model';
-import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
+import {
+    PublicationGroup,
+    PublicationStage,
+    PublishValidationError,
+} from 'publication/publication-model';
+import {
+    ChangesBeingReverted,
+    PreviewCandidates,
+    PublicationGroupSizes,
+} from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
@@ -65,6 +73,20 @@ type PreviewTableProps = {
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
+    publicationGroupSizes: PublicationGroupSizes;
+    setPublicationGroupStage: (publicationGroup: PublicationGroup, stage: PublicationStage) => void;
+    setStageOfAllShownChanges: (stage: PublicationStage) => void;
+};
+
+const getPublicationGroupSize = (
+    publicationGroupSizes: PublicationGroupSizes,
+    publicationGroup?: PublicationGroup,
+): number | undefined => {
+    if (!publicationGroup) {
+        return undefined;
+    }
+
+    return publicationGroupSizes[publicationGroup.id];
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -75,6 +97,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     changesBeingReverted,
     onShowOnMap,
     changeTimes,
+    publicationGroupSizes,
+    setPublicationGroupStage,
+    setStageOfAllShownChanges,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -231,10 +256,17 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     userName={entry.userName}
                                     pendingValidation={entry.pendingValidation}
                                     operation={entry.operation}
+                                    publicationGroup={entry.publicationGroup}
+                                    publicationGroupSize={getPublicationGroupSize(
+                                        publicationGroupSizes,
+                                        entry.publicationGroup,
+                                    )}
                                     publish={staged}
                                     changesBeingReverted={changesBeingReverted}
                                     boundingBox={entry.boundingBox}
                                     onShowOnMap={onShowOnMap}
+                                    setPublicationGroupStage={setPublicationGroupStage}
+                                    setStageOfAllShownChanges={setStageOfAllShownChanges}
                                 />
                             }
                         </React.Fragment>

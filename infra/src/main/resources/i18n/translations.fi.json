@@ -1131,7 +1131,8 @@
         "km-posts": "Tasakilometripisteitä",
         "reference-lines": "Pituusmittauslinjoja",
         "location-tracks": "Sijaintiraiteita",
-        "switches": "Vaihteita"
+        "switches": "Vaihteita",
+        "move-publication-group": "Siirrä kokonaisuus ({{amount}} kpl)"
     },
     "validation": {
         "layout": {

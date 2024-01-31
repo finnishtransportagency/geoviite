@@ -16,6 +16,7 @@ export const PreviewContainer: React.FC = () => {
         onClosePreview: () => delegates.onLayoutModeChange('DEFAULT'),
         onPublish: delegates.onPublish,
         onPreviewSelect: delegates.onPreviewSelect,
+        onPublishPreviewSelectMultiple: delegates.onPublishPreviewSelectMultiple,
         onPublishPreviewRemove: delegates.onPublishPreviewRemove,
         onShowOnMap: delegates.showArea,
     };
