@@ -1108,7 +1108,7 @@ class SwitchLinkingService @Autowired constructor(
         linkingParameters.geometryPlanId?.let(::verifyPlanNotHidden)
         val changes = getLocationTrackChangesFromLinkingSwitch(linkingParameters)
         changes.onlyDelinked.forEach { (track, alignment) -> locationTrackService.saveDraft(track, alignment) }
-        changes.onlyTopoLinkEdited.forEach { track -> locationTrackService.saveDraft(track) }
+        changes.onlyTopoLinkEdited.forEach { (track) -> locationTrackService.saveDraft(track) }
         changes.alignmentLinkEdited.forEach { (track, alignment) -> locationTrackService.saveDraft(track, alignment) }
         return updateLayoutSwitch(linkingParameters)
     }
@@ -1197,7 +1197,7 @@ class SwitchLinkingService @Autowired constructor(
         return validateSwitchLocationTrackLinkStructure(
             createdSwitch,
             switchStructure,
-            trackChanges.alignmentLinkEdited + trackChanges.onlyTopoLinkEdited.mapNotNull { track ->
+            trackChanges.alignmentLinkEdited + trackChanges.onlyTopoLinkEdited.mapNotNull { (track) ->
                 track.alignmentVersion?.let { track to alignmentDao.fetch(it) }
             },
         ) to presentationJointLocation
@@ -1232,18 +1232,8 @@ class SwitchLinkingService @Autowired constructor(
 
     private fun calculateModifiedLocationTracksAndAlignments(
         linkingParameters: SwitchLinkingParameters
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        val switchStructure = switchLibraryService.getSwitchStructure(linkingParameters.switchStructureId)
-        val tracks = findLocationTracksAndAlignmentsForSwitchLinking(linkingParameters)
-
-        val segmentLinksMade = calculateModifiedAlignmentsForSegmentLinking(
-            linkingParameters, tracks, switchStructure, logger
-        )
-        return segmentLinksMade.values.map { (locationTrack, alignment) ->
-            (addTopologicalLink(locationTrack, alignment, tracks.values, linkingParameters.layoutSwitchId)
-                ?: locationTrack) to alignment
-        }
-    }
+    ): List<Pair<LocationTrack, LayoutAlignment>> =
+        getLocationTrackChangesFromLinkingSwitch(linkingParameters).all()
 
     private fun getMeasurementMethod(id: IntId<GeometrySwitch>): MeasurementMethod? =
         geometryDao.getMeasurementMethodForSwitch(id)
@@ -1319,9 +1309,11 @@ private fun getSwitchBoundsFromSwitchLinkingParameters(
 
 data class LocationTrackChangesFromLinkingSwitch(
     val onlyDelinked: List<Pair<LocationTrack, LayoutAlignment>>,
-    val onlyTopoLinkEdited: List<LocationTrack>,
+    val onlyTopoLinkEdited: List<Pair<LocationTrack, LayoutAlignment>>,
     val alignmentLinkEdited: List<Pair<LocationTrack, LayoutAlignment>>,
-)
+) {
+    fun all() = onlyDelinked + onlyTopoLinkEdited + alignmentLinkEdited
+}
 
 
 private fun calculateModifiedAlignmentsForSegmentLinking(
@@ -1512,17 +1504,33 @@ private fun getLocationTrackChangesFromLinkingSwitch(
 
     val topologicalLinksMade =
         existingLinksCleared.filter { (id) -> !segmentLinksMade.containsKey(id) }.mapNotNull { (_, trackAndAlignment) ->
-            addTopologicalLink(trackAndAlignment.first, trackAndAlignment.second, segmentLinksMade.values, switchId)
-        }.associateBy { track -> track.id as IntId }
+            addTopologicalLink(
+                trackAndAlignment.first,
+                trackAndAlignment.second,
+                segmentLinksMade.values,
+                switchId
+            )?.let { trackWithAddedTopoLink ->
+                trackWithAddedTopoLink to trackAndAlignment.second
+            }
+        }.associateBy { track -> track.first.id as IntId }
 
     val alignmentLinksChanged = segmentLinksMade + topologicalLinksMade.filter { (id) ->
         existingLinksCleared[id]?.second !== originalLocationTracks[id]?.second
-    }.mapValues { (id, track) -> track to existingLinksCleared[id]!!.second }
+    }.mapValues { (id, trackAndAlignment) -> trackAndAlignment.first to existingLinksCleared[id]!!.second }
 
     val onlyTopoLinkChanged = topologicalLinksMade.filter { (id) -> !alignmentLinksChanged.containsKey(id) }
 
     val onlyDelinked = existingLinksCleared.entries
-        .filter { (id) -> !segmentLinksMade.containsKey(id) && !topologicalLinksMade.containsKey(id) }
+        .filter { (id, clearedTrackAndAlignment) ->
+            val hadSegmentLinkAdded = segmentLinksMade.containsKey(id)
+            val hadTopoLinkAdded = topologicalLinksMade.containsKey(id)
+            val original = originalLocationTracks.getValue(id)
+            val equalsOriginal =
+                original.first.topologyStartSwitch == clearedTrackAndAlignment.first.topologyStartSwitch &&
+                        original.first.topologyEndSwitch == clearedTrackAndAlignment.first.topologyEndSwitch &&
+                        original.second === clearedTrackAndAlignment.second
+            !hadSegmentLinkAdded && !hadTopoLinkAdded && !equalsOriginal
+        }
         .map { (_, track) -> track }
     return LocationTrackChangesFromLinkingSwitch(
         onlyDelinked, onlyTopoLinkChanged.values.toList(), alignmentLinksChanged.values.toList()
