@@ -417,7 +417,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const postSplit = () => {
         startPostingSplit();
         postSplitLocationTrack(
-            splitRequest(locationTrack.id, initialSplit, splits, duplicateTracksInCurrentSplits),
+            splitRequest(
+                locationTrack.id,
+                initialSplit,
+                sortSplitsByDistance(splits),
+                duplicateTracksInCurrentSplits,
+            ),
         )
             .then(() => stopSplitting())
             .catch(() => returnToSplitting());
