@@ -103,7 +103,7 @@ function getErrorToast(headerKey: string, errorObj?: unknown, button?: SnackbarB
                     }),
                 )
                 .catch(() =>
-                    error(t('error.copy-to-clipboard-failed'), undefined, {
+                    error(t('error.copy-to-clipboard-failed'), undefined, undefined, {
                         autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
                     }),
                 );
@@ -184,12 +184,17 @@ export function success(header: string, body?: string, opts?: ToastOpts) {
     }
 }
 
-export function error(header: string, errorResponse?: ApiErrorResponse, options?: ToastOpts) {
+export function error(
+    header: string,
+    path?: string,
+    errorResponse?: ApiErrorResponse,
+    options?: ToastOpts,
+) {
     const toastId = getToastId(header);
     const removeFunction = addToQueue(toastId);
 
     if (removeFunction && !blockToasts) {
-        toast.error(getErrorToast(header, errorResponse), {
+        toast.error(getErrorToast(header, { path, ...errorResponse }), {
             toastId: toastId,
             autoClose: false,
             closeOnClick: false,

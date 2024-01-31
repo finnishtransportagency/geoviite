@@ -365,7 +365,7 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
 }
 
 const showHttpError = (path: string, response: ApiErrorResponse) => {
-    Snackbar.error(getLocalizedError(response, 'error.request-failed', { path }), response);
+    Snackbar.error(getLocalizedError(response, 'error.request-failed', { path }), path, response);
 };
 
 export const getLocalizedError = (
