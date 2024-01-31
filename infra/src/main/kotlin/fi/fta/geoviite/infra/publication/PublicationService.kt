@@ -257,6 +257,7 @@ class PublicationService @Autowired constructor(
         precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
         val splitErrors = splitService.validateSplit(versions)
+        val allOfficialSwitches = switchService.list(OFFICIAL)
 
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
@@ -290,6 +291,7 @@ class PublicationService @Autowired constructor(
                     candidate.getPublicationVersion(),
                     versions,
                     switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
+                    allOfficialSwitches
                 )
 
                 candidate.copy(errors = validationErrors + switchSplitErrors)
@@ -320,6 +322,7 @@ class PublicationService @Autowired constructor(
         val cacheKeys = collectCacheKeys(versions)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
         val splitErrors = splitService.validateSplit(versions)
+        val allOfficialSwitches = switchService.list(OFFICIAL)
 
         assertNoSplitErrors(splitErrors)
 
@@ -342,7 +345,8 @@ class PublicationService @Autowired constructor(
                 validateSwitch(
                     version,
                     versions,
-                    switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(version.officialId, setOf())
+                    switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(version.officialId, setOf()),
+                    allOfficialSwitches
                 ),
             )
         }
@@ -636,7 +640,7 @@ class PublicationService @Autowired constructor(
         version: ValidationVersion<TrackLayoutSwitch>,
         validationVersions: ValidationVersions,
         linkedTracks: Set<RowVersion<LocationTrack>>,
-        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
+        allOfficialSwitches: List<TrackLayoutSwitch>,
     ): List<PublishValidationError> {
         val switch = switchDao.fetch(version.validatedAssetVersion)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
@@ -661,12 +665,13 @@ class PublicationService @Autowired constructor(
     private fun validateSwitchNameDuplication(
         switch: TrackLayoutSwitch,
         versions: ValidationVersions,
-        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
+        allOfficialSwitches: List<TrackLayoutSwitch>,
     ): List<PublishValidationError> {
-        val drafts = versions.switches.map { it.officialId to switchDao.fetch(it.validatedAssetVersion) }
+        val drafts = versions.switches.associate { it.officialId to switchDao.fetch(it.validatedAssetVersion) }
         val officials = allOfficialSwitches.filterNot { official ->
-            drafts.map { draft -> draft.first }.contains(official.id)
+            drafts.containsKey(official.id)
         }
+
         val officialDuplicateExists =
             officials.any { official -> official.id != switch.id && official.name == switch.name }
         val stagedDuplicateExists =
