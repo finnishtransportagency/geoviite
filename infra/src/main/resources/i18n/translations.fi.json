@@ -12,6 +12,11 @@
             "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
+        "split": {
+            "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska jakokohtien määritys epäonnistui",
+            "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
+            "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska vaihde-ehdotusten muodostus epäonnistui"
+        },
         "publication": {
             "generic": "Julkaisu epäonnistui",
             "lock-obtain-failed": "Toinen julkaisu käynnissä - yritä hetken kuluttua uudelleen",

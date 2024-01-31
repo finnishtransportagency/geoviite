@@ -241,7 +241,10 @@ class SplitService(
                 val jointNumber = suggestions
                     .find { (id, _) -> id == switchId }
                     ?.let { (_, suggestion) -> suggestion.switchStructure.presentationJointNumber }
-                    ?: throw SplitFailureException("No re-linked switch for switch: id=${switchId}")
+                    ?: throw SplitFailureException(
+                        message = "No re-linked switch for switch: id=${switchId}",
+                        localizedMessageKey = "no-switch-suggestion",
+                    )
                 switchId to jointNumber
             }
             val duplicate = target.duplicateTrackId?.let { id ->
