@@ -4,13 +4,13 @@ import * as React from 'react';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import { ChangesBeingReverted } from 'preview/preview-view';
+import { ChangesBeingReverted, RevertRequestType } from 'preview/preview-view';
 import {
-    onlyDependencies,
     PublicationRequestDependencyList,
     publicationRequestTypeTranslationKey,
 } from 'preview/publication-request-dependency-list';
 import { getChangeTimes } from 'common/change-time-api';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export interface PreviewRejectConfirmDialogProps {
     changesBeingReverted: ChangesBeingReverted;
@@ -26,9 +26,61 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
     const { t } = useTranslation();
     const [isReverting, setIsReverting] = React.useState(false);
 
+    const revertType = changesBeingReverted.requestedRevertChange.type;
+
+    const dialogTitle = (): string => {
+        switch (revertType) {
+            case RevertRequestType.STAGE_CHANGES:
+                return t('publish.revert-confirm.title.stage-changes');
+
+            case RevertRequestType.CHANGES_WITH_DEPENDENCIES:
+                return t('publish.revert-confirm.title.changes-with-dependencies');
+
+            case RevertRequestType.PUBLICATION_GROUP:
+                return t('publish.revert-confirm.title.publication-group');
+
+            default:
+                return exhaustiveMatchingGuard(revertType);
+        }
+    };
+
+    const dialogQuestion = (): string => {
+        switch (revertType) {
+            case RevertRequestType.STAGE_CHANGES: {
+                return t('publish.revert-confirm.description.stage-changes', {
+                    amount: changesBeingReverted.requestedRevertChange.amount,
+                });
+            }
+
+            case RevertRequestType.CHANGES_WITH_DEPENDENCIES: {
+                const generalDescription = t(
+                    'publish.revert-confirm.description.changes-with-dependencies',
+                );
+                const typeDescription = t(
+                    `publish.revert-confirm.revert-target.${publicationRequestTypeTranslationKey(
+                        changesBeingReverted.requestedRevertChange.source.type,
+                    )}`,
+                );
+                const itemDescription = changesBeingReverted.requestedRevertChange.source.name;
+
+                return `${generalDescription} ${typeDescription} ${itemDescription}?`;
+            }
+
+            case RevertRequestType.PUBLICATION_GROUP: {
+                return t('publish.revert-confirm.description.publication-group', {
+                    amount: changesBeingReverted.requestedRevertChange.amount,
+                });
+            }
+
+            default: {
+                return exhaustiveMatchingGuard(revertType);
+            }
+        }
+    };
+
     return (
         <Dialog
-            title={t('publish.revert-confirm.title')}
+            title={dialogTitle()}
             variant={DialogVariant.LIGHT}
             allowClose={!isReverting}
             onClose={cancelRevertChanges}
@@ -53,14 +105,10 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
                     </Button>
                 </div>
             }>
-            <div>{`${t('publish.revert-confirm.description')} ${t(
-                `publish.revert-confirm.revert-target.${publicationRequestTypeTranslationKey(
-                    changesBeingReverted.requestedRevertChange.type,
-                )}`,
-            )} ${changesBeingReverted.requestedRevertChange.name}?`}</div>
+            <div>{dialogQuestion()}</div>
             <PublicationRequestDependencyList
                 changeTimes={getChangeTimes()}
-                dependencies={onlyDependencies(changesBeingReverted)}
+                changesBeingReverted={changesBeingReverted}
             />
         </Dialog>
     );
