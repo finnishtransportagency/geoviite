@@ -1,46 +1,52 @@
 import * as React from 'react';
-import { TimeStamp } from 'common/common-model';
 import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { Operation, PublishValidationError } from 'publication/publication-model';
+import {
+    PublicationStage,
+    PublishRequestIds,
+    PublishValidationError,
+} from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { ChangesBeingReverted } from 'preview/preview-view';
-import { BoundingBox } from 'model/geometry';
+import {
+    ChangesBeingReverted,
+    PreviewOperations,
+    PublicationAssetChangeAmounts,
+    RevertRequestSource,
+} from 'preview/preview-view';
 import { Menu } from 'vayla-design-lib/menu/menu';
+import { PreviewSelectType, PreviewTableEntry, PublicationId } from 'preview/preview-table';
+import { BoundingBox } from 'model/geometry';
+
+const createPublishRequestIdsFromTableEntry = (
+    id: PublicationId,
+    type: PreviewSelectType,
+): PublishRequestIds => ({
+    trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
+    referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
+    locationTracks: type === PreviewSelectType.locationTrack ? [id] : [],
+    switches: type === PreviewSelectType.switch ? [id] : [],
+    kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
+});
 
 export type PreviewTableItemProps = {
-    itemName: string;
-    trackNumber?: string;
-    errors: PublishValidationError[];
-    changeTime: TimeStamp;
-    operation?: Operation;
-    userName: string;
-    pendingValidation: boolean;
-    onPublishItemSelect?: () => void;
-    onRevert: () => void;
-    changesBeingReverted: ChangesBeingReverted | undefined;
+    tableEntry: PreviewTableEntry;
     publish?: boolean;
-    boundingBox?: BoundingBox;
+    changesBeingReverted: ChangesBeingReverted | undefined;
+    previewOperations: PreviewOperations;
+    publicationAssetChangeAmounts: PublicationAssetChangeAmounts;
     onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
-    itemName,
-    trackNumber,
-    errors,
-    changeTime,
-    operation,
-    userName,
-    pendingValidation,
-    onPublishItemSelect,
-    onRevert,
+    tableEntry,
     publish = false,
     changesBeingReverted,
-    boundingBox,
+    previewOperations,
+    publicationAssetChangeAmounts,
     onShowOnMap,
 }) => {
     const { t } = useTranslation();
@@ -51,9 +57,9 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
-    const errorTexts = errorsToStrings(errors, 'ERROR');
-    const warningTexts = errorsToStrings(errors, 'WARNING');
-    const hasErrors = errors.length > 0;
+    const errorTexts = errorsToStrings(tableEntry.errors, 'ERROR');
+    const warningTexts = errorsToStrings(tableEntry.errors, 'WARNING');
+    const hasErrors = tableEntry.errors.length > 0;
 
     const statusCellClassName = createClassName(
         styles['preview-table-item__status-cell'],
@@ -62,33 +68,135 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
 
     const actionMenuRef = React.useRef(null);
 
+    const publicationGroupAssetAmount = tableEntry.publicationGroup
+        ? publicationAssetChangeAmounts.groupAmounts[tableEntry.publicationGroup?.id]
+        : undefined;
+
+    const [displayedPublicationStage, moveTargetStage] = publish
+        ? [PublicationStage.STAGED, PublicationStage.UNSTAGED]
+        : [PublicationStage.UNSTAGED, PublicationStage.STAGED];
+
+    const stagePublicationAssetAmount = publish
+        ? publicationAssetChangeAmounts.staged
+        : publicationAssetChangeAmounts.unstaged;
+
+    const tableEntryAsPublishRequestIds = createPublishRequestIdsFromTableEntry(
+        tableEntry.id,
+        tableEntry.type,
+    );
+
+    const tableEntryAsRevertRequestSource: RevertRequestSource = {
+        id: tableEntry.id,
+        type: tableEntry.type,
+        name: tableEntry.name,
+    };
+
+    const changeItemPublicationStage = () => {
+        const newStage = publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED;
+
+        previewOperations.setPublicationStage.forSpecificChanges(
+            tableEntryAsPublishRequestIds,
+            newStage,
+        );
+    };
+
+    const menuAction = (menuActionFunction: () => void) => (): void => {
+        menuActionFunction();
+        setActionMenuVisible(false);
+    };
+
+    const menuOptionMoveStageChanges = {
+        onSelect: menuAction(() =>
+            previewOperations.setPublicationStage.forAllStageChanges(
+                displayedPublicationStage,
+                moveTargetStage,
+            ),
+        ),
+        name: t('publish.move-stage-changes', {
+            amount: stagePublicationAssetAmount,
+        }),
+    };
+
+    const menuOptionMovePublicationGroupStage = {
+        onSelect: menuAction(() => {
+            if (tableEntry.publicationGroup) {
+                previewOperations.setPublicationStage.forPublicationGroup(
+                    tableEntry.publicationGroup,
+                    moveTargetStage,
+                );
+            }
+        }),
+        name: t('publish.move-publication-group', {
+            amount: publicationGroupAssetAmount,
+        }),
+    };
+
+    const menuOptionRevertSingleChange = {
+        name: t('publish.revert-change'),
+        onSelect: menuAction(() =>
+            previewOperations.revert.changesWithDependencies(
+                tableEntryAsPublishRequestIds,
+                tableEntryAsRevertRequestSource,
+            ),
+        ),
+    };
+
+    const menuOptionRevertStageChanges = {
+        onSelect: menuAction(() => {
+            previewOperations.revert.stageChanges(
+                displayedPublicationStage,
+                tableEntryAsRevertRequestSource,
+            );
+        }),
+        name: t('publish.revert-stage-changes', {
+            amount: stagePublicationAssetAmount,
+        }),
+    };
+
+    const menuOptionPublicationGroupRevert = {
+        onSelect: menuAction(() => {
+            if (tableEntry.publicationGroup) {
+                previewOperations.revert.publicationGroup(
+                    tableEntry.publicationGroup,
+                    tableEntryAsRevertRequestSource,
+                );
+            }
+        }),
+        name: t('publish.revert-publication-group', {
+            amount: publicationGroupAssetAmount,
+        }),
+    };
+
+    const menuOptionShowOnMap = {
+        disabled: !tableEntry.boundingBox,
+        onSelect: menuAction(() => {
+            tableEntry.boundingBox && onShowOnMap(tableEntry.boundingBox);
+        }),
+        name: t('publish.show-on-map'),
+    };
+
     const menuOptions = [
-        {
-            disabled: !boundingBox,
-            onSelect: () => {
-                boundingBox && onShowOnMap(boundingBox);
-                setActionMenuVisible(false);
-            },
-            name: t('publish.show-on-map'),
-        },
-        {
-            name: t('publish.revert-change'),
-            onSelect: () => {
-                onRevert();
-                setActionMenuVisible(false);
-            },
-        },
+        ...(tableEntry.publicationGroup ? [menuOptionMovePublicationGroupStage] : []),
+        menuOptionMoveStageChanges,
+        menuOptionShowOnMap,
+        ...(!tableEntry.publicationGroup ? [menuOptionRevertSingleChange] : []),
+        ...(tableEntry.publicationGroup ? [menuOptionPublicationGroupRevert] : []),
+        menuOptionRevertStageChanges,
     ];
 
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
-                <td>{itemName}</td>
-                <td>{trackNumber ? trackNumber : ''}</td>
-                <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
-                <td>{formatDateFull(changeTime)}</td>
-                <td>{userName}</td>
-                {pendingValidation ? (
+                <td>{tableEntry.uiName}</td>
+                <td>{tableEntry.trackNumber ? tableEntry.trackNumber : ''}</td>
+                <td>
+                    {tableEntry.operation
+                        ? t(`enum.publish-operation.${tableEntry.operation}`)
+                        : ''}
+                </td>
+                <td>{formatDateFull(tableEntry.changeTime)}</td>
+                <td>{tableEntry.userName}</td>
+                {tableEntry.pendingValidation ? (
                     <td>
                         <Spinner />
                     </td>
@@ -121,9 +229,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     <Button
                         qa-id={'stage-change-button'}
                         variant={ButtonVariant.GHOST}
-                        onClick={() => {
-                            onPublishItemSelect && onPublishItemSelect();
-                        }}
+                        onClick={changeItemPublicationStage}
                         icon={publish ? Icons.Ascending : Icons.Descending}
                     />
                     <React.Fragment>
