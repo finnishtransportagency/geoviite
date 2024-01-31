@@ -78,7 +78,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({ header, apiError }) => {
 
     const copyToClipboard = () => {
         navigator.clipboard
-            .writeText(JSON.stringify(apiError))
+            .writeText(JSON.stringify({ path: header, error: apiError }))
             .then(() => success(t('error.copied-to-clipboard')))
             .catch(() => error(t('error.copy-to-clipboard-failed')));
     };
