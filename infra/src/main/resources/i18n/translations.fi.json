@@ -193,7 +193,7 @@
             "DELETE": "Poisto",
             "MODIFY": "Muokkaus",
             "RESTORE": "Palautus",
-            "CALCULATED": "Laskettu muutos"
+            "CALCULATED": "Laskennallinen muutos"
         },
         "topological-connectivity-type": {
             "NONE": "Ei kytketty",
@@ -1307,7 +1307,7 @@
         "km-post": "Tasakilometripiste",
         "count-header-loading": "Julkaistut muutokset",
         "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
-        "calculated-change": "Laskettu muutos",
+        "calculated-change": "Laskennallinen muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta",
         "changes": "Muutokset"
     },

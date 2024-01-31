@@ -432,5 +432,38 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
     }
 }
 
-fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
+fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
     translation.t("publication-details-table.remark.$key", localizationParams("value" to value))
+
+fun addOperationClarificationsToPublicationTableItem(
+    translation: Translation,
+    publicationTableItem: PublicationTableItem,
+): PublicationTableItem {
+    return when (publicationTableItem.operation) {
+        Operation.CALCULATED -> publicationTableItem.copy(
+            propChanges = publicationTableItem.propChanges.map { publicationChange ->
+                addChangeClarification(
+                    publicationChange,
+                    translation.t("publication-table.calculated-change")
+                )
+            }
+        )
+
+        else -> publicationTableItem
+    }
+}
+
+fun addChangeClarification(
+    publicationChange: PublicationChange<*>,
+    clarification: String,
+): PublicationChange<*> {
+    return when (publicationChange.remark) {
+        null -> publicationChange.copy(
+            remark = clarification
+        )
+
+        else -> publicationChange.copy(
+            remark = "${publicationChange.remark}, ${clarification.replaceFirstChar(Char::lowercase)}"
+        )
+    }
+}
