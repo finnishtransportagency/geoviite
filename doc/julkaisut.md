@@ -4,14 +4,15 @@ Kuten osiossa [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md) on kuv
 siirtyvät luonnosmuutoksista virallisiksi julkaisun kautta (tai ne perutaan poistamalla luonnos).
 
 Julkaisutoiminto vie muutokset koostettuina paketteina, julkaisuina (Publication). Jokainen julkaisu vie virallisen
-paikannuspohjan yhdestä eheästä tilasta toiseen eheään tilaan, mikä varmistetaan julkaisuvalidoinnilla. Myös muutosten
-ratkoviennin etenemistä tarkastellaan käyttölittymässä julkaisutasolla.
+paikannuspohjan yhdestä eheästä tilasta toiseen eheään tilaan, mikä varmistetaan julkaisuvalidoinnilla. Julkaistut
+muutokset menevät välittömästi Geoviitteen viralliseen paikannuspohjaan. Tämän jälkeen ne viedään Ratkoon asynkronisella
+tausta-ajolla, jonka tilaa tarkastellaan käyttölittymässä julkaisutasolla.
 
-## Julkaisun ja ratkoviennin tietomalli
+## Julkaisun ja Ratkoviennin tietomalli
 
-Tämä on yksinkertaistettu malli julkaisun ja ratkoviennin käsitteistöstä. Todellisuudessa mukana on vielä kohtuullinen
+Tämä on yksinkertaistettu malli julkaisun ja Ratkoviennin käsitteistöstä. Todellisuudessa mukana on vielä kohtuullinen
 määrä valmiiksi laskettua dataa julkaisuhistorian esittämistä varten. Käsitteellisesti mallin voi kuitenkin mieltää
-koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille sekä ratkoviennistä, joka
+koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille sekä Ratkoviennistä, joka
 seuraa tietyn datajoukon viennin tilaa. Varsinainen datasisältö, joka julkaisussa muuttui, voidaan hakea paikannuspohjan
 versiotauluista kiinnitetyillä versioilla tai julkaisun aikaleimalla.
 
@@ -66,7 +67,8 @@ Julkaisut itsessään lukitaan tapahtumaan yksi kerrallaan tietokantalukolla. Ka
 muutoksia ei kuitenkaan ole rajattu tapahtumaan saman lukon takana. Julkaisun aluksi kiinnitetään ne tarkat riviversiot
 joista julkaisu tullaan tekemään ja validointi suoritetaan niiden avulla. Kun validointi on mennyt läpi, juuri nuo
 riviversiot päädytään tallentamaan viralliseen paikannuspohjaan. Jos siis jostain syystä julkaisuprosessin vierestä
-päätyy tapahtumaan muutoksia johonkin julkaistavan olioon samaan aikaan, nuo muutokset häviää julkaisun yhteydessä.
+päätyy tapahtumaan muutoksia johonkin julkaistavan olioon samaan aikaan, niin nämä muutokset häviävät julkaisun
+yhteydessä.
 
 ## Validointi
 
@@ -74,7 +76,7 @@ Julkaisuvalidoinnissa varmistetaan että julkaistavat luonnosmuutokset vie viral
 Tässä keskeisiä kohtia varmistaa on mm:
 
 - Käsitteiden eheys
-    - Kaikilla käsitteillä on kaikki vaaditut kentät määritelty ja valideja (luonnosten välitilat ei enää käy)
+    - Kaikilla käsitteillä on kaikki vaaditut kentät määritelty ja valideja (luonnosten välitilat eivät enää käy)
 - Viite-eheys
     - Olemassaolevat käsitteet eivät viittaa poistettuihin käsitteisiin
     - Virallisesta paikannuspohjasta ei voi viitata "vain luonnos" -olioihin
@@ -88,14 +90,14 @@ Tässä keskeisiä kohtia varmistaa on mm:
 
 ## Ratkovienti ja julkaisuiden koostaminen
 
-Ratkovienti tapahtuu erillisellä asynkronisella prosessilla. Ylätasolla se tapahtuu seuraavasti:
+Julkaisun Ratkovienti tapahtuu erillisellä asynkronisella prosessilla. Ylätasolla se tapahtuu seuraavasti:
 
-- Haetaan kaikki julkaisut joita ei vielä ole viety ratkoon
-- Yhdistetään julkaisujen muutokset, jotta saadaan erotus ratkon ja geoviitteen nykytilan välillä
-- Viedään tähän liittyvät käsitteet käsite kerrallaan ratkoon (ratanumerot, raiteet, vaihteet)
+- Haetaan kaikki julkaisut joita ei vielä ole viety Ratkoon
+- Yhdistetään julkaisujen muutokset, jotta saadaan erotus Ratkon ja geoviitteen nykytilan välillä
+- Viedään tähän liittyvät käsitteet käsite kerrallaan Ratkoon (ratanumerot, raiteet, vaihteet)
 
 Julkaisujen yhdistäminen tehdään, jotta virhetilanteissa on mahdollista korjata tilannetta toisella julkaisulla.
 Yhteysvirheiden tapauksessa julkaisua yritetään automaattisesti uudelleen seuraavalla ajolla, mutta muissa virheissä ei
-ole syytä olettaa että tilanne korjaantuisi automaattisesti. Tällöin virhe voidaan korjata joko ratkon puolella tai
+ole syytä olettaa että tilanne korjaantuisi automaattisesti. Tällöin virhe voidaan korjata joko Ratkon puolella tai
 muuttamalla vietävää datajoukkoa uudella julkaisulla, jolloin datan koostamisen ansiosta virheellistä välitilaa ei
 tarvitse saada menemään läpi.
