@@ -13,9 +13,9 @@
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
         "split": {
-            "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska jakokohtien määritys epäonnistui",
+            "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
-            "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska vaihde-ehdotusten muodostus epäonnistui"
+            "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",
