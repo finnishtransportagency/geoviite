@@ -487,18 +487,22 @@ class LayoutSwitchDao(
     }
 
     fun findOfficialNameDuplicates(names: List<SwitchName>): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
-        val sql = """
-            select id, version, name
-            from layout.switch
-            where name in (:names)
-              and draft = false
-              and state_category != 'NOT_EXISTING'
-        """.trimIndent()
-        val params = mapOf("names" to names)
-        return jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
-            val version = rs.getRowVersion<TrackLayoutSwitch>("id", "version")
-            val name = rs.getString("name").let(::SwitchName)
-            name to version
-        }.groupBy({ (name, _) -> name }, { (_, version) -> version })
+        return if (names.isEmpty()) {
+            emptyMap()
+        } else {
+            val sql = """
+                select id, version, name
+                from layout.switch
+                where name in (:names)
+                  and draft = false
+                  and state_category != 'NOT_EXISTING'
+            """.trimIndent()
+            val params = mapOf("names" to names)
+            return jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
+                val version = rs.getRowVersion<TrackLayoutSwitch>("id", "version")
+                val name = rs.getString("name").let(::SwitchName)
+                name to version
+            }.groupBy({ (name, _) -> name }, { (_, version) -> version })
+        }
     }
 }

@@ -197,6 +197,7 @@ class PublicationService @Autowired constructor(
         val validationVersions = toValidationVersions(
             switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(validationVersions)
 
         val linkedTracks = publicationDao
             .fetchLinkedLocationTracks(switchIds, if (publishType == DRAFT) null else listOf())
@@ -207,7 +208,7 @@ class PublicationService @Autowired constructor(
                     version = toValidationVersion(switch),
                     validationVersions = validationVersions,
                     linkedTracks = linkedTracks.getOrDefault(switch.id, setOf()),
-                    nameDuplicates = collectPotentialSwitchNameDuplicates(validationVersions),
+                    nameDuplicates = nameDuplicates,
                 ),
                 switch.id as IntId,
             )
