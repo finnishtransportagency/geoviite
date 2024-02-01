@@ -661,7 +661,8 @@ class PublicationService @Autowired constructor(
     private fun validateSwitchNameDuplication(
         switch: TrackLayoutSwitch,
         versions: ValidationVersions,
-        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
+//        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
+        officialNameDuplicates: Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>>,
     ): List<PublishValidationError> {
         val drafts = versions.switches.map { it.officialId to switchDao.fetch(it.validatedAssetVersion) }
         val officials = allOfficialSwitches.filterNot { official ->
