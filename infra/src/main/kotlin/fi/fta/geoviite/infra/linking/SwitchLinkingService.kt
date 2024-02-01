@@ -1235,7 +1235,7 @@ class SwitchLinkingService @Autowired constructor(
     private fun calculateModifiedLocationTracksAndAlignments(
         linkingParameters: SwitchLinkingParameters
     ): List<Pair<LocationTrack, LayoutAlignment>> =
-        getLocationTrackChangesFromLinkingSwitch(linkingParameters).all()
+        getLocationTrackChangesFromLinkingSwitch(linkingParameters).allChanges()
 
     private fun getMeasurementMethod(id: IntId<GeometrySwitch>): MeasurementMethod? =
         geometryDao.getMeasurementMethodForSwitch(id)
@@ -1314,7 +1314,10 @@ data class LocationTrackChangesFromLinkingSwitch(
     val onlyTopoLinkEdited: List<Pair<LocationTrack, LayoutAlignment>>,
     val alignmentLinkEdited: List<Pair<LocationTrack, LayoutAlignment>>,
 ) {
-    fun all() = onlyDelinked + onlyTopoLinkEdited + alignmentLinkEdited
+    init {
+        assert(allChanges().size == allChanges().distinctBy { it.first.id }.size) { "location track changes from linking switch do not overlap" }
+    }
+    fun allChanges() = onlyDelinked + onlyTopoLinkEdited + alignmentLinkEdited
 }
 
 
