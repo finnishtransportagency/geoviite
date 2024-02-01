@@ -344,7 +344,7 @@ fun validateAlignmentProfile(alignment: GeometryAlignment): List<ValidationError
 fun validateAlignmentCant(alignment: GeometryAlignment): List<ValidationError> {
     return alignment.cant?.let { cant ->
         val cantErrors = listOfNotNull(
-            validate(cant.rotationPoint != null) {
+            validate(cant.rotationPoint != null || alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE) {
                 AlignmentError("cant-rotation-point-undefined", VALIDATION_ERROR, alignment.name)
             },
             validate(cant.rotationPoint != CENTER) {
