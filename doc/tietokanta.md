@@ -82,14 +82,14 @@ vastaavia rakenteita.
 Geometry-skema sisältää geometriasuunnitelmat, eli alkuperäiset suunnitelmatiedostot sekä niistä jäsennetyn
 geometriatietomallin. Geometriatietomalli kuvaa suunnitelmatiedoston sisällön matemaattisina määreinä (suorina, kaarina,
 siirtymäkaarina) sekä rataverkkoon liittyvinä lisätietoina kuten vaihteina. Selkeimmän kuvan siitä saa katsomalla
-kuvausta [Geoviite tietomalli](geoviite%20tietomalli.md).
+kuvausta [Tietomalli](tietomalli.md).
 
 ### Layout
 
 Layout-skema sisältää paikannuspohjan, eli yhtenäiskoordinaatistoon muunnetun koko suomen rataverkon, joka on
 muodostettu linkittämällä geometrioita. Koska layout luodaan geometry-skeman sisältöjen pohjalta, layoutin osat
 viittaavat niiden lähteenä olleeseen geometria-puolen tietoon.
-Selkeimmän kuvan paikannuspohjan tietomallista saa katsomalla kuvausta [Geoviite tietomalli](geoviite%20tietomalli.md).
+Selkeimmän kuvan paikannuspohjan tietomallista saa katsomalla kuvausta [Tietomalli](tietomalli.md).
 Toisaalta paikannuspohjan eri konteksteja (luonnos/virallinen/suunnitelma)
 kuvaa [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md).
 
