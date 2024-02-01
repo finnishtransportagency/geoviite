@@ -1132,7 +1132,8 @@
         "reference-lines": "Pituusmittauslinjoja",
         "location-tracks": "Sijaintiraiteita",
         "switches": "Vaihteita",
-        "move-publication-group": "Siirrä kokonaisuus ({{amount}} kpl)"
+        "move-publication-group": "Siirrä kokonaisuus ({{amount}} kpl)",
+        "move-all-shown-changes": "Siirrä kaikki muutokset ({{amount}} kpl)"
     },
     "validation": {
         "layout": {

@@ -10,7 +10,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import styles from './preview-view.scss';
-import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,
@@ -29,13 +28,15 @@ import {
 import { PreviewTableItem } from 'preview/preview-table-item';
 import {
     PublicationGroup,
+    PublicationGroupId,
     PublicationStage,
+    PublishRequestIds,
     PublishValidationError,
 } from 'publication/publication-model';
 import {
     ChangesBeingReverted,
     PreviewCandidates,
-    PublicationGroupSizes,
+    PublicationChangeAmounts,
 } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
@@ -67,19 +68,22 @@ export enum PreviewSelectType {
 
 type PreviewTableProps = {
     previewChanges: PreviewCandidates;
-    onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
     onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
-    publicationGroupSizes: PublicationGroupSizes;
+    publicationChangeAmounts: PublicationChangeAmounts;
+    setStageForPublicationChanges: (
+        publishRequestIds: PublishRequestIds,
+        stage: PublicationStage,
+    ) => void;
     setPublicationGroupStage: (publicationGroup: PublicationGroup, stage: PublicationStage) => void;
     setStageOfAllShownChanges: (stage: PublicationStage) => void;
 };
 
 const getPublicationGroupSize = (
-    publicationGroupSizes: PublicationGroupSizes,
+    publicationGroupSizes: Record<PublicationGroupId, number>,
     publicationGroup?: PublicationGroup,
 ): number | undefined => {
     if (!publicationGroup) {
@@ -91,13 +95,13 @@ const getPublicationGroupSize = (
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
     previewChanges,
-    onPreviewSelect,
     onRevert,
     staged,
     changesBeingReverted,
     onShowOnMap,
     changeTimes,
-    publicationGroupSizes,
+    publicationChangeAmounts,
+    setStageForPublicationChanges,
     setPublicationGroupStage,
     setStageOfAllShownChanges,
 }) => {
@@ -110,37 +114,17 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
-    const defaultSelectedPublishChange: SelectedPublishChange = {
-        trackNumber: undefined,
-        referenceLine: undefined,
-        locationTrack: undefined,
-        switch: undefined,
-        kmPost: undefined,
-    };
+    function handlePreviewSelect(id: PublicationId, type: PreviewSelectType) {
+        const selectedPublishChanges: PublishRequestIds = {
+            trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
+            referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
+            locationTracks: type === PreviewSelectType.locationTrack ? [id] : [],
+            switches: type === PreviewSelectType.switch ? [id] : [],
+            kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
+        };
 
-    function handlePreviewSelect<T>(id: PublicationId, type: T) {
-        switch (type) {
-            case PreviewSelectType.trackNumber:
-                onPreviewSelect &&
-                    onPreviewSelect({ ...defaultSelectedPublishChange, trackNumber: id });
-                break;
-            case PreviewSelectType.referenceLine:
-                onPreviewSelect &&
-                    onPreviewSelect({ ...defaultSelectedPublishChange, referenceLine: id });
-                break;
-            case PreviewSelectType.locationTrack:
-                onPreviewSelect &&
-                    onPreviewSelect({ ...defaultSelectedPublishChange, locationTrack: id });
-                break;
-            case PreviewSelectType.switch:
-                onPreviewSelect && onPreviewSelect({ ...defaultSelectedPublishChange, switch: id });
-                break;
-            case PreviewSelectType.kmPost:
-                onPreviewSelect && onPreviewSelect({ ...defaultSelectedPublishChange, kmPost: id });
-                break;
-            default:
-                onPreviewSelect && onPreviewSelect(defaultSelectedPublishChange);
-        }
+        const newStage = staged ? PublicationStage.UNSTAGED : PublicationStage.STAGED;
+        setStageForPublicationChanges(selectedPublishChanges, newStage);
     }
 
     const changesToPublicationEntries = (previewChanges: PreviewCandidates): PreviewTableEntry[] =>
@@ -256,9 +240,14 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     userName={entry.userName}
                                     pendingValidation={entry.pendingValidation}
                                     operation={entry.operation}
+                                    stageAssetAmount={
+                                        staged
+                                            ? publicationChangeAmounts.staged
+                                            : publicationChangeAmounts.unstaged
+                                    }
                                     publicationGroup={entry.publicationGroup}
                                     publicationGroupSize={getPublicationGroupSize(
-                                        publicationGroupSizes,
+                                        publicationChangeAmounts.groupSizes,
                                         entry.publicationGroup,
                                     )}
                                     publish={staged}

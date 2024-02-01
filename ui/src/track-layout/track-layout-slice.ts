@@ -28,7 +28,6 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addAllIfExists, addIfExists } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
@@ -348,42 +347,7 @@ const trackLayoutSlice = createSlice({
             }
         },
 
-        onPreviewSelect: function (
-            state: TrackLayoutState,
-            action: PayloadAction<SelectedPublishChange>,
-        ): void {
-            const trackNumbers = addIfExists(
-                state.stagedPublicationRequestIds.trackNumbers,
-                action.payload.trackNumber,
-            );
-            const referenceLines = addIfExists(
-                state.stagedPublicationRequestIds.referenceLines,
-                action.payload.referenceLine,
-            );
-            const locationTracks = addIfExists(
-                state.stagedPublicationRequestIds.locationTracks,
-                action.payload.locationTrack,
-            );
-            const switches = addIfExists(
-                state.stagedPublicationRequestIds.switches,
-                action.payload.switch,
-            );
-            const kmPosts = addIfExists(
-                state.stagedPublicationRequestIds.kmPosts,
-                action.payload.kmPost,
-            );
-
-            state.stagedPublicationRequestIds = {
-                trackNumbers: trackNumbers,
-                referenceLines: referenceLines,
-                locationTracks: locationTracks,
-                switches: switches,
-                kmPosts: kmPosts,
-            };
-        },
-
-        // TODO Remove the above onPreviewSelect and rename this one?
-        onPublishPreviewSelectMultiple: function (
+        onPublishPreviewSelect: function (
             state: TrackLayoutState,
             action: PayloadAction<PublishRequestIds>,
         ): void {

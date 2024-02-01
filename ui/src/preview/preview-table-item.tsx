@@ -31,6 +31,7 @@ export type PreviewTableItemProps = {
     changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
     boundingBox?: BoundingBox;
+    stageAssetAmount: number;
     publicationGroupSize?: number;
     onShowOnMap: (bbox: BoundingBox) => void;
     setPublicationGroupStage: (publicationGroup: PublicationGroup, stage: PublicationStage) => void;
@@ -51,6 +52,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     publish = false,
     changesBeingReverted,
     boundingBox,
+    stageAssetAmount,
     publicationGroupSize,
     onShowOnMap,
     setPublicationGroupStage,
@@ -74,18 +76,15 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     );
 
     const actionMenuRef = React.useRef(null);
+    const moveTargetStage = publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED;
 
     const movePublicationGroup = () => {
-        publicationGroup &&
-            setPublicationGroupStage(
-                publicationGroup,
-                publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED,
-            );
+        publicationGroup && setPublicationGroupStage(publicationGroup, moveTargetStage);
         setActionMenuVisible(false);
     };
 
-    const moveAllChanges = () => {
-        setStageOfAllShownChanges(publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED);
+    const moveAllShownChanges = () => {
+        setStageOfAllShownChanges(moveTargetStage);
         setActionMenuVisible(false);
     };
 
@@ -103,10 +102,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const menuOptions = [
         ...movePublicationGroupMenuOption,
         {
-            onSelect: () => moveAllChanges,
-            name: publish
-                ? t('publish.unstage-all-shown-changes')
-                : t('publish.stage-all-shown-changes'),
+            onSelect: moveAllShownChanges,
+            name: t('publish.move-all-shown-changes', {
+                amount: stageAssetAmount,
+            }),
         },
         {
             disabled: !boundingBox,

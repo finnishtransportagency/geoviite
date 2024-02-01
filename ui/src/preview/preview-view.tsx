@@ -14,7 +14,6 @@ import {
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
 import { OnSelectFunction } from 'selection/selection-model';
-import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { AssetId, PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -81,8 +80,7 @@ export type PreviewProps = {
     onSelect: OnSelectFunction;
     onPublish: () => void;
     onClosePreview: () => void;
-    onPreviewSelect: (selectedChange: SelectedPublishChange) => void; // TODO Only use the one below.
-    onPublishPreviewSelectMultiple: (selectedChanges: PublishRequestIds) => void;
+    onPublishPreviewSelect: (selectedChanges: PublishRequestIds) => void; // TODO Rename
     onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequestIds) => void;
     onShowOnMap: (bbox: BoundingBox) => void;
 };
@@ -101,7 +99,7 @@ const emptyChanges = {
     referenceLines: [],
     switches: [],
     kmPosts: [],
-};
+} satisfies PreviewCandidates | PublishRequestIds;
 
 const filterStaged = (stagedIds: AssetId[], candidate: Candidate) =>
     stagedIds.includes(candidate.id);
@@ -159,7 +157,7 @@ const previewChanges = (
     stagedValidatedChanges: PublishCandidates,
     allSelectedChanges: PublishRequestIds,
     entireChangeset: PublishCandidates,
-) => {
+): PreviewCandidates => {
     const validatedIds = publishCandidateIds(stagedValidatedChanges);
 
     return {
@@ -242,16 +240,6 @@ const singleRowPublishRequestOfPreviewTableEntry = (
     kmPosts: type === 'kmPost' ? [id] : [],
 });
 
-const singleRowPublishRequestOfSelectedPublishChange = (
-    change: SelectedPublishChange,
-): PublishRequestIds => ({
-    trackNumbers: change.trackNumber ? [change.trackNumber] : [],
-    referenceLines: change.referenceLine ? [change.referenceLine] : [],
-    locationTracks: change.locationTrack ? [change.locationTrack] : [],
-    switches: change.switch ? [change.switch] : [],
-    kmPosts: change.kmPost ? [change.kmPost] : [],
-});
-
 const filterPreviewCandidateArrayByUser = <T extends PreviewCandidate>(
     user: User,
     candidates: T[],
@@ -289,32 +277,49 @@ const idsByPublicationGroup = (
     return filterByPublicationGroup(candidates, publicationGroup).map((candidate) => candidate.id);
 };
 
-export type PublicationGroupSizes = {
-    [key: PublicationGroupId]: number;
+export type PublicationChangeAmounts = {
+    total: number;
+    staged: number;
+    unstaged: number;
+    groupSizes: Record<PublicationGroupId, number>;
 };
 
-const countPublicationGroupSizes = (changeSet: PublishCandidates): PublicationGroupSizes => {
-    const calculatedGroupSizes: PublicationGroupSizes = {};
+const countPublishCandidates = (publishCandidates: PublishCandidates | undefined): number => {
+    if (!publishCandidates) {
+        return 0;
+    }
 
-    Object.values(changeSet).forEach((publishCandidatesForResourceType) => {
-        if (!Array.isArray(publishCandidatesForResourceType)) {
-            return;
-        }
+    return Object.values(publishCandidates)
+        .filter((maybeAssetArray) => Array.isArray(maybeAssetArray))
+        .reduce(
+            (amount, assetArray) =>
+                amount + assetArray.reduce((subsetAmount) => subsetAmount + 1, 0),
+            0,
+        );
+};
 
-        publishCandidatesForResourceType.forEach((candidate) => {
-            const candidatePublicationGroupId = candidate.publicationGroup?.id;
+const countPublicationGroupSizes = (
+    changeSet: PublishCandidates | undefined,
+): Record<PublicationGroupId, number> => {
+    if (!changeSet) {
+        return {};
+    }
 
-            if (candidatePublicationGroupId) {
-                if (candidatePublicationGroupId in calculatedGroupSizes) {
-                    calculatedGroupSizes[candidatePublicationGroupId] += 1;
-                } else {
-                    calculatedGroupSizes[candidatePublicationGroupId] = 1;
-                }
-            }
-        });
-    });
+    return Object.values(changeSet)
+        .filter((maybeAssetArray) => Array.isArray(maybeAssetArray))
+        .flatMap((assetArray) => {
+            return assetArray.map((asset) => asset.publicationGroup?.id);
+        })
+        .filter(
+            (publicationGroupId): publicationGroupId is PublicationGroupId => !!publicationGroupId,
+        )
+        .reduce((groupSizes, publicationGroup) => {
+            publicationGroup in groupSizes
+                ? (groupSizes[publicationGroup] += 1)
+                : (groupSizes[publicationGroup] = 1);
 
-    return calculatedGroupSizes;
+            return groupSizes;
+        }, {} as Record<PublicationGroupId, number>);
 };
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
@@ -391,8 +396,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
-    const publicationGroupSizes =
-        (entireChangeset && countPublicationGroupSizes(entireChangeset)) ?? {};
+    const publicationChangeAmounts: PublicationChangeAmounts = {
+        total: countPublishCandidates(entireChangeset),
+        staged: countPublishCandidates(stagedPreviewChanges),
+        unstaged: countPublishCandidates(unstagedPreviewChanges),
+        groupSizes: countPublicationGroupSizes(entireChangeset),
+    };
 
     const onRequestRevert = (requestedRevertChange: PreviewTableEntry) => {
         getRevertRequestDependencies(
@@ -429,14 +438,20 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             });
     };
 
-    const onPublishPreviewRemove = (selectedChange: SelectedPublishChange): void => {
-        props.onPublishPreviewRemove(
-            singleRowPublishRequestOfSelectedPublishChange(selectedChange),
-        );
-    };
+    const setStageForPublicationChanges = (
+        publishRequestIds: PublishRequestIds,
+        publicationStage: PublicationStage,
+    ) => {
+        switch (publicationStage) {
+            case PublicationStage.STAGED:
+                return props.onPublishPreviewSelect(publishRequestIds);
 
-    const onPreviewSelect = (selectedChange: SelectedPublishChange): void => {
-        props.onPreviewSelect(selectedChange);
+            case PublicationStage.UNSTAGED:
+                return props.onPublishPreviewRemove(publishRequestIds);
+
+            default:
+                exhaustiveMatchingGuard(publicationStage);
+        }
     };
 
     const setPublicationGroupStage = (
@@ -455,22 +470,27 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             kmPosts: idsByPublicationGroup(entireChangeset.kmPosts, publicationGroup),
         };
 
+        setStageForPublicationChanges(groupedChanges, stage);
+    };
+
+    const setStageOfAllShownChanges = (stage: PublicationStage) => {
         switch (stage) {
             case PublicationStage.STAGED:
-                props.onPublishPreviewSelectMultiple(groupedChanges);
-                return;
+                return setStageForPublicationChanges(
+                    publishCandidateIds(unstagedPreviewChanges),
+                    PublicationStage.STAGED,
+                );
 
             case PublicationStage.UNSTAGED:
-                props.onPublishPreviewRemove(groupedChanges);
-                return;
+                return setStageForPublicationChanges(
+                    publishCandidateIds(stagedPreviewChanges),
+                    stage,
+                );
 
             default:
                 exhaustiveMatchingGuard(stage);
         }
     };
-
-    const setStageOfAllShownChanges = (stage: PublicationStage) =>
-        console.log('All changes set to ' + stage);
 
     return (
         <React.Fragment>
@@ -493,14 +513,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     </Checkbox>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={onPreviewSelect}
                                     onRevert={onRequestRevert}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                     onShowOnMap={props.onShowOnMap}
                                     changeTimes={props.changeTimes}
-                                    publicationGroupSizes={publicationGroupSizes}
+                                    publicationChangeAmounts={publicationChangeAmounts}
+                                    setStageForPublicationChanges={setStageForPublicationChanges}
                                     setPublicationGroupStage={setPublicationGroupStage}
                                     setStageOfAllShownChanges={setStageOfAllShownChanges}
                                 />
@@ -511,14 +531,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     <h3>{t('preview-view.staged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={onPublishPreviewRemove}
                                     onRevert={onRequestRevert}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                     onShowOnMap={props.onShowOnMap}
                                     changeTimes={props.changeTimes}
-                                    publicationGroupSizes={publicationGroupSizes}
+                                    publicationChangeAmounts={publicationChangeAmounts}
+                                    setStageForPublicationChanges={setStageForPublicationChanges}
                                     setPublicationGroupStage={setPublicationGroupStage}
                                     setStageOfAllShownChanges={setStageOfAllShownChanges}
                                 />
