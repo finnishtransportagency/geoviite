@@ -444,6 +444,9 @@ data class LayoutSegment(
         require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
         require(startM.isFinite() && startM >= 0.0) { "Invalid start m: $startM" }
         require(endM.isFinite() && endM >= startM) { "Invalid end m: $endM" }
+         require(switchId != null || (startJointNumber == null && endJointNumber == null)) {
+            "Segment cannot link to switch joints if it doesn't link to a switch: switchId=$switchId startJoint=$startJointNumber endJoint=$endJointNumber"
+        }
     }
 
     fun slice(fromIndex: Int, toIndex: Int, newStart: Double? = null): LayoutSegment? {
