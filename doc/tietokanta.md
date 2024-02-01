@@ -73,10 +73,9 @@ halutaan käyttää viite-eheyttä varmistamaan toimivan koordinaattijärjestelm
 ### Common
 
 Common-skema sisältää Geoviitteen jaetut käsitteet, joita hyödynnetään sekä Geometry- että Layout- puolelta, erityisesti
-enumeraatioita, vaihdeomistaja, ja vaihteen rakenteet (vaihdekirjasto). Lisäksi sieltä löytyy käyttäjärooleihin (
-autorisointi) liittyvät asiat, sekä geometrialaskentaan ja koordinaattimuunnoksiin liittyviä kolmioverkkoja ja vastaavia
-rakenteita.
-![](images/database_common.png)
+enumeraatioita, vaihdeomistaja, ja vaihteen rakenteet (vaihdekirjasto). Lisäksi sieltä löytyy käyttäjärooleihin
+(autorisointi) liittyvät asiat, sekä geometrialaskentaan ja koordinaattimuunnoksiin liittyviä kolmioverkkoja ja
+vastaavia rakenteita.
 
 ### Geometry
 
@@ -84,8 +83,6 @@ Geometry-skema sisältää geometriasuunnitelmat, eli alkuperäiset suunnitelmat
 geometriatietomallin. Geometriatietomalli kuvaa suunnitelmatiedoston sisällön matemaattisina määreinä (suorina, kaarina,
 siirtymäkaarina) sekä rataverkkoon liittyvinä lisätietoina kuten vaihteina. Selkeimmän kuvan siitä saa katsomalla
 kuvausta [Geoviite tietomalli](geoviite%20tietomalli.md).
-
-![](images/database_geometry.png)
 
 ### Layout
 
@@ -95,8 +92,6 @@ viittaavat niiden lähteenä olleeseen geometria-puolen tietoon.
 Selkeimmän kuvan paikannuspohjan tietomallista saa katsomalla kuvausta [Geoviite tietomalli](geoviite%20tietomalli.md).
 Toisaalta paikannuspohjan eri konteksteja (luonnos/virallinen/suunnitelma)
 kuvaa [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md).
-
-![](images/database_layout.png)
 
 ### Publication
 
@@ -114,64 +109,6 @@ kuvauksesta [Julkaisut](julkaisut.md).
 
 ### Projektivelho
 
-Projektivelho-skema sisältää projektivelho-integraation tilaa kuvaavat taulut.
-
-Tänne synkronoidaan tarvittavilta osin projektivelhon nimikkeistöt (Dictionary), joita käytetään sieltä saatujen
-tietojen tulkitsemiseen. Näitä on mm. materiaalin luokitteluun ja tilaan liittyvät enumeraatiot. Käytännössä ne ovat
-koodi-nimi pareja, joista koodia käytetään dokumenttien sisällön kuvaamisessa ja nimeä siinä kohtaa kun arvo halutaan
-esittää käyttöliittymällä.
-
-Lisäksi skema sisältää taulut tuoduille dokumenteille sekä niihin liittyville toimeksiannoille, projekteille ja
-projektijoukoille. Näiden 1-n suhteet ilmenee alla olevassa kuvassa.
-
-```mermaid
-classDiagram
-    Assignment "0..1" <-- "*" Document
-    Project "0..1" <-- "*" Document
-    ProjectGroup "0..1" <-- "*" Document
-    MaterialState "1" <-- "*" Document
-    MaterialGroup "1" <-- "*" Document
-    MaterialCategory "1" <-- "*" Document
-    Document *-- "1" DocumentContent
-    Document *-- "*" DocumentRejection
-    ProjectState "1" <-- "*" Assignment
-    ProjectState "1" <-- "*" Project
-    ProjectState "1" <-- "*" ProjectGroup
-
-    namespace Document - Dokumentti {
-        class Document {
-            id: Int
-            oid: String
-            status: NOT_IM/SUGGESTED/REJECTED/ACCEPTED
-            fileName: String
-            description: String
-            documentVersion: String
-        }
-        class DocumentContent {
-            content: XML
-        }
-        class DocumentRejection
-    }
-
-    namespace ProjectReferences - Projektiviitteet {
-        class Assignment {
-            oid: String
-            name: String
-        }
-        class Project {
-            oid: String
-            name: String
-        }
-        class ProjectGroup {
-            oid: String
-            name: String
-        }
-    }
-
-    namespace Dictionaries - Nimikkeistöt {
-        class ProjectState
-        class MaterialState
-        class MaterialGroup
-        class MaterialCategory
-    }
-```
+Projektivelho-skema sisältää projektivelho-integraation (synkronointi-ajon) tilaa kuvaavat taulut. Lisäksi samassa
+skemassa säilytetään myös tuodut dokumentit ja niihin littyvät projektitiedot sekä tarvittavat Projektivelhon
+nimikkeistöt (Dictionary). Näistä on tarkempaa tietoa kuvauksessa [Projektivelho](projektivelho.md)

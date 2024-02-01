@@ -1,35 +1,57 @@
 # Tietomalli
 
 Tässä kuvassa esitetään geoviitteen peruskäsitteet ja miten ne liittyvät toisiinsa. Käsitteistöä on tarkoituksella
-yksinkertaistettu ollakseen havainnollisempi ja luokkahierarkiat eivät vastaa 1-1 tietokantatauluja (nämä tarkemmin
-nähtävissä täältä: Tietokanta) tai koodin rakennetta vaan ennenkaikkea geoviitteen kannalta oleellista osaa niiden
-tietosisällöstä.
+yksinkertaistettu ollakseen havainnollisempi ja luokkahierarkiat eivät vastaa 1-1 tietokantatauluja vaan ennenkaikkea
+käsitteistön kannalta oleellista osaa niiden tietosisällöstä.
 
 ![](images/data_flow.png)
 
 ## Tarkat geometriat
 
-Ratatieto saapuu järjestelmään pääasiassa tarkkoina 3D geometrioina (kuvassa oikealla), jotka on piirretty
-suunnitteluohjelmissa. Nämä kuvastavat tiettyä rataverkon osaa tietyn suunnitelman tai toteuman hetkellä, osat ovat
-päällekäisiä tai niiden välistä voi puuttua pätkiä. Lisäksi ne voivat olla määritelty eri koordinaatistoissa, joiden
-muunnos ei ole häviötöntä. Niistä ei siis voi yksiselitteisesti koostaa koko rataverkkoa. Geometrioiden tietomalli
-noudattaa läheisesti lähdeaineiston (LandXML) käsitteistöä.
+Ratatieto saapuu järjestelmään pääasiassa tarkkoina 3D geometrioina, jotka on piirretty suunnitteluohjelmissa. Nämä
+kuvastavat tiettyä rataverkon osaa tietyn suunnitelman tai toteuman hetkellä, osat ovat päällekäisiä tai niiden välistä
+voi puuttua pätkiä. Lisäksi ne voivat olla määritelty eri koordinaatistoissa, joiden muunnos ei ole häviötöntä. Niistä
+ei siis voi yksiselitteisesti koostaa koko rataverkkoa. Geometrioiden tietomalli noudattaa läheisesti lähdeaineiston
+(LandXML) käsitteistöä.
 
 ### Termistö
 
-| Luokkanimi           | Tietokantataulu                   | Käsite suomeksi       | Selite                                                 |
-|----------------------|-----------------------------------|-----------------------|--------------------------------------------------------|
-| GeometryPlan         | geometry.plan                     | Suunnitelma           | InfraModel (IM)-tiedoston jäsennetty muoto             |
-| Author               | geometry.plan_author              | Suunnitelman luoja    | IM:n luoneen yrityksen tiedot                          |
-| Application          | geometry.plan_application         | Suunniteluohjelma     | Ohjelma jolla IM luotiin                               |
-| GeometryUnits        | (osana geometry.plan taulua)      | Suunnitelman yksiköt  | Pituus, kulma, koordinaattijärjestelmä, jne.           |
-| GeometryAlignment    | geometry.alignment                | Keskilinjan geometria |                                                        |
-| GeometrySwitch       | geometry.switch                   | Vaihde                |                                                        |
-| GeometrySwitchJoint  | geometry.switch_joint             | Vaihteen jatkospiste  |                                                        |
-| GeometryKmPost       | geometry.km_post                  | Tasakilometripiste    | Aiemmin kilometripylväs                                |
-| GeometryProfile      | (osana geometry.alignment taulua) | Pystygeometria        |                                                        |
-| VerticalIntersection | geometry.vertical_intersection    | Pystygeometrian piste | Joko pistemäinen (VIPoint) tai kaari (VICircularCurve) |
-| GeometryCant         | (osana geometry.alignment taulua) | Raiteen kallistus     |                                                        |
+| Luokkanimi                  | Tietokantataulu                   | Käsite suomeksi                                  | Selite                                                               |
+|-----------------------------|-----------------------------------|--------------------------------------------------|----------------------------------------------------------------------|
+| GeometryPlan                | geometry.plan                     | Suunnitelma                                      | InfraModel (IM)-tiedoston jäsennetty muoto                           |
+| Author                      | geometry.plan_author              | Suunnitelman luoja                               | IM:n luoneen yrityksen tiedot                                        |
+| Application                 | geometry.plan_application         | Suunniteluohjelma                                | Ohjelma jolla IM luotiin                                             |
+| GeometryUnits               | (osana geometry.plan taulua)      | Suunnitelman yksiköt                             | Pituus, kulma, koordinaattijärjestelmä, jne.                         |
+| GeometryAlignment           | geometry.alignment                | Keskilinjan geometria                            |                                                                      |
+| GeometryElement             | geometry.element                  | Geometrian elementti (kantaluokka)               |                                                                      |
+| GeometryLine                | (osana geometry.element taulua)   | Suora (geometriaelementti)                       |                                                                      |
+| GeometryCurve               | (osana geometry.element taulua)   | Ympyräkaari (geometriaelementti)                 |                                                                      |
+| GeometrySpiral              | (osana geometry.element taulua)   | Siirtymäkaari (geometriaelementti - kantaluokka) |                                                                      |
+| GeometryClothoid            | (osana geometry.element taulua)   | Klotoidi (geometriaelementti)                    |                                                                      |
+| GeometryBiquadraticParabola | (osana geometry.element taulua)   | Toisen asteen paraabeli (geometriaelementti)     |                                                                      |
+| GeometrySwitch              | geometry.switch                   | Vaihde                                           |                                                                      |
+| GeometrySwitchJoint         | geometry.switch_joint             | Vaihteen jatkospiste                             |                                                                      |
+| GeometryKmPost              | geometry.km_post                  | Tasakilometripiste                               | Aiemmin kilometripylväs                                              |
+| GeometryProfile             | (osana geometry.alignment taulua) | Pystygeometria                                   |                                                                      |
+| VerticalIntersection        | geometry.vertical_intersection    | Pystygeometrian piste (kantaluokka)              | Määrityskohta pystygeometrialle: korkeus suhteessa raiteen pituuteen |
+| VIPoint                     | geometry.vertical_intersection    | Pistemäinen pystygeometrian piste                | Määrittelee pystygeometrian arvon tietyssä kohdassa                  |
+| VICircularCurve             | geometry.vertical_intersection    | Kaareva pystygeometrian määrityspiste            | Määrittelee pystygeometriaan kaaren                                  |
+| GeometryCant                | (osana geometry.alignment taulua) | Raiteen kallistus                                |                                                                      |
+| GeometryCantPoint           | geometry.cant_point               | Raiteen kallistuspiste                           | Määrityskohta kaltevuudelle: arvo suhteessa raiteen pituuteen        |
+| TrackLayoutTrackNumber      | layout.track_number               | Paikannuspohjan ratanumero                       |                                                                      |
+| PVDocument                  | projektivelho.document            | Projektivelhon dokumentti                        | Projektivelhosta ladattu yksittäinen tiedosto                        |
+| SwitchStructure             | common.switch_structure           | Vaihdetyyppi                                     | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
+
+### Suunnitelman rakenne
+
+Suunnitelman tiedot koostuu itse raakatiedostosta (joka säilytetään sellaisenaan), siihen liittyvistä metatiedoista,
+linjageometrioista sekä mahdollisista kohteista.
+
+Suunnitelmat viittaavat paikannuspohjan ratanumeroihin, jotta ne on helpompi paikantaa. Lisäksi, jos suunnitelma on
+tuotu projektivelhosta, se kantaa myös viitteen projektivelhon dokumenttiin (PVDocument), josta se on tullut. Tätä
+kautta päästään käsiksi myös hankkeen, projektin ja toimeksiannon tunnisteisiin.
+
+Tästä kuvasta on erotettu GeometryAlignment (keskilinjan geometria) omaksi kuvakseen sen laajuuden takia.
 
 ```mermaid
 classDiagram
@@ -39,78 +61,145 @@ classDiagram
     GeometryPlan *-- "1" GeometryUnits
     GeometryPlan "*" --> "0..1" Author
     GeometryPlan "*" --> "1" Application
+    GeometryPlan *-- "*" GeometrySwitch
+    GeometrySwitch *-- "1..n" GeometrySwitchJoint
+    GeometryPlan *-- "*" GeometryKmPost
+    TrackLayoutTrackNumber "0..1" <-- GeometryPlan
+    PVDocument "0..1" <-- GeometryPlan
+    GeometrySwitch "0..1" --> SwitchStructure
+    class GeometryPlan {
+        source: GEOMETRIAPALVELU/PAIKANNUSPALVELU
+        planTime: Instant
+        uploadTime: Instant
+        planPhase: RAILWAY_PLAN/...?
+        decisionPhase: APPROVED_PLAN/UNDER_CONSTRUCTION/IN_USE?
+        measurementMethod: VERIFIED_DESIGNED_GEOMETRY/...?
+        elevationMeasurementMethod: TOP_OF_SLEEPER/TOP_OF_RAIL?
+        message: String
+    }
+    class GeometryUnits {
+        srid: Int
+        coordinateSystemName: String
+        verticalCoordinateSystem: N43/N60/N2000
+        directionUnit: RADIANS/DEGREES
+        linearUnit: METER
+    }
+    class Author {
+        companyName: String
+    }
+    class Application {
+        name: String
+        version: String
+    }
+    class InfraModelFile {
+        name: String
+        content: XML
+    }
+    class GeometryAlignment {
+        name: String
+        state: ABANDONED/DESTROYED/EXISTING/PROPOSED
+        featureTypeCode: FeatureTypeCode?
+    }
+    class GeometryKmPost {
+        index: Int
+        kmNumber: KmNumber
+        location: Point
+        state: ABANDONED/DESTROYED/EXISTING/PROPOSED
+    }
+    class GeometrySwitch {
+        name: String
+        typeName: String
+        state: ABANDONED/DESTROYED/EXISTING/PROPOSED
+    }
+    class GeometrySwitchJoint {
+        number: Int
+        location: Point
+    }
+    class SwitchStructure {
+        type: String
+        presentationJointNumber: Int
+        [structure geometry as a separate object model]
+    }
+    class TrackLayoutTrackNumber {
+        [See layout model below]
+    }
+    class PVDocument {
+        [See projectivelho model]
+    }
+```
+
+### Suunnitelman linjageometriat (Alignment)
+
+Yksittäinen alignment kuvaa yhtä suunnitelman keskilinjaa ja niitä voi olla yhdellä suunnitelmalla useampia.
+Tyypillisimmin linjat kuvaavat raiteita, mutta ne voivat olla myös pituusmittauslinjoja. Linjan vaakageometria on
+kuvattu matemaattisina elementteinä eli suorina, viivoina ja kaarina. Linjoille voi olla kuvattuna pystygeometria (
+GeometryProfile) ja kallistuskulma (GeometryCant), mutta ne eivät ole pakollisia. Pystygeometria koostuu pisteistä (x =
+raiteen pituus, y = korkeus ko. kohdalla), joiden välille mallinnetaan lineaarinen siirtymä, sekä kaarista jotka
+sovitetaan linjalle. Kallistuskulma kuvataan pelkkinä pisteinä, joiden väliin sovitetaan joko lineaarinen siirtymä tai
+toisen asteen paraabeli.
+
+```mermaid
+classDiagram
     GeometryAlignment *-- "*" GeometryElement
-    GeometryElement <|-- Line
-    GeometryElement <|-- Curve
-    GeometryElement <|-- Spiral
+    GeometryElement <|-- GeometryLine
+    GeometryElement <|-- GeometryCurve
+    GeometryElement <|-- GeometrySpiral
+    GeometrySpiral <|-- GeometryClothoid
+    GeometrySpiral <|-- GeometryBiquadraticParabola
     GeometryAlignment *-- "0..1" GeometryProfile
     GeometryProfile *-- "*" VerticalIntersection
     GeometryAlignment *-- "0..1" GeometryCant
     GeometryCant *-- "*" GeometryCantPoint
     VerticalIntersection <|-- VIPoint
     VerticalIntersection <|-- VICircularCurve
-    GeometryPlan *-- "*" GeometrySwitch
-    GeometrySwitch *-- "1..n" GeometrySwitchJoint
-    GeometryPlan *-- "*" GeometryKmPost
-    class GeometryPlan {
-        source: GEOMETRIAPALVELU/PAIKANNUSPALVELU
-        trackNumberId: [viite - LayoutTrackNumber]?
-        trackNumberDescription: String
-        planTime: Instant
-        uploadTime: Instant
-        pvDocumentId: [viite - PVDocument]?
-        planPhase: [enum - RAILWAY_PLAN/...]?
-        decisionPhase: [enum -APPROVED_PLAN/...]?
-        measurementMethod: [enum - VERIFIED_DESIGNED_GEOMETRY/...]?
-        elevationMeasurementMethod: [enum - TOP_OF_SLEEPER/TOP_OF_RAIL]?
-        message: String
+    class GeometryAlignment {
+        name: String
+        state: ABANDONED/DESTROYED/EXISTING/PROPOSED
+        featureTypeCode: FeatureTypeCode?
     }
-    namespace metadata {
-        class GeometryUnits {
-            srid: Int
-            coordinateSystemName: String
-            verticalCoordinateSystem: N43/N60/N2000
-            directionUnit: RADIANS/DEGREES
-            linearUnit: METER
-        }
-        class Author {
-            companyName: String
-        }
-        class Application {
-            name: String
-            version: String
-        }
+    class GeometryElement {
+        startPoint: Point
+        endPoint: Point
     }
-    namespace raw_file {
-        class InfraModelFile {
-            name: String
-            content: XML
-        }
+    class GeometryLine {
     }
-    namespace geometry {
-        class GeometryAlignment {
-            name: String
-            description: String?
-            oidPart: String?
-            state: [enum - EXISTING/...]?
-            featureTypeCode: FeatureTypeCode?
-            staStart: BigDecimal
-        }
-        class GeometryElement
-        class Line
-        class Curve
-        class Spiral
-        class GeometryProfile
-        class VerticalIntersection
-        class VIPoint
-        class VICircularCurve
-        class GeometryCant
-        class GeometryCantPoint
+    class GeometryCurve {
+        rotation: CW/CCW
+        radius: BigDecimal
+        chord: BigDecimal
+        centerPoint: Point
     }
-    namespace assets {
-        class GeometryKmPost
-        class GeometrySwitch
-        class GeometrySwitchJoint
+    class GeometrySpiral {
+        rotation: CW/CCW
+        type: CLOTHOID/BIQUADRATIC_PARABOLA
+        pi: Point
+        radiusStart: BigDecimal
+        radiusEnd: BigDecimal
+    }
+    class GeometryClothoid {
+        clothoidConstant: BigDecimal
+    }
+    class GeometryBiquadraticParabola
+    class GeometryProfile
+    class VerticalIntersection
+    class VIPoint {
+        length: BigDecimal
+        staElevation: Point(<station>, <elevation>)
+    }
+    class VICircularCurve {
+        length: BigDecimal
+        radius: BigDecimal
+        staElevation: Point(<station>, <elevation>)
+    }
+    class GeometryCant {
+        gauge: BigDecimal
+        rotationPoint: LEFT/RIGHT/INSIDE_RAIL/CENTER
+    }
+    class GeometryCantPoint {
+        station: BigDecimal
+        appliedCant: BigDecimal
+        curvature: CW/CCW
+        transitionType: LINEAR/BIQUADRATIC_PARABOLA
     }
 ```
 
@@ -125,7 +214,120 @@ alkuperäisissä geometrioissa.
 Paikannuspohjaan sisältyy myös rataosoitteiston viitekehys, eli sen avulla voidaan laskea sijainnille tai kohteelle
 rataosoite (rata, km, metrit) ja mikä tahansa rataosoite voidaan kääntäen laskea tiettyy sijaintiin (koordinaatti).
 
-![](images/tietomalli.png)
+### Termistö
+
+| Luokkanimi             | Tietokantataulu             | Käsite suomeksi                    | Selite                                                               |
+|------------------------|-----------------------------|------------------------------------|----------------------------------------------------------------------|
+| TrackLayoutTrackNumber | layout.track_number         | Ratanumero                         |                                                                      |
+| ReferenceLine          | layout.reference_line       | Pituusmittauslinja                 | Ratanumeron osoitteiston määräävä linja. Yleensä seuraa pääraidetta. |
+| TrackLayoutKmPost      | layout.km_post              | Tasakilometripiste                 | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla  |
+| LocationTrack          | layout.location_track       | Sijaintiraide                      |                                                                      |
+| LayoutAlignment        | layout.alignment            | Keskilinja                         | Paikannuspohjan geometriaviiva (kokonaisuus)                         |
+| LayoutSegment          | layout.segment_version      | Keskilinjan segmentti              | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa                  |
+| SegmentGeometry        | layout.segment_geometry     | Segmenttigeometria                 | Uniikki segmentin geometriapätkä                                     |
+| TrackLayoutSwitch      | layout.switch               | Vaihde                             |                                                                      |
+| TrackLayoutSwitchJoint | layout.switch_joint         | Vaihdepiste                        |                                                                      |
+| GeometryElement        | geometry.element            | Geometrian elementti (kantaluokka) |                                                                      |
+| GeometrySwitch         | geometry.switch             | Vaihde                             |                                                                      |
+| GeometryKmPost         | geometry.km_post            | Tasakilometripiste                 | Aiemmin kilometripylväs                                              |
+| SwitchStructure        | common.switch_structure     | Vaihdetyyppi                       | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
+| SwitchOwner            | common.switch_owner         | Vaihteen omistaja                  |                                                                      |
+| LocationTrackOwner     | common.location_track_owner | Sijaintiraiteen omistaja           |                                                                      |
+
+### Paikannuspohjan rakenne
+
+Paikannuspohjan osoitteistot lasketaan ratanumerokohtaisesti, projisoimalla sijainnit ratanumeron pituusmittauslinjalle.
+Tasakilometripisteet määräävät missä kohtaa pituusmittauslinjaa vaihdetaan rataosoitteen kilometrilukua. Nuo käsitteet
+muodostavat siis yhdessä ratanumeron geokoodauskontekstin (GeocodingContext), jonka avulla voidaan laskea osoitteet
+mille vain pisteelle pituusmittauslinjan matkalla.
+
+Koska paikannuspohja muodostetaan geometrioiden pohjalta, sen sisältö viittaa geometriamalliin. Viivageometriassa
+yksittäinen segment kuvaa yhtä tiedoiltaan yhtenäistä pisteviivan osaa ja sellaisenaan voi viitata lähteenä olleeseen
+geometria-puolen viivaelementtiin (GeometryElement). Vastaavasti, jos vaihde on luotu geometriavaihteen pohjalta, se
+viittää lähteenä olleeseen käsitteeseen.
+
+```mermaid
+classDiagram
+    ReferenceLine "1" --> "1" LayoutAlignment
+    LocationTrack "1" --> "1" LayoutAlignment
+    LayoutSegment *-- "1" SegmentGeometry
+    SegmentGeometry *-- SegmentPoint
+    TrackLayoutTrackNumber "1" <-- "1" LocationTrack
+    TrackLayoutTrackNumber "1" <-- "1" ReferenceLine
+    TrackLayoutTrackNumber "1" <-- "n" LayoutKmPost
+    LayoutSwitch *-- "n" LayoutSwitchJoint
+    LayoutSwitch <-- LayoutSegment
+    LayoutAlignment *-- "n" LayoutSegment
+    LocationTrackOwner "1" <-- "n" LocationTrack
+    SwitchOwner "1" <-- "n" LayoutSwitch
+    SwitchStructure "1" <-- "n" LayoutSwitch
+    GeometrySwitch "0..1" <-- "n" LayoutSwitch
+    LayoutSegment "n" --> "0..1" GeometryElement
+
+    class TrackLayoutTrackNumber {
+        externalId: Oid
+        number: String
+        description: String
+        state: IN_USE/NOT_IN_USE/PLANNED/DELETED
+    }
+    class ReferenceLine {
+        startAddress: TrackMeter
+    }
+    class LayoutKmPost {
+        kmNumber: KmNumber
+        location: Point
+        state: IN_USE/NOT_IN_USE/PLANNED/DELETED
+    }
+    class LocationTrack {
+        externalId: Oid
+        name: String
+        description: String
+        type: MAIN/SIDE/TRAP/CHORD
+        state: IN_USE/NOT_IN_USE/PLANNED/DELETED
+    }
+    class LayoutAlignment {
+    }
+    class LayoutSegment {
+        startJointNumber: Int?
+        endJointNumber: Int?
+    }
+    class SegmentGeometry {
+        resolution: Int
+    }
+    class SegmentPoint {
+        x[easting]: Double
+        y[northing]: Double
+        z[height]: Double
+        m: Double
+        cant: Double
+    }
+    class LayoutSwitch {
+        externalId: Oid
+        name: String
+        state: EXISTING/FUTURE_EXISTING/NOT_EXISTING
+    }
+    class LayoutSwitchJoint {
+        jointNumber: Int
+        location: Point
+    }
+    class SwitchOwner {
+        name: String
+    }
+    class LocationTrackOwner {
+        name: String
+    }
+    class SwitchStructure {
+        type: String
+        presentationJointNumber: Int
+        [structure geometry as a separate object model]
+    }
+    class GeometrySwitch {
+        [See geometry model above]
+    }
+    class GeometryElement {
+        [See geometry model above]
+    }
+```
 
 ## Käsitteiden 3 esitystapaa
 
