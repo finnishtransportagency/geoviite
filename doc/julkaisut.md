@@ -17,14 +17,8 @@ versiotauluista kiinnitetyillä versioilla tai julkaisun aikaleimalla.
 
 ```mermaid
 classDiagram
-    RatkoPush <-- RatkoPushContent
-    Publication <-- RatkoPushContent
-    Publication <-- LocationTrack
-    Publication <-- Switch
-    Publication <-- TrackNumber
-    Publication <-- ReferenceLine
-    Publication <-- KmPost
-    namespace publication {
+    %%namespaces make this diagram clearer, but they need mermaid 10.2.0 which github doesn't yet have (as of 01.02.2024)
+    %%namespace publication {
         class Publication {
             publicationTime: Instant
         }
@@ -48,15 +42,22 @@ classDiagram
             id: Int
             version: Int
         }
-    }
-    namespace integration {
+    %%}
+    %%namespace integration {
         class RatkoPush {
             startTime: Instant
             endTime: Instant
             status: IN_PROGRESS/SUCCESSFUL/FAILED/CONNECTION_ISSUE
         }
         class RatkoPushContent
-    }
+    %%}
+    RatkoPush <-- RatkoPushContent
+    Publication <-- RatkoPushContent
+    Publication <-- LocationTrack
+    Publication <-- Switch
+    Publication <-- TrackNumber
+    Publication <-- ReferenceLine
+    Publication <-- KmPost
 ```
 
 ## Julkaisun lukitus ja versioiden kiinnitys
