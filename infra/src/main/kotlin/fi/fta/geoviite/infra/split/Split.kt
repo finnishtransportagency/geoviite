@@ -47,12 +47,6 @@ data class Split(
 }
 
 data class SplitTarget(
-    val splitId: IntId<Split>,
-    val locationTrackId: IntId<LocationTrack>,
-    val segmentIndices: IntRange,
-)
-
-data class SplitTargetSaveRequest(
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndices: IntRange,
 )
