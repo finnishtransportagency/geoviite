@@ -57,6 +57,7 @@ import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils'
 import { getSwitchStructures } from 'common/common-api';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { showTrackSwitchRelinkingValidations } from 'tool-panel/location-track/switch-relinking-validation';
+import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -503,29 +504,35 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                                 {t(
                                                     'tool-panel.location-track.switch-relinking.relink-message',
                                                 )}
-                                                <br />
-                                                <Link
-                                                    onClick={() => {
-                                                        stopSplitting();
-                                                        showTrackSwitchRelinkingValidations(
-                                                            locationTrack,
-                                                            onShowSwitch,
-                                                        );
-                                                    }}>
-                                                    {t(
-                                                        'tool-panel.location-track.switch-relinking.cancel-and-relink',
-                                                        {
-                                                            count: switchRelinkingErrors.length,
-                                                        },
-                                                    )}
-                                                </Link>
+                                                <div style={{marginTop:'4px'}}>
+                                                    <Link
+                                                        onClick={() => {
+                                                            stopSplitting();
+                                                            showTrackSwitchRelinkingValidations(
+                                                                locationTrack,
+                                                                onShowSwitch,
+                                                            );
+                                                        }}>
+                                                        {t(
+                                                            'tool-panel.location-track.switch-relinking.cancel-and-relink',
+                                                            {
+                                                                count: switchRelinkingErrors.length,
+                                                            },
+                                                        )}
+                                                    </Link>
+                                                </div>
                                             </MessageBox>
                                         )}
                                     {switchRelinkingState == LoaderStatus.Loading && (
                                         <MessageBox>
-                                            {t(
-                                                'tool-panel.location-track.switch-relinking.validation-in-progress',
-                                            )}
+                                            <span style={{display:'flex', alignItems:'center'}}>
+                                                <span style={{marginRight:'12px'}}>
+                                                    {t(
+                                                        'tool-panel.location-track.switch-relinking.validation-in-progress',
+                                                    )}
+                                                </span>
+                                                <Spinner size={SpinnerSize.SMALL}/>
+                                            </span>
                                         </MessageBox>
                                     )}
                                 </InfoboxContentSpread>
