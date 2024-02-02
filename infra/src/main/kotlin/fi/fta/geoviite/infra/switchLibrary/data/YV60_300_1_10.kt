@@ -1,11 +1,13 @@
 package fi.fta.geoviite.infra.switchLibrary.data
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.*
 
 fun YV60_300_1_10_V() = SwitchStructure(
     type = SwitchType("YV60-300-1:10-V"),
+    id = IntId(123456),
     presentationJointNumber = JointNumber(1),
     joints = listOf(
         SwitchJoint(

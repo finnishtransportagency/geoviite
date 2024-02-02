@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Test
+import kotlin.math.absoluteValue
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -131,16 +132,16 @@ class SuggestedSwitchTest {
         suggestedSwitch: SuggestedSwitch,
         jointNumber: JointNumber,
         alignmentId: IntId<LocationTrack>,
-        segmentIndex: Int,
+        m: Double,
         endPoint: SegmentEndPoint,
     ) {
         val joint = suggestedSwitch.joints.find { joint -> joint.number == jointNumber }
             ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
         if (!joint.matches.any { match ->
                 match.locationTrackId == alignmentId &&
-                        match.segmentIndex == segmentIndex
+                        (m - match.m).absoluteValue < 0.01
             }) {
-            fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, segmentIndex $segmentIndex, $endPoint")
+            fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, m $m, $endPoint")
         }
     }
 
@@ -183,7 +184,7 @@ class SuggestedSwitchTest {
                 suggestedSwitch,
                 JointNumber(1),
                 alignmentId = IntId(1),
-                segmentIndex = 1,
+                m = 300.0,
                 SegmentEndPoint.START
             )
 
@@ -191,7 +192,7 @@ class SuggestedSwitchTest {
                 suggestedSwitch,
                 JointNumber(5),
                 alignmentId = IntId(1),
-                segmentIndex = 1,
+                m = 316.615,
                 SegmentEndPoint.END
             )
 
@@ -199,7 +200,7 @@ class SuggestedSwitchTest {
                 suggestedSwitch,
                 JointNumber(2),
                 alignmentId = IntId(1),
-                segmentIndex = 2,
+                m = 334.43,
                 SegmentEndPoint.END
             )
         } else {

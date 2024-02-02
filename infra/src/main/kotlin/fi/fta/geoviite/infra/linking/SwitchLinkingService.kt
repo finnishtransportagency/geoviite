@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
+import kotlin.math.absoluteValue
 import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
@@ -1245,10 +1246,41 @@ class SwitchLinkingService @Autowired constructor(
             message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
         )
     }
+
+    fun createSwitchLinkingParameters(
+        suggestedSwitch: SuggestedSwitch,
+        layoutSwitchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
+    ): SwitchLinkingParameters = createSwitchLinkingParameters(
+        suggestedSwitch,
+        suggestedSwitch.joints
+            .flatMap { joint -> joint.matches.map { match -> match.locationTrackId } }
+            .distinct()
+            .associateWith { id -> locationTrackService.getWithAlignmentOrThrow(DRAFT, id as IntId).second },
+        layoutSwitchId
+    )
+}
+
+private fun getSegmentIndexForSwitchJointMatch(
+    trackAlignments: Map<DomainId<LocationTrack>, LayoutAlignment>,
+    match: SuggestedSwitchJointMatch,
+): Int {
+    val alignment = trackAlignments.getValue(match.locationTrackId)
+    val segmentIndex = alignment.getSegmentIndexAtM(match.m)
+    val segment = alignment.segments[segmentIndex]
+    val matchedStartForEndType =
+        (segment.startM - match.m).absoluteValue < TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT &&
+        match.matchType == SuggestedSwitchJointMatchType.END &&
+        segmentIndex > 0
+    val matchedEndForStartType =
+        (segment.endM - match.m).absoluteValue < TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT &&
+        match.matchType == SuggestedSwitchJointMatchType.START &&
+        segmentIndex < alignment.segments.lastIndex
+    return if (matchedStartForEndType) segmentIndex - 1 else if (matchedEndForStartType) segmentIndex + 1 else segmentIndex
 }
 
 fun createSwitchLinkingParameters(
     suggestedSwitch: SuggestedSwitch,
+    trackAlignments: Map<DomainId<LocationTrack>, LayoutAlignment>,
     layoutSwitchId: IntId<TrackLayoutSwitch> = temporarySwitchId,
 ): SwitchLinkingParameters {
     return SwitchLinkingParameters(
@@ -1260,7 +1292,7 @@ fun createSwitchLinkingParameters(
                 segments = suggestedSwitchJoint.matches.map { switchJointMatch ->
                     SwitchLinkingSegment(
                         locationTrackId = switchJointMatch.locationTrackId as IntId,
-                        segmentIndex = switchJointMatch.segmentIndex,
+                        segmentIndex = getSegmentIndexForSwitchJointMatch(trackAlignments, switchJointMatch),
                         m = switchJointMatch.m,
                     )
                 },
