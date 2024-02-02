@@ -16,9 +16,9 @@ import {
 } from 'track-layout/track-layout-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import {
-    InitialSplit,
+    FirstSplitTargetCandidate,
     sortSplitsByDistance,
-    Split,
+    SplitTargetCandidate,
     SplitRequest,
     SplitRequestTarget,
     SwitchOnLocationTrack,
@@ -43,16 +43,16 @@ import {
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { Link } from 'vayla-design-lib/link/link';
 import { TimeStamp } from 'common/common-model';
-import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
 import { getChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import { postSplitLocationTrack } from 'publication/split/split-api';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
-    initialSplit: InitialSplit;
-    splits: Split[];
+    initialSplit: FirstSplitTargetCandidate;
+    splits: SplitTargetCandidate[];
     allowedSwitches: SwitchOnLocationTrack[];
     switchChangeTime: TimeStamp;
     disabled: boolean;
@@ -60,7 +60,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
     locationTrackId: string;
     locationTrackChangeTime: TimeStamp;
     stopSplitting: () => void;
-    updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     setSplittingDisabled: (disabled: boolean) => void;
     isPostingSplit: boolean;
     returnToSplitting: () => void;
@@ -71,8 +71,8 @@ type LocationTrackSplittingInfoboxContainerProps = {
 type LocationTrackSplittingInfoboxProps = {
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
-    initialSplit: InitialSplit;
-    splits: Split[];
+    initialSplit: FirstSplitTargetCandidate;
+    splits: SplitTargetCandidate[];
     allowedSwitches: SwitchOnLocationTrack[];
     switches: LayoutSwitch[];
     disabled: boolean;
@@ -81,7 +81,7 @@ type LocationTrackSplittingInfoboxProps = {
     conflictingLocationTracks: string[];
     startAndEnd: AlignmentStartAndEnd;
     stopSplitting: () => void;
-    updateSplit: (updatedSplit: Split | InitialSplit) => void;
+    updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     isPostingSplit: boolean;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
@@ -93,7 +93,7 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
-    const errors: ValidationError<Split>[] = validateLocationTrackName(splitName);
+    const errors: ValidationError<SplitTargetCandidate>[] = validateLocationTrackName(splitName);
 
     if (
         allSplitNames.filter((s) => s !== '' && s.toLowerCase() === splitName.toLowerCase())
@@ -118,7 +118,8 @@ const validateSplitDescription = (
     description: string,
     duplicateOf: LocationTrackId | undefined,
 ) => {
-    const errors: ValidationError<Split>[] = validateLocationTrackDescriptionBase(description);
+    const errors: ValidationError<SplitTargetCandidate>[] =
+        validateLocationTrackDescriptionBase(description);
     if (!duplicateOf && description === '')
         errors.push({
             field: 'descriptionBase',
@@ -128,8 +129,8 @@ const validateSplitDescription = (
     return errors;
 };
 
-const validateSplitSwitch = (split: Split, switches: LayoutSwitch[]) => {
-    const errors: ValidationError<Split>[] = [];
+const validateSplitSwitch = (split: SplitTargetCandidate, switches: LayoutSwitch[]) => {
+    const errors: ValidationError<SplitTargetCandidate>[] = [];
     const switchAtSplit = switches.find((s) => s.id === split.switchId);
     if (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING') {
         errors.push({
@@ -142,10 +143,10 @@ const validateSplitSwitch = (split: Split, switches: LayoutSwitch[]) => {
 };
 
 type ValidatedSplit = {
-    split: Split | InitialSplit;
-    nameErrors: ValidationError<Split>[];
-    descriptionErrors: ValidationError<Split>[];
-    switchErrors: ValidationError<Split>[];
+    split: SplitTargetCandidate | FirstSplitTargetCandidate;
+    nameErrors: ValidationError<SplitTargetCandidate>[];
+    descriptionErrors: ValidationError<SplitTargetCandidate>[];
+    switchErrors: ValidationError<SplitTargetCandidate>[];
 };
 
 type SplitComponentAndRefs = {
@@ -259,7 +260,7 @@ const findRefToFirstErroredField = (
 const getSplitAddressPoint = (
     allowedSwitches: SwitchOnLocationTrack[],
     startAndEnd: AlignmentStartAndEnd | undefined,
-    split: Split | InitialSplit,
+    split: SplitTargetCandidate | FirstSplitTargetCandidate,
 ): AddressPoint | undefined => {
     if (split.type === 'SPLIT') {
         const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
@@ -282,8 +283,8 @@ const getSplitAddressPoint = (
 
 const splitRequest = (
     sourceTrackId: LocationTrackId,
-    initialSplit: InitialSplit,
-    splits: Split[],
+    initialSplit: FirstSplitTargetCandidate,
+    splits: SplitTargetCandidate[],
     allDuplicates: LayoutLocationTrack[],
 ): SplitRequest => ({
     sourceTrackId,
@@ -294,7 +295,7 @@ const splitRequest = (
 });
 
 const splitToRequestTarget = (
-    split: Split | InitialSplit,
+    split: SplitTargetCandidate | FirstSplitTargetCandidate,
     duplicate: LayoutLocationTrack | undefined,
 ): SplitRequestTarget => ({
     name: duplicate ? duplicate.name : split.name,

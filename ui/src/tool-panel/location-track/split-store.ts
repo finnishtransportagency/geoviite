@@ -14,7 +14,7 @@ import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
 
 const DUPLICATE_MAX_DISTANCE = 1.0;
 
-type SplitBase = {
+type SplitTargetCandidateBase = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
@@ -23,11 +23,11 @@ type SplitBase = {
     new: boolean;
 };
 
-export type InitialSplit = SplitBase & {
+export type FirstSplitTargetCandidate = SplitTargetCandidateBase & {
     type: 'INITIAL_SPLIT';
 };
 
-export type Split = SplitBase & {
+export type SplitTargetCandidate = SplitTargetCandidateBase & {
     type: 'SPLIT';
     switchId: LayoutSwitchId;
     distance: number;
@@ -40,8 +40,8 @@ export type SplittingState = {
     allowedSwitches: SwitchOnLocationTrack[];
     startAndEndSwitches: LayoutSwitchId[];
     duplicateTracks: SplitDuplicate[];
-    initialSplit: InitialSplit;
-    splits: Split[];
+    initialSplit: FirstSplitTargetCandidate;
+    splits: SplitTargetCandidate[];
     disabled: boolean;
 };
 
@@ -74,7 +74,7 @@ export type SplitRequestTarget = {
     descriptionSuffix: LocationTrackDescriptionSuffixMode;
 };
 
-export const sortSplitsByDistance = (splits: Split[]) =>
+export const sortSplitsByDistance = (splits: SplitTargetCandidate[]) =>
     [...splits].sort((a, b) => a.distance - b.distance);
 
 const findClosestDuplicate = (duplicates: SplitDuplicate[], otherPoint: Point) =>
@@ -195,7 +195,7 @@ export const splitReducers = {
     },
     updateSplit: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<Split | InitialSplit>,
+        { payload }: PayloadAction<SplitTargetCandidate | FirstSplitTargetCandidate>,
     ): void => {
         if (state.splittingState) {
             if (payload.type === 'SPLIT') {

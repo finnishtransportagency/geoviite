@@ -11,10 +11,7 @@ import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.createSwitchLinkingParameters
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublishValidationError
-import fi.fta.geoviite.infra.publication.PublishValidationErrorType
-import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -127,11 +124,29 @@ class SplitService(
 
     fun getSplitHeaderByPublicationId(publicationId: IntId<Publication>): SplitHeader? {
         logger.serviceCall(
-            "getSplitByPublicationId",
+            "getSplitHeaderByPublicationId",
             "publicationId" to publicationId,
         )
 
         return splitDao.fetchSplitIdByPublication(publicationId)?.let(splitDao::getSplitHeader)
+    }
+
+    fun get(splitId: IntId<Split>): Split? {
+        logger.serviceCall(
+            "getOrThrow",
+            "splitId" to splitId,
+        )
+
+        return splitDao.get(splitId)
+    }
+
+    fun getOrThrow(splitId: IntId<Split>): Split {
+        logger.serviceCall(
+            "getOrThrow",
+            "splitId" to splitId,
+        )
+
+        return splitDao.getOrThrow(splitId)
     }
 
     private fun validateSplitForLocationTrack(
@@ -196,6 +211,17 @@ class SplitService(
                 "$VALIDATION_SPLIT.split-in-progress",
             )
         else null
+    }
+
+    fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState) {
+        logger.serviceCall(
+            "updateSplitState",
+            "splitId" to splitId,
+        )
+
+        splitDao.getOrThrow(splitId).let { split ->
+            splitDao.updateSplitState(split.copy(bulkTransferState = state))
+        }
     }
 
     @Transactional

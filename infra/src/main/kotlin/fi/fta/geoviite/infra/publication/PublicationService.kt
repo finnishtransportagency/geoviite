@@ -9,6 +9,8 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.geometry.SplitTargetListingHeader
+import fi.fta.geoviite.infra.geometry.translateSplitTargetListingHeader
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.Translation
@@ -22,7 +24,9 @@ import fi.fta.geoviite.infra.split.SplitPublishValidationErrors
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.printCsv
 import org.postgresql.util.PSQLException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -35,6 +39,30 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+
+private val splitCsvColumns = listOf(
+    CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.SOURCE_NAME),
+    ) { (lt, _) -> lt.name },
+    CsvEntry(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.SOURCE_OID),
+    ) { (lt, _) -> lt.externalId },
+    CsvEntry(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.TARGET_NAME),
+    ) { (_, split) -> split.name },
+    CsvEntry(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.TARGET_OID),
+    ) { (_, split) -> split.oid },
+    CsvEntry(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.OPERATION),
+    ) { (_, split) -> if (split.newlyCreated) "Uusi kohde" else "Duplikaatti korvattu" },
+    CsvEntry(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.START_ADDRESS),
+    ) { (_, split) -> split.startAddress },
+    CsvEntry(
+        translateSplitTargetListingHeader(SplitTargetListingHeader.END_ADDRESS),
+    ) { (_, split) -> split.endAddress },
+)
 
 @Service
 class PublicationService @Autowired constructor(
@@ -993,6 +1021,56 @@ class PublicationService @Autowired constructor(
         }.let { publications ->
             if (sortBy == null) publications
             else publications.sortedWith(getComparator(sortBy, order))
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getSplitInPublication(id: IntId<Publication>): SplitInPublication? {
+        logger.serviceCall("getPublicationLocationTrackInfo", "id" to id)
+        return publicationDao.getPublication(id).let { publication ->
+            splitService.getSplitHeaderByPublicationId(id)?.let { splitHeader ->
+                val split = splitService.getOrThrow(splitHeader.id)
+                SplitInPublication(
+                    id = publication.id,
+                    splitId = split.id,
+                    locationTrack = locationTrackService.getOrThrow(OFFICIAL, split.locationTrackId),
+                    targetLocationTracks = publicationDao
+                        .fetchPublishedLocationTracks(id)
+                        .let { changes -> changes.indirectChanges + changes.directChanges }
+                        .distinctBy { it.version }
+                        .map { change ->
+                            locationTrackService
+                                .getWithAlignment(change.version)
+                                .let { (lt, alignment) -> Triple(lt, alignment, change) }
+                        }
+                        .filter { (lt, _, _) -> lt.id != split.locationTrackId && split.containsLocationTrack(lt.id as IntId) }
+                        .map { (lt, alignment, change) ->
+                            geocodingService.getGeocodingContext(OFFICIAL, lt.trackNumberId).let { geocodingContext ->
+                                SplitTargetInPublication(
+                                    id = lt.id as IntId,
+                                    name = lt.name,
+                                    oid = lt.externalId,
+                                    startAddress =
+                                    alignment.start?.let { start -> geocodingContext?.getAddress(start)?.first },
+                                    endAddress = alignment.end?.let { end -> geocodingContext?.getAddress(end)?.first },
+                                    newlyCreated = change.operation == Operation.CREATE,
+                                )
+                            }
+                        }.sortedWith { a, b -> compareOptional(a.startAddress, b.startAddress) }
+                )
+            }
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getSplitInPublicationCsv(id: IntId<Publication>): Pair<String, AlignmentName?> {
+        logger.serviceCall("getSplitInPublicationCsv", "id" to id)
+        return getSplitInPublication(id).let { splitInPublication ->
+            printCsv(
+                splitCsvColumns,
+                splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }
+                    ?: emptyList()
+            ) to splitInPublication?.locationTrack?.name
         }
     }
 

@@ -99,8 +99,7 @@ class SplitDao(
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
 
-    fun getSplit(splitId: IntId<Split>): Split {
-        val sql = """
+    val splitFetchSql = """
           select
               split.id,
               split.bulk_transfer_state,
@@ -113,7 +112,25 @@ class SplitDao(
           group by split.id
         """.trimIndent()
 
-        return jdbcTemplate.queryOne(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
+    fun get(splitId: IntId<Split>): Split? {
+        return jdbcTemplate.queryOptional(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
+            val targetLocationTracks = getSplitTargets(splitId)
+
+            Split(
+                id = splitId,
+                locationTrackId = rs.getIntId("source_location_track_id"),
+                bulkTransferState = rs.getEnum("bulk_transfer_state"),
+                publicationId = rs.getIntIdOrNull("publication_id"),
+                targetLocationTracks = targetLocationTracks,
+                relinkedSwitches = rs.getIntIdArray("switch_ids"),
+            )
+        }.also {
+            logger.daoAccess(AccessType.FETCH, Split::class, splitId)
+        }
+    }
+
+    fun getOrThrow(splitId: IntId<Split>): Split {
+        return jdbcTemplate.queryOne(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
             val targetLocationTracks = getSplitTargets(splitId)
 
             Split(

@@ -11,6 +11,7 @@ import {
 } from 'common/common-model';
 import {
     LayoutKmPostId,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -116,6 +117,15 @@ export type PublishedSplitHeader = {
     locationTrackId: LocationTrackId;
     bulkTransferState: BulkTransferState;
     publicationId?: PublicationId;
+};
+
+export type SplitTarget = {
+    locationTrackId: LocationTrackId;
+};
+
+export type Split = PublishedSplitHeader & {
+    targetLocationTracks: SplitTarget[];
+    relinkedSwitches: LayoutSwitchId[];
 };
 
 export type PublicationDetails = {
@@ -294,4 +304,20 @@ export type PublicationTableItem = {
 export type PublicationSearch = {
     startDate: TimeStamp | undefined;
     endDate: TimeStamp | undefined;
+};
+
+export type SplitInPublication = {
+    id: PublicationId;
+    splitId: string;
+    locationTrack: LayoutLocationTrack;
+    targetLocationTracks: SplitTargetInPublication[];
+};
+
+export type SplitTargetInPublication = {
+    id: LocationTrackId;
+    name: string;
+    oid: Oid;
+    startAddress: TrackMeter;
+    endAddress: TrackMeter;
+    newlyCreated: boolean;
 };

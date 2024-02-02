@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.split
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
@@ -37,8 +38,10 @@ data class Split(
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
 ) {
+    @get:JsonIgnore
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + locationTrackId }
 
+    @JsonIgnore
     val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
 
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)

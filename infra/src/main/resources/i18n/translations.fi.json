@@ -1375,8 +1375,24 @@
         "publication-status": "Raiteiden ja vaihteiden vienti",
         "bulk-transfer-status": "Kohteiden siirto jaetulta raiteelta",
         "actions": "Toiminnot",
-        "mark-as-successful": "Merkitse siirto onnistuneeksi",
-        "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua"
+        "show-split-info": "Näytä raiteen jakamisen tiedot",
+        "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
+        "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
+        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi"
+    },
+    "split-details-dialog": {
+        "title": "Raiteen jakamisen tiedot",
+        "source-name": "Alkuperäisen raiteen tunnus",
+        "source-oid": "Alkuperäisen raiteen OID",
+        "download-csv": "Lataa CSV",
+        "targets": "Jakamisessa syntyneet/muokatut raiteet ({{trackCount}} kpl)",
+        "target-name": "Raiteen tunnus",
+        "target-oid": "Raiteen OID",
+        "operation": "Toimenpide",
+        "start-address": "Rataosoite alku",
+        "end-address": "Rataosoite loppu",
+        "newly-created": "Uusi kohde",
+        "replaces-duplicate": "Duplikaatti korvattu"
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",
