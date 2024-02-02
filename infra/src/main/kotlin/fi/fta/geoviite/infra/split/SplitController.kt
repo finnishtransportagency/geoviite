@@ -26,5 +26,5 @@ class SplitController(val splitService: SplitService) {
     fun updateSplitTransferState(
         @PathVariable("id") id: IntId<Split>,
         @RequestBody state: BulkTransferState,
-    ): ResponseEntity<Unit> = splitService.updateSplitState(id, state).let(::toResponse)
+    ): IntId<Split> = splitService.updateSplitState(id, state)
 }

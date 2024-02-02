@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitPublishValidationErrors
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -913,7 +914,7 @@ class PublicationService @Autowired constructor(
         val (publishedDirectTrackNumbers, publishedIndirectTrackNumbers) = publicationDao.fetchPublishedTrackNumbers(id)
         val (publishedDirectTracks, publishedIndirectTracks) = publicationDao.fetchPublishedLocationTracks(id)
         val (publishedDirectSwitches, publishedIndirectSwitches) = publicationDao.fetchPublishedSwitches(id)
-        val splitHeader = splitService.getSplitHeaderByPublicationId(id)
+        val split = splitService.getSplitIdByPublicationId(id)?.let(splitService::get)
 
         return PublicationDetails(
             id = publication.id,
@@ -932,7 +933,7 @@ class PublicationService @Autowired constructor(
                 locationTracks = publishedIndirectTracks,
                 switches = publishedIndirectSwitches
             ),
-            split = splitHeader,
+            split = split?.let(::SplitHeader),
         )
     }
 
@@ -1028,8 +1029,8 @@ class PublicationService @Autowired constructor(
     fun getSplitInPublication(id: IntId<Publication>): SplitInPublication? {
         logger.serviceCall("getPublicationLocationTrackInfo", "id" to id)
         return publicationDao.getPublication(id).let { publication ->
-            splitService.getSplitHeaderByPublicationId(id)?.let { splitHeader ->
-                val split = splitService.getOrThrow(splitHeader.id)
+            splitService.getSplitIdByPublicationId(id)?.let { splitId ->
+                val split = splitService.getOrThrow(splitId)
                 SplitInPublication(
                     id = publication.id,
                     splitId = split.id,
@@ -1045,7 +1046,7 @@ class PublicationService @Autowired constructor(
                         }
                         .filter { (lt, _, _) -> lt.id != split.locationTrackId && split.containsLocationTrack(lt.id as IntId) }
                         .map { (lt, alignment, change) ->
-                            geocodingService.getGeocodingContext(OFFICIAL, lt.trackNumberId).let { geocodingContext ->
+                            geocodingService.getGeocodingContextAtMoment(lt.trackNumberId, publication.publicationTime).let { geocodingContext ->
                                 SplitTargetInPublication(
                                     id = lt.id as IntId,
                                     name = lt.name,

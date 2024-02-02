@@ -122,13 +122,13 @@ class SplitService(
         )
     }
 
-    fun getSplitHeaderByPublicationId(publicationId: IntId<Publication>): SplitHeader? {
+    fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
         logger.serviceCall(
             "getSplitHeaderByPublicationId",
             "publicationId" to publicationId,
         )
 
-        return splitDao.fetchSplitIdByPublication(publicationId)?.let(splitDao::getSplitHeader)
+        return splitDao.fetchSplitIdByPublication(publicationId)
     }
 
     fun get(splitId: IntId<Split>): Split? {
@@ -213,13 +213,13 @@ class SplitService(
         else null
     }
 
-    fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState) {
+    fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): IntId<Split> {
         logger.serviceCall(
             "updateSplitState",
             "splitId" to splitId,
         )
 
-        splitDao.getOrThrow(splitId).let { split ->
+        return splitDao.getOrThrow(splitId).let { split ->
             splitDao.updateSplitState(split.copy(bulkTransferState = state))
         }
     }
