@@ -84,6 +84,8 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
     override val kmNumber: KmNumber,
     override val meters: BigDecimal,
 ) : ITrackMeter {
+    val hasZeroMillimeters by lazy { meters == metersFloor() }
+
     private constructor(values: Pair<KmNumber, BigDecimal>) : this(values.first, values.second)
 
     @JsonCreator(mode = DELEGATING)
