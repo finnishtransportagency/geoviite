@@ -112,7 +112,7 @@ export type ValidatedPublishCandidates = {
 
 export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
 
-export type PublishedSplitHeader = {
+export type SplitHeader = {
     id: string;
     locationTrackId: LocationTrackId;
     bulkTransferState: BulkTransferState;
@@ -123,7 +123,7 @@ export type SplitTarget = {
     locationTrackId: LocationTrackId;
 };
 
-export type Split = PublishedSplitHeader & {
+export type Split = SplitHeader & {
     targetLocationTracks: SplitTarget[];
     relinkedSwitches: LayoutSwitchId[];
 };
@@ -141,7 +141,7 @@ export type PublicationDetails = {
     ratkoPushTime?: TimeStamp;
     calculatedChanges: PublishedCalculatedChanges;
     message?: string;
-    split?: PublishedSplitHeader;
+    split?: SplitHeader;
 };
 
 export type PublishedTrackNumber = {

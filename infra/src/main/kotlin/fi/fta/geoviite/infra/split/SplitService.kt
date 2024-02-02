@@ -124,7 +124,7 @@ class SplitService(
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
         logger.serviceCall(
-            "getSplitHeaderByPublicationId",
+            "getSplitIdByPublicationId",
             "publicationId" to publicationId,
         )
 
@@ -133,7 +133,7 @@ class SplitService(
 
     fun get(splitId: IntId<Split>): Split? {
         logger.serviceCall(
-            "getOrThrow",
+            "get",
             "splitId" to splitId,
         )
 

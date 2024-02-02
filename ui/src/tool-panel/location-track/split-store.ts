@@ -24,7 +24,7 @@ type SplitTargetCandidateBase = {
 };
 
 export type FirstSplitTargetCandidate = SplitTargetCandidateBase & {
-    type: 'INITIAL_SPLIT';
+    type: 'FIRST_SPLIT';
 };
 
 export type SplitTargetCandidate = SplitTargetCandidateBase & {
@@ -40,7 +40,7 @@ export type SplittingState = {
     allowedSwitches: SwitchOnLocationTrack[];
     startAndEndSwitches: LayoutSwitchId[];
     duplicateTracks: SplitDuplicate[];
-    initialSplit: FirstSplitTargetCandidate;
+    firstSplit: FirstSplitTargetCandidate;
     splits: SplitTargetCandidate[];
     disabled: boolean;
 };
@@ -106,8 +106,8 @@ export const splitReducers = {
             splits: [],
             endLocation: payload.endLocation,
             disabled: payload.locationTrack.draftType !== 'OFFICIAL',
-            initialSplit: {
-                type: 'INITIAL_SPLIT',
+            firstSplit: {
+                type: 'FIRST_SPLIT',
                 name:
                     duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
@@ -179,8 +179,8 @@ export const splitReducers = {
                     split.switchId === payload ? { ...split, new: false } : split,
                 );
             } else {
-                state.splittingState.initialSplit = {
-                    ...state.splittingState.initialSplit,
+                state.splittingState.firstSplit = {
+                    ...state.splittingState.firstSplit,
                     new: false,
                 };
             }
@@ -203,7 +203,7 @@ export const splitReducers = {
                     .filter((split) => split.switchId !== payload.switchId)
                     .concat([payload]);
             } else {
-                state.splittingState.initialSplit = payload;
+                state.splittingState.firstSplit = payload;
             }
         }
     },

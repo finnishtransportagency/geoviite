@@ -40,7 +40,7 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                         </Button>
                     </a>
                     <Button variant={ButtonVariant.PRIMARY} onClick={onClose}>
-                        Sulje
+                        {t('button.close')}
                     </Button>
                 </div>
             }
