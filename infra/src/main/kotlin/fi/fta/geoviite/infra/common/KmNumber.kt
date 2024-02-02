@@ -19,9 +19,7 @@ const val DEFAULT_TRACK_METER_DECIMALS = 3
 private val extensionLength = 1..2
 private val extensionRegex = Regex("^[A-Z]*\$")
 
-data class KmNumber
-@JsonCreator(mode = DISABLED)
-constructor(
+data class KmNumber @JsonCreator(mode = DISABLED) constructor(
     val number: Int,
     val extension: String? = null,
 ) : Comparable<KmNumber> {
@@ -86,9 +84,7 @@ interface ITrackMeter : Comparable<ITrackMeter> {
     override operator fun compareTo(other: ITrackMeter): Int = compare(this, other)
 }
 
-data class TrackMeter
-@JsonCreator(mode = DISABLED)
-constructor(
+data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
     override val kmNumber: KmNumber,
     override val meters: BigDecimal,
 ) : ITrackMeter {

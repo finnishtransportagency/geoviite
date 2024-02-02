@@ -74,19 +74,18 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    const [open, setOpen] = React.useState(false);
-    const [dialogOpen, setDialogOpen] = React.useState(false);
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const [splitDetailsDialogOpen, setSplitDetailsDialogOpen] = React.useState(false);
     const buttonClassNames = createClassName(
-        styles['publication-list-item__split-action-button'],
-        open && styles['publication-list-item__split-action-button--open'],
+        menuOpen && styles['publication-list-item__split-action-button--open'],
     );
     const menuRef = React.createRef<HTMLDivElement>();
 
     const actions = [
         {
             onSelect: () => {
-                setOpen(false);
-                setDialogOpen(true);
+                setMenuOpen(false);
+                setSplitDetailsDialogOpen(true);
             },
             qaId: 'show-split-info-link',
             name: t('publication-card.show-split-info'),
@@ -97,7 +96,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                     putBulkTransferState(publication.split.id, 'DONE').then(() => {
                         success(t('publication-card.bulk-transfer-marked-as-successful'));
                     });
-                setOpen(false);
+                setMenuOpen(false);
             },
             qaId: 'mark-bulk-transfer-as-finished-link',
             name: t('publication-card.mark-as-successful'),
@@ -142,20 +141,20 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                             <span>{t('publication-card.bulk-transfer-status')}</span>
                         </div>
                     </div>
-                    <div>
+                    <div className={styles['publication-list-item__split-action-button-container']}>
                         <Button
                             className={buttonClassNames}
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
-                            onClick={() => setOpen(!open)}
+                            onClick={() => setMenuOpen(!menuOpen)}
                             icon={Icons.Down}>
                             {t('publication-card.actions')}
                         </Button>
-                        {open && (
+                        {menuOpen && (
                             <div ref={menuRef}>
                                 <Menu
                                     positionRef={menuRef}
-                                    onClickOutside={() => setOpen(true)}
+                                    onClickOutside={() => setMenuOpen(true)}
                                     items={actions}
                                 />
                             </div>
@@ -163,10 +162,10 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                     </div>
                 </div>
             )}
-            {dialogOpen && (
+            {splitDetailsDialogOpen && (
                 <SplitDetailsDialog
                     publicationId={publication.id}
-                    onClose={() => setDialogOpen(false)}
+                    onClose={() => setSplitDetailsDialogOpen(false)}
                 />
             )}
         </div>
