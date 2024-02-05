@@ -214,16 +214,22 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
+    const isDraft = locationTrack.draftType !== 'OFFICIAL';
     const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
         (dupe) => dupe.trackNumberId !== trackNumber?.id,
     );
 
-    const getSplittingDisabledReason = () => {
-        if (locationTrack.draftType !== 'OFFICIAL')
-            return 'tool-panel.location-track.splitting.validation.track-draft-exists';
+    const getSplittingDisabledReasonsTranslated = () => {
+        const reasons = [];
+        if (isDraft)
+            reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         if (duplicatesOnOtherTracks)
-            return 'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number';
-        return '';
+            reasons.push(
+                t(
+                    'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                ),
+            );
+        return reasons.join('\n\n');
     };
 
     const isStartOrEndSwitch = (switchId: LayoutSwitchId) =>
@@ -473,6 +479,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     </React.Fragment>
                                 )}
                                 <EnvRestricted restrictTo="test">
+                                    {isDraft && (
+                                        <InfoboxContentSpread>
+                                            <MessageBox>
+                                                {t(
+                                                    'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                )}
+                                            </MessageBox>
+                                        </InfoboxContentSpread>
+                                    )}
                                     {duplicatesOnOtherTracks && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
@@ -491,7 +506,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                     locationTrack.draftType !== 'OFFICIAL' ||
                                                     duplicatesOnOtherTracks
                                                 }
-                                                title={t(getSplittingDisabledReason())}
+                                                title={getSplittingDisabledReasonsTranslated()}
                                                 onClick={() => {
                                                     getSplittingInitializationParameters(
                                                         'DRAFT',
