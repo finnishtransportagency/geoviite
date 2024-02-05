@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitTargetSaveRequest
+import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -222,15 +222,11 @@ class LinkingServiceIT @Autowired constructor(
             mRange = Range(0.0, 0.0),
         )
 
-        splitDao.saveSplit(locationTrackId, listOf(SplitTargetSaveRequest(locationTrackId, 0..1)), emptyList())
+        splitDao.saveSplit(locationTrackId, listOf(SplitTarget(locationTrackId, 0..1)), emptyList())
 
         val ex = assertThrows<LinkingFailureException> {
             linkingService.saveLocationTrackLinking(
-                LinkingParameters(
-                    geometryPlanId.id,
-                    geometryInterval,
-                    layoutInterval
-                )
+                LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval)
             )
         }
         assertEquals("Linking failed: Cannot link a location track that has unfinished splits", ex.message)
@@ -293,19 +289,18 @@ class LinkingServiceIT @Autowired constructor(
         val split = splitDao.getOrThrow(
             splitDao.saveSplit(
                 locationTrackId,
-                listOf(SplitTargetSaveRequest(locationTrackId, 0..1))
-            ,
+                listOf(SplitTarget(locationTrackId, 0..1)),
                 emptyList(),
             )
         )
-        splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
+        splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
 
         assertDoesNotThrow {
             linkingService.saveLocationTrackLinking(
                 LinkingParameters(
                     geometryPlanId.id,
                     geometryInterval,
-                    layoutInterval
+                    layoutInterval,
                 )
             )
         }

@@ -128,7 +128,7 @@ class SplitServiceIT @Autowired constructor(
 
         return splitDao.saveSplit(
             sourceTrack.id,
-            listOf(SplitTargetSaveRequest(endTrack.id, 0..0)),
+            listOf(SplitTarget(endTrack.id, 0..0)),
             listOf(relinkedSwitchId),
         )
     }

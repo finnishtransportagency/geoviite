@@ -32,7 +32,7 @@ class SplitService(
 
     fun saveSplit(
         locationTrackId: IntId<LocationTrack>,
-        splitTargets: Collection<SplitTargetSaveRequest>,
+        splitTargets: Collection<SplitTarget>,
         relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
     ): IntId<Split> {
         logger.serviceCall(
@@ -68,15 +68,11 @@ class SplitService(
 
         findPendingSplits(locationTracks)
             .distinctBy { it.id }
-            .map { split -> splitDao.updateSplitState(split.copy(publicationId = publicationId)) }
+            .map { split -> splitDao.updateSplitState(split.id, publicationId = publicationId) }
     }
 
     fun deleteSplit(splitId: IntId<Split>) {
-        logger.serviceCall(
-            "deleteSplit",
-            "splitId" to splitId
-        )
-
+        logger.serviceCall("deleteSplit", "splitId" to splitId)
         splitDao.deleteSplit(splitId)
     }
 
@@ -244,7 +240,7 @@ class SplitService(
         return splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
     }
 
-    private fun saveTargetTrack(target: SplitTargetResult): SplitTargetSaveRequest {
+    private fun saveTargetTrack(target: SplitTargetResult): SplitTarget{
         val id = locationTrackService.saveDraft(
             draft = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 track = target.locationTrack,
@@ -254,7 +250,7 @@ class SplitService(
             ),
             alignment = target.alignment,
         ).id
-        return SplitTargetSaveRequest(id, target.indices)
+        return SplitTarget(id, target.indices)
     }
 
     private fun collectSplitTargetParams(
