@@ -2541,6 +2541,64 @@ class PublicationServiceIT @Autowired constructor(
         ).map { it.second }.none{ error -> error == validationError("validation.layout.split.multiple-splits-not-allowed") })
     }
 
+    @Test
+    fun `Split validation should fail if switches are missing`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        val switch = insertSwitch(switch(name = getUnusedSwitchName().toString()))
+        val split = saveSplit(sourceTrack.id, listOf(startTargetTrack.id, endTargetTrack.id), listOf(switch.id)).let(splitDao::getOrThrow)
+
+        val locationTrackValidationVersions = listOf(
+            ValidationVersion(sourceTrack.id, sourceTrack.rowVersion),
+            ValidationVersion(startTargetTrack.id, startTargetTrack.rowVersion),
+            ValidationVersion(endTargetTrack.id, endTargetTrack.rowVersion),
+        );
+
+        assertContains(validateSplitContent(
+            locationTrackValidationVersions,
+            emptyList(),
+            listOf(split),
+            false
+        ).map { it.second }, validationError("validation.layout.split.split-missing-switches"))
+    }
+
+    @Test
+    fun `Split validation should fail if only switches are staged`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        val switch = insertSwitch(switch(name = getUnusedSwitchName().toString()))
+        val split = saveSplit(sourceTrack.id, listOf(startTargetTrack.id, endTargetTrack.id), listOf(switch.id)).let(splitDao::getOrThrow)
+
+        assertContains(validateSplitContent(
+            emptyList(),
+            listOf(
+                ValidationVersion(switch.id, switch.rowVersion)
+            ),
+            listOf(split),
+            false
+        ).map { it.second }, validationError("validation.layout.split.split-missing-location-tracks"))
+    }
+
+    @Test
+    fun `Split validation should not fail if switches and location tracks are staged`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        val switch = insertSwitch(switch(name = getUnusedSwitchName().toString()))
+        val split = saveSplit(sourceTrack.id, listOf(startTargetTrack.id, endTargetTrack.id), listOf(switch.id)).let(splitDao::getOrThrow)
+
+        val locationTrackValidationVersions = listOf(
+            ValidationVersion(sourceTrack.id, sourceTrack.rowVersion),
+            ValidationVersion(startTargetTrack.id, startTargetTrack.rowVersion),
+            ValidationVersion(endTargetTrack.id, endTargetTrack.rowVersion),
+        );
+
+        assertEquals(0, validateSplitContent(
+            locationTrackValidationVersions,
+            listOf(
+                ValidationVersion(switch.id, switch.rowVersion)
+            ),
+            listOf(split),
+            false
+        ).size)
+    }
+
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<PublishValidationError> {
         val publishRequest = publishRequestIds(locationTracks = locationTracks.asList())
         val validation = publicationService.validatePublishCandidates(
@@ -2559,6 +2617,18 @@ class PublicationServiceIT @Autowired constructor(
             sourceTrackId,
             targetTrackIds.map { id -> SplitTarget(id, 0..0) },
             listOf(),
+        )
+    }
+
+    private fun saveSplit(
+        sourceTrackId: IntId<LocationTrack>,
+        targetTrackIds: List<IntId<LocationTrack>>,
+        switches: List<IntId<TrackLayoutSwitch>>,
+    ): IntId<Split> {
+        return splitDao.saveSplit(
+            sourceTrackId,
+            targetTrackIds.map { id -> SplitTarget(id, 0..0) },
+            switches,
         )
     }
 
