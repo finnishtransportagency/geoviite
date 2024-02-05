@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
@@ -9,6 +10,7 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -87,24 +89,26 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun fetchVersionsForPublicationReturnsDraftsOnlyForPublishableSet() {
         val trackNumberId = insertOfficialTrackNumber()
-        val (postOneId, postOneOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
-        val postOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(postOneOfficial))).rowVersion
-        val (_, postTwoOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
-        kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial)))
-        val (postThreeId, postThreeOnlyDraft) = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(3))))
-        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4))).rowVersion
+        val postOneOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
+        val postOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(postOneOfficial.rowVersion)))
+        val postTwoOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
+        kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial.rowVersion)))
+        val postThreeOnlyDraft = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(3))))
+        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4)))
 
-        val versionsEmpty = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf())
-        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneId))
-        val versionsOneAndThree = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneId, postThreeId))
+        val versionsEmpty = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf())[trackNumberId]!!
+        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf(postOneOfficial.id))[trackNumberId]!!
+        val versionsOneAndThree = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf(postOneOfficial.id, postThreeOnlyDraft.id))[trackNumberId]!!
 
-        assertEquals(setOf(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
-        assertEquals(setOf(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
+        assertEquals(validationVersions(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
+        assertEquals(validationVersions(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
         assertEquals(
-            setOf(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial),
-            versionsOneAndThree.toSet()
+            validationVersions(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial),
+            versionsOneAndThree.toSet(),
         )
     }
+    private fun <T> validationVersions(vararg daoResponses: DaoResponse<T>): Set<ValidationVersion<T>> =
+        setOf(*daoResponses.map(::daoResponseToValidationVersion).toTypedArray())
 
     @Test
     fun listingKmPostVersionsWorks() {

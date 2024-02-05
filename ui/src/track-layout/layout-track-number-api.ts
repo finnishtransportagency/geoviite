@@ -89,8 +89,8 @@ export async function deleteTrackNumber(
 export async function getTrackNumberValidation(
     publishType: PublishType,
     id: LayoutTrackNumberId,
-): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(`${layoutUri('track-numbers', publishType, id)}/validation`);
+): Promise<ValidatedAsset | undefined> {
+    return getNullable<ValidatedAsset>(`${layoutUri('track-numbers', publishType, id)}/validation`);
 }
 
 export const getTrackNumberReferenceLineSectionsByPlan = async (

@@ -1156,15 +1156,13 @@
                     "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
                 },
                 "reference-line": {
-                    "null": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
+                    "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
                 },
                 "location-track": {
-                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia raiteita: {{locationTracks}}",
-                    "not-published": "Ratanumeron sijaintiraiteilla ({{locationTracks}}) on julkaisemattomia muutoksia"
+                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia raiteita: {{locationTracks}}"
                 },
                 "km-post": {
-                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{kmPosts}}",
-                    "not-published": "Ratanumeron tasakilometripisteillä ({{kmPosts}}) on julkaisemattomia muutoksia"
+                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{kmPosts}}"
                 },
                 "duplicate-name-official": "Ratanumeron numero {{trackNumber}} on jo käytössä",
                 "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}"
@@ -1193,7 +1191,6 @@
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
-                    "null": "Pituusmittauslinjan ratanumero ei ole mukana julkaisussa",
                     "not-official": "Pituusmittauslinja viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{trackNumber}}"
                 },
@@ -1224,9 +1221,8 @@
                     "PLANNED": "Sijaintiraide on tilassa \"Suunniteltu\""
                 },
                 "track-number": {
-                    "null": "Sijaintiraiteelle ei ole asetettu ratanumeroa tai se ei ole mukana julkaisussa",
                     "not-official": "Sijaintiraide viittaa ratanumeron {{trackNumber}} luonnosriviin",
-                    "not-published": "Sijaintiraide viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
+                    "not-published": "Sijaintiraide viittaa ratanumeroon {{trackNumber}}, joka ei ole mukana julkaisussa",
                     "state": {
                         "PLANNED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Suunniteltu\"",
                         "DELETED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""

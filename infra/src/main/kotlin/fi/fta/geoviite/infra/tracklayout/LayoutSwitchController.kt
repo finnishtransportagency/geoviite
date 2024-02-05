@@ -95,15 +95,16 @@ class LayoutSwitchController(
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
         logger.apiCall("validateSwitches", "publishType" to publishType, "ids" to ids)
-        val switches = if (ids != null) switchService.getMany(publishType, ids) else switchService.list(
-            publishType,
-            false
-        )
-        return publicationService.validateSwitches(
-            switches
-                .filter { switch -> switchMatchesBbox(switch, bbox, false) }
-                .map { sw -> sw.id as IntId }, publishType
-        )
+        // TODO: GVT-2442 This could be a dao-fetch for ids with list+bbox (we only need ids)
+        val switches = if (ids != null) {
+            switchService.getMany(publishType, ids)
+        } else {
+            switchService.list(publishType, false)
+        }
+        val switchIds = switches
+            .filter { switch -> switchMatchesBbox(switch, bbox, false) }
+            .map { sw -> sw.id as IntId }
+        return publicationService.validateSwitches(switchIds, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

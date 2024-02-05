@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
 import org.springframework.beans.factory.annotation.Value
@@ -14,8 +15,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -25,19 +24,6 @@ class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
-
-    fun fetchDuplicateIdsInAnyLayoutContext(id: IntId<LocationTrack>): List<IntId<LocationTrack>> {
-        val sql = """
-            select distinct coalesce(draft_of_location_track_id, id) id
-            from layout.location_track
-            where duplicate_of_location_track_id = :id
-              and state != 'DELETED'
-        """.trimIndent()
-        val params = mapOf("id" to id.intValue)
-        val ids = jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LocationTrack>("id") }
-        logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
-        return ids
-    }
 
     fun fetchDuplicateVersions(
         id: IntId<LocationTrack>,
@@ -61,6 +47,28 @@ class LocationTrackDao(
         }
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
         return versions
+    }
+
+    fun findOfficialNameDuplicates(names: List<AlignmentName>): Map<AlignmentName, List<RowVersion<LocationTrack>>> {
+        return if (names.isEmpty()) {
+            emptyMap()
+        } else {
+            val sql = """
+                select id, version, name
+                from layout.location_track
+                where name in (:names)
+                  and draft = false
+                  and state != 'DELETED'
+            """.trimIndent()
+            val params = mapOf("names" to names)
+            val found = jdbcTemplate.query<Pair<AlignmentName, RowVersion<LocationTrack>>>(sql, params) { rs, _ ->
+                val version = rs.getRowVersion<LocationTrack>("id", "version")
+                val name = rs.getString("name").let(::AlignmentName)
+                name to version
+            }
+            // Ensure that the result contains all asked-for names, even if there are no matches
+            names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
+        }
     }
 
     override fun fetchInternal(version: RowVersion<LocationTrack>): LocationTrack {
@@ -88,13 +96,20 @@ class LocationTrackDao(
               ltv.topology_start_switch_joint_number,
               ltv.topology_end_switch_id,
               ltv.topology_end_switch_joint_number,
-              ltv.owner_id
+              ltv.owner_id,
+              (
+                select
+                  array_agg(distinct switch_id)
+                  from layout.segment_version sv
+                  where sv.alignment_id = ltv.alignment_id
+                    and sv.alignment_version = ltv.alignment_version
+                    and sv.switch_id is not null
+              ) as segment_switch_ids
             from layout.location_track_version ltv
               left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
             where ltv.id = :id
               and ltv.version = :version
               and ltv.deleted = false
-             
         """.trimIndent()
 
         val params = mapOf(
@@ -131,7 +146,15 @@ class LocationTrackDao(
               lt.topology_start_switch_joint_number,
               lt.topology_end_switch_id,
               lt.topology_end_switch_joint_number,
-              lt.owner_id
+              lt.owner_id,
+              (
+                select
+                  array_agg(distinct switch_id)
+                  from layout.segment_version sv
+                  where sv.alignment_id = lt.alignment_id
+                    and sv.alignment_version = lt.alignment_version
+                    and sv.switch_id is not null
+              ) as segment_switch_ids
             from layout.location_track lt
               left join layout.alignment_version av on lt.alignment_id = av.id and lt.alignment_version = av.version
         """.trimIndent()
@@ -175,6 +198,7 @@ class LocationTrackDao(
                 rs.getJointNumber("topology_end_switch_joint_number"),
             )
         },
+        segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
     )
 
     @Transactional
@@ -350,28 +374,6 @@ class LocationTrackDao(
         }
     }
 
-    fun fetchOfficialVersionsAtMoment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        moment: Instant,
-    ): List<RowVersion<LocationTrack>> {
-        val sql = """
-            select distinct on (id)
-              case when deleted then null else id end as row_id, 
-              case when deleted then null else version end as row_version
-            from layout.location_track_version
-            where track_number_id = :track_number_id 
-              and draft = false
-              and change_time <= :moment
-            order by id, version desc
-        """.trimIndent()
-        val params = mapOf(
-            "track_number_id" to trackNumberId.intValue,
-            "moment" to Timestamp.from(moment),
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
-        }
-    }
     fun listNear(publicationState: PublishType, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(publicationState, bbox).map(::fetch)
 
@@ -444,6 +446,39 @@ class LocationTrackDao(
             rs.getRowVersion<LocationTrack>("id", "version")
         }.also { ids ->
             logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
+        }
+    }
+
+    fun fetchVersionsForPublication(
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackIdsToPublish: List<IntId<LocationTrack>>,
+    ): Map<IntId<TrackLayoutTrackNumber>, List<ValidationVersion<LocationTrack>>> {
+        if (trackNumberIds.isEmpty()) return emptyMap()
+        val sql = """
+            select track.track_number_id, track.official_id, track.row_id, track.row_version
+            from layout.location_track_publication_view track
+            where (('DRAFT' = any(track.publication_states)
+                     and track.official_id in (:track_ids_to_publish))
+                   or ('OFFICIAL' = any(track.publication_states)
+                         and (track.official_id in (:track_ids_to_publish) is distinct from true)))
+              and track_number_id in (:track_number_ids)
+              and track.state != 'DELETED'
+            order by track.track_number_id, track.row_id
+        """.trimIndent()
+        val params = mapOf(
+            "track_number_ids" to trackNumberIds.map { id -> id.intValue },
+            // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
+            // explicitly for false or null, since "foo in (null)" in SQL is null
+            "track_ids_to_publish" to (trackIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
+        )
+        val versions = jdbcTemplate.query(sql, params) { rs, _ ->
+            val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
+            val officialId = rs.getIntId<LocationTrack>("official_id")
+            val rowVersion = rs.getRowVersion<LocationTrack>("row_id", "row_version")
+            trackNumberId to ValidationVersion(officialId, rowVersion)
+        }
+        return trackNumberIds.associateWith { trackNumberId ->
+            versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
         }
     }
 }

@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.authorization.AUTH_DATAPRODUCT_DOWNLOAD
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -60,9 +60,12 @@ class LayoutTrackNumberController(
     fun validateTrackNumberAndReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): ValidatedAsset<TrackLayoutTrackNumber> {
+    ): ResponseEntity<ValidatedAsset<TrackLayoutTrackNumber>> {
         logger.apiCall("validateTrackNumberAndReferenceLine", "publishType" to publishType, "id" to id)
-        return publicationService.validateTrackNumberAndReferenceLine(id, publishType)
+        return publicationService
+            .validateTrackNumbersAndReferenceLines(listOf(id), publishType)
+            .firstOrNull()
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

@@ -270,42 +270,18 @@ class PublicationDao(
         return publicationId
     }
 
-    fun fetchLinkedSwitchesBeforeOrAfterPublication(
-        ids: List<IntId<LocationTrack>>,
-    ): Map<IntId<LocationTrack>, List<IntId<TrackLayoutSwitch>>> {
-        if (ids.isEmpty()) return mapOf()
-        val sql = """
-            select lt.id, ss.switch_id
-              from layout.location_track lt,
-                lateral (select distinct switch_id
-                           from (
-                             select topology_start_switch_id as switch_id
-                             union all
-                             select topology_end_switch_id
-                             union all
-                             select switch_id
-                               from layout.segment_version sv
-                               where sv.alignment_id = lt.alignment_id and sv.alignment_version = lt.alignment_version
-                           ) ss
-                           where switch_id is not null) ss
-              where lt.id in (:ids)
-        """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("ids" to ids.map(IntId<*>::intValue))) { rs, _ ->
-            rs.getIntId<LocationTrack>("id") to rs.getIntId<TrackLayoutSwitch>("switch_id")
-        }.groupBy({ it.first }, { it.second })
-    }
-
     /**
      * @param switchIds Switches whose linked tracks to find.
      * @param locationTrackIdsInPublicationUnit Optionally specify the location tracks in the publication unit. Leave
      * null to have all draft location tracks considered in the publication unit.
      * @param includeDeleted Filters location tracks, not switches
      */
+    // TODO: GVT-2442 This can probably be simplified now (only one use-place)
     fun fetchLinkedLocationTracks(
         switchIds: List<IntId<TrackLayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
         includeDeleted: Boolean = false,
-    ): Map<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>> {
+    ): Map<IntId<TrackLayoutSwitch>, Set<ValidationVersion<LocationTrack>>> {
         if (switchIds.isEmpty()) return mapOf()
 
         val draftTrackIncludedCondition = if (locationTrackIdsInPublicationUnit == null) "true"
@@ -314,6 +290,7 @@ class PublicationDao(
 
         val sql = """
             select
+              lt.official_id,
               lt.row_id,
               lt.row_version,
               array(select distinct v from unnest(
@@ -331,6 +308,7 @@ class PublicationDao(
                     s.switch_id in (:switch_ids)
                 )
               group by
+                lt.official_id,
                 lt.row_id,
                 lt.row_version
         """.trimIndent()
@@ -339,16 +317,38 @@ class PublicationDao(
             "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
             "include_deleted" to includeDeleted,
         )
-        val result = mutableMapOf<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>>()
+        val result = mutableMapOf<IntId<TrackLayoutSwitch>, Set<ValidationVersion<LocationTrack>>>()
         jdbcTemplate.query(sql, params) { rs, _ ->
+            val trackId = rs.getIntId<LocationTrack>("official_id")
             val trackVersion = rs.getRowVersion<LocationTrack>("row_id", "row_version")
             val switchIdList = rs.getIntIdArray<TrackLayoutSwitch>("switch_ids")
-            trackVersion to switchIdList
+            ValidationVersion(trackId, trackVersion) to switchIdList
         }.forEach { (trackVersion, switchIdList) ->
             switchIdList.forEach { id -> result[id] = result.getOrElse(id, ::setOf) + trackVersion }
         }
         logger.daoAccess(FETCH, "switch_track_link", result)
         return result
+    }
+
+    fun fetchOfficialDuplicateTrackVersions(
+        ids: List<IntId<LocationTrack>>,
+    ): Map<IntId<LocationTrack>, List<RowVersion<LocationTrack>>> {
+        val sql = """
+            select id, version, duplicate_of_location_track_id
+            from layout.location_track
+            where duplicate_of_location_track_id in (:ids)
+              and draft = false
+              and state != 'DELETED'
+        """.trimIndent()
+        val params = mapOf("ids" to ids.map { id -> id.intValue })
+        val rows = jdbcTemplate.query(sql, params) { rs, _ ->
+            val duplicateOfId = rs.getIntId<LocationTrack>("duplicate_of_location_track_id")
+            val version = rs.getRowVersion<LocationTrack>("id", "version")
+            duplicateOfId to version
+        }
+        return ids.associateWith { id ->
+            rows.filter { (duplicateOfId, _) -> duplicateOfId == id }.map { (_, rv) -> rv }
+        }
     }
 
     fun getPublication(publicationId: IntId<Publication>): Publication {

@@ -165,8 +165,8 @@ data class ValidatedPublishCandidates(
 )
 
 data class ValidatedAsset<T>(
-    val errors: List<PublishValidationError>,
     val id: IntId<T>,
+    val errors: List<PublishValidationError>,
 )
 
 data class PublishCandidates(
@@ -225,13 +225,21 @@ data class ValidationVersions(
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
     fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
+
+    fun getTrackNumberIds() = trackNumbers.map { v -> v.officialId }
+    fun getReferenceLineIds() = referenceLines.map { v -> v.officialId }
+    fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
+    fun getSwitchIds() = switches.map { v -> v.officialId }
+    fun getKmPostIds() = kmPosts.map { v -> v.officialId }
 }
 
 data class PublicationGroup(
     val id: IntId<Split>,
 )
 
-data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
+data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>) {
+    fun isOfficial() = officialId == validatedAssetVersion.id
+}
 
 data class PublishRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,

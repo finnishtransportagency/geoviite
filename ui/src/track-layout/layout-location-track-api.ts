@@ -292,8 +292,8 @@ export const getSplittingInitializationParameters = async (
 export async function getLocationTrackValidation(
     publishType: PublishType,
     id: LocationTrackId,
-): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(
+): Promise<ValidatedAsset | undefined> {
+    return getNullable<ValidatedAsset>(
         `${layoutUri('location-tracks', publishType, id)}/validation`,
     );
 }

@@ -498,11 +498,13 @@ class LayoutSwitchDao(
                   and state_category != 'NOT_EXISTING'
             """.trimIndent()
             val params = mapOf("names" to names)
-            return jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
+            val found = jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
                 val version = rs.getRowVersion<TrackLayoutSwitch>("id", "version")
                 val name = rs.getString("name").let(::SwitchName)
                 name to version
-            }.groupBy({ (name, _) -> name }, { (_, version) -> version })
+            }
+            // Ensure that the result contains all asked-for names, even if there are no matches
+            names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
         }
     }
 }
