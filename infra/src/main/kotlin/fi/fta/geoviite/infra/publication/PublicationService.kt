@@ -260,8 +260,8 @@ class PublicationService @Autowired constructor(
             referenceLineService.getByTrackNumber(publishType, trackNumber.id as IntId)
         }
 
-        val versions = toValidationVersions(
-            trackNumbers = listOfNotNull(trackNumber),
+        val versions = ValidationVersions(
+            trackNumbers = trackNumberDao.fetchPublicationVersions(),
             referenceLines = listOfNotNull(referenceLine),
             kmPosts = listOf(kmPost)
         )
