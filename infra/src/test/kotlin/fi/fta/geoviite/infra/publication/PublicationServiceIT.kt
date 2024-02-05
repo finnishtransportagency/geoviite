@@ -1942,8 +1942,9 @@ class PublicationServiceIT @Autowired constructor(
     private fun assertValidationErrorContentEquals(expected: List<PublishValidationError>, actual: List<PublishValidationError>, index: Int) {
         val allKeys = expected.map { it.localizationKey.toString() } + actual.map { it.localizationKey.toString() }
         val commonPrefix = allKeys.reduce { acc, next -> acc.take(acc.zip(next) { a, b -> a == b }.takeWhile { it }.count()) }
-        fun cleanupKey(key: LocalizationKey) =
-            key.toString().let { key -> if (commonPrefix.length > 3) "...$key" else key }
+
+        fun cleanupKey(key: LocalizationKey): String =
+            key.toString().let { k -> if (commonPrefix.length > 3) "...$k" else k }
 
         assertEquals(
             expected.map { cleanupKey(it.localizationKey) }.sorted(),
