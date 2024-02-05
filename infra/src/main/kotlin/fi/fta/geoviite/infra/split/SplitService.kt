@@ -10,7 +10,10 @@ import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.publication.*
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublishValidationError
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -216,7 +219,7 @@ class SplitService(
         )
 
         return splitDao.getOrThrow(splitId).let { split ->
-            splitDao.updateSplitState(split.copy(bulkTransferState = state))
+            splitDao.updateSplitState(split.id, bulkTransferState = state)
         }
     }
 
