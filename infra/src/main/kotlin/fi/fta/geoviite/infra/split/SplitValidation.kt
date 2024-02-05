@@ -42,10 +42,10 @@ internal fun validateSplitContent(
     trackVersions: List<ValidationVersion<LocationTrack>>,
     switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
     splits: Collection<Split>,
-    validatingStagedChanges: Boolean,
+    allowMultipleSplits: Boolean,
 ): List<Pair<Split, PublishValidationError>> {
-    val multipleSplitsStagedErrors = if (validatingStagedChanges && splits.size > 1) {
-        splits.map { split -> split to PublishValidationError(ERROR, "$VALIDATION_SPLIT.multiple-staged-splits")}
+    val multipleSplitsStagedErrors = if (!allowMultipleSplits && splits.size > 1) {
+        splits.map { split -> split to PublishValidationError(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")}
     } else {
         emptyList()
     }

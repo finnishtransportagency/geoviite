@@ -79,9 +79,9 @@ class SplitService(
         splitDao.deleteSplit(splitId)
     }
 
-    fun validateSplit(candidates: ValidationVersions, validatingStagedChanges: Boolean): SplitPublishValidationErrors {
+    fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublishValidationErrors {
         val splits = findUnfinishedSplits(candidates.locationTracks.map { it.officialId })
-        val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits, validatingStagedChanges)
+        val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits, allowMultipleSplits)
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id))

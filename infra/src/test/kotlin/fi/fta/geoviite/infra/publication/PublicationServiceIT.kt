@@ -15,10 +15,8 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.split.BulkTransferState
-import fi.fta.geoviite.infra.split.Split
-import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitTarget
+import fi.fta.geoviite.infra.split.*
+import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -2510,6 +2508,37 @@ class PublicationServiceIT @Autowired constructor(
 
         val errors = validateLocationTracks(startTargetTrack.id, endTargetTrack.id)
         assertContains(errors, validationError("validation.layout.split.split-missing-location-tracks"))
+    }
+
+    @Test
+    fun `Split validation should respect allowMultipleSplits`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        val split = saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).let(splitDao::getOrThrow)
+
+        val (sourceTrack2, startTargetTrack2, endTargetTrack2) = simpleSplitSetup()
+        val split2 = saveSplit(sourceTrack2.id, startTargetTrack2.id, endTargetTrack2.id).let(splitDao::getOrThrow)
+
+        val locationTrackValidationVersions = listOf(
+            ValidationVersion(sourceTrack.id, sourceTrack.rowVersion),
+            ValidationVersion(sourceTrack2.id, sourceTrack2.rowVersion),
+            ValidationVersion(startTargetTrack.id, startTargetTrack.rowVersion),
+            ValidationVersion(startTargetTrack2.id, startTargetTrack2.rowVersion),
+            ValidationVersion(endTargetTrack.id, endTargetTrack.rowVersion),
+            ValidationVersion(endTargetTrack2.id, endTargetTrack2.rowVersion)
+        );
+
+        assertContains(validateSplitContent(
+            locationTrackValidationVersions,
+            emptyList(),
+            listOf(split, split2),
+            false
+        ).map { it.second }, validationError("validation.layout.split.multiple-splits-not-allowed"))
+        assertTrue(validateSplitContent(
+            locationTrackValidationVersions,
+            emptyList(),
+            listOf(split, split2),
+            true
+        ).map { it.second }.none{ error -> error == validationError("validation.layout.split.multiple-splits-not-allowed") })
     }
 
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<PublishValidationError> {
