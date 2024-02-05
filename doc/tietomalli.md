@@ -6,6 +6,47 @@ käsitteistön kannalta oleellista osaa niiden tietosisällöstä.
 
 ![](images/data_flow.png)
 
+## Termistö
+
+| Luokkanimi                    | Tietokantataulu                   | Käsite suomeksi                                               | Selite                                                               |
+|-------------------------------|-----------------------------------|---------------------------------------------------------------|----------------------------------------------------------------------|
+| **Suunnitelman käsitteet**    |                                   |                                                               |                                                                      |
+| GeometryPlan                  | geometry.plan                     | Suunnitelma                                                   | InfraModel (IM)-tiedoston jäsennetty muoto                           |
+| Author                        | geometry.plan_author              | Suunnitelman luoja                                            | IM:n luoneen yrityksen tiedot                                        |
+| Application                   | geometry.plan_application         | Suunniteluohjelma                                             | Ohjelma jolla IM luotiin                                             |
+| GeometryUnits                 | (osana geometry.plan taulua)      | Suunnitelman yksiköt                                          | Pituus, kulma, koordinaattijärjestelmä, jne.                         |
+| GeometryAlignment             | geometry.alignment                | Suunnitelman keskilinjan geometria                            |                                                                      |
+| GeometryElement               | geometry.element                  | Suunnitelman geometrian elementti (kantaluokka)               |                                                                      |
+| GeometryLine                  | (osana geometry.element taulua)   | Suunnitelman suora (geometriaelementti)                       |                                                                      |
+| GeometryCurve                 | (osana geometry.element taulua)   | Suunnitelman ympyräkaari (geometriaelementti)                 |                                                                      |
+| GeometrySpiral                | (osana geometry.element taulua)   | Suunnitelman siirtymäkaari (geometriaelementti - kantaluokka) |                                                                      |
+| GeometryClothoid              | (osana geometry.element taulua)   | Suunnitelman klotoidi (geometriaelementti)                    |                                                                      |
+| GeometryBiquadraticParabola   | (osana geometry.element taulua)   | Suunnitelman toisen asteen paraabeli (geometriaelementti)     |                                                                      |
+| GeometrySwitch                | geometry.switch                   | Suunnitelman vaihde                                           |                                                                      |
+| GeometrySwitchJoint           | geometry.switch_joint             | Suunnitelman vaihteen jatkospiste                             |                                                                      |
+| GeometryKmPost                | geometry.km_post                  | Suunnitelman tasakilometripiste                               | Aiemmin kilometripylväs                                              |
+| GeometryProfile               | (osana geometry.alignment taulua) | Suunnitelman pystygeometria                                   |                                                                      |
+| VerticalIntersection          | geometry.vertical_intersection    | Suunnitelman pystygeometrian piste (kantaluokka)              | Määrityskohta pystygeometrialle: korkeus suhteessa raiteen pituuteen |
+| VIPoint                       | geometry.vertical_intersection    | Suunnitelman pistemäinen pystygeometrian piste                | Määrittelee pystygeometrian arvon tietyssä kohdassa                  |
+| VICircularCurve               | geometry.vertical_intersection    | Suunnitelman kaareva pystygeometrian määrityspiste            | Määrittelee pystygeometriaan kaaren                                  |
+| GeometryCant                  | (osana geometry.alignment taulua) | Suunnitelman raiteen kallistus                                |                                                                      |
+| GeometryCantPoint             | geometry.cant_point               | Suunnitelman raiteen kallistuspiste                           | Määrityskohta kaltevuudelle: arvo suhteessa raiteen pituuteen        |
+| **Paikannuspohjan käsitteet** |                                   |                                                               |                                                                      |
+| TrackLayoutTrackNumber        | layout.track_number               | Paikannuspohjan ratanumero                                    |                                                                      |
+| ReferenceLine                 | layout.reference_line             | Paikannuspohjan pituusmittauslinja                            | Ratanumeron osoitteiston määräävä linja. Yleensä seuraa pääraidetta. |
+| TrackLayoutKmPost             | layout.km_post                    | Paikannuspohjan tasakilometripiste                            | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla  |
+| LocationTrack                 | layout.location_track             | Paikannuspohjan sijaintiraide                                 |                                                                      |
+| LayoutAlignment               | layout.alignment                  | Paikannuspohjan keskilinja                                    | Paikannuspohjan geometriaviiva (kokonaisuus)                         |
+| LayoutSegment                 | layout.segment_version            | Paikannuspohjan keskilinjan segmentti                         | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa                  |
+| SegmentGeometry               | layout.segment_geometry           | Paikannuspohjan segmenttigeometria                            | Uniikki segmentin geometriapätkä                                     |
+| TrackLayoutSwitch             | layout.switch                     | Paikannuspohjan vaihde                                        |                                                                      |
+| TrackLayoutSwitchJoint        | layout.switch_joint               | Paikannuspohjan vaihdepiste                                   |                                                                      |
+| **Muut käsitteet**            |                                   |                                                               |                                                                      |
+| PVDocument                    | projektivelho.document            | Projektivelhon dokumentti                                     | Projektivelhosta ladattu yksittäinen tiedosto                        |
+| SwitchStructure               | common.switch_structure           | Vaihdetyyppi                                                  | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
+| SwitchOwner                   | common.switch_owner               | Vaihteen omistaja                                             |                                                                      |
+| LocationTrackOwner            | common.location_track_owner       | Sijaintiraiteen omistaja                                      |                                                                      |
+
 ## Tarkat geometriat
 
 Ratatieto saapuu järjestelmään pääasiassa tarkkoina 3D geometrioina, jotka on piirretty suunnitteluohjelmissa. Nämä
@@ -14,38 +55,10 @@ voi puuttua pätkiä. Lisäksi ne voivat olla määritelty eri koordinaatistoiss
 ei siis voi yksiselitteisesti koostaa koko rataverkkoa. Geometrioiden tietomalli noudattaa läheisesti lähdeaineiston
 (LandXML) käsitteistöä.
 
-### Termistö
-
-| Luokkanimi                  | Tietokantataulu                   | Käsite suomeksi                                  | Selite                                                               |
-|-----------------------------|-----------------------------------|--------------------------------------------------|----------------------------------------------------------------------|
-| GeometryPlan                | geometry.plan                     | Suunnitelma                                      | InfraModel (IM)-tiedoston jäsennetty muoto                           |
-| Author                      | geometry.plan_author              | Suunnitelman luoja                               | IM:n luoneen yrityksen tiedot                                        |
-| Application                 | geometry.plan_application         | Suunniteluohjelma                                | Ohjelma jolla IM luotiin                                             |
-| GeometryUnits               | (osana geometry.plan taulua)      | Suunnitelman yksiköt                             | Pituus, kulma, koordinaattijärjestelmä, jne.                         |
-| GeometryAlignment           | geometry.alignment                | Keskilinjan geometria                            |                                                                      |
-| GeometryElement             | geometry.element                  | Geometrian elementti (kantaluokka)               |                                                                      |
-| GeometryLine                | (osana geometry.element taulua)   | Suora (geometriaelementti)                       |                                                                      |
-| GeometryCurve               | (osana geometry.element taulua)   | Ympyräkaari (geometriaelementti)                 |                                                                      |
-| GeometrySpiral              | (osana geometry.element taulua)   | Siirtymäkaari (geometriaelementti - kantaluokka) |                                                                      |
-| GeometryClothoid            | (osana geometry.element taulua)   | Klotoidi (geometriaelementti)                    |                                                                      |
-| GeometryBiquadraticParabola | (osana geometry.element taulua)   | Toisen asteen paraabeli (geometriaelementti)     |                                                                      |
-| GeometrySwitch              | geometry.switch                   | Vaihde                                           |                                                                      |
-| GeometrySwitchJoint         | geometry.switch_joint             | Vaihteen jatkospiste                             |                                                                      |
-| GeometryKmPost              | geometry.km_post                  | Tasakilometripiste                               | Aiemmin kilometripylväs                                              |
-| GeometryProfile             | (osana geometry.alignment taulua) | Pystygeometria                                   |                                                                      |
-| VerticalIntersection        | geometry.vertical_intersection    | Pystygeometrian piste (kantaluokka)              | Määrityskohta pystygeometrialle: korkeus suhteessa raiteen pituuteen |
-| VIPoint                     | geometry.vertical_intersection    | Pistemäinen pystygeometrian piste                | Määrittelee pystygeometrian arvon tietyssä kohdassa                  |
-| VICircularCurve             | geometry.vertical_intersection    | Kaareva pystygeometrian määrityspiste            | Määrittelee pystygeometriaan kaaren                                  |
-| GeometryCant                | (osana geometry.alignment taulua) | Raiteen kallistus                                |                                                                      |
-| GeometryCantPoint           | geometry.cant_point               | Raiteen kallistuspiste                           | Määrityskohta kaltevuudelle: arvo suhteessa raiteen pituuteen        |
-| TrackLayoutTrackNumber      | layout.track_number               | Paikannuspohjan ratanumero                       |                                                                      |
-| PVDocument                  | projektivelho.document            | Projektivelhon dokumentti                        | Projektivelhosta ladattu yksittäinen tiedosto                        |
-| SwitchStructure             | common.switch_structure           | Vaihdetyyppi                                     | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
-
 ### Suunnitelman rakenne
 
-Suunnitelman tiedot koostuu itse raakatiedostosta (joka säilytetään sellaisenaan), siihen liittyvistä metatiedoista,
-linjageometrioista sekä mahdollisista kohteista.
+Suunnitelman tiedot koostuu itse raakatiedostosta, siihen liittyvistä metatiedoista, linjageometrioista sekä
+mahdollisista kohteista.
 
 Suunnitelmat viittaavat paikannuspohjan ratanumeroihin, jotta ne on helpompi paikantaa. Lisäksi, jos suunnitelma on
 tuotu projektivelhosta, se kantaa myös viitteen projektivelhon dokumenttiin (PVDocument), josta se on tullut. Tätä
@@ -132,8 +145,8 @@ classDiagram
 
 Yksittäinen alignment kuvaa yhtä suunnitelman keskilinjaa ja niitä voi olla yhdellä suunnitelmalla useampia.
 Tyypillisimmin linjat kuvaavat raiteita, mutta ne voivat olla myös pituusmittauslinjoja. Linjan vaakageometria on
-kuvattu matemaattisina elementteinä eli suorina, viivoina ja kaarina. Linjoille voi olla kuvattuna pystygeometria (
-GeometryProfile) ja kallistuskulma (GeometryCant), mutta ne eivät ole pakollisia. Pystygeometria koostuu pisteistä (x =
+kuvattu matemaattisina elementteinä eli suorina, viivoina ja kaarina. Linjoille voi olla kuvattuna pystygeometria
+(GeometryProfile) ja kallistuskulma (GeometryCant), mutta ne eivät ole pakollisia. Pystygeometria koostuu pisteistä (x =
 raiteen pituus, y = korkeus ko. kohdalla), joiden välille mallinnetaan lineaarinen siirtymä, sekä kaarista jotka
 sovitetaan linjalle. Kallistuskulma kuvataan pelkkinä pisteinä, joiden väliin sovitetaan joko lineaarinen siirtymä tai
 toisen asteen paraabeli.
@@ -213,26 +226,6 @@ alkuperäisissä geometrioissa.
 
 Paikannuspohjaan sisältyy myös rataosoitteiston viitekehys, eli sen avulla voidaan laskea sijainnille tai kohteelle
 rataosoite (rata, km, metrit) ja mikä tahansa rataosoite voidaan kääntäen laskea tiettyy sijaintiin (koordinaatti).
-
-### Termistö
-
-| Luokkanimi             | Tietokantataulu             | Käsite suomeksi                    | Selite                                                               |
-|------------------------|-----------------------------|------------------------------------|----------------------------------------------------------------------|
-| TrackLayoutTrackNumber | layout.track_number         | Ratanumero                         |                                                                      |
-| ReferenceLine          | layout.reference_line       | Pituusmittauslinja                 | Ratanumeron osoitteiston määräävä linja. Yleensä seuraa pääraidetta. |
-| TrackLayoutKmPost      | layout.km_post              | Tasakilometripiste                 | Rataosoitteen kilometrinumeron vaihtumiskohta pituusmittauslinjalla  |
-| LocationTrack          | layout.location_track       | Sijaintiraide                      |                                                                      |
-| LayoutAlignment        | layout.alignment            | Keskilinja                         | Paikannuspohjan geometriaviiva (kokonaisuus)                         |
-| LayoutSegment          | layout.segment_version      | Keskilinjan segmentti              | Geometriaviivan pätkä: metatiedoiltaan yhtenevä osa                  |
-| SegmentGeometry        | layout.segment_geometry     | Segmenttigeometria                 | Uniikki segmentin geometriapätkä                                     |
-| TrackLayoutSwitch      | layout.switch               | Vaihde                             |                                                                      |
-| TrackLayoutSwitchJoint | layout.switch_joint         | Vaihdepiste                        |                                                                      |
-| GeometryElement        | geometry.element            | Geometrian elementti (kantaluokka) |                                                                      |
-| GeometrySwitch         | geometry.switch             | Vaihde                             |                                                                      |
-| GeometryKmPost         | geometry.km_post            | Tasakilometripiste                 | Aiemmin kilometripylväs                                              |
-| SwitchStructure        | common.switch_structure     | Vaihdetyyppi                       | Vaihdetyypin kuvaus ja sen RATO-määrityksen mukainen rakenne         |
-| SwitchOwner            | common.switch_owner         | Vaihteen omistaja                  |                                                                      |
-| LocationTrackOwner     | common.location_track_owner | Sijaintiraiteen omistaja           |                                                                      |
 
 ### Paikannuspohjan rakenne
 
