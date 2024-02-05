@@ -1,6 +1,6 @@
 import PublicationDetailsView from 'publication/publication';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { useLoaderWithStatus } from 'utils/react-utils';
+import { useLoader } from 'utils/react-utils';
 import { getPublication } from 'publication/publication-api';
 import { useParams } from 'react-router-dom';
 import { PublicationId } from 'preview/preview-table';
@@ -19,7 +19,7 @@ export const PublicationDetailsContainer: React.FC = () => {
         (state) => state.changeTimes.publication,
     );
 
-    const [publication, _publicationFetchStatus] = useLoaderWithStatus(
+    const publication = useLoader(
         () => (selectedPublicationId ? getPublication(selectedPublicationId) : undefined),
         [selectedPublicationId, publicationChangeTime],
     );

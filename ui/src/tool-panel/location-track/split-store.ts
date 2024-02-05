@@ -14,7 +14,7 @@ import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
 
 const DUPLICATE_MAX_DISTANCE = 1.0;
 
-type SplitBase = {
+type SplitTargetCandidateBase = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
@@ -23,11 +23,11 @@ type SplitBase = {
     new: boolean;
 };
 
-export type InitialSplit = SplitBase & {
-    type: 'INITIAL_SPLIT';
+export type FirstSplitTargetCandidate = SplitTargetCandidateBase & {
+    type: 'FIRST_SPLIT';
 };
 
-export type Split = SplitBase & {
+export type SplitTargetCandidate = SplitTargetCandidateBase & {
     type: 'SPLIT';
     switchId: LayoutSwitchId;
     distance: number;
@@ -40,8 +40,8 @@ export type SplittingState = {
     allowedSwitches: SwitchOnLocationTrack[];
     startAndEndSwitches: LayoutSwitchId[];
     duplicateTracks: SplitDuplicate[];
-    initialSplit: InitialSplit;
-    splits: Split[];
+    firstSplit: FirstSplitTargetCandidate;
+    splits: SplitTargetCandidate[];
     disabled: boolean;
 };
 
@@ -74,7 +74,7 @@ export type SplitRequestTarget = {
     descriptionSuffix: LocationTrackDescriptionSuffixMode;
 };
 
-export const sortSplitsByDistance = (splits: Split[]) =>
+export const sortSplitsByDistance = (splits: SplitTargetCandidate[]) =>
     [...splits].sort((a, b) => a.distance - b.distance);
 
 const findClosestDuplicate = (duplicates: SplitDuplicate[], otherPoint: Point) =>
@@ -106,8 +106,8 @@ export const splitReducers = {
             splits: [],
             endLocation: payload.endLocation,
             disabled: payload.locationTrack.draftType !== 'OFFICIAL',
-            initialSplit: {
-                type: 'INITIAL_SPLIT',
+            firstSplit: {
+                type: 'FIRST_SPLIT',
                 name:
                     duplicateTrackClosestToStart &&
                     duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
@@ -179,8 +179,8 @@ export const splitReducers = {
                     split.switchId === payload ? { ...split, new: false } : split,
                 );
             } else {
-                state.splittingState.initialSplit = {
-                    ...state.splittingState.initialSplit,
+                state.splittingState.firstSplit = {
+                    ...state.splittingState.firstSplit,
                     new: false,
                 };
             }
@@ -195,7 +195,7 @@ export const splitReducers = {
     },
     updateSplit: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<Split | InitialSplit>,
+        { payload }: PayloadAction<SplitTargetCandidate | FirstSplitTargetCandidate>,
     ): void => {
         if (state.splittingState) {
             if (payload.type === 'SPLIT') {
@@ -203,7 +203,7 @@ export const splitReducers = {
                     .filter((split) => split.switchId !== payload.switchId)
                     .concat([payload]);
             } else {
-                state.splittingState.initialSplit = payload;
+                state.splittingState.firstSplit = payload;
             }
         }
     },

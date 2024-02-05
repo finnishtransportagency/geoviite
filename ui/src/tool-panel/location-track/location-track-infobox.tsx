@@ -350,7 +350,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     <LocationTrackSplittingInfoboxContainer
                         visibilities={visibilities}
                         visibilityChange={visibilityChange}
-                        initialSplit={splittingState.initialSplit}
+                        firstSplit={splittingState.firstSplit}
                         splits={splittingState.splits || []}
                         locationTrackId={splittingState.originLocationTrack.id}
                         locationTrackChangeTime={locationTrackChangeTime}

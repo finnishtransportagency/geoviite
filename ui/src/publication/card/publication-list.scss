@@ -77,14 +77,18 @@
         fill: vayla-design.$color-red-default;
     }
 
-    &__split-action-button {
+    &--success {
+        fill: vayla-design.$color-green-dark;
+    }
+
+    &__split-action-button-container {
         margin-left: 18px;
         margin-bottom: 22px;
+    }
 
-        &--open {
-            .icon {
-                transform: rotate(180deg);
-            }
+    &__split-action-button--open {
+        .icon {
+            transform: rotate(180deg);
         }
     }
 

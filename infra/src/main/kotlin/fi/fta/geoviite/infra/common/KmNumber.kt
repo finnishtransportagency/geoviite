@@ -53,9 +53,13 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
 private const val METERS_MAX_INTEGER_DIGITS = 4
 private const val METERS_MAX_DECIMAL_DIGITS = 6
 private fun limitScale(meters: BigDecimal) =
-    if (meters.scale() < 0) meters.setScale(0)
-    else if (meters.scale() > METERS_MAX_DECIMAL_DIGITS) meters.setScale(METERS_MAX_DECIMAL_DIGITS, HALF_UP)
-    else meters
+    if (meters.scale() < 0) {
+        meters.setScale(0)
+    } else if (meters.scale() > METERS_MAX_DECIMAL_DIGITS) {
+        meters.setScale(METERS_MAX_DECIMAL_DIGITS, HALF_UP)
+    } else {
+        meters
+    }
 
 private val maxMeter = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
 private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
@@ -187,4 +191,11 @@ fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter): Int {
 
 fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter, decimals: Int): Int {
     return compareValuesBy(trackMeter1, trackMeter2, { tm -> tm.kmNumber }, { tm -> tm.metersRound(decimals) })
+}
+
+fun compareOptional(trackMeter1: ITrackMeter?, trackMeter2: ITrackMeter?): Int {
+    return if (trackMeter1 == null && trackMeter2 == null) 0
+    else if (trackMeter1 == null) -1
+    else if (trackMeter2 == null) 1
+    else compare(trackMeter1, trackMeter2)
 }

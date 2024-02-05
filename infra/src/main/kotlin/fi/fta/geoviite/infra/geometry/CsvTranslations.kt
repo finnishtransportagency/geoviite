@@ -141,6 +141,27 @@ fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader
         VerticalGeometryListingHeader.LOCATION_N_POINT -> "Taitepisteen sijainti N"
     }
 
+enum class SplitTargetListingHeader {
+    SOURCE_NAME,
+    SOURCE_OID,
+    TARGET_NAME,
+    TARGET_OID,
+    OPERATION,
+    START_ADDRESS,
+    END_ADDRESS,
+}
+
+fun translateSplitTargetListingHeader(header: SplitTargetListingHeader) =
+    when (header) {
+        SplitTargetListingHeader.SOURCE_NAME -> "Alkuperäinen raide"
+        SplitTargetListingHeader.SOURCE_OID -> "Alkuperäisen raiteen OID"
+        SplitTargetListingHeader.TARGET_NAME -> "Kohderaide"
+        SplitTargetListingHeader.TARGET_OID -> "Kohderaiteen OID"
+        SplitTargetListingHeader.OPERATION -> "Toimenpide"
+        SplitTargetListingHeader.START_ADDRESS -> "Alkuosoite"
+        SplitTargetListingHeader.END_ADDRESS -> "Loppuosoite"
+    }
+
 fun translateElevationMeasurementMethod(elevationMeasurementMethod: ElevationMeasurementMethod?) =
     when (elevationMeasurementMethod) {
         ElevationMeasurementMethod.TOP_OF_SLEEPER -> "Korkeusviiva"
