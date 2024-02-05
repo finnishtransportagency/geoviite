@@ -18,42 +18,38 @@ versiotauluista kiinnitetyillä versioilla tai julkaisun aikaleimalla.
 
 ```mermaid
 classDiagram
-    %%namespaces make this diagram clearer, but they need mermaid 10.2.0 which github doesn't yet have (as of 01.02.2024)
-    %%namespace publication {
-        class Publication {
-            publicationTime: Instant
-        }
-        class LocationTrack {
-            id: Int
-            version: Int
-        }
-        class Switch {
-            id: Int
-            version: Int
-        }
-        class TrackNumber {
-            id: Int
-            version: Int
-        }
-        class ReferenceLine {
-            id: Int
-            version: Int
-        }
-        class KmPost {
-            id: Int
-            version: Int
-        }
-    %%}
-    %%namespace integration {
-        class RatkoPush {
-            startTime: Instant
-            endTime: Instant
-            status: IN_PROGRESS/SUCCESSFUL/FAILED/CONNECTION_ISSUE
-        }
-        class RatkoPushContent
-    %%}
+    class Publication {
+        publicationTime: Instant
+    }
+    class LocationTrack {
+        id: Int
+        version: Int
+    }
+    class Switch {
+        id: Int
+        version: Int
+    }
+    class TrackNumber {
+        id: Int
+        version: Int
+    }
+    class ReferenceLine {
+        id: Int
+        version: Int
+    }
+    class KmPost {
+        id: Int
+        version: Int
+    }
+    class RatkoPush {
+        startTime: Instant
+        endTime: Instant
+        status: IN_PROGRESS/SUCCESSFUL/FAILED/CONNECTION_ISSUE
+    }
+    class RatkoPushContent
+
     RatkoPush <-- RatkoPushContent
-    Publication <-- RatkoPushContent
+    RatkoPushContent <-- Publication
     Publication <-- LocationTrack
     Publication <-- Switch
     Publication <-- TrackNumber
