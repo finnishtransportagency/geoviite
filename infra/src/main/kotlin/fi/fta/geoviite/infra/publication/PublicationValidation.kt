@@ -123,6 +123,28 @@ fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationErr
         "$VALIDATION_SWITCH.no-location"
     })
 
+fun validateSwitchNameDuplication(
+    switch: TrackLayoutSwitch,
+    draftsBySameName: List<TrackLayoutSwitch>,
+    officialsBySameName: List<TrackLayoutSwitch>,
+): List<PublishValidationError> {
+    return if (switch.exists) {
+        val officialDuplicateExists = officialsBySameName.any { official -> official.id != switch.id }
+        val stagedDuplicateExists = draftsBySameName.any { draft -> draft.id != switch.id }
+
+        listOfNotNull(
+            validateWithParams(stagedDuplicateExists || !officialDuplicateExists) {
+                "$VALIDATION_SWITCH.duplicate-name-official" to localizationParams("switch" to switch.name)
+            },
+            validateWithParams(!stagedDuplicateExists) {
+                "$VALIDATION_SWITCH.duplicate-name-draft" to localizationParams("switch" to switch.name)
+            },
+        )
+    } else {
+        emptyList()
+    }
+}
+
 fun validateSwitchLocationTrackLinkStructure(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
