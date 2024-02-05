@@ -437,16 +437,12 @@ class PublicationService @Autowired constructor(
         logger.serviceCall("updateExternalId", "request" to request)
 
         try {
-            request.locationTracks.filter { locationTrackId ->
-                locationTrackService.getOrThrow(
-                    DRAFT, locationTrackId
-                ).externalId == null
-            }.forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
-            request.trackNumbers.filter { trackNumberId ->
-                trackNumberService.getOrThrow(
-                    DRAFT, trackNumberId
-                ).externalId == null
-            }.forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
+            request.locationTracks
+                .filter { trackId -> locationTrackService.getOrThrow(DRAFT, trackId).externalId == null }
+                .forEach { trackId -> updateExternalIdForLocationTrack(trackId) }
+            request.trackNumbers
+                .filter { trackNumberId -> trackNumberService.getOrThrow(DRAFT, trackNumberId).externalId == null }
+                .forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
             request.switches
                 .filter { switchId -> switchService.getOrThrow(DRAFT, switchId).externalId == null }
                 .forEach { switchId -> updateExternalIdForSwitch(switchId) }
@@ -473,27 +469,28 @@ class PublicationService @Autowired constructor(
 
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid = ratkoClient?.let { s ->
-            s.getNewLocationTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
+            requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" }
         }
         locationTrackOid?.let { oid -> locationTrackService.updateExternalId(locationTrackId, Oid(oid.id)) }
     }
 
     private fun updateExternalIdForTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>) {
         val routeNumberOid = ratkoClient?.let { s ->
-            s.getNewRouteNumberOid() ?: throw IllegalStateException("No OID received from RATKO")
+            requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" }
         }
         routeNumberOid?.let { oid -> trackNumberService.updateExternalId(trackNumberId, Oid(oid.id)) }
     }
 
     private fun updateExternalIdForSwitch(switchId: IntId<TrackLayoutSwitch>) {
         val switchOid = ratkoClient?.let { s ->
-            s.getNewSwitchOid() ?: throw IllegalStateException("No OID received from RATKO")
+            requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" }
         }
         switchOid?.let { oid -> switchService.updateExternalIdForSwitch(switchId, Oid(oid.id)) }
     }
 
     private inline fun <reified T> assertNoErrors(
-        version: ValidationVersion<T>, errors: List<PublishValidationError>,
+        version: ValidationVersion<T>,
+        errors: List<PublishValidationError>,
     ) {
         val severeErrors = errors.filter { error -> error.type == ERROR }
         if (severeErrors.isNotEmpty()) {
