@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.util.measureAndCollect
+import fi.fta.geoviite.infra.util.resetCollected
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -27,6 +29,36 @@ class LayoutSwitchDaoIT @Autowired constructor(
     @BeforeEach
     fun cleanup() {
         deleteFromTables("layout", "switch_joint", "switch")
+    }
+
+    @Test
+    fun `fetch versions should be fast`() {
+//        val ids = mutableListOf<IntId<TrackLayoutSwitch>>()
+//        for (i in 1..100) {
+//            ids.add(insertUniqueSwitch().id)
+//        }
+        switchDao.fetchVersions(DRAFT, true)
+        measureAndCollect("fetchVersions: DRAFT & DELETED") {
+            for (i in 1..1000) {
+                switchDao.fetchVersions(DRAFT, true)
+            }
+        }
+        measureAndCollect("fetchVersions: DRAFT & NON-DELETED") {
+            for (i in 1..1000) {
+                switchDao.fetchVersions(DRAFT, false)
+            }
+        }
+        measureAndCollect("fetchVersions: OFFICIAL & DELETED") {
+            for (i in 1..1000) {
+                switchDao.fetchVersions(OFFICIAL, true)
+            }
+        }
+        measureAndCollect("fetchVersions: OFFICIAL & NON-DELETED") {
+            for (i in 1..1000) {
+                switchDao.fetchVersions(OFFICIAL, false)
+            }
+        }
+        println(resetCollected())
     }
 
     @Test

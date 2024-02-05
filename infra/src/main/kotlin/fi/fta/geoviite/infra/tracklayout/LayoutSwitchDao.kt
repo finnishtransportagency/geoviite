@@ -26,26 +26,26 @@ class LayoutSwitchDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
-    override fun fetchVersions(
-        publicationState: PublishType,
-        includeDeleted: Boolean,
-    ): List<RowVersion<TrackLayoutSwitch>> {
-        val sql = """
-            select
-              row_id,
-              row_version
-            from layout.switch_publication_view 
-            where :publication_state = any(publication_states) 
-              and (:include_deleted = true or state_category != 'NOT_EXISTING')
-        """.trimIndent()
-        val params = mapOf(
-            "publication_state" to publicationState.name,
-            "include_deleted" to includeDeleted,
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
-        }
-    }
+//    override fun fetchVersions(
+//        publicationState: PublishType,
+//        includeDeleted: Boolean,
+//    ): List<RowVersion<TrackLayoutSwitch>> {
+//        val sql = """
+//            select
+//              row_id,
+//              row_version
+//            from layout.switch_publication_view
+//            where :publication_state = any(publication_states)
+//              and (:include_deleted = true or state_category != 'NOT_EXISTING')
+//        """.trimIndent()
+//        val params = mapOf(
+//            "publication_state" to publicationState.name,
+//            "include_deleted" to includeDeleted,
+//        )
+//        return jdbcTemplate.query(sql, params) { rs, _ ->
+//            rs.getRowVersion("row_id", "row_version")
+//        }
+//    }
 
     fun fetchSegmentSwitchJointConnections(
         publicationState: PublishType,

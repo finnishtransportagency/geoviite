@@ -308,6 +308,20 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         return jdbcTemplate.queryOptional(officialVersionAtMomentSql, params, ::toRowVersion)
     }
 
+    private val listDraftSqlWithDeleted = listDraftSql(table, true)
+    private val listDraftSqlWithoutDeleted = listDraftSql(table, false)
+    private val listOfficialSqlWithDeleted = listOfficialSql(table, true)
+    private val listOfficialSqlWithoutDeleted = listOfficialSql(table, false)
+
+    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>> {
+        val sql = if (publicationState == DRAFT) {
+            if (includeDeleted) listDraftSqlWithDeleted else listDraftSqlWithoutDeleted
+        } else {
+            if (includeDeleted) listOfficialSqlWithDeleted else listOfficialSqlWithoutDeleted
+        }
+        return jdbcTemplate.query(sql, mapOf<String,Any>(), ::toRowVersion)
+    }
+
     @Transactional
     override fun deleteDraft(id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(id).let { r ->
         if (r.size > 1) {
@@ -337,6 +351,42 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }
+}
+
+private fun listDraftSql(table: DbTable, includeDeleted: Boolean): String {
+    val deleteClause = if (includeDeleted) {
+        ""
+    } else when (table) {
+        DbTable.LAYOUT_SWITCH -> "and coalesce(draft.state_category, official.state_category) != 'NOT_EXISTING'"
+        else -> "and coalesce(draft.state, official.state) != 'DELETED'"
+    }
+
+    return """
+        select
+          coalesce(draft.id, official.id) as id,
+          coalesce(draft.version, official.version) as version
+        from ${table.fullName} draft
+          full outer join ${table.fullName} official on official.id = draft.${table.draftLink}
+        where draft.draft = true
+          and official.draft = false
+          $deleteClause
+    """.trimIndent()
+}
+
+private fun listOfficialSql(table: DbTable, includeDeleted: Boolean): String {
+    val deleteClause = if (includeDeleted) {
+        ""
+    } else when (table) {
+        DbTable.LAYOUT_SWITCH -> "and state_category != 'NOT_EXISTING'"
+        else -> "and state != 'DELETED'"
+    }
+
+    return """
+        select id, version
+        from ${table.fullName}
+        where draft = false
+          $deleteClause
+    """.trimIndent()
 }
 
 private fun officialFetchSql(table: DbTable, fetchType: FetchType) = """
