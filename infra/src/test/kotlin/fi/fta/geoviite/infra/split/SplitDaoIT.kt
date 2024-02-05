@@ -204,7 +204,7 @@ class SplitDaoIT @Autowired constructor(
 
         return splitDao.saveSplit(
             sourceTrack.id,
-            listOf(SplitTargetSaveRequest(targetTrack.id, 0..0)),
+            listOf(SplitTarget(targetTrack.id, 0..0)),
             listOf(relinkedSwitchId),
         )
     }
