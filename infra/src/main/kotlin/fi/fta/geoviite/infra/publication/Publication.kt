@@ -165,8 +165,8 @@ data class ValidatedPublishCandidates(
 )
 
 data class ValidatedAsset<T>(
-    val errors: List<PublishValidationError>,
     val id: IntId<T>,
+    val errors: List<PublishValidationError>,
 )
 
 data class PublishCandidates(

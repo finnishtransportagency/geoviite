@@ -196,13 +196,13 @@ class PublicationService @Autowired constructor(
         val switchTrackLinks = collectSwitchTrackLinks(versions, if (publishType == DRAFT) null else listOf())
 
         return ValidatedAsset(
+            locationTrackId,
             validateLocationTrack(
                 version = toValidationVersion(locationTrack),
                 validationVersions = versions,
                 cacheKeys = cacheKeys,
                 switchTrackLinks = switchTrackLinks,
             ),
-            locationTrackId,
         )
     }
 
@@ -213,33 +213,33 @@ class PublicationService @Autowired constructor(
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
         logger.serviceCall("validateSwitches", "switchIds" to switchIds, "publishType" to publishType)
 
-        val switches = switchService.getMany(publishType, switchIds)
-        val locationTracks =
-            switchDao.findLocationTracksLinkedToSwitches(publishType, switchIds).map { it.rowVersion }.distinct()
+        // "Publication unit" includes either all draft changes (validate draft), or none of them (validate official)
+        val switchDraftVersions = if (publishType == DRAFT) switchDao.fetchPublicationVersions() else emptyList()
+        val trackDraftVersions = if (publishType == DRAFT) locationTrackDao.fetchPublicationVersions() else emptyList()
 
-        val previouslyLinkedTracks = if (publishType == DRAFT) switchDao
-            .findLocationTracksLinkedToSwitches(OFFICIAL, switchIds)
-            .mapNotNull { lt -> locationTrackDao.fetchDraftVersion(lt.rowVersion.id) }
-            .distinct()
-            .filterNot(locationTracks::contains) else emptyList()
-
-        val validationVersions = toValidationVersions(
-            switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
-        )
-        val nameDuplicates = collectPotentialSwitchNameDuplicates(validationVersions)
+        // If we're validating ids that aren't in the above, create validation versions for them as well
+        val switchOfficialVersions = switchDao
+            .fetchOfficialVersions(switchIds.filter { id -> !switchDraftVersions.any { v -> v.officialId == id } })
+            .map { v -> ValidationVersion(v.id, v) }
+        val versionsToValidate = (switchDraftVersions + switchOfficialVersions)
 
         val linkedTracks = publicationDao
-            .fetchLinkedLocationTracks(switchIds, if (publishType == DRAFT) null else listOf())
+            .fetchLinkedLocationTracks(switchIds, trackDraftVersions.map { v -> v.officialId })
             .mapValues { (_, tracks) -> tracks.toSet() }
-        return switches.map { switch ->
+
+        // Official switches won't be duplicates among each other -> even if we're validating an official switch
+        // the duplicate can only be found in drafts
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(switchDraftVersions)
+
+        return switchIds.mapNotNull { id -> versionsToValidate.find { v -> v.officialId == id } }.map { version ->
             ValidatedAsset(
-                validateSwitch(
-                    version = toValidationVersion(switch),
-                    validationVersions = validationVersions,
-                    linkedTracks = linkedTracks.getOrDefault(switch.id, setOf()),
+                id = version.officialId,
+                errors = validateSwitch(
+                    version = version,
+                    validationTrackVersions = trackDraftVersions,
+                    linkedTracks = linkedTracks.getOrDefault(version.officialId, setOf()),
                     nameDuplicates = nameDuplicates,
                 ),
-                switch.id as IntId,
             )
         }
     }
@@ -269,9 +269,12 @@ class PublicationService @Autowired constructor(
         val cacheKeys = collectCacheKeys(versions)
 
         return ValidatedAsset(
-            validateKmPost(
-                version = toValidationVersion(kmPost), validationVersions = versions, cacheKeys = cacheKeys
-            ), kmPostId
+            id = kmPostId,
+            errors = validateKmPost(
+                version = toValidationVersion(kmPost),
+                validationVersions = versions,
+                cacheKeys = cacheKeys,
+            ),
         )
     }
 
@@ -285,7 +288,7 @@ class PublicationService @Autowired constructor(
         val cacheKeys = collectCacheKeys(versions)
         precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
-        val nameDuplicates = collectPotentialSwitchNameDuplicates(versions)
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(versions.switches)
         val splitErrors = splitService.validateSplit(versions)
 
         return PublishCandidates(
@@ -318,7 +321,7 @@ class PublicationService @Autowired constructor(
 
                 val validationErrors = validateSwitch(
                     candidate.getPublicationVersion(),
-                    versions,
+                    versions.locationTracks,
                     switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
                     nameDuplicates,
                 )
@@ -351,7 +354,7 @@ class PublicationService @Autowired constructor(
         val cacheKeys = collectCacheKeys(versions)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
         val splitErrors = splitService.validateSplit(versions)
-        val nameDuplicates = collectPotentialSwitchNameDuplicates(versions)
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(versions.switches)
 
         assertNoSplitErrors(splitErrors)
 
@@ -373,7 +376,7 @@ class PublicationService @Autowired constructor(
                 version,
                 validateSwitch(
                     version,
-                    versions,
+                    versions.locationTracks,
                     switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(version.officialId, setOf()),
                     nameDuplicates,
                 ),
@@ -664,7 +667,7 @@ class PublicationService @Autowired constructor(
 
     private fun validateSwitch(
         version: ValidationVersion<TrackLayoutSwitch>,
-        validationVersions: ValidationVersions,
+        validationTrackVersions: List<ValidationVersion<LocationTrack>>,
         linkedTracks: Set<RowVersion<LocationTrack>>,
         nameDuplicates: Map<SwitchName, PotentialDuplicates>,
     ): List<PublishValidationError> {
@@ -675,7 +678,7 @@ class PublicationService @Autowired constructor(
         val referenceErrors = validateSwitchLocationTrackLinkReferences(
             switch,
             linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first),
-            validationVersions.locationTracks.map { it.officialId },
+            validationTrackVersions.map { it.officialId },
         )
         val locationErrors = if (switch.exists) validateSwitchLocation(switch) else emptyList()
         val structureErrors = locationErrors.ifEmpty {
@@ -693,13 +696,16 @@ class PublicationService @Autowired constructor(
     data class PotentialDuplicates(val draft: List<TrackLayoutSwitch>, val official: List<TrackLayoutSwitch>)
 
     private fun collectPotentialSwitchNameDuplicates(
-        versions: ValidationVersions,
+        validationSwitchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
     ): Map<SwitchName, PotentialDuplicates> {
-        val drafts = versions.switches.map { sv -> sv.validatedAssetVersion }.map(switchDao::fetch)
+        val drafts = validationSwitchVersions.map { sv -> sv.validatedAssetVersion }.map(switchDao::fetch)
         val draftNamesToCheck = drafts.filter(TrackLayoutSwitch::exists).map(TrackLayoutSwitch::name).distinct()
         val officialVersions = switchDao.findOfficialNameDuplicates(draftNamesToCheck)
         val officials = officialVersions.mapValues { (_, officials) ->
-            officials.mapNotNull { v -> if (versions.containsSwitch(v.id)) null else switchDao.fetch(v) }
+            officials.mapNotNull { v ->
+                if (validationSwitchVersions.any { vv -> vv.officialId == v.id }) null
+                else switchDao.fetch(v)
+            }
         }
         return draftNamesToCheck.associate { name ->
             name to PotentialDuplicates(
