@@ -49,13 +49,21 @@ class SplitService(
     }
 
     fun findPendingSplits(locationTracks: Collection<IntId<LocationTrack>>) =
-        findUnfinishedSplits(locationTracks).filter { it.isPending }
+        findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
 
-    fun findUnfinishedSplits(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-        logger.serviceCall("findSplits", "locationTracks" to locationTracks)
+    fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
+        logger.serviceCall("findUnfinishedSplits", "locationTracks" to locationTracks)
 
         return splitDao.fetchUnfinishedSplits().filter { split ->
             locationTracks.any { lt -> split.containsLocationTrack(lt) }
+        }
+    }
+
+    fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
+        logger.serviceCall("findUnfinishedSplits", "switches" to switches)
+
+        return splitDao.fetchUnfinishedSplits().filter { split ->
+            switches.any { s -> split.containsSwitch(s) }
         }
     }
 
@@ -80,7 +88,9 @@ class SplitService(
     }
 
     fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublishValidationErrors {
-        val splits = findUnfinishedSplits(candidates.locationTracks.map { it.officialId })
+        val splitsByLocationTracks = findUnfinishedSplitsForLocationTracks(candidates.locationTracks.map { it.officialId })
+        val splitsBySwitches = findUnfinishedSplitsForSwitches(candidates.switches.map { it.officialId })
+        val splits = (splitsByLocationTracks + splitsBySwitches).distinctBy { it.id }
         val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits, allowMultipleSplits)
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->

@@ -413,7 +413,7 @@ class PublicationService @Autowired constructor(
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map(RowVersion<LocationTrack>::id)
 
-        val revertSplitTracks = splitService.findUnfinishedSplits(revertLocationTrackIds).flatMap { it.locationTracks }
+        val revertSplitTracks = splitService.findUnfinishedSplitsForLocationTracks(revertLocationTrackIds).flatMap { it.locationTracks }
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
             kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
@@ -436,7 +436,7 @@ class PublicationService @Autowired constructor(
     fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
 
-        splitService.findUnfinishedSplits(toDelete.locationTracks)
+        splitService.findUnfinishedSplitsForLocationTracks(toDelete.locationTracks)
             .map { it.id }
             .distinct()
             .forEach(splitService::deleteSplit)
@@ -1029,10 +1029,12 @@ class PublicationService @Autowired constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
+                val sourceLocationTrack = locationTrackService.getOfficialAtMoment(split.locationTrackId, publication.publicationTime)
+                requireNotNull(sourceLocationTrack) { "Source location track not found" }
                 SplitInPublication(
                     id = publication.id,
                     splitId = split.id,
-                    locationTrack = locationTrackService.getOrThrow(OFFICIAL, split.locationTrackId),
+                    locationTrack = sourceLocationTrack,
                     targetLocationTracks = publicationDao
                         .fetchPublishedLocationTracks(id)
                         .let { changes -> changes.indirectChanges + changes.directChanges }
