@@ -2449,7 +2449,7 @@ class PublicationServiceIT @Autowired constructor(
 
         assertTrue {
             errors.any {
-                it.localizationKey == LocalizationKey("validation.layout.split.source-geometry-changed")
+                it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed")
             }
         }
     }
@@ -2489,7 +2489,7 @@ class PublicationServiceIT @Autowired constructor(
         val errors = validateLocationTracks(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
         assertTrue {
             errors.any {
-                it.localizationKey == LocalizationKey("validation.layout.split.target-geometry-changed")
+                it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed")
             }
         }
     }
