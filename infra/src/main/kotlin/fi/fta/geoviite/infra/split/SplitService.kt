@@ -48,7 +48,7 @@ class SplitService(
         return splitDao.saveSplit(locationTrackId, splitTargets, relinkedSwitches)
     }
 
-    fun findPendingSplits(locationTracks: Collection<IntId<LocationTrack>>) =
+    fun findPendingSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>) =
         findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
 
     fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
@@ -77,7 +77,7 @@ class SplitService(
             "publicationId" to publicationId,
         )
 
-        findPendingSplits(locationTracks)
+        findPendingSplitsForLocationTracks(locationTracks)
             .distinctBy { it.id }
             .map { split -> splitDao.updateSplitState(split.id, publicationId = publicationId) }
     }
