@@ -52,7 +52,7 @@ class SplitService(
         findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
 
     fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-        logger.serviceCall("findUnfinishedSplits", "locationTracks" to locationTracks)
+        logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
 
         return splitDao.fetchUnfinishedSplits().filter { split ->
             locationTracks.any { lt -> split.containsLocationTrack(lt) }
@@ -60,7 +60,7 @@ class SplitService(
     }
 
     fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
-        logger.serviceCall("findUnfinishedSplits", "switches" to switches)
+        logger.serviceCall("findUnfinishedSplitsForSwitches", "switches" to switches)
 
         return splitDao.fetchUnfinishedSplits().filter { split ->
             switches.any { s -> split.containsSwitch(s) }
