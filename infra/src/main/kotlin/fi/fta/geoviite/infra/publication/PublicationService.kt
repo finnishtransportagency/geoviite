@@ -110,8 +110,8 @@ class PublicationService @Autowired constructor(
     ): ValidatedPublishCandidates {
         logger.serviceCall("validatePublishCandidates", "candidates" to candidates, "request" to request)
         return ValidatedPublishCandidates(
-            validatedAsPublicationUnit = validateAsPublicationUnit(candidates.filter(request)),
-            allChangesValidated = validateAsPublicationUnit(candidates),
+            validatedAsPublicationUnit = validateAsPublicationUnit(candidates.filter(request), true),
+            allChangesValidated = validateAsPublicationUnit(candidates, false),
         )
     }
 
@@ -280,12 +280,12 @@ class PublicationService @Autowired constructor(
         return publicationDao.fetchChangeTime()
     }
 
-    private fun validateAsPublicationUnit(candidates: PublishCandidates): PublishCandidates {
+    private fun validateAsPublicationUnit(candidates: PublishCandidates, validatingStagedChanges: Boolean): PublishCandidates {
         val versions = candidates.getValidationVersions()
         val cacheKeys = collectCacheKeys(versions)
         precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
-        val splitErrors = splitService.validateSplit(versions)
+        val splitErrors = splitService.validateSplit(versions, validatingStagedChanges)
 
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
@@ -348,7 +348,7 @@ class PublicationService @Autowired constructor(
         logger.serviceCall("validatePublishRequest", "versions" to versions)
         val cacheKeys = collectCacheKeys(versions)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
-        val splitErrors = splitService.validateSplit(versions)
+        val splitErrors = splitService.validateSplit(versions, validatingStagedChanges = true)
 
         assertNoSplitErrors(splitErrors)
 

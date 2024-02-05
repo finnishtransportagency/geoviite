@@ -18,7 +18,7 @@ internal fun validateSourceGeometry(
     officialAddressPoint: AlignmentAddresses?,
 ): PublishValidationError? {
     return if (draftAddresses == null || officialAddressPoint == null) {
-        PublishValidationError(ERROR, "$VALIDATION_SPLIT.source-no-geometry")
+        PublishValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         val officialPoints = officialAddressPoint.allPoints
 
@@ -31,7 +31,7 @@ internal fun validateSourceGeometry(
             }?.let { (_, point) ->
                 PublishValidationError(
                     ERROR,
-                    "$VALIDATION_SPLIT.source-geometry-changed",
+                    "$VALIDATION_SPLIT.geometry-changed",
                     mapOf("point" to point),
                 )
             }
@@ -42,8 +42,15 @@ internal fun validateSplitContent(
     trackVersions: List<ValidationVersion<LocationTrack>>,
     switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
     splits: Collection<Split>,
+    validatingStagedChanges: Boolean,
 ): List<Pair<Split, PublishValidationError>> {
-    return splits
+    val multipleSplitsStagedErrors = if (validatingStagedChanges && splits.size > 1) {
+        splits.map { split -> split to PublishValidationError(ERROR, "$VALIDATION_SPLIT.multiple-staged-splits")}
+    } else {
+        emptyList()
+    }
+
+    val contentErrors = splits
         .filter { it.isPending }
         .flatMap { split ->
             val containsSource = trackVersions.any { it.officialId == split.locationTrackId }
@@ -60,6 +67,8 @@ internal fun validateSplitContent(
                 },
             ).map { e -> split to e }
         }
+
+    return listOf(multipleSplitsStagedErrors, contentErrors).flatten()
 }
 
 internal fun validateTargetGeometry(
@@ -67,7 +76,7 @@ internal fun validateTargetGeometry(
     sourceAddresses: AlignmentAddresses?,
 ): PublishValidationError? {
     return if (targetAddresses == null || sourceAddresses == null) {
-        PublishValidationError(ERROR, "$VALIDATION_SPLIT.target-no-geometry")
+        PublishValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         val sourcePoints = sourceAddresses.allPoints
         val startIndex = max(0, sourcePoints.indexOfFirst { it.isSame(targetAddresses.startPoint) })
@@ -80,7 +89,7 @@ internal fun validateTargetGeometry(
             }?.let { (_, point) ->
                 PublishValidationError(
                     ERROR,
-                    "$VALIDATION_SPLIT.target-geometry-changed",
+                    "$VALIDATION_SPLIT.geometry-changed",
                     mapOf("point" to point),
                 )
             }
