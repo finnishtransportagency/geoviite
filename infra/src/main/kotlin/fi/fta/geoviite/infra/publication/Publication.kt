@@ -455,3 +455,19 @@ data class LocationTrackPublicationSwitchLinkChanges(
     val old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
     val new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
 )
+
+data class SplitInPublication(
+    val id: IntId<Publication>,
+    val splitId: IntId<Split>,
+    val locationTrack: LocationTrack,
+    val targetLocationTracks: List<SplitTargetInPublication>,
+)
+
+data class SplitTargetInPublication(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val oid: Oid<LocationTrack>?,
+    val startAddress: TrackMeter?,
+    val endAddress: TrackMeter?,
+    val newlyCreated: Boolean,
+)

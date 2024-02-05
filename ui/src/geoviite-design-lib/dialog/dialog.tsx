@@ -12,6 +12,7 @@ export enum DialogVariant {
 export enum DialogWidth {
     NORMAL = 'dialog__popup--normal',
     TWO_COLUMNS = 'dialog__popup--two-columns',
+    THREE_COLUMNS = 'dialog__popup--three-columns',
 }
 
 export type DialogProps = {

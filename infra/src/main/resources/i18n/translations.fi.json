@@ -12,6 +12,11 @@
             "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
+        "split": {
+            "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
+            "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
+            "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui"
+        },
         "publication": {
             "generic": "Julkaisu epäonnistui",
             "lock-obtain-failed": "Toinen julkaisu käynnissä - yritä hetken kuluttua uudelleen",
@@ -944,8 +949,8 @@
                 "duplicate-name": "Suunnitelmassa on useampi raide samalla nimellä \"{{alignmentName}}\"",
                 "no-profile": "Raiteen pystygeometriaa ei ole määritelty keskilinjalle {{alignmentName}}",
                 "no-cant": "Raiteelle {{alignmentName}} ei ole määritelty kallistusta",
-                "cant-rotation-point-undefined": "Kallistuksen mittauspistettä (rotationPoint) ei ole määritelty keskilinjalla {{alignmentName}}",
-                "cant-rotation-point-center": "Kallistuksen mittauspiste (rotationPoint) määritelty keskelle raidetta keskilinjalla {{alignmentName}}",
+                "cant-rotation-point-undefined": "Kallistuksen mittauspistettä (rotationPoint) ei ole määritelty raiteella {{alignmentName}}",
+                "cant-rotation-point-center": "Kallistuksen mittauspiste (rotationPoint) määritelty keskelle raidetta raiteella {{alignmentName}}",
                 "cant-gauge-invalid": "Ilmoitettu raideleveys \"{{value}}\" keskilinjalla {{alignmentName}} ei vastaa suomen raideleveyttä 1.524",
                 "no-feature-type": "Keskilinjalta {{alignmentName}} puuttuu tyyppikoodi",
                 "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei ole tunnettu. Raiteen keskilinjan koodi on 281, pituusmittausraiteen 111.",
@@ -1381,8 +1386,24 @@
         "publication-status": "Raiteiden ja vaihteiden vienti",
         "bulk-transfer-status": "Kohteiden siirto jaetulta raiteelta",
         "actions": "Toiminnot",
-        "mark-as-successful": "Merkitse siirto onnistuneeksi",
-        "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua"
+        "show-split-info": "Näytä raiteen jakamisen tiedot",
+        "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
+        "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
+        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi"
+    },
+    "split-details-dialog": {
+        "title": "Raiteen jakamisen tiedot",
+        "source-name": "Alkuperäisen raiteen tunnus",
+        "source-oid": "Alkuperäisen raiteen OID",
+        "download-csv": "Lataa CSV",
+        "targets": "Jakamisessa syntyneet/muokatut raiteet ({{trackCount}} kpl)",
+        "target-name": "Raiteen tunnus",
+        "target-oid": "Raiteen OID",
+        "operation": "Toimenpide",
+        "start-address": "Rataosoite alku",
+        "end-address": "Rataosoite loppu",
+        "newly-created": "Uusi kohde",
+        "replaces-duplicate": "Duplikaatti korvattu"
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",

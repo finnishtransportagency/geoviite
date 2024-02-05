@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BulkTransferState, PublicationDetails } from 'publication/publication-model';
-import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
+import { ratkoPushFailed, ratkoPushInProgress, ratkoPushSucceeded } from 'ratko/ratko-model';
 import styles from 'publication/card/publication-list.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
@@ -10,8 +10,11 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { AppNavigateFunction } from 'common/navigate';
+import { Menu } from 'vayla-design-lib/menu/menu';
+import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
+import { putBulkTransferState } from 'publication/split/split-api';
+import { success } from 'geoviite-design-lib/snackbar/snackbar';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
@@ -20,7 +23,13 @@ type PublicationListRowProps = {
 };
 
 const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
-    if (ratkoPushFailed(publication.ratkoPushStatus)) {
+    if (ratkoPushSucceeded(publication.ratkoPushStatus)) {
+        return (
+            <span className={styles['publication-list-item--success']}>
+                <Icons.Tick size={IconSize.SMALL} color={IconColor.INHERIT} />
+            </span>
+        );
+    } else if (ratkoPushFailed(publication.ratkoPushStatus)) {
         return (
             <span className={styles['publication-list-item--error']}>
                 <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
@@ -35,10 +44,15 @@ const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
 
 const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined) => {
     switch (bulkTransferState) {
-        case 'DONE':
         case 'PENDING':
         case undefined:
             return <span className={styles['publication-list-item__split-detail-no-icon']} />;
+        case 'DONE':
+            return (
+                <span className={styles['publication-list-item--success']}>
+                    <Icons.Tick size={IconSize.SMALL} color={IconColor.INHERIT} />
+                </span>
+            );
         case 'FAILED':
         case 'TEMPORARY_FAILURE':
             return (
@@ -60,11 +74,35 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    const [open, setOpen] = React.useState(false);
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const [splitDetailsDialogOpen, setSplitDetailsDialogOpen] = React.useState(false);
     const buttonClassNames = createClassName(
-        styles['publication-list-item__split-action-button'],
-        open && styles['publication-list-item__split-action-button--open'],
+        menuOpen && styles['publication-list-item__split-action-button--open'],
     );
+    const menuRef = React.createRef<HTMLDivElement>();
+
+    const actions = [
+        {
+            onSelect: () => {
+                setMenuOpen(false);
+                setSplitDetailsDialogOpen(true);
+            },
+            qaId: 'show-split-info-link',
+            name: t('publication-card.show-split-info'),
+        },
+        {
+            onSelect: () => {
+                if (publication.split)
+                    putBulkTransferState(publication.split.id, 'DONE').then(() => {
+                        success(t('publication-card.bulk-transfer-marked-as-successful'));
+                    });
+                setMenuOpen(false);
+            },
+            qaId: 'mark-bulk-transfer-as-finished-link',
+            name: t('publication-card.mark-as-successful'),
+        },
+    ];
+
     return (
         <div className={styles['publication-list-item-container']}>
             <div className={styles['publication-list-item']}>
@@ -98,28 +136,37 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                         </div>
                         <div className={styles['publication-list-item__split-detail-row']}>
                             <span>
-                                {bulkTransferStateIcon(publication.split.bulkTransferState)}
+                                {bulkTransferStateIcon(publication.split?.bulkTransferState)}
                             </span>
                             <span>{t('publication-card.bulk-transfer-status')}</span>
                         </div>
                     </div>
-                    <Button
-                        className={buttonClassNames}
-                        size={ButtonSize.SMALL}
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() => setOpen(!open)}
-                        icon={Icons.Down}>
-                        {t('publication-card.actions')}
-                    </Button>
+                    <div className={styles['publication-list-item__split-action-button-container']}>
+                        <Button
+                            className={buttonClassNames}
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.SECONDARY}
+                            onClick={() => setMenuOpen(!menuOpen)}
+                            icon={Icons.Down}>
+                            {t('publication-card.actions')}
+                        </Button>
+                        {menuOpen && (
+                            <div ref={menuRef}>
+                                <Menu
+                                    positionRef={menuRef}
+                                    onClickOutside={() => setMenuOpen(true)}
+                                    items={actions}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
-            {open && (
-                <div className={styles['publication-list-item__split-actions']}>
-                    <RatkoPublishButton />
-                    <Button variant={ButtonVariant.SECONDARY}>
-                        {t('publication-card.mark-as-successful')}
-                    </Button>
-                </div>
+            {splitDetailsDialogOpen && (
+                <SplitDetailsDialog
+                    publicationId={publication.id}
+                    onClose={() => setSplitDetailsDialogOpen(false)}
+                />
             )}
         </div>
     );

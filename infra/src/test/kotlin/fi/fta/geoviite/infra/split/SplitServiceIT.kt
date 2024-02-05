@@ -51,7 +51,7 @@ class SplitServiceIT @Autowired constructor(
             trackId,
             listOf(targetRequest(null, "part1"), targetRequest(switchId, "part2")),
         )
-        val result = splitDao.getSplit(splitService.split(request))
+        val result = splitDao.getOrThrow(splitService.split(request))
 
         // Verify split result data
         assertEquals(trackId, result.locationTrackId)
@@ -87,7 +87,7 @@ class SplitServiceIT @Autowired constructor(
     @Test
     fun `should find splits by source location track`() {
         val splitId = insertSplitWithTwoTracks()
-        val split = splitDao.getSplit(splitId)
+        val split = splitDao.getOrThrow(splitId)
 
         val foundSplits = splitService.findUnfinishedSplits(listOf(split.locationTrackId))
 
@@ -97,7 +97,7 @@ class SplitServiceIT @Autowired constructor(
     @Test
     fun `should find splits by target location track`() {
         val splitId = insertSplitWithTwoTracks()
-        val split = splitDao.getSplit(splitId)
+        val split = splitDao.getOrThrow(splitId)
 
         val foundSplits = splitService.findUnfinishedSplits(listOf(split.targetLocationTracks.first().locationTrackId))
 

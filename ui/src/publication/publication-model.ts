@@ -11,6 +11,7 @@ import {
 } from 'common/common-model';
 import {
     LayoutKmPostId,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -111,11 +112,20 @@ export type ValidatedPublishCandidates = {
 
 export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
 
-export type PublishedSplitHeader = {
+export type SplitHeader = {
     id: string;
     locationTrackId: LocationTrackId;
     bulkTransferState: BulkTransferState;
     publicationId?: PublicationId;
+};
+
+export type SplitTarget = {
+    locationTrackId: LocationTrackId;
+};
+
+export type Split = SplitHeader & {
+    targetLocationTracks: SplitTarget[];
+    relinkedSwitches: LayoutSwitchId[];
 };
 
 export type PublicationDetails = {
@@ -131,7 +141,7 @@ export type PublicationDetails = {
     ratkoPushTime?: TimeStamp;
     calculatedChanges: PublishedCalculatedChanges;
     message?: string;
-    split?: PublishedSplitHeader;
+    split?: SplitHeader;
 };
 
 export type PublishedTrackNumber = {
@@ -294,4 +304,20 @@ export type PublicationTableItem = {
 export type PublicationSearch = {
     startDate: TimeStamp | undefined;
     endDate: TimeStamp | undefined;
+};
+
+export type SplitInPublication = {
+    id: PublicationId;
+    splitId: string;
+    locationTrack: LayoutLocationTrack;
+    targetLocationTracks: SplitTargetInPublication[];
+};
+
+export type SplitTargetInPublication = {
+    id: LocationTrackId;
+    name: string;
+    oid: Oid;
+    startAddress: TrackMeter;
+    endAddress: TrackMeter;
+    newlyCreated: boolean;
 };

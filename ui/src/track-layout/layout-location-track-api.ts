@@ -10,11 +10,9 @@ import {
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import {
-    API_URI,
     deleteNonNullAdt,
     getNonNull,
     getNullable,
-    postNonNull,
     postNonNullAdt,
     putNonNullAdt,
     queryParams,
@@ -32,7 +30,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
-import { SplitRequest, SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
+import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
 const locationTrackInfoboxExtrasCache = asyncCache<
@@ -299,7 +297,3 @@ export async function getLocationTrackValidation(
         `${layoutUri('location-tracks', publishType, id)}/validation`,
     );
 }
-
-export const postSplitLocationTrack = async (request: SplitRequest): Promise<string> => {
-    return postNonNull<SplitRequest, string>(`${API_URI}/location-track-split`, request);
-};

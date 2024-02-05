@@ -52,7 +52,7 @@ const calculateSplitBounds = (
         {
             start: originalStartAndEnd.start?.point.m || 0,
             end: splitsSorted[0]?.distance || originalStartAndEnd.end?.point?.m || 0,
-            name: splittingState.initialSplit.name,
+            name: splittingState.firstSplit.name,
         },
         ...splitsSorted.map((split, index) => ({
             start: split.distance,
