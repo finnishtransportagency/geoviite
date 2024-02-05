@@ -196,8 +196,7 @@ class SplitService(
             }
 
         return sourceDuplicateTrackErrors +
-                listOfNotNull(//targetGeometryError,
-                    sourceGeometryErrors, splitSourceLocationTrackErrors, statusError)
+                listOfNotNull(targetGeometryError, sourceGeometryErrors, splitSourceLocationTrackErrors, statusError)
     }
 
     fun validateSplitReferencesByTrackNumber(
