@@ -1357,9 +1357,17 @@ class PublicationService @Autowired constructor(
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
-        val oldSwitch = if (relatedJoints.any()) switchService.getOfficialAtMoment(changes.id, oldTimestamp) else null
+
         val jointLocationChanges = relatedJoints.flatMap { joint ->
-            val oldLocation = oldSwitch?.joints?.find { it.number == joint.jointNumber }?.location
+            val oldLocationTrack = locationTrackService.getOfficialWithAlignmentAtMoment(joint.locationTrackId, oldTimestamp)
+            val oldLocation = oldLocationTrack?.let { (track, alignment) ->
+                findJointPoint(
+                    track,
+                    alignment,
+                    changes.id,
+                    joint.jointNumber
+                )
+            }?.toPoint()
             val distance = if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) calculateDistance(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
