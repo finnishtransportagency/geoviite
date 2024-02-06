@@ -1009,23 +1009,32 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<SwitchStructure>>>): List<SuggestedSwitch?> {
+    fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>): List<SuggestedSwitch?> {
         logger.serviceCall("getSuggestedSwitches", "points" to points)
-        return points.map { (location, switchStructureId) ->
+        return points.map { (location, switchId) ->
             Triple(
                 location,
-                switchLibraryService.getSwitchStructure(switchStructureId),
+                switchLibraryService.getSwitchStructure(switchService.getOrThrow(DRAFT, switchId).switchStructureId),
                 locationTrackService.getLocationTracksNear(location, DRAFT)
             )
         }.parallelStream().map { (location, switchStructure, nearbyLocationTracks) ->
             createSuggestedSwitchByPoint(
                 location, switchStructure, nearbyLocationTracks
             )
-        }.collect(Collectors.toList()).map(::adjustSuggestedSwitchForNearbyOverlaps)
+        }
+            .collect(Collectors.toList())
+            .zip(points) { suggestedSwitch, (_, switchId) ->
+                adjustSuggestedSwitchForNearbyOverlaps(
+                    suggestedSwitch,
+                    switchId
+                )
+            }
     }
 
-    private fun adjustSuggestedSwitchForNearbyOverlaps(suggestedSwitch: SuggestedSwitch?) = suggestedSwitch
-        ?.let(::createSwitchLinkingParameters)
+    private fun adjustSuggestedSwitchForNearbyOverlaps(
+        suggestedSwitch: SuggestedSwitch?,
+        switchId: IntId<TrackLayoutSwitch>,
+    ) = suggestedSwitch?.let { ss -> createSwitchLinkingParameters(ss, switchId) }
         ?.let(::calculateModifiedLocationTracksAndAlignments)
         ?.let(::assignNewSwitchLinkingToLocationTracksAndAlignments)
         ?.asSequence()
@@ -1047,8 +1056,8 @@ class SwitchLinkingService @Autowired constructor(
             )
         } ?: suggestedSwitch
 
-    fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? =
-        getSuggestedSwitches(listOf(location to switchStructureId)).getOrNull(0)
+    fun getSuggestedSwitch(location: IPoint, switchId: IntId<TrackLayoutSwitch>): SuggestedSwitch? =
+        getSuggestedSwitches(listOf(location to switchId)).getOrNull(0)
 
     private fun assignNewSwitchLinkingToLocationTracksAndAlignments(
         locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
@@ -1183,7 +1192,7 @@ class SwitchLinkingService @Autowired constructor(
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
             val switch = switchService.getOrThrow(OFFICIAL, switchId)
-            switchService.getPresentationJointOrThrow(switch).location to switch.switchStructureId
+            switchService.getPresentationJointOrThrow(switch).location to switchId
         }
         val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
         return switchIds.mapIndexed { index, id -> id to switchSuggestions[index] }
