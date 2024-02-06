@@ -1267,12 +1267,15 @@ private fun getSegmentIndexForSwitchJointMatch(
     val alignment = trackAlignments.getValue(match.locationTrackId)
     val segmentIndex = alignment.getSegmentIndexAtM(match.m)
     val segment = alignment.segments[segmentIndex]
+    // The m-value for a suggested switch is very often that of a segment start or end. Since switch suggestions are
+    // created for all split targets on a track before they're used for relinking, we can't record segment indices in
+    // switch suggestions. Allow for a little bit of wiggle room in case segment splits alter downstream m-values.
     val matchedStartForEndType =
-        (segment.startM - match.m).absoluteValue < TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT &&
+        (segment.startM - match.m).absoluteValue < LAYOUT_M_DELTA &&
         match.matchType == SuggestedSwitchJointMatchType.END &&
         segmentIndex > 0
     val matchedEndForStartType =
-        (segment.endM - match.m).absoluteValue < TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT &&
+        (segment.endM - match.m).absoluteValue < LAYOUT_M_DELTA &&
         match.matchType == SuggestedSwitchJointMatchType.START &&
         segmentIndex < alignment.segments.lastIndex
     return if (matchedStartForEndType) segmentIndex - 1 else if (matchedEndForStartType) segmentIndex + 1 else segmentIndex
