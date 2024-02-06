@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -136,13 +135,13 @@ class LinkingController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/switches/suggested", params = ["location", "switchStructureId"])
+    @GetMapping("/switches/suggested", params = ["location", "switchId"])
     fun getSuggestedSwitches(
         @RequestParam("location") location: Point,
-        @RequestParam("switchStructureId") switchStructureId: IntId<SwitchStructure>,
+        @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
     ): List<SuggestedSwitch> {
-        logger.apiCall("getSuggestedSwitches", "location" to location, "switchStructureId" to switchStructureId)
-        return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchStructureId))
+        logger.apiCall("getSuggestedSwitches", "location" to location, "switchId" to switchId)
+        return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchId))
     }
 
 
