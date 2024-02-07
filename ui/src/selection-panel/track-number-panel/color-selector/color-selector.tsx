@@ -31,7 +31,6 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
     );
     const colorSelectorModalOffsetX = 32;
     const colorSelectorModalOffsetY = 0;
-    console.log(showSelector);
 
     return (
         <React.Fragment>
