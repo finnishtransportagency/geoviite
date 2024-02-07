@@ -71,11 +71,7 @@ class SplitService(
         locationTracks: Collection<IntId<LocationTrack>>,
         publicationId: IntId<Publication>,
     ) {
-        logger.serviceCall(
-            "publishSplit",
-            "locationTracks" to locationTracks,
-            "publicationId" to publicationId,
-        )
+        logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
 
         findPendingSplitsForLocationTracks(locationTracks)
             .distinctBy { it.id }
@@ -131,28 +127,19 @@ class SplitService(
     }
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
-        logger.serviceCall(
-            "getSplitIdByPublicationId",
-            "publicationId" to publicationId,
-        )
+        logger.serviceCall("getSplitIdByPublicationId", "publicationId" to publicationId)
 
         return splitDao.fetchSplitIdByPublication(publicationId)
     }
 
     fun get(splitId: IntId<Split>): Split? {
-        logger.serviceCall(
-            "get",
-            "splitId" to splitId,
-        )
+        logger.serviceCall("get", "splitId" to splitId)
 
         return splitDao.get(splitId)
     }
 
     fun getOrThrow(splitId: IntId<Split>): Split {
-        logger.serviceCall(
-            "getOrThrow",
-            "splitId" to splitId,
-        )
+        logger.serviceCall("getOrThrow", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId)
     }
@@ -222,10 +209,7 @@ class SplitService(
     }
 
     fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): IntId<Split> {
-        logger.serviceCall(
-            "updateSplitState",
-            "splitId" to splitId,
-        )
+        logger.serviceCall("updateSplitState", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId).let { split ->
             splitDao.updateSplitState(split.id, bulkTransferState = state)
