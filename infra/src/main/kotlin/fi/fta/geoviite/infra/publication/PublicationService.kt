@@ -1401,6 +1401,10 @@ class PublicationService @Autowired constructor(
             )
             list
         }.sortedBy { it.propKey.key }
+
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it?.first?.name?.toString() }.sorted()
+        val newLinkedTrackNames = changes.locationTracks.map { it.name.toString() }.sorted()
+
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
             compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "layout-state-category"),
@@ -1410,11 +1414,9 @@ class PublicationService @Autowired constructor(
             ),
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
             compareChange(
-                { changes.locationTracks.any() },
-                if (operation != Operation.CREATE) listOf(
-                    translation.t("publication-details-table.not-calculated")
-                ) else null,
-                changes.locationTracks.map { it.name },
+                { oldLinkedTrackNames != newLinkedTrackNames },
+                oldLinkedTrackNames,
+                newLinkedTrackNames,
                 { list -> list.joinToString(", ") { it } },
                 PropKey("location-track-connectivity"),
             ),
