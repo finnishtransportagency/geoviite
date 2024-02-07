@@ -206,6 +206,7 @@ class LinkingService @Autowired constructor(
             "updateLocationTrackGeometry", "locationTrackId" to locationTrackId, "mRange" to mRange
         )
 
+        verifyAllSplitsDone(locationTrackId)
         val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
         val updatedLocationTrack = updateTopology(locationTrack, alignment, updatedAlignment)

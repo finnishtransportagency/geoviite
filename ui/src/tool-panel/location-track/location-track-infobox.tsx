@@ -235,6 +235,30 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const isStartOrEndSwitch = (switchId: LayoutSwitchId) =>
         switchId === extraInfo?.switchAtStart?.id || switchId === extraInfo?.switchAtEnd?.id;
 
+    const onStartSplitting = () => {
+        getSplittingInitializationParameters('DRAFT', locationTrack.id).then(
+            (splitInitializationParameters) => {
+                if (startAndEndPoints?.start && startAndEndPoints?.end) {
+                    delegates.onStartSplitting({
+                        locationTrack: locationTrack,
+                        allowedSwitches:
+                            splitInitializationParameters?.switches.filter(
+                                (sw) => !isStartOrEndSwitch(sw.switchId),
+                            ) || [],
+                        startAndEndSwitches: [
+                            extraInfo?.switchAtStart?.id,
+                            extraInfo?.switchAtEnd?.id,
+                        ].filter(filterNotEmpty),
+                        duplicateTracks: splitInitializationParameters?.duplicates || [],
+                        startLocation: startAndEndPoints.start.point,
+                        endLocation: startAndEndPoints.end.point,
+                    });
+                    delegates.showLayers(['location-track-split-location-layer']);
+                }
+            },
+        );
+    };
+
     return (
         <React.Fragment>
             <Infobox
@@ -421,7 +445,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 size={ButtonSize.SMALL}
                                                 qa-id="modify-start-or-end"
                                                 title={
-                                                    splittingState
+                                                    splittingState ||
+                                                    extraInfo?.partOfUnfinishedSplit
                                                         ? t(
                                                               'tool-panel.location-track.splitting-blocks-geometry-changes',
                                                           )
@@ -429,6 +454,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 }
                                                 disabled={
                                                     !!splittingState ||
+                                                    extraInfo?.partOfUnfinishedSplit ||
                                                     !startAndEndPoints.start?.point ||
                                                     !startAndEndPoints.end?.point
                                                 }
@@ -507,42 +533,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                     duplicatesOnOtherTracks
                                                 }
                                                 title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={() => {
-                                                    getSplittingInitializationParameters(
-                                                        'DRAFT',
-                                                        locationTrack.id,
-                                                    ).then((splitInitializationParameters) => {
-                                                        if (
-                                                            startAndEndPoints?.start &&
-                                                            startAndEndPoints?.end
-                                                        ) {
-                                                            delegates.onStartSplitting({
-                                                                locationTrack: locationTrack,
-                                                                allowedSwitches:
-                                                                    splitInitializationParameters?.switches.filter(
-                                                                        (sw) =>
-                                                                            !isStartOrEndSwitch(
-                                                                                sw.switchId,
-                                                                            ),
-                                                                    ) || [],
-                                                                startAndEndSwitches: [
-                                                                    extraInfo?.switchAtStart?.id,
-                                                                    extraInfo?.switchAtEnd?.id,
-                                                                ].filter(filterNotEmpty),
-                                                                duplicateTracks:
-                                                                    splitInitializationParameters?.duplicates ||
-                                                                    [],
-                                                                startLocation:
-                                                                    startAndEndPoints.start.point,
-                                                                endLocation:
-                                                                    startAndEndPoints.end.point,
-                                                            });
-                                                            delegates.showLayers([
-                                                                'location-track-split-location-layer',
-                                                            ]);
-                                                        }
-                                                    });
-                                                }}>
+                                                onClick={onStartSplitting}>
                                                 {t('tool-panel.location-track.start-splitting')}
                                             </Button>
                                         )}
