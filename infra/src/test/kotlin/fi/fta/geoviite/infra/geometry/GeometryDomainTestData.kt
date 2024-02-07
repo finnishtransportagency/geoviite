@@ -527,7 +527,7 @@ fun geometryAlignment(
     cant: GeometryCant? = null,
     name: String = "001",
     id: DomainId<GeometryAlignment> = StringId(),
-    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111"),
+    featureTypeCode: FeatureTypeCode = FeatureTypeCode("281"),
 ): GeometryAlignment = GeometryAlignment(
     id = id,
     name = AlignmentName(name),

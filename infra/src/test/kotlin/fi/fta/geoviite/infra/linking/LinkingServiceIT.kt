@@ -290,7 +290,7 @@ class LinkingServiceIT @Autowired constructor(
             ),
         )
 
-        val split = splitDao.getSplit(
+        val split = splitDao.getOrThrow(
             splitDao.saveSplit(
                 locationTrackId,
                 listOf(SplitTargetSaveRequest(locationTrackId, 0..1))

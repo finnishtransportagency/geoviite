@@ -15,6 +15,7 @@ import {
     PublishRequest,
     PublishRequestIds,
     PublishResult,
+    SplitInPublication,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import i18next from 'i18next';
@@ -107,3 +108,8 @@ export const getRevertRequestDependencies = (request: PublishRequestIds) =>
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );
+
+export const getSplitDetails = (id: string) =>
+    getNonNull<SplitInPublication>(`${PUBLICATION_URL}/${id}/split-details`);
+
+export const splitDetailsCsvUri = (id: string) => `${PUBLICATION_URL}/${id}/split-details/csv`;

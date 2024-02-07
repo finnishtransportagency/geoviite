@@ -59,7 +59,7 @@ export function createDuplicateSplitSectionHighlightLayer(
         inFlight = true;
         const linkedDuplicates = splittingState.splits
             .map((split) => split.duplicateOf)
-            .concat(splittingState.initialSplit.duplicateOf);
+            .concat(splittingState.firstSplit.duplicateOf);
         getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType)
             .then((extras) => {
                 getMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then((alignments) => {

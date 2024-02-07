@@ -634,7 +634,7 @@ class PublicationServiceIT @Autowired constructor(
             publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
         }
 
-        assertEquals(publishId, splitDao.getSplit(splitBeforePublish.id).publicationId)
+        assertEquals(publishId, splitDao.getOrThrow(splitBeforePublish.id).publicationId)
     }
 
 
@@ -2191,7 +2191,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split target location track validation should fail when the split is still in progress`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.IN_PROGRESS))
         }
 
@@ -2204,7 +2204,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.FAILED))
         }
 
@@ -2217,7 +2217,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
         }
 
@@ -2239,7 +2239,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.IN_PROGRESS))
         }
 
@@ -2252,7 +2252,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.FAILED))
         }
 
@@ -2265,7 +2265,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
         }
 
@@ -2277,7 +2277,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split source location track validation should fail if source location track isn't deleted`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup(LayoutState.IN_USE)
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::getSplit)
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
         assertContains(
@@ -2298,7 +2298,7 @@ class PublicationServiceIT @Autowired constructor(
             startTarget.copy(trackNumberId = getUnusedTrackNumberId())
         )
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::getSplit)
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
         assertContains(
@@ -2369,7 +2369,7 @@ class PublicationServiceIT @Autowired constructor(
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
         saveSplit(locationTrackId).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.FAILED))
         }
 
@@ -2395,7 +2395,7 @@ class PublicationServiceIT @Autowired constructor(
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
         saveSplit(locationTrackId).also { splitId ->
-            val split = splitDao.getSplit(splitId)
+            val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.copy(bulkTransferState = BulkTransferState.DONE))
         }
 
@@ -2697,6 +2697,27 @@ class PublicationServiceIT @Autowired constructor(
         assertFalse(errorsWithReplacementTrackLinked.any { error ->
             error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
         })
+    }
+
+    @Test
+    fun `Should fetch split details correctly`() {
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
+        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        val publishId = publicationService.getValidationVersions(
+            publishRequest(locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id))
+        ).let { versions ->
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
+        }
+
+        val splitInPublication = publicationService.getSplitInPublication(publishId!!)
+        assertNotNull(splitInPublication)
+        assertEquals(sourceTrack.id, splitInPublication.locationTrack.id)
+        assertEquals(2, splitInPublication.targetLocationTracks.size)
+        assertEquals(startTargetTrack.id, splitInPublication.targetLocationTracks[0].id)
+        assertEquals(true, splitInPublication.targetLocationTracks[0].newlyCreated)
+        assertEquals(endTargetTrack.id, splitInPublication.targetLocationTracks[1].id)
+        assertEquals(true, splitInPublication.targetLocationTracks[1].newlyCreated)
     }
 }
 

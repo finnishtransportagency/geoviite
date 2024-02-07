@@ -15,7 +15,10 @@ import {
     LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
+import {
+    FirstSplitTargetCandidate,
+    SplitTargetCandidate,
+} from 'tool-panel/location-track/split-store';
 import { MAP_POINT_NEAR_BBOX_OFFSET } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
@@ -25,13 +28,13 @@ type EndpointProps = {
 };
 
 type SplitProps = EndpointProps & {
-    split: Split | InitialSplit;
+    split: SplitTargetCandidate | FirstSplitTargetCandidate;
     onRemove?: (switchId: LayoutSwitchId) => void;
-    updateSplit: (updateSplit: Split | InitialSplit) => void;
+    updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     duplicateOf: LocationTrackId | undefined;
-    nameErrors: ValidationError<Split>[];
-    descriptionErrors: ValidationError<Split>[];
-    switchErrors: ValidationError<Split>[];
+    nameErrors: ValidationError<SplitTargetCandidate>[];
+    descriptionErrors: ValidationError<SplitTargetCandidate>[];
+    switchErrors: ValidationError<SplitTargetCandidate>[];
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
