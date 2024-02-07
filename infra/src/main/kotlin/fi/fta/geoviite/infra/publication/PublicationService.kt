@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
 import org.postgresql.util.PSQLException
 import org.slf4j.Logger
@@ -1057,7 +1058,7 @@ class PublicationService @Autowired constructor(
                                     newlyCreated = change.operation == Operation.CREATE,
                                 )
                             }
-                        }.sortedWith { a, b -> compareOptional(a.startAddress, b.startAddress) }
+                        }.sortedWith { a, b -> nullsFirstComparator(a.startAddress, b.startAddress) }
                 )
             }
         }

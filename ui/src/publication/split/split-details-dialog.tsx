@@ -72,31 +72,27 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {splitDetails?.targetLocationTracks.map((target) => {
-                                        return (
-                                            <tr key={target.id}>
-                                                <td>{target.name}</td>
-                                                <td>{target.oid}</td>
-                                                <td>
-                                                    {target.newlyCreated
-                                                        ? t('split-details-dialog.newly-created')
-                                                        : t(
-                                                              'split-details-dialog.replaces-duplicate',
-                                                          )}
-                                                </td>
-                                                <td>
-                                                    {target.startAddress
-                                                        ? formatTrackMeter(target.startAddress)
-                                                        : undefined}
-                                                </td>
-                                                <td>
-                                                    {target.endAddress
-                                                        ? formatTrackMeter(target.endAddress)
-                                                        : undefined}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {splitDetails?.targetLocationTracks.map((target) => (
+                                        <tr key={target.id}>
+                                            <td>{target.name}</td>
+                                            <td>{target.oid}</td>
+                                            <td>
+                                                {target.newlyCreated
+                                                    ? t('split-details-dialog.newly-created')
+                                                    : t('split-details-dialog.replaces-duplicate')}
+                                            </td>
+                                            <td>
+                                                {target.startAddress
+                                                    ? formatTrackMeter(target.startAddress)
+                                                    : undefined}
+                                            </td>
+                                            <td>
+                                                {target.endAddress
+                                                    ? formatTrackMeter(target.endAddress)
+                                                    : undefined}
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </Table>
                         </div>
