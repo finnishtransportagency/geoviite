@@ -78,10 +78,11 @@ internal fun validateTargetGeometry(
     return if (targetAddresses == null || sourceAddresses == null) {
         PublishValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
-        val sourcePoints = sourceAddresses.allPoints
-        val startIndex = max(0, sourcePoints.indexOfFirst { it.isSame(targetAddresses.startPoint) })
+        val targetPoints = targetAddresses.allPoints.filter { addressPoint -> addressPoint.address.hasZeroMillimeters }
+        val sourcePoints = sourceAddresses.allPoints.filter { addressPoint -> addressPoint.address.hasZeroMillimeters }
+        val startIndex = max(0, sourcePoints.indexOfFirst { it.isSame(targetPoints.first()) })
 
-        targetAddresses.allPoints
+        targetPoints
             .withIndex()
             .firstOrNull { (targetIndex, targetPoint) ->
                 val idx = min(sourcePoints.lastIndex, startIndex + targetIndex)
