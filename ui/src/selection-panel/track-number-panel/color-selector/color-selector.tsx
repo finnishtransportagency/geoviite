@@ -45,31 +45,30 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
                 <CloseableModal
                     positionRef={ref}
                     onClickOutside={() => setShowSelector(false)}
+                    className={styles['color-selector-menu']}
                     offsetX={colorSelectorModalOffsetX}
                     offsetY={colorSelectorModalOffsetY}>
-                    <div className={styles['color-selector-menu']}>
-                        <ol>
+                    <ol>
+                        <li
+                            className={`${styles['color-square']} ${styles['color-square--transparent']}`}
+                            onClick={() => {
+                                setShowSelector(false);
+                                onSelectColor(TrackNumberColor.TRANSPARENT);
+                            }}
+                            title={t('selection-panel.color-selector.transparent')}
+                        />
+                        {getColors().map(([key, value]) => (
                             <li
-                                className={`${styles['color-square']} ${styles['color-square--transparent']}`}
+                                className={styles['color-square']}
+                                key={key}
                                 onClick={() => {
                                     setShowSelector(false);
-                                    onSelectColor(TrackNumberColor.TRANSPARENT);
+                                    onSelectColor(key);
                                 }}
-                                title={t('selection-panel.color-selector.transparent')}
+                                style={{ backgroundColor: value + colorOpacity }}
                             />
-                            {getColors().map(([key, value]) => (
-                                <li
-                                    className={styles['color-square']}
-                                    key={key}
-                                    onClick={() => {
-                                        setShowSelector(false);
-                                        onSelectColor(key);
-                                    }}
-                                    style={{ backgroundColor: value + colorOpacity }}
-                                />
-                            ))}
-                        </ol>
-                    </div>
+                        ))}
+                    </ol>
                 </CloseableModal>
             )}
         </React.Fragment>
