@@ -365,7 +365,11 @@ data class RemovedTrackNumberReferenceIds(
     val planIds: List<IntId<GeometryPlan>>,
 )
 
-data class SwitchLocationTrack(val name: AlignmentName, val trackNumberId: IntId<TrackLayoutTrackNumber>)
+data class SwitchLocationTrack(
+    val name: AlignmentName,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val oldVersion: RowVersion<LocationTrack>,
+)
 
 data class Change<T>(
     val old: T?,

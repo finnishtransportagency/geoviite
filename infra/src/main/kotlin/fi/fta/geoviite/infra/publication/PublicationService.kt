@@ -1358,9 +1358,11 @@ class PublicationService @Autowired constructor(
     ): List<PublicationChange<*>> {
         val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
 
+        val oldLinkedLocationTracks = changes.locationTracks.associate { lt ->
+            lt.oldVersion.id to locationTrackService.getWithAlignment(lt.oldVersion)
+        }
         val jointLocationChanges = relatedJoints.flatMap { joint ->
-            val oldLocationTrack = locationTrackService.getOfficialWithAlignmentAtMoment(joint.locationTrackId, oldTimestamp)
-            val oldLocation = oldLocationTrack?.let { (track, alignment) ->
+            val oldLocation = oldLinkedLocationTracks[joint.locationTrackId]?.let { (track, alignment) ->
                 findJointPoint(
                     track,
                     alignment,
