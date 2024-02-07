@@ -5,14 +5,10 @@ import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
-import {
-    LocationTrackInfoboxVisibilities,
-    trackLayoutActionCreators as TrackLayoutActions,
-} from 'track-layout/track-layout-slice';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import {
     AddressPoint,
     AlignmentStartAndEnd,
-    getSwitchPresentationJoint,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
@@ -51,12 +47,8 @@ import { postSplitLocationTrack } from 'track-layout/layout-location-track-api';
 import { getChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { createDelegates } from 'store/store-utils';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
-import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
-import { getSwitchStructures } from 'common/common-api';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
-import { showTrackSwitchRelinkingValidations } from 'tool-panel/location-track/switch-relinking-validation';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -76,6 +68,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
     returnToSplitting: () => void;
     startPostingSplit: () => void;
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
+    onTaskList: (locationTrack: LocationTrackId) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
@@ -96,7 +89,7 @@ type LocationTrackSplittingInfoboxProps = {
     returnToSplitting: () => void;
     startPostingSplit: () => void;
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
-    onShowSwitch: (layoutSwitch: LayoutSwitch) => void;
+    onTaskList: (locationTrackId: LocationTrackId) => void;
 };
 
 const validateSplitName = (
@@ -190,6 +183,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     returnToSplitting,
     startPostingSplit,
     markSplitOld,
+    onTaskList,
 }) => {
     const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
 
@@ -209,24 +203,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         [allowedSwitches],
     );
     const switches = useSwitches(allowedSwitchIds, 'DRAFT', switchChangeTime);
-
-    const switchStructures = useLoader(() => getSwitchStructures(), []);
-    const delegates = createDelegates(TrackLayoutActions);
-
-    const onShowSwitch = (layoutSwitch: LayoutSwitch) => {
-        const presentationJoint = switchStructures?.find(
-            (s) => s.id == layoutSwitch.switchStructureId,
-        )?.presentationJointNumber;
-
-        const switchLocation = presentationJoint
-            ? getSwitchPresentationJoint(layoutSwitch, presentationJoint)?.location
-            : undefined;
-
-        if (switchLocation) {
-            delegates.showArea(calculateBoundingBoxToShowAroundLocation(switchLocation));
-            delegates.onSelect({ switches: [layoutSwitch.id] });
-        }
-    };
 
     React.useEffect(() => {
         locationTrack && setSplittingDisabled(locationTrack?.draftType !== 'OFFICIAL');
@@ -253,7 +229,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 returnToSplitting={returnToSplitting}
                 startPostingSplit={startPostingSplit}
                 markSplitOld={markSplitOld}
-                onShowSwitch={onShowSwitch}
+                onTaskList={onTaskList}
             />
         )
     );
@@ -353,7 +329,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     returnToSplitting,
     startPostingSplit,
     markSplitOld,
-    onShowSwitch,
+    onTaskList,
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
@@ -507,10 +483,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                                 <Link
                                                     onClick={() => {
                                                         stopSplitting();
-                                                        showTrackSwitchRelinkingValidations(
-                                                            locationTrack,
-                                                            onShowSwitch,
-                                                        );
+                                                        onTaskList(locationTrack.id);
                                                     }}>
                                                     {t(
                                                         'tool-panel.location-track.switch-relinking.cancel-and-relink',

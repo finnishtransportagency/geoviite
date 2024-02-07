@@ -48,6 +48,7 @@ import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { SwitchRelinkingTaskContainer } from 'tool-panel/location-track/switch-relinking-task/switch-relinking-task-container';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -133,6 +134,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
+
+    const [locationTrackTaskList, setLocationTrackTaskList] = React.useState<LocationTrackId>();
 
     const onShowMapLocation = React.useCallback(
         (location: Point) => showArea(calculateBoundingBoxToShowAroundLocation(location)),
@@ -412,6 +415,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             viewport={viewport}
                             verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                             onHoverOverPlanSection={onHoverOverPlanSection}
+                            onTaskList={setLocationTrackTaskList}
                         />
                     ),
                 } as ToolPanelTab;
@@ -557,6 +561,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 </div>
             )}
             {tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element || tabs[0]?.element}
+            {locationTrackTaskList && (
+                <SwitchRelinkingTaskContainer
+                    locationTrackId={locationTrackTaskList}
+                    onClose={() => setLocationTrackTaskList(undefined)}
+                />
+            )}
         </div>
     );
 };

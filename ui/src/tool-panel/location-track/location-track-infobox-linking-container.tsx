@@ -27,6 +27,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
     verticalGeometryDiagramVisible: boolean;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
+    onTaskList: (locationTrack: LocationTrackId) => void;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -43,6 +44,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     onVisibilityChange,
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
+    onTaskList,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
@@ -78,6 +80,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 }
                 verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                 onHighlightItem={onHoverOverPlanSection}
+                onTaskList={onTaskList}
             />
         );
 };
