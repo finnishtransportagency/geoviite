@@ -274,4 +274,9 @@ class SplitDao(
             logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId)
         }
     }
+
+    fun locationTracksPartOfAnyUnfinishedSplit(locationTrackIds: Collection<IntId<LocationTrack>>) =
+        fetchUnfinishedSplits().filter { split ->
+            locationTrackIds.any { lt -> split.containsLocationTrack(lt) }
+        }
 }

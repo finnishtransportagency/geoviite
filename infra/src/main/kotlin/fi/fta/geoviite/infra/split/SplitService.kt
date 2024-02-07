@@ -54,9 +54,7 @@ class SplitService(
     fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
         logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
 
-        return splitDao.fetchUnfinishedSplits().filter { split ->
-            locationTracks.any { lt -> split.containsLocationTrack(lt) }
-        }
+        return splitDao.locationTracksPartOfAnyUnfinishedSplit(locationTracks)
     }
 
     fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {

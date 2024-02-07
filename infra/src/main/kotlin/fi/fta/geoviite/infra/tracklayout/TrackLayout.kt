@@ -142,6 +142,7 @@ data class LocationTrackInfoboxExtras(
     val duplicates: List<LocationTrackDuplicate>,
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
+    val partOfUnfinishedSplit: Boolean?,
 )
 
 data class SwitchValidationWithSuggestedSwitch(
