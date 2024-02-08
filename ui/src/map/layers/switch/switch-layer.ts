@@ -25,6 +25,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
@@ -77,9 +78,11 @@ export function createSwitchLayer(
 
             return getSwitchesValidation(publishType, switchIds);
         } else if (resolution <= Limits.SWITCH_SHOW) {
-            return getTiledSwitchValidation(mapTiles, publishType, changeTimes.layoutSwitch).then(
-                (tile) => tile.flat(),
-            );
+            return getTiledSwitchValidation(
+                mapTiles,
+                publishType,
+                getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.layoutLocationTrack),
+            ).then((tile) => tile.flat());
         } else {
             return getSwitchesValidation(publishType, selection.selectedItems.switches);
         }
