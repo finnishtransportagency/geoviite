@@ -194,10 +194,3 @@ fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter): Int {
 fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter, decimals: Int): Int {
     return compareValuesBy(trackMeter1, trackMeter2, { tm -> tm.kmNumber }, { tm -> tm.metersRound(decimals) })
 }
-
-fun compareOptional(trackMeter1: ITrackMeter?, trackMeter2: ITrackMeter?): Int {
-    return if (trackMeter1 == null && trackMeter2 == null) 0
-    else if (trackMeter1 == null) -1
-    else if (trackMeter2 == null) 1
-    else compare(trackMeter1, trackMeter2)
-}

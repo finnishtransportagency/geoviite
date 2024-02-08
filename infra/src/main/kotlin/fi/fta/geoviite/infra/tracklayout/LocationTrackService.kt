@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
@@ -32,6 +33,7 @@ class LocationTrackService(
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
+    private val splitDao: SplitDao,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
@@ -393,7 +395,9 @@ class LocationTrackService(
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publishType) }
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publishType) }
-            LocationTrackInfoboxExtras(duplicateOf, sortedDuplicates, startSwitch, endSwitch)
+            val partOfUnfinishedSplit = splitDao.locationTracksPartOfAnyUnfinishedSplit(listOf(id)).isNotEmpty()
+
+            LocationTrackInfoboxExtras(duplicateOf, sortedDuplicates, startSwitch, endSwitch, partOfUnfinishedSplit)
         }
     }
 

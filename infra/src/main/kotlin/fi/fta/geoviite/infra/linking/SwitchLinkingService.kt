@@ -739,20 +739,19 @@ private fun alignmentStartEndDirection(alignment: IAlignment): Double? {
     return if (start != null && end != null) directionBetweenPoints(start, end) else null
 }
 
-private fun getClosestPointAsIntersection(
-    track1: IAlignment,
-    track2:IAlignment,
-    desiredLocation: IPoint,
-): TrackIntersection? {
-    return track1.getClosestPoint(desiredLocation)?.let { (closestPoint, _) ->
-        TrackIntersection(
-            alignment1 = track1,
-            alignment2 = track2,
-            point = closestPoint,
-            distance = 0.0,
-            desiredLocation = desiredLocation,
-        )
-    }
+private fun getClosestPointAsIntersection(track1: IAlignment, track2: IAlignment, desiredLocation: IPoint): TrackIntersection? {
+    return listOf(track1, track2)
+            .mapNotNull { track -> track.getClosestPoint(desiredLocation) }
+            .minByOrNull { (point, _) -> lineLength(point,desiredLocation) }
+            ?.let { (closestPoint,_) ->
+                TrackIntersection(
+                    alignment1 = track1,
+                    alignment2 = track2,
+                    point = closestPoint,
+                    distance = 0.0,
+                    desiredLocation = desiredLocation
+                )
+            }
 }
 
 private fun findTrackIntersections(
@@ -764,7 +763,7 @@ private fun findTrackIntersections(
     }
     return trackPairs.flatMap { (track1, track2) ->
         val closestPointAsIntersection = getClosestPointAsIntersection(track1, track2, desiredLocation)
-
+        
         // Take two closest intersections instead of one because there might
         // be two points very close to each other and it is cheap to
         // calculate additional suggested switch and then select the best one.
@@ -1009,23 +1008,32 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<SwitchStructure>>>): List<SuggestedSwitch?> {
+    fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>): List<SuggestedSwitch?> {
         logger.serviceCall("getSuggestedSwitches", "points" to points)
-        return points.map { (location, switchStructureId) ->
+        return points.map { (location, switchId) ->
             Triple(
                 location,
-                switchLibraryService.getSwitchStructure(switchStructureId),
+                switchLibraryService.getSwitchStructure(switchService.getOrThrow(DRAFT, switchId).switchStructureId),
                 locationTrackService.getLocationTracksNear(location, DRAFT)
             )
         }.parallelStream().map { (location, switchStructure, nearbyLocationTracks) ->
             createSuggestedSwitchByPoint(
                 location, switchStructure, nearbyLocationTracks
             )
-        }.collect(Collectors.toList()).map(::adjustSuggestedSwitchForNearbyOverlaps)
+        }
+            .collect(Collectors.toList())
+            .zip(points) { suggestedSwitch, (_, switchId) ->
+                adjustSuggestedSwitchForNearbyOverlaps(
+                    suggestedSwitch,
+                    switchId
+                )
+            }
     }
 
-    private fun adjustSuggestedSwitchForNearbyOverlaps(suggestedSwitch: SuggestedSwitch?) = suggestedSwitch
-        ?.let(::createSwitchLinkingParameters)
+    private fun adjustSuggestedSwitchForNearbyOverlaps(
+        suggestedSwitch: SuggestedSwitch?,
+        switchId: IntId<TrackLayoutSwitch>,
+    ) = suggestedSwitch?.let { ss -> createSwitchLinkingParameters(ss, switchId) }
         ?.let(::calculateModifiedLocationTracksAndAlignments)
         ?.let(::assignNewSwitchLinkingToLocationTracksAndAlignments)
         ?.asSequence()
@@ -1047,8 +1055,8 @@ class SwitchLinkingService @Autowired constructor(
             )
         } ?: suggestedSwitch
 
-    fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? =
-        getSuggestedSwitches(listOf(location to switchStructureId)).getOrNull(0)
+    fun getSuggestedSwitch(location: IPoint, switchId: IntId<TrackLayoutSwitch>): SuggestedSwitch? =
+        getSuggestedSwitches(listOf(location to switchId)).getOrNull(0)
 
     private fun assignNewSwitchLinkingToLocationTracksAndAlignments(
         locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
@@ -1183,7 +1191,7 @@ class SwitchLinkingService @Autowired constructor(
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
             val switch = switchService.getOrThrow(OFFICIAL, switchId)
-            switchService.getPresentationJointOrThrow(switch).location to switch.switchStructureId
+            switchService.getPresentationJointOrThrow(switch).location to switchId
         }
         val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
         return switchIds.mapIndexed { index, id -> id to switchSuggestions[index] }
@@ -1267,12 +1275,15 @@ private fun getSegmentIndexForSwitchJointMatch(
     val alignment = trackAlignments.getValue(match.locationTrackId)
     val segmentIndex = alignment.getSegmentIndexAtM(match.m)
     val segment = alignment.segments[segmentIndex]
+    // The m-value for a suggested switch is very often that of a segment start or end. Since switch suggestions are
+    // created for all split targets on a track before they're used for relinking, we can't record segment indices in
+    // switch suggestions. Allow for a little bit of wiggle room in case segment splits alter downstream m-values.
     val matchedStartForEndType =
-        (segment.startM - match.m).absoluteValue < TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT &&
+        (segment.startM - match.m).absoluteValue < LAYOUT_M_DELTA &&
         match.matchType == SuggestedSwitchJointMatchType.END &&
         segmentIndex > 0
     val matchedEndForStartType =
-        (segment.endM - match.m).absoluteValue < TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT &&
+        (segment.endM - match.m).absoluteValue < LAYOUT_M_DELTA &&
         match.matchType == SuggestedSwitchJointMatchType.START &&
         segmentIndex < alignment.segments.lastIndex
     return if (matchedStartForEndType) segmentIndex - 1 else if (matchedEndForStartType) segmentIndex + 1 else segmentIndex

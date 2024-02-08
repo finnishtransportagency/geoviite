@@ -44,17 +44,16 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
     React.useEffect(() => {
         const linkingState = store.linkingState;
         if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
-            getSuggestedSwitchByPoint(
-                linkingState.location,
-                linkingState.layoutSwitch.switchStructureId,
-            ).then((suggestedSwitches) => {
-                delegates.stopLinking();
-                if (suggestedSwitches.length) {
-                    startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
-                } else {
-                    delegates.hideLayers(['switch-linking-layer']);
-                }
-            });
+            getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
+                (suggestedSwitches) => {
+                    delegates.stopLinking();
+                    if (suggestedSwitches.length) {
+                        startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
+                    } else {
+                        delegates.hideLayers(['switch-linking-layer']);
+                    }
+                },
+            );
         }
     }, [store.linkingState]);
 

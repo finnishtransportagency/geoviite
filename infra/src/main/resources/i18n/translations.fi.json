@@ -193,7 +193,7 @@
             "DELETE": "Poisto",
             "MODIFY": "Muokkaus",
             "RESTORE": "Palautus",
-            "CALCULATED": "Laskettu muutos"
+            "CALCULATED": "Laskennallinen muutos"
         },
         "topological-connectivity-type": {
             "NONE": "Ei kytketty",
@@ -448,7 +448,7 @@
         "switch": {
             "layout": {
                 "km-m": "Sijainti (km + m)",
-                "general-heading": "Perustiedot",
+                "general-heading": "Vaihteen perustiedot",
                 "oid": "OID",
                 "name": "Vaihdetunnus",
                 "state-category": "Tilakategoria",
@@ -543,7 +543,8 @@
                 "add-linking": "Lisää linkitys",
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
-                "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi."
+                "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi.",
+                "part-of-unfinished-split": "Raiteen {{locationTrackName}} jakamiseen liittyvä kohteiden siirto täytyy suorittaa tai merkata onnistuneeksi ennen kuin raiteen geometriaa voi muokata."
             },
             "geometry-segment": {
                 "no-geometry-information": "Ei geometriatietoja valitulle segmentille.",
@@ -1289,7 +1290,12 @@
             },
             "split": {
                 "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa",
-                "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide"
+                "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide",
+                "split-missing-location-tracks": "Kaikki jakoon liittyvät sijaintiraiteet eivät ole mukana julkaisussa",
+                "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",
+                "multiple-splits-not-allowed": "Julkaisussa on mukana useampi jaettu raide",
+                "geometry-changed": "Raiteen geometria on muuttunut",
+                "no-geometry": "Raiteella ei ole geometriaa"
             }
         }
     },
@@ -1309,7 +1315,8 @@
         "km-post": "Tasakilometripiste",
         "count-header-loading": "Julkaistut muutokset",
         "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
-        "calculated-change": "Laskettu muutos",
+        "calculated-change": "Laskennallinen muutos",
+        "calculated-change-lowercase": "laskennallinen muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta",
         "changes": "Muutokset"
     },

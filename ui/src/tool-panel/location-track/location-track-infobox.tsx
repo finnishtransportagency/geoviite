@@ -235,6 +235,30 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const isStartOrEndSwitch = (switchId: LayoutSwitchId) =>
         switchId === extraInfo?.switchAtStart?.id || switchId === extraInfo?.switchAtEnd?.id;
 
+    const onStartSplitting = () => {
+        getSplittingInitializationParameters('DRAFT', locationTrack.id).then(
+            (splitInitializationParameters) => {
+                if (startAndEndPoints?.start && startAndEndPoints?.end) {
+                    delegates.onStartSplitting({
+                        locationTrack: locationTrack,
+                        allowedSwitches:
+                            splitInitializationParameters?.switches.filter(
+                                (sw) => !isStartOrEndSwitch(sw.switchId),
+                            ) || [],
+                        startAndEndSwitches: [
+                            extraInfo?.switchAtStart?.id,
+                            extraInfo?.switchAtEnd?.id,
+                        ].filter(filterNotEmpty),
+                        duplicateTracks: splitInitializationParameters?.duplicates || [],
+                        startLocation: startAndEndPoints.start.point,
+                        endLocation: startAndEndPoints.end.point,
+                    });
+                    delegates.showLayers(['location-track-split-location-layer']);
+                }
+            },
+        );
+    };
+
     return (
         <React.Fragment>
             <Infobox
@@ -415,13 +439,26 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
                                 {linkingState === undefined && (
                                     <WriteAccessRequired>
+                                        {extraInfo?.partOfUnfinishedSplit && (
+                                            <InfoboxContentSpread>
+                                                <MessageBox>
+                                                    {t(
+                                                        'tool-panel.alignment.geometry.part-of-unfinished-split',
+                                                        {
+                                                            locationTrackName: locationTrack.name,
+                                                        },
+                                                    )}
+                                                </MessageBox>
+                                            </InfoboxContentSpread>
+                                        )}
                                         <InfoboxButtons>
                                             <Button
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 qa-id="modify-start-or-end"
                                                 title={
-                                                    splittingState
+                                                    splittingState ||
+                                                    extraInfo?.partOfUnfinishedSplit
                                                         ? t(
                                                               'tool-panel.location-track.splitting-blocks-geometry-changes',
                                                           )
@@ -429,6 +466,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                 }
                                                 disabled={
                                                     !!splittingState ||
+                                                    extraInfo?.partOfUnfinishedSplit ||
                                                     !startAndEndPoints.start?.point ||
                                                     !startAndEndPoints.end?.point
                                                 }
@@ -479,74 +517,42 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     </React.Fragment>
                                 )}
                                 <EnvRestricted restrictTo="test">
-                                    {isDraft && (
-                                        <InfoboxContentSpread>
-                                            <MessageBox>
-                                                {t(
-                                                    'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                )}
-                                            </MessageBox>
-                                        </InfoboxContentSpread>
-                                    )}
-                                    {duplicatesOnOtherTracks && (
-                                        <InfoboxContentSpread>
-                                            <MessageBox>
-                                                {t(
-                                                    'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
-                                                )}
-                                            </MessageBox>
-                                        </InfoboxContentSpread>
-                                    )}
-                                    <InfoboxButtons>
-                                        {!linkingState && !splittingState && (
-                                            <Button
-                                                variant={ButtonVariant.SECONDARY}
-                                                size={ButtonSize.SMALL}
-                                                disabled={
-                                                    locationTrack.draftType !== 'OFFICIAL' ||
-                                                    duplicatesOnOtherTracks
-                                                }
-                                                title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={() => {
-                                                    getSplittingInitializationParameters(
-                                                        'DRAFT',
-                                                        locationTrack.id,
-                                                    ).then((splitInitializationParameters) => {
-                                                        if (
-                                                            startAndEndPoints?.start &&
-                                                            startAndEndPoints?.end
-                                                        ) {
-                                                            delegates.onStartSplitting({
-                                                                locationTrack: locationTrack,
-                                                                allowedSwitches:
-                                                                    splitInitializationParameters?.switches.filter(
-                                                                        (sw) =>
-                                                                            !isStartOrEndSwitch(
-                                                                                sw.switchId,
-                                                                            ),
-                                                                    ) || [],
-                                                                startAndEndSwitches: [
-                                                                    extraInfo?.switchAtStart?.id,
-                                                                    extraInfo?.switchAtEnd?.id,
-                                                                ].filter(filterNotEmpty),
-                                                                duplicateTracks:
-                                                                    splitInitializationParameters?.duplicates ||
-                                                                    [],
-                                                                startLocation:
-                                                                    startAndEndPoints.start.point,
-                                                                endLocation:
-                                                                    startAndEndPoints.end.point,
-                                                            });
-                                                            delegates.showLayers([
-                                                                'location-track-split-location-layer',
-                                                            ]);
-                                                        }
-                                                    });
-                                                }}>
-                                                {t('tool-panel.location-track.start-splitting')}
-                                            </Button>
+                                    <WriteAccessRequired>
+                                        {isDraft && !extraInfo?.partOfUnfinishedSplit && (
+                                            <InfoboxContentSpread>
+                                                <MessageBox>
+                                                    {t(
+                                                        'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                    )}
+                                                </MessageBox>
+                                            </InfoboxContentSpread>
                                         )}
-                                    </InfoboxButtons>
+                                        {duplicatesOnOtherTracks &&
+                                            !extraInfo?.partOfUnfinishedSplit && (
+                                                <InfoboxContentSpread>
+                                                    <MessageBox>
+                                                        {t(
+                                                            'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                                                        )}
+                                                    </MessageBox>
+                                                </InfoboxContentSpread>
+                                            )}
+                                        <InfoboxButtons>
+                                            {!linkingState && !splittingState && (
+                                                <Button
+                                                    variant={ButtonVariant.SECONDARY}
+                                                    size={ButtonSize.SMALL}
+                                                    disabled={
+                                                        locationTrack.draftType !== 'OFFICIAL' ||
+                                                        duplicatesOnOtherTracks
+                                                    }
+                                                    title={getSplittingDisabledReasonsTranslated()}
+                                                    onClick={onStartSplitting}>
+                                                    {t('tool-panel.location-track.start-splitting')}
+                                                </Button>
+                                            )}
+                                        </InfoboxButtons>
+                                    </WriteAccessRequired>
                                 </EnvRestricted>
 
                                 <InfoboxField

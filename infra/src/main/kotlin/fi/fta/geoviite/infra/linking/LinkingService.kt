@@ -206,6 +206,7 @@ class LinkingService @Autowired constructor(
             "updateLocationTrackGeometry", "locationTrackId" to locationTrackId, "mRange" to mRange
         )
 
+        verifyAllSplitsDone(locationTrackId)
         val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
         val updatedLocationTrack = updateTopology(locationTrack, alignment, updatedAlignment)
@@ -257,7 +258,7 @@ class LinkingService @Autowired constructor(
     }
 
     fun verifyAllSplitsDone(id: IntId<LocationTrack>) {
-        if (splitService.findUnfinishedSplits(listOf(id)).isNotEmpty()) throw LinkingFailureException(
+        if (splitService.findUnfinishedSplitsForLocationTracks(listOf(id)).isNotEmpty()) throw LinkingFailureException(
             message = "Cannot link a location track that has unfinished splits", localizedMessageKey = "unfinished-splits"
         )
     }

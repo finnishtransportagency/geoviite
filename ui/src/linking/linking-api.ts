@@ -32,7 +32,7 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { PublishType, Range, SwitchStructureId } from 'common/common-model';
+import { PublishType, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
@@ -234,11 +234,11 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
 
 export async function getSuggestedSwitchByPoint(
     point: Point,
-    switchStructureId: SwitchStructureId,
+    switchId: LayoutSwitchId,
 ): Promise<SuggestedSwitch[]> {
     const params = queryParams({
         location: pointString(point),
-        switchStructureId: switchStructureId,
+        switchId,
     });
     const uri = linkingUri('switches', 'suggested');
     return getNullable<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {

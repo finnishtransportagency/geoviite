@@ -10,7 +10,10 @@ import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.publication.*
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublishValidationError
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -32,7 +35,7 @@ class SplitService(
 
     fun saveSplit(
         locationTrackId: IntId<LocationTrack>,
-        splitTargets: Collection<SplitTargetSaveRequest>,
+        splitTargets: Collection<SplitTarget>,
         relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
     ): IntId<Split> {
         logger.serviceCall(
@@ -45,14 +48,20 @@ class SplitService(
         return splitDao.saveSplit(locationTrackId, splitTargets, relinkedSwitches)
     }
 
-    fun findPendingSplits(locationTracks: Collection<IntId<LocationTrack>>) =
-        findUnfinishedSplits(locationTracks).filter { it.isPending }
+    fun findPendingSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>) =
+        findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
 
-    fun findUnfinishedSplits(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-        logger.serviceCall("findSplits", "locationTracks" to locationTracks)
+    fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
+        logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
+
+        return splitDao.locationTracksPartOfAnyUnfinishedSplit(locationTracks)
+    }
+
+    fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
+        logger.serviceCall("findUnfinishedSplitsForSwitches", "switches" to switches)
 
         return splitDao.fetchUnfinishedSplits().filter { split ->
-            locationTracks.any { lt -> split.containsLocationTrack(lt) }
+            switches.any { s -> split.containsSwitch(s) }
         }
     }
 
@@ -60,29 +69,23 @@ class SplitService(
         locationTracks: Collection<IntId<LocationTrack>>,
         publicationId: IntId<Publication>,
     ) {
-        logger.serviceCall(
-            "publishSplit",
-            "locationTracks" to locationTracks,
-            "publicationId" to publicationId,
-        )
+        logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
 
-        findPendingSplits(locationTracks)
+        findPendingSplitsForLocationTracks(locationTracks)
             .distinctBy { it.id }
-            .map { split -> splitDao.updateSplitState(split.copy(publicationId = publicationId)) }
+            .map { split -> splitDao.updateSplitState(split.id, publicationId = publicationId) }
     }
 
     fun deleteSplit(splitId: IntId<Split>) {
-        logger.serviceCall(
-            "deleteSplit",
-            "splitId" to splitId
-        )
-
+        logger.serviceCall("deleteSplit", "splitId" to splitId)
         splitDao.deleteSplit(splitId)
     }
 
-    fun validateSplit(candidates: ValidationVersions): SplitPublishValidationErrors {
-        val splits = findUnfinishedSplits(candidates.locationTracks.map { it.officialId })
-        val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits)
+    fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublishValidationErrors {
+        val splitsByLocationTracks = findUnfinishedSplitsForLocationTracks(candidates.locationTracks.map { it.officialId })
+        val splitsBySwitches = findUnfinishedSplitsForSwitches(candidates.switches.map { it.officialId })
+        val splits = (splitsByLocationTracks + splitsBySwitches).distinctBy { it.id }
+        val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits, allowMultipleSplits)
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id))
@@ -122,28 +125,19 @@ class SplitService(
     }
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
-        logger.serviceCall(
-            "getSplitIdByPublicationId",
-            "publicationId" to publicationId,
-        )
+        logger.serviceCall("getSplitIdByPublicationId", "publicationId" to publicationId)
 
         return splitDao.fetchSplitIdByPublication(publicationId)
     }
 
     fun get(splitId: IntId<Split>): Split? {
-        logger.serviceCall(
-            "get",
-            "splitId" to splitId,
-        )
+        logger.serviceCall("get", "splitId" to splitId)
 
         return splitDao.get(splitId)
     }
 
     fun getOrThrow(splitId: IntId<Split>): Split {
-        logger.serviceCall(
-            "getOrThrow",
-            "splitId" to splitId,
-        )
+        logger.serviceCall("getOrThrow", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId)
     }
@@ -213,13 +207,10 @@ class SplitService(
     }
 
     fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): IntId<Split> {
-        logger.serviceCall(
-            "updateSplitState",
-            "splitId" to splitId,
-        )
+        logger.serviceCall("updateSplitState", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId).let { split ->
-            splitDao.updateSplitState(split.copy(bulkTransferState = state))
+            splitDao.updateSplitState(split.id, bulkTransferState = state)
         }
     }
 
@@ -244,7 +235,7 @@ class SplitService(
         return splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
     }
 
-    private fun saveTargetTrack(target: SplitTargetResult): SplitTargetSaveRequest {
+    private fun saveTargetTrack(target: SplitTargetResult): SplitTarget{
         val id = locationTrackService.saveDraft(
             draft = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 track = target.locationTrack,
@@ -254,7 +245,7 @@ class SplitService(
             ),
             alignment = target.alignment,
         ).id
-        return SplitTargetSaveRequest(id, target.indices)
+        return SplitTarget(id, target.indices)
     }
 
     private fun collectSplitTargetParams(

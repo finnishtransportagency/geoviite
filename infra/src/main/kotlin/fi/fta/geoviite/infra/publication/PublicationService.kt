@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
 import org.postgresql.util.PSQLException
 import org.slf4j.Logger
@@ -110,8 +111,8 @@ class PublicationService @Autowired constructor(
     ): ValidatedPublishCandidates {
         logger.serviceCall("validatePublishCandidates", "candidates" to candidates, "request" to request)
         return ValidatedPublishCandidates(
-            validatedAsPublicationUnit = validateAsPublicationUnit(candidates.filter(request)),
-            allChangesValidated = validateAsPublicationUnit(candidates),
+            validatedAsPublicationUnit = validateAsPublicationUnit(candidates.filter(request), allowMultipleSplits = false),
+            allChangesValidated = validateAsPublicationUnit(candidates, allowMultipleSplits = true),
         )
     }
 
@@ -226,18 +227,18 @@ class PublicationService @Autowired constructor(
         val validationVersions = toValidationVersions(
             switches = switches, locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(validationVersions)
 
         val linkedTracks = publicationDao
             .fetchLinkedLocationTracks(switchIds, if (publishType == DRAFT) null else listOf())
             .mapValues { (_, tracks) -> tracks.toSet() }
-        val allOfficialSwitches = switchService.list(OFFICIAL)
         return switches.map { switch ->
             ValidatedAsset(
                 validateSwitch(
                     version = toValidationVersion(switch),
                     validationVersions = validationVersions,
                     linkedTracks = linkedTracks.getOrDefault(switch.id, setOf()),
-                    allOfficialSwitches = allOfficialSwitches,
+                    nameDuplicates = nameDuplicates,
                 ),
                 switch.id as IntId,
             )
@@ -280,12 +281,13 @@ class PublicationService @Autowired constructor(
         return publicationDao.fetchChangeTime()
     }
 
-    private fun validateAsPublicationUnit(candidates: PublishCandidates): PublishCandidates {
+    private fun validateAsPublicationUnit(candidates: PublishCandidates, allowMultipleSplits: Boolean): PublishCandidates {
         val versions = candidates.getValidationVersions()
         val cacheKeys = collectCacheKeys(versions)
         precacheLocationTrackAlignmentAddresses(candidates, cacheKeys)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
-        val splitErrors = splitService.validateSplit(versions)
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(versions)
+        val splitErrors = splitService.validateSplit(versions, allowMultipleSplits)
 
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
@@ -319,6 +321,7 @@ class PublicationService @Autowired constructor(
                     candidate.getPublicationVersion(),
                     versions,
                     switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(candidate.id, setOf()),
+                    nameDuplicates,
                 )
 
                 candidate.copy(errors = validationErrors + switchSplitErrors)
@@ -348,7 +351,8 @@ class PublicationService @Autowired constructor(
         logger.serviceCall("validatePublishRequest", "versions" to versions)
         val cacheKeys = collectCacheKeys(versions)
         val switchTrackLinks = collectSwitchTrackLinks(versions, versions.locationTracks.map { v -> v.officialId })
-        val splitErrors = splitService.validateSplit(versions)
+        val splitErrors = splitService.validateSplit(versions, allowMultipleSplits = false)
+        val nameDuplicates = collectPotentialSwitchNameDuplicates(versions)
 
         assertNoSplitErrors(splitErrors)
 
@@ -371,7 +375,8 @@ class PublicationService @Autowired constructor(
                 validateSwitch(
                     version,
                     versions,
-                    switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(version.officialId, setOf())
+                    switchTrackLinks.trackVersionsBySwitchAfterPublication.getOrDefault(version.officialId, setOf()),
+                    nameDuplicates,
                 ),
             )
         }
@@ -409,7 +414,7 @@ class PublicationService @Autowired constructor(
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map(RowVersion<LocationTrack>::id)
 
-        val revertSplitTracks = splitService.findUnfinishedSplits(revertLocationTrackIds).flatMap { it.locationTracks }
+        val revertSplitTracks = splitService.findUnfinishedSplitsForLocationTracks(revertLocationTrackIds).flatMap { it.locationTracks }
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
             kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
@@ -432,7 +437,7 @@ class PublicationService @Autowired constructor(
     fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
 
-        splitService.findUnfinishedSplits(toDelete.locationTracks)
+        splitService.findUnfinishedSplitsForLocationTracks(toDelete.locationTracks)
             .map { it.id }
             .distinct()
             .forEach(splitService::deleteSplit)
@@ -462,16 +467,12 @@ class PublicationService @Autowired constructor(
         logger.serviceCall("updateExternalId", "request" to request)
 
         try {
-            request.locationTracks.filter { locationTrackId ->
-                locationTrackService.getOrThrow(
-                    DRAFT, locationTrackId
-                ).externalId == null
-            }.forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
-            request.trackNumbers.filter { trackNumberId ->
-                trackNumberService.getOrThrow(
-                    DRAFT, trackNumberId
-                ).externalId == null
-            }.forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
+            request.locationTracks
+                .filter { trackId -> locationTrackService.getOrThrow(DRAFT, trackId).externalId == null }
+                .forEach { trackId -> updateExternalIdForLocationTrack(trackId) }
+            request.trackNumbers
+                .filter { trackNumberId -> trackNumberService.getOrThrow(DRAFT, trackNumberId).externalId == null }
+                .forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
             request.switches
                 .filter { switchId -> switchService.getOrThrow(DRAFT, switchId).externalId == null }
                 .forEach { switchId -> updateExternalIdForSwitch(switchId) }
@@ -498,27 +499,28 @@ class PublicationService @Autowired constructor(
 
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid = ratkoClient?.let { s ->
-            s.getNewLocationTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
+            requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" }
         }
         locationTrackOid?.let { oid -> locationTrackService.updateExternalId(locationTrackId, Oid(oid.id)) }
     }
 
     private fun updateExternalIdForTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>) {
         val routeNumberOid = ratkoClient?.let { s ->
-            s.getNewRouteNumberOid() ?: throw IllegalStateException("No OID received from RATKO")
+            requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" }
         }
         routeNumberOid?.let { oid -> trackNumberService.updateExternalId(trackNumberId, Oid(oid.id)) }
     }
 
     private fun updateExternalIdForSwitch(switchId: IntId<TrackLayoutSwitch>) {
         val switchOid = ratkoClient?.let { s ->
-            s.getNewSwitchOid() ?: throw IllegalStateException("No OID received from RATKO")
+            requireNotNull(s.getNewSwitchOid()) { "No OID received from RATKO" }
         }
         switchOid?.let { oid -> switchService.updateExternalIdForSwitch(switchId, Oid(oid.id)) }
     }
 
     private inline fun <reified T> assertNoErrors(
-        version: ValidationVersion<T>, errors: List<PublishValidationError>,
+        version: ValidationVersion<T>,
+        errors: List<PublishValidationError>,
     ) {
         val severeErrors = errors.filter { error -> error.type == ERROR }
         if (severeErrors.isNotEmpty()) {
@@ -665,7 +667,7 @@ class PublicationService @Autowired constructor(
         version: ValidationVersion<TrackLayoutSwitch>,
         validationVersions: ValidationVersions,
         linkedTracks: Set<RowVersion<LocationTrack>>,
-        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
+        nameDuplicates: Map<SwitchName, PotentialDuplicates>,
     ): List<PublishValidationError> {
         val switch = switchDao.fetch(version.validatedAssetVersion)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
@@ -681,34 +683,31 @@ class PublicationService @Autowired constructor(
             validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
         }
 
-        val duplicationErrors = if (switch.exists) validateSwitchNameDuplication(
-            switch, validationVersions, allOfficialSwitches
-        ) else emptyList()
+        val duplicationErrors = validateSwitchNameDuplication(
+            switch = switch,
+            draftsBySameName = nameDuplicates[switch.name]?.draft ?: emptyList(),
+            officialsBySameName = nameDuplicates[switch.name]?.official ?: emptyList(),
+        )
         return fieldErrors + referenceErrors + structureErrors + duplicationErrors
     }
 
-    private fun validateSwitchNameDuplication(
-        switch: TrackLayoutSwitch,
-        versions: ValidationVersions,
-        allOfficialSwitches: List<TrackLayoutSwitch> = switchService.list(OFFICIAL),
-    ): List<PublishValidationError> {
-        val drafts = versions.switches.map { it.officialId to switchDao.fetch(it.validatedAssetVersion) }
-        val officials = allOfficialSwitches.filterNot { official ->
-            drafts.map { draft -> draft.first }.contains(official.id)
-        }
-        val officialDuplicateExists =
-            officials.any { official -> official.id != switch.id && official.name == switch.name }
-        val stagedDuplicateExists =
-            drafts.any { (_, draft) -> draft.name == switch.name && draft.id != switch.id && draft.stateCategory != LayoutStateCategory.NOT_EXISTING }
+    data class PotentialDuplicates(val draft: List<TrackLayoutSwitch>, val official: List<TrackLayoutSwitch>)
 
-        return listOfNotNull(
-            if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
-                ERROR, "$VALIDATION_SWITCH.duplicate-name-official", mapOf("switch" to switch.name)
-            ) else null,
-            if (stagedDuplicateExists) PublishValidationError(
-                ERROR, "$VALIDATION_SWITCH.duplicate-name-draft", mapOf("switch" to switch.name)
-            ) else null,
-        )
+    private fun collectPotentialSwitchNameDuplicates(
+        versions: ValidationVersions,
+    ): Map<SwitchName, PotentialDuplicates> {
+        val drafts = versions.switches.map { sv -> sv.validatedAssetVersion }.map(switchDao::fetch)
+        val draftNamesToCheck = drafts.filter(TrackLayoutSwitch::exists).map(TrackLayoutSwitch::name).distinct()
+        val officialVersions = switchDao.findOfficialNameDuplicates(draftNamesToCheck)
+        val officials = officialVersions.mapValues { (_, officials) ->
+            officials.mapNotNull { v -> if (versions.containsSwitch(v.id)) null else switchDao.fetch(v) }
+        }
+        return draftNamesToCheck.associate { name ->
+            name to PotentialDuplicates(
+                draft = drafts.filter { d -> d.name == name && d.exists },
+                official = officials[name] ?: listOf(),
+            )
+        }
     }
 
     private fun validateReferenceLine(
@@ -1031,10 +1030,12 @@ class PublicationService @Autowired constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
+                val sourceLocationTrack = locationTrackService.getOfficialAtMoment(split.locationTrackId, publication.publicationTime)
+                requireNotNull(sourceLocationTrack) { "Source location track not found" }
                 SplitInPublication(
                     id = publication.id,
                     splitId = split.id,
-                    locationTrack = locationTrackService.getOrThrow(OFFICIAL, split.locationTrackId),
+                    locationTrack = sourceLocationTrack,
                     targetLocationTracks = publicationDao
                         .fetchPublishedLocationTracks(id)
                         .let { changes -> changes.indirectChanges + changes.directChanges }
@@ -1057,7 +1058,7 @@ class PublicationService @Autowired constructor(
                                     newlyCreated = change.operation == Operation.CREATE,
                                 )
                             }
-                        }.sortedWith { a, b -> compareOptional(a.startAddress, b.startAddress) }
+                        }.sortedWith { a, b -> nullsFirstComparator(a.startAddress, b.startAddress) }
                 )
             }
         }
@@ -1677,7 +1678,22 @@ class PublicationService @Autowired constructor(
             )
         }
 
-        return (trackNumbers + referenceLines + locationTracks + switches + kmPosts + calculatedLocationTracks + calculatedSwitches)
+        return listOf(
+            trackNumbers,
+            referenceLines,
+            locationTracks,
+            switches,
+            kmPosts,
+            calculatedLocationTracks,
+            calculatedSwitches,
+        )
+            .flatten()
+            .map { publicationTableItem ->
+                addOperationClarificationsToPublicationTableItem(
+                    translation,
+                    publicationTableItem,
+                )
+            }
     }
 
     private fun mapToPublicationTableItem(
