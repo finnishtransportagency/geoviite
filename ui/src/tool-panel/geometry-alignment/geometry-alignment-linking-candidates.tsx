@@ -41,6 +41,8 @@ import { OnSelectOptions } from 'selection/selection-model';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 
 type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
     geometryAlignment: AlignmentHeader;
@@ -68,6 +70,7 @@ type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
     onSelect: (options: OnSelectOptions) => void;
     onShowAddLocationTrackDialog: () => void;
     disableAddButton: boolean;
+    selectedPartOfUnfinishedSplit: boolean;
 };
 
 type AlignmentRef = {
@@ -279,6 +282,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     onSelect,
     onShowAddLocationTrackDialog,
     disableAddButton,
+    selectedPartOfUnfinishedSplit,
 }) => {
     const { t } = useTranslation();
     const [locationTrackRefs, setLocationTrackRefs] = React.useState<AlignmentRef[]>([]);
@@ -357,12 +361,12 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
             <li
                 key={ref.id}
                 className={styles['geometry-alignment-infobox__alignment']}
-                onClick={() =>
+                onClick={() => {
                     onSelect({
                         trackNumbers: [],
                         locationTracks: [track.id],
-                    })
-                }
+                    });
+                }}
                 ref={ref.ref}>
                 <LocationTrackBadge
                     locationTrack={track}
@@ -420,6 +424,16 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                     </span>
                 )}
             </ul>
+
+            {selectedPartOfUnfinishedSplit && (
+                <InfoboxContentSpread>
+                    <MessageBox>
+                        {t('tool-panel.alignment.geometry.part-of-unfinished-split', {
+                            locationTrackName: selectedLayoutLocationTrack?.name,
+                        })}
+                    </MessageBox>
+                </InfoboxContentSpread>
+            )}
         </React.Fragment>
     );
 };
