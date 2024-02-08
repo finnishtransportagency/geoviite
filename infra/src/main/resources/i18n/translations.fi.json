@@ -448,7 +448,7 @@
         "switch": {
             "layout": {
                 "km-m": "Sijainti (km + m)",
-                "general-heading": "Perustiedot",
+                "general-heading": "Vaihteen perustiedot",
                 "oid": "OID",
                 "name": "Vaihdetunnus",
                 "state-category": "Tilakategoria",
