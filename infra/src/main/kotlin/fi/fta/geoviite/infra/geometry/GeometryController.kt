@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_DATAPRODUCT_DOWNLOAD
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -33,7 +34,7 @@ class GeometryController @Autowired constructor(
 ) {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plan-headers")
     fun getPlanHeaders(
         @RequestParam("bbox") bbox: BoundingBox?,
@@ -45,22 +46,26 @@ class GeometryController @Autowired constructor(
         @RequestParam("sortField") sortField: GeometryPlanSortField?,
         @RequestParam("sortOrder") sortOrder: SortOrder?,
         @RequestParam("lang") lang: String,
-    ): Page<GeometryPlanHeader> {
+    ): GeometryPlanHeadersSearchResult {
         log.apiCall("getPlanHeaders", "sources" to sources)
         val filter = geometryService.getFilter(freeText, trackNumberIds ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
         val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
-        return page(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
+        val results = pageAndRest(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
+        return GeometryPlanHeadersSearchResult(
+            planHeaders = results.page,
+            remainingIds = results.rest.map { plan -> plan.id },
+        )
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plan-headers/{planId}")
     fun getPlanHeader(@PathVariable("planId") planId: IntId<GeometryPlan>): GeometryPlanHeader {
         log.apiCall("getPlanHeader", "planId" to planId)
         return geometryService.getPlanHeader(planId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plan-headers", params = ["planIds"])
     fun getPlanHeaders(
         @RequestParam(
@@ -71,14 +76,14 @@ class GeometryController @Autowired constructor(
         return geometryService.getManyPlanHeaders(planIds)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/areas")
     fun getGeometryPlanAreas(@RequestParam("bbox") bbox: BoundingBox): List<GeometryPlanArea> {
         log.apiCall("getGeometryPlanAreas", "bbox" to bbox)
         return geometryService.getGeometryPlanAreas(bbox)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/{geometryPlanId}/layout")
     fun getTrackLayoutPlan(
         @PathVariable("geometryPlanId") geometryPlanId: IntId<GeometryPlan>,
@@ -90,14 +95,26 @@ class GeometryController @Autowired constructor(
         return planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/plans/layout")
+    fun getTrackLayoutPlans(
+        @RequestParam("planIds") planIds: List<IntId<GeometryPlan>>,
+        @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
+    ): ResponseEntity<List<GeometryPlanLayout>> {
+        log.apiCall(
+            "getTrackLayoutPlans", "planIds" to planIds, "includeGeometryData" to includeGeometryData
+        )
+        return toResponse(planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull { it.first })
+    }
+
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/switches/{switchId}")
     fun getGeometrySwitch(@PathVariable("switchId") switchId: IntId<GeometrySwitch>): GeometrySwitch {
         log.apiCall("getGeometrySwitch", "switchId" to switchId)
         return geometryService.getSwitch(switchId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/switches/{switchId}/layout")
     fun getGeometrySwitchLayout(
         @PathVariable("switchId") switchId: IntId<GeometrySwitch>,
@@ -106,28 +123,28 @@ class GeometryController @Autowired constructor(
         return toResponse(geometryService.getSwitchLayout(switchId))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/{id}")
     fun getGeometryPlan(@PathVariable("id") planId: IntId<GeometryPlan>): GeometryPlan {
         log.apiCall("getGeometryPlan", "planId" to planId)
         return geometryService.getGeometryPlan(planId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/elements/{id}")
     fun getGeometryElement(@PathVariable("id") geometryElementId: IndexedId<GeometryElement>): GeometryElement {
         log.apiCall("getGeometryElement", "geometryElementId" to geometryElementId)
         return geometryService.getGeometryElement(geometryElementId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/projects")
     fun getProjects(): List<Project> {
         log.apiCall("getProjects")
         return geometryService.getProjects()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/projects/{id}")
     fun getProject(@PathVariable("id") projectId: IntId<Project>): Project {
         log.apiCall("getProject")
@@ -141,7 +158,7 @@ class GeometryController @Autowired constructor(
         return geometryService.createProject(project)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/authors")
     fun getAuthors(): List<Author> {
         log.apiCall("getAuthors")
@@ -155,7 +172,7 @@ class GeometryController @Autowired constructor(
         return geometryService.createAuthor(author)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/plans/linking-summaries")
     fun getLinkingSummaries(
         @RequestBody planIds: List<IntId<GeometryPlan>>,
@@ -164,7 +181,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getLinkingSummaries(planIds)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/{id}/element-listing")
     fun getPlanElementListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -174,7 +191,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getElementListing(id, elementTypes)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/plans/{id}/element-listing/file")
     fun getPlanElementListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -185,7 +202,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/layout/location-tracks/{id}/element-listing")
     fun getTrackElementListing(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -203,7 +220,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getElementListing(id, elementTypes, startAddress, endAddress)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/layout/location-tracks/{id}/element-listing/file")
     fun getTrackElementListingCSV(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -222,7 +239,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/rail-network/element-listing/file")
     fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementListCsv")
@@ -234,7 +251,7 @@ class GeometryController @Autowired constructor(
         } ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/{id}/vertical-geometry")
     fun getPlanVerticalGeometryListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -243,7 +260,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getVerticalGeometryListing(id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/plans/{id}/vertical-geometry/file")
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -253,7 +270,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/layout/{publicationType}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
         @PathVariable("publicationType") publicationType: PublishType,
@@ -271,7 +288,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getVerticalGeometryListing(publicationType, id, startAddress, endAddress)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/layout/location-tracks/{id}/vertical-geometry/file")
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -285,7 +302,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/rail-network/vertical-geometry/file")
     fun getEntireNetworkVerticalGeometryListingCSV(): ResponseEntity<ByteArray> {
         log.apiCall("getEntireNetworkVerticalGeometryListingCSV")
@@ -298,7 +315,7 @@ class GeometryController @Autowired constructor(
         } ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/{planId}/start-and-end/{planAlignmentId}")
     fun getPlanAlignmentStartAndEnd(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
@@ -309,7 +326,7 @@ class GeometryController @Autowired constructor(
 
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/plans/{planId}/plan-alignment-heights/{planAlignmentId}")
     fun getPlanAlignmentHeights(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
@@ -330,7 +347,7 @@ class GeometryController @Autowired constructor(
             ?: emptyList()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("{publishType}/layout/location-tracks/{id}/linking-summary")
     fun getLocationTrackLinkingSummary(
         @PathVariable("publishType") publishType: PublishType,
@@ -340,7 +357,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getLocationTrackGeometryLinkingSummary(id, publishType)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
         @PathVariable("publishType") publishType: PublishType,

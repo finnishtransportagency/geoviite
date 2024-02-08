@@ -23,7 +23,7 @@ export type TextFieldProps = {
     attachRight?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
-export const TextField = React.forwardRef(
+export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     (
         {
             variant,
@@ -37,9 +37,8 @@ export const TextField = React.forwardRef(
         }: TextFieldProps,
         forwardedRef,
     ) => {
-        const localRef = useCloneRef(forwardedRef);
-
-        const hasFocus = document.activeElement == localRef.current;
+        const localRef = useCloneRef<HTMLInputElement>(forwardedRef);
+        const [hasFocus, setHasFocus] = React.useState(false);
 
         const className = createClassName(
             styles['text-field'],
@@ -63,18 +62,18 @@ export const TextField = React.forwardRef(
                     )}
                     <input
                         {...props}
+                        ref={localRef}
                         className={createClassName(
                             styles['text-field__input-element'],
                             props.className,
                         )}
-                        ref={(instance) => {
-                            localRef.current = instance;
-                        }}
                         onFocus={(e) => {
                             props.onFocus && props.onFocus(e);
+                            setHasFocus(true);
                         }}
                         onBlur={(e) => {
                             props.onBlur && props.onBlur(e);
+                            setHasFocus(false);
                         }}
                     />
                 </div>

@@ -6,8 +6,8 @@ import java.time.Instant
 
 data class ApiErrorResponse(
     val messageRows: List<String>,
+    val localizationKey: LocalizationKey,
+    val localizationParams: LocalizationParams,
     val correlationId: String,
-    val localizedMessageKey: LocalizationKey?,
-    val localizedMessageParams: LocalizationParams,
     val timestamp: Instant = Instant.now(),
 )

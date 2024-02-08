@@ -64,4 +64,9 @@ $accordion-right-padding: 20px;
         flex: 1;
         cursor: pointer;
     }
+
+    &--disabled {
+        pointer-events: none;
+        color: vayla-design.$color-black-lighter;
+    }
 }

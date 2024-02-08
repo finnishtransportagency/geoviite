@@ -47,8 +47,13 @@
         color: vayla-design.$color-black-light;
         display: flex;
         align-items: start;
-        width: 50%;
+        width: 100%;
         max-width: 120px;
+        min-width: 120px;
+
+        &--error {
+            color: vayla-design.$color-red-dark;
+        }
     }
 
     &__field-value {
@@ -57,6 +62,14 @@
         align-items: start;
         margin-left: 24px;
         flex-grow: 1;
+
+        &--error {
+            color: vayla-design.$color-red-dark;
+
+            .infobox__text {
+                color: vayla-design.$color-red-dark;
+            }
+        }
     }
 
     &__edit-icon {
@@ -117,7 +130,31 @@
     flex: 1;
 }
 
-.infobox-tabs {
+.tool-panel__tab-bar {
     top: 0;
     background: vayla-design.$color-white-default;
+    position: sticky;
+    z-index: 1;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+
+.tool-panel__tab {
+    display: inline-block;
+    padding: 6px 8px 6px 8px;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    max-width: 190px;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
+    overflow-x: hidden;
+    white-space: nowrap;
+    vertical-align: top;
+
+    &:hover {
+        background-color: vayla-design.$color-blue-lighter;
+    }
+
+    &--selected {
+        border-color: vayla-design.$color-blue-light;
+    }
 }

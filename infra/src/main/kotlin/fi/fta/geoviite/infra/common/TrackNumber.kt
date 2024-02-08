@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.assertSanitized
 
-private val trackNumberLength = 2..30
-private val trackNumberRegex = Regex("^[äÄöÖåÅA-Za-z0-9 ]+\$")
+val trackNumberLength = 2..30
+val trackNumberRegex = Regex("^[äÄöÖåÅA-Za-z0-9 ]+\$")
 
 data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: String)
     : Comparable<TrackNumber>, CharSequence by value {

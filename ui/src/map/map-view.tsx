@@ -71,6 +71,7 @@ import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/
 import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
+import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 
 declare global {
     interface Window {
@@ -511,10 +512,17 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             publishType,
-                            linkingState,
                             splittingState,
                             changeTimes,
                             olView,
+                        );
+                    case 'reference-line-selected-alignment-layer':
+                        return createSelectedReferenceLineAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            changeTimes,
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
@@ -533,6 +541,8 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDebugLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                         );
+                    case 'virtual-km-post-linking-layer': // Virtual map layers
+                        return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);
                 }
@@ -622,7 +632,11 @@ const MapView: React.FC<MapViewProps> = ({
                 </li>
             </ol>
 
-            <div ref={olMapContainer} className={styles['map__ol-map']} />
+            <div
+                ref={olMapContainer}
+                qa-resolution={olMap?.getView()?.getResolution()}
+                className={styles['map__ol-map']}
+            />
 
             <div id="clusteroverlay">
                 {selection.selectedItems.clusterPoints[0] && (

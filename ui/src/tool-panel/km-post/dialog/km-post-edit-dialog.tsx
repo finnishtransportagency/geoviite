@@ -75,7 +75,8 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates
         .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value === 'PLANNED' }));
+        .map((ls) => ({ ...ls, qaId: ls.value, disabled: ls.value === 'PLANNED' }));
+
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
@@ -195,7 +196,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         ? t('km-post-dialog.title-new')
                         : t('km-post-dialog.title-edit')
                 }
-                onClose={() => close()}
+                onClose={close}
                 footerContent={
                     <React.Fragment>
                         {state.existingKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
@@ -207,7 +208,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 }
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         )}
                         <div
@@ -219,11 +220,12 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
-                                onClick={() => close()}>
+                                onClick={close}>
                                 {t('button.cancel')}
                             </Button>
                             <span onClick={() => stateActions.validate()}>
                                 <Button
+                                    qa-id="save-km-post-changes"
                                     disabled={!canSaveKmPost(state)}
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}
@@ -249,6 +251,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.km-post')} *`}
                             value={
                                 <TextField
+                                    qa-id="km-post-number"
                                     value={state.kmPost?.kmNumber}
                                     onChange={(e) => updateProp('kmNumber', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('kmNumber')}
@@ -260,8 +263,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             errors={getVisibleErrorsByProp('kmNumber')}>
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                    <Link
-                                        className="move-to-edit-link"
+                                    <Link className={dialogStyles['dialog__alert']}
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>
@@ -292,6 +294,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             label={`${t('km-post-dialog.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="km-post-state"
                                     value={state.kmPost?.state}
                                     options={kmPostStateOptions}
                                     onChange={(value) => value && updateProp('state', value)}
@@ -329,11 +332,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                     footerContent={
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
-                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
-                                variant={ButtonVariant.SECONDARY}>
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button onClick={save}>{t('button.delete')}</Button>
+                            <Button variant={ButtonVariant.PRIMARY_WARNING} onClick={save}>
+                                {t('button.delete')}
+                            </Button>
                         </div>
                     }>
                     <div className={'dialog__text'}>
@@ -348,7 +353,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 <KmPostDeleteConfirmationDialog
                     id={props.kmPostId}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}
-                    onSave={props.onSave}
+                    onSave={() => {
+                        props.kmPostId && props.onSave && props.onSave(props.kmPostId);
+                        props.onClose();
+                    }}
                 />
             )}
         </React.Fragment>

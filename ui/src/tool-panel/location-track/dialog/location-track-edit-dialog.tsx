@@ -39,7 +39,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
     getSaveDisabledReasons,
-    useConflictingTrack,
+    useConflictingTracks,
     useLocationTrack,
     useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
@@ -63,6 +63,7 @@ type LocationTrackDialogContainerProps = {
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
 };
 
 export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogContainerProps> = (
@@ -78,6 +79,7 @@ export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogConta
             onClose={props.onClose}
             onSave={props.onSave}
             locationTrackChangeTime={props.locationTrackChangeTime}
+            switchChangeTime={props.switchChangeTime}
             onEditTrack={(id) => setEditTrackId(id)}
         />
     );
@@ -88,6 +90,7 @@ type LocationTrackDialogProps = {
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     onEditTrack: (id: LocationTrackId) => void;
 };
 
@@ -120,25 +123,43 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.locationTrackChangeTime,
     );
 
-    const [extraInfo] = useLocationTrackInfoboxExtras(props.locationTrack?.id, 'DRAFT');
-
-    const locationTrackStateOptions = layoutStates
-        .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
-
-    const locationTrackOwners = useLoader(
-        () =>
-            getLocationTrackOwners().then((owners) =>
-                owners.sort((a, b) => a.name.localeCompare(b.name)),
-            ),
-        [],
-    );
-    const trackWithSameName = useConflictingTrack(
-        state.locationTrack.trackNumberId,
-        state.locationTrack.name,
+    const [extraInfo] = useLocationTrackInfoboxExtras(
         props.locationTrack?.id,
         'DRAFT',
+        props.locationTrackChangeTime,
+        props.switchChangeTime,
     );
+
+    const stateOptions = layoutStates
+        .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
+        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', qaId: ls.value }));
+
+    const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
+    const topologicalConnectivityOptions = topologicalConnectivityTypes.map((tc) => ({
+        ...tc,
+        qaId: tc.value,
+    }));
+
+    const locationTrackOwners = useLoader(getLocationTrackOwners, []);
+
+    const duplicate = useLocationTrack(
+        props.locationTrack?.duplicateOf,
+        'DRAFT',
+        props.locationTrackChangeTime,
+    );
+    React.useEffect(() => {
+        if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
+    }, [duplicate]);
+
+    const validTrackName = !state.validationErrors.some((e) => e.field === 'name')
+        ? state.locationTrack.name
+        : '';
+    const trackWithSameName = useConflictingTracks(
+        state.locationTrack.trackNumberId,
+        [validTrackName],
+        props.locationTrack?.id ? [props.locationTrack.id] : [],
+        'DRAFT',
+    )?.[0];
     React.useEffect(() => {
         if (
             locationTrackOwners !== undefined &&
@@ -270,6 +291,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             '???'
         } - ${t('location-track-dialog.buffer')}`;
 
+    const switchToOwnershipBoundaryDescriptionSuffix = () =>
+        `${
+            shortenSwitchName(extraInfo?.switchAtStart?.name) ??
+            shortenSwitchName(extraInfo?.switchAtEnd?.name) ??
+            '???'
+        } - ${t('location-track-dialog.ownership-boundary')}`;
+
     const descriptionSuffix = (mode: LocationTrackDescriptionSuffixMode) => {
         switch (mode) {
             case 'NONE':
@@ -278,6 +306,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 return switchToSwitchDescriptionSuffix();
             case 'SWITCH_TO_BUFFER':
                 return switchToBufferDescriptionSuffix();
+            case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
+                return switchToOwnershipBoundaryDescriptionSuffix();
             default:
                 exhaustiveMatchingGuard(mode);
         }
@@ -306,10 +336,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         });
 
     const moveToEditLinkText = (track: LayoutLocationTrack) => {
-        const state = track.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
-        return t('location-track-dialog.move-to-edit', {
-            name: track.name + state,
-        });
+        return track.state === 'DELETED'
+            ? t('location-track-dialog.move-to-edit-deleted')
+            : t('location-track-dialog.move-to-edit', { name: track.name });
     };
     return (
         <React.Fragment>
@@ -336,7 +365,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         }
                                         icon={Icons.Delete}
                                         variant={ButtonVariant.WARNING}>
-                                        {t('button.delete')}
+                                        {t('button.delete-draft')}
                                     </Button>
                                 </div>
                             )}
@@ -375,6 +404,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.track-logo')} *`}
                             value={
                                 <TextField
+                                    qa-id="location-track-name"
                                     value={state.locationTrack?.name}
                                     onChange={(e) => updateProp('name', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('name')}
@@ -386,9 +416,16 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('name')}>
                             {trackWithSameName && (
                                 <>
-                                    <div>{t('location-track-dialog.name-in-use')}</div>
+                                    <div
+                                        className={
+                                            styles['location-track-edit-dialog__alert-color']
+                                        }>
+                                        {trackWithSameName.state === 'DELETED'
+                                            ? t('location-track-dialog.name-in-use-deleted')
+                                            : t('location-track-dialog.name-in-use')}
+                                    </div>
                                     <Link
-                                        className="move-to-edit-link"
+                                        className={styles['location-track-edit-dialog__alert']}
                                         onClick={() => props.onEditTrack(trackWithSameName.id)}>
                                         {moveToEditLinkText(trackWithSameName)}
                                     </Link>
@@ -399,6 +436,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.track-number')} *`}
                             value={
                                 <Dropdown
+                                    qaId="location-track-track-number"
                                     value={state.locationTrack?.trackNumberId}
                                     options={trackNumberOptions}
                                     onChange={(value) => updateProp('trackNumberId', value)}
@@ -414,8 +452,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="location-track-state"
                                     value={state.locationTrack?.state}
-                                    options={locationTrackStateOptions}
+                                    options={stateOptions}
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}
@@ -430,7 +469,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             value={
                                 <Dropdown
                                     value={state.locationTrack?.type}
-                                    options={locationTrackTypes}
+                                    qaId="location-track-type"
+                                    options={typeOptions}
                                     onChange={(value) => value && updateProp('type', value)}
                                     onBlur={() => stateActions.onCommitField('type')}
                                     hasError={hasErrors('type')}
@@ -449,6 +489,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         label={`${t('location-track-dialog.description-base')} *`}
                                         value={
                                             <TextField
+                                                qa-id="location-track-description-base"
                                                 value={state.locationTrack?.descriptionBase || ''}
                                                 onChange={(e) =>
                                                     updateProp('descriptionBase', e.target.value)
@@ -466,6 +507,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         label={`${t('location-track-dialog.description-suffix')} *`}
                                         value={
                                             <DescriptionSuffixDropdown
+                                                qaId="location-track-description-suffix"
                                                 suffixMode={locationTrackDescriptionSuffixMode}
                                                 onChange={(value) => {
                                                     updateProp('descriptionSuffix', value);
@@ -520,8 +562,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.topological-connectivity')} *`}
                             value={
                                 <Dropdown
+                                    qaId="location-track-topological-connectivity"
                                     value={state.locationTrack?.topologicalConnectivity}
-                                    options={topologicalConnectivityTypes}
+                                    options={topologicalConnectivityOptions}
                                     onChange={(value) =>
                                         value && updateProp('topologicalConnectivity', value)
                                     }
@@ -665,7 +708,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 <LocationTrackDeleteConfirmationDialog
                     id={state.existingLocationTrack?.id}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}
-                    onSave={props.onSave}
+                    onSave={() => {
+                        props.onSave &&
+                            state.existingLocationTrack &&
+                            props.onSave(state.existingLocationTrack.id);
+                        props.onClose();
+                    }}
                 />
             )}
         </React.Fragment>

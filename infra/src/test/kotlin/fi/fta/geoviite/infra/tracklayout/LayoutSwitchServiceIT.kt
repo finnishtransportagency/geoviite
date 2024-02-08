@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -72,7 +73,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         switchDao.insert(dummySwitch)
 
         val bbox = BoundingBox(428125.0..428906.25, 7210156.25..7210937.5)
-        val switches = getSwitches(switchService.switchFilter(bbox = bbox))
+        val switches = getSwitches(switchFilter(bbox = bbox))
 
         assertTrue(switches.isNotEmpty())
         assertTrue(switches.any { s -> s.externalId == dummySwitch.externalId })
@@ -87,7 +88,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         switchDao.insert(switchOutsideBoundingBox)
 
         val bbox = BoundingBox(428125.0..431250.0, 7196875.0..7200000.0)
-        val switches = getSwitches(switchService.switchFilter(bbox = bbox))
+        val switches = getSwitches(switchFilter(bbox = bbox))
 
         assertFalse(switches.any { s -> s.externalId == oid })
     }
@@ -97,8 +98,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val dummySwitch = generateDummySwitch()
         switchDao.insert(dummySwitch)
 
-        val switchesCompleteName = getSwitches(switchService.switchFilter(name = dummySwitch.name.toString()))
-        val switchesPartialName = getSwitches(switchService.switchFilter(name = dummySwitch.name.substring(2)))
+        val switchesCompleteName = getSwitches(switchFilter(namePart = dummySwitch.name.toString()))
+        val switchesPartialName = getSwitches(switchFilter(namePart = dummySwitch.name.substring(2)))
 
         assertTrue(switchesCompleteName.isNotEmpty())
         assertTrue(switchesPartialName.isNotEmpty())
@@ -122,7 +123,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun noSwitchesReturnedWithNonExistingName() {
-        assertTrue(getSwitches(switchService.switchFilter(name = "abcdefghijklmnopqrstu")).isEmpty())
+        assertTrue(getSwitches(switchFilter(namePart = "abcdefghijklmnopqrstu")).isEmpty())
     }
 
     @Test
@@ -132,11 +133,11 @@ class LayoutSwitchServiceIT @Autowired constructor(
         }
         val switches = getSwitches()
 
-        assertEquals(switches.size, getSwitches(switchService.switchFilter()).size)
-        assertEquals(switches.size, switchService.pageSwitches(switches, 0, null, null).size)
-        assertEquals(switches.size, switchService.pageSwitches(switches, 0, null, null).size)
-        assertEquals(1, switchService.pageSwitches(switches, switches.lastIndex, null, null).size)
-        assertEquals(0, switchService.pageSwitches(switches, switches.lastIndex + 10, null, null).size)
+        assertEquals(switches.size, getSwitches(switchFilter()).size)
+        assertEquals(switches.size, pageSwitches(switches, 0, null, null).items.size)
+        assertEquals(switches.size, pageSwitches(switches, 0, null, null).items.size)
+        assertEquals(1, pageSwitches(switches, switches.lastIndex, null, null).items.size)
+        assertEquals(0, pageSwitches(switches, switches.lastIndex + 10, null, null).items.size)
     }
 
     @Test
@@ -146,11 +147,11 @@ class LayoutSwitchServiceIT @Autowired constructor(
         }
         val switches = getSwitches()
 
-        assertEquals(switches.size, switchService.pageSwitches(switches, 0, null, null).size)
-        assertEquals(0, switchService.pageSwitches(switches, 0, 0, null).size)
-        assertEquals(1, switchService.pageSwitches(switches, 0, 1, null).size)
+        assertEquals(switches.size, pageSwitches(switches, 0, null, null).items.size)
+        assertEquals(0, pageSwitches(switches, 0, 0, null).items.size)
+        assertEquals(1, pageSwitches(switches, 0, 1, null).items.size)
         assertEquals(
-            switches.size, switchService.pageSwitches(switches, 0, switches.lastIndex + 10, null).size
+            switches.size, pageSwitches(switches, 0, switches.lastIndex + 10, null).items.size
         )
     }
 
@@ -159,7 +160,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val idOfSwitchWithNoJoints = switchDao.insert(generateDummySwitch().copy(joints = listOf())).id
         val idOfRandomSwitch = switchDao.insert(generateDummySwitch()).id
 
-        val switches = switchService.pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2))
+        val switches = pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2)).items
 
         val indexOfRandomSwitch = switches.indexOfFirst { s -> s.id == idOfRandomSwitch }
         val indexOfSwitchWithNoJoints = switches.indexOfFirst { s -> s.id == idOfSwitchWithNoJoints }
@@ -189,7 +190,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
             )
         ).id
 
-        val switches = switchService.pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2))
+        val switches = pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2)).items
 
         val indexOfRandomSwitch = switches.indexOfFirst { s -> s.id == idOfRandomSwitch }
         val indexOfSwitchLocatedAtComparisonPoint =
@@ -208,8 +209,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
         switchDao.insert(dummySwitch)
 
-        val switchesCompleteTypeName = getSwitches(switchService.switchFilter(switchType = typeName))
-        val switchesPartialTypeName = getSwitches(switchService.switchFilter(switchType = typeName.substring(2)))
+        val switchesCompleteTypeName = getSwitches(switchFilter(switchType = typeName))
+        val switchesPartialTypeName = getSwitches(switchFilter(switchType = typeName.substring(2)))
 
         assertTrue(switchesCompleteTypeName.isNotEmpty())
         assertTrue(switchesPartialTypeName.isNotEmpty())
@@ -220,7 +221,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun noSwitchesReturnedWithNonExistingTypeName() {
-        assertTrue(getSwitches(switchService.switchFilter(switchType = "abcdefghijklmnopqrstu")).isEmpty())
+        assertTrue(getSwitches(switchFilter(switchType = "abcdefghijklmnopqrstu")).isEmpty())
     }
 
     @Test
@@ -439,6 +440,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
         )
     }
 
-    private fun getSwitches(filter: (switch: TrackLayoutSwitch) -> Boolean) = switchService.list(OFFICIAL, filter)
-    private fun getSwitches() = switchService.list(OFFICIAL)
+    private fun getSwitches(filter: (Pair<TrackLayoutSwitch, SwitchStructure>) -> Boolean): List<TrackLayoutSwitch> =
+        switchService.listWithStructure(OFFICIAL).filter(filter).map { (s, _) -> s }
+
+    private fun getSwitches() = switchService.listWithStructure(OFFICIAL)
 }

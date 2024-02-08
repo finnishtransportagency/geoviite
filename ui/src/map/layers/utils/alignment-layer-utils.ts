@@ -1,5 +1,4 @@
-import { RegularShape, Stroke, Style } from 'ol/style';
-import mapStyles from 'map/map.module.scss';
+import { RegularShape, Style } from 'ol/style';
 import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -7,7 +6,7 @@ import Feature from 'ol/Feature';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import { Coordinate } from 'ol/coordinate';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { interpolateXY } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import VectorSource from 'ol/source/Vector';
@@ -17,54 +16,6 @@ import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const tickImageCache = cache<string, RegularShape>();
-
-const locationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentLine,
-        width: 1,
-    }),
-    zIndex: 0,
-});
-
-export const highlightedLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 1,
-    }),
-    zIndex: 2,
-});
-
-const referenceLineStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentLine,
-        width: 3,
-    }),
-    zIndex: 0,
-});
-
-export const highlightedReferenceLineStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 3,
-    }),
-    zIndex: 1,
-});
-
-const endPointTickStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentLine,
-        width: 1,
-    }),
-    zIndex: 1,
-});
-
-const highlightedEndPointTickStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 1,
-    }),
-    zIndex: 1,
-});
 
 export const OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING = 0.5;
 export const NORMAL_ALIGNMENT_OPACITY = 1;
@@ -102,7 +53,7 @@ export function getTickStyle(
 }
 
 export function getTickStyles(
-    points: LayoutPoint[],
+    points: AlignmentPoint[],
     mValues: number[],
     length: number,
     style: Style,
@@ -128,7 +79,7 @@ export function getTickStyles(
         .filter(filterNotEmpty);
 }
 
-function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
+function getCoordinate(points: AlignmentPoint[], m: number): number[] | undefined {
     const nextIndex = points.findIndex((p) => p.m >= m);
     if (nextIndex < 0 || nextIndex >= points.length) {
         return undefined;
@@ -141,36 +92,42 @@ function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
     }
 }
 
+export function createAlignmentFeature(
+    alignment: AlignmentDataHolder,
+    showEndTicks: boolean,
+    style: Style,
+): Feature<LineString | OlPoint>[] {
+    const features: Feature<LineString | OlPoint>[] = [];
+    const alignmentFeature = new Feature({
+        geometry: new LineString(alignment.points.map(pointToCoords)),
+    });
+    features.push(alignmentFeature);
+
+    alignmentFeature.setStyle(style);
+
+    if (showEndTicks) {
+        features.push(...createEndPointTicks(alignment, style));
+    }
+
+    setAlignmentFeatureProperty(alignmentFeature, alignment);
+
+    return features;
+}
+
 export function createAlignmentFeatures(
     alignments: AlignmentDataHolder[],
     selection: Selection,
     showEndTicks: boolean,
+    style: Style,
+    hightlightStyle: Style,
 ): Feature<LineString | OlPoint>[] {
-    return alignments.flatMap((alignment) => {
-        const highlighted = isHighlighted(selection, alignment.header);
-
-        const features: Feature<LineString | OlPoint>[] = [];
-        const alignmentFeature = new Feature({
-            geometry: new LineString(alignment.points.map(pointToCoords)),
-        });
-        features.push(alignmentFeature);
-
-        const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
-
-        if (highlighted) {
-            alignmentFeature.setStyle(
-                isReferenceLine ? highlightedReferenceLineStyle : highlightedLocationTrackStyle,
-            );
-        } else alignmentFeature.setStyle(isReferenceLine ? referenceLineStyle : locationTrackStyle);
-
-        if (showEndTicks) {
-            features.push(...createEndPointTicks(alignment, highlighted));
-        }
-
-        setAlignmentFeatureProperty(alignmentFeature, alignment);
-
-        return features;
-    });
+    return alignments.flatMap((alignment) =>
+        createAlignmentFeature(
+            alignment,
+            showEndTicks,
+            isHighlighted(selection, alignment.header) ? hightlightStyle : style,
+        ),
+    );
 }
 
 function includes(selection: ItemCollections, alignment: AlignmentHeader): boolean {
@@ -213,14 +170,12 @@ export function getAlignmentHeaderStates(
 
 export function createEndPointTicks(
     alignment: AlignmentDataHolder,
-    contrast: boolean,
+    tickStyle: Style,
 ): Feature<OlPoint>[] {
     const ticks: Feature<OlPoint>[] = [];
     const points = alignment.points;
 
     if (points.length >= 2) {
-        const tickStyle = contrast ? highlightedEndPointTickStyle : endPointTickStyle;
-
         if (points[0].m === 0) {
             const fP = pointToCoords(points[0]);
             const sP = pointToCoords(points[1]);

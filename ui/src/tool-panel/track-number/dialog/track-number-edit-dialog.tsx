@@ -117,25 +117,16 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         .filter((s) => s.value !== 'PLANNED')
         .map((s) =>
             s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
-        );
+        )
+        .map((s) => ({ ...s, qaId: s.value }));
 
     const confirmNewDraftDelete = () => {
         inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
     };
-    const closeDraftDeleteConfirmation = () => {
-        setDeletingDraft(undefined);
-    };
-    const closeNonDraftDeleteConfirmation = () => {
-        setNonDraftDeleteConfirmationVisible(false);
-    };
 
     const saveOrConfirm = () => {
         if (state.request?.state === 'DELETED' && inEditTrackNumber?.state !== 'DELETED') {
-            if (inEditTrackNumber?.draftType === 'NEW_DRAFT') {
-                confirmNewDraftDelete();
-            } else {
-                setNonDraftDeleteConfirmationVisible(true);
-            }
+            setNonDraftDeleteConfirmationVisible(true);
         } else {
             saveTrackNumber();
         }
@@ -202,7 +193,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     }}
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}>
-                                    {t('button.delete')}
+                                    {t('button.delete-draft')}
                                 </Button>
                             </div>
                         )}
@@ -216,6 +207,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             <Button
                                 disabled={hasErrors || saveInProgress}
                                 isProcessing={saveInProgress}
+                                qa-id="save-track-number-changes"
                                 onClick={saveOrConfirm}
                                 title={getSaveDisabledReasons(
                                     state.validationErrors.map((e) => e.reason),
@@ -237,6 +229,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.number')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-name"
                                     value={state.request.number}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({
@@ -253,9 +246,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             }
                             errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link
-                                    className="move-to-edit-link"
-                                    onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                <Link className={dialogStyles['dialog__alert']} onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}
@@ -264,6 +255,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.state')} *`}
                             value={
                                 <Dropdown
+                                    qaId="track-number-state"
                                     value={state.request.state}
                                     canUnselect={false}
                                     options={trackNumberStateOptions}
@@ -286,6 +278,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={`${t('track-number-edit.field.description')} *`}
                             value={
                                 <TextField
+                                    qa-id="track-number-description"
                                     value={state.request.description}
                                     onChange={(e) =>
                                         stateActions.onUpdateProp({
@@ -369,11 +362,15 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     footerContent={
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
-                                onClick={closeNonDraftDeleteConfirmation}
+                                onClick={() => setNonDraftDeleteConfirmationVisible(false)}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button onClick={saveTrackNumber}>{t('button.delete')}</Button>
+                            <Button
+                                variant={ButtonVariant.PRIMARY_WARNING}
+                                onClick={saveTrackNumber}>
+                                {t('button.delete')}
+                            </Button>
                         </div>
                     }>
                     <div className={'dialog__text'}>
@@ -388,8 +385,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                 <TrackNumberDeleteConfirmationDialog
                     changesBeingReverted={deletingDraft}
                     changeTimes={getChangeTimes()}
-                    onClose={closeDraftDeleteConfirmation}
-                    onSave={onSave}
+                    onClose={() => setDeletingDraft(undefined)}
+                    onSave={() => {
+                        inEditTrackNumber && onSave && onSave(inEditTrackNumber.id);
+                        onClose();
+                    }}
                 />
             )}
         </React.Fragment>

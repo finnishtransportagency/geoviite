@@ -367,13 +367,13 @@ fun infraModelFile(name: String = "test_file.xml") = InfraModelFile(
 fun plan(
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
     srid: Srid = Srid(3879),
-    vararg alignments: GeometryAlignment = arrayOf(geometryAlignment(trackNumberId)),
+    vararg alignments: GeometryAlignment = arrayOf(geometryAlignment()),
 ): GeometryPlan = plan(trackNumberId, srid, alignments.toList())
 
 fun plan(
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
     srid: Srid = Srid(3879),
-    alignments: List<GeometryAlignment> = listOf(geometryAlignment(trackNumberId)),
+    alignments: List<GeometryAlignment> = listOf(geometryAlignment()),
     switches: List<GeometrySwitch> = listOf(),
     measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
     elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
@@ -383,7 +383,7 @@ fun plan(
     verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
     planTime: Instant = Instant.EPOCH,
-    kmPosts: List<GeometryKmPost> = kmPosts(trackNumberId),
+    kmPosts: List<GeometryKmPost> = kmPosts(),
     project: Project = project(),
     units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
 ): GeometryPlan {
@@ -518,19 +518,17 @@ fun geometryElements(): List<GeometryElement> {
 }
 
 fun geometryAlignment(
-    trackNumberId: DomainId<TrackLayoutTrackNumber>,
     vararg elements: GeometryElement = geometryElements().toTypedArray(),
-) = geometryAlignment(trackNumberId, elements.toList())
+): GeometryAlignment = geometryAlignment(elements.toList())
 
 fun geometryAlignment(
-    trackNumberId: DomainId<TrackLayoutTrackNumber>? = null,
     elements: List<GeometryElement> = geometryElements(),
     profile: GeometryProfile? = null,
     cant: GeometryCant? = null,
     name: String = "001",
     id: DomainId<GeometryAlignment> = StringId(),
-    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111"),
-) = GeometryAlignment(
+    featureTypeCode: FeatureTypeCode = FeatureTypeCode("281"),
+): GeometryAlignment = GeometryAlignment(
     id = id,
     name = AlignmentName(name),
     description = FreeText("test-alignment 001"),
@@ -541,7 +539,6 @@ fun geometryAlignment(
     elements = elements,
     profile = profile,
     cant = cant,
-    trackNumberId = trackNumberId,
 )
 
 fun linearCant(startDistance: Double, endDistance: Double, startValue: Double, endValue: Double): GeometryCant {
@@ -568,7 +565,7 @@ fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
     points = points,
 )
 
-fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
+fun kmPosts() = listOf(
     GeometryKmPost(
         staBack = null,
         staAhead = BigDecimal("-148.729000"),
@@ -577,7 +574,6 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
         description = PlanElementName("0"),
         state = PlanState.PROPOSED,
         location = null,
-        trackNumberId = trackNumberId,
     ), GeometryKmPost(
         staBack = BigDecimal("1003.440894"),
         staAhead = BigDecimal("854.711894"),
@@ -586,7 +582,6 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
         description = PlanElementName("1"),
         state = PlanState.PROPOSED,
         location = Point(x = 2.5496599876E7, y = 6674007.758),
-        trackNumberId = trackNumberId,
     )
 )
 
@@ -605,7 +600,7 @@ fun geometryUnits(
 fun project(name: String = "TEST Project", description: String? = null) =
     Project(ProjectName(name), description?.let(::FreeText))
 
-fun author(companyName: String = "TEST Company") = Author(MetaDataName(companyName))
+fun author(companyName: String = "TEST Company") = Author(CompanyName(companyName))
 
 fun application(
     name: String = "TEST Application",

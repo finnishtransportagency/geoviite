@@ -27,7 +27,6 @@ import {
 } from 'common/common-model';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
-import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import {
     getSwitch,
@@ -40,6 +39,7 @@ import styles from './switch-edit-dialog.scss';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
+import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -109,9 +109,9 @@ export const SwitchEditDialog = ({
     const switchStructureChanged =
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
 
-    const switchStateCategoryOptions = layoutStateCategories
-        .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
+    const stateCategoryOptions = layoutStateCategories
+        .filter((sc) => isExistingSwitch || sc.value != 'NOT_EXISTING')
+        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING', qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {
         if (validateSwitchName(switchName).length == 0) {
@@ -121,6 +121,7 @@ export const SwitchEditDialog = ({
             return undefined;
         }
     }, [switchName, existingSwitch?.id]);
+
     React.useEffect(() => {
         if (isExistingSwitch) {
             getSwitch(switchId, 'DRAFT').then((s) => {
@@ -296,13 +297,9 @@ export const SwitchEditDialog = ({
     }
 
     const moveToEditLinkText = (s: LayoutSwitch) => {
-        const state =
-            s.stateCategory === 'NOT_EXISTING'
-                ? ` (${t('enum.layout-state-category.NOT_EXISTING')})`
-                : '';
-        return t('switch-dialog.move-to-edit', {
-            name: s.name + state,
-        });
+        return s.stateCategory === 'NOT_EXISTING'
+            ? t('switch-dialog.move-to-edit-deleted')
+            : t('switch-dialog.move-to-edit', { name: s.name });
     };
 
     return (
@@ -319,7 +316,7 @@ export const SwitchEditDialog = ({
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         )}
                         <div
@@ -332,6 +329,7 @@ export const SwitchEditDialog = ({
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                qa-id="save-switch-changes"
                                 disabled={validationErrors.length > 0 || isSaving}
                                 isProcessing={isSaving}
                                 onClick={saveOrConfirm}
@@ -355,6 +353,7 @@ export const SwitchEditDialog = ({
                             label={`${t('switch-dialog.switch-name')} *`}
                             value={
                                 <TextField
+                                    qa-id="switch-name"
                                     value={switchName}
                                     onChange={(e) => updateName(e.target.value)}
                                     hasError={hasErrors('name')}
@@ -366,9 +365,13 @@ export const SwitchEditDialog = ({
                             errors={getVisibleErrorsByProp('name')}>
                             {conflictingSwitch && (
                                 <>
-                                    <div>{t('switch-dialog.name-in-use')}</div>
+                                    <div className={styles['switch-edit-dialog__alert-color']}>
+                                        {conflictingSwitch.stateCategory === 'NOT_EXISTING'
+                                            ? t('switch-dialog.name-in-use-deleted')
+                                            : t('switch-dialog.name-in-use')}
+                                    </div>
                                     <Link
-                                        className="move-to-edit-link"
+                                        className={styles['switch-edit-dialog__alert']}
                                         onClick={() => onEdit(conflictingSwitch.id)}>
                                         {moveToEditLinkText(conflictingSwitch)}
                                     </Link>
@@ -379,8 +382,9 @@ export const SwitchEditDialog = ({
                             label={`${t('switch-dialog.state-category')} *`}
                             value={
                                 <Dropdown
+                                    qaId="switch-state"
                                     value={switchStateCategory}
-                                    options={switchStateCategoryOptions}
+                                    options={stateCategoryOptions}
                                     onChange={(value) => value && updateStateCategory(value)}
                                     onBlur={() => visitField('stateCategory')}
                                     hasError={hasErrors('stateCategory')}
@@ -501,18 +505,23 @@ export const SwitchEditDialog = ({
                     }>
                     <p>{t('switch-dialog.deleted-state-warning')}</p>
                     <p>
-                        <span className={styles['switch-edit-dialog__warning']}>
-                            <Icons.StatusError color={IconColor.INHERIT} />
-                        </span>{' '}
-                        {t('switch-dialog.switch-will-be-unlinked')}{' '}
-                        {t('switch-dialog.confirm-switch-delete')}
+                        <div className={styles['switch-edit-dialog__warning']}>
+                            <Icons.StatusError color={IconColor.INHERIT} />{' '}
+                            {t('switch-dialog.switch-will-be-unlinked')}
+                        </div>
+                        <div className={'dialog__text'}>
+                            {t('switch-dialog.confirm-switch-delete')}
+                        </div>
                     </p>
                 </Dialog>
             )}
             {showDeleteDraftConfirmDialog && switchId && (
-                <SwitchDeleteDialog
+                <SwitchDeleteConfirmationDialog
                     switchId={switchId}
-                    onSave={handleOnDelete}
+                    onSave={() => {
+                        handleOnDelete();
+                        onClose();
+                    }}
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
                 />
             )}

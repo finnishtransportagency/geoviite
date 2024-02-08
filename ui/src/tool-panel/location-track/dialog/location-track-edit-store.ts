@@ -10,6 +10,10 @@ import {
     ValidationErrorType,
 } from 'utils/validation-utils';
 import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
+import {
+    validateLocationTrackDescriptionBase,
+    validateLocationTrackName,
+} from 'tool-panel/location-track/dialog/location-track-validation';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -51,8 +55,6 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
 
 export type LoadingProp = keyof LocationTrackEditState['loading'];
 
-const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
-
 function newLinkingLocationTrack(): LocationTrackSaveRequest {
     return {
         name: '',
@@ -71,7 +73,6 @@ function validateLinkingLocationTrack(
 ): ValidationError<LocationTrackSaveRequest>[] {
     const errors: ValidationError<LocationTrackSaveRequest>[] = [
         ...[
-            'name',
             'trackNumberId',
             'type',
             'state',
@@ -90,38 +91,10 @@ function validateLinkingLocationTrack(
                 }
             })
             .filter(filterNotEmpty),
-        ...['name']
-            .map((prop: keyof LocationTrackSaveRequest) => {
-                const value = saveRequest[prop];
-                return value && !value.match(ALIGNMENT_NAME_REGEX)
-                    ? {
-                          field: prop,
-                          reason: `invalid-name`,
-                          type: ValidationErrorType.ERROR,
-                      }
-                    : undefined;
-            })
-            .filter(filterNotEmpty),
+        ...validateLocationTrackName(saveRequest.name),
     ];
 
-    if (
-        saveRequest.descriptionBase &&
-        (saveRequest.descriptionBase.length < 4 || saveRequest.descriptionBase.length > 256)
-    ) {
-        return [...errors, ...getErrorForInvalidDescription()];
-    }
-
-    return errors;
-}
-
-function getErrorForInvalidDescription(): ValidationError<LocationTrackSaveRequest>[] {
-    return [
-        {
-            field: 'descriptionBase',
-            reason: 'invalid-description',
-            type: ValidationErrorType.ERROR,
-        },
-    ];
+    return [...errors, ...validateLocationTrackDescriptionBase(saveRequest.descriptionBase)];
 }
 
 const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';

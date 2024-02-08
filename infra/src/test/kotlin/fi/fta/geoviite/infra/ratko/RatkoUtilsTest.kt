@@ -31,4 +31,13 @@ class RatkoUtilsTest {
         assertEquals(ratkoTypes, ratkoTypes.distinct())
     }
 
+    @Test
+    fun `combine path should retain given slashes`() {
+        assertEquals("/api/xxx/zzz/12345/", combinePaths("/api", "xxx/zzz", "12345/"))
+    }
+
+    @Test
+    fun `combine path should prevent double slashes`() {
+        assertEquals("api/xxx/12345", combinePaths("api", "/xxx", "12345"))
+    }
 }

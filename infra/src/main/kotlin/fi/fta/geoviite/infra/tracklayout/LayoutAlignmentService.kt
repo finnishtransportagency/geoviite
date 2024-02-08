@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -17,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutAlignmentService(
     private val dao: LayoutAlignmentDao,
 ) {
-    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
@@ -55,39 +56,38 @@ class LayoutAlignmentService(
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
         val alignment = dao.fetch(alignmentVersion)
         return sections.mapNotNull { section ->
-            val start = if (section.startPoint != null) context.getAddressAndM(section.startPoint)
-                ?.let { (address, distance, _) ->
-                    PlanSectionPoint(
-                        address = address,
-                        m = alignment.getClosestPointM(section.startPoint)?.first ?: throw IllegalArgumentException(
-                            "Could not find closest point for ${section.startPoint}"
-                        )
-                    )
-                } else null
-            val end =
-                if (section.endPoint != null) context.getAddressAndM(section.endPoint)?.let { (address, distance) ->
-                    PlanSectionPoint(
-                        address = address,
-                        m = alignment.getClosestPointM(section.endPoint)?.first ?: throw IllegalArgumentException(
-                            "Could not find closest point for ${section.endPoint}"
-                        )
-                    )
-                } else null
+            val start = section.startPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }
+            val end = section.endPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }
 
-            if (start != null && end != null) AlignmentPlanSection(
-                planId = section.planId,
-                planName = section.fileName,
-                alignmentId = section.alignmentId,
-                alignmentName = section.alignmentName,
-                start = start,
-                end = end,
-                isLinked = section.isLinked,
-                id = section.id,
-            ) else null
+            if (start != null && end != null) {
+                AlignmentPlanSection(
+                    planId = section.planId,
+                    planName = section.fileName,
+                    alignmentId = section.alignmentId,
+                    alignmentName = section.alignmentName,
+                    start = start,
+                    end = end,
+                    isLinked = section.isLinked,
+                    id = section.id,
+                )
+            } else {
+                null
+            }
         }
     }
 }
 
-private fun asNew(alignment: LayoutAlignment) =
+private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, context: GeocodingContext) =
+    context.getAddress(point)?.let { (address, _) ->
+        PlanSectionPoint(
+            address = address,
+            location = point,
+            m = alignment.getClosestPointM(point)?.first ?: throw IllegalArgumentException(
+                "Could not find closest point for $point"
+            ),
+        )
+    }
+
+private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
     if (alignment.dataType == TEMP) alignment
     else alignment.copy(id = StringId(), dataType = TEMP)

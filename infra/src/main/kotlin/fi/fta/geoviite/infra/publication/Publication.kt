@@ -10,15 +10,18 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
-
 
 enum class PublicationTableColumn {
     NAME,
@@ -64,9 +67,9 @@ data class PublicationChange<T>(
 
 data class PropKey(
     val key: LocalizationKey,
-    val params: LocalizationParams = LocalizationParams.empty(),
+    val params: LocalizationParams = LocalizationParams.empty,
 ) {
-    constructor(key: String, params: LocalizationParams = LocalizationParams.empty()) : this(
+    constructor(key: String, params: LocalizationParams = LocalizationParams.empty) : this(
         LocalizationKey(key), params
     )
 }
@@ -84,6 +87,7 @@ data class PublishedItemListing<T>(
 )
 
 data class PublishedTrackNumber(
+    val id: IntId<TrackLayoutTrackNumber>,
     val version: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val operation: Operation,
@@ -140,6 +144,7 @@ data class PublicationDetails(
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
+    val split: SplitHeader?,
 ) : Publication(id, publicationTime, publicationUser, message) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
@@ -170,7 +175,7 @@ data class PublishCandidates(
     val referenceLines: List<ReferenceLinePublishCandidate>,
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
-) {
+) : Loggable {
     fun ids(): PublishRequestIds = PublishRequestIds(
         trackNumbers.map { candidate -> candidate.id },
         locationTracks.map { candidate -> candidate.id },
@@ -194,6 +199,16 @@ data class PublishCandidates(
         switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
         kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
     )
+
+    override fun toLog(): String = logFormat(
+        "trackNumbers" to toLog(trackNumbers),
+        "locationTracks" to toLog(locationTracks),
+        "referenceLines" to toLog(referenceLines),
+        "switches" to toLog(switches),
+        "kmPosts" to toLog(kmPosts),
+    )
+
+    private fun <T : PublishCandidate<*>> toLog(list: List<T>): String = "${list.map(PublishCandidate<*>::rowVersion)}"
 }
 
 data class ValidationVersions(
@@ -205,11 +220,16 @@ data class ValidationVersions(
 ) {
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
+    fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
     fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
 }
+
+data class SplitPublishGroup(
+    val id: IntId<Split>,
+)
 
 data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
 
@@ -247,13 +267,13 @@ enum class PublishValidationErrorType { ERROR, WARNING }
 data class PublishValidationError(
     val type: PublishValidationErrorType,
     val localizationKey: LocalizationKey,
-    val params: LocalizationParams = LocalizationParams.empty(),
+    val params: LocalizationParams = LocalizationParams.empty,
 ) {
     constructor(
         type: PublishValidationErrorType,
         key: String,
         params: Map<String, Any?> = emptyMap(),
-    ) : this(type, LocalizationKey(key), LocalizationParams(params))
+    ) : this(type, LocalizationKey(key), localizationParams(params))
 }
 
 interface PublishCandidate<T> {
@@ -305,6 +325,7 @@ data class LocationTrackPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val group: SplitPublishGroup?,
     val boundingBox: BoundingBox?,
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
@@ -434,4 +455,20 @@ data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwit
 data class LocationTrackPublicationSwitchLinkChanges(
     val old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
     val new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+)
+
+data class SplitInPublication(
+    val id: IntId<Publication>,
+    val splitId: IntId<Split>,
+    val locationTrack: LocationTrack,
+    val targetLocationTracks: List<SplitTargetInPublication>,
+)
+
+data class SplitTargetInPublication(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val oid: Oid<LocationTrack>?,
+    val startAddress: TrackMeter?,
+    val endAddress: TrackMeter?,
+    val newlyCreated: Boolean,
 )

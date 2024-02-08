@@ -6,11 +6,11 @@ import {
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
 import {
-    deleteAdt,
+    deleteNonNullAdt,
     getNonNull,
     getNullable,
-    postIgnoreError,
-    putIgnoreError,
+    postNonNull,
+    putNonNull,
     queryParams,
 } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
@@ -57,8 +57,8 @@ export async function updateTrackNumber(
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
-    return await putIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
-        (rs) => updateTrackNumberChangeTime().then((_) => rs),
+    return await putNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then((rs) =>
+        updateTrackNumberChangeTime().then((_) => rs),
     );
 }
 
@@ -66,7 +66,7 @@ export async function createTrackNumber(
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', 'DRAFT');
-    return await postIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
+    return await postNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
 }
@@ -75,9 +75,11 @@ export async function deleteTrackNumber(
     trackNumberId: LayoutTrackNumberId,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
     const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
-    const apiResult = await deleteAdt<undefined, LayoutTrackNumberId>(path, undefined, true);
-    updateTrackNumberChangeTime();
-    updateReferenceLineChangeTime();
+    const apiResult = await deleteNonNullAdt<undefined, LayoutTrackNumberId>(path, undefined);
+
+    await updateTrackNumberChangeTime();
+    await updateReferenceLineChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -104,6 +106,7 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
 
 export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id, publishType));
 };

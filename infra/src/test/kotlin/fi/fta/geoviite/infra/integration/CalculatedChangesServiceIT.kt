@@ -366,7 +366,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService
-        ).let { locationTrackService.getWithAlignment(it.rowVersion) }
+        ).let { (id, version) ->
+            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            locationTrackService.getWithAlignment(publishedVersion)
+        }
 
         // Then remove the topology switch info
         removeTopologySwitchesFromLocationTrackAndUpdate(
@@ -490,17 +493,19 @@ class CalculatedChangesServiceIT @Autowired constructor(
             locationTrackIds = listOf(locationTrack3.id as IntId),
         )
 
-        assertContains(
-            changes.directChanges.locationTrackChanges, LocationTrackChange(
-                locationTrackId = locationTrack3.id as IntId<LocationTrack>,
-                changedKmNumbers = setOf(KmNumber(6)),
-                isStartChanged = true,
-                isEndChanged = false
-            )
+        assertEquals(
+            changes.directChanges.locationTrackChanges,
+            listOf(
+                LocationTrackChange(
+                    locationTrackId = locationTrack3.id as IntId<LocationTrack>,
+                    changedKmNumbers = setOf(KmNumber(6)),
+                    isStartChanged = true,
+                    isEndChanged = false
+                ),
+            ),
         )
         assertTrue(changes.indirectChanges.switchChanges.isEmpty())
     }
-
 
     @Test
     fun referenceLineChangeGeneratesIndirectLocationTrackChanges() {
@@ -787,7 +792,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val changes = getCalculatedChanges(kmPostIds = listOf(kmPost.id as IntId))
 
-        assertEquals(2, changes.indirectChanges.switchChanges.size)
+        assertEquals(1, changes.indirectChanges.switchChanges.size)
         assertEquals(0, changes.directChanges.switchChanges.size)
         assertContainsSwitchJoint152Change(
             changes = changes.indirectChanges.switchChanges,
@@ -1280,10 +1285,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
     }
 
     private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int) =
-        alignment.segments[segmentIndex].points.first()
+        alignment.segments[segmentIndex].alignmentPoints.first()
 
     private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int) =
-        alignment.segments[segmentIndex].points.last()
+        alignment.segments[segmentIndex].alignmentPoints.last()
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,

@@ -13,10 +13,12 @@ private val sridRange: IntRange = 1024..32767
 data class Srid @JsonCreator(mode = DISABLED) constructor(val code: Int) {
 
     @JsonCreator(mode = DELEGATING)
-    constructor(value: String) : this(parsePrefixedInt(SRID_PREFIX, value))
+    constructor(value: String) : this(parsePrefixedInt<Srid>(SRID_PREFIX, value))
 
     init {
-        assertInput<Srid>(code in sridRange) { "SRID (EPSG code) $code outside allowed range $sridRange" }
+        assertInput<Srid>(code in sridRange, code.toString()) {
+            "SRID (EPSG code) $code outside allowed range $sridRange"
+        }
     }
 
     @JsonValue

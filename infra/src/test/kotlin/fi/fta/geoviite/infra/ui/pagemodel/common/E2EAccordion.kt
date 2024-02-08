@@ -37,7 +37,7 @@ open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
         logger.info("Close accordion")
         if (childExists(By.className("accordion__body"))) {
             clickChild(By.cssSelector(".accordion-toggle svg"))
-            waitUntilChildNotVisible(By.className("accordion__body"))
+            waitUntilChildInvisible(By.className("accordion__body"))
         }
     }
 }

@@ -34,6 +34,46 @@ class LocationTrackDaoIT @Autowired constructor(
 ) : DBTestBase() {
 
     @Test
+    fun `Fetching duplicates across layout contexts works`() {
+        val tnId = insertOfficialTrackNumber()
+        val trackId = insertLocationTrack(locationTrackAndAlignment(tnId)).id
+
+        // Official track that is duplicate + draft version that is not
+        val track1Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = trackId)).id
+        assertEquals(
+            track1Id,
+            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track1Id)).copy(duplicateOf = null)).id,
+        )
+
+        // Official track that is not duplicate + draft version that is
+        val track2Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = null)).id
+        assertEquals(
+            track2Id,
+            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track2Id)).copy(duplicateOf = trackId)).id,
+        )
+
+        // Official track and draft, neither of which is duplicate
+        val track3Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = null)).id
+        assertEquals(
+            track3Id,
+            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track3Id)).copy(duplicateOf = null)).id,
+        )
+
+        // Official track and draft, both of which are duplicate
+        val track4Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = trackId)).id
+        assertEquals(
+            track4Id,
+            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track4Id)).copy(duplicateOf = trackId)).id,
+        )
+
+        // Find all but 3 (which isn't duplicate) and don't double-report 4
+        assertEquals(
+            listOf(track1Id, track2Id, track4Id).sortedBy { id -> id.intValue },
+            locationTrackDao.fetchDuplicateIdsInAnyLayoutContext(trackId).sortedBy { id -> id.intValue },
+        )
+    }
+
+    @Test
     fun locationTrackSaveAndLoadWorks() {
         val alignment = alignment()
         val alignmentVersion = alignmentDao.insert(alignment)

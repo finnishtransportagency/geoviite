@@ -336,12 +336,13 @@ function createAlignmentFeature(
     return features;
 }
 
-function getStyleForSegmentTicksIfNeeded(
+function getStyleForSegmentTickIfNeeded(
+    showDots: boolean,
     point: LinkPoint,
     controlPoint: LinkPoint | undefined,
     style: Style,
 ): Style | undefined {
-    return point.isSegmentEndPoint && controlPoint
+    return ((showDots && point.isSegmentEndPoint) || point.isEndPoint) && controlPoint
         ? getTickStyle(pointToCoords(point), pointToCoords(controlPoint), 6, 'start', style)
         : undefined;
 }
@@ -470,9 +471,7 @@ function createAlignmentFeatures(
             (point, controlPoint) =>
                 nonEmptyArray(
                     showDots ? pointStyle : undefined,
-                    showDots || point.isEndPoint
-                        ? getStyleForSegmentTicksIfNeeded(point, controlPoint, alignmentStyle)
-                        : undefined,
+                    getStyleForSegmentTickIfNeeded(showDots, point, controlPoint, alignmentStyle),
                 ),
             isGeometryAlignment,
         ),
@@ -484,9 +483,7 @@ function createAlignmentFeatures(
             (point, controlPoint) =>
                 nonEmptyArray(
                     showDots ? pointStyle : undefined,
-                    showDots || point.isEndPoint
-                        ? getStyleForSegmentTicksIfNeeded(point, controlPoint, alignmentStyle)
-                        : undefined,
+                    getStyleForSegmentTickIfNeeded(showDots, point, controlPoint, alignmentStyle),
                 ),
             isGeometryAlignment,
         ),
@@ -499,13 +496,12 @@ function createAlignmentFeatures(
                 const pointStyle = isEndPoint ? pointHighlightLargeStyle : pointHighlightStyle;
                 return nonEmptyArray(
                     showDots ? pointStyle : undefined,
-                    showDots || point.isEndPoint
-                        ? getStyleForSegmentTicksIfNeeded(
-                              point,
-                              controlPoint,
-                              alignmentHighlightStyle,
-                          )
-                        : undefined,
+                    getStyleForSegmentTickIfNeeded(
+                        showDots,
+                        point,
+                        controlPoint,
+                        alignmentHighlightStyle,
+                    ),
                 );
             },
             isGeometryAlignment,

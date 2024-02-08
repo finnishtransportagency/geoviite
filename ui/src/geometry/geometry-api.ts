@@ -30,8 +30,8 @@ import {
     getNonNull,
     getNullable,
     Page,
-    postAdt,
-    postIgnoreError,
+    postNonNull,
+    postNullable,
     queryParams,
 } from 'api/api-fetch';
 import { BoundingBox, Point } from 'model/geometry';
@@ -45,7 +45,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
@@ -85,6 +85,10 @@ async function getPlanAreas(bbox: BoundingBox): Promise<PlanArea[]> {
     const path = `${GEOMETRY_URI}/plans/areas${params}`;
     return getNonNull<PlanArea[]>(path);
 }
+export interface GeometryPlanHeadersSearchResult {
+    planHeaders: Page<GeometryPlanHeader>;
+    remainingIds: GeometryPlanId[];
+}
 
 export async function getGeometryPlanHeadersBySearchTerms(
     limit: number,
@@ -95,7 +99,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
     freeText?: string,
     sortField?: GeometrySortBy,
     sortOrder?: GeometrySortOrder,
-): Promise<Page<GeometryPlanHeader>> {
+): Promise<GeometryPlanHeadersSearchResult> {
     const params = queryParams({
         bbox: bbox ? bboxString(bbox) : undefined,
         sources: sources,
@@ -114,7 +118,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
         lang: i18next.language,
     });
 
-    return getNonNull<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`);
+    return getNonNull<GeometryPlanHeadersSearchResult>(`${GEOMETRY_URI}/plan-headers${params}`);
 }
 
 export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<GeometryPlanHeader> {
@@ -275,6 +279,29 @@ export async function getTrackLayoutPlan(
     return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
 }
 
+export async function getTrackLayoutPlans(
+    planIds: GeometryPlanId[],
+    changeTime: TimeStamp,
+    includeGeometryData = true,
+): Promise<GeometryPlanLayout[]> {
+    const url = (planIds: GeometryPlanId[], includeGeometryData: boolean) =>
+        `${GEOMETRY_URI}/plans/layout?planIds=${planIds}&includeGeometryData=${includeGeometryData}`;
+    return trackLayoutPlanCache
+        .getMany(
+            changeTime,
+            planIds,
+            (id) => `${id}-${includeGeometryData}`,
+            (fetchIds) =>
+                getNonNull<GeometryPlanLayout[]>(url(fetchIds, includeGeometryData)).then(
+                    (tracks) => {
+                        const trackMap = indexIntoMap(tracks);
+                        return (id) => trackMap.get(id);
+                    },
+                ),
+        )
+        .then((plans) => plans.filter(filterNotEmpty));
+}
+
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
     return projectCache.get(changeTime, undefined, () =>
         getNonNull<Project[]>(`${GEOMETRY_URI}/projects`),
@@ -291,16 +318,16 @@ export async function getProject(id: ProjectId): Promise<Project> {
     });
 }
 
-export async function createProject(project: Project): Promise<ProjectId | undefined> {
-    return await postIgnoreError<Project, ProjectId>(`${GEOMETRY_URI}/projects`, project);
+export async function createProject(project: Project): Promise<ProjectId> {
+    return await postNonNull<Project, ProjectId>(`${GEOMETRY_URI}/projects`, project);
 }
 
 export async function fetchAuthors(): Promise<Author[]> {
     return await getNonNull<Author[]>(`${GEOMETRY_URI}/authors`);
 }
 
-export async function createAuthor(author: Author): Promise<Author | undefined> {
-    return await postIgnoreError<Author, Author>(`${GEOMETRY_URI}/authors`, author);
+export async function createAuthor(author: Author): Promise<Author> {
+    return await postNonNull<Author, Author>(`${GEOMETRY_URI}/authors`, author);
 }
 
 export interface GeometryPlanLinkingSummary {
@@ -309,14 +336,13 @@ export interface GeometryPlanLinkingSummary {
     currentlyLinked: boolean;
 }
 
-export async function getGeometryPlanLinkingSummaries(
+export function getGeometryPlanLinkingSummaries(
     planIds: GeometryPlanId[],
 ): Promise<{ [key: GeometryPlanId]: GeometryPlanLinkingSummary } | undefined> {
-    const r = await postAdt<
-        GeometryPlanId[],
-        { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
-    >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
-    return r.isOk() ? r.value : undefined;
+    return postNullable<GeometryPlanId[], { [key: GeometryPlanId]: GeometryPlanLinkingSummary }>(
+        `${GEOMETRY_URI}/plans/linking-summaries/`,
+        planIds,
+    );
 }
 
 export interface AlignmentHeights {

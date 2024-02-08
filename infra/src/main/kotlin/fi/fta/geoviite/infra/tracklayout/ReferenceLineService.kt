@@ -62,7 +62,7 @@ class ReferenceLineService(
 
     @Transactional
     fun saveDraft(draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
-        logger.serviceCall("save", "locationTrack" to draft.id, "alignment" to alignment.id)
+        logger.serviceCall("save", "locationTrack" to draft, "alignment" to alignment)
         return saveDraftInternal(draft, alignment)
     }
 
@@ -117,7 +117,7 @@ class ReferenceLineService(
         val referenceLine = requireNotNull(referenceLineDao.getByTrackNumber(DRAFT, trackNumberId)) {
             "Found Track Number without Reference Line $trackNumberId"
         }
-        return if (referenceLine.getDraftType() != DraftType.OFFICIAL) deleteDraft(referenceLine.id as IntId) else null
+        return if (referenceLine.isDraft()) deleteDraft(referenceLine.id as IntId) else null
     }
 
     override fun createDraft(item: ReferenceLine) = draft(item)

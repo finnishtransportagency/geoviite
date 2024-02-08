@@ -6,11 +6,11 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
@@ -84,7 +84,6 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
 private fun enumTranslationKey(enumName: LocalizationKey, value: String) = "enum.${enumName}.${value}"
 
 private fun <T> formatChangeValue(translation: Translation, value: ChangeValue<T>): String {
-
     return "${
         (if (value.localizationKey != null && value.oldValue != null) translation.t(
             enumTranslationKey(
@@ -100,34 +99,33 @@ private fun <T> formatChangeValue(translation: Translation, value: ChangeValue<T
     }"
 }
 
-
 private fun formatInstant(time: Instant, timeZone: ZoneId) =
     DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(timeZone).format(time)
 
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
     Operation.CREATE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"),
-        LocalizationParams.empty()
+        LocalizationParams.empty,
     )
 
     Operation.MODIFY -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"),
-        LocalizationParams.empty()
+        LocalizationParams.empty,
     )
 
     Operation.DELETE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"),
-        LocalizationParams.empty()
+        LocalizationParams.empty,
     )
 
     Operation.RESTORE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"),
-        LocalizationParams.empty()
+        LocalizationParams.empty,
     )
 
     Operation.CALCULATED -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
-        LocalizationParams.empty()
+        LocalizationParams.empty,
     )
 }
 
@@ -193,13 +191,29 @@ fun pointsAreSame(point1: IPoint?, point2: IPoint?) =
     point1 == point2 || point1 != null && point2 != null && point1.isSame(point2, DISTANCE_CHANGE_THRESHOLD)
 
 fun getLengthChangedRemarkOrNull(translation: Translation, length1: Double?, length2: Double?) =
-    if (length1 != null && length2 != null) lengthDifference(length1, length2).let { lengthDifference ->
-        if (lengthDifference > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
-            translation, "changed-x-meters", formatDistance(lengthDifference)
-        )
-        else null
+    if (length1 == null || length2 == null) {
+        null
+    } else {
+        (length2 - length1).let { directionalLengthDifference ->
+            when {
+                abs(directionalLengthDifference) <= DISTANCE_CHANGE_THRESHOLD -> null
+
+                (directionalLengthDifference < 0) -> publicationChangeRemark(
+                    translation,
+                    "shortened-x-meters",
+                    formatDistance(abs(directionalLengthDifference))
+                )
+
+                (directionalLengthDifference > 0) -> publicationChangeRemark(
+                    translation,
+                    "lengthened-x-meters",
+                    formatDistance(abs(directionalLengthDifference))
+                )
+
+                else -> null
+            }
+        }
     }
-    else null
 
 fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
     newPoint?.let { p2 ->
@@ -214,21 +228,23 @@ fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoi
 }
 
 fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter?, newAddress: TrackMeter?) =
-    if (newAddress == null || oldAddress == null) null
-    else if (newAddress.kmNumber != oldAddress.kmNumber) publicationChangeRemark(
-        translation, "km-number-changed", "${newAddress.kmNumber}"
-    )
-    else if (lengthDifference(
-            newAddress.meters, oldAddress.meters
-        ) > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
-        translation, "moved-x-meters", formatDistance(
-            lengthDifference(
-                newAddress.meters, oldAddress.meters
-            )
+    if (newAddress == null || oldAddress == null) {
+        null
+    } else if (newAddress.kmNumber != oldAddress.kmNumber) {
+        publicationChangeRemark(
+            translation = translation,
+            key = "km-number-changed",
+            value = "${newAddress.kmNumber}",
         )
-    )
-    else null
-
+    } else if (lengthDifference(newAddress.meters, oldAddress.meters) > DISTANCE_CHANGE_THRESHOLD) {
+        publicationChangeRemark(
+            translation = translation,
+            key = "moved-x-meters",
+            value = formatDistance(lengthDifference(newAddress.meters, oldAddress.meters)),
+        )
+    } else {
+        null
+    }
 
 fun getSwitchLinksChangedRemark(
     translation: Translation,
@@ -327,8 +343,8 @@ fun switchBaseTypeToProp(translation: Translation, switchBaseType: SwitchBaseTyp
 data class GeometryChangeSummary(
     val changedLengthM: Double,
     val maxDistance: Double,
-    val startKm: KmNumber,
-    val endKm: KmNumber,
+    val startAddress: TrackMeter,
+    val endAddress: TrackMeter,
 )
 
 fun getKmNumbersChangedRemarkOrNull(
@@ -341,31 +357,29 @@ fun getKmNumbersChangedRemarkOrNull(
         if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
         formatChangedKmNumbers(changedKmNumbers.toList())
     )
-} else summaries.joinToString { summary ->
-    val key =
-        "publication-details-table.remark.geometry-changed${if (summary.startKm == summary.endKm) "" else "-many-km"}"
+} else summaries.joinToString(". ") { summary ->
     translation.t(
-        key, LocalizationParams(
+        "publication-details-table.remark.geometry-changed", LocalizationParams(
             mapOf(
                 "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
                 "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
-                "addressRange" to if (summary.startKm == summary.endKm) summary.startKm.toString()
-                else "${summary.startKm}-${summary.endKm}"
+                "addressRange" to "${summary.startAddress.round(0)}-${summary.endAddress.round(0)}"
             )
         )
     )
 }
 
-
 private data class ComparisonPoints(
     val mOnReferenceLine: Double,
     val oldPointIndex: Int,
-    val oldPoint: LayoutPoint,
-    val newPoint: LayoutPoint,
+    val oldPoint: IPoint,
+    val newPoint: IPoint,
 ) {
     val roughDistance = hypot(oldPoint.x - newPoint.x, oldPoint.y - newPoint.y)
     fun distance() = calculateDistance(LAYOUT_SRID, oldPoint, newPoint)
 }
+
+const val MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES = 10.0
 
 fun summarizeAlignmentChanges(
     geocodingContext: GeocodingContext,
@@ -375,7 +389,7 @@ fun summarizeAlignmentChanges(
 ): List<GeometryChangeSummary> {
     val changedRanges = getChangedAlignmentRanges(oldAlignment, newAlignment)
     return changedRanges.mapNotNull { oldSegments ->
-        val oldPoints = oldSegments.flatMap { segment -> segment.points }
+        val oldPoints = oldSegments.flatMap { segment -> segment.segmentPoints }
         val changedPoints = oldPoints.mapIndexedNotNull { index, oldPoint ->
             geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
                 geocodingContext.getTrackLocation(newAlignment, address)?.let { newAddressPoint ->
@@ -383,36 +397,79 @@ fun summarizeAlignmentChanges(
                 }?.let { comparison -> if (comparison.roughDistance < changeThreshold) null else comparison }
             }
         }
+        val changedPointsRangesFirstIndices =
+            changedPoints
+                .zipWithNext { a, b -> b.mOnReferenceLine - a.mOnReferenceLine > MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES }
+                .mapIndexedNotNull { index, jump -> (index + 1).takeIf { jump } }
+        val changedPointsRanges =
+            (listOf(0) + changedPointsRangesFirstIndices + changedPoints.size).zipWithNext { a, b -> a to b}
 
-        if (changedPoints.isEmpty()) null else {
-            val startKm = geocodingContext.getAddress(oldPoints[changedPoints.first().oldPointIndex])?.first?.kmNumber
-            val endKm = geocodingContext.getAddress(oldPoints[changedPoints.last().oldPointIndex])?.first?.kmNumber
+        if (changedPoints.isEmpty()) null else changedPointsRanges.mapNotNull { (from, to) ->
+            val start = changedPoints[from]
+            val end = changedPoints[to - 1]
+            val startAddress = geocodingContext.getAddress(oldPoints[start.oldPointIndex])?.first
+            val endAddress = geocodingContext.getAddress(oldPoints[end.oldPointIndex])?.first
 
-            if (startKm == null || endKm == null) null else {
-                GeometryChangeSummary(
-                    changedPoints.last().mOnReferenceLine - changedPoints.first().mOnReferenceLine,
-                    changedPoints.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
-                    startKm,
-                    endKm,
-                )
-            }
+            if (startAddress == null || endAddress == null) null
+            else GeometryChangeSummary(
+                end.mOnReferenceLine - start.mOnReferenceLine,
+                changedPoints.subList(from, to).maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
+                startAddress,
+                endAddress,
+            )
         }
-    }
+    }.flatten()
 }
 
 private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment): List<List<LayoutSegment>> {
     val newIndexByGeometryId = new.segments.mapIndexed { i, s -> i to s }.associate { (index, segment) -> segment.geometry.id to index }
     val changedOldSegmentIndexRanges = rangesOfConsecutiveIndicesOf(
         false,
-        old.segments.map { segment -> newIndexByGeometryId.containsKey(segment.geometry.id) }
+        old.segments.map { segment -> newIndexByGeometryId.containsKey(segment.geometry.id) },
     )
     return changedOldSegmentIndexRanges.map { oldSegmentIndexRange ->
         old.segments.subList(oldSegmentIndexRange.start, oldSegmentIndexRange.endInclusive)
     }
 }
 
-fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
-    translation.t(
-        "publication-details-table.remark.$key",
-        LocalizationParams("value" to value)
-    )
+fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
+    translation.t("publication-details-table.remark.$key", localizationParams("value" to value))
+
+fun addOperationClarificationsToPublicationTableItem(
+    translation: Translation,
+    publicationTableItem: PublicationTableItem,
+): PublicationTableItem {
+    return when (publicationTableItem.operation) {
+        Operation.CALCULATED -> publicationTableItem.copy(
+            propChanges = publicationTableItem.propChanges.map { publicationChange ->
+                addChangeClarification(
+                    publicationChange,
+                    translation.t("publication-table.calculated-change"),
+                    translation.t("publication-table.calculated-change-lowercase")
+                )
+            }
+        )
+
+        else -> publicationTableItem
+    }
+}
+
+fun addChangeClarification(
+    publicationChange: PublicationChange<*>,
+    clarification: String,
+    clarificationInSentenceBody: String? = null,
+): PublicationChange<*> {
+    return when (publicationChange.remark) {
+        null -> publicationChange.copy(
+            remark = clarification
+        )
+
+        else -> {
+            val displayedClarification = clarificationInSentenceBody ?: clarification
+
+            publicationChange.copy(
+                remark = "${publicationChange.remark}, $displayedClarification"
+            )
+        }
+    }
+}

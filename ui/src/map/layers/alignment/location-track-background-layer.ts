@@ -1,6 +1,10 @@
 import { LineString } from 'ol/geom';
 import { MapTile } from 'map/map-model';
-import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    getLocationTrackMapAlignmentsByTiles,
+    getSelectedLocationTrackMapAlignmentByTiles,
+} from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
@@ -14,6 +18,7 @@ import {
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
+import { LocationTrackId } from 'track-layout/track-layout-model';
 
 let newestLayerId = 0;
 
@@ -37,15 +42,13 @@ export function createLocationTrackBackgroundLayer(
     let inFlight = true;
     const selectedTrack = selection.selectedItems.locationTracks[0];
 
-    const alignmentPromise =
-        resolution <= ALL_ALIGNMENTS || selectedTrack
-            ? getLocationTrackMapAlignmentsByTiles(
-                  changeTimes,
-                  mapTiles,
-                  publishType,
-                  resolution <= ALL_ALIGNMENTS ? undefined : selectedTrack,
-              )
-            : Promise.resolve([]);
+    const alignmentPromise = getMapAlignments(
+        changeTimes,
+        mapTiles,
+        resolution,
+        publishType,
+        selectedTrack,
+    );
 
     alignmentPromise
         .then((locationTracks) => {
@@ -68,4 +71,25 @@ export function createLocationTrackBackgroundLayer(
         layer: layer,
         requestInFlight: () => inFlight,
     };
+}
+
+function getMapAlignments(
+    changeTimes: ChangeTimes,
+    mapTiles: MapTile[],
+    resolution: number,
+    publishType: PublishType,
+    selectedLocationTrackId: LocationTrackId | undefined,
+): Promise<AlignmentDataHolder[]> {
+    if (resolution <= ALL_ALIGNMENTS) {
+        return getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType);
+    } else if (selectedLocationTrackId) {
+        return getSelectedLocationTrackMapAlignmentByTiles(
+            changeTimes,
+            mapTiles,
+            publishType,
+            selectedLocationTrackId,
+        );
+    } else {
+        return Promise.resolve([]);
+    }
 }

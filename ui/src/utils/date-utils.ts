@@ -1,6 +1,6 @@
 import { TimeStamp } from 'common/common-model';
 import { maxOf, minOf } from 'utils/array-utils';
-import { format, getYear, startOfToday } from 'date-fns';
+import { format, getYear, parseISO, startOfToday } from 'date-fns';
 
 export const currentDay = startOfToday();
 
@@ -71,9 +71,11 @@ export function getMinTimestamp(time1: TimeStamp, ...others: TimeStamp[]) {
     return minOf([time1, ...others], compareTimestamps) as TimeStamp;
 }
 
-export function getMaxTimestamp(time1: TimeStamp, ...others: TimeStamp[]) {
-    return maxOf([time1, ...others], compareTimestamps) as TimeStamp;
-}
+export const getMaxTimestamp = (time1: TimeStamp, ...others: TimeStamp[]) =>
+    getMaxTimestampFromArray([time1, ...others]);
+
+export const getMaxTimestampFromArray = (timestamps: TimeStamp[]) =>
+    maxOf(timestamps, compareTimestamps) as TimeStamp;
 
 export function createYearRange(fromYear: number, toYear: number): number[] {
     const years = [];
@@ -85,4 +87,12 @@ export function createYearRange(fromYear: number, toYear: number): number[] {
 
 export function createYearRangeFromCurrentYear(backwards: number, forwards: number): number[] {
     return createYearRange(currentYear - backwards, currentYear + forwards);
+}
+
+export function parseISOOrUndefined(timestamp: TimeStamp | undefined): Date | undefined {
+    if (!timestamp || timestamp.length === 0) {
+        return undefined;
+    }
+
+    return parseISO(timestamp);
 }

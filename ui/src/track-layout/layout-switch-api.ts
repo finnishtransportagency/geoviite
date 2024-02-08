@@ -6,11 +6,11 @@ import {
     LayoutSwitchJointConnection,
 } from 'track-layout/track-layout-model';
 import {
-    deleteIgnoreError,
+    deleteNonNull,
     getNonNull,
     getNullable,
-    postAdt,
-    putAdt,
+    postNonNullAdt,
+    putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
@@ -25,6 +25,8 @@ import { ValidatedAsset } from 'publication/publication-model';
 
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
+const switchValidationCache = asyncCache<string, ValidatedAsset>();
+const tiledSwitchValidationCache = asyncCache<string, ValidatedAsset[]>();
 
 const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
 
@@ -57,12 +59,10 @@ export async function getSwitchesByName(
     name: string,
 ): Promise<LayoutSwitch[]> {
     const params = queryParams({
-        name: name,
+        exactName: name,
         includeDeleted: true,
     });
-    return await getNonNull<LayoutSwitch[]>(
-        `${layoutUri('switches', publishType)}/by-name${params}`,
-    );
+    return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', publishType)}${params}`);
 }
 
 export async function getSwitch(
@@ -108,12 +108,13 @@ export async function getSwitchJointConnections(
 export async function insertSwitch(
     newSwitch: TrackLayoutSwitchSaveRequest,
 ): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await postAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const apiResult = await postNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', 'DRAFT'),
         newSwitch,
-        true,
     );
-    updateSwitchChangeTime();
+
+    await updateSwitchChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -124,12 +125,13 @@ export async function updateSwitch(
     id: LayoutSwitchId,
     updatedSwitch: TrackLayoutSwitchSaveRequest,
 ): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await putAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+    const apiResult = await putNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', 'DRAFT', id),
         updatedSwitch,
-        true,
     );
-    updateSwitchChangeTime();
+
+    await updateSwitchChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -139,23 +141,59 @@ export async function updateSwitch(
 export async function deleteDraftSwitch(
     switchId: LayoutSwitchId,
 ): Promise<LayoutSwitchId | undefined> {
-    return await deleteIgnoreError<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then(
-        (r) => {
-            updateSwitchChangeTime();
-            return r;
-        },
+    return await deleteNonNull<LayoutSwitchId>(layoutUri('switches', 'DRAFT', switchId)).then((r) =>
+        updateSwitchChangeTime().then((_) => r),
     );
 }
 
-export async function getSwitchValidation(
+export const getSwitchValidation = async (
     publishType: PublishType,
     id: LayoutSwitchId,
-): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
-}
+): Promise<ValidatedAsset> =>
+    getSwitchesValidation(publishType, [id]).then((switches) => switches[0]);
+
+export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
+    const changeTimes = getChangeTimes();
+    const maxTime =
+        changeTimes.layoutSwitch > changeTimes.layoutLocationTrack
+            ? changeTimes.layoutSwitch
+            : changeTimes.layoutLocationTrack;
+    return switchValidationCache
+        .getMany(
+            maxTime,
+            ids,
+            (id) => id,
+            (fetchIds) =>
+                getNonNull<ValidatedAsset[]>(
+                    `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
+                ).then((switches) => {
+                    const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(
+                        switches,
+                    );
+                    return (id) => switchValidationMap.get(id) as ValidatedAsset;
+                }),
+        )
+        .then((switches) => switches.filter(filterNotEmpty));
+};
+
+export const getSwitchesValidationByTile = async (
+    changeTime: TimeStamp,
+    mapTile: MapTile,
+    publishType: PublishType,
+): Promise<ValidatedAsset[]> => {
+    const tileKey = `${mapTile.id}_${publishType}`;
+    return tiledSwitchValidationCache.get(changeTime, tileKey, () =>
+        getNonNull<ValidatedAsset[]>(
+            `${layoutUri('switches', publishType)}/validation${queryParams({
+                bbox: bboxString(mapTile.area),
+            })}`,
+        ),
+    );
+};
 
 export const getSwitchChangeTimes = (
     id: LayoutSwitchId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNonNull<DraftableChangeInfo>(changeTimeUri('switches', id));
+    return getNonNull<DraftableChangeInfo>(changeTimeUri('switches', id, publishType));
 };

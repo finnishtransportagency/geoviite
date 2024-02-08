@@ -31,6 +31,7 @@ type GeometryAlignmentInfoboxProps = {
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
     locationTrackChangeTime: TimeStamp;
+    switchChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?: LinkingState;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
@@ -53,6 +54,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     selectedLayoutReferenceLine,
     planId,
     locationTrackChangeTime,
+    switchChangeTime,
     trackNumberChangeTime,
     linkingState,
     onLinkingStart,
@@ -82,10 +84,12 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                 qa-id="geometry-alignment-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="geometry-alignment-name"
                         label={t('tool-panel.alignment.geometry.name')}
                         value={geometryAlignment.name}
                     />
                     <InfoboxField
+                        qaId="geometry-alignment-track-number"
                         label={t('tool-panel.alignment.geometry.reference-line')}
                         value={t(
                             geometryAlignment.alignmentType === 'REFERENCE_LINE' ? 'yes' : 'no',
@@ -95,6 +99,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
+                            qa-id="zoom-to-geometry-alignment"
                             onClick={() =>
                                 geometryAlignment.boundingBox &&
                                 showArea(geometryAlignment.boundingBox)
@@ -118,6 +123,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}
                     planId={planId}
                     locationTrackChangeTime={locationTrackChangeTime}
+                    switchChangeTime={switchChangeTime}
                     trackNumberChangeTime={trackNumberChangeTime}
                     linkingState={linkingState}
                     onLinkingStart={onLinkingStart}

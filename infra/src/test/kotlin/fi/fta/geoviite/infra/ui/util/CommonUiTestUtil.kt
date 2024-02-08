@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.ui.util
 
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -15,7 +15,7 @@ fun currentLocalDateTimeFormatted(): String = LocalDateTime.now().format(dateTim
 fun localDateFromString(date: String): LocalDateTime = LocalDate.parse(date, dateFormat).atStartOfDay()
 fun localDateTimeFromString(dateTime: String): LocalDateTime = LocalDateTime.parse(dateTime, dateTimeFormat)
 
-fun pointToCoordinateString(point: LayoutPoint) = pointToCoordinateString(point.x, point.y)
+fun pointToCoordinateString(point: AlignmentPoint) = pointToCoordinateString(point.x, point.y)
 
 fun pointToCoordinateString(point: Point) = pointToCoordinateString(point.x, point.y)
 

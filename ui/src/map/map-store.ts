@@ -25,14 +25,15 @@ export function getEmptyShownItems(): ShownItems {
     };
 }
 
-export const isLayerEnabledByProxy = (
+export const isLayerInProxyLayerCollection = (
     menuItemName: MapLayerMenuItemName,
     visibleLayers: MapLayerName[],
+    proxyLayerCollection: LayerCollection,
 ): boolean => {
     const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
-    const key = Object.keys(relatedMapLayers).find(
+    const key = Object.keys(proxyLayerCollection).find(
         (key) =>
-            relatedMapLayers[key as MapLayerName]?.find((layer) =>
+            proxyLayerCollection[key as MapLayerName]?.find((layer) =>
                 layersFromMenuItem.includes(layer),
             ),
     );
@@ -43,10 +44,11 @@ const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
 
 type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
 
-const relatedMapLayers: LayerCollection = {
+export const relatedMapLayers: LayerCollection = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
-    'switch-linking-layer': ['switch-layer'],
+    'switch-linking-layer': ['switch-layer', 'geometry-switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
+    'virtual-km-post-linking-layer': ['km-post-layer', 'geometry-km-post-layer'],
     'location-track-alignment-layer': [
         'location-track-background-layer',
         'location-track-badge-layer',
@@ -62,8 +64,15 @@ const relatedMapLayers: LayerCollection = {
     ],
 };
 
-const layersToHideByProxy: LayerCollection = {
-    'location-track-split-location-layer': ['location-track-badge-layer'],
+export const layersToHideByProxy: LayerCollection = {
+    'location-track-split-location-layer': [
+        'location-track-badge-layer',
+        'geometry-alignment-layer',
+        'geometry-switch-layer',
+        'geometry-km-post-layer',
+        'plan-area-layer',
+        'track-number-diagram-layer',
+    ],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
@@ -87,38 +96,48 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
 export const initialMapState: Map = {
     visibleLayers: [
         'background-map-layer',
+        'location-track-background-layer',
+        'reference-line-background-layer',
+        'location-track-badge-layer',
+        'reference-line-badge-layer',
         'location-track-alignment-layer',
-        'plan-section-highlight-layer',
         'reference-line-alignment-layer',
+        'plan-section-highlight-layer',
         'km-post-layer',
         'switch-layer',
         'geometry-alignment-layer',
         'geometry-switch-layer',
         'geometry-km-post-layer',
         'location-track-selected-alignment-layer',
+        'reference-line-selected-alignment-layer',
     ],
     layerMenu: {
         layout: [
-            { name: 'map', visible: true },
-            { name: 'reference-line', visible: true },
+            { name: 'map', visible: true, qaId: 'background-nap-layer' },
+            { name: 'reference-line', visible: true, qaId: 'reference-line-layer' },
             {
                 name: 'location-track',
                 visible: true,
+                qaId: 'location-track-layer',
                 subMenu: [
-                    { name: 'missing-vertical-geometry', visible: false },
-                    { name: 'missing-linking', visible: false },
-                    { name: 'duplicate-tracks', visible: false },
+                    {
+                        name: 'missing-vertical-geometry',
+                        visible: false,
+                        qaId: 'missing-vertical-geometry-layer',
+                    },
+                    { name: 'missing-linking', visible: false, qaId: 'missing-linking-layer' },
+                    { name: 'duplicate-tracks', visible: false, qaId: 'duplicate-tracks-layer' },
                 ],
             },
-            { name: 'switch', visible: true },
-            { name: 'km-post', visible: true },
-            { name: 'track-number-diagram', visible: false },
+            { name: 'switch', visible: true, qaId: 'switch-layer' },
+            { name: 'km-post', visible: true, qaId: 'km-post-layer' },
+            { name: 'track-number-diagram', visible: false, qaId: 'track-number-diagram-layer' },
         ],
         geometry: [
-            { name: 'geometry-alignment', visible: true },
-            { name: 'geometry-switch', visible: true },
-            { name: 'geometry-km-post', visible: true },
-            { name: 'plan-area', visible: false },
+            { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },
+            { name: 'geometry-switch', visible: true, qaId: 'geometry-switch-layer' },
+            { name: 'geometry-km-post', visible: true, qaId: 'geometry-km-post-layer' },
+            { name: 'plan-area', visible: false, qaId: 'geometry-area-layer' },
         ],
         debug: [
             { name: 'debug-1m', visible: false },

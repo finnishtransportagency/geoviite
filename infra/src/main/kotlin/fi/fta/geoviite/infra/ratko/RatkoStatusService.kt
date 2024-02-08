@@ -5,9 +5,11 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.RatkoAssetType.*
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
+import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -22,11 +24,13 @@ class RatkoStatusService @Autowired constructor(
 ) {
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
     fun getRatkoOnlineStatus(): RatkoStatus {
+        logger.serviceCall("getRatkoOnlineStatus")
         return ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(false)
     }
 
-    fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
-        return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
+    fun getRatkoPushError(publicationId: IntId<Publication>): RatkoPushErrorWithAsset? {
+        logger.serviceCall("getRatkoPushError", "publicationId" to publicationId)
+        return ratkoPushDao.getLatestRatkoPushErrorFor(publicationId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
                 TRACK_NUMBER -> trackNumberService.get(OFFICIAL, ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
                 LOCATION_TRACK -> locationTrackService.get(OFFICIAL, ratkoError.assetId as IntId<LocationTrack>)

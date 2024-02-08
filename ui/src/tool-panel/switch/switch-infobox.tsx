@@ -10,7 +10,7 @@ import {
     SwitchJointTrackMeter,
 } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { makeSwitchImage } from 'geoviite-design-lib/switch/switch-icons';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -24,9 +24,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
-import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
-import { Point } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
@@ -46,10 +45,12 @@ import {
     useSwitchChangeTimes,
 } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
-    onShowOnMap: (location: Point) => void;
+    showArea: (boundingBox: BoundingBox) => void;
     onDataChange: () => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
@@ -60,18 +61,21 @@ type SwitchInfoboxProps = {
     stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;
     onVisibilityChange: (visibilities: SwitchInfoboxVisibilities) => void;
+    onSelectLocationTrackBadge: (locationTrackId: LocationTrackId) => void;
 };
 
 const mapToSwitchJointTrackMeter = (
     jointNumber: JointNumber,
     locationTrack: LayoutLocationTrack,
     trackMeter: TrackMeter | undefined,
+    location: Point,
 ): SwitchJointTrackMeter => {
     return {
         locationTrackId: locationTrack.id,
         locationTrackName: locationTrack.name,
         trackMeter: trackMeter,
         jointNumber: jointNumber,
+        location,
     };
 };
 
@@ -97,7 +101,7 @@ const getTrackMeterForPoint = async (
         location,
     );
 
-    return mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter);
+    return mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter, location);
 };
 
 export const getSwitchJointTrackMeters = async (
@@ -124,7 +128,7 @@ export const getSwitchJointTrackMeters = async (
 
 const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     switchId,
-    onShowOnMap,
+    showArea,
     onDataChange,
     changeTimes,
     publishType,
@@ -135,6 +139,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     visibilities,
     onVisibilityChange,
     stopLinking,
+    onSelectLocationTrackBadge,
 }: SwitchInfoboxProps) => {
     const { t } = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
@@ -150,7 +155,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitchJointConnections(publishType, switchId),
         [publishType, layoutSwitch],
     );
-    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id);
+    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, publishType);
 
     const switchJointTrackMeters = useLoader(() => {
         return switchJointConnections
@@ -214,18 +219,21 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="switch-oid"
                             label={t('tool-panel.switch.layout.oid')}
                             value={
                                 layoutSwitch.externalId || t('tool-panel.switch.layout.unpublished')
                             }
                         />
                         <InfoboxField
+                            qaId="switch-name"
                             label={t('tool-panel.switch.layout.name')}
                             value={layoutSwitch.name}
                             onEdit={openEditSwitchDialog}
                             iconDisabled={isOfficial()}
                         />
                         <InfoboxField
+                            qaId="switch-state-category"
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
                                 <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
@@ -236,9 +244,18 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxButtons>
                             <Button
                                 size={ButtonSize.SMALL}
+                                title={
+                                    !switchLocation ? t('tool-panel.switch.layout.no-location') : ''
+                                }
                                 disabled={!switchLocation}
                                 variant={ButtonVariant.SECONDARY}
-                                onClick={() => switchLocation && onShowOnMap(switchLocation)}>
+                                qa-id="zoom-to-switch"
+                                onClick={() =>
+                                    switchLocation &&
+                                    showArea(
+                                        calculateBoundingBoxToShowAroundLocation(switchLocation),
+                                    )
+                                }>
                                 {t('tool-panel.switch.layout.show-on-map')}
                             </Button>
                         </InfoboxButtons>
@@ -256,10 +273,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                     )}
                     <InfoboxField
+                        qaId="switch-hand"
                         label={t('tool-panel.switch.layout.hand')}
                         value={structure && <SwitchHand hand={structure.hand} />}
                     />
                     <InfoboxField
+                        qaId="switch-trap-point"
                         label={t('tool-panel.switch.layout.trap-point')}
                         value={
                             layoutSwitch &&
@@ -275,6 +294,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 qa-id="switch-location-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="switch-coordinates"
                         label={t('tool-panel.switch.layout.coordinates')}
                         value={switchLocation ? formatToTM35FINString(switchLocation) : '-'}
                     />
@@ -283,6 +303,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             switchAlignments={structure.alignments}
                             jointConnections={switchJointConnections}
                             publishType={publishType}
+                            onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                         />
                     )}
                     <WriteAccessRequired>
@@ -306,7 +327,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         </InfoboxButtons>
                     </WriteAccessRequired>
                     {placingSwitchLinkingState && (
-                        <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
+                        <InfoboxContentSpread>
+                            <MessageBox>
+                                {t('tool-panel.switch.layout.switch-placing-help')}
+                            </MessageBox>
+                        </InfoboxContentSpread>
                     )}
                 </InfoboxContent>
             </Infobox>
@@ -317,6 +342,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 qa-id="switch-additional-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="switch-owner"
                         label={t('tool-panel.switch.layout.owner')}
                         value={getOwnerName(layoutSwitch?.ownerId)}
                     />
@@ -346,7 +372,10 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             />
                             <InfoboxField
                                 label={t('tool-panel.changed')}
-                                value={formatDateShort(switchChangeTimes.changed)}
+                                value={
+                                    switchChangeTimes.changed &&
+                                    formatDateShort(switchChangeTimes.changed)
+                                }
                             />
                         </React.Fragment>
                     )}
@@ -357,14 +386,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         </InfoboxButtons>
                     )}
                 </InfoboxContent>
             </Infobox>
             {showDeleteDialog && (
-                <SwitchDeleteDialog
+                <SwitchDeleteConfirmationDialog
                     switchId={switchId}
                     onClose={() => setShowDeleteDialog(false)}
                     onSave={handleSwitchSave}

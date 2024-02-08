@@ -1,6 +1,7 @@
 import { PublishRequestIds } from 'publication/publication-model';
 import * as React from 'react';
 import {
+    LayoutKmPostId,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -9,10 +10,10 @@ import {
 import { TimeStamp } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import {
+    useKmPost,
     useLocationTrack,
     useReferenceLine,
     useSwitch,
-    useTrackNumbers,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -30,7 +31,7 @@ const TrackNumberItem: React.FC<{ trackNumberId: LayoutTrackNumberId; changeTime
     props,
 ) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers('DRAFT', props.changeTime);
+    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT', props.changeTime);
     const trackNumber = trackNumbers && trackNumbers.find((tn) => tn.id === props.trackNumberId);
     return trackNumber === undefined ? (
         <li />
@@ -90,6 +91,18 @@ const SwitchItem: React.FC<{ switchId: LayoutSwitchId }> = ({ switchId }) => {
     ) : (
         <li>
             {t('publish.revert-confirm.dependency-list.switch')} {switchObj.name}
+        </li>
+    );
+};
+
+const KmPostItem: React.FC<{ kmPostId: LayoutKmPostId }> = ({ kmPostId }) => {
+    const { t } = useTranslation();
+    const kmPost = useKmPost(kmPostId, 'DRAFT');
+    return kmPost === undefined ? (
+        <li />
+    ) : (
+        <li>
+            {t('publish.revert-confirm.dependency-list.km-post')} {kmPost.kmNumber}
         </li>
     );
 };
@@ -171,6 +184,9 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
                     ))}
                     {dependencies.switches.map((sw) => (
                         <SwitchItem switchId={sw} key={sw} />
+                    ))}
+                    {dependencies.kmPosts.map((kmPost) => (
+                        <KmPostItem kmPostId={kmPost} key={kmPost} />
                     ))}
                 </ul>
             </>

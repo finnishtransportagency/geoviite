@@ -1,6 +1,10 @@
 import * as React from 'react';
 import PublicationTable from 'publication/table/publication-table';
-import { PublicationDetails, PublicationTableItem } from 'publication/publication-model';
+import {
+    PublicationDetails,
+    PublicationId,
+    PublicationTableItem,
+} from 'publication/publication-model';
 import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
@@ -10,28 +14,30 @@ import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { useAppNavigate } from 'common/navigate';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
-    onPublicationUnselected: () => void;
-    anyFailed: boolean;
+    setSelectedPublicationId: (publicationId: PublicationId | undefined) => void;
     changeTime: TimeStamp;
 };
 
 const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     publication,
-    onPublicationUnselected,
-    anyFailed,
+    setSelectedPublicationId,
     changeTime,
 }) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
 
-    const waitingAfterFail = !publication.ratkoPushStatus && anyFailed;
+    const unpublishedToRatko = !publication.ratkoPushStatus;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
     React.useEffect(() => {
         setIsLoading(true);
+        setSelectedPublicationId(publication.id);
 
         getPublicationAsTableItems(publication.id).then((p) => {
             p && setPublicationItems(p);
@@ -44,7 +50,8 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
             <div className={styles['publication-details__title']}>
                 <Link
                     onClick={() => {
-                        onPublicationUnselected();
+                        setSelectedPublicationId(undefined);
+                        navigate('frontpage');
                     }}>
                     {t('frontpage.frontpage-link')}
                 </Link>
@@ -54,16 +61,23 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
             </div>
             <div className={styles['publication-details__content']}>
                 <div className={styles['publication-details__count-header']}>
-                    <span>
-                        {t('publication-table.count-header', {
-                            number: publicationItems?.length || 0,
-                            truncated: '',
-                        })}
-                    </span>
+                    {isLoading ? (
+                        <React.Fragment>
+                            {t('publication-table.count-header-loading')}&nbsp;
+                            <Spinner />
+                        </React.Fragment>
+                    ) : (
+                        <span>
+                            {t('publication-table.count-header', {
+                                number: publicationItems?.length || 0,
+                                truncated: '',
+                            })}
+                        </span>
+                    )}
                 </div>
                 <PublicationTable isLoading={isLoading} items={publicationItems} />
             </div>
-            {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (
+            {(ratkoPushFailed(publication.ratkoPushStatus) || unpublishedToRatko) && (
                 <footer className={styles['publication-details__footer']}>
                     {ratkoPushFailed(publication.ratkoPushStatus) && (
                         <div className={styles['publication-details__failure-notification']}>
@@ -84,7 +98,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                             </span>
                         </div>
                     )}
-                    {waitingAfterFail && (
+                    {unpublishedToRatko && (
                         <div className={styles['publication-details__failure-notification']}>
                             <span
                                 className={

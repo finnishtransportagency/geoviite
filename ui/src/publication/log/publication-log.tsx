@@ -3,8 +3,8 @@ import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
-import { currentDay } from 'utils/date-utils';
-import { endOfDay, startOfDay, subMonths } from 'date-fns';
+import { parseISOOrUndefined } from 'utils/date-utils';
+import { endOfDay, startOfDay } from 'date-fns';
 import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
@@ -16,22 +16,64 @@ import {
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { PublicationTableItem } from 'publication/publication-model';
 import { Page } from 'api/api-fetch';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { useAppNavigate } from 'common/navigate';
+import { defaultPublicationSearch } from 'publication/publication-utils';
 
-export type PublicationLogProps = {
-    onClose: () => void;
-};
-
-const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
+const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
 
-    const [startDate, setStartDate] = React.useState<Date | undefined>(subMonths(currentDay, 1));
-    const [endDate, setEndDate] = React.useState<Date | undefined>(currentDay);
+    const selectedPublicationSearch = useTrackLayoutAppSelector(
+        (state) => state.selection.publicationSearch,
+    );
+
+    const trackLayoutActionDelegates = React.useMemo(
+        () => createDelegates(trackLayoutActionCreators),
+        [],
+    );
+
+    const storedStartDate = parseISOOrUndefined(selectedPublicationSearch?.startDate);
+    const storedEndDate = parseISOOrUndefined(selectedPublicationSearch?.endDate);
+
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
     const [isLoading, setIsLoading] = React.useState(true);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
     React.useEffect(() => {
+        if (!selectedPublicationSearch) {
+            trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);
+        }
+
+        updatePublicationsTable(
+            storedStartDate ?? parseISOOrUndefined(defaultPublicationSearch.startDate),
+            storedEndDate ?? parseISOOrUndefined(defaultPublicationSearch.endDate),
+        );
+    }, []);
+
+    const setStartDate = (newStartDate: Date | undefined) => {
+        trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
+            newStartDate?.toISOString(),
+        );
+        updatePublicationsTable(newStartDate, storedEndDate);
+    };
+
+    const setEndDate = (newEndDate: Date | undefined) => {
+        trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(newEndDate?.toISOString());
+        updatePublicationsTable(storedStartDate, newEndDate);
+    };
+
+    const updatePublicationsTable = (startDate: Date | undefined, endDate: Date | undefined) => {
+        const datesAreValid = startDate && endDate;
+        if (!datesAreValid) {
+            clearPublicationsTable();
+            return;
+        }
+
         setIsLoading(true);
 
         getPublicationsAsTableItems(
@@ -43,10 +85,20 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
             r && setPagedPublications(r);
             setIsLoading(false);
         });
-    }, [startDate, endDate, sortInfo]);
+    };
+
+    const clearPublicationsTable = () => {
+        setPagedPublications({
+            totalCount: 0,
+            items: [],
+            start: 0,
+        });
+    };
 
     const endDateErrors =
-        startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
+        storedStartDate && storedEndDate && storedStartDate > storedEndDate
+            ? [t('publication-log.end-before-start')]
+            : [];
 
     const truncated =
         pagedPublications !== undefined &&
@@ -55,7 +107,13 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     return (
         <div className={styles['publication-log']}>
             <div className={styles['publication-log__title']}>
-                <Link onClick={onClose}>{t('frontpage.frontpage-link')}</Link>
+                <Link
+                    onClick={() => {
+                        trackLayoutActionDelegates.setSelectedPublicationSearch(undefined);
+                        navigate('frontpage');
+                    }}>
+                    {t('frontpage.frontpage-link')}
+                </Link>
                 <span className={styles['publication-log__breadcrumbs']}>
                     {' > ' + t('publication-log.breadcrumbs-text')}
                 </span>
@@ -64,37 +122,29 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
                 <div className={styles['publication-log__actions']}>
                     <FieldLayout
                         label={t('publication-log.start-date')}
-                        value={
-                            <DatePicker
-                                value={startDate}
-                                onChange={(startDate) => setStartDate(startDate)}
-                            />
-                        }
+                        value={<DatePicker value={storedStartDate} onChange={setStartDate} />}
                     />
                     <FieldLayout
                         label={t('publication-log.end-date')}
-                        value={
-                            <DatePicker
-                                value={endDate}
-                                onChange={(endDate) => setEndDate(endDate)}
-                            />
-                        }
+                        value={<DatePicker value={storedEndDate} onChange={setEndDate} />}
                         errors={endDateErrors}
                     />
-                    <div className={styles['publication-log__export_button']}>
-                        <Button
-                            icon={Icons.Download}
-                            onClick={() =>
-                                (location.href = getPublicationsCsvUri(
-                                    startDate,
-                                    endDate && endOfDay(endDate),
-                                    sortInfo?.propName,
-                                    sortInfo?.direction,
-                                ))
-                            }>
-                            {t('publication-log.export-csv')}
-                        </Button>
-                    </div>
+                    <PrivilegeRequired privilege="publication-download">
+                        <div className={styles['publication-log__export_button']}>
+                            <Button
+                                icon={Icons.Download}
+                                onClick={() =>
+                                    (location.href = getPublicationsCsvUri(
+                                        storedStartDate,
+                                        storedEndDate && endOfDay(storedEndDate),
+                                        sortInfo?.propName,
+                                        sortInfo?.direction,
+                                    ))
+                                }>
+                                {t('publication-log.export-csv')}
+                            </Button>
+                        </div>
+                    </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
                     <span

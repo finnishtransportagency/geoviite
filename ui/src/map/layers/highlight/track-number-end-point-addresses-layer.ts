@@ -11,7 +11,7 @@ import { ChangeTimes } from 'common/common-slice';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
-import { LayoutPoint, LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import { AlignmentPoint, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import {
     getColor,
@@ -52,8 +52,8 @@ const getColorForTrackNumber = (
 };
 
 function createAddressFeature(
-    point: LayoutPoint,
-    controlPoint: LayoutPoint,
+    point: AlignmentPoint,
+    controlPoint: AlignmentPoint,
     address: TrackMeter,
     pointAtEnd: boolean,
     color: TrackNumberColor,

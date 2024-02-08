@@ -1,11 +1,8 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.RotationDirection
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.RotationDirection.CW
-import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geometry.CantRotationPoint.INSIDE_RAIL
 import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -24,7 +21,7 @@ private const val JOINT_LOCATION_DELTA = 0.01
 
 class ValidationTest {
 
-    val yvStructure = switchStructureYV60_300_1_9()
+    private val yvStructure = switchStructureYV60_300_1_9()
 
     @Test
     fun validationFindsNothingInValidGeometry() {
@@ -41,7 +38,7 @@ class ValidationTest {
         )
         assertValidationErrors(
             validateAlignmentGeometry(alignment),
-            listOf("$VALIDATION_ELEMENT.field-incorrect-length")
+            listOf("$VALIDATION_ELEMENT.field-incorrect-length"),
         )
     }
 
@@ -84,7 +81,6 @@ class ValidationTest {
             viPoint(10.1, 1.0),
         )
         val alignment = geometryAlignment(profile = profile(points))
-        println(validateAlignmentProfile(alignment))
         assertEquals(listOf<ValidationError>(), validateAlignmentProfile(alignment))
     }
 
@@ -93,7 +89,7 @@ class ValidationTest {
         val points = listOf(
             viPoint(1.0, 0.02),
             viPoint(0.1, 0.01),
-            viPoint(3.0, 0.04)
+            viPoint(3.0, 0.04),
         )
         val alignment = geometryAlignment(profile = profile(points))
         assertValidationErrors(
@@ -120,7 +116,7 @@ class ValidationTest {
         val points = listOf(
             cantPoint(0.0, 0.2, CW),
             cantPoint(1.1, 0.1, CW),
-            cantPoint(2.1, 0.15, CCW)
+            cantPoint(2.1, 0.15, CCW),
         )
         val alignment = geometryAlignment(cant = cant(points))
         assertEquals(listOf<ValidationError>(), validateAlignmentCant(alignment))
@@ -131,7 +127,7 @@ class ValidationTest {
         val points = listOf(
             cantPoint(1.0, 0.1, CCW),
             cantPoint(0.5, 0.2, CCW),
-            cantPoint(3.0, 0.3, CCW)
+            cantPoint(3.0, 0.3, CCW),
         )
         val alignment = geometryAlignment(cant = cant(points))
         assertValidationErrors(
@@ -141,11 +137,31 @@ class ValidationTest {
     }
 
     @Test
+    fun `validation finds cant missing from track`() {
+        val alignment = geometryAlignment(
+            cant = cant(
+                points = listOf(
+                    cantPoint(0.0, 0.2, CW),
+                    cantPoint(1.1, 0.1, CW),
+                    cantPoint(2.1, 0.15, CCW),
+                ),
+                rotationPoint = null,
+            ),
+            featureTypeCode = FeatureTypeCode("281"), // cant should exist on tracks
+        )
+
+        assertValidationErrors(
+            validateAlignmentCant(alignment),
+            listOf("$VALIDATION_ALIGNMENT.cant-rotation-point-undefined"),
+        )
+    }
+
+    @Test
     fun validationFindsCantOverGauge() {
         val points = listOf(
             cantPoint(1.0, 0.1, CCW),
             cantPoint(2.0, 2.0, CCW),
-            cantPoint(3.0, 0.3, CCW)
+            cantPoint(3.0, 0.3, CCW),
         )
         val alignment = geometryAlignment(cant = cant(points))
         assertValidationErrors(
@@ -157,7 +173,7 @@ class ValidationTest {
     @Test
     fun validationFindsNothingInValidSwitch() {
         val location = Point(100.0, 150.0)
-        val angle = PI/4
+        val angle = PI / 4
         val switch = createSwitch(yvStructure, location, angle)
         val alignments = createSwitchAlignments(switch, yvStructure)
         val alignmentSwitches = alignments.mapNotNull { alignment ->
@@ -168,17 +184,18 @@ class ValidationTest {
 
     @Test
     fun validationNoticesSwitchJointPointsNotMeeting() {
-        val validSwitch = createSwitch(yvStructure, Point(100.0, 150.0), PI/4)
+        val validSwitch = createSwitch(yvStructure, Point(100.0, 150.0), PI / 4)
         val invalidSwitch = validSwitch.copy(
             joints = validSwitch.joints.map { joint ->
                 // Move first joint a bit off
-                if (joint.number == JointNumber(1))
+                if (joint.number == JointNumber(1)) {
                     joint.copy(
                         location = joint.location.copy(x = joint.location.x + JOINT_LOCATION_DELTA * 1.1)
                     )
-                else
+                } else {
                     joint
-            }
+                }
+            },
         )
         val alignments = createSwitchAlignments(invalidSwitch, yvStructure)
         val alignmentSwitches = alignments.mapNotNull { alignment ->
@@ -192,17 +209,18 @@ class ValidationTest {
 
     @Test
     fun validationNoticesSwitchJointPointsInaccuracy() {
-        val validSwitch = createSwitch(yvStructure, Point(100.0, 150.0), PI/4)
+        val validSwitch = createSwitch(yvStructure, Point(100.0, 150.0), PI / 4)
         val inaccurateSwitch = validSwitch.copy(
             joints = validSwitch.joints.map { joint ->
                 // Move first joint a bit off
-                if (joint.number == JointNumber(1))
+                if (joint.number == JointNumber(1)) {
                     joint.copy(
                         location = joint.location.copy(x = joint.location.x + JOINT_LOCATION_DELTA * 0.9)
                     )
-                else
+                } else {
                     joint
-            }
+                }
+            },
         )
         val alignments = createSwitchAlignments(inaccurateSwitch, yvStructure)
         val alignmentSwitches = alignments.mapNotNull { alignment ->
@@ -223,7 +241,8 @@ class ValidationTest {
             assertEquals(
                 LocalizationKey("$VALIDATION.${keyParts[index]}"),
                 error.localizationKey,
-                errors.toString())
+                errors.toString(),
+            )
         }
     }
 
@@ -235,13 +254,16 @@ class ValidationTest {
         return VIPoint(PlanElementName("Test Point"), Point(station, height))
     }
 
-    private fun cant(points: List<GeometryCantPoint>): GeometryCant {
+    private fun cant(
+        points: List<GeometryCantPoint>,
+        rotationPoint: CantRotationPoint? = INSIDE_RAIL,
+    ): GeometryCant {
         return GeometryCant(
             PlanElementName("TC001"),
             PlanElementName("Test Cant"),
             FINNISH_RAIL_GAUGE,
-            INSIDE_RAIL,
-            points
+            rotationPoint,
+            points,
         )
     }
 
@@ -271,9 +293,8 @@ class ValidationTest {
         structure: SwitchStructure,
     ) = structure.alignments.map { structureAlignment ->
         geometryAlignment(
-            trackNumberId = null,
             elements = structureAlignment.jointNumbers.mapIndexedNotNull { index, jointNumber ->
-                structureAlignment.jointNumbers.getOrNull(index+1)?.let { nextJointNumber ->
+                structureAlignment.jointNumbers.getOrNull(index + 1)?.let { nextJointNumber ->
                     val startPoint = switch.getJoint(jointNumber)!!.location
                     val endPoint = switch.getJoint(nextJointNumber)!!.location
                     line(
@@ -284,7 +305,7 @@ class ValidationTest {
                             switchId = switch.id,
                             startJointNumber = jointNumber,
                             endJointNumber = null,
-                        )
+                        ),
                     )
                 }
             },
@@ -307,8 +328,12 @@ class ValidationTest {
         angle: Double,
     ): Point = rotateAroundOrigin(angle, structure.getJointLocation(number)) + locationOffset
 
-    private fun lines(startPoint: Point, segmentCount: Int, segmentOffset: Double, lengthError: Double = 0.0)
-            : List<GeometryElement> {
+    private fun lines(
+        startPoint: Point,
+        segmentCount: Int,
+        segmentOffset: Double,
+        lengthError: Double = 0.0,
+    ): List<GeometryElement> {
         return (0 until segmentCount).map { i ->
             val start = startPoint + Point(i * segmentOffset, i * segmentOffset)
             val end = startPoint + Point((i + 1) * segmentOffset, (i + 1) * segmentOffset)

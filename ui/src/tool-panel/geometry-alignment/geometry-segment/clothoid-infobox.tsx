@@ -5,10 +5,10 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 
 type ClothoidInfoBoxProps = {
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     geometryClothoid: GeometryClothoid;
 };
 

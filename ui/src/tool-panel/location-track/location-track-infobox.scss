@@ -13,6 +13,12 @@
     margin: 0; /* Remove margins */
 }
 
+.location-track-infobox-duplicate-of__on-different-track {
+    .icon {
+        fill: vayla-design.$color-red-dark;
+    }
+}
+
 .location-track-infobox__split {
     padding-left: 11px;
 
@@ -28,8 +34,17 @@
             margin-left: 12px;
         }
 
-        .dropdown {
-            max-width: 178px;
+        .text-field {
+            width: 100%;
+        }
+
+        .text-field__input {
+            width: 100%;
+            display: flex;
+        }
+
+        input {
+            width: 100%;
         }
     }
 }
@@ -42,31 +57,50 @@
     display: flex;
 }
 
+.location-track-infobox__split-row-with-close-button {
+    display: flex;
+
+    > .infobox__field {
+        flex-grow: 1;
+    }
+}
+
 .location-track-infobox__split-close-button {
     margin-left: 5px;
-    margin-top: 4px;
     border-radius: 18px;
     width: 20px;
     height: 20px;
     fill: vayla-design.$color-white-default;
-    background-color: vayla-design.$color-blue-default;
     display: flex;
     justify-content: center;
     align-items: center;
-    cursor: pointer;
 
-    &:hover {
-        fill: vayla-design.$color-white-default;
-        background: vayla-design.$color-blue-light;
+    &--disabled {
+        background-color: vayla-design.$color-black-lighter;
+    }
+
+    &--enabled {
+        background-color: vayla-design.$color-blue-default;
+        cursor: pointer;
+
+        &:hover {
+            fill: vayla-design.$color-white-default;
+            background: vayla-design.$color-blue-light;
+        }
     }
 }
 
-.location-track-infobox__close-split-button-column {
-    width: 36px;
+.location-track-infobox__split-remark {
+    padding-top: 0px;
+
+    > .infobox__field-value {
+        display: flex;
+        flex-direction: column;
+    }
 }
 
-.location-track-infobox__split-replaces-duplicate {
-    padding-top: 0px;
+.location-track-infobox__split-error {
+    color: vayla-design.$color-red-dark;
 }
 
 .location-track-infobox__split-item-ball {
@@ -78,6 +112,10 @@
     width: 18px;
     height: 18px;
     background-color: vayla-design.$color-blue-default;
+
+    &--disabled {
+        background-color: vayla-design.$color-red-default;
+    }
 }
 
 .location-track-infobox__split-item-line {
@@ -88,6 +126,10 @@
     height: 100%;
     width: 6px;
     background-color: vayla-design.$color-blue-default;
+
+    &--disabled {
+        background-color: vayla-design.$color-red-default;
+    }
 }
 
 .location-track-infobox__split-item-field-label {

@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
@@ -34,6 +34,7 @@ import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { subtractPublishRequestIds } from 'publication/publication-utils';
+import { PURGE } from 'redux-persist';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -249,14 +250,6 @@ function filterItemSelectOptions(
         }
     }
 
-    if (options?.trackNumbers && options.trackNumbers.length > 0) {
-        options.locationTracks = [];
-    }
-
-    if (options?.locationTracks && options.locationTracks.length > 0) {
-        options.trackNumbers = [];
-    }
-
     return {
         ...options,
 
@@ -273,6 +266,11 @@ function filterItemSelectOptions(
 const trackLayoutSlice = createSlice({
     name: 'trackLayout',
     initialState: initialTrackLayoutState,
+    extraReducers: (builder: ActionReducerMapBuilder<TrackLayoutState>) => {
+        builder.addCase(PURGE, (_state, _action) => {
+            return initialTrackLayoutState;
+        });
+    },
     reducers: {
         ...wrapReducers((state: TrackLayoutState) => state.map, mapReducers),
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
@@ -297,7 +295,12 @@ const trackLayoutSlice = createSlice({
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
             if (state.splittingState && action.payload.switches?.length) {
-                splitReducers.addSplit(state, { ...action, payload: action.payload.switches[0] });
+                if (state.splittingState.state === 'SETUP') {
+                    splitReducers.addSplit(state, {
+                        ...action,
+                        payload: action.payload.switches[0],
+                    });
+                }
                 return;
             }
 

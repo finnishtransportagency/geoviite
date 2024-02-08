@@ -1,10 +1,12 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.localDateFromString
 import fi.fta.geoviite.infra.ui.util.localDateTimeFromString
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
+import waitUntilTextIs
 import java.time.LocalDateTime
 
 
@@ -58,108 +60,74 @@ data class E2EInfraModelTableRow(
     )
 }
 
-class E2EMetaFormGroup(formBy: By) : E2EFormGroup(formBy) {
-    val projectName: String get() = getValueForField("Projektin nimi")
-    val author: String get() = getValueForField("Suunnitteluyritys")
-
-    fun selectNewProject(newProject: String): E2EMetaFormGroup = apply {
-        logger.info("Select new project $newProject")
-
-        selectNewDropdownValue("Projektin nimi", listOf(newProject))
-        waitAndClearToast("new-project-created")
-    }
-
-    fun selectNewAuthor(newAuthor: String): E2EMetaFormGroup = apply {
-        logger.info("Select new author $newAuthor")
-
-        selectNewDropdownValue("Suunnitteluyritys", listOf(newAuthor))
-        waitAndClearToast("new-author-created")
-    }
-}
-
-class E2ELocationFormGroup(formBy: By) : E2EFormGroup(formBy) {
-    val trackNumber: String get() = getValueForField("Ratanumero")
-    val kmNumberRange: String get() = getValueForField("Ratakilometriväli")
-    val coordinateSystem: String get() = getValueForField("Koordinaattijärjestelmä")
-    val verticalCoordinateSystem: String get() = getValueForField("Korkeusjärjestelmä")
-
-    fun selectTrackNumber(trackNumber: String): E2ELocationFormGroup = apply {
-        logger.info("Select track number $trackNumber")
-
-        selectDropdownValues("Ratanumero", listOf(trackNumber))
-        clickEditIcon("Ratanumero")
-    }
-
-    fun selectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
-        logger.info("Select new track number $trackNumber with description $description")
-
-        selectNewDropdownValue("Ratanumero", listOf(trackNumber, description))
-        waitAndClearToast("track-number-edit.result.succeeded")
-        clickEditIcon("Ratanumero")
-    }
-
-    fun selectVerticalCoordinateSystem(coordinateSystem: String): E2ELocationFormGroup = apply {
-        logger.info("Select vertical coordinate system $coordinateSystem")
-
-        selectDropdownValues("Korkeusjärjestelmä", listOf(coordinateSystem))
-    }
-
-    fun selectCoordinateSystem(coordinateSystem: String): E2ELocationFormGroup = apply {
-        logger.info("Select coordinate system $coordinateSystem")
-
-        selectDropdownValues("Koordinaattijärjestelmä", listOf(coordinateSystem))
-    }
-}
-
-class E2EQualityFormGroup(formBy: By) : E2EFormGroup(formBy) {
-    val planPhase: String get() = getValueForField("Suunnitteluvaihe")
-    val decisionPhase: String get() = getValueForField("Vaiheen tarkennus")
-    val measurementMethod: String get() = getValueForField("Laatu")
-    val elevationMeasurementMethod: String get() = getValueForField("Korkeusasema")
-
-
-    fun selectPlanPhase(phase: String): E2EQualityFormGroup = apply {
-        logger.info("Select plan phase $phase")
-
-        selectDropdownValues("Suunnitteluvaihe", listOf(phase))
-    }
-
-    fun selectDecisionPhase(decision: String): E2EQualityFormGroup = apply {
-        logger.info("Select decision phase $decision")
-
-        selectDropdownValues("Vaiheen tarkennus", listOf(decision))
-    }
-
-    fun selectMeasurementMethod(method: String): E2EQualityFormGroup = apply {
-        logger.info("Select measurement method $method")
-
-        selectDropdownValues("Laatu", listOf(method))
-    }
-
-    fun selectElevationMeasurementMethod(method: String): E2EQualityFormGroup = apply {
-        logger.info("Select elevation measurement method $method")
-
-        selectDropdownValues("Korkeusasema", listOf(method))
-    }
-}
-
-class E2ELogFormGroup(formBy: By) : E2EFormGroup(formBy) {
-
-    val planTime: String get() = getValueForField("Laadittu")
-
-    fun setPlanTime(month: String, year: String): E2ELogFormGroup = apply {
-        logger.info("Select plan time $month $year")
-
-        selectDropdownValues("Laadittu", listOf(month, year))
-    }
-}
-
 class E2EConfirmDialog : E2EDialog() {
     fun confirm() {
         logger.info("Confirm")
 
         waitUntilClosed {
-            clickChildByText("Tallenna")
+            clickPrimaryButton()
         }
     }
+}
+
+
+abstract class E2EFormGroup(formBy: By) : E2EViewFragment(formBy) {
+
+    val title: String get() = childText(By.className("formgroup__title"))
+
+    internal fun formGroupField(qaId: String) = childComponent(byQaId(qaId), ::E2EFormGroupField)
+}
+
+internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
+
+    val value: String
+        get() {
+            val dropdownValueBy = By.className("field-layout__value")
+
+            val valueClass = if (childExists(dropdownValueBy)) dropdownValueBy
+            else By.className("formgroup__field-value")
+
+            return childText(valueClass)
+        }
+
+    fun selectValues(values: List<String>) = apply {
+        logger.info("Selecting values [$values]")
+
+        toggleEdit()
+
+        values.forEachIndexed { index, value ->
+            childDropdown(By.cssSelector(".dropdown:nth-child(${index + 1})"))
+                .selectByName(value)
+        }
+
+        toggleEdit()
+    }
+
+    fun selectNewValue(newValues: List<String>) = apply {
+        logger.info("Create new dropdown option with values $newValues")
+
+        toggleEdit()
+
+        childDropdown(By.className("dropdown"))
+            .open()
+            .new()
+
+        E2EDialogWithTextField()
+            .inputValues(newValues)
+            .clickPrimaryButton()
+
+        toggleEdit()
+    }
+
+    fun waitUntilFieldIs(value: String) = apply {
+        waitUntilTextIs(childBy(By.className("formgroup__field-value")), value)
+    }
+
+    fun selectValue(value: String) = apply {
+        selectValues(listOf(value))
+
+        waitUntilFieldIs(value)
+    }
+
+    private fun toggleEdit() = clickChild(By.xpath("div[@class='formgroup__edit-icon']/div"))
 }

@@ -4,7 +4,7 @@ import childExists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenu
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenuItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
-import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContentByText
+import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
@@ -53,8 +53,8 @@ data class E2EChangePreviewRow(
     enum class State { OK, WARNING, ERROR }
 
     constructor(row: WebElement, columns: List<WebElement>, headers: List<WebElement>) : this(
-        name = getColumnContentByText("Muutoskohde", columns, headers),
-        trackNumber = getColumnContentByText("Ratanro", columns, headers),
+        name = getColumnContent("preview-table.change-target", columns, headers),
+        trackNumber = getColumnContent("preview-table.track-number-short", columns, headers),
         state = if (row.childExists(By.className("preview-table-item__error-status"))) State.ERROR
         else if (row.childExists(By.className("preview-table-item__warning-status"))) State.WARNING
         else State.OK

@@ -74,9 +74,9 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertEquals(referenceLine.alignmentVersion, updatedLine.alignmentVersion)
         val changeTimeAfterUpdate = referenceLineService.getChangeTime()
 
-        val changeInfo = referenceLineService.getDraftableChangeInfo(referenceLineId)
-        assertEquals(changeTimeAfterInsert, changeInfo.created)
-        assertEquals(changeTimeAfterUpdate, changeInfo.draftChanged)
+        val changeInfo = referenceLineService.getDraftableChangeInfo(referenceLineId, DRAFT)
+        assertEquals(changeTimeAfterInsert, changeInfo?.created)
+        assertEquals(changeTimeAfterUpdate, changeInfo?.changed)
     }
 
     @Test
@@ -147,8 +147,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishedVersion.id)
         assertEquals(
-            alignmentTmp.segments.flatMap(LayoutSegment::points),
-            editedAlignment.segments.flatMap(LayoutSegment::points),
+            alignmentTmp.segments.flatMap(LayoutSegment::alignmentPoints),
+            editedAlignment.segments.flatMap(LayoutSegment::alignmentPoints),
         )
 
         // Creating a draft should duplicate the alignment
@@ -161,8 +161,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishedVersion.id)
         assertEquals(
-            alignmentTmp2.segments.flatMap(LayoutSegment::points),
-            editedAlignment2.segments.flatMap(LayoutSegment::points),
+            alignmentTmp2.segments.flatMap(LayoutSegment::alignmentPoints),
+            editedAlignment2.segments.flatMap(LayoutSegment::alignmentPoints),
         )
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again

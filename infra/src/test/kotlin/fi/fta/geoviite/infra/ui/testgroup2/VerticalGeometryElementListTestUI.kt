@@ -141,7 +141,7 @@ class VerticalGeometryElementListTestUI
                 srid = LAYOUT_SRID,
                 kmPosts = listOf(
                     createGeometryKmPost(
-                        trackNumberId, staInternal = BigDecimal(-10), location = DEFAULT_BASE_POINT, kmNumber = "0045"
+                        staInternal = BigDecimal(-10), location = DEFAULT_BASE_POINT, kmNumber = "0045"
                     )
                 ),
                 alignments = listOf(
@@ -151,7 +151,7 @@ class VerticalGeometryElementListTestUI
                             lineAtBasePoint(Point(1.0, 1.0), Point(150.0, 100.0)),
                             lineAtBasePoint(Point(150.0, 100.0), Point(300.0, 300.0))
                         ),
-                        profile = someGeometryProfile()
+                        profile = someGeometryProfile(),
                     )
                 ),
                 coordinateSystemName = CoordinateSystemName("testcrs"),

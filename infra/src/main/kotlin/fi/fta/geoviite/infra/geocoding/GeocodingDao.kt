@@ -63,7 +63,7 @@ class GeocodingDao(
             "tn_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
+        return jdbcTemplate.queryNotNull(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
     fun getLayoutGeocodingContextCacheKey(
@@ -162,7 +162,7 @@ class GeocodingDao(
         } else null
     }
 
-    private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) =
-        if (ids.size == versions.size) ids.mapIndexed { index, id -> RowVersion(id, versions[index]) }
-        else throw IllegalStateException("Unmatched row-versions: ids=$ids versions=$versions")
+    private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) = ids
+        .also { check(it.size == versions.size) { "Unmatched row-versions: ids=$ids versions=$versions" } }
+        .mapIndexed { index, id -> RowVersion(id, versions[index]) }
 }

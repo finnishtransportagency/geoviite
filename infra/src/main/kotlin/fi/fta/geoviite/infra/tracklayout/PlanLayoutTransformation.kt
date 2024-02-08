@@ -27,6 +27,7 @@ fun toTrackLayout(
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
     val alignments: List<PlanLayoutAlignment> = toMapAlignments(
+        geometryPlan.trackNumberId,
         geometryPlan.alignments,
         planToLayout,
         pointListStepLength,
@@ -35,11 +36,11 @@ fun toTrackLayout(
         includeGeometryData
     )
 
-    val kmPosts = toTrackLayoutKmPosts(geometryPlan.kmPosts, planToLayout)
+    val kmPosts = toTrackLayoutKmPosts(geometryPlan.trackNumberId, geometryPlan.kmPosts, planToLayout)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
-        planId = geometryPlan.id,
+        id = geometryPlan.id,
         planHidden = geometryPlan.isHidden,
         planDataType = geometryPlan.dataType,
         fileName = geometryPlan.fileName,
@@ -51,6 +52,7 @@ fun toTrackLayout(
 }
 
 fun toTrackLayoutKmPosts(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     kmPosts: List<GeometryKmPost>,
     planToLayout: Transformation,
 ): List<TrackLayoutKmPost> {
@@ -62,7 +64,7 @@ fun toTrackLayoutKmPosts(
                 location = planToLayout.transform(kmPost.location),
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
-                trackNumberId = kmPost.trackNumberId,
+                trackNumberId = trackNumberId,
             )
         } else null
     }
@@ -95,6 +97,7 @@ fun toTrackLayoutSwitches(
     geometrySwitches.mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }.associate { it }
 
 fun toMapAlignments(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     geometryAlignments: List<GeometryAlignment>,
     planToLayout: Transformation,
     pointListStepLength: Int,
@@ -118,13 +121,14 @@ fun toMapAlignments(
         }
 
         PlanLayoutAlignment(
-            header = toAlignmentHeader(alignment, boundingBoxInLayoutSpace),
+            header = toAlignmentHeader(trackNumberId, alignment, boundingBoxInLayoutSpace),
             segments = mapSegments,
         )
     }
 }
 
 fun toAlignmentHeader(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     alignment: GeometryAlignment,
     boundingBoxInLayoutSpace: BoundingBox? = null,
 ) = AlignmentHeader(
@@ -133,7 +137,7 @@ fun toAlignmentHeader(
     alignmentSource = MapAlignmentSource.GEOMETRY,
     alignmentType = getAlignmentType(alignment.featureTypeCode),
     state = getLayoutStateOrDefault(alignment.state),
-    trackNumberId = alignment.trackNumberId,
+    trackNumberId = trackNumberId,
     boundingBox = boundingBoxInLayoutSpace,
     length = alignment.elements.sumOf(GeometryElement::calculatedLength),
     segmentCount = alignment.elements.size,
@@ -161,15 +165,15 @@ private fun toMapSegments(
     val segments = if (!includeGeometryData) listOf()
     else elements.map { (element, segmentStartLength) ->
         val segmentPoints = toPointList(element, pointListStepLength).map { p ->
-            toTrackLayoutPoint(
-                planToLayoutTransformation.transform(p),
-                segmentStartLength + p.m,
-                alignment.profile,
-                alignment.cant,
-                alignmentStationStart,
-                segmentStartLength,
-                heightTriangles,
-                verticalCoordinateSystem
+            toSegmentGeometryPoint(
+                point = planToLayoutTransformation.transform(p),
+                mValue = p.m,
+                profile = alignment.profile,
+                cant = alignment.cant,
+                alignmentStartStation = alignmentStationStart,
+                segmentStart = segmentStartLength,
+                heightTriangles = heightTriangles,
+                verticalCoordinateSystem = verticalCoordinateSystem,
             )
         }
 
@@ -177,8 +181,9 @@ private fun toMapSegments(
             id = deriveFromSourceId("AS", element.id),
             geometry = SegmentGeometry(
                 resolution = pointListStepLength,
-                points = segmentPoints,
+                segmentPoints = segmentPoints,
             ),
+            startM = segmentStartLength,
             sourceId = element.id,
             sourceStart = 0.0,
             source = GeometrySource.PLAN,
@@ -194,9 +199,6 @@ fun getAlignmentType(typeCode: FeatureTypeCode?): MapAlignmentType = when (typeC
     else -> MapAlignmentType.LOCATION_TRACK
 }
 
-fun filter(boundingBox: BoundingBox, segments: List<LayoutSegment>): List<LayoutSegment> =
-    segments.filter { s -> s.points.any { p -> boundingBox.x.contains(p.x) && boundingBox.y.contains(p.y) } }
-
 fun getLayoutStateOrDefault(planState: PlanState?) = planState?.let { state -> getLayoutState(state) } ?: PLANNED
 fun getLayoutState(planState: PlanState): LayoutState = when (planState) {
     ABANDONED -> DELETED
@@ -205,25 +207,26 @@ fun getLayoutState(planState: PlanState): LayoutState = when (planState) {
     PROPOSED -> NOT_IN_USE
 }
 
-fun toTrackLayoutPoint(
+fun toSegmentGeometryPoint(
     point: Point,
     mValue: Double,
     profile: GeometryProfile?,
     cant: GeometryCant?,
     alignmentStartStation: Double,
     segmentStart: Double,
-    triangles: List<HeightTriangle>,
+    heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
-): LayoutPoint {
+): SegmentPoint {
     // Profile station values are alignment m-values calculated from given station-start
     val heightValue = verticalCoordinateSystem?.let { vcs ->
         if (vcs == VerticalCoordinateSystem.N43) null
-        else profile?.getHeightAt(alignmentStartStation + segmentStart + mValue)
-            ?.let { value -> transformHeightValue(value, point, triangles, vcs) }
+        else profile
+            ?.getHeightAt(alignmentStartStation + segmentStart + mValue)
+            ?.let { value -> transformHeightValue(value, point, heightTriangles, vcs) }
     }
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     val cantValue = cant?.getCantValue(segmentStart + mValue)
-    return LayoutPoint(
+    return SegmentPoint(
         x = point.x,
         y = point.y,
         z = heightValue,

@@ -3,15 +3,14 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import browser
 import clickElementAtPoint
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutPoint
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import javaScriptExecutor
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
+import tryWait
 import waitUntilNotExist
-import waitUntilValueIsNot
 import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
@@ -52,11 +51,17 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val selectionPanel: E2ESelectionPanel by lazy { E2ESelectionPanel(this) }
     val toolBar: E2EToolBar by lazy { E2EToolBar(this) }
     val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
+
+    private val resolution: Double
+        get() = childElement(By.className("map__ol-map")).getAttribute("qa-resolution").toDouble()
+
+
     val mapScale: MapScale
-        get() {
+        get() = tryWait({
             val scale = childText(By.className("ol-scale-line-inner"))
-            return MapScale.entries.first { it.value == scale }
-        }
+            MapScale.entries.firstOrNull { it.value == scale }
+        }) { "Invalid map scale" }
+
 
     companion object {
         fun finishLoading() {
@@ -75,7 +80,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
-    fun clickAtCoordinates(point: LayoutPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+    fun clickAtCoordinates(point: AlignmentPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
@@ -114,23 +119,18 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     private fun zoomOut() {
-        val currentScale = mapScale.value
+        val oldScale = resolution;
         clickChild(By.className("ol-zoom-out"))
-        try {
-            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
-        } catch (ex: TimeoutException) {
-            logger.warn("Zoom out failed, cause: $ex")
-        }
+        waitUntilScaleChanges(oldScale)
     }
 
     private fun zoomIn() {
-        val currentScale = mapScale.value
+        val oldScale = resolution;
         clickChild(By.className("ol-zoom-in"))
-        try {
-            waitUntilValueIsNot(childBy(By.className("ol-scale-line-inner")), currentScale)
-        } catch (ex: TimeoutException) {
-            logger.warn("Zoom in failed, cause: $ex")
-        }
+        waitUntilScaleChanges(oldScale)
     }
 
+    private fun waitUntilScaleChanges(oldScale: Double) {
+        tryWait({ resolution != oldScale }) { "Map scale did not change from $oldScale" }
+    }
 }

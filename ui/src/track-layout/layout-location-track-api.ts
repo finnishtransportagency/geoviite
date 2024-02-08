@@ -2,13 +2,21 @@ import {
     AddressPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
+    AlignmentPoint,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
 import { DraftableChangeInfo, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
-import { deleteAdt, getNonNull, getNullable, postAdt, putAdt, queryParams } from 'api/api-fetch';
+import {
+    deleteNonNullAdt,
+    getNonNull,
+    getNullable,
+    postNonNullAdt,
+    putNonNullAdt,
+    queryParams,
+} from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
 import { BoundingBox } from 'model/geometry';
@@ -33,6 +41,7 @@ const locationTrackStartAndEndCache = asyncCache<string, AlignmentStartAndEnd | 
 
 type PlanSectionPoint = {
     address: TrackMeter;
+    location: AlignmentPoint;
     m: number;
 };
 
@@ -89,12 +98,12 @@ export async function getLocationTrackInfoboxExtras(
 
 export async function getLocationTracksByName(
     trackNumberId: LayoutTrackNumberId,
-    locationTrackName: string,
+    locationTrackNames: string[],
     publishType: PublishType,
 ): Promise<LayoutLocationTrack[]> {
-    const params = queryParams({ locationTrackName });
+    const params = queryParams({ locationTrackNames });
     return getNonNull<LayoutLocationTrack[]>(
-        `${layoutUri('location-tracks', publishType)}/by-tracknumber/${trackNumberId}${params}`,
+        `${layoutUri('track-numbers', publishType)}/${trackNumberId}/location-tracks${params}`,
     );
 }
 
@@ -182,12 +191,13 @@ export async function getLocationTracksNear(
 export async function insertLocationTrack(
     locationTrack: LocationTrackSaveRequest,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await postAdt<LocationTrackSaveRequest, LocationTrackId>(
+    const apiResult = await postNonNullAdt<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', 'DRAFT'),
         locationTrack,
-        true,
     );
-    updateLocationTrackChangeTime();
+
+    await updateLocationTrackChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -198,12 +208,13 @@ export async function updateLocationTrack(
     id: LocationTrackId,
     locationTrack: LocationTrackSaveRequest,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await putAdt<LocationTrackSaveRequest, LocationTrackId>(
+    const apiResult = await putNonNullAdt<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', 'DRAFT', id),
         locationTrack,
-        true,
     );
-    updateLocationTrackChangeTime();
+
+    await updateLocationTrackChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -213,12 +224,13 @@ export async function updateLocationTrack(
 export const deleteLocationTrack = async (
     id: LocationTrackId,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> => {
-    const apiResult = await deleteAdt<undefined, LocationTrackId>(
+    const apiResult = await deleteNonNullAdt<undefined, LocationTrackId>(
         layoutUri('location-tracks', 'DRAFT', id),
         undefined,
-        true,
     );
-    updateLocationTrackChangeTime();
+
+    await updateLocationTrackChangeTime();
+
     return apiResult.mapErr(() => ({
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
@@ -252,8 +264,9 @@ export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[
 
 export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
+    publishType: PublishType,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id, publishType));
 };
 
 export const getLocationTrackSectionsByPlan = async (

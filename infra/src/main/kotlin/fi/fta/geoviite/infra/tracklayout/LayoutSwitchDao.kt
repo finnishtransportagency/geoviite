@@ -29,24 +29,17 @@ class LayoutSwitchDao(
     override fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
-    ): List<RowVersion<TrackLayoutSwitch>> =
-        fetchVersions(publicationState, includeDeleted, null)
-
-    fun fetchVersions(
-        publicationState: PublishType,
-        includeDeleted: Boolean,
-        name: SwitchName? = null,
     ): List<RowVersion<TrackLayoutSwitch>> {
         val sql = """
-            select row_id, row_version
+            select
+              row_id,
+              row_version
             from layout.switch_publication_view 
             where :publication_state = any(publication_states) 
-              and (cast(:name as varchar) is null or lower(name) = lower(:name))
               and (:include_deleted = true or state_category != 'NOT_EXISTING')
         """.trimIndent()
         val params = mapOf(
             "publication_state" to publicationState.name,
-            "name" to name,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -490,6 +483,26 @@ class LayoutSwitchDao(
                 rowVersion = rs.getRowVersion("id", "version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
+        }
+    }
+
+    fun findOfficialNameDuplicates(names: List<SwitchName>): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
+        return if (names.isEmpty()) {
+            emptyMap()
+        } else {
+            val sql = """
+                select id, version, name
+                from layout.switch
+                where name in (:names)
+                  and draft = false
+                  and state_category != 'NOT_EXISTING'
+            """.trimIndent()
+            val params = mapOf("names" to names)
+            return jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
+                val version = rs.getRowVersion<TrackLayoutSwitch>("id", "version")
+                val name = rs.getString("name").let(::SwitchName)
+                name to version
+            }.groupBy({ (name, _) -> name }, { (_, version) -> version })
         }
     }
 }

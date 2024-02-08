@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.codeDictionary
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -15,7 +15,7 @@ class CodeDictionaryController(private val codeDictionaryService: CodeDictionary
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/feature-types")
     fun getFeatureTypes(): List<FeatureType> {
         logger.apiCall("getFeatureTypes")

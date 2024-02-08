@@ -31,7 +31,8 @@ fun createTrackLayoutTrackNumber(number: String, description: String = "descript
     )
 
 fun createGeometryKmPost(
-    trackNumberId: IntId<TrackLayoutTrackNumber>, location: Point?, kmNumber: String,
+    location: Point?,
+    kmNumber: String,
     staInternal: BigDecimal = BigDecimal("-148.729000"),
 ) = GeometryKmPost(
     staBack = null,
@@ -41,7 +42,6 @@ fun createGeometryKmPost(
     description = PlanElementName("0"),
     state = PlanState.PROPOSED,
     location = location,
-    trackNumberId = trackNumberId,
 )
 
 fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNumber>, point: Point) = TrackLayoutKmPost(
@@ -54,7 +54,6 @@ fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNum
 
 fun createGeometryAlignment(
     alignmentName: String,
-    trackNumberId: DomainId<TrackLayoutTrackNumber>,
     basePoint: Point,
     incrementPoints: List<Point>,
     switchData: List<SwitchData?> = emptyList(),
@@ -62,14 +61,13 @@ fun createGeometryAlignment(
     val points = pointsFromIncrementList(basePoint, incrementPoints)
 
     return createGeometryAlignment(
-        alignmentName = alignmentName, trackNumberId = trackNumberId, locationPoints = points, switchData = switchData
+        alignmentName = alignmentName, locationPoints = points, switchData = switchData
     )
 }
 
 fun createGeometryAlignment(
     alignmentName: String,
     elementNamePrefix: String = "elm",
-    trackNumberId: DomainId<TrackLayoutTrackNumber>,
     locationPoints: List<Point>,
     switchData: List<SwitchData?> = emptyList(),
 ): GeometryAlignment {
@@ -90,7 +88,6 @@ fun createGeometryAlignment(
         staStart = BigDecimal("0.000000"),
         elements = elements,
         profile = null,
-        trackNumberId = trackNumberId,
     )
 }
 
@@ -130,41 +127,13 @@ fun referenceLine(
 private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
     val points = pointsFromIncrementList(basePoint, incrementPoints)
 
+    var startM = 0.0
     val segments = points.dropLast(1).mapIndexed { index, pointA ->
         val pointB = points[index + 1]
-        segment(toTrackLayoutPoints(pointA, pointB))
+        segment(points = toSegmentPoints(pointA, pointB), startM = startM).also { s -> startM += s.length }
     }
     return alignment(segments)
 }
-
-/*
-fun locationTrack(
-    name: String,
-    trackNumber: IntId<TrackLayoutTrackNumber>,
-    layoutPoints: List<LayoutPoint>,
-    layoutAlignmentType: LocationTrackType = LocationTrackType.MAIN,
-    description: String = "$name location track description"
-): Pair<LocationTrack, LayoutAlignment> {
-    val segment = segment(layoutPoints)
-
-    val segments = layoutPoints.dropLast(1).mapIndexed{index, pointA ->
-        val pointB = layoutPoints[index +1]
-        segment(listOf(pointA, pointB))
-    }
-
-
-    val alignment = alignment(listOf(segment(layoutPoints)))
-    val track = locationTrack(
-        trackNumberId = trackNumber,
-        alignment = alignment,
-        name = "$name-lt",
-        description = description,
-        type = layoutAlignmentType,
-        state = LayoutState.IN_USE,
-    )
-    return track to alignment
-}
-*/
 
 fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: SwitchStructure) = TrackLayoutSwitch(
     externalId = null,
@@ -209,27 +178,30 @@ fun locationTrackAndAlignmentForGeometryAlignment(
         planSrid,
         LAYOUT_SRID,
         ykjToEtrsTriangulationNetwork,
-        etrsToYkjTriangulationNetwork
+        etrsToYkjTriangulationNetwork,
     )
-    return locationTrackAndAlignment(trackNumberId, geometryAlignment.elements.map { element ->
+    var startM = 0.0
+    val segments = geometryAlignment.elements.map { element ->
         val start = transformation.transform(element.start)
         val end = transformation.transform(element.end)
         LayoutSegment(
             geometry = SegmentGeometry(
-                points = listOf(
-                    LayoutPoint(start.x, start.y, 0.0, 0.0, 0.0),
-                    LayoutPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0)
+                segmentPoints = listOf(
+                    SegmentPoint(start.x, start.y, 0.0, 0.0, 0.0),
+                    SegmentPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0)
                 ),
                 resolution = 100,
             ),
-            startJointNumber = element.startJointNumber,
-            endJointNumber = element.endJointNumber,
+            startM = startM,
+            startJointNumber = null,
+            endJointNumber = null,
             source = GeometrySource.PLAN,
             sourceId = element.id,
             sourceStart = null,
             switchId = null,
-        )
-    })
+        ).also { startM += it.length }
+    }
+    return locationTrackAndAlignment(trackNumberId, segments)
 }
 
 fun createSwitchAndAlignments(
@@ -237,7 +209,6 @@ fun createSwitchAndAlignments(
     switchStructure: SwitchStructure,
     switchAngle: Double,
     switchOrig: Point,
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
 ): Pair<GeometrySwitch, List<GeometryAlignment>> {
     val jointNumbers = switchStructure.joints.map { switchJoint -> switchJoint.number }
     logger.info("Switch structure id ${switchStructure.id}")
@@ -248,7 +219,7 @@ fun createSwitchAndAlignments(
         joints = jointNumbers.map { jointNumber ->
             GeometrySwitchJoint(
                 jointNumber,
-                getTransformedPoint(switchStructure, switchOrig, switchAngle, jointNumber)
+                getTransformedPoint(switchStructure, switchOrig, switchAngle, jointNumber),
             )
         })
 
@@ -258,7 +229,6 @@ fun createSwitchAndAlignments(
         switchAngle,
         switchOrig,
         geometrySwitch,
-        trackNumberId
     )
     return Pair(geometrySwitch, geometryAlignments)
 }
@@ -269,7 +239,6 @@ fun switchStructureToGeometryAlignment(
     switchAngle: Double,
     switchOrig: Point,
     geometrySwitch: GeometrySwitch,
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
 ): List<GeometryAlignment> {
     return switchStructure.alignments.mapIndexed { index, switchAlignment ->
         GeometryAlignment(
@@ -284,10 +253,9 @@ fun switchStructureToGeometryAlignment(
                 switchAngle,
                 switchOrig,
                 geometrySwitch.id,
-                switchStructure.joints
+                switchStructure.joints,
             ),
             profile = null,
-            trackNumberId = trackNumberId,
         )
     }
 }
@@ -326,7 +294,8 @@ private fun matchSwitchDataToElement(
     switchId: DomainId<GeometrySwitch>,
 ): SwitchData {
     try {
-        return switchJointData.first { data -> data.isInsideSwitchJoint(switchElement) }
+        return switchJointData
+            .first { data -> data.isInsideSwitchJoint(switchElement) }
             .let { SwitchData(switchId, it.startSwitchJoint.number, it.endSwitchJoint.number) }
     } catch (ex: java.util.NoSuchElementException) {
         throw RuntimeException("Could not match switch element (${switchElement.start}, ${switchElement.end})")

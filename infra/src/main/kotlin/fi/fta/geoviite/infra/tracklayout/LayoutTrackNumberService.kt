@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -25,7 +26,7 @@ class LayoutTrackNumberService(
 
     @Transactional
     fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("insert", "trackNumber" to saveRequest.number)
+        logger.serviceCall("insert", "trackNumber" to saveRequest)
         val draftSaveResponse = saveDraftInternal(
             TrackLayoutTrackNumber(
                 number = saveRequest.number,
@@ -43,7 +44,7 @@ class LayoutTrackNumberService(
         id: IntId<TrackLayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("update", "trackNumber" to saveRequest.number)
+        logger.serviceCall("update", "trackNumber" to saveRequest)
         val original = dao.getOrThrow(DRAFT, id)
         val draftSaveResponse = saveDraftInternal(
             original.copy(
@@ -108,34 +109,7 @@ class LayoutTrackNumberService(
         )
 
         return geocodingService.getGeocodingContextCreateResult(publishType, trackNumberId)?.let { contextResult ->
-            val context = contextResult.geocodingContext
-            val distances = getKmPostDistances(context, contextResult.validKmPosts)
-            val referenceLineLength = context.referenceLineGeometry.length
-            val trackNumber = context.trackNumber
-            val startPoint = context.referenceLineAddresses.startPoint
-
-            //First km post is usually on another reference line, and therefore it has to be generated here
-            listOf(
-                TrackLayoutKmLengthDetails(
-                    trackNumber = trackNumber.number,
-                    kmNumber = startPoint.address.kmNumber,
-                    startM = roundTo3Decimals(context.startAddress.meters.negate()),
-                    endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
-                    locationSource = GeometrySource.GENERATED,
-                    location = startPoint.point.toPoint()
-                )
-            ) + distances.mapIndexed { index, (kmPost, startM) ->
-                val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
-
-                TrackLayoutKmLengthDetails(
-                    trackNumber = trackNumber.number,
-                    kmNumber = kmPost.kmNumber,
-                    startM = roundTo3Decimals(startM),
-                    endM = roundTo3Decimals(endM),
-                    location = kmPost.location,
-                    locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED
-                )
-            }
+            extractTrackKmLengths(contextResult.geocodingContext, contextResult)
         }
     }
 
@@ -178,15 +152,6 @@ class LayoutTrackNumberService(
         return asCsvFile(kmLengths)
     }
 
-    private fun getKmPostDistances(
-        context: GeocodingContext,
-        kmPosts: List<TrackLayoutKmPost>,
-    ): List<Pair<TrackLayoutKmPost, Double>> = kmPosts.map { kmPost ->
-        val distance = kmPost.location?.let { loc -> context.getM(loc)?.first }
-        checkNotNull(distance) { "Couldn't calculated distance for km post, id=${kmPost.id} location=${kmPost.location}" }
-        kmPost to distance
-    }
-
     @Transactional(readOnly = true)
     fun getMetadataSections(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -197,7 +162,7 @@ class LayoutTrackNumberService(
             "getSectionsByPlan",
             "trackNumberId" to trackNumberId,
             "publishType" to publishType,
-            "boundingBox" to boundingBox
+            "boundingBox" to boundingBox,
         )
         return get(publishType, trackNumberId)?.let { trackNumber ->
             val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
@@ -233,4 +198,46 @@ private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>): String {
     }
 
     return printCsv(columns, items)
+}
+
+private fun extractTrackKmLengths(
+    context: GeocodingContext,
+    contextResult: GeocodingContextCreateResult,
+): List<TrackLayoutKmLengthDetails> {
+    val distances = getKmPostDistances(context, contextResult.validKmPosts)
+    val referenceLineLength = context.referenceLineGeometry.length
+    val trackNumber = context.trackNumber
+    val startPoint = context.referenceLineAddresses.startPoint
+
+    //First km post is usually on another reference line, and therefore it has to be generated here
+    return listOf(
+        TrackLayoutKmLengthDetails(
+            trackNumber = trackNumber.number,
+            kmNumber = startPoint.address.kmNumber,
+            startM = roundTo3Decimals(context.startAddress.meters.negate()),
+            endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
+            locationSource = GeometrySource.GENERATED,
+            location = startPoint.point.toPoint()
+        )
+    ) + distances.mapIndexed { index, (kmPost, startM) ->
+        val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
+
+        TrackLayoutKmLengthDetails(
+            trackNumber = trackNumber.number,
+            kmNumber = kmPost.kmNumber,
+            startM = roundTo3Decimals(startM),
+            endM = roundTo3Decimals(endM),
+            location = kmPost.location,
+            locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED
+        )
+    }
+}
+
+private fun getKmPostDistances(
+    context: GeocodingContext,
+    kmPosts: List<TrackLayoutKmPost>,
+): List<Pair<TrackLayoutKmPost, Double>> = kmPosts.map { kmPost ->
+    val distance = kmPost.location?.let { loc -> context.getM(loc)?.first }
+    checkNotNull(distance) { "Couldn't calculated distance for km post, id=${kmPost.id} location=${kmPost.location}" }
+    kmPost to distance
 }

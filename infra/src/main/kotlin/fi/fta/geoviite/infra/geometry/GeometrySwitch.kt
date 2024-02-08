@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -16,12 +17,14 @@ data class GeometrySwitch(
     val typeName: GeometrySwitchTypeName,
     val joints: List<GeometrySwitchJoint>,
     val id: DomainId<GeometrySwitch> = StringId(),
-) {
+) : Loggable {
     fun getJoint(location: Point, delta: Double): GeometrySwitchJoint? =
         joints.find { j -> j.location.isSame(location, delta) }
 
     fun getJoint(number: JointNumber): GeometrySwitchJoint? =
         joints.find { j -> j.number == number }
+
+    override fun toLog(): String = logFormat("id" to id, "name" to name, "joints" to joints.map { j -> j.number.intValue })
 }
 
 data class GeometrySwitchJoint(override val number: JointNumber, override val location: Point) : ISwitchJoint

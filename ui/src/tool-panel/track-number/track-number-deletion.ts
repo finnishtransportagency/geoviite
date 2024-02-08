@@ -10,7 +10,6 @@ export const onRequestDeleteTrackNumber = (
 ) => {
     getRevertRequestDependencies({ ...publishNothing, trackNumbers: [trackNumber.id] }).then(
         (changeIncludingDependencies) =>
-            changeIncludingDependencies &&
             setChangesBeingReverted({
                 requestedRevertChange: {
                     type: PreviewSelectType.trackNumber,

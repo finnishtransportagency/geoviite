@@ -6,6 +6,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { ProjectId } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { getProjects } from 'geometry/geometry-api';
+import { compareNamed } from 'common/common-model';
 
 type ProjectDropdownProps = {
     id: ProjectId;
@@ -31,10 +32,12 @@ export const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
                     value={id}
                     options={
                         projects
-                            ? projects.map((project) => ({
-                                  name: project.name,
-                                  value: project.id,
-                              }))
+                            ? projects
+                                  .map((project) => ({
+                                      name: project.name,
+                                      value: project.id,
+                                  }))
+                                  .sort(compareNamed)
                             : []
                     }
                     onChange={(projectId) => {

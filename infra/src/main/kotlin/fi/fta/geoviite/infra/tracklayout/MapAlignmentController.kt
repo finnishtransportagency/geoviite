@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.logging.apiCall
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*
 class MapAlignmentController(private val mapAlignmentService: MapAlignmentService) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/alignment-polylines")
     fun getAlignmentPolyLines(
         @PathVariable("publishType") publishType: PublishType,
@@ -36,7 +36,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getAlignmentPolyLines(publishType, bbox, resolution, type ?: ALL)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/location-track/{id}/alignment-polyline")
     fun getLocationTrackPolyline(
         @PathVariable("publishType") publishType: PublishType,
@@ -55,7 +55,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getAlignmentPolyline(locationTrackId, publishType, bbox, resolution)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/location-track/alignment-headers")
     fun getLocationTrackHeaders(
         @PathVariable("publishType") publishType: PublishType,
@@ -65,7 +65,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getLocationTrackHeaders(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/reference-line/alignment-headers")
     fun getReferenceLineHeaders(
         @PathVariable("publishType") publishType: PublishType,
@@ -75,7 +75,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getReferenceLineHeaders(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/location-track/{id}/segment-m")
     fun getLocationTrackSegmentMValues(
         @PathVariable("publishType") publishType: PublishType,
@@ -85,7 +85,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getLocationTrackSegmentMValues(publishType, id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/alignment/without-linking")
     fun getSectionsWithoutLinking(
         @PathVariable("publishType") publishType: PublishType,
@@ -97,7 +97,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getSectionsWithoutLinking(publishType, bbox, type)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/location-track/without-profile")
     fun getSectionsWithoutProfile(
         @PathVariable("publishType") publishType: PublishType,
@@ -111,7 +111,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getSectionsWithoutProfile(publishType, bbox)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/reference-line/{id}/segment-m")
     fun getReferenceLineSegmentMValues(
         @PathVariable("publishType") publishType: PublishType,
@@ -121,22 +121,22 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         return mapAlignmentService.getReferenceLineSegmentMValues(publishType, id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/location-track/{id}/ends")
     fun getLocationTrackEnds(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): List<LayoutPoint> {
+    ): List<AlignmentPoint> {
         logger.apiCall("getLocationTrackEnds", "publishType" to publishType, "id" to id)
         return mapAlignmentService.getLocationTrackEnds(publishType, id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/reference-line/{id}/ends")
     fun getReferenceLineEnds(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<ReferenceLine>,
-    ): List<LayoutPoint> {
+    ): List<AlignmentPoint> {
         logger.apiCall("getReferenceLineEnds", "publishType" to publishType, "id" to id)
         return mapAlignmentService.getReferenceLineEnds(publishType, id)
     }

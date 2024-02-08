@@ -97,9 +97,11 @@ export type LinkInterval = {
 };
 export const emptyLinkInterval = { start: undefined, end: undefined };
 
+export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
+
 type LinkingBaseType = {
     type: LinkingType;
-    state: 'preliminary' | 'setup' | 'allSet';
+    state: LinkingPhase;
     errors: string[];
 };
 
@@ -248,7 +250,7 @@ export type SuggestedSwitchJointMatch = {
     locationTrackId: LocationTrackId;
     layoutSwitchId?: LayoutSwitchId;
     segmentIndex: number;
-    segmentM: number;
+    m: number;
 };
 
 export type SuggestedSwitchJoint = {
@@ -256,6 +258,11 @@ export type SuggestedSwitchJoint = {
     location: Point;
     matches: SuggestedSwitchJointMatch[];
     locationAccuracy?: LocationAccuracy;
+};
+
+export type TopologicalJointConnection = {
+    jointNumber: JointNumber;
+    locationTrackIds: LocationTrackId[];
 };
 
 export type SuggestedSwitch = {
@@ -266,12 +273,13 @@ export type SuggestedSwitch = {
     joints: SuggestedSwitchJoint[];
     geometrySwitchId?: GeometrySwitchId;
     alignmentEndPoint?: LocationTrackEndpoint;
+    topologicalJointConnections?: TopologicalJointConnection[];
 };
 
 export type SwitchLinkingSegment = {
     locationTrackId: LocationTrackId;
     segmentIndex: number;
-    segmentM: number;
+    m: number;
 };
 
 export type SwitchLinkingJoint = {

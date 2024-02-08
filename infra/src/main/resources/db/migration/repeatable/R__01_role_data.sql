@@ -3,7 +3,9 @@ create temp table new_role on commit drop as
 with temp(code, name, user_group) as (
     values
       ('operator', 'Operaattori', 'geoviite_operaattori'),
-      ('browser', 'Selaaja', 'geoviite_selaaja')
+      ('browser', 'Selaaja', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "authority"
+      ('authority', 'Virastokäyttäjä', 'geoviite_virasto'),
+      ('consultant', 'Konsultti', 'geoviite_konsultti')
 )
 select *
   from temp;
@@ -11,8 +13,11 @@ select *
 create temp table new_privilege on commit drop as
 with temp(code, name, description) as (
     values
-      ('all-read', 'Lukuoikeus', 'Oikeus tarkastella kaikkia geoviitteen tietoja'),
-      ('all-write', 'Kirjoitusoikeus', 'Oikeus muokata kaikkia geoviitteen tietoja')
+      ('ui-read', 'Lukuoikeus', 'Oikeus tarkastella Geoviitteen tietoja käyttöliittymältä'),
+      ('all-write', 'Kirjoitusoikeus', 'Oikeus muokata kaikkia Geoviitteen tietoja'),
+      ('inframodel-download', 'InfraModel latausoikeus', 'Oikeus ladata Geoviitteestä InfraModel-tiedostoja'),
+      ('dataproduct-download', 'Tietotuotteiden latausoikeus', 'Oikeus ladata Geoviitteestä CSV-muotoisia tietotuote-tiedostoja'),
+      ('publication-download', 'Julkaisulokin latausoikeus', 'Oikeus ladata Geoviitteen julkaisuloki CSV-muodossa')
 )
 select *
   from temp;
@@ -20,9 +25,15 @@ select *
 create temp table new_role_privilege on commit drop as
 with temp(role_code, privilege_code) as (
     values
-      ('browser', 'all-read'),
-      ('operator', 'all-read'),
-      ('operator', 'all-write')
+      ('browser', 'ui-read'),
+      ('browser', 'publication-download'),
+      ('authority', 'ui-read'),
+      ('authority', 'publication-download'),
+      ('operator', 'ui-read'),
+      ('operator', 'all-write'),
+      ('operator', 'inframodel-download'),
+      ('operator', 'dataproduct-download'),
+      ('operator', 'publication-download')
 )
 select *
   from temp;

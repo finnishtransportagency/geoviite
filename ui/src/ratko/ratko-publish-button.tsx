@@ -52,7 +52,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
                                 qa-id="confirm-publish-to-ratko"
                                 onClick={publishToRatko}
                                 variant={ButtonVariant.PRIMARY}>
-                                {t('button.ok')}
+                                {t('publishing.publish-to-ratko')}
                             </Button>
                         </div>
                     }>

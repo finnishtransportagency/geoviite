@@ -323,9 +323,8 @@ class GeometryService @Autowired constructor(
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
 
-    fun getVerticalGeometryListing(
-        planId: IntId<GeometryPlan>,
-    ): List<VerticalGeometryListing> {
+
+    fun getVerticalGeometryListing(planId: IntId<GeometryPlan>): List<VerticalGeometryListing> {
         logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
@@ -336,9 +335,7 @@ class GeometryService @Autowired constructor(
         )
     }
 
-    fun getVerticalGeometryListingCsv(
-        planId: IntId<GeometryPlan>,
-    ): Pair<FileName, ByteArray> {
+    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
         val verticalGeometryListing = getVerticalGeometryListing(planId)
@@ -524,7 +521,7 @@ class GeometryService @Autowired constructor(
                     alignment.segments[lastPlanEndIndex + 1].startM,
                     alignment.segments[thisPlanEndIndex].endM,
                     segmentSources[thisPlanEndIndex].plan?.fileName,
-                    segmentSources[thisPlanEndIndex].alignment?.let(::toAlignmentHeader),
+                    segmentSources[thisPlanEndIndex].alignment?.let { toAlignmentHeader(null, it) },
                     segmentSources[thisPlanEndIndex].plan?.id,
                     segmentSources[thisPlanEndIndex].plan?.units?.verticalCoordinateSystem,
                     segmentSources[thisPlanEndIndex].plan?.elevationMeasurementMethod,
@@ -634,7 +631,7 @@ class GeometryService @Autowired constructor(
         alignment: IAlignment,
         tickLength: Int,
         alignmentBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
-        getHeightAt: (point: LayoutPoint, segmentIndex: Int?) -> Double?,
+        getHeightAt: (point: AlignmentPoint, segmentIndex: Int?) -> Double?,
     ): List<KmHeights>? {
         val addressOfStartDistance =
             geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null

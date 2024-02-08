@@ -32,6 +32,7 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelDecisionPhaseField
     return (
         <FormgroupField
             label={t('im-form.decision-phase-field')}
+            qaId="decision-phase-im-field"
             inEditMode={fieldInEdit === 'planDecisionPhase'}
             onEdit={() => setFieldInEdit('planDecisionPhase')}
             onClose={() => setFieldInEdit(undefined)}>

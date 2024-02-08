@@ -4,8 +4,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
-
-let searchSequence = 0;
+import { useImmediateLoader } from 'utils/react-utils';
 
 export enum DropdownSize {
     SMALL = 'dropdown--small',
@@ -18,6 +17,7 @@ export type Item<TItemValue> = {
     name: string;
     value: TItemValue;
     disabled?: boolean;
+    qaId?: string;
 };
 
 export type DropdownOptions<TItemValue> =
@@ -67,16 +67,22 @@ export const Dropdown = function <TItemValue>({
     const listRef = React.useRef<HTMLUListElement>(null);
     const focusedOptionRef = React.useRef<HTMLLIElement>(null);
     const optionsIsFunc = props.options && !isOptionsArray(props.options);
-    const [options, setOptions] = React.useState<Item<TItemValue>[] | undefined>(
-        props.options && isOptionsArray(props.options) ? props.options : undefined,
-    );
-    const [lastSearch] = React.useState<{ searchId: number }>({ searchId: searchSequence });
-    const [isLoading, setIsLoading] = React.useState(false);
+    const [loadedOptions, setLoadedOptions] = React.useState<Item<TItemValue>[]>();
+    const earlySelect = React.useRef(false);
+    const { isLoading, load: loadOptions } = useImmediateLoader((options: Item<TItemValue>[]) => {
+        const activeOptions = options.filter((option) => !option.disabled);
+        if (earlySelect.current && activeOptions.length === 1) {
+            select(activeOptions[0].value);
+        } else {
+            setLoadedOptions(options);
+        }
+        earlySelect.current = false;
+    });
     const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
+    const [searchCommitted, setSearchTermCommitted] = React.useState(false);
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
-    const filteredOptions = getFilteredOptions();
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
 
     let isMouseDown = false;
@@ -92,11 +98,19 @@ export const Dropdown = function <TItemValue>({
         searchable && styles['dropdown--searchable'],
         props.wideList && styles['dropdown--wide-list'],
     );
-    const selectedName = props.value
-        ? (props.getName && props.getName(props.value)) ||
-          options?.find((item) => item.value == props.value)?.name ||
-          ''
-        : props.placeholder;
+
+    const options =
+        props.options === undefined || isOptionsArray(props.options)
+            ? props.options
+            : loadedOptions;
+    const filteredOptions = getFilteredOptions();
+
+    const selectedName =
+        (props.value !== undefined && props.getName !== undefined
+            ? props.getName(props.value)
+            : undefined) ??
+        options?.find((item) => item.value === props.value)?.name ??
+        '';
 
     function setHasFocus(value: boolean) {
         if (hasFocus && !value) {
@@ -109,6 +123,7 @@ export const Dropdown = function <TItemValue>({
 
     function focusInput() {
         inputRef.current?.focus();
+        inputRef.current?.select();
     }
 
     function openList() {
@@ -132,7 +147,8 @@ export const Dropdown = function <TItemValue>({
     function select(value: TItemValue | undefined) {
         props.onChange && props.onChange(value);
         closeList();
-        setSearchTerm('');
+        setSearchTermCommitted(false);
+        searchFor('');
     }
 
     function unselect() {
@@ -160,13 +176,14 @@ export const Dropdown = function <TItemValue>({
         } else {
             setHasFocus(false);
             closeList();
-            setSearchTerm('');
+            searchFor('');
         }
     }
 
     function handleInputChange(value: string) {
         if (searchable) {
-            setSearchTerm(value);
+            setSearchTermCommitted(true);
+            searchFor(value);
             setOptionFocusIndex(0);
         }
     }
@@ -212,9 +229,13 @@ export const Dropdown = function <TItemValue>({
                     break;
                 case 'Tab':
                 case 'Enter': {
-                    const item = filteredOptions[optionFocusIndex];
-                    if (!item?.disabled) {
-                        select(item?.value || undefined);
+                    if (optionsIsFunc && isLoading) {
+                        earlySelect.current = true;
+                    } else {
+                        const item = filteredOptions[optionFocusIndex];
+                        if (!item?.disabled) {
+                            select(item?.value || undefined);
+                        }
                     }
                 }
             }
@@ -236,39 +257,18 @@ export const Dropdown = function <TItemValue>({
         );
     }
 
-    // Async options fetch
-    React.useEffect(() => {
+    const searchFor = (term: string) => {
+        term ? openList() : closeList();
         if (props.options && !isOptionsArray(props.options)) {
-            const searchId = searchSequence++;
-            lastSearch.searchId = searchId;
-            setIsLoading(true);
-            props
-                .options(searchTerm)
-                .then((optionsResult) => {
-                    if (lastSearch.searchId == searchId) {
-                        setOptions(optionsResult);
-                    }
-                })
-                .finally(() => setIsLoading(false));
+            loadOptions(props.options(term));
         }
-    }, [props.options, searchTerm]);
-
-    React.useEffect(() => {
-        if (props.options && isOptionsArray(props.options)) {
-            setOptions(props.options);
-        }
-    }, [props.options]);
+        setSearchTerm(term);
+    };
 
     // Set initial "hasFocus"
     React.useEffect(() => {
         setHasFocus(document.activeElement == inputRef.current);
     });
-
-    React.useEffect(() => {
-        if (searchTerm) {
-            openList();
-        }
-    }, [searchTerm]);
 
     // Scroll to focused option
     React.useEffect(() => {
@@ -287,7 +287,7 @@ export const Dropdown = function <TItemValue>({
                 }
             }
         }
-    });
+    }, [open, optionFocusIndex]);
 
     // When options change, update option focus index
     React.useEffect(() => {
@@ -327,14 +327,10 @@ export const Dropdown = function <TItemValue>({
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
                         disabled={props.disabled}
-                        value={searchTerm}
+                        value={searchCommitted ? searchTerm : selectedName}
                         onChange={(e) => handleInputChange(e.target.value)}
+                        placeholder={props.placeholder}
                     />
-                    {!searchTerm && (
-                        <div className={styles['dropdown__current-value']}>
-                            <span>{selectedName}</span>
-                        </div>
-                    )}
                 </div>
                 <div className={styles['dropdown__icon']}>
                     {searchable && optionsIsFunc ? (
@@ -356,6 +352,7 @@ export const Dropdown = function <TItemValue>({
                     onClickOutside={closeList}
                     className={styles['dropdown__list-container']}
                     offsetY={36}
+                    maxHeight={270}
                     positionRef={menuRef}>
                     <ul className={styles['dropdown__list']} ref={listRef}>
                         {showEmptyOption && (
@@ -377,6 +374,7 @@ export const Dropdown = function <TItemValue>({
                                 <li
                                     className={getItemClassName(item, index)}
                                     key={index}
+                                    qa-id={item.qaId}
                                     onClick={(event) => handleItemClick(item, event)}
                                     title={item.name}
                                     aria-disabled={!!item.disabled}

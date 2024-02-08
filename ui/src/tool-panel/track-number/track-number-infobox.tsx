@@ -24,7 +24,6 @@ import { PublishType } from 'common/common-model';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
-import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -43,6 +42,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
+import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -88,8 +88,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         trackNumberChangeTime,
     );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
-    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id);
-    const rlChangeTimes = useReferenceLineChangeTimes(referenceLine?.id);
+    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id, publishType);
+    const rlChangeTimes = useReferenceLineChangeTimes(referenceLine?.id, publishType);
     const createdTime =
         tnChangeTimes?.created && rlChangeTimes?.created
             ? getMinTimestamp(tnChangeTimes.created, rlChangeTimes.created)
@@ -148,22 +148,26 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 qa-id="track-number-infobox">
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="track-number-oid"
                         label={t('tool-panel.track-number.oid')}
                         value={trackNumber.externalId}
                     />
                     <InfoboxField
+                        qaId="track-number-name"
                         label={t('tool-panel.track-number.track-number')}
                         value={trackNumber.number}
                         onEdit={() => setShowEditDialog(true)}
                         iconDisabled={isOfficial}
                     />
                     <InfoboxField
+                        qaId="track-number-state"
                         label={t('tool-panel.track-number.state')}
                         value={<LayoutState state={trackNumber.state} />}
                         onEdit={() => setShowEditDialog(true)}
                         iconDisabled={isOfficial}
                     />
                     <InfoboxField
+                        qaId="track-number-description"
                         label={t('tool-panel.track-number.description')}
                         value={trackNumber.description}
                         onEdit={() => setShowEditDialog(true)}
@@ -179,14 +183,26 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     qa-id="reference-line-location-infobox">
                     <InfoboxContent>
                         <InfoboxField
+                            qaId="track-number-start-track-meter"
                             label={t('tool-panel.reference-line.start-location')}
-                            value={<TrackMeter value={startAndEndPoints?.start?.address} />}
+                            value={
+                                <NavigableTrackMeter
+                                    trackMeter={startAndEndPoints?.start?.address}
+                                    location={startAndEndPoints?.start?.point}
+                                />
+                            }
                             onEdit={() => setShowEditDialog(true)}
                             iconDisabled={isOfficial}
                         />
                         <InfoboxField
+                            qaId="track-number-end-track-meter"
                             label={t('tool-panel.reference-line.end-location')}
-                            value={<TrackMeter value={startAndEndPoints?.end?.address} />}
+                            value={
+                                <NavigableTrackMeter
+                                    trackMeter={startAndEndPoints?.end?.address}
+                                    location={startAndEndPoints?.end?.point}
+                                />
+                            }
                         />
                         {linkingState === undefined && referenceLine && (
                             <WriteAccessRequired>
@@ -237,6 +253,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         )}
 
                         <InfoboxField
+                            qaId="track-number-true-length"
                             label={t('tool-panel.reference-line.true-length')}
                             value={
                                 roundToPrecision(
@@ -246,6 +263,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="track-number-start-coordinates"
                             label={`${t('tool-panel.reference-line.start-coordinates')} ${
                                 coordinateSystem.name
                             }`}
@@ -256,6 +274,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="track-number-end-coordinates"
                             label={`${t('tool-panel.reference-line.end-coordinates')} ${
                                 coordinateSystem.name
                             }`}
@@ -269,6 +288,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
+                                qa-id="zoom-to-track-number"
+                                title={
+                                    !referenceLine?.boundingBox
+                                        ? t('tool-panel.reference-line.layout.no-geometry')
+                                        : ''
+                                }
+                                disabled={!referenceLine?.boundingBox}
                                 onClick={() =>
                                     referenceLine?.boundingBox &&
                                     showArea(referenceLine.boundingBox)
@@ -308,10 +334,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     qa-id="track-number-log-infobox">
                     <InfoboxContent>
                         <InfoboxField
+                            qaId="track-number-created-date"
                             label={t('tool-panel.created')}
                             value={formatDateShort(createdTime)}
                         />
                         <InfoboxField
+                            qaId="track-number-changed-date"
                             label={t('tool-panel.changed')}
                             value={formatDateShort(changedTime)}
                         />
@@ -322,7 +350,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                     icon={Icons.Delete}
                                     variant={ButtonVariant.WARNING}
                                     size={ButtonSize.SMALL}>
-                                    {t('button.delete')}
+                                    {t('button.delete-draft')}
                                 </Button>
                             </InfoboxButtons>
                         )}

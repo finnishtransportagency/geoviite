@@ -38,6 +38,8 @@ import {
     refreshTrackNumberSelection,
 } from 'track-layout/track-layout-react-utils';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
+import { SplittingState } from 'tool-panel/location-track/split-store';
+import { LinkingState } from 'linking/linking-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -52,6 +54,8 @@ export type ToolbarParams = {
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
+    splittingState: SplittingState | undefined;
+    linkingState: LinkingState | undefined;
 };
 
 type LocationTrackItemValue = {
@@ -139,6 +143,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayers,
+    splittingState,
+    linkingState,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -183,7 +189,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         switch (item?.type) {
             case 'locationTrackSearchItem':
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
-                return onSelect({ locationTracks: [item.locationTrack.id] });
+                return onSelect({
+                    locationTracks: [item.locationTrack.id],
+                    trackNumbers: [],
+                    switches: [],
+                });
 
             case 'switchSearchItem':
                 if (item.layoutSwitch.joints.length > 0) {
@@ -195,7 +205,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
                     showArea(bbox);
                 }
-                return onSelect({ switches: [item.layoutSwitch.id] });
+                return onSelect({
+                    switches: [item.layoutSwitch.id],
+                    locationTracks: [],
+                    trackNumbers: [],
+                });
 
             case 'trackNumberSearchItem':
                 getTrackNumberReferenceLine(item.trackNumber.id, publishType).then(
@@ -206,7 +220,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     },
                 );
 
-                return onSelect({ trackNumbers: [item.trackNumber.id] });
+                return onSelect({
+                    trackNumbers: [item.trackNumber.id],
+                    locationTracks: [],
+                    switches: [],
+                });
 
             default:
                 return;
@@ -249,6 +267,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
 
+    const modeNavigationButtonsDisabledReason = () => {
+        if (splittingState) {
+            return t('tool-bar.splitting-in-progress');
+        } else if (linkingState?.state === 'allSet' || linkingState?.state === 'setup') {
+            return t('tool-bar.linking-in-progress');
+        } else {
+            return undefined;
+        }
+    };
+
     return (
         <div className={`tool-bar tool-bar--${publishType.toLowerCase()}`}>
             <div className={styles['tool-bar__left-section']}>
@@ -290,6 +318,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     <WriteAccessRequired>
                         <Button
                             variant={ButtonVariant.PRIMARY}
+                            qa-id="switch-to-draft-mode"
                             onClick={() => onPublishTypeChange('DRAFT')}>
                             {t('tool-bar.draft-mode.enable')}
                         </Button>
@@ -298,13 +327,26 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {publishType === 'DRAFT' && (
                     <React.Fragment>
                         <Button
+                            disabled={
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
                             variant={ButtonVariant.SECONDARY}
+                            title={modeNavigationButtonsDisabledReason()}
                             onClick={() => moveToOfficialPublishType()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
                         <Button
+                            disabled={
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
                             icon={Icons.VectorRight}
                             variant={ButtonVariant.PRIMARY}
+                            title={modeNavigationButtonsDisabledReason()}
+                            qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
                             {t('tool-bar.preview-mode.enable')}
                         </Button>
@@ -332,6 +374,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
                     locationTrackChangeTime={changeTimes.layoutLocationTrack}
+                    switchChangeTime={changeTimes.layoutSwitch}
                 />
             )}
 

@@ -16,6 +16,7 @@ import {
 } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 import { KmLengthsSearchState } from 'data-products/data-products-slice';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -128,23 +129,25 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <a
-                    qa-id="km-lengths-csv-download"
-                    {...(state.trackNumber && {
-                        href: getKmLengthsAsCsv(
-                            'OFFICIAL',
-                            state.trackNumber?.id,
-                            state.startKm,
-                            state.endKm,
-                        ),
-                    })}>
-                    <Button
-                        className={styles['element-list__download-button']}
-                        disabled={!state.kmLengths || state.kmLengths.length === 0}
-                        icon={Icons.Download}>
-                        {t(`data-products.search.download-csv`)}
-                    </Button>
-                </a>
+                <PrivilegeRequired privilege="dataproduct-download">
+                    <a
+                        qa-id="km-lengths-csv-download"
+                        {...(state.trackNumber && {
+                            href: getKmLengthsAsCsv(
+                                'OFFICIAL',
+                                state.trackNumber?.id,
+                                state.startKm,
+                                state.endKm,
+                            ),
+                        })}>
+                        <Button
+                            className={styles['element-list__download-button']}
+                            disabled={!state.kmLengths || state.kmLengths.length === 0}
+                            icon={Icons.Download}>
+                            {t(`data-products.search.download-csv`)}
+                        </Button>
+                    </a>
+                </PrivilegeRequired>
             </div>
         </React.Fragment>
     );

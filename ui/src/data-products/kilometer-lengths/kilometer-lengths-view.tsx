@@ -10,6 +10,7 @@ import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
 import { dataProductsActions, SelectedKmLengthsSearch } from 'data-products/data-products-slice';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { EntireRailNetworkKmLengthsListing } from 'data-products/kilometer-lengths/entire-rail-network-km-lengths-listing';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 export const KilometerLengthsView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
@@ -42,12 +43,14 @@ export const KilometerLengthsView = () => {
                             checked={state.selectedSearch === 'TRACK_NUMBER'}>
                             {t('data-products.km-lengths.track-number-km-lengths')}
                         </Radio>
-                        <Radio
-                            qaId="select-entire-rail-network"
-                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
-                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
-                            {t('data-products.km-lengths.entire-rail-network-km-lengths')}
-                        </Radio>
+                        <PrivilegeRequired privilege="dataproduct-download">
+                            <Radio
+                                qaId="select-entire-rail-network"
+                                onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                                checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                                {t('data-products.km-lengths.entire-rail-network-km-lengths')}
+                            </Radio>
+                        </PrivilegeRequired>
                     </span>
                 </div>
                 {state.selectedSearch === 'TRACK_NUMBER' && (

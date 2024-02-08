@@ -32,6 +32,7 @@ export const InfraModelPhaseField: React.FC<InfraModelPhaseFieldProps> = ({
     return (
         <FormgroupField
             label={t('im-form.plan-phase-field')}
+            qaId="plan-phase-im-field"
             inEditMode={fieldInEdit === 'planPhase'}
             onEdit={() => setFieldInEdit('planPhase')}
             onClose={() => setFieldInEdit(undefined)}>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GeometryBiquadraticParabola } from 'geometry/geometry-model';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { CantRange } from 'tool-panel/geometry-alignment/geometry-segment/cant-range';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -8,7 +8,7 @@ import 'i18n/config';
 import { useTranslation } from 'react-i18next';
 
 type BiquadraticParabolaInfoBoxProps = {
-    points: LayoutPoint[];
+    points: AlignmentPoint[];
     geometryBiquadraticParabola: GeometryBiquadraticParabola;
 };
 

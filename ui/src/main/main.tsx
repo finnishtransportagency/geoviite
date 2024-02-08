@@ -1,6 +1,6 @@
 import * as React from 'react';
 import 'i18n/config';
-import { Route, Routes, useNavigate } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import styles from './main.module.scss';
 import { TrackLayoutContainer } from 'track-layout/track-layout-container';
 import { Slide, ToastContainer } from 'react-toastify';
@@ -29,6 +29,9 @@ import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geome
 import { commonActionCreators } from 'common/common-slice';
 import { getOwnUser } from 'user/user-api';
 import Licenses from 'licenses/licenses';
+import PublicationLog from 'publication/log/publication-log';
+import { PublicationDetailsContainer } from 'publication/publication-details-container';
+import { purgePersistentState } from 'index';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -46,6 +49,11 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
             <div className={styles.main__content} qa-id="main-content-container">
                 <Routes>
                     <Route path="/" element={<FrontpageContainer />} />
+                    <Route path={'/publications'} element={<PublicationLog />} />
+                    <Route
+                        path={'/publications/:publicationId'}
+                        element={<PublicationDetailsContainer />}
+                    />
                     <Route
                         path="/track-layout"
                         element={
@@ -87,7 +95,7 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
 
 export const MainContainer: React.FC = () => {
     const { t } = useTranslation();
-    const navigate = useNavigate();
+
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
     const versionInStore = useCommonDataAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
@@ -129,8 +137,7 @@ export const MainContainer: React.FC = () => {
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => {
-                                    navigate('/');
-                                    localStorage.clear();
+                                    purgePersistentState();
                                     location.reload();
                                 }}>
                                 {t('version.clear-cache')}

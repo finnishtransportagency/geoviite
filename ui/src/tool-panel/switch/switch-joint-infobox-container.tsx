@@ -22,6 +22,7 @@ export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerPr
         <SwitchJointInfobox
             switchAlignments={switchAlignments}
             jointConnections={jointConnections}
+            topologicalJointConnections={suggestedSwitch?.topologicalJointConnections}
             publishType={publishType}
         />
     ) : (

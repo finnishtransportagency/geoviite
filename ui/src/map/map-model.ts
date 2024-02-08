@@ -28,6 +28,7 @@ export type MapLayerName =
     | 'duplicate-tracks-highlight-layer'
     | 'duplicate-split-section-highlight-layer'
     | 'location-track-selected-alignment-layer'
+    | 'reference-line-selected-alignment-layer'
     | 'location-track-badge-layer'
     | 'location-track-split-badge-layer'
     | 'reference-line-badge-layer'
@@ -38,6 +39,7 @@ export type MapLayerName =
     | 'geometry-switch-layer'
     | 'alignment-linking-layer'
     | 'switch-linking-layer'
+    | 'virtual-km-post-linking-layer'
     | 'location-track-duplicate-endpoint-address-layer'
     | 'location-track-split-location-layer'
     | 'plan-area-layer'
@@ -81,6 +83,7 @@ export type ShownItems = {
 export type MapLayerMenuItem = {
     name: MapLayerMenuItemName;
     visible: boolean;
+    qaId?: string;
     subMenu?: MapLayerMenuItem[];
 };
 

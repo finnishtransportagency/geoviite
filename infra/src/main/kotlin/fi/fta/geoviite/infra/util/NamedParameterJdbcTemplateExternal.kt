@@ -7,13 +7,19 @@ import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 
+inline fun <reified T> NamedParameterJdbcTemplate.queryNotNull(
+    sql: String,
+    params: Map<String, *>,
+    noinline mapper: (rs: ResultSet, index: Int) -> T?,
+): List<T> = query(sql, params, mapper).mapNotNull { i -> i }
+
 inline fun <reified T> NamedParameterJdbcTemplate.queryOptional(
     sql: String,
     params: Map<String, *>,
     noinline mapper: (rs: ResultSet, index: Int) -> T,
 ): T? {
     val result = query(sql, params, mapper)
-    if (result.size > 1) throw IllegalStateException("Cannot have more than one ${T::class.simpleName} with same ID")
+    if (result.size > 1) error("Cannot have more than one ${T::class.simpleName} with same ID")
     return result.firstOrNull()
 }
 

@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Test
+import kotlin.math.absoluteValue
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -58,7 +59,7 @@ class SuggestedSwitchTest {
         )
 
         val presentationJointLocation =
-            alignmentContainingSwitchSegments.segments[1].points.first()
+            alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
         val switchTransformation = inferSwitchTransformation(
             presentationJointLocation,
             switchStructure,
@@ -90,7 +91,7 @@ class SuggestedSwitchTest {
         )
 
         val presentationJointLocation =
-            reversedAlignmentContainingSwitchSegments.segments[2].points.last()
+            reversedAlignmentContainingSwitchSegments.segments[2].alignmentPoints.last()
         val switchTransformation = inferSwitchTransformation(
             presentationJointLocation,
             switchStructure,
@@ -109,14 +110,14 @@ class SuggestedSwitchTest {
 
     private fun reverseAlignment(alignment: LayoutAlignment): LayoutAlignment {
         val reverseSegments = fixSegmentStarts(alignment.segments.reversed().map { segment ->
-            val reversedPoints = segment.points.reversed()
+            val reversedPoints = segment.segmentPoints.reversed()
             var cumulativeM = 0.0
             segment.copy(
                 geometry = segment.geometry.withPoints(
                     reversedPoints.mapIndexed { index, point ->
                         cumulativeM += if (index == 0) 0.0 else lineLength(reversedPoints[index - 1], point)
                         point.copy(m = cumulativeM)
-                    }
+                    },
                 ),
                 sourceId = null,
                 sourceStart = null,
@@ -131,16 +132,16 @@ class SuggestedSwitchTest {
         suggestedSwitch: SuggestedSwitch,
         jointNumber: JointNumber,
         alignmentId: IntId<LocationTrack>,
-        segmentIndex: Int,
+        m: Double,
         endPoint: SegmentEndPoint,
     ) {
         val joint = suggestedSwitch.joints.find { joint -> joint.number == jointNumber }
             ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
         if (!joint.matches.any { match ->
                 match.locationTrackId == alignmentId &&
-                        match.segmentIndex == segmentIndex
+                        (m - match.m).absoluteValue < 0.01
             }) {
-            fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, segmentIndex $segmentIndex, $endPoint")
+            fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, m $m, $endPoint")
         }
     }
 
@@ -156,7 +157,7 @@ class SuggestedSwitchTest {
             rotation = rotation
         )
         val locationTrack = locationTrack(IntId(0), alignmentContainingSwitchSegments, trackId)
-        val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].points.first()
+        val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
 
         val missingLocationTrackEndpoint = LocationTrackEndpoint(
             trackId,
@@ -183,7 +184,7 @@ class SuggestedSwitchTest {
                 suggestedSwitch,
                 JointNumber(1),
                 alignmentId = IntId(1),
-                segmentIndex = 1,
+                m = 300.0,
                 SegmentEndPoint.START
             )
 
@@ -191,7 +192,7 @@ class SuggestedSwitchTest {
                 suggestedSwitch,
                 JointNumber(5),
                 alignmentId = IntId(1),
-                segmentIndex = 1,
+                m = 316.615,
                 SegmentEndPoint.END
             )
 
@@ -199,7 +200,7 @@ class SuggestedSwitchTest {
                 suggestedSwitch,
                 JointNumber(2),
                 alignmentId = IntId(1),
-                segmentIndex = 2,
+                m = 334.43,
                 SegmentEndPoint.END
             )
         } else {

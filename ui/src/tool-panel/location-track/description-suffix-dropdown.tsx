@@ -9,6 +9,7 @@ type DescriptionSuffixDropdownProps = {
     onBlur: () => void;
     size?: DropdownSize;
     disabled?: boolean;
+    qaId?: string;
 };
 
 export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps> = ({
@@ -16,11 +17,15 @@ export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps>
     onChange,
     onBlur,
     size,
+    qaId,
     disabled = false,
 }) => {
+    const options = descriptionSuffixModes.map((s) => ({ ...s, qaId: s.value }));
+
     return (
         <Dropdown
-            options={descriptionSuffixModes}
+            qaId={qaId}
+            options={options}
             value={suffixMode}
             onChange={onChange}
             onBlur={onBlur}

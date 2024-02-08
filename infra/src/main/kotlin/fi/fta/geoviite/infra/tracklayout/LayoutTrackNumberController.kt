@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_DATAPRODUCT_DOWNLOAD
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -34,7 +35,7 @@ class LayoutTrackNumberController(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}")
     fun getTrackNumbers(
         @PathVariable("publishType") publishType: PublishType,
@@ -44,7 +45,7 @@ class LayoutTrackNumberController(
         return trackNumberService.list(publishType, includeDeleted)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}")
     fun getTrackNumber(
         @PathVariable("publishType") publishType: PublishType,
@@ -54,7 +55,7 @@ class LayoutTrackNumberController(
         return toResponse(trackNumberService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("{publishType}/{id}/validation")
     fun validateTrackNumberAndReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
@@ -89,7 +90,7 @@ class LayoutTrackNumberController(
         return trackNumberService.deleteDraftAndReferenceLine(id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
         @PathVariable("publishType") publishType: PublishType,
@@ -102,7 +103,7 @@ class LayoutTrackNumberController(
         return trackNumberService.getMetadataSections(id, publishType, boundingBox)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/{publishType}/{id}/km-lengths")
     fun getTrackNumberKmLengths(
         @PathVariable("publishType") publishType: PublishType,
@@ -115,7 +116,7 @@ class LayoutTrackNumberController(
         return trackNumberService.getKmLengths(publishType, id) ?: emptyList()
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/{publishType}/{id}/km-lengths/as-csv")
     fun getTrackNumberKmLengthsAsCsv(
         @PathVariable("publishType") publishType: PublishType,
@@ -141,7 +142,7 @@ class LayoutTrackNumberController(
         return getCsvResponseEntity(csv, fileName)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
     @GetMapping("/rail-network/km-lengths/file")
     fun getEntireRailNetworkKmLengthsAsCsv(
         @RequestParam(name = "lang", defaultValue = "fi") lang: String,
@@ -163,10 +164,13 @@ class LayoutTrackNumberController(
         return getCsvResponseEntity(csv, FileName("$fileDescription $fileDate.csv"))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{id}/change-times")
-    fun getTrackNumberChangeInfo(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): DraftableChangeInfo {
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/{publishType}/{id}/change-times")
+    fun getTrackNumberChangeInfo(
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable("publishType") publishType: PublishType,
+    ): ResponseEntity<DraftableChangeInfo> {
         logger.apiCall("getTrackNumberChangeInfo", "id" to id)
-        return trackNumberService.getDraftableChangeInfo(id)
+        return toResponse(trackNumberService.getDraftableChangeInfo(id, publishType))
     }
 }

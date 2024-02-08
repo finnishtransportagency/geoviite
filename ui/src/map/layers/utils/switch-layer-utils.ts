@@ -1,48 +1,62 @@
-import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LayoutSwitch,
+    LayoutSwitchJoint,
+} from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
-import { drawCircle, drawRoundedRect, getCanvasRenderer } from 'map/layers/utils/rendering';
+import {
+    drawCircle,
+    drawRect,
+    drawRoundedRect,
+    getCanvasRenderer,
+} from 'map/layers/utils/rendering';
 import styles from '../../map.module.scss';
 import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
+import SwitchErrorIcon from 'vayla-design-lib/icon/glyphs/misc/switch-error.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
-import { SuggestedSwitchJoint } from 'linking/linking-model';
+import { GeometryPlanLinkStatus, SuggestedSwitchJoint } from 'linking/linking-model';
 import { SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
-import { Circle, Fill, RegularShape, Stroke } from 'ol/style';
-import mapStyles from 'map/map.module.scss';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
+import { ValidatedAsset } from 'publication/publication-model';
+import { Selection } from 'selection/selection-model';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
 
-const TEXT_FONT_LARGE = 12;
+const switchErrorImage: HTMLImageElement = new Image();
+switchErrorImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchErrorIcon)}`;
+
+const TEXT_FONT_LARGE = 11;
 const TEXT_FONT_SMALL = 10;
 const CIRCLE_RADIUS_SMALL = 4.5;
 const CIRCLE_RADIUS_LARGE = 6.5;
 
 export function getSelectedSwitchLabelRenderer(
     layoutSwitch: LayoutSwitch,
-    large: boolean,
     linked: boolean,
+    valid: boolean,
 ): RenderFunction {
     const paddingX = 6;
     const paddingY = 4;
     const iconTextPaddingX = 6;
     const fontSize = TEXT_FONT_LARGE;
-    const labelOffset = (large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL) + 4;
+    const strokeWidth = valid ? 1 : 2;
+    const labelOffset = CIRCLE_RADIUS_SMALL + 4 + strokeWidth * 2;
     const iconSize = 14;
     const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
-
     return getCanvasRenderer(
         layoutSwitch,
         (ctx, { pixelRatio }) => {
             ctx.font = `bold ${pixelRatio * fontSize}px sans-serif`;
-            ctx.lineWidth = pixelRatio;
+            ctx.lineWidth = strokeWidth * pixelRatio;
         },
         [
             ({ name }, [x, y], ctx, { pixelRatio }) => {
@@ -52,11 +66,12 @@ export function getSelectedSwitchLabelRenderer(
                         : styles.unlinkedSwitchLabel
                     : styles.switchLabel;
 
-                ctx.strokeStyle = styles.switchLabelBorder;
+                ctx.strokeStyle = valid ? styles.switchLabelBorder : styles.errorBright;
                 const textSize = ctx.measureText(name);
                 const height = (Math.max(iconSize, fontSize) + 2 * paddingY) * pixelRatio;
                 const width =
-                    textSize.width + (iconSize + 2 * paddingX + iconTextPaddingX) * pixelRatio;
+                    textSize.width +
+                    (iconSize + 2 * paddingX + iconTextPaddingX + strokeWidth / 2) * pixelRatio;
 
                 drawRoundedRect(
                     ctx,
@@ -68,12 +83,12 @@ export function getSelectedSwitchLabelRenderer(
                 );
             },
             (_, [x, y], ctx, { pixelRatio }) => {
-                ctx.fillStyle = styles.switchTextColor;
+                ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
                 ctx.drawImage(
-                    switchImage,
+                    valid ? switchImage : switchErrorImage,
                     x + (labelOffset + paddingX) * pixelRatio,
                     y - (iconSize / 2) * pixelRatio,
                     iconSize * pixelRatio,
@@ -83,13 +98,14 @@ export function getSelectedSwitchLabelRenderer(
 
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 ctx.fillStyle = styles.switchTextColor;
+                ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
                 ctx.fillText(
                     name,
                     x + (labelOffset + iconSize + paddingX + iconTextPaddingX) * pixelRatio,
-                    y + 2 * pixelRatio,
+                    y + 2 * pixelRatio - strokeWidth / 2,
                 );
             },
         ],
@@ -101,6 +117,7 @@ export function getSwitchRenderer(
     large: boolean,
     showLabel: boolean,
     linked: boolean,
+    valid: boolean,
 ): RenderFunction {
     const fontSize = large ? TEXT_FONT_LARGE : TEXT_FONT_SMALL;
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
@@ -123,41 +140,62 @@ export function getSwitchRenderer(
                     ? linked
                         ? styles.linkedSwitchJointBorder
                         : styles.unlinkedSwitchJointBorder
-                    : styles.switchJointBorder;
+                    : valid
+                    ? styles.switchJointBorder
+                    : styles.errorBright;
+                ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 if (showLabel) {
-                    ctx.fillStyle = styles.switchTextColor;
+                    ctx.fillStyle = styles.switchBackground;
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
 
-                    ctx.fillText(
-                        name,
-                        x + (circleRadius + textCirclePadding) * pixelRatio,
-                        y + pixelRatio,
-                    );
+                    const textWidth = ctx.measureText(name).width;
+                    const textX = x + (circleRadius + textCirclePadding) * pixelRatio;
+                    const textY = y + pixelRatio;
+                    const paddingHor = 2;
+                    const paddingVer = 1;
+                    const contentWidth = textWidth + (valid ? 0 : 15);
+                    const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
+                    const backgroundY =
+                        textY - (fontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
+                    const backgroundWidth = contentWidth + paddingHor * 2 * pixelRatio;
+                    const backgroundHeight = fontSize * pixelRatio + paddingVer * 2 * pixelRatio;
+
+                    drawRect(ctx, backgroundX, backgroundY, backgroundWidth, backgroundHeight);
+
+                    ctx.fillStyle = styles.switchTextColor;
+                    ctx.fillText(name, textX, textY);
                 }
             },
         ],
     );
 }
 
-export function getJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean): RenderFunction {
+export function getJointRenderer(
+    joint: LayoutSwitchJoint,
+    mainJoint: boolean,
+    valid: boolean = true,
+): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
-    const circleRadius = CIRCLE_RADIUS_LARGE;
+    const showErrorStyle = !valid && mainJoint;
+    const circleRadius = showErrorStyle ? CIRCLE_RADIUS_LARGE + 1 : CIRCLE_RADIUS_LARGE;
 
     return getCanvasRenderer(
         joint,
         (ctx, { pixelRatio }) => {
             ctx.font = `bold ${pixelRatio * fontSize}px sans-serif`;
-            ctx.lineWidth = pixelRatio;
+            ctx.lineWidth = (!valid && mainJoint ? 3 : 1) * pixelRatio;
         },
         [
             (_, [x, y], ctx, { pixelRatio }) => {
                 ctx.fillStyle = mainJoint ? styles.switchMainJoint : styles.switchJoint;
-                ctx.strokeStyle = mainJoint
+                ctx.strokeStyle = showErrorStyle
+                    ? styles.errorBright
+                    : mainJoint
                     ? styles.switchMainJointBorder
                     : styles.switchJointBorder;
 
@@ -218,7 +256,70 @@ export function getLinkingJointRenderer(
     );
 }
 
-export function createSwitchFeatures(
+export const createGeometrySwitchFeatures = (
+    status: GeometryPlanLinkStatus | undefined,
+    visibleSwitches: (string | undefined)[],
+    planLayout: GeometryPlanLayout,
+    isSelected: (switchItem: LayoutSwitch) => boolean,
+    isHighlighted: (switchItem: LayoutSwitch) => boolean,
+    showLargeSymbols: boolean,
+    showLabels: boolean,
+    switchStructures: SwitchStructure[],
+) => {
+    const switchLinkedStatus = status
+        ? new Map(
+              status.switches
+                  .filter((s) => visibleSwitches.includes(s.id))
+                  .map((switchItem) => [switchItem.id, switchItem.isLinked]),
+          )
+        : undefined;
+
+    const isSwitchLinked = (switchItem: LayoutSwitch) =>
+        (switchItem.sourceId && switchLinkedStatus?.get(switchItem.sourceId)) || false;
+
+    return createSwitchFeatures(
+        planLayout.switches.filter((s) => s.sourceId && visibleSwitches.includes(s.sourceId)),
+        isSelected,
+        isHighlighted,
+        isSwitchLinked,
+        showLargeSymbols,
+        showLabels,
+        planLayout.id,
+        switchStructures,
+    );
+};
+
+export const createLayoutSwitchFeatures = (
+    resolution: number,
+    selection: Selection,
+    switches: LayoutSwitch[],
+    switchStructures: SwitchStructure[],
+    validationResult: ValidatedAsset[],
+) => {
+    const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+    const showLabels = resolution <= Limits.SWITCH_LABELS;
+    const isSelected = (switchItem: LayoutSwitch) => {
+        return selection.selectedItems.switches.some((s) => s === switchItem.id);
+    };
+
+    const isHighlighted = (switchItem: LayoutSwitch) => {
+        return selection.highlightedItems.switches.some((s) => s === switchItem.id);
+    };
+
+    return createSwitchFeatures(
+        switches,
+        isSelected,
+        isHighlighted,
+        () => false,
+        largeSymbols,
+        showLabels,
+        undefined,
+        switchStructures,
+        validationResult,
+    );
+};
+
+function createSwitchFeatures(
     layoutSwitches: LayoutSwitch[],
     isSelected: (switchItem: LayoutSwitch) => boolean,
     isHighlighted: (switchItem: LayoutSwitch) => boolean,
@@ -227,6 +328,7 @@ export function createSwitchFeatures(
     showLabels: boolean,
     planId?: GeometryPlanId,
     switchStructures?: SwitchStructure[],
+    validationResult?: ValidatedAsset[],
 ): Feature<OlPoint>[] {
     return layoutSwitches
         .filter((s) => s.joints.length > 0)
@@ -248,6 +350,7 @@ export function createSwitchFeatures(
                 showLabels,
                 planId,
                 presentationJointNumber,
+                validationResult?.find((sw) => sw.id === layoutSwitch.id),
             );
         });
 }
@@ -261,6 +364,7 @@ function createSwitchFeature(
     showLabel: boolean,
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
+    validationResult?: ValidatedAsset | undefined,
 ): Feature<OlPoint>[] {
     const presentationJoint = layoutSwitch.joints.find(
         (joint) => joint.number == presentationJointNumber,
@@ -272,11 +376,12 @@ function createSwitchFeature(
             pointToCoords(presentationJoint?.location ?? layoutSwitch.joints[0].location),
         ),
     });
+    const valid = !validationResult?.errors || validationResult?.errors?.length === 0;
 
     switchFeature.setStyle(
         selected || highlighted
-            ? getSelectedSwitchStyle(layoutSwitch, largeSymbol, linked)
-            : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked),
+            ? getSelectedSwitchStyle(layoutSwitch, linked, valid)
+            : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked, valid),
     );
 
     setSwitchFeatureProperty(switchFeature, { switch: layoutSwitch, planId: planId });
@@ -296,6 +401,19 @@ function createSwitchFeature(
                       ),
                   );
 
+                  if (validationResult?.errors?.length) {
+                      feature.setStyle(
+                          getSwitchJointStyle(
+                              joint,
+                              // Again, use presentation joint as main joint if found, otherwise use first one
+                              presentationJoint
+                                  ? joint.number === presentationJointNumber
+                                  : index == 0,
+                              false,
+                          ),
+                      );
+                  }
+
                   return feature;
               })
             : [];
@@ -308,28 +426,33 @@ function getUnselectedSwitchStyle(
     large: boolean,
     textLabel: boolean,
     linked: boolean,
+    valid: boolean,
 ): Style {
     return new Style({
         zIndex: 0,
-        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked),
+        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked, valid),
     });
 }
 
 function getSelectedSwitchStyle(
     layoutSwitch: LayoutSwitch,
-    large: boolean,
     linked: boolean,
+    valid: boolean = true,
 ): Style {
     return new Style({
         zIndex: 1,
-        renderer: getSelectedSwitchLabelRenderer(layoutSwitch, large, linked),
+        renderer: getSelectedSwitchLabelRenderer(layoutSwitch, linked, valid),
     });
 }
 
-function getSwitchJointStyle(joint: LayoutSwitchJoint, mainJoint: boolean): Style {
+function getSwitchJointStyle(
+    joint: LayoutSwitchJoint,
+    mainJoint: boolean,
+    valid: boolean = true,
+): Style {
     return new Style({
         zIndex: mainJoint ? 3 : 2,
-        renderer: getJointRenderer(joint, mainJoint),
+        renderer: getJointRenderer(joint, mainJoint, valid),
     });
 }
 
@@ -356,24 +479,3 @@ export function findMatchingSwitches(
 function setSwitchFeatureProperty(feature: Feature<OlPoint>, data: SwitchFeatureProperty) {
     feature.set(SWITCH_FEATURE_DATA_PROPERTY, data);
 }
-
-export const endPointStyle = [
-    new Style({
-        image: new Circle({
-            radius: 6,
-            fill: new Fill({ color: mapStyles.locationTrackEndPoint }),
-            stroke: new Stroke({ color: mapStyles.locationTrackEndPointBorder }),
-        }),
-        zIndex: 4,
-    }),
-    new Style({
-        image: new RegularShape({
-            stroke: new Stroke({ color: mapStyles.locationTrackEndPointCross }),
-            points: 4,
-            radius: 4,
-            radius2: 0,
-            angle: 0,
-        }),
-        zIndex: 4,
-    }),
-];

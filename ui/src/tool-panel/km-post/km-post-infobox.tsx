@@ -53,7 +53,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     changeTimes,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id);
+    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, publishType);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
@@ -63,7 +63,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
 
     const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
-        async () => getSingleKmPostKmLength(publishType, kmPost.id).then((result) => result.length),
+        async () => getSingleKmPostKmLength(publishType, kmPost.id),
         [
             kmPost.id,
             kmPost.state,
@@ -105,6 +105,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 onContentVisibilityChange={() => visibilityChange('basic')}>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="km-post-km-number"
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
                         onEdit={openEditDialog}
@@ -112,6 +113,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
+                        qaId="km-post-track-number"
                         value={
                             <TrackNumberLinkContainer
                                 trackNumberId={updatedKmPost?.trackNumberId}
@@ -135,8 +137,12 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
+                            title={
+                                !kmPost.location ? t('tool-panel.km-post.layout.no-location') : ''
+                            }
                             disabled={!kmPost.location}
                             variant={ButtonVariant.SECONDARY}
+                            qa-id="zoom-to-km-post"
                             onClick={onShowOnMap}>
                             {t('tool-panel.km-post.layout.show-on-map')}
                         </Button>
@@ -150,10 +156,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 onContentVisibilityChange={() => visibilityChange('location')}>
                 <InfoboxContent>
                     <InfoboxField
-                        label={t('tool-panel.km-post.layout.location')}
-                        value={kmPost.kmNumber}
-                    />
-                    <InfoboxField
+                        qaId="km-post-coordinates"
                         label={t('tool-panel.km-post.layout.coordinates')}
                         value={
                             updatedKmPost?.location
@@ -186,7 +189,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                             <InfoboxField
                                 label={t('tool-panel.changed')}
-                                value={formatDateShort(kmPostCreatedAndChangedTime.changed)}
+                                value={
+                                    kmPostCreatedAndChangedTime.changed &&
+                                    formatDateShort(kmPostCreatedAndChangedTime.changed)
+                                }
                             />
                         </React.Fragment>
                     )}
@@ -197,7 +203,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                 icon={Icons.Delete}
                                 variant={ButtonVariant.WARNING}
                                 size={ButtonSize.SMALL}>
-                                {t('button.delete')}
+                                {t('button.delete-draft')}
                             </Button>
                         </InfoboxButtons>
                     )}

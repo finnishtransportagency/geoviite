@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -101,7 +102,7 @@ class LayoutKmPostService(
             "limit" to limit
         )
         val allPosts = dao.list(publicationState, false, trackNumberId)
-        val postsByDistance = allPosts.map { post -> associateByDistance(post, location) { item -> item.location } }
+        val postsByDistance = allPosts.map { post -> associateByDistance(post, location) }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }
 
@@ -109,7 +110,7 @@ class LayoutKmPostService(
     fun getSingleKmPostLength(
         publishType: PublishType,
         id: IntId<TrackLayoutKmPost>,
-    ): Double? = dao.getOrThrow(publishType, id).getAsIntegral()?.let { kmPost ->
+    ): Double? = dao.get(publishType, id)?.getAsIntegral()?.let { kmPost ->
         referenceLineService
             .getByTrackNumberWithAlignment(publishType, kmPost.trackNumberId)
             ?.let { (_, referenceLineAlignment) ->
@@ -133,3 +134,6 @@ class LayoutKmPostService(
         else referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
     }
 }
+
+fun associateByDistance(kmPost: TrackLayoutKmPost, comparisonPoint: Point): Pair<TrackLayoutKmPost, Double?> =
+    kmPost to kmPost.location?.let { l -> calculateDistance(LAYOUT_SRID, comparisonPoint, l) }

@@ -5,6 +5,10 @@
     background-color: vayla-design.$color-lemon-light;
     color: vayla-design.$color-black-default;
     overflow: hidden;
+
+    &--error {
+        background-color: vayla-design.$color-red-lighter;
+    }
 }
 
 .message-box__inner {
@@ -25,4 +29,8 @@
 .message-box__icon {
     fill: vayla-design.$color-black-lighter;
     margin-right: 12px;
+
+    &--error {
+        fill: vayla-design.$color-red-dark;
+    }
 }

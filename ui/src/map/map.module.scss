@@ -7,6 +7,9 @@
     planAreaBorder: vayla-design.$color-red-default;
     planAreaTextColor: vayla-design.$color-black-default;
     fontFamily: vayla-design.$font-family;
+
+    errorDefault: vayla-design.$color-red-dark;
+    errorBright: vayla-design.$color-red-default;
 }
 
 //Linking layer
@@ -85,7 +88,7 @@
 // Switch styling
 :export {
     switchTextColor: vayla-design.$color-black-default;
-    switchBackground: vayla-design.$color-black-lighter;
+    switchBackground: rgba(vayla-design.$color-white-default, 0.6);
 
     switchLabel: geoviite-design.$color-geoviite-cadmium-lighter;
     switchLabelBorder: rgba(vayla-design.$color-black-default, 0.5);
@@ -109,6 +112,7 @@
 // Location track split point styling
 :export {
     splitPointCircleColor: vayla-design.$color-blue-default;
+    splitPointDeletedCircleColor: vayla-design.$color-red-default;
 }
 
 //Measure tooltip styling

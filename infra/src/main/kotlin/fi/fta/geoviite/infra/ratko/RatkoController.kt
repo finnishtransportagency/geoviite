@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.Integration
@@ -35,7 +35,7 @@ class RatkoController(
         logger.apiCall("pushChangesToRatko")
         ratkoService.pushChangesToRatko()
 
-        return HttpStatus.NO_CONTENT;
+        return HttpStatus.NO_CONTENT
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -46,7 +46,7 @@ class RatkoController(
         return ResponseEntity(HttpStatus.OK)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/errors/{publishId}")
     fun getRatkoPushErrors(
         @PathVariable("publishId") publishId: IntId<Publication>,
@@ -55,7 +55,7 @@ class RatkoController(
         return toResponse(ratkoStatusService.getRatkoPushError(publishId))
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/is-online")
     fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
         logger.apiCall("ratkoIsOnline")

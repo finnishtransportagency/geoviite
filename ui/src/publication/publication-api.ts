@@ -1,10 +1,9 @@
 import {
     API_URI,
-    deleteAdt,
+    deleteNonNullAdt,
     getNonNull,
     Page,
-    postAdt,
-    postIgnoreError,
+    postNonNull,
     queryParams,
 } from 'api/api-fetch';
 import {
@@ -16,6 +15,7 @@ import {
     PublishRequest,
     PublishRequestIds,
     PublishResult,
+    SplitInPublication,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import i18next from 'i18next';
@@ -28,16 +28,16 @@ export const getPublishCandidates = () =>
     getNonNull<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, ValidatedPublishCandidates>(
+    postNonNull<PublishRequestIds, ValidatedPublishCandidates>(
         `${PUBLICATION_URL}/validate`,
         request,
     );
 
 export const revertCandidates = (request: PublishRequestIds) =>
-    deleteAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
+    deleteNonNullAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request);
 
 export const publishCandidates = (request: PublishRequest) => {
-    return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
+    return postNonNull<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request);
 };
 
 export const getLatestPublications = (count: number) => {
@@ -45,8 +45,13 @@ export const getLatestPublications = (count: number) => {
         count,
     });
 
-    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`).then(
+        (page) => page.items,
+    );
 };
+
+export const getPublication = (id: PublicationId) =>
+    getNonNull<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
 export const getPublicationAsTableItems = (id: PublicationId) =>
     getNonNull<PublicationTableItem[]>(
@@ -93,13 +98,18 @@ export const getPublicationsCsvUri = (
 };
 
 export const getCalculatedChanges = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, CalculatedChanges>(
+    postNonNull<PublishRequestIds, CalculatedChanges>(
         `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
 
 export const getRevertRequestDependencies = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, PublishRequestIds>(
+    postNonNull<PublishRequestIds, PublishRequestIds>(
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );
+
+export const getSplitDetails = (id: string) =>
+    getNonNull<SplitInPublication>(`${PUBLICATION_URL}/${id}/split-details`);
+
+export const splitDetailsCsvUri = (id: string) => `${PUBLICATION_URL}/${id}/split-details/csv`;

@@ -33,6 +33,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
 
     const linkingLayers: MapLayerName[] = [
         'km-post-layer',
+        'virtual-km-post-linking-layer',
         'reference-line-alignment-layer',
         'reference-line-badge-layer',
     ];

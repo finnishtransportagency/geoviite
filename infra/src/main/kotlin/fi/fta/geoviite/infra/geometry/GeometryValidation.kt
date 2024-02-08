@@ -35,6 +35,11 @@ const val VALIDATION_CANT = "cant"
 const val VALIDATION_SWITCH = "switch"
 const val VALIDATION_KM_POST = "km-post"
 
+val trackTypeCodes = listOf(
+    FeatureTypeCode("281"),
+    FeatureTypeCode("111"),
+)
+
 interface ValidationError {
     val localizationKey: LocalizationKey
     val errorType: ErrorType
@@ -43,17 +48,21 @@ interface ValidationError {
 data class ValidationErrorData(
     override val localizationKey: LocalizationKey,
     override val errorType: ErrorType,
-): ValidationError {
-    constructor(parentKey: String, errorKey: String, errorType: ErrorType):
-            this(LocalizationKey("$VALIDATION.$parentKey.$errorKey"), errorType)
+) : ValidationError {
+    constructor(parentKey: String, errorKey: String, errorType: ErrorType) : this(
+        LocalizationKey("$VALIDATION.$parentKey.$errorKey"),
+        errorType,
+    )
 }
 
 data class MetadataError(
     @JsonIgnore private val data: ValidationErrorData,
     val value: String?,
 ) : ValidationError by data {
-    constructor(key: String, type: ErrorType, value: String? = null):
-            this(ValidationErrorData(VALIDATION_METADATA, key, type), value)
+    constructor(key: String, type: ErrorType, value: String? = null) : this(
+        ValidationErrorData(VALIDATION_METADATA, key, type),
+        value,
+    )
 }
 
 data class SwitchDefinitionError(
@@ -72,7 +81,7 @@ data class SwitchDefinitionError(
         jointNumbers: List<JointNumber>? = null,
         structureJointNumbers: List<JointNumber>? = null,
         alignmentName: AlignmentName? = null,
-    ): this(
+    ) : this(
         data = ValidationErrorData(VALIDATION_SWITCH, key, type),
         switchName = switchName,
         switchType = switchType,
@@ -87,8 +96,11 @@ data class AlignmentError(
     val alignmentName: AlignmentName,
     val value: String?,
 ) : ValidationError by data {
-    constructor(key: String, type: ErrorType, alignmentName: AlignmentName, value: String? = null):
-            this(ValidationErrorData(VALIDATION_ALIGNMENT, key, type), alignmentName, value)
+    constructor(key: String, type: ErrorType, alignmentName: AlignmentName, value: CharSequence? = null) : this(
+        ValidationErrorData(VALIDATION_ALIGNMENT, key, type),
+        alignmentName,
+        value?.toString(),
+    )
 }
 
 data class ElementError(
@@ -104,7 +116,7 @@ data class ElementError(
         alignmentName: AlignmentName,
         element: GeometryElement,
         value: String? = null
-    ): this(
+    ) : this(
         data = ValidationErrorData(VALIDATION_ELEMENT, key, type),
         alignmentName = alignmentName,
         elementName = element.name ?: element.oidPart,
@@ -119,8 +131,13 @@ data class ProfileError(
     val viName: PlanElementName,
     val value: String?,
 ) : ValidationError by data {
-    constructor(key: String, type: ErrorType, profileName: PlanElementName, viName: PlanElementName, value: String? = null):
-            this(ValidationErrorData(VALIDATION_PROFILE, key, type), profileName, viName, value)
+    constructor(
+        key: String,
+        type: ErrorType,
+        profileName: PlanElementName,
+        viName: PlanElementName,
+        value: String? = null,
+    ) : this(ValidationErrorData(VALIDATION_PROFILE, key, type), profileName, viName, value)
 }
 
 data class CantError(
@@ -138,16 +155,21 @@ data class KmPostError(
     val kmPostName: PlanElementName,
     val value: String?,
 ) : ValidationError by data {
-    constructor(key: String, type: ErrorType, kmPostName: PlanElementName, value: String? = null):
-            this(ValidationErrorData(VALIDATION_KM_POST, key, type), kmPostName, value)
+    constructor(key: String, type: ErrorType, kmPostName: PlanElementName, value: String? = null) : this(
+        ValidationErrorData(VALIDATION_KM_POST, key, type),
+        kmPostName,
+        value,
+    )
 }
 
 data class CollectionError(
     @JsonIgnore private val data: ValidationErrorData,
     val value: String?,
 ) : ValidationError by data {
-    constructor(key: String, groupingType: String, type: ErrorType, value: String? = null):
-            this(ValidationErrorData(groupingType, key, type), value)
+    constructor(key: String, groupingType: String, type: ErrorType, value: CharSequence? = null) : this(
+        ValidationErrorData(groupingType, key, type),
+        value?.toString(),
+    )
 }
 
 private const val COORDINATE_DELTA = 0.1
@@ -269,7 +291,7 @@ private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<Collec
         },
         validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
             CollectionError("sta-ahead-not-negative", VALIDATION_KM_POST, VALIDATION_ERROR, firstKmPost?.staAhead?.toString())
-        }
+        },
     )
     return generalErrors
 }
@@ -284,14 +306,17 @@ fun validateKmPost(post: GeometryKmPost) = listOfNotNull(
 )
 
 fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<ValidationError> {
-    val referenceLineAlignments = alignments.filter { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }
+    val referenceLineAlignments = alignments.filter { alignment ->
+        alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE
+    }
     return listOfNotNull(
         validate(referenceLineAlignments.isNotEmpty()) {
             CollectionError("no-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
         },
         validate(referenceLineAlignments.size <= 1) {
             CollectionError("multiple-reference-lines", VALIDATION_ALIGNMENT, VALIDATION_ERROR)
-        })
+        },
+    )
 }
 
 fun validateAlignmentGeometry(alignment: GeometryAlignment): List<ValidationError> {
@@ -319,6 +344,9 @@ fun validateAlignmentProfile(alignment: GeometryAlignment): List<ValidationError
 fun validateAlignmentCant(alignment: GeometryAlignment): List<ValidationError> {
     return alignment.cant?.let { cant ->
         val cantErrors = listOfNotNull(
+            validate(cant.rotationPoint != null || alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE) {
+                AlignmentError("cant-rotation-point-undefined", VALIDATION_ERROR, alignment.name)
+            },
             validate(cant.rotationPoint != CENTER) {
                 AlignmentError("cant-rotation-point-center", VALIDATION_ERROR, alignment.name)
             },
@@ -338,17 +366,18 @@ fun validateAlignmentCant(alignment: GeometryAlignment): List<ValidationError> {
 
 fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureType>): List<ValidationError> {
     val typeCode = alignment.featureTypeCode
+    val type = typeCode?.let { c -> featureTypes.find { ft -> ft.code == c } }
+    val typeCodeError = if (typeCode == null) {
+        AlignmentError("no-feature-type", OBSERVATION_MAJOR, alignment.name)
+    } else if (type == null) {
+        AlignmentError("unknown-feature-type", OBSERVATION_MAJOR, alignment.name, typeCode)
+    } else if (type.code !in trackTypeCodes) {
+        AlignmentError("wrong-feature-type", OBSERVATION_MINOR, alignment.name, "${type.code} (${type.description})")
+    } else {
+        null
+    }
     val alignmentErrors = listOfNotNull(
-        validate(typeCode != null) {
-            AlignmentError("no-feature-type", OBSERVATION_MAJOR, alignment.name)
-        },
-        validate(typeCode == null || featureTypes.any { ft -> ft.code == typeCode }) {
-            AlignmentError("unknown-feature-type", OBSERVATION_MAJOR, alignment.name, typeCode?.toString())
-        },
-        // TypeCode 121 is for road center-line. Should use 281 instead for tracks.
-        validate(typeCode == null || typeCode != FeatureTypeCode("121")) {
-            AlignmentError("wrong-feature-type", OBSERVATION_MINOR, alignment.name, value = typeCode?.toString())
-        },
+        typeCodeError,
         validate(alignment.state != null) {
             AlignmentError("no-state", OBSERVATION_MINOR, alignment.name)
         },
@@ -360,7 +389,6 @@ fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureTy
 }
 
 private fun validateElement(alignmentName: AlignmentName, element: GeometryElement): List<ElementError> {
-
     val lengthDelta = abs(element.length.toDouble() - element.calculatedLength)
     val fieldErrors = listOfNotNull(
         validate(element.length > BigDecimal.ZERO) {
@@ -682,7 +710,6 @@ private fun validateCantPoint(
     )
 }
 
-
 private fun validateCantPointVsPrevious(
     cantName: PlanElementName,
     cantPoint: GeometryCantPoint,
@@ -694,7 +721,6 @@ private fun validateCantPointVsPrevious(
         },
     )
 }
-
 
 fun validateSwitch(
     switch: GeometrySwitch,
@@ -719,13 +745,9 @@ fun validateSwitch(
         },
     )
 
-    val geometryErrors =
-        if (structure != null) validateSwitchGeometry(switch, structure)
-        else listOf()
+    val geometryErrors = structure?.let { s -> validateSwitchGeometry(switch, s) } ?: emptyList()
 
-    val alignmentErrors =
-        if (structure != null) validateSwitchAlignments(switch, structure, alignmentSwitches)
-        else listOf()
+    val alignmentErrors = structure?.let { s -> validateSwitchAlignments(switch, s, alignmentSwitches) } ?: emptyList()
 
     return fieldErrors + geometryErrors + alignmentErrors
 }
@@ -739,11 +761,9 @@ fun validateSwitchGeometry(
         if (joints.size > 1) getSwitchPositionTransformation(switchStructure, joints)
         else null
     return if (positionTransformation == null) {
-        listOfNotNull(
-            validate(joints.size <= 1) {
-                SwitchDefinitionError("location-difference", OBSERVATION_MAJOR, switch.name)
-            }
-        )
+        listOfNotNull(validate(joints.size <= 1) {
+            SwitchDefinitionError("location-difference", OBSERVATION_MAJOR, switch.name)
+        })
     } else {
         val locationPairs = joints.mapNotNull { joint ->
             switchStructure.joints

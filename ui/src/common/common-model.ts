@@ -1,13 +1,14 @@
 import { Point } from 'model/geometry';
 import {
     LayoutKmPostId,
-    LayoutPoint,
+    AlignmentPoint,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
+import i18next from 'i18next';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -77,8 +78,11 @@ export const compareTrackMeterStrings = (a: string, b: string) => {
     return kmDiff !== 0 ? kmDiff : letterDiff !== 0 ? letterDiff : meterDiff;
 };
 
+export const compareNamed = (a: { name: string | undefined }, b: { name: string | undefined }) =>
+    a?.name?.localeCompare(b?.name || '', i18next.language) || 0;
+
 export type AddressPoint = {
-    point: LayoutPoint;
+    point: AlignmentPoint;
     address: TrackMeter;
     distance: number;
 };
@@ -93,9 +97,7 @@ export type ElementLocation = {
 
 export type DraftableChangeInfo = {
     created: TimeStamp;
-    changed: TimeStamp;
-    officialChanged?: TimeStamp;
-    draftChanged?: TimeStamp;
+    changed: TimeStamp | undefined;
 };
 
 export type Message = string;

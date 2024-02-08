@@ -8,8 +8,10 @@ import editSvg from './glyphs/action/edit.svg';
 import searchSvg from './glyphs/action/search.svg';
 import switchDirectionSvg from './glyphs/action/switch-direction.svg';
 import setDateSvg from './glyphs/action/set-date.svg';
+import setTimeSvg from './glyphs/action/set-time.svg';
 import ascending from './glyphs/action/ascending.svg';
 import descending from './glyphs/action/descending.svg';
+import targetSvg from './glyphs/action/target.svg';
 import infoSvg from './glyphs/status/info.svg';
 import deniedSvg from './glyphs/status/denied.svg';
 import selectedSvg from './glyphs/status/selected.svg';
@@ -19,6 +21,7 @@ import navigationDownSvg from './glyphs/navigation/down.svg';
 import statusErrorSvg from './glyphs/status/error.svg';
 import kmPostSvg from './glyphs/misc/kmpost.svg';
 import kmPostSelectedSvg from './glyphs/misc/kmpost-selected.svg';
+import kmPostDisabledSvg from './glyphs/misc/kmpost-disabled.svg';
 import switchSvg from './glyphs/misc/switch.svg';
 import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
@@ -33,6 +36,7 @@ import fullScreen from './glyphs/navigation/fullscreen.svg';
 import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
 import externalLink from './glyphs/navigation/external-link.svg';
 import menuSvg from './glyphs/navigation/menu.svg';
+import positionPinSvg from './glyphs/misc/position-pin.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -99,18 +103,22 @@ const iconNameToSvgMap = {
     Descending: descending,
     Redo: redoSvg,
     SetDate: setDateSvg,
+    SetTime: setTimeSvg,
     Measure: measureSvg,
     Select: selectSvg,
+    Target: targetSvg,
 
     // Misc
     Layers: layersSvg,
     Switch: switchSvg,
+    PositionPin: positionPinSvg,
 };
 
 const iconNameToSvgMapStaticColor = {
     // Misc
     KmPost: kmPostSvg,
     KmPostSelected: kmPostSelectedSvg,
+    KmPostDisabled: kmPostDisabledSvg,
 };
 
 export enum IconSize {

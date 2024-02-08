@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
@@ -16,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
 
 
@@ -48,11 +50,13 @@ data class GeometryPlanHeader(
     val hasProfile: Boolean,
     val hasCant: Boolean,
     val isHidden: Boolean,
-) {
+) : Loggable {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
         listOfNotNull(fileName, project.name, message).map { o -> o.toString().lowercase() }
     }
+
+    override fun toLog(): String = logFormat("version" to version, "name" to fileName, "source" to source)
 }
 
 /**
@@ -83,9 +87,18 @@ data class GeometryPlan(
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
-) {
+) : Loggable {
     @get:JsonIgnore
     val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
+
+    override fun toLog(): String = logFormat(
+        "id" to id,
+        "name" to fileName,
+        "source" to source,
+        "alignments" to alignments.map(GeometryAlignment::toLog),
+        "switches" to switches.map(GeometrySwitch::toLog),
+        "kmPosts" to kmPosts.map(GeometryKmPost::toLog),
+    )
 }
 
 data class GeometryPlanArea(
@@ -120,3 +133,8 @@ data class GeometryPlanLinkedItems(
 ) {
     val isEmpty = locationTracks.isEmpty() && switches.isEmpty() && kmPosts.isEmpty()
 }
+
+data class GeometryPlanHeadersSearchResult(
+    val planHeaders: Page<GeometryPlanHeader>,
+    val remainingIds: List<IntId<GeometryPlan>>,
+)

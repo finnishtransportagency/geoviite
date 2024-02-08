@@ -42,6 +42,11 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
         max-width: 780px;
     }
 
+    &--three-columns {
+        min-width: 1040px;
+        max-width: 1040px;
+    }
+
     &--dark {
         background: colors.$color-blue-darker;
         color: colors.$color-white-default;
@@ -141,4 +146,8 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
             padding-right: inherit;
         }
     }
+}
+
+.dialog__alert {
+    @include typography.typography-caption;
 }

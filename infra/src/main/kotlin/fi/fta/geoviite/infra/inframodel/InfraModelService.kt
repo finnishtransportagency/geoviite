@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
+import fi.fta.geoviite.infra.codeDictionary.FeatureType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
@@ -8,7 +9,7 @@ import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.*
-import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
@@ -59,10 +60,12 @@ class InfraModelService @Autowired constructor(
     ): RowVersion<GeometryPlan> {
         logger.serviceCall(
             "saveInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+            "file" to file,
+            "overrides" to overrides,
+            "extraInfo" to extraInfo,
         )
 
-        val geometryPlan = parseInfraModel(file, overrides, extraInfo)
+        val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
@@ -72,7 +75,6 @@ class InfraModelService @Autowired constructor(
         return geometryDao.insertPlan(geometryPlan, file, transformedBoundingBox)
     }
 
-    @Transactional(readOnly = true)
     fun parseInfraModel(
         file: InfraModelFile,
         overrides: OverrideParameters? = null,
@@ -80,7 +82,9 @@ class InfraModelService @Autowired constructor(
     ): GeometryPlan {
         logger.serviceCall(
             "parseInfraModel",
-            "file.name" to file.name, "overrides" to overrides, "extraInfo" to extraInfo
+            "file" to file,
+            "overrides" to overrides,
+            "extraInfo" to extraInfo,
         )
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
         val trackNumberIdsByNumber = trackNumberService.list(OFFICIAL).associate { tn -> tn.number to tn.id as IntId }
@@ -103,7 +107,7 @@ class InfraModelService @Autowired constructor(
         logger.serviceCall(
             "validateInfraModelFile",
             "file.originalFilename" to multipartFile.originalFilename,
-            "overrideParameters" to overrideParameters
+            "overrideParameters" to overrideParameters,
         )
         return tryParsing(overrideParameters?.source) {
             val imFile = toInfraModelFile(multipartFile, overrideParameters?.encoding?.charset)
@@ -117,7 +121,8 @@ class InfraModelService @Autowired constructor(
     ): ValidationResponse {
         logger.serviceCall(
             "validateInfraModelFile",
-            "file.name" to file.name, "overrideParameters" to overrideParameters
+            "file" to file,
+            "overrideParameters" to overrideParameters,
         )
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
@@ -125,6 +130,15 @@ class InfraModelService @Autowired constructor(
     private fun validateInternal(file: InfraModelFile, overrides: OverrideParameters?): ValidationResponse {
         val geometryPlan = parseInfraModel(file, overrides)
         return validateAndTransformToLayoutPlan(geometryPlan)
+    }
+
+    private fun cleanMissingFeatureTypeCodes(plan: GeometryPlan): GeometryPlan {
+        val codes = codeDictionaryService.getFeatureTypes().map(FeatureType::code)
+        val cleanedAlignments = plan.alignments.map { a ->
+            if (a.featureTypeCode != null && a.featureTypeCode !in codes) a.copy(featureTypeCode = null)
+            else a
+        }
+        return if (cleanedAlignments != plan.alignments) plan.copy(alignments = cleanedAlignments) else plan
     }
 
     @Transactional(readOnly = true)
@@ -135,7 +149,7 @@ class InfraModelService @Autowired constructor(
         logger.serviceCall(
             "validateGeometryPlan",
             "planId" to planId,
-            "overrideParameters" to overrideParameters
+            "overrideParameters" to overrideParameters,
         )
 
         val geometryPlan = geometryService.getGeometryPlan(planId)
@@ -158,9 +172,10 @@ class InfraModelService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         overrideParameters: OverrideParameters?,
         extraInfoParameters: ExtraInfoParameters?,
-    ): GeometryPlan {
+    ): RowVersion<GeometryPlan> {
         logger.serviceCall(
             "updateInfraModel",
+            "planId" to planId,
             "overrideParameters" to overrideParameters,
             "extraInfoParameters" to extraInfoParameters,
         )
@@ -233,7 +248,7 @@ class InfraModelService @Autowired constructor(
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
                 localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                localizedMessageParams = LocalizationParams("fileName" to duplicate.fileName),
+                localizedMessageParams = localizationParams("fileName" to duplicate.fileName),
             )
         }
     }

@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_INFRAMODEL_DOWNLOAD
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -19,7 +20,6 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
-
 @RestController
 @RequestMapping("/inframodel")
 class InfraModelController @Autowired constructor(
@@ -36,18 +36,17 @@ class InfraModelController @Autowired constructor(
         @RequestPart(value = "file") file: MultipartFile,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
         @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
-    ): InsertResponse {
+    ): IntId<GeometryPlan> {
         logger.apiCall(
             "saveInfraModel",
             "file.originalFilename" to file.originalFilename,
             "overrides" to overrides,
             "extraInfo" to extraInfo,
         )
-        val id = infraModelService.saveInfraModel(file, overrides, extraInfo).id
-        return InsertResponse("New plan inserted successfully", id)
+        return infraModelService.saveInfraModel(file, overrides, extraInfo).id
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/validate")
     fun validateFile(
         @RequestPart(value = "file") file: MultipartFile,
@@ -61,7 +60,7 @@ class InfraModelController @Autowired constructor(
         return infraModelService.validateInfraModelFile(file, overrides)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/{planId}/validate")
     fun validateGeometryPlan(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
@@ -77,9 +76,9 @@ class InfraModelController @Autowired constructor(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
         @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
-    ): GeometryPlan {
+    ): IntId<GeometryPlan> {
         logger.apiCall("updateInfraModel", "overrides" to overrides, "extraInfo" to extraInfo)
-        return infraModelService.updateInfraModel(planId, overrides, extraInfo)
+        return infraModelService.updateInfraModel(planId, overrides, extraInfo).id
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -92,35 +91,35 @@ class InfraModelController @Autowired constructor(
         return geometryService.setPlanHidden(planId, hidden).id
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PutMapping("/{planId}/linked-items")
     fun getInfraModelLinkedItems(@PathVariable("planId") planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
         logger.apiCall("getInfraModelLinkedItems", "planId" to planId)
         return geometryService.getPlanLinkedItems(planId)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_INFRAMODEL_DOWNLOAD)
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadFile", "id" to id)
         return geometryService.getPlanFile(id).let(::toFileDownloadResponse)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/projektivelho/documents")
     fun getPVDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.apiCall("getPVDocumentHeaders", "status" to status)
         return pvDocumentService.getDocumentHeaders(status)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/projektivelho/documents/{id}")
     fun getPVDocumentHeaders(@PathVariable id: IntId<PVDocument>): PVDocumentHeader {
         logger.apiCall("getPVDocumentHeader", "id" to id)
         return pvDocumentService.getDocumentHeader(id)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/projektivelho/documents/count")
     fun getPVDocumentCounts(): PVDocumentCounts {
         logger.apiCall("getPVDocumentCounts")
@@ -137,7 +136,7 @@ class InfraModelController @Autowired constructor(
         return pvDocumentService.updateDocumentsStatuses(ids, status)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_UI_READ)
     @PostMapping("/projektivelho/documents/{documentId}/validate")
     fun validatePVDocument(
         @PathVariable("documentId") documentId: IntId<PVDocument>,
@@ -163,7 +162,7 @@ class InfraModelController @Autowired constructor(
         return pvDocumentService.importPVDocument(documentId, overrides, extraInfo)
     }
 
-    @PreAuthorize(AUTH_ALL_READ)
+    @PreAuthorize(AUTH_INFRAMODEL_DOWNLOAD)
     @GetMapping("/projektivelho/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadPVDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadPVDocument", "documentId" to documentId)
