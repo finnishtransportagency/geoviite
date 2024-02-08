@@ -654,13 +654,15 @@
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä"
-                }
-            },
-            "switch-relinking": {
-                "toast-title": "Raiteen \"{{locationTrack}}\" vaihteissa on ongelmia",
+                },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-message": "Raiteen vaihteissa on ongelmia, jotka olisi hyödyllistä korjata ennen raiteen jakamista",
                 "cancel-and-relink": "Peruuta ja näytä ongelmalliset vaihteet ({{count}} kpl)"
+            },
+            "task-list": {
+                "title": "Tehtävälista",
+                "validation-errors-message": "Seuraavissa raiteen \"{{locationTrack}}\" vaihteissa on ongelmia",
+                "no-validation-errors-message": "Raiteen \"{{locationTrack}} vaihteissa ei ole ongelmia."
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken"
         },

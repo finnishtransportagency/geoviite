@@ -6,7 +6,6 @@ import {
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutSwitchIdAndName,
-    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -92,7 +91,6 @@ type LocationTrackInfoboxProps = {
     onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
     verticalGeometryDiagramVisible: boolean;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
-    onTaskList: (locationTrack: LocationTrackId) => void;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -115,7 +113,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     verticalGeometryDiagramVisible,
     onVerticalGeometryDiagramVisibilityChange,
     onHighlightItem,
-    onTaskList,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const delegates = createDelegates(TrackLayoutActions);
@@ -377,7 +374,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         startPostingSplit={delegates.startPostingSplit}
                         returnToSplitting={delegates.returnToSplitting}
                         markSplitOld={delegates.markSplitOld}
-                        onTaskList={onTaskList}
                     />
                 </EnvRestricted>
             )}

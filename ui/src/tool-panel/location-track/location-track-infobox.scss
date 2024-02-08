@@ -138,14 +138,15 @@
     }
 }
 
-.location-track-infobox__split-validated-switches {
-    > a {
-        cursor: pointer;
-        color: vayla-design.$color-blue-dark;
-    }
+.location-track-infobox__relink-link {
+    margin-top: 4px;
+}
 
-    > a:not(:last-child):after {
-        content: ', ';
-        white-space: pre;
+.location-track-infobox__validate-switch-relinking {
+    display: flex;
+    align-items: center;
+
+    .spinner {
+        margin-left: 12px;
     }
 }

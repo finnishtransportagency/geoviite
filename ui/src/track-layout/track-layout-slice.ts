@@ -196,6 +196,7 @@ export type TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
     infoboxVisibilities: InfoboxVisibilities;
+    locationTrackTaskList: LocationTrackId | undefined;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -208,6 +209,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
     infoboxVisibilities: initialInfoboxVisibilities,
+    locationTrackTaskList: undefined,
 };
 
 export function getSelectableItemTypes(
@@ -482,6 +484,15 @@ const trackLayoutSlice = createSlice({
             { payload }: PayloadAction<ToolPanelAsset | undefined>,
         ): void => {
             state.selectedToolPanelTab = payload;
+        },
+        showLocationTrackTaskList: (
+            state: TrackLayoutState,
+            { payload }: PayloadAction<LocationTrackId>,
+        ) => {
+            state.locationTrackTaskList = payload;
+        },
+        hideLocationTrackTaskList: (state: TrackLayoutState) => {
+            state.locationTrackTaskList = undefined;
         },
     },
 });
