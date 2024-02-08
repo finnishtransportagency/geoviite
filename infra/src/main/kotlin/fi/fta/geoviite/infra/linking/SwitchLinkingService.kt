@@ -739,11 +739,11 @@ private fun alignmentStartEndDirection(alignment: IAlignment): Double? {
     return if (start != null && end != null) directionBetweenPoints(start, end) else null
 }
 
-private fun getClosestPointAsIntersection(track1: IAlignment, track2:IAlignment, desiredLocation: IPoint):TrackIntersection {
+private fun getClosestPointAsIntersection(track1: IAlignment, track2: IAlignment, desiredLocation: IPoint): TrackIntersection? {
     return listOf(track1, track2)
             .mapNotNull { track -> track.getClosestPoint(desiredLocation) }
-            .minBy { (point, _) -> lineLength(point,desiredLocation) }
-            .let { (closestPoint,_) ->
+            .minByOrNull { (point, _) -> lineLength(point,desiredLocation) }
+            ?.let { (closestPoint,_) ->
                 TrackIntersection(
                     alignment1 = track1,
                     alignment2 = track2,
@@ -768,7 +768,7 @@ private fun findTrackIntersections(
         // be two points very close to each other and it is cheap to
         // calculate additional suggested switch and then select the best one.
         val actualIntersections = findClosestIntersections(track1, track2, desiredLocation, 2)
-        val allIntersections = actualIntersections+closestPointAsIntersection
+        val allIntersections = actualIntersections+ listOfNotNull(closestPointAsIntersection)
         allIntersections
     }
 }
