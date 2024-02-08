@@ -763,12 +763,12 @@ private fun findTrackIntersections(
     }
     return trackPairs.flatMap { (track1, track2) ->
         val closestPointAsIntersection = getClosestPointAsIntersection(track1, track2, desiredLocation)
-
+        
         // Take two closest intersections instead of one because there might
         // be two points very close to each other and it is cheap to
         // calculate additional suggested switch and then select the best one.
         val actualIntersections = findClosestIntersections(track1, track2, desiredLocation, 2)
-        val allIntersections = actualIntersections+ listOfNotNull(closestPointAsIntersection)
+        val allIntersections = actualIntersections + listOfNotNull(closestPointAsIntersection)
         allIntersections
     }
 }
