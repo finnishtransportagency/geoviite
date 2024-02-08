@@ -6,10 +6,7 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { ChangesBeingReverted } from 'preview/preview-view';
-import {
-    onlyDependencies,
-    PublicationRequestDependencyList,
-} from 'preview/publication-request-dependency-list';
+import { PublicationRequestDependencyList } from 'preview/publication-request-dependency-list';
 import { ChangeTimes } from 'common/common-slice';
 import { revertCandidates } from 'publication/publication-api';
 import { getChangeTimes } from 'common/change-time-api';
@@ -33,7 +30,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             result
                 .map(() => {
                     Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
-                    onSave && onSave(changesBeingReverted.requestedRevertChange.id);
+                    onSave && onSave(changesBeingReverted.requestedRevertChange.source.id);
                     onClose();
                 })
                 .mapErr(() => {
@@ -62,7 +59,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>
             <PublicationRequestDependencyList
                 changeTimes={getChangeTimes()}
-                dependencies={onlyDependencies(changesBeingReverted)}
+                changesBeingReverted={changesBeingReverted}
             />
         </Dialog>
     );

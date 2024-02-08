@@ -28,12 +28,11 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addIfExists } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
-import { subtractPublishRequestIds } from 'publication/publication-utils';
+import { addPublishRequestIds, subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
 
 export type SelectedPublishChange = {
@@ -347,38 +346,15 @@ const trackLayoutSlice = createSlice({
                 }
             }
         },
-        onPreviewSelect: function (
-            state: TrackLayoutState,
-            action: PayloadAction<SelectedPublishChange>,
-        ): void {
-            const trackNumbers = addIfExists(
-                state.stagedPublicationRequestIds.trackNumbers,
-                action.payload.trackNumber,
-            );
-            const referenceLines = addIfExists(
-                state.stagedPublicationRequestIds.referenceLines,
-                action.payload.referenceLine,
-            );
-            const locationTracks = addIfExists(
-                state.stagedPublicationRequestIds.locationTracks,
-                action.payload.locationTrack,
-            );
-            const switches = addIfExists(
-                state.stagedPublicationRequestIds.switches,
-                action.payload.switch,
-            );
-            const kmPosts = addIfExists(
-                state.stagedPublicationRequestIds.kmPosts,
-                action.payload.kmPost,
-            );
 
-            state.stagedPublicationRequestIds = {
-                trackNumbers: trackNumbers,
-                referenceLines: referenceLines,
-                locationTracks: locationTracks,
-                switches: switches,
-                kmPosts: kmPosts,
-            };
+        onPublishPreviewSelect: function (
+            state: TrackLayoutState,
+            action: PayloadAction<PublishRequestIds>,
+        ): void {
+            const stateCandidates = state.stagedPublicationRequestIds;
+            const toAdd = action.payload;
+
+            state.stagedPublicationRequestIds = addPublishRequestIds(stateCandidates, toAdd);
         },
 
         onPublishPreviewRemove: function (

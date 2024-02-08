@@ -2,6 +2,7 @@ import {
     KmPostPublishCandidate,
     LocationTrackPublishCandidate,
     Operation,
+    PublicationGroup,
     ReferenceLinePublishCandidate,
     SwitchPublishCandidate,
     TrackNumberPublishCandidate,
@@ -32,6 +33,7 @@ export type ChangeTableEntry = {
     changeTime: string;
     userName: string;
     operation: Operation;
+    publicationGroup?: PublicationGroup;
 };
 
 const changeTableEntryCommonFields = (
@@ -46,6 +48,7 @@ const changeTableEntryCommonFields = (
     userName: candidate.userName,
     changeTime: candidate.draftChangeTime,
     operation: candidate.operation,
+    publicationGroup: candidate.publicationGroup,
 });
 
 export function getTrackNumberUiName(trackNumber: TrackNumber | undefined) {
