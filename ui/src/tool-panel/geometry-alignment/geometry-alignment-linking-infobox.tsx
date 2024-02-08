@@ -55,6 +55,7 @@ import { AlignmentHeader } from 'track-layout/layout-map-api';
 import {
     refreshLocationTrackSelection,
     refreshTrackNumberSelection,
+    useLocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-react-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 
@@ -156,7 +157,6 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
     const isLinked = geometryAlignment.id && linkedAlignmentIds.includes(geometryAlignment.id);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
-    const canLink = !linkingCallInProgress && linkingState?.state == 'allSet';
 
     const planStatus = useLoader(
         () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
@@ -182,9 +182,23 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         return getLocationTracks(locationTrackIds, publishType);
     }, [planStatus, geometryAlignment]);
 
+    const [selectedLocationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
+        selectedLayoutLocationTrack?.id,
+        publishType,
+        locationTrackChangeTime,
+        switchChangeTime,
+    );
+
+    const canLink =
+        !linkingCallInProgress &&
+        linkingState?.state == 'allSet' &&
+        !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit;
+
     const canLockAlignment =
         (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) ||
-        (linkingAlignmentType === 'LOCATION_TRACK' && selectedLayoutLocationTrack);
+        (linkingAlignmentType === 'LOCATION_TRACK' &&
+            selectedLayoutLocationTrack &&
+            !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit);
 
     React.useEffect(() => {
         getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
@@ -342,11 +356,15 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     onShowAddLocationTrackDialog={() =>
                                         setShowAddLocationTrackDialog(true)
                                     }
+                                    selectedPartOfUnfinishedSplit={
+                                        selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit ||
+                                        false
+                                    }
                                 />
                             )}
                         </React.Fragment>
                     )}
-                    {linkingInProgress && (
+                    {linkingInProgress && canLink && (
                         <React.Fragment>
                             <div
                                 className={styles['geometry-alignment-infobox__connection-points']}>

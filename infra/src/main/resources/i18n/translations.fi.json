@@ -543,7 +543,8 @@
                 "add-linking": "Lisää linkitys",
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
-                "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi."
+                "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi.",
+                "part-of-unfinished-split": "Raiteen {{locationTrackName}} jakamiseen liittyvä kohteiden siirto täytyy suorittaa tai merkata onnistuneeksi ennen kuin raiteen geometriaa voi muokata."
             },
             "geometry-segment": {
                 "no-geometry-information": "Ei geometriatietoja valitulle segmentille.",

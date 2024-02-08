@@ -439,6 +439,18 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
                                 {linkingState === undefined && (
                                     <WriteAccessRequired>
+                                        {extraInfo?.partOfUnfinishedSplit && (
+                                            <InfoboxContentSpread>
+                                                <MessageBox>
+                                                    {t(
+                                                        'tool-panel.alignment.geometry.part-of-unfinished-split',
+                                                        {
+                                                            locationTrackName: locationTrack.name,
+                                                        },
+                                                    )}
+                                                </MessageBox>
+                                            </InfoboxContentSpread>
+                                        )}
                                         <InfoboxButtons>
                                             <Button
                                                 variant={ButtonVariant.SECONDARY}
@@ -505,39 +517,42 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     </React.Fragment>
                                 )}
                                 <EnvRestricted restrictTo="test">
-                                    {isDraft && (
-                                        <InfoboxContentSpread>
-                                            <MessageBox>
-                                                {t(
-                                                    'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                )}
-                                            </MessageBox>
-                                        </InfoboxContentSpread>
-                                    )}
-                                    {duplicatesOnOtherTracks && (
-                                        <InfoboxContentSpread>
-                                            <MessageBox>
-                                                {t(
-                                                    'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
-                                                )}
-                                            </MessageBox>
-                                        </InfoboxContentSpread>
-                                    )}
-                                    <InfoboxButtons>
-                                        {!linkingState && !splittingState && (
-                                            <Button
-                                                variant={ButtonVariant.SECONDARY}
-                                                size={ButtonSize.SMALL}
-                                                disabled={
-                                                    locationTrack.draftType !== 'OFFICIAL' ||
-                                                    duplicatesOnOtherTracks
-                                                }
-                                                title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={onStartSplitting}>
-                                                {t('tool-panel.location-track.start-splitting')}
-                                            </Button>
+                                    <WriteAccessRequired>
+                                        {isDraft && !extraInfo?.partOfUnfinishedSplit && (
+                                            <InfoboxContentSpread>
+                                                <MessageBox>
+                                                    {t(
+                                                        'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                    )}
+                                                </MessageBox>
+                                            </InfoboxContentSpread>
                                         )}
-                                    </InfoboxButtons>
+                                        {duplicatesOnOtherTracks &&
+                                            !extraInfo?.partOfUnfinishedSplit && (
+                                                <InfoboxContentSpread>
+                                                    <MessageBox>
+                                                        {t(
+                                                            'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                                                        )}
+                                                    </MessageBox>
+                                                </InfoboxContentSpread>
+                                            )}
+                                        <InfoboxButtons>
+                                            {!linkingState && !splittingState && (
+                                                <Button
+                                                    variant={ButtonVariant.SECONDARY}
+                                                    size={ButtonSize.SMALL}
+                                                    disabled={
+                                                        locationTrack.draftType !== 'OFFICIAL' ||
+                                                        duplicatesOnOtherTracks
+                                                    }
+                                                    title={getSplittingDisabledReasonsTranslated()}
+                                                    onClick={onStartSplitting}>
+                                                    {t('tool-panel.location-track.start-splitting')}
+                                                </Button>
+                                            )}
+                                        </InfoboxButtons>
+                                    </WriteAccessRequired>
                                 </EnvRestricted>
 
                                 <InfoboxField
