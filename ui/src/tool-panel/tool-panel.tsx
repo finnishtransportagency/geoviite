@@ -534,12 +534,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         setSelectedAsset(lockToAsset ? lockToAsset : tab);
     }
 
+    const anyTabSelected = tabs.some((t) => isSameAsset(t.asset, selectedAsset));
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (
                 <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
-                    {tabs.map((t) => {
-                        const selected = isSameAsset(t.asset, selectedAsset);
+                    {tabs.map((t, tabIndex) => {
+                        const selected = anyTabSelected
+                            ? isSameAsset(t.asset, selectedAsset)
+                            : tabIndex === 0;
                         const className = createClassName(
                             'tool-panel__tab',
                             selected && 'tool-panel__tab--selected',
@@ -555,7 +558,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     })}
                 </div>
             )}
-            {tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element || tabs[0]?.element}
+            {anyTabSelected
+                ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
+                : tabs[0]?.element}
         </div>
     );
 };
