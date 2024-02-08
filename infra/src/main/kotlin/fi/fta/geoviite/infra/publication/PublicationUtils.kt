@@ -432,5 +432,44 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
     }
 }
 
-fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
+fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
     translation.t("publication-details-table.remark.$key", localizationParams("value" to value))
+
+fun addOperationClarificationsToPublicationTableItem(
+    translation: Translation,
+    publicationTableItem: PublicationTableItem,
+): PublicationTableItem {
+    return when (publicationTableItem.operation) {
+        Operation.CALCULATED -> publicationTableItem.copy(
+            propChanges = publicationTableItem.propChanges.map { publicationChange ->
+                addChangeClarification(
+                    publicationChange,
+                    translation.t("publication-table.calculated-change"),
+                    translation.t("publication-table.calculated-change-lowercase")
+                )
+            }
+        )
+
+        else -> publicationTableItem
+    }
+}
+
+fun addChangeClarification(
+    publicationChange: PublicationChange<*>,
+    clarification: String,
+    clarificationInSentenceBody: String? = null,
+): PublicationChange<*> {
+    return when (publicationChange.remark) {
+        null -> publicationChange.copy(
+            remark = clarification
+        )
+
+        else -> {
+            val displayedClarification = clarificationInSentenceBody ?: clarification
+
+            publicationChange.copy(
+                remark = "${publicationChange.remark}, $displayedClarification"
+            )
+        }
+    }
+}

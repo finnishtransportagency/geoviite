@@ -1678,7 +1678,22 @@ class PublicationService @Autowired constructor(
             )
         }
 
-        return (trackNumbers + referenceLines + locationTracks + switches + kmPosts + calculatedLocationTracks + calculatedSwitches)
+        return listOf(
+            trackNumbers,
+            referenceLines,
+            locationTracks,
+            switches,
+            kmPosts,
+            calculatedLocationTracks,
+            calculatedSwitches,
+        )
+            .flatten()
+            .map { publicationTableItem ->
+                addOperationClarificationsToPublicationTableItem(
+                    translation,
+                    publicationTableItem,
+                )
+            }
     }
 
     private fun mapToPublicationTableItem(
