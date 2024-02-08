@@ -444,7 +444,8 @@ fun addOperationClarificationsToPublicationTableItem(
             propChanges = publicationTableItem.propChanges.map { publicationChange ->
                 addChangeClarification(
                     publicationChange,
-                    translation.t("publication-table.calculated-change")
+                    translation.t("publication-table.calculated-change"),
+                    translation.t("publication-table.calculated-change-lowercase")
                 )
             }
         )
@@ -456,14 +457,19 @@ fun addOperationClarificationsToPublicationTableItem(
 fun addChangeClarification(
     publicationChange: PublicationChange<*>,
     clarification: String,
+    clarificationInSentenceBody: String? = null,
 ): PublicationChange<*> {
     return when (publicationChange.remark) {
         null -> publicationChange.copy(
             remark = clarification
         )
 
-        else -> publicationChange.copy(
-            remark = "${publicationChange.remark}, ${clarification.replaceFirstChar(Char::lowercase)}"
-        )
+        else -> {
+            val displayedClarification = clarificationInSentenceBody ?: clarification
+
+            publicationChange.copy(
+                remark = "${publicationChange.remark}, $displayedClarification"
+            )
+        }
     }
 }
