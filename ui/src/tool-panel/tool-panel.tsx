@@ -7,7 +7,6 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     DraftType,
     LayoutKmPostId,
@@ -48,6 +47,7 @@ import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { createClassName } from 'vayla-design-lib/utils';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -537,21 +537,20 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (
-                <div className="infobox-tabs" qa-id="tool-panel-tabs">
+                <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
                     {tabs.map((t) => {
+                        const selected = isSameAsset(t.asset, selectedAsset);
+                        const className = createClassName(
+                            'tool-panel__tab',
+                            selected && 'tool-panel__tab--selected',
+                        );
                         return (
-                            <Button
+                            <div
+                                className={className}
                                 key={t.asset.type + '_' + t.asset.id}
-                                variant={
-                                    isSameAsset(t.asset, selectedAsset)
-                                        ? ButtonVariant.PRIMARY
-                                        : ButtonVariant.SECONDARY
-                                }
-                                size={ButtonSize.SMALL}
-                                onClick={() => changeTab(t.asset)}
-                                isPressed={isSameAsset(t.asset, selectedAsset)}>
+                                onClick={() => changeTab(t.asset)}>
                                 {t.title}
-                            </Button>
+                            </div>
                         );
                     })}
                 </div>
