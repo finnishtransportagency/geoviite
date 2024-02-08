@@ -361,12 +361,12 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
             <li
                 key={ref.id}
                 className={styles['geometry-alignment-infobox__alignment']}
-                onClick={() => {
+                onClick={() =>
                     onSelect({
                         trackNumbers: [],
                         locationTracks: [track.id],
-                    });
-                }}
+                    })
+                }
                 ref={ref.ref}>
                 <LocationTrackBadge
                     locationTrack={track}
