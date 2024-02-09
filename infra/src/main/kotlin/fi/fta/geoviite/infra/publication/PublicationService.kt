@@ -1357,9 +1357,19 @@ class PublicationService @Autowired constructor(
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
-        val oldSwitch = if (relatedJoints.any()) switchService.getOfficialAtMoment(changes.id, oldTimestamp) else null
+
+        val oldLinkedLocationTracks = changes.locationTracks.associate { lt ->
+            lt.oldVersion.id to locationTrackService.getWithAlignment(lt.oldVersion)
+        }
         val jointLocationChanges = relatedJoints.flatMap { joint ->
-            val oldLocation = oldSwitch?.joints?.find { it.number == joint.jointNumber }?.location
+            val oldLocation = oldLinkedLocationTracks[joint.locationTrackId]?.let { (track, alignment) ->
+                findJointPoint(
+                    track,
+                    alignment,
+                    changes.id,
+                    joint.jointNumber
+                )
+            }?.toPoint()
             val distance = if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) calculateDistance(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
@@ -1391,6 +1401,10 @@ class PublicationService @Autowired constructor(
             )
             list
         }.sortedBy { it.propKey.key }
+
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it?.first?.name?.toString() }.sorted()
+        val newLinkedTrackNames = changes.locationTracks.map { it.name.toString() }.sorted()
+
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
             compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "layout-state-category"),
@@ -1400,11 +1414,9 @@ class PublicationService @Autowired constructor(
             ),
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
             compareChange(
-                { changes.locationTracks.any() },
-                if (operation != Operation.CREATE) listOf(
-                    translation.t("publication-details-table.not-calculated")
-                ) else null,
-                changes.locationTracks.map { it.name },
+                { oldLinkedTrackNames != newLinkedTrackNames },
+                oldLinkedTrackNames,
+                newLinkedTrackNames,
                 { list -> list.joinToString(", ") { it } },
                 PropKey("location-track-connectivity"),
             ),

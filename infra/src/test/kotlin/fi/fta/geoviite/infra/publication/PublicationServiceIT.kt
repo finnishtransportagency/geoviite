@@ -1847,6 +1847,64 @@ class PublicationServiceIT @Autowired constructor(
         assertTrue { rows3[0].name.contains("1234") }
     }
 
+    @Test
+    fun `switch diff consistently uses segment point for joint location`() {
+        clearPublicationTables()
+
+        val trackNumberId = insertNewTrackNumber(TrackNumber("1234"), false).id
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0))))
+            )
+        )
+        val switch = switchDao.insert(
+            switch(123, joints = listOf(
+                TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)
+            ))
+        )
+        val originalAlignment = alignment(
+            segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+            segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1))
+        )
+        val locationTrack =
+            locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment)))
+        switchService.saveDraft(switchDao.fetch(switch.rowVersion).copy(joints = listOf(
+            TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null)
+        )))
+        val updatedAlignment = alignment(
+            segment(Point(0.1, 0.0), Point(4.1, 0.0)),
+            segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1))
+        )
+        locationTrackService.saveDraft(locationTrackDao.fetch(locationTrack.rowVersion), updatedAlignment)
+
+        publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
+
+        val latestPubs = publicationService.fetchLatestPublicationDetails(2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
+
+        val diff = publicationService.diffSwitch(
+            localizationService.getLocalization("fi"),
+            changes.getValue(switch.id as IntId),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            Operation.MODIFY,
+            trackNumberDao.fetchTrackNumberNames()
+        ) { _, _ -> null }
+        assertEquals(2, diff.size)
+        assertEquals(
+            listOf("switch-joint-location", "switch-track-address").sorted(),
+            diff.map { it.propKey.key.toString() }.sorted()
+        )
+        val jointLocationDiff = diff.find { it.propKey.key.toString() == "switch-joint-location" }!!
+        assertEquals("4.000 E, 0.000 N", jointLocationDiff.value.oldValue)
+        assertEquals("4.100 E, 0.000 N", jointLocationDiff.value.newValue)
+        val trackAddressDiff = diff.find { it.propKey.key.toString() == "switch-track-address" }!!
+        assertEquals("0000+0004.100", trackAddressDiff.value.newValue)
+    }
+
     private data class TopologicalSwitchConnectionTestData(
         val locationTracksUnderTest: List<Pair<IntId<LocationTrack>, LocationTrack>>,
         val switchIdsUnderTest: List<IntId<TrackLayoutSwitch>>,
