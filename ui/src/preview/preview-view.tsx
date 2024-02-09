@@ -73,6 +73,8 @@ export type ChangesBeingReverted = {
 export type PreviewProps = {
     changeTimes: ChangeTimes;
     selectedPublishCandidateIds: PublishRequestIds;
+    showOnlyOwnUnstagedChanges: boolean;
+    setShowOnlyOwnUnstagedChanges: (checked: boolean) => void;
     onSelect: OnSelectFunction;
     onPublish: () => void;
     onClosePreview: () => void;
@@ -275,8 +277,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
     const revertedCandidatesSoFar = useRef(publishCandidateIds(emptyChanges));
-
-    const [onlyShowMine, setOnlyShowMine] = React.useState(false);
     const user = useLoader(getOwnUser, []);
 
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
@@ -324,7 +324,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                   kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
               }
             : emptyChanges;
-        return user && onlyShowMine
+        return user && props.showOnlyOwnUnstagedChanges
             ? previewCandidatesByUser(user, allUnstagedChangesValidated)
             : allUnstagedChangesValidated;
     })();
@@ -403,9 +403,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>{t('preview-view.unstaged-changes-title')}</h3>
                                     <Checkbox
-                                        checked={onlyShowMine}
+                                        checked={props.showOnlyOwnUnstagedChanges}
                                         onChange={(e) => {
-                                            setOnlyShowMine(e.target.checked);
+                                            props.setShowOnlyOwnUnstagedChanges(e.target.checked);
                                         }}>
                                         {t('preview-view.show-only-mine')}
                                     </Checkbox>
