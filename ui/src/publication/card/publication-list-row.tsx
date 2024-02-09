@@ -15,6 +15,7 @@ import { Menu } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
 import { putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
+import { updateSplitChangeTime } from 'common/change-time-api';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
@@ -93,9 +94,11 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
         {
             onSelect: () => {
                 if (publication.split)
-                    putBulkTransferState(publication.split.id, 'DONE').then(() => {
-                        success(t('publication-card.bulk-transfer-marked-as-successful'));
-                    });
+                    putBulkTransferState(publication.split.id, 'DONE')
+                        .then(() => {
+                            success(t('publication-card.bulk-transfer-marked-as-successful'));
+                        })
+                        .then(() => updateSplitChangeTime());
                 setMenuOpen(false);
             },
             qaId: 'mark-bulk-transfer-as-finished-link',

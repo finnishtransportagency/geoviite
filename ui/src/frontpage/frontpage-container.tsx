@@ -7,11 +7,13 @@ export const FrontpageContainer: React.FC = () => {
         (state) => state.changeTimes.publication,
     );
     const ratkoPushChangeTime = useCommonDataAppSelector((state) => state.changeTimes.ratkoPush);
+    const splitChangeTime = useCommonDataAppSelector((state) => state.changeTimes.split);
 
     return (
         <Frontpage
             publicationChangeTime={publicationChangeTime}
             ratkoPushChangeTime={ratkoPushChangeTime}
+            splitChangeTime={splitChangeTime}
         />
     );
 };

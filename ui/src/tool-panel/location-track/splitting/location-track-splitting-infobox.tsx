@@ -47,6 +47,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { postSplitLocationTrack } from 'publication/split/split-api';
+import { success } from 'geoviite-design-lib/snackbar/snackbar';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -425,7 +426,15 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 duplicateTracksInCurrentSplits,
             ),
         )
-            .then(() => stopSplitting())
+            .then(() => {
+                stopSplitting();
+                success(
+                    t('tool-panel.location-track.splitting.splitting-success', {
+                        locationTrackName: locationTrack.name,
+                        count: allValidated.length,
+                    }),
+                );
+            })
             .catch(() => returnToSplitting());
     };
 

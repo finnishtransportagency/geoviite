@@ -263,6 +263,8 @@ class SplitDao(
         }
     }
 
+    fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
+
     fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
         val sql = """
             select id from publication.split where publication_id = :publication_id
