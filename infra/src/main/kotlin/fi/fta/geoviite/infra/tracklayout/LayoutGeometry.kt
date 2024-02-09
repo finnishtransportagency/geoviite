@@ -100,11 +100,16 @@ interface IAlignment : Loggable {
         else if (m >= length) end
         else getSegmentAtM(m)?.seekPointAtM(m, snapDistance)?.point
 
-    fun getSegmentIndexAtM(m: Double) = segments.binarySearch { s ->
-        if (m < s.startM) 1
-        else if (m > s.endM) -1
-        else 0
-    }
+    fun getSegmentIndexAtM(m: Double) =
+        if (m < 0 || m > length + LAYOUT_M_DELTA) throw IllegalArgumentException("m of $m out of range 0..${length + LAYOUT_M_DELTA}") else m
+            .coerceAtMost(length)
+            .let { clampedM ->
+                segments.binarySearch { s ->
+                    if (clampedM < s.startM) 1
+                    else if (clampedM > s.endM) -1
+                    else 0
+                }
+            }
 
     fun getSegmentAtM(m: Double) = segments.getOrNull(getSegmentIndexAtM(m))
 
