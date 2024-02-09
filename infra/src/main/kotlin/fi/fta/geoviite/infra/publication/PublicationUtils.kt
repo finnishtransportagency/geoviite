@@ -215,12 +215,17 @@ fun getLengthChangedRemarkOrNull(translation: Translation, length1: Double?, len
         }
     }
 
-fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
+fun getPointMovedRemarkOrNull(
+    translation: Translation,
+    oldPoint: Point?,
+    newPoint: Point?,
+    translationKey: String = "moved-x-meters",
+) = oldPoint?.let { p1 ->
     newPoint?.let { p2 ->
         if (!pointsAreSame(p1, p2)) {
             val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
             if (distance > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
-                translation, "moved-x-meters", formatDistance(distance)
+                translation, translationKey, formatDistance(distance)
             )
             else null
         } else null

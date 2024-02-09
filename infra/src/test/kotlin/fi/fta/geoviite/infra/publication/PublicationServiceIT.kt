@@ -1426,8 +1426,9 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization("fi"),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
+            latestPub.publicationTime.minusMillis(1),
             trackNumberDao.fetchTrackNumberNames(),
-        )
+        ) { _, _ -> null }
         assertEquals(2, diff.size)
         // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
         assertEquals("km-post", diff[0].propKey.key.toString())
@@ -1460,8 +1461,9 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization("fi"),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
+            latestPub.publicationTime.minusMillis(1),
             trackNumberDao.fetchTrackNumberNames(),
-        )
+        ) { _, _ -> null }
         assertEquals(1, diff.size)
         assertEquals("km-post", diff[0].propKey.key.toString())
         assertEquals(kmPost.kmNumber, diff[0].value.oldValue)
