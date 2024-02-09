@@ -35,6 +35,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
+import { previewReducers, PreviewState } from 'preview/preview-store';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -196,6 +197,7 @@ export type TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
     infoboxVisibilities: InfoboxVisibilities;
+    previewState: PreviewState;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -208,6 +210,9 @@ export const initialTrackLayoutState: TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
     infoboxVisibilities: initialInfoboxVisibilities,
+    previewState: {
+        showOnlyOwnUnstagedChanges: false,
+    },
 };
 
 export function getSelectableItemTypes(
@@ -276,6 +281,7 @@ const trackLayoutSlice = createSlice({
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
         ...wrapReducers((state: TrackLayoutState) => state, linkingReducers),
         ...wrapReducers((state: TrackLayoutState) => state, splitReducers),
+        ...wrapReducers((state: TrackLayoutState) => state.previewState, previewReducers),
 
         onInfoboxVisibilityChange: (
             state: TrackLayoutState,
