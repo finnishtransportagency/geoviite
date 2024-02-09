@@ -82,24 +82,15 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             geometryAlignmentIds={store.selection.selectedItems.geometryAlignmentIds}
             linkingState={store.linkingState}
             splittingState={store.splittingState}
-            showArea={delegates.showArea}
             changeTimes={changeTimes}
             publishType={store.publishType}
             suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
             onDataChange={typeChange}
-            onSelect={delegates.onSelect}
-            onUnselect={delegates.onUnselect}
             setSelectedAsset={delegates.setToolPanelTab}
             selectedAsset={store.selectedToolPanelTab}
-            startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
-            stopSwitchLinking={() => {
-                delegates.hideLayers(['switch-linking-layer']);
-                delegates.stopLinking();
-            }}
             verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramState.visible}
             onHoverOverPlanSection={setHoveredOverItem}
-            onSelectLocationTrackBadge={onSelectLocationTrackBadge}
         />
     );
 };

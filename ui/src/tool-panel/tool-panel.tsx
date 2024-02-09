@@ -10,18 +10,12 @@ import {
 import {
     DraftType,
     LayoutKmPostId,
-    LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
-import {
-    OnSelectOptions,
-    OptionalUnselectableItemCollections,
-    SelectedGeometryItem,
-} from 'selection/selection-model';
-import { BoundingBox } from 'model/geometry';
+import { SelectedGeometryItem } from 'selection/selection-model';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUnique } from 'utils/array-utils';
@@ -62,22 +56,16 @@ type ToolPanelProps = {
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
-    showArea: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
     onDataChange: () => void;
-    onSelect: (items: OnSelectOptions) => void;
-    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     selectedAsset: ToolPanelAsset | undefined;
     setSelectedAsset: (id: ToolPanelAsset | undefined) => void;
-    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
     infoboxVisibilities: InfoboxVisibilities;
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
-    stopSwitchLinking: () => void;
     verticalGeometryDiagramVisible: boolean;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
-    onSelectLocationTrackBadge: (locationTrackId: LocationTrackId) => void;
 };
 
 export type ToolPanelAsset = {
