@@ -22,6 +22,7 @@ import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switc
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type LocationTrackTaskListProps = {
     locationTrackId: LocationTrackId;
@@ -145,11 +146,21 @@ const LocationTrackTaskList: React.FC<LocationTrackTaskListProps> = ({
                     </React.Fragment>
                 )}
                 {!loadingInProgress && switches && switches.length == 0 && (
-                    <span>
-                        {t('tool-panel.location-track.task-list.no-validation-errors-message', {
-                            locationTrack: locationTrack?.name,
-                        })}
-                    </span>
+                    <div className={styles['location-track-task-list__message-container']}>
+                        <span>
+                            {t('tool-panel.location-track.task-list.no-validation-errors-message', {
+                                locationTrack: locationTrack?.name,
+                            })}
+                        </span>
+                        <div className={styles['location-track-task-list__message-buttons']}>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                onClick={onClose}>
+                                {t('tool-panel.location-track.task-list.close-task-list')}
+                            </Button>
+                        </div>
+                    </div>
                 )}
             </section>
         </div>
