@@ -1,14 +1,12 @@
 import * as React from 'react';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
-import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
 import {
     GeometryAlignmentInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { PublishType } from 'common/common-model';
 import GeometryAlignmentInfobox from 'tool-panel/geometry-alignment/geometry-alignment-infobox';
 import {
     useLocationTrack,
@@ -22,11 +20,8 @@ type GeometryAlignmentLinkingContainerProps = {
     selectedLocationTrackId?: LocationTrackId;
     selectedTrackNumberId?: LayoutTrackNumberId;
     planId: GeometryPlanId;
-    linkingState?: LinkingState;
-    publishType: PublishType;
     visibilities: GeometryAlignmentInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometryAlignmentInfoboxVisibilities) => void;
-    verticalGeometryDiagramVisible: boolean;
 };
 
 const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContainerProps> = ({
@@ -34,11 +29,8 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     selectedLocationTrackId,
     selectedTrackNumberId,
     planId,
-    linkingState,
-    publishType,
     visibilities,
     onVisibilityChange,
-    verticalGeometryDiagramVisible,
 }: GeometryAlignmentLinkingContainerProps) => {
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
@@ -46,12 +38,12 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const locationTrack = useLocationTrack(
         selectedLocationTrackId,
-        publishType,
+        trackLayoutState.publishType,
         changeTimes.layoutLocationTrack,
     );
     const referenceLine = useTrackNumberReferenceLine(
         selectedTrackNumberId,
-        publishType,
+        trackLayoutState.publishType,
         changeTimes.layoutTrackNumber,
     );
 
@@ -69,7 +61,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             )}
             switchChangeTime={changeTimes.layoutSwitch}
             trackNumberChangeTime={changeTimes.layoutTrackNumber}
-            linkingState={linkingState}
+            linkingState={trackLayoutState.linkingState}
             onLinkingStart={(params) => {
                 delegates.showLayers(['alignment-linking-layer']);
                 delegates.startAlignmentLinking(params);
@@ -80,14 +72,16 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
                 delegates.stopLinking();
             }}
             resolution={trackLayoutState.map.viewport.resolution}
-            publishType={publishType}
+            publishType={trackLayoutState.publishType}
             showArea={delegates.showArea}
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}
             onVerticalGeometryDiagramVisibilityChange={
                 delegates.onVerticalGeometryDiagramVisibilityChange
             }
-            verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+            verticalGeometryDiagramVisible={
+                trackLayoutState.map.verticalGeometryDiagramState.visible
+            }
         />
     );
 };

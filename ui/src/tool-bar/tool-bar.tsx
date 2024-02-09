@@ -39,7 +39,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { LinkingState } from 'linking/linking-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -50,7 +50,6 @@ export type ToolbarParams = {
     publishType: PublishType;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
-    disableNewMenu: boolean;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
@@ -139,7 +138,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     publishType,
     changeTimes,
     onStopLinking,
-    disableNewMenu,
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayers,
@@ -154,6 +152,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
     const menuRef = React.useRef(null);
+
+    const disableNewMenu =
+        linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+        linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
+        !!splittingState;
 
     enum NewMenuItems {
         'trackNumber' = 1,
