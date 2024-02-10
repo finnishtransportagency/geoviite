@@ -548,12 +548,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             selected && 'tool-panel__tab--selected',
                         );
                         return (
-                            <div
+                            <button
                                 className={className}
                                 key={t.asset.type + '_' + t.asset.id}
                                 onClick={() => changeTab(t.asset)}>
                                 {t.title}
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
