@@ -157,7 +157,7 @@ class PublicationDao(
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
-                group = rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublishGroup)
+                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
