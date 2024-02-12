@@ -32,6 +32,11 @@ const createPublishRequestIdsFromTableEntry = (
     kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
 });
 
+const conditionalMenuOption = (
+    condition: unknown | undefined,
+    menuOption: MenuSelectOption,
+): MenuSelectOption[] => (condition ? [menuOption] : []);
+
 export type PreviewTableItemProps = {
     tableEntry: PreviewTableEntry;
     publish?: boolean;
@@ -105,7 +110,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         setActionMenuVisible(false);
     };
 
-    const menuOptionMoveStageChanges = {
+    const menuOptionMoveStageChanges: MenuSelectOption = {
         onSelect: menuAction(() =>
             previewOperations.setPublicationStage.forAllStageChanges(
                 displayedPublicationStage,
@@ -117,7 +122,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         }),
     };
 
-    const menuOptionMovePublicationGroupStage = {
+    const menuOptionMovePublicationGroupStage: MenuSelectOption = {
         onSelect: menuAction(() => {
             if (tableEntry.publicationGroup) {
                 previewOperations.setPublicationStage.forPublicationGroup(
@@ -131,7 +136,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         }),
     };
 
-    const menuOptionRevertSingleChange = {
+    const menuOptionRevertSingleChange: MenuSelectOption = {
         name: t('publish.revert-change'),
         onSelect: menuAction(() =>
             previewOperations.revert.changesWithDependencies(
@@ -141,7 +146,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         ),
     };
 
-    const menuOptionRevertStageChanges = {
+    const menuOptionRevertStageChanges: MenuSelectOption = {
         onSelect: menuAction(() => {
             previewOperations.revert.stageChanges(
                 displayedPublicationStage,
@@ -153,7 +158,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         }),
     };
 
-    const menuOptionPublicationGroupRevert = {
+    const menuOptionPublicationGroupRevert: MenuSelectOption = {
         onSelect: menuAction(() => {
             if (tableEntry.publicationGroup) {
                 previewOperations.revert.publicationGroup(
@@ -167,7 +172,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         }),
     };
 
-    const menuOptionShowOnMap = {
+    const menuOptionShowOnMap: MenuSelectOption = {
         disabled: !tableEntry.boundingBox,
         onSelect: menuAction(() => {
             tableEntry.boundingBox && onShowOnMap(tableEntry.boundingBox);
@@ -175,12 +180,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         name: t('publish.show-on-map'),
     };
 
-    const menuOptions = [
-        ...(tableEntry.publicationGroup ? [menuOptionMovePublicationGroupStage] : []),
+    const menuOptions: MenuSelectOption[] = [
+        ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionMovePublicationGroupStage),
         menuOptionMoveStageChanges,
         menuOptionShowOnMap,
-        ...(!tableEntry.publicationGroup ? [menuOptionRevertSingleChange] : []),
-        ...(tableEntry.publicationGroup ? [menuOptionPublicationGroupRevert] : []),
+        ...conditionalMenuOption(!tableEntry.publicationGroup, menuOptionRevertSingleChange),
+        ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionPublicationGroupRevert),
         menuOptionRevertStageChanges,
     ];
 
