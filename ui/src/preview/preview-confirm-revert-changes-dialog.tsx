@@ -1,4 +1,4 @@
-import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
+import { Dialog, DialogHeight, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import * as React from 'react';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -83,6 +83,7 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
         <Dialog
             title={dialogTitle()}
             variant={DialogVariant.LIGHT}
+            height={DialogHeight.RESTRICTED_TO_HALF_OF_VIEWPORT}
             allowClose={!isReverting}
             onClose={cancelRevertChanges}
             footerContent={
