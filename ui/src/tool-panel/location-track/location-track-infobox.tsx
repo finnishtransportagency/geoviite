@@ -252,6 +252,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         duplicateTracks: splitInitializationParameters?.duplicates || [],
                         startLocation: startAndEndPoints.start.point,
                         endLocation: startAndEndPoints.end.point,
+                        trackNumber: splitInitializationParameters.trackNumber,
                     });
                     delegates.showLayers(['location-track-split-location-layer']);
                 }

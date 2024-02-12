@@ -1,14 +1,20 @@
 import {
     AddressPoint,
+    AlignmentPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
-    AlignmentPoint,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
-import { DraftableChangeInfo, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
+import {
+    DraftableChangeInfo,
+    PublishType,
+    TimeStamp,
+    TrackMeter,
+    TrackNumber,
+} from 'common/common-model';
 import {
     deleteNonNullAdt,
     getNonNull,
@@ -67,6 +73,7 @@ export type SplitInitializationParameters = {
     id: LocationTrackId;
     switches: SwitchOnLocationTrack[];
     duplicates: SplitDuplicate[];
+    trackNumber: TrackNumber;
 };
 
 const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;

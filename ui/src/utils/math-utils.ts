@@ -120,10 +120,33 @@ export function distToSegmentSquared(p: Point, start: Point, end: Point) {
 }
 
 export type Slope = number;
+
 export function slopeFromPoints({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point): Slope {
     return (y1 - y2) / (x1 - x2);
 }
 
 export function linearFunction(slope: Slope, intercept: number): (x: number) => number {
     return (x: number) => slope * x + intercept;
+}
+
+// modified from: https://stackoverflow.com/questions/22521982/check-if-point-is-inside-a-polygon
+export function pointInsidePolygon(point: Point, vertex: number[][]) {
+    // ray-casting algorithm based on
+    // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+
+    const x = point.x,
+        y = point.y;
+
+    let inside = false;
+    for (let i = 0, j = vertex.length - 1; i < vertex.length; j = i++) {
+        const xi = vertex[i][0],
+            yi = vertex[i][1];
+        const xj = vertex[j][0],
+            yj = vertex[j][1];
+
+        const intersect = yi > y != yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
 }

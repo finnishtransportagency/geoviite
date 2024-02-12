@@ -170,7 +170,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         hasErrors={nameErrorsVisible}>
                         <TextField
                             ref={nameRef}
-                            defaultValue={split.name}
+                            value={split.name}
                             hasError={nameErrorsVisible}
                             disabled={editingDisabled}
                             onChange={(e) => {
@@ -218,7 +218,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         hasErrors={descriptionErrorsVisible}
                         label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
-                            defaultValue={
+                            value={
                                 duplicateLocationTrack
                                     ? duplicateLocationTrack.descriptionBase
                                     : split.descriptionBase
