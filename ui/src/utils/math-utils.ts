@@ -1,5 +1,6 @@
 import { Point } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
+import { getUnsafe } from 'utils/type-utils';
 
 export function directionBetweenPoints(p1: Point, p2: Point): number {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
@@ -50,37 +51,41 @@ export function findOrInterpolateXY(
     points: AlignmentPoint[],
     mValue: number,
 ): SeekResult | undefined {
-    const lastIndex = points.length - 1;
     if (points.length < 2) return undefined;
-    if (points[0].m >= mValue)
+
+    const lastIndex = points.length - 1;
+    const first = getUnsafe(points[0]);
+    const last = getUnsafe(points[lastIndex]);
+    if (first.m >= mValue)
         return {
             low: 0,
             high: 0,
-            point: [points[0].x, points[0].y],
+            point: [first.x, first.y],
         };
-    if (points[lastIndex].m <= mValue)
+    if (last.m <= mValue)
         return {
             low: lastIndex,
             high: lastIndex,
-            point: [points[lastIndex].x, points[lastIndex].y],
+            point: [last.x, last.y],
         };
     let low = 0;
     let high = lastIndex;
     while (low < high - 1) {
-        const mid = Math.floor((low + high) / 2);
-        if (points[mid].m > mValue) high = mid;
-        else if (points[mid].m < mValue) low = mid;
+        const midIndex = Math.floor((low + high) / 2);
+        const mid = getUnsafe(points[midIndex]);
+        if (mid.m > mValue) high = midIndex;
+        else if (mid.m < mValue) low = midIndex;
         else
             return {
-                low: mid,
-                high: mid,
-                point: [points[mid].x, points[mid].y],
+                low: midIndex,
+                high: midIndex,
+                point: [mid.x, mid.y],
             };
     }
     return {
         low: low,
         high: high,
-        point: interpolateXY(points[low], points[high], mValue),
+        point: interpolateXY(getUnsafe(points[low]), getUnsafe(points[high]), mValue),
     };
 }
 
@@ -88,7 +93,7 @@ export function interpolateXY(
     point1: AlignmentPoint,
     point2: AlignmentPoint,
     mValue: number,
-): number[] {
+): [number, number] {
     if (mValue < point1.m || mValue > point2.m)
         throw Error(`Invalid m-value for interpolation: ${point1.m} <= ${mValue} <= ${point2.m}`);
     if (point1.m >= point2.m) throw Error('Invalid m-values for interpolation ends');

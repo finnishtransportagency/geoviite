@@ -1,4 +1,5 @@
 import { TimeStamp } from 'common/common-model';
+import { getUnsafe } from 'utils/type-utils';
 
 export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
@@ -220,20 +221,6 @@ export function avg(values: number[]): number {
     return values.length > 0 ? sum(values) / values.length : Number.NaN;
 }
 
-export function first<T>(array: T[]): T {
-    return array[0];
-}
-
-export function last<T>(array: T[]): T {
-    return array[array.length - 1];
-}
-
-export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | undefined) {
-    return valueToRemove
-        ? originalCollection.filter((changeId) => changeId != valueToRemove)
-        : originalCollection;
-}
-
 export function addIfExists<T>(originalCollection: T[], newValue: T | undefined): T[] {
     return newValue ? [...originalCollection, newValue] : [...originalCollection];
 }
@@ -247,11 +234,11 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
-    let min = values[0];
+    let min = getUnsafe(values[0]);
     let minIndex = 0;
     for (let i = 1; i < values.length; i++) {
-        if (values[i] < min) {
-            min = values[i];
+        if (getUnsafe(values[i]) < min) {
+            min = getUnsafe(values[i]);
             minIndex = i;
         }
     }
@@ -270,7 +257,7 @@ export function partitionBy<T>(list: T[], by: (item: T) => boolean): [T[], T[]] 
 
 export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B): number {
     for (let i = objs.length - 1; i >= 0; i--) {
-        if (predicate(objs[i])) return i;
+        if (predicate(getUnsafe(objs[i]))) return i;
     }
     return -1;
 }

@@ -31,6 +31,7 @@ import {
     getManyStartsAndEnds,
 } from 'track-layout/layout-location-track-api';
 import { Point } from 'model/geometry';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 type EndpointType = 'START' | 'END';
 const BLACK = '#000000';
@@ -67,7 +68,8 @@ function createDuplicateTrackEndpointAddressFeature(
         (endpointType === 'START' && positiveXOffset) ||
         (endpointType === 'END' && !positiveXOffset);
 
-    const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
+    const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
+        const [x, y] = getCoordsUnsafe(coord);
         const ctx = context;
 
         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
@@ -170,12 +172,12 @@ function createFeatures(
             // The 'points'-array may only include a subset of the actual points of the alignment.
             // Features should only be rendered to the real ends of a given duplicate.
             const startFeature = trackMetersAreApproximatelySame(
-                points[0].m,
+                getUnsafe(points[0]).m,
                 startAndEnd?.start?.point.m,
             )
                 ? createDuplicateTrackEndpointAddressFeature(
-                      points[0],
-                      points[1],
+                      getUnsafe(points[0]),
+                      getUnsafe(points[1]),
                       header.name,
                       startAndEnd?.start?.address,
                       'START',
@@ -186,12 +188,12 @@ function createFeatures(
                 : undefined;
 
             const endFeature = trackMetersAreApproximatelySame(
-                points[points.length - 1].m,
+                getUnsafe(points[points.length - 1]).m,
                 startAndEnd?.end?.point.m,
             )
                 ? createDuplicateTrackEndpointAddressFeature(
-                      points[points.length - 1],
-                      points[points.length - 2],
+                      getUnsafe(points[points.length - 1]),
+                      getUnsafe(points[points.length - 2]),
                       header.name,
                       startAndEnd?.end?.address,
                       'END',

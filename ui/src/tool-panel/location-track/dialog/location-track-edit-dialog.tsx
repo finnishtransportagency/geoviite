@@ -322,7 +322,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const shortenSwitchName = (name?: string) => {
         const splits = (name && name.split(' ')) ?? '';
         const last = splits.length ? splits[splits.length - 1] : '';
-        const numberPart = last[0] === 'V' ? last.substring(1) : '';
+        const numberPart = last?.[0] === 'V' ? last.substring(1) : '';
         const number = parseInt(numberPart, 10);
         return !isNaN(number) ? `V${number.toString(10).padStart(3, '0')}` : undefined;
     };

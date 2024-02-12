@@ -254,8 +254,8 @@ const findRefToFirstErroredField = (
         .sort()[0];
 
     if (minIndex === undefined) return undefined;
-    else if (minIndex === invalidNameIndex) return splitComponents[minIndex].nameRef;
-    else return splitComponents[minIndex].descriptionBaseRef;
+    else if (minIndex === invalidNameIndex) return splitComponents[minIndex]?.nameRef;
+    else return splitComponents[minIndex]?.descriptionBaseRef;
 };
 
 const getSplitAddressPoint = (

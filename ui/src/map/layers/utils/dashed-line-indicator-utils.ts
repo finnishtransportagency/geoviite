@@ -1,4 +1,5 @@
 import { Coordinate } from 'ol/coordinate';
+import { getCoordsUnsafe } from 'utils/type-utils';
 
 export const DASHED_LINE_INDICATOR_FONT_SIZE = 12;
 export const indicatorLineWidth = (pixelRatio: number) => 120 * pixelRatio;
@@ -11,8 +12,11 @@ export const indicatorLineHeight = (pixelRatio: number) =>
     (DASHED_LINE_INDICATOR_FONT_SIZE + 3) * pixelRatio;
 
 export function getRotation(start: Coordinate, end: Coordinate) {
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
+    const [endX, endY] = getCoordsUnsafe(end);
+    const [startX, startY] = getCoordsUnsafe(start);
+
+    const dx = endX - startX;
+    const dy = endY - startY;
     const angle = Math.atan2(dy, dx);
     const halfPi = Math.PI / 2;
 

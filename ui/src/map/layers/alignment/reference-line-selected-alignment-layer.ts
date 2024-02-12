@@ -11,6 +11,7 @@ import { getSelectedReferenceLineMapAlignmentByTiles } from 'track-layout/layout
 import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
+import { getUnsafe } from 'utils/type-utils';
 
 let newestLayerId = 0;
 
@@ -50,7 +51,7 @@ export function createSelectedReferenceLineAlignmentLayer(
             if (layerId !== newestLayerId) return;
 
             const alignmentFeatures = createAlignmentFeature(
-                referenceLines[0],
+                getUnsafe(referenceLines[0]),
                 false,
                 selectedReferenceLineStyle,
             );

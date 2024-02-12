@@ -88,10 +88,12 @@ export const LocationHolderView: React.FC<LocationHolderProps> = ({
     const debouncedCoordinate = useDebouncedState(hoveredCoordinate, 100);
 
     const hovered = useLoader(() => {
-        if (trackNumbers.length && hoveredCoordinate) {
-            return getReferenceLineHoverLocation(trackNumbers[0], publishType, hoveredCoordinate);
-        } else if (locationTracks.length && hoveredCoordinate) {
-            return getLocationTrackHoverLocation(locationTracks[0], publishType, hoveredCoordinate);
+        const trackNumber = trackNumbers[0];
+        const locationTrack = locationTracks[0];
+        if (trackNumber && hoveredCoordinate) {
+            return getReferenceLineHoverLocation(trackNumber, publishType, hoveredCoordinate);
+        } else if (locationTrack && hoveredCoordinate) {
+            return getLocationTrackHoverLocation(locationTrack, publishType, hoveredCoordinate);
         } else {
             return Promise.resolve(emptyHoveredLocation(hoveredCoordinate));
         }

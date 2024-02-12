@@ -50,7 +50,7 @@ export type MapViewportSource = 'Map';
 
 export type MapViewport = {
     coordinateSystem?: CoordinateSystem;
-    center: Point;
+    center: Point | undefined;
     resolution: number;
 
     /**

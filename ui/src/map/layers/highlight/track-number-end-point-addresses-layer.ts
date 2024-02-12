@@ -33,6 +33,7 @@ import {
     indicatorTextBackgroundHeight,
     indicatorTextPadding,
 } from 'map/layers/utils/dashed-line-indicator-utils';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 let newestLayerId = 0;
 
@@ -67,7 +68,8 @@ function createAddressFeature(
         pointToCoords(controlPoint),
     );
 
-    const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
+    const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
+        const [x, y] = getCoordsUnsafe(coord);
         const ctx = context;
 
         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
@@ -134,14 +136,22 @@ function createAddressFeatures(
         const points = referenceLine.points;
 
         if (startAddress && color) {
-            features.push(createAddressFeature(points[0], points[1], startAddress, false, color));
+            features.push(
+                createAddressFeature(
+                    getUnsafe(points[0]),
+                    getUnsafe(points[1]),
+                    startAddress,
+                    false,
+                    color,
+                ),
+            );
         }
 
         if (endAddress && color) {
             const lastIndex = points.length - 1;
             const f = createAddressFeature(
-                points[lastIndex - 1],
-                points[lastIndex],
+                getUnsafe(points[lastIndex - 1]),
+                getUnsafe(points[lastIndex]),
                 endAddress,
                 true,
                 color,

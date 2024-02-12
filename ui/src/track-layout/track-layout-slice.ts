@@ -300,11 +300,12 @@ const trackLayoutSlice = createSlice({
 
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
-            if (state.splittingState && action.payload.switches?.length) {
+            const firstSwitchId = action.payload.switches?.[0];
+            if (state.splittingState && firstSwitchId) {
                 if (state.splittingState.state === 'SETUP') {
                     splitReducers.addSplit(state, {
                         ...action,
-                        payload: action.payload.switches[0],
+                        payload: firstSwitchId,
                     });
                 }
                 return;
@@ -317,29 +318,34 @@ const trackLayoutSlice = createSlice({
                 payload: options,
             });
 
+            const onlyLayoutLinkPoint =
+                options.layoutLinkPoints?.length === 1 && options.layoutLinkPoints?.[0];
+            const onlyGeometryLinkPoint =
+                options.geometryLinkPoints?.length === 1 && options.geometryLinkPoints?.[0];
+
             // Set linking information
             switch (state.linkingState?.type) {
                 case LinkingType.LinkingGeometryWithAlignment:
                 case LinkingType.LinkingGeometryWithEmptyAlignment:
-                    if (options.layoutLinkPoints?.length === 1) {
+                    if (onlyLayoutLinkPoint) {
                         linkingReducers.setLayoutLinkPoint(state, {
                             type: '',
-                            payload: options.layoutLinkPoints[0],
+                            payload: onlyLayoutLinkPoint,
                         });
                     }
-                    if (options.geometryLinkPoints?.length === 1) {
+                    if (onlyGeometryLinkPoint) {
                         linkingReducers.setGeometryLinkPoint(state, {
                             type: '',
-                            payload: options.geometryLinkPoints[0],
+                            payload: onlyGeometryLinkPoint,
                         });
                     }
                     break;
 
                 case LinkingType.LinkingAlignment:
-                    if (options.layoutLinkPoints?.length === 1) {
+                    if (onlyLayoutLinkPoint) {
                         linkingReducers.setLayoutLinkPoint(state, {
                             type: '',
-                            payload: options.layoutLinkPoints[0],
+                            payload: onlyLayoutLinkPoint,
                         });
                     }
                     break;

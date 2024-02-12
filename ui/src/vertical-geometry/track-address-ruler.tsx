@@ -7,6 +7,7 @@ import {
     minimumRulerHeightLabelDistancePx,
 } from 'vertical-geometry/ticks-at-intervals';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
+import { getUnsafe } from 'utils/type-utils';
 
 export interface TrackAddressRulerProps {
     kmHeights: TrackKmHeights[];
@@ -34,11 +35,11 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
         return <React.Fragment />;
     }
     const kmPostMarkers = kmHeights
-        .filter(({ trackMeterHeights }) => trackMeterHeights[0].meter === 0)
+        .filter(({ trackMeterHeights }) => trackMeterHeights[0]?.meter === 0)
         .map(({ trackMeterHeights }, kmIndex) => (
             <KmPostMarker
                 key={kmIndex}
-                x={mToX(coordinates, trackMeterHeights[0].m)}
+                x={mToX(coordinates, getUnsafe(trackMeterHeights[0]).m)}
                 heightPx={heightPx}
             />
         ));

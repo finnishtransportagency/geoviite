@@ -2,6 +2,7 @@ import { MapTile } from 'map/map-model';
 import OlView from 'ol/View';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import { BoundingBox, Point } from 'model/geometry';
+import { getUnsafe } from 'utils/type-utils';
 
 // offset used for defining a suitable boundingBox around a single location (Point)
 export const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
@@ -16,7 +17,7 @@ for (let i = 0; i < 22; i++) {
 
 export function calculateMapTiles(view: OlView, tileSizePx: number | undefined): MapTile[] {
     // Find a resolution that corresponds to the resolution in the view
-    const actualResolution = view.getResolution() || tileResolutions[0];
+    const actualResolution = view.getResolution() || getUnsafe(tileResolutions[0]);
     const tileResolutionIndex = tileResolutions.findIndex(
         (resolution, index) => resolution < actualResolution || index == tileResolutions.length - 1,
     );
@@ -28,14 +29,19 @@ export function calculateMapTiles(view: OlView, tileSizePx: number | undefined):
     });
     const tiles: MapTile[] = [];
     tileGrid.forEachTileCoord(view.calculateExtent(), tileResolutionIndex, function (tileCoord) {
-        const tileExtent = tileGrid.getTileCoordExtent(tileCoord);
-        const tile = {
+        const tileExtent = tileGrid.getTileCoordExtent(tileCoord) as [
+            number,
+            number,
+            number,
+            number,
+        ];
+        const tile: MapTile = {
             id: tileResolutionIndex + ':' + tileCoord.slice(1).join(':'),
             area: {
                 x: { min: tileExtent[0], max: tileExtent[2] },
                 y: { min: tileExtent[1], max: tileExtent[3] },
             },
-            resolution: tileResolutions[tileResolutionIndex],
+            resolution: getUnsafe(tileResolutions[tileResolutionIndex]),
         };
         tiles.push(tile);
     });
@@ -48,7 +54,7 @@ const tileSizeOptions = [256, 512, 1024, 2048, 4096];
  * Picks a tile size where the given amount of tiles will fill the screen
  */
 export function calculateTileSize(tileCount: number): number {
-    const maxSize = tileSizeOptions[tileSizeOptions.length - 1];
+    const maxSize = getUnsafe(tileSizeOptions[tileSizeOptions.length - 1]);
     if (tileCount >= 1) {
         const optimalTileSize = Math.max(window.screen.width, window.screen.height) / tileCount;
         return tileSizeOptions.find((opt) => opt > optimalTileSize) || maxSize;

@@ -15,6 +15,7 @@ import { PublishType } from 'common/common-model';
 import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { MapTile } from 'map/map-model';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -48,15 +49,10 @@ export function centroid(polygon: Polygon): OlPoint {
  * @param pointB
  */
 function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
-    const pointACoords = pointA.getCoordinates();
-    const pointBCoords = pointB.getCoordinates();
+    const [aX, aY] = getCoordsUnsafe(pointA.getCoordinates());
+    const [bX, bY] = getCoordsUnsafe(pointB.getCoordinates());
 
-    return getPlanarDistanceUnwrapped(
-        pointACoords[0],
-        pointACoords[1],
-        pointBCoords[0],
-        pointBCoords[1],
-    );
+    return getPlanarDistanceUnwrapped(aX, aY, bX, bY);
 }
 
 export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y2: number): number {
@@ -74,12 +70,13 @@ export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): num
     const segments = line
         .getCoordinates()
         .map((coordinate) => coordsToPoint(coordinate))
-        .map((_, index, points) =>
-            index < points.length - 1 ? [points[index], points[index + 1]] : undefined,
-        )
+        .map((point, index, points) => {
+            const nextPoint = points[index + 1];
+            return nextPoint ? [point, nextPoint] : undefined;
+        })
         .filter(filterNotEmpty);
     const squaredDistances = segments.map((segment) =>
-        distToSegmentSquared(point, segment[0], segment[1]),
+        distToSegmentSquared(point, getUnsafe(segment[0]), getUnsafe(segment[1])),
     );
     const minSquaredDistance = Math.min(...squaredDistances);
     return Math.sqrt(minSquaredDistance);

@@ -1,3 +1,5 @@
+import { Coordinate } from 'ol/coordinate';
+
 export type Override<T1, T2> = Omit<T1, keyof T2> & T2;
 
 export type Prop<TObject, TKey extends keyof TObject> = {
@@ -41,3 +43,19 @@ export function ensureAllKeys<TKey>() {
 export const exhaustiveMatchingGuard = (_: never): never => {
     throw new Error('Should not have reached this code');
 };
+
+export const isNil = <T>(object: T) => object === undefined || object === null;
+
+// Prefer actual nil checks, only use this if you KNOW the index exists
+export const getUnsafe = <T>(thing: T): NonNullable<T> => {
+    if (!isNil(thing)) {
+        return thing!;
+    } else {
+        throw Error('We can has nil!');
+    }
+};
+
+export const getCoordsUnsafe = (coord: Coordinate): [number, number] => [
+    getUnsafe(coord[0]),
+    getUnsafe(coord[1]),
+];

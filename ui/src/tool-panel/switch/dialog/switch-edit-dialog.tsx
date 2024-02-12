@@ -156,7 +156,7 @@ export const SwitchEditDialog = ({
             setSwitchOwnerId(existingSwitch.ownerId ?? undefined);
         } else if (switchOwners.length > 0) {
             const vayla = switchOwners.find((o) => o.name === 'Väylävirasto');
-            setSwitchOwnerId(vayla ? vayla.id : switchOwners[0].id);
+            setSwitchOwnerId(vayla ? vayla.id : switchOwners[0]?.id);
         }
     }, [switchOwners, existingSwitch]);
 

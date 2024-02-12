@@ -27,6 +27,7 @@ import { Rectangle } from 'model/geometry';
 import { ValidatedAsset } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -59,7 +60,8 @@ export function getSelectedSwitchLabelRenderer(
             ctx.lineWidth = strokeWidth * pixelRatio;
         },
         [
-            ({ name }, [x, y], ctx, { pixelRatio }) => {
+            ({ name }, coord, ctx, { pixelRatio }) => {
+                const [x, y] = getCoordsUnsafe(coord);
                 ctx.fillStyle = isGeometrySwitch
                     ? linked
                         ? styles.linkedSwitchLabel
@@ -82,7 +84,8 @@ export function getSelectedSwitchLabelRenderer(
                     2 * pixelRatio,
                 );
             },
-            (_, [x, y], ctx, { pixelRatio }) => {
+            (_, coord, ctx, { pixelRatio }) => {
+                const [x, y] = getCoordsUnsafe(coord);
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -96,7 +99,8 @@ export function getSelectedSwitchLabelRenderer(
                 );
             },
 
-            ({ name }, [x, y], ctx, { pixelRatio }) => {
+            ({ name }, coord, ctx, { pixelRatio }) => {
+                const [x, y] = getCoordsUnsafe(coord);
                 ctx.fillStyle = styles.switchTextColor;
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
@@ -145,7 +149,7 @@ export function getSwitchRenderer(
                     : styles.errorBright;
                 ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
-                drawCircle(ctx, x, y, circleRadius * pixelRatio);
+                drawCircle(ctx, getUnsafe(x), getUnsafe(y), circleRadius * pixelRatio);
             },
             ({ name }, [x, y], ctx, { pixelRatio }) => {
                 if (showLabel) {
@@ -154,8 +158,8 @@ export function getSwitchRenderer(
                     ctx.textBaseline = 'middle';
 
                     const textWidth = ctx.measureText(name).width;
-                    const textX = x + (circleRadius + textCirclePadding) * pixelRatio;
-                    const textY = y + pixelRatio;
+                    const textX = getUnsafe(x) + (circleRadius + textCirclePadding) * pixelRatio;
+                    const textY = getUnsafe(y) + pixelRatio;
                     const paddingHor = 2;
                     const paddingVer = 1;
                     const contentWidth = textWidth + (valid ? 0 : 15);
@@ -199,7 +203,7 @@ export function getJointRenderer(
                     ? styles.switchMainJointBorder
                     : styles.switchJointBorder;
 
-                drawCircle(ctx, x, y, circleRadius * pixelRatio);
+                drawCircle(ctx, getUnsafe(x), getUnsafe(y), circleRadius * pixelRatio);
             },
 
             ({ number }, [x, y], ctx) => {
@@ -209,7 +213,7 @@ export function getJointRenderer(
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                ctx.fillText(switchJointNumberToString(number), x, y);
+                ctx.fillText(switchJointNumberToString(number), getUnsafe(x), getUnsafe(y));
             },
         ],
     );
@@ -242,7 +246,7 @@ export function getLinkingJointRenderer(
                         : styles.unlinkedSwitchJointBorder
                     : styles.switchJointBorder;
 
-                drawCircle(ctx, x, y, circleRadius * pixelRatio);
+                drawCircle(ctx, getUnsafe(x), getUnsafe(y), circleRadius * pixelRatio);
             },
 
             ({ number }, [x, y], ctx) => {
@@ -250,7 +254,7 @@ export function getLinkingJointRenderer(
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                ctx.fillText(switchJointNumberToString(number), x, y);
+                ctx.fillText(switchJointNumberToString(number), getUnsafe(x), getUnsafe(y));
             },
         ],
     );
@@ -373,7 +377,9 @@ function createSwitchFeature(
     // Use presentation joint as main joint if possible, otherwise use first joint
     const switchFeature = new Feature({
         geometry: new OlPoint(
-            pointToCoords(presentationJoint?.location ?? layoutSwitch.joints[0].location),
+            pointToCoords(
+                presentationJoint?.location ?? getUnsafe(layoutSwitch.joints[0]).location,
+            ),
         ),
     });
     const valid = !validationResult?.errors || validationResult?.errors?.length === 0;

@@ -47,8 +47,10 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
                 (suggestedSwitches) => {
                     delegates.stopLinking();
-                    if (suggestedSwitches.length) {
-                        startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
+
+                    const suggestedSwitch = suggestedSwitches[0];
+                    if (suggestedSwitch) {
+                        startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
                     } else {
                         delegates.hideLayers(['switch-linking-layer']);
                     }

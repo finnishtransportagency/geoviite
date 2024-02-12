@@ -25,9 +25,10 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
         locationTrackChangeTime: locationTrackChangeTime,
     }));
 
-    const suggestionCreatorData: SuggestionCreatorData = state.locationTrackEndPoint && {
-        locationTrackEndPoint: state.locationTrackEndPoint,
-    };
+    const suggestionCreatorData: SuggestionCreatorData | undefined =
+        state.locationTrackEndPoint && {
+            locationTrackEndPoint: state.locationTrackEndPoint,
+        };
 
     function unselectLocationTrackEndPoint() {
         onSelect({

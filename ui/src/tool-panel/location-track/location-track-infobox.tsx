@@ -70,6 +70,7 @@ import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track
 import { EnvRestricted } from 'environment/env-restricted';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { filterNotEmpty } from 'utils/array-utils';
+import { getUnsafe } from 'utils/type-utils';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -133,7 +134,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const description = useLoader(
         () =>
             getLocationTrackDescriptions([locationTrack.id], publishType).then(
-                (value) => (value && value[0].description) ?? undefined,
+                (value) => (value && getUnsafe(value[0]).description) ?? undefined,
             ),
         [locationTrack?.id, publishType, locationTrackChangeTime],
     );

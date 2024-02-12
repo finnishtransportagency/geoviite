@@ -13,6 +13,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 function formatMeasurement(distance: number): string {
     if (distance < 1) {
@@ -26,24 +27,25 @@ function formatMeasurement(distance: number): string {
 
 function findClosestPoints(
     points: AlignmentPoint[],
-    targetCoordinate: number[],
+    targetCoordinate: Coordinate,
     maxPoints: number,
 ): AlignmentPoint[] {
     if (points.length <= maxPoints) {
         return points;
     } else {
+        const [targetX, targetY] = getCoordsUnsafe(targetCoordinate);
         const firstPointDistance = getPlanarDistanceUnwrapped(
-            targetCoordinate[0],
-            targetCoordinate[1],
-            points[0].x,
-            points[0].y,
+            targetX,
+            targetY,
+            getUnsafe(points[0]).x,
+            getUnsafe(points[0]).y,
         );
 
         const lastPointDistance = getPlanarDistanceUnwrapped(
-            targetCoordinate[0],
-            targetCoordinate[1],
-            points[points.length - 1].x,
-            points[points.length - 1].y,
+            targetX,
+            targetY,
+            getUnsafe(points[points.length - 1]).x,
+            getUnsafe(points[points.length - 1]).y,
         );
 
         const middleIndex = Math.floor(points.length / 2);
@@ -90,8 +92,11 @@ export const measurementTool: MapTool = {
                 }),
             }),
             geometryFunction: function (coordinates: Coordinate[], existingGeom: LineString) {
-                const cursorCoordinate = coordinates[coordinates.length - 1];
-                const cursorPixel = map.getPixelFromCoordinate(cursorCoordinate);
+                const cursorCoordinate = getUnsafe(coordinates[coordinates.length - 1]);
+                const cursorPixel = map.getPixelFromCoordinate(cursorCoordinate) as [
+                    number,
+                    number,
+                ];
                 const nearbyFeatures = map.getFeaturesAtPixel(cursorPixel, { hitTolerance });
 
                 const nearbyAlignmentPoints = nearbyFeatures
@@ -103,8 +108,11 @@ export const measurementTool: MapTool = {
 
                 let closestPoint: { distance: number; point: AlignmentPoint } | undefined;
                 for (let i = 0; i < nearbyAlignmentPoints.length; i++) {
-                    const nearbyPoint = nearbyAlignmentPoints[i];
-                    const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint));
+                    const nearbyPoint = getUnsafe(nearbyAlignmentPoints[i]);
+                    const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint)) as [
+                        number,
+                        number,
+                    ];
 
                     const distance = Math.hypot(
                         cursorPixel[0] - pixelPoint[0],

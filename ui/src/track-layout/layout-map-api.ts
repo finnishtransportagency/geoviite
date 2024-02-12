@@ -29,6 +29,7 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getTrackNumbers } from './layout-track-number-api';
 import { directionBetweenPoints } from 'utils/math-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { getUnsafe } from 'utils/type-utils';
 
 export type AlignmentDataHolder = {
     trackNumber?: LayoutTrackNumber;
@@ -67,8 +68,14 @@ const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefi
 const locationTrackSegmentMCache = asyncCache<string, number[]>();
 const referenceLineSegmentMCache = asyncCache<string, number[]>();
 
-const locationTrackEndsCache = asyncCache<string, AlignmentPoint[]>();
-const referenceLineEndsCache = asyncCache<string, AlignmentPoint[]>();
+const locationTrackEndsCache = asyncCache<
+    string,
+    [AlignmentPoint, AlignmentPoint, AlignmentPoint, AlignmentPoint]
+>();
+const referenceLineEndsCache = asyncCache<
+    string,
+    [AlignmentPoint, AlignmentPoint, AlignmentPoint, AlignmentPoint]
+>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
 const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
@@ -324,7 +331,10 @@ export async function getEndLinkPoints(
 ): Promise<LinkInterval> {
     return (type === 'LOCATION_TRACK' ? locationTrackEndsCache : referenceLineEndsCache)
         .get(changeTime, cacheKey(id, publishType), () =>
-            getNonNull<AlignmentPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`)),
+            // FIXME this endpoint actually returns 0-4 points but this function always expects 4
+            getNonNull<[AlignmentPoint, AlignmentPoint, AlignmentPoint, AlignmentPoint]>(
+                mapAlignmentUri(publishType, type, `${id}/ends`),
+            ),
         )
         .then(([start, startPlusOne, endMinusOne, end]) => {
             const startDir = directionBetweenPoints(start, startPlusOne);
@@ -353,7 +363,7 @@ export async function getLinkPointsByTiles(
     return createLinkPoints(
         alignmentType,
         alignmentId,
-        segmentEndMs[segmentEndMs.length - 1],
+        getUnsafe(segmentEndMs[segmentEndMs.length - 1]),
         segmentEndMs,
         allPoints,
     );
@@ -366,6 +376,8 @@ export async function getGeometryLinkPointsByTiles(
     alwaysIncludePoints: LinkPoint[] = [],
     changeTime: TimeStamp = getChangeTimes().geometryPlan,
 ): Promise<LinkPoint[]> {
+    if (!mapTiles[0]) return [];
+
     const resolution = toMapAlignmentResolution(mapTiles[0].resolution);
     const bounds = combineBoundingBoxes(mapTiles.map((tile) => tile.area));
     const plan = await getTrackLayoutPlan(geometryPlanId, changeTime, true);

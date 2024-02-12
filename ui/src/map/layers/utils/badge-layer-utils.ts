@@ -13,6 +13,7 @@ import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
 import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 type MapAlignmentBadgePoint = {
     point: number[];
@@ -40,7 +41,8 @@ export function createBadgeFeatures(
         const fontSize = 12;
         const badgeNoseWidth = 4;
 
-        const renderer = ([x, y]: Coordinate, state: State) => {
+        const renderer = (coord: Coordinate, state: State) => {
+            const [x, y] = getCoordsUnsafe(coord);
             const ctx = state.context;
             ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
                 state.pixelRatio * fontSize
@@ -134,9 +136,12 @@ function getBadgeStyle(badgeColor: AlignmentBadgeColor, contrast: boolean) {
     };
 }
 
-function getBadgeRotation(start: Coordinate, end: Coordinate) {
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
+function getBadgeRotation(startCoord: Coordinate, endCoord: Coordinate) {
+    const [startX, startY] = getCoordsUnsafe(startCoord);
+    const [endX, endY] = getCoordsUnsafe(endCoord);
+
+    const dx = endX - startX;
+    const dy = endY - startY;
     const angle = Math.atan2(dy, dx);
     let rotation: number;
     let drawFromEnd = true;
@@ -163,8 +168,8 @@ export function getBadgePoints(
 ): MapAlignmentBadgePoint[] {
     if (points.length < 3) return [];
 
-    const start = Math.ceil(points[1].m / drawDistance);
-    const end = Math.floor(points[points.length - 1].m / drawDistance);
+    const start = Math.ceil(getUnsafe(points[1]).m / drawDistance);
+    const end = Math.floor(getUnsafe(points[points.length - 1]).m / drawDistance);
 
     if (start > end) return [];
 
@@ -185,7 +190,7 @@ export function getBadgePoints(
 }
 
 export function getBadgeDrawDistance(resolution: number): number | undefined {
-    const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < d[0]);
+    const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < getUnsafe(d[0]));
     return distance?.[1];
 }
 

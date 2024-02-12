@@ -6,6 +6,7 @@ import { getPartialPolyLine } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
+import { getUnsafe } from 'utils/type-utils';
 
 export function createHighlightFeatures(
     alignments: AlignmentDataHolder[],
@@ -17,7 +18,11 @@ export function createHighlightFeatures(
             .filter((h) => h.id === header.id && h.type == header.alignmentType)
             .flatMap(({ ranges }) => {
                 return ranges
-                    .filter((r) => r.max > points[0].m && r.min < points[points.length - 1].m)
+                    .filter(
+                        (r) =>
+                            r.max > getUnsafe(points[0]).m &&
+                            r.min < getUnsafe(points[points.length - 1]).m,
+                    )
                     .map((r) => {
                         const pointsWithinRange = getPartialPolyLine(points, r.min, r.max);
                         return pointsWithinRange.length > 1

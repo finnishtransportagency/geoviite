@@ -111,7 +111,7 @@ const defaultScaleLine: ScaleLine = new ScaleLine({
 
 function getOlViewByDomainViewport(viewport: MapViewport): OlView {
     return new OlView({
-        center: [viewport.center.x, viewport.center.y],
+        center: [viewport.center?.x ?? 0, viewport.center?.y ?? 0],
         resolution: viewport.resolution,
         maxZoom: 32,
         minZoom: 6,
@@ -122,13 +122,15 @@ function getOlViewByDomainViewport(viewport: MapViewport): OlView {
 
 function getDomainViewportByOlView(map: OlMap): MapViewport {
     const view = map.getView();
-    const center = view.getCenter() as number[];
-    const extent = map.getView().calculateExtent();
+    const center = view.getCenter() as [number, number] | undefined;
+    const extent = map.getView().calculateExtent() as [number, number, number, number];
     return {
-        center: {
-            x: center[0],
-            y: center[1],
-        },
+        center: center
+            ? {
+                  x: center[0],
+                  y: center[1],
+              }
+            : undefined,
         resolution: view.getResolution() as number,
         area: {
             x: { min: extent[0], max: extent[2] },

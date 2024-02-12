@@ -481,11 +481,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             (t) => !previousTabs.some((pt) => isSameAsset(t.asset, pt.asset)),
         );
 
-        if (newTabs.length) {
+        const firstTab = newTabs[0];
+        if (firstTab) {
             if (selectedAsset && newTabs.some((nt) => isSameAsset(nt.asset, selectedAsset))) {
                 changeTab(selectedAsset);
             } else {
-                changeTab(tabs[0].asset);
+                changeTab(firstTab.asset);
             }
         }
 

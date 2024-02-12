@@ -10,6 +10,7 @@ import {
     minimumLabeledTickDistancePx,
 } from 'vertical-geometry/ticks-at-intervals';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
+import { getUnsafe } from 'utils/type-utils';
 
 export interface LabeledTicksProps {
     trackKmHeights: TrackKmHeights[];
@@ -147,7 +148,11 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({
                             const hasSpaceBeforeNextKm =
                                 trackKmIndex === trackKmHeights.length - 1 ||
                                 meterIndex === 0 ||
-                                (trackKmHeights[trackKmIndex + 1].trackMeterHeights[0].m - m) *
+                                (getUnsafe(
+                                    getUnsafe(trackKmHeights[trackKmIndex + 1])
+                                        .trackMeterHeights[0],
+                                ).m -
+                                    m) *
                                     coordinates.mMeterLengthPxOverM >
                                     minimumLabeledTickDistancePx;
                             return (

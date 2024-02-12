@@ -40,6 +40,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -353,7 +354,11 @@ function getPointsByOrder(
     orderEnd?: number,
 ): LinkPoint[] {
     if (points.length === 0 || orderStart === undefined || orderEnd === undefined) return [];
-    else if (orderEnd < points[0].m || orderStart > points[points.length - 1].m) return [];
+    else if (
+        orderEnd < getUnsafe(points[0]).m ||
+        orderStart > getUnsafe(points[points.length - 1]).m
+    )
+        return [];
     else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
@@ -374,7 +379,8 @@ function createPointTagFeature(
     const rotationByPointDirection = point.direction ? -point.direction + Math.PI / 2 : 0;
     const rotation = rotationByPointDirection + (showAtLeftSide ? Math.PI : 0);
 
-    const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
+    const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
+        const [x, y] = getCoordsUnsafe(coord);
         const fontSize = 12;
         const textPadding = 3 * pixelRatio;
         const textBackgroundHeight = (fontSize + 4) * pixelRatio;
@@ -403,7 +409,7 @@ function createPointTagFeature(
             [arrowLength, arrowHeight / 2],
             [arrowLength, -arrowHeight / 2],
             [arrowTipLength, -arrowHeight / 2],
-        ];
+        ] as const;
 
         ctx.translate(x, y);
         ctx.rotate(rotation);
@@ -918,8 +924,10 @@ export function createAlignmentLinkingLayer(
                             ...selection,
                             highlightedItems: {
                                 ...selection.highlightedItems,
-                                layoutLinkPoints: [linkPointAddresses.layoutHighlight],
-                                geometryLinkPoints: [linkPointAddresses.geometryHighlight],
+                                layoutLinkPoints: [getUnsafe(linkPointAddresses.layoutHighlight)],
+                                geometryLinkPoints: [
+                                    getUnsafe(linkPointAddresses.geometryHighlight),
+                                ],
                             },
                         },
                         {
@@ -986,7 +994,7 @@ export function createAlignmentLinkingLayer(
                 const onGeometryLine = containsType(features, FeatureType.GeometryLine);
 
                 if (onLayoutLine && onGeometryLine) {
-                    const closestPoint = linkPointFeatures[0];
+                    const closestPoint = getUnsafe(linkPointFeatures[0]);
                     const closestPointType = getFeatureType(closestPoint);
 
                     if (closestPointType === FeatureType.GeometryPoint) {
