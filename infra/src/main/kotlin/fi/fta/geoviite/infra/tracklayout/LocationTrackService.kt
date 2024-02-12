@@ -34,6 +34,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
+    private val trackNumberService: LayoutTrackNumberService,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
@@ -364,12 +365,9 @@ class LocationTrackService(
 
         return when (locationTrack.descriptionSuffix) {
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
-            DescriptionSuffixType.SWITCH_TO_BUFFER ->
-                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION")
-            DescriptionSuffixType.SWITCH_TO_SWITCH ->
-                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
-            DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY ->
-                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $OWNERSHIP_BOUNDARY_TRANSLATION")
+            DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION")
+            DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+            DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY -> FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $OWNERSHIP_BOUNDARY_TRANSLATION")
         }
     }
 
@@ -415,11 +413,21 @@ class LocationTrackService(
                 )?.first
             }
         }
-        return duplicates.mapIndexed { index, d -> index to d }.sortedWith { a, b ->
-            compareValues(
-                duplicateMValues[a.first], duplicateMValues[b.first]
-            )
-        }.map { (_, track) -> LocationTrackDuplicate(track.id as IntId, track.trackNumberId, track.name, track.externalId) }
+        return duplicates
+            .mapIndexed { index, d -> index to d }
+            .sortedWith { a, b ->
+                compareValues(
+                    duplicateMValues[a.first], duplicateMValues[b.first]
+                )
+            }
+            .map { (_, track) ->
+                LocationTrackDuplicate(
+                    track.id as IntId,
+                    track.trackNumberId,
+                    track.name,
+                    track.externalId
+                )
+            }
     }
 
     private fun getDuplicateOf(
@@ -459,12 +467,12 @@ class LocationTrackService(
         val nearbyTracksAroundStart =
             (alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
+            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack) }
 
         val nearbyTracksAroundEnd =
             (alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
+            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack) }
 
         return calculateLocationTrackTopology(
             track, alignment, startChanged, endChanged, NearbyTracks(
@@ -527,8 +535,10 @@ class LocationTrackService(
                 }
             }
 
+            val trackNumber = trackNumberService.getOrThrow(publishType, locationTrack.trackNumberId)
+
             SplittingInitializationParameters(
-                locationTrackId, switches, duplicateTracks
+                locationTrackId, switches, duplicateTracks, trackNumber.number
             )
         }
     }

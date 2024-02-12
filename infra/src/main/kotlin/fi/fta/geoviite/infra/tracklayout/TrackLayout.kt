@@ -170,6 +170,7 @@ data class SplittingInitializationParameters(
     val id: IntId<LocationTrack>,
     val switches: List<SwitchOnLocationTrack>,
     val duplicates: List<SplitDuplicateTrack>,
+    val trackNumber: TrackNumber,
 )
 
 data class LocationTrack(
