@@ -35,6 +35,17 @@ import { Point } from 'model/geometry';
 type EndpointType = 'START' | 'END';
 const BLACK = '#000000';
 
+function trackMetersAreApproximatelySame(
+    m1: number | undefined,
+    m2: number | undefined,
+): boolean | undefined {
+    if (m1 === undefined || m2 === undefined) {
+        return undefined;
+    }
+
+    return Math.abs(m1 - m2) <= 0.0001;
+}
+
 function createDuplicateTrackEndpointAddressFeature(
     point: Point,
     controlPoint: Point,
@@ -155,29 +166,44 @@ function createFeatures(
             const startAndEnd = startsAndEnds.find(
                 (idToStartAndEnd) => idToStartAndEnd.id === header.id,
             );
-            const startFeature = createDuplicateTrackEndpointAddressFeature(
-                points[0],
-                points[1],
-                header.name,
-                startAndEnd?.start?.address,
-                'START',
-                startAndEnd?.start?.address
-                    ? calculateZIndexForTrackMeter(startAndEnd.start.address)
-                    : 0,
-            );
-            const endFeature = createDuplicateTrackEndpointAddressFeature(
-                points[points.length - 1],
-                points[points.length - 2],
-                header.name,
-                startAndEnd?.end?.address,
-                'END',
-                startAndEnd?.end?.address
-                    ? calculateZIndexForTrackMeter(startAndEnd.end.address)
-                    : 0,
-            );
+
+            // The 'points'-array may only include a subset of the actual points of the alignment.
+            // Features should only be rendered to the real ends of a given duplicate.
+            const startFeature = trackMetersAreApproximatelySame(
+                points[0].m,
+                startAndEnd?.start?.point.m,
+            )
+                ? createDuplicateTrackEndpointAddressFeature(
+                      points[0],
+                      points[1],
+                      header.name,
+                      startAndEnd?.start?.address,
+                      'START',
+                      startAndEnd?.start?.address
+                          ? calculateZIndexForTrackMeter(startAndEnd.start.address)
+                          : 0,
+                  )
+                : undefined;
+
+            const endFeature = trackMetersAreApproximatelySame(
+                points[points.length - 1].m,
+                startAndEnd?.end?.point.m,
+            )
+                ? createDuplicateTrackEndpointAddressFeature(
+                      points[points.length - 1],
+                      points[points.length - 2],
+                      header.name,
+                      startAndEnd?.end?.address,
+                      'END',
+                      startAndEnd?.end?.address
+                          ? calculateZIndexForTrackMeter(startAndEnd.end.address)
+                          : 0,
+                  )
+                : undefined;
 
             return [startFeature, endFeature];
         })
+        .filter((feature): feature is Feature<OlPoint> => feature !== undefined)
         .flat();
 }
 

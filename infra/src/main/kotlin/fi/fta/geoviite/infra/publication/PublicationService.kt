@@ -101,6 +101,46 @@ class PublicationService @Autowired constructor(
             referenceLines = publicationDao.fetchReferenceLinePublishCandidates(),
             switches = publicationDao.fetchSwitchPublishCandidates(),
             kmPosts = publicationDao.fetchKmPostPublishCandidates(),
+        ).let(::assignPublicationGroups)
+    }
+
+    fun assignPublicationGroups(
+        publishCandidates: PublishCandidates,
+    ): PublishCandidates {
+        val locationTrackIdToPublicationGroup = mutableMapOf<IntId<LocationTrack>, PublicationGroup>()
+        val switchIdToPublicationGroup = mutableMapOf<IntId<TrackLayoutSwitch>, PublicationGroup>()
+
+        publishCandidates.locationTracks
+            .map { locationTrack -> locationTrack.id }
+            .let { locationTrackIds -> splitService.findUnfinishedSplitsForLocationTracks(locationTrackIds) }
+            .map { unfinishedSplit ->
+                val publicationGroup = PublicationGroup(unfinishedSplit.id)
+
+                unfinishedSplit.locationTracks.forEach { locationTrackId ->
+                    locationTrackIdToPublicationGroup[locationTrackId] = publicationGroup
+                }
+
+                unfinishedSplit.relinkedSwitches.forEach { switchId ->
+                    switchIdToPublicationGroup[switchId] = publicationGroup
+                }
+            }
+
+        return publishCandidates.copy(
+            locationTracks = publishCandidates.locationTracks.map { locationTrackPublishCandidate ->
+                locationTrackIdToPublicationGroup[locationTrackPublishCandidate.id]?.let { assignedPublicationGroup ->
+                    locationTrackPublishCandidate.copy(
+                        publicationGroup = assignedPublicationGroup
+                    )
+                } ?: locationTrackPublishCandidate
+            },
+
+            switches = publishCandidates.switches.map { switchPublishCandidate ->
+                switchIdToPublicationGroup[switchPublishCandidate.id]?.let { assignedPublicationGroup ->
+                    switchPublishCandidate.copy(
+                        publicationGroup = assignedPublicationGroup
+                    )
+                } ?: switchPublishCandidate
+            },
         )
     }
 
