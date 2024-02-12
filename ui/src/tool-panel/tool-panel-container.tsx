@@ -4,7 +4,7 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
-import { LayoutSwitch, LocationTrackId } from 'track-layout/track-layout-model';
+import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
@@ -34,11 +34,6 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
         });
     }, []);
 
-    const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
-        delegates.showLayers(['switch-linking-layer']);
-        delegates.startSwitchPlacing(layoutSwitch);
-    }, []);
-
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
 
     React.useEffect(() => {
@@ -56,17 +51,6 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             );
         }
     }, [store.linkingState]);
-
-    const onSelectLocationTrackBadge = (locationTrackId: LocationTrackId) => {
-        delegates.onSelect({
-            locationTracks: [locationTrackId],
-        });
-
-        delegates.setToolPanelTab({
-            id: locationTrackId,
-            type: 'LOCATION_TRACK',
-        });
-    };
 
     return (
         <ToolPanel

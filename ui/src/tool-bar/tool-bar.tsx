@@ -146,14 +146,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
-    const [showAddMenu, setShowAddMenu] = React.useState(false);
+    const [showNewAssetMenu, setShowNewAssetMenu] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
     const menuRef = React.useRef(null);
 
-    const disableNewMenu =
+    const disableNewAssetMenu =
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
         !!splittingState;
@@ -252,12 +252,12 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 return exhaustiveMatchingGuard(dialog);
         }
 
-        setShowAddMenu(false);
+        setShowNewAssetMenu(false);
     }
 
     function moveToOfficialPublishType() {
         onPublishTypeChange('OFFICIAL');
-        setShowAddMenu(false);
+        setShowNewAssetMenu(false);
     }
 
     function openPreviewAndStopLinking() {
@@ -305,8 +305,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             title={t('tool-bar.new')}
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
-                            disabled={publishType !== 'DRAFT' || disableNewMenu}
-                            onClick={() => setShowAddMenu(!showAddMenu)}
+                            disabled={publishType !== 'DRAFT' || disableNewAssetMenu}
+                            onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
                         />
                     </WriteAccessRequired>
                 </div>
@@ -357,12 +357,12 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 )}
             </div>
 
-            {showAddMenu && (
+            {showNewAssetMenu && (
                 <Menu
                     positionRef={menuRef}
                     items={newMenuItems}
                     onSelect={(item) => item && handleNewMenuItemChange(item)}
-                    onClickOutside={() => setShowAddMenu(false)}
+                    onClickOutside={() => setShowNewAssetMenu(false)}
                 />
             )}
 

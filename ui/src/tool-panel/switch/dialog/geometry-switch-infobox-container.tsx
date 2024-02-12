@@ -30,10 +30,8 @@ export const GeometrySwitchInfoboxContainer: React.FC<GeometrySwitchInfoboxConta
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
-    const onShowMapLocation = React.useCallback(
-        (location: Point) => delegates.showArea(calculateBoundingBoxToShowAroundLocation(location)),
-        [],
-    );
+    const onShowMapLocation = (location: Point) =>
+        delegates.showArea(calculateBoundingBoxToShowAroundLocation(location));
 
     return (
         <GeometrySwitchInfobox
