@@ -27,17 +27,13 @@ import {
 } from 'preview/change-table-entry-mapping';
 import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
-import {
-    ChangesBeingReverted,
-    PreviewCandidates,
-    PreviewOperations,
-    PublicationAssetChangeAmounts,
-} from 'preview/preview-view';
+import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { PreviewCandidates, PublicationAssetChangeAmounts } from 'preview/preview-view-data';
 
 export type PublicationId =
     | LayoutTrackNumberId

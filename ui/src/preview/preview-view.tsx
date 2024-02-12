@@ -14,30 +14,19 @@ import {
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
 import { OnSelectFunction } from 'selection/selection-model';
-import { AssetId, PublishType } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
-    KmPostPublishCandidate,
-    LocationTrackPublishCandidate,
     PublicationGroup,
-    PublicationGroupId,
-    PublicationId,
     PublicationStage,
-    PublishCandidate,
-    PublishCandidates,
     PublishRequestIds,
-    ReferenceLinePublishCandidate,
-    SwitchPublishCandidate,
-    TrackNumberPublishCandidate,
-    WithId,
 } from 'publication/publication-model';
-import PreviewTable, { PreviewSelectType } from 'preview/preview-table';
+import PreviewTable from 'preview/preview-table';
 import { updateAllChangeTimes } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
 import { ChangeTimes } from 'common/common-slice';
 import { debounceAsync } from 'utils/async-utils';
@@ -50,62 +39,27 @@ import {
     intersectPublishRequestIds,
 } from 'publication/publication-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-
-type Candidate = {
-    id: AssetId;
-};
-
-type PendingValidation = {
-    pendingValidation: boolean;
-};
-
-type PreviewCandidate = PublishCandidate & PendingValidation;
-
-export type PreviewCandidates = {
-    trackNumbers: (TrackNumberPublishCandidate & PendingValidation)[];
-    referenceLines: (ReferenceLinePublishCandidate & PendingValidation)[];
-    locationTracks: (LocationTrackPublishCandidate & PendingValidation)[];
-    switches: (SwitchPublishCandidate & PendingValidation)[];
-    kmPosts: (KmPostPublishCandidate & PendingValidation)[];
-};
-
-export type RevertRequestSource = {
-    id: PublicationId;
-    type: PreviewSelectType;
-    name: string;
-};
-
-export enum RevertRequestType {
-    STAGE_CHANGES,
-    CHANGES_WITH_DEPENDENCIES,
-    PUBLICATION_GROUP,
-}
-
-export type RevertRequest =
-    | RevertStageChanges
-    | RevertChangesWithDependencies
-    | RevertPublicationGroup;
-
-export type RevertStageChanges = {
-    type: RevertRequestType.STAGE_CHANGES;
-    amount: number;
-    stage: PublicationStage;
-};
-
-export type RevertChangesWithDependencies = {
-    type: RevertRequestType.CHANGES_WITH_DEPENDENCIES;
-};
-
-export type RevertPublicationGroup = {
-    type: RevertRequestType.PUBLICATION_GROUP;
-    amount: number;
-    publicationGroup: PublicationGroup;
-};
-
-export type ChangesBeingReverted = {
-    requestedRevertChange: { source: RevertRequestSource } & RevertRequest;
-    changeIncludingDependencies: PublishRequestIds;
-};
+import {
+    RevertRequest,
+    RevertRequestSource,
+    RevertRequestType,
+} from 'preview/preview-view-revert-request';
+import {
+    getStagedChanges,
+    getUnstagedChanges,
+    idsByPublicationGroup,
+    previewCandidatesByUser,
+    previewChanges,
+    publishCandidateIds,
+} from 'preview/preview-view-filters';
+import {
+    countPublicationGroupAmounts,
+    countPublishCandidates,
+    emptyChanges,
+    nonPendingCandidate,
+    PreviewCandidates,
+    PublicationAssetChangeAmounts,
+} from 'preview/preview-view-data';
 
 export type PreviewProps = {
     changeTimes: ChangeTimes;
@@ -146,165 +100,10 @@ export type PreviewOperations = {
     };
 };
 
-const publishCandidateIds = (candidates: PublishCandidates): PublishRequestIds => ({
-    trackNumbers: candidates.trackNumbers.map((tn) => tn.id),
-    locationTracks: candidates.locationTracks.map((lt) => lt.id),
-    referenceLines: candidates.referenceLines.map((rl) => rl.id),
-    switches: candidates.switches.map((s) => s.id),
-    kmPosts: candidates.kmPosts.map((s) => s.id),
-});
-
-const emptyChanges = {
-    trackNumbers: [],
-    locationTracks: [],
-    referenceLines: [],
-    switches: [],
-    kmPosts: [],
-} satisfies PreviewCandidates | PublishRequestIds;
-
-const filterStaged = (stagedIds: AssetId[], candidate: Candidate) =>
-    stagedIds.includes(candidate.id);
-const filterUnstaged = (stagedIds: AssetId[], candidate: Candidate) =>
-    !stagedIds.includes(candidate.id);
-
-const getStagedChanges = (
-    publishCandidates: PublishCandidates,
-    stagedChangeIds: PublishRequestIds,
-): PublishCandidates => ({
-    trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
-        filterStaged(stagedChangeIds.trackNumbers, trackNumber),
-    ),
-    locationTracks: publishCandidates.locationTracks.filter((locationTrack) =>
-        filterStaged(stagedChangeIds.locationTracks, locationTrack),
-    ),
-    switches: publishCandidates.switches.filter((layoutSwitch) =>
-        filterStaged(stagedChangeIds.switches, layoutSwitch),
-    ),
-    kmPosts: publishCandidates.kmPosts.filter((kmPost) =>
-        filterStaged(stagedChangeIds.kmPosts, kmPost),
-    ),
-    referenceLines: publishCandidates.referenceLines.filter((referenceLine) =>
-        filterStaged(stagedChangeIds.referenceLines, referenceLine),
-    ),
-});
-
-const getUnstagedChanges = (
-    publishCandidates: PublishCandidates,
-    stagedChangeIds: PublishRequestIds,
-): PublishCandidates => ({
-    trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
-        filterUnstaged(stagedChangeIds.trackNumbers, trackNumber),
-    ),
-    locationTracks: publishCandidates.locationTracks.filter((locationTrack) =>
-        filterUnstaged(stagedChangeIds.locationTracks, locationTrack),
-    ),
-    switches: publishCandidates.switches.filter((layoutSwitch) =>
-        filterUnstaged(stagedChangeIds.switches, layoutSwitch),
-    ),
-    kmPosts: publishCandidates.kmPosts.filter((kmPost) =>
-        filterUnstaged(stagedChangeIds.kmPosts, kmPost),
-    ),
-    referenceLines: publishCandidates.referenceLines.filter((referenceLine) =>
-        filterUnstaged(stagedChangeIds.referenceLines, referenceLine),
-    ),
-});
-
-// Validating the change set takes time. After a change is staged, it should be regarded as staged, but pending
-// validation until validation is complete
-const pendingValidation = (allStaged: AssetId[], allValidated: AssetId[], id: AssetId) =>
-    allStaged.includes(id) && !allValidated.includes(id);
-
-const previewChanges = (
-    stagedValidatedChanges: PublishCandidates,
-    allSelectedChanges: PublishRequestIds,
-    entireChangeset: PublishCandidates,
-): PreviewCandidates => {
-    const validatedIds = publishCandidateIds(stagedValidatedChanges);
-
-    return {
-        trackNumbers: [
-            ...stagedValidatedChanges.trackNumbers.map(nonPendingCandidate),
-            ...entireChangeset.trackNumbers
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.trackNumbers,
-                        validatedIds.trackNumbers,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        referenceLines: [
-            ...stagedValidatedChanges.referenceLines.map(nonPendingCandidate),
-            ...entireChangeset.referenceLines
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.referenceLines,
-                        validatedIds.referenceLines,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        locationTracks: [
-            ...stagedValidatedChanges.locationTracks.map(nonPendingCandidate),
-            ...entireChangeset.locationTracks
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.locationTracks,
-                        validatedIds.locationTracks,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        switches: [
-            ...stagedValidatedChanges.switches.map(nonPendingCandidate),
-            ...entireChangeset.switches
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.switches,
-                        validatedIds.switches,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        kmPosts: [
-            ...stagedValidatedChanges.kmPosts.map(nonPendingCandidate),
-            ...entireChangeset.kmPosts
-                .filter((change) =>
-                    pendingValidation(allSelectedChanges.kmPosts, validatedIds.kmPosts, change.id),
-                )
-                .map(pendingCandidate),
-        ],
-    };
+export type ChangesBeingReverted = {
+    requestedRevertChange: { source: RevertRequestSource } & RevertRequest;
+    changeIncludingDependencies: PublishRequestIds;
 };
-
-const nonPendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
-    ...candidate,
-    pendingValidation: false,
-});
-const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
-    ...candidate,
-    pendingValidation: true,
-});
-
-const filterPreviewCandidateArrayByUser = <T extends PreviewCandidate>(
-    user: User,
-    candidates: T[],
-) => candidates.filter((candidate) => candidate.userName === user.details.userName);
-
-const previewCandidatesByUser = (
-    user: User,
-    previewCandidates: PreviewCandidates,
-): PreviewCandidates => ({
-    trackNumbers: filterPreviewCandidateArrayByUser(user, previewCandidates.trackNumbers),
-    referenceLines: filterPreviewCandidateArrayByUser(user, previewCandidates.referenceLines),
-    locationTracks: filterPreviewCandidateArrayByUser(user, previewCandidates.locationTracks),
-    switches: filterPreviewCandidateArrayByUser(user, previewCandidates.switches),
-    kmPosts: filterPreviewCandidateArrayByUser(user, previewCandidates.kmPosts),
-});
 
 const validateDebounced = debounceAsync(
     (request: PublishRequestIds) => validatePublishCandidates(request),
@@ -314,71 +113,6 @@ const getCalculatedChangesDebounced = debounceAsync(
     (request: PublishRequestIds) => getCalculatedChanges(request),
     1000,
 );
-
-const filterByPublicationGroup = (
-    candidates: (PublishCandidate & WithId)[],
-    publicationGroup: PublicationGroup,
-) => candidates.filter((candidate) => candidate.publicationGroup?.id === publicationGroup.id);
-
-const assetIdsByPublicationGroup = (
-    candidates: (PublishCandidate & WithId)[],
-    publicationGroup: PublicationGroup,
-) => {
-    return filterByPublicationGroup(candidates, publicationGroup).map((candidate) => candidate.id);
-};
-
-const idsByPublicationGroup = (
-    candidates: PublishCandidates,
-    publicationGroup: PublicationGroup,
-): PublishRequestIds => ({
-    trackNumbers: assetIdsByPublicationGroup(candidates.trackNumbers, publicationGroup),
-    referenceLines: assetIdsByPublicationGroup(candidates.referenceLines, publicationGroup),
-    locationTracks: assetIdsByPublicationGroup(candidates.locationTracks, publicationGroup),
-    switches: assetIdsByPublicationGroup(candidates.switches, publicationGroup),
-    kmPosts: assetIdsByPublicationGroup(candidates.kmPosts, publicationGroup),
-});
-
-export type PublicationAssetChangeAmounts = {
-    total: number;
-    staged: number;
-    unstaged: number;
-    groupAmounts: Record<PublicationGroupId, number>;
-    ownUnstaged: number;
-};
-
-const countPublishCandidates = (publishCandidates: PublishCandidates | undefined): number => {
-    if (!publishCandidates) {
-        return 0;
-    }
-
-    return Object.values(publishCandidates)
-        .filter((maybeAssetArray) => Array.isArray(maybeAssetArray))
-        .reduce((amount, assetArray) => amount + assetArray.length, 0);
-};
-
-const countPublicationGroupAmounts = (
-    changeSet: PublishCandidates | undefined,
-): Record<PublicationGroupId, number> => {
-    if (!changeSet) {
-        return {};
-    }
-
-    return Object.values(changeSet)
-        .filter((maybeAssetArray) => Array.isArray(maybeAssetArray))
-        .flatMap((assetArray) => {
-            return assetArray.map((asset) => asset.publicationGroup?.id);
-        })
-        .filter(
-            (publicationGroupId): publicationGroupId is PublicationGroupId => !!publicationGroupId,
-        )
-        .reduce((groupSizes, publicationGroup) => {
-            publicationGroup in groupSizes
-                ? (groupSizes[publicationGroup] += 1)
-                : (groupSizes[publicationGroup] = 1);
-
-            return groupSizes;
-        }, {} as Record<PublicationGroupId, number>);
-};
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();

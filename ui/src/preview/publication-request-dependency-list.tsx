@@ -18,8 +18,9 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { PreviewSelectType } from 'preview/preview-table';
-import { ChangesBeingReverted, RevertRequestType } from 'preview/preview-view';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { RevertRequestType } from 'preview/preview-view-revert-request';
+import { ChangesBeingReverted } from 'preview/preview-view';
 
 const publicationRequestSize = (req: PublishRequestIds): number =>
     req.switches.length +

@@ -40,9 +40,9 @@ import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { ChangesBeingReverted } from 'preview/preview-view';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
+import { ChangesBeingReverted } from 'preview/preview-view';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;

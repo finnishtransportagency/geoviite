@@ -4,13 +4,14 @@ import * as React from 'react';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import { ChangesBeingReverted, RevertRequestType } from 'preview/preview-view';
+import { ChangesBeingReverted } from 'preview/preview-view';
 import {
     PublicationRequestDependencyList,
     publicationRequestTypeTranslationKey,
 } from 'preview/publication-request-dependency-list';
 import { getChangeTimes } from 'common/change-time-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { RevertRequestType } from 'preview/preview-view-revert-request';
 
 export interface PreviewRejectConfirmDialogProps {
     changesBeingReverted: ChangesBeingReverted;

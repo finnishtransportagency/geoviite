@@ -2,7 +2,8 @@ import { getRevertRequestDependencies } from 'publication/publication-api';
 import { publishNothing } from 'publication/publication-model';
 import { PreviewSelectType } from 'preview/preview-table';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { ChangesBeingReverted, RevertRequestType } from 'preview/preview-view';
+import { RevertRequestType } from 'preview/preview-view-revert-request';
+import { ChangesBeingReverted } from 'preview/preview-view';
 
 export const onRequestDeleteTrackNumber = (
     trackNumber: LayoutTrackNumber,

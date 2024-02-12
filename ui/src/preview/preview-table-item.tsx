@@ -11,15 +11,12 @@ import {
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import {
-    ChangesBeingReverted,
-    PreviewOperations,
-    PublicationAssetChangeAmounts,
-    RevertRequestSource,
-} from 'preview/preview-view';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
+import { Menu, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { PreviewSelectType, PreviewTableEntry, PublicationId } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
+import { RevertRequestSource } from 'preview/preview-view-revert-request';
+import { PublicationAssetChangeAmounts } from 'preview/preview-view-data';
 
 const createPublishRequestIdsFromTableEntry = (
     id: PublicationId,
