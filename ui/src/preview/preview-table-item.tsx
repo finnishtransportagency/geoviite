@@ -96,15 +96,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         name: tableEntry.name,
     };
 
-    const changeItemPublicationStage = () => {
-        const newStage = publish ? PublicationStage.UNSTAGED : PublicationStage.STAGED;
-
-        previewOperations.setPublicationStage.forSpecificChanges(
-            tableEntryAsPublishRequestIds,
-            newStage,
-        );
-    };
-
     const menuAction = (menuActionFunction: () => void) => (): void => {
         menuActionFunction();
         setActionMenuVisible(false);
@@ -234,7 +225,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     <Button
                         qa-id={'stage-change-button'}
                         variant={ButtonVariant.GHOST}
-                        onClick={changeItemPublicationStage}
+                        onClick={() =>
+                            previewOperations.setPublicationStage.forSpecificChanges(
+                                tableEntryAsPublishRequestIds,
+                                moveTargetStage,
+                            )
+                        }
                         icon={publish ? Icons.Ascending : Icons.Descending}
                     />
                     <React.Fragment>
