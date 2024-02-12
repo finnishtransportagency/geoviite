@@ -924,10 +924,12 @@ export function createAlignmentLinkingLayer(
                             ...selection,
                             highlightedItems: {
                                 ...selection.highlightedItems,
-                                layoutLinkPoints: [getUnsafe(linkPointAddresses.layoutHighlight)],
-                                geometryLinkPoints: [
-                                    getUnsafe(linkPointAddresses.geometryHighlight),
-                                ],
+                                layoutLinkPoints: linkPointAddresses.layoutHighlight
+                                    ? [getUnsafe(linkPointAddresses.layoutHighlight)]
+                                    : [],
+                                geometryLinkPoints: linkPointAddresses.geometryHighlight
+                                    ? [getUnsafe(linkPointAddresses.geometryHighlight)]
+                                    : [],
                             },
                         },
                         {
