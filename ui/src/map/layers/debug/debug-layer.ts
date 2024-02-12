@@ -1,11 +1,12 @@
 import Feature from 'ol/Feature';
-import { Point as OlPoint } from 'ol/geom';
+import { Point as OlPoint, Polygon } from 'ol/geom';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import liikennepaikat from 'liikennepaikat.json';
 
 type DebugLayerPoint = {
     type: 'point';
@@ -16,24 +17,69 @@ type DebugLayerPoint = {
     text?: string;
 };
 
-let debugLayerData: DebugLayerPoint[] = [];
+type DebugLayerPolygon = {
+    type: 'polygon';
+    coordinates: number[][][];
+};
+
+type DebugLayerData = (DebugLayerPolygon | DebugLayerPoint)[];
+
+let debugLayerData: DebugLayerData = [
+    ...liikennepaikat.features.map((feat) => {
+        const p: DebugLayerPoint = {
+            type: 'point',
+            x: feat.properties.virallinenSijainti[0],
+            y: feat.properties.virallinenSijainti[1],
+            text: feat.properties.nimi,
+        };
+        return p;
+    }),
+    ...liikennepaikat.features.map((feat) => {
+        const coords: number[][][] = feat.geometry.geometries[1]
+            .coordinates as unknown as number[][][];
+        const p: DebugLayerPolygon = {
+            type: 'polygon',
+            coordinates: coords,
+        };
+        return p;
+    }),
+];
 
 declare global {
-    function setDebugLayerData(data: DebugLayerPoint[]): void;
+    function setDebugLayerData(data: DebugLayerData): void;
 }
 
 let updateLayerFunc: (() => void) | undefined = undefined;
 
-globalThis.setDebugLayerData = (data: DebugLayerPoint[]) => {
+globalThis.setDebugLayerData = (data: DebugLayerData) => {
     debugLayerData = data;
     if (updateLayerFunc) {
         updateLayerFunc();
     }
 };
 
-function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
+type DebugFeatureType = OlPoint | Polygon;
+
+function createDebugFeatures(points: DebugLayerData): Feature<DebugFeatureType>[] {
     return points
         .flatMap((point) => {
+            if (point.type == 'polygon') {
+                const feature = new Feature({
+                    geometry: new Polygon(point.coordinates),
+                });
+                feature.setStyle(
+                    new Style({
+                        stroke: new Stroke({
+                            color: 'blue',
+                            width: 3,
+                        }),
+                        fill: new Fill({
+                            color: 'rgba(0, 0, 255, 0.1)',
+                        }),
+                    }),
+                );
+                return feature;
+            }
             if (point.type == 'point') {
                 const feature = new Feature({
                     geometry: new OlPoint(pointToCoords(point)),
@@ -67,12 +113,12 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
 }
 
 export function createDebugLayer(
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<DebugFeatureType>> | undefined,
 ): MapLayer {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function updateFeatures(features: Feature<OlPoint>[]) {
+    function updateFeatures(features: Feature<DebugFeatureType>[]) {
         clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
     }
