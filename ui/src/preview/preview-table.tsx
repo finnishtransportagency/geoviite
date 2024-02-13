@@ -10,7 +10,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import styles from './preview-view.scss';
-import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,
@@ -28,12 +27,13 @@ import {
 } from 'preview/change-table-entry-mapping';
 import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
-import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
+import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { PreviewCandidates, PublicationAssetChangeAmounts } from 'preview/preview-view-data';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -59,22 +59,22 @@ export enum PreviewSelectType {
 
 type PreviewTableProps = {
     previewChanges: PreviewCandidates;
-    onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
-    onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
+    publicationAssetChangeAmounts: PublicationAssetChangeAmounts;
+    previewOperations: PreviewOperations;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
     previewChanges,
-    onPreviewSelect,
-    onRevert,
     staged,
     changesBeingReverted,
-    onShowOnMap,
     changeTimes,
+    publicationAssetChangeAmounts,
+    previewOperations,
+    onShowOnMap,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -84,39 +84,6 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         ) || [];
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
-
-    const defaultSelectedPublishChange: SelectedPublishChange = {
-        trackNumber: undefined,
-        referenceLine: undefined,
-        locationTrack: undefined,
-        switch: undefined,
-        kmPost: undefined,
-    };
-
-    function handlePreviewSelect<T>(id: PublicationId, type: T) {
-        switch (type) {
-            case PreviewSelectType.trackNumber:
-                onPreviewSelect &&
-                    onPreviewSelect({ ...defaultSelectedPublishChange, trackNumber: id });
-                break;
-            case PreviewSelectType.referenceLine:
-                onPreviewSelect &&
-                    onPreviewSelect({ ...defaultSelectedPublishChange, referenceLine: id });
-                break;
-            case PreviewSelectType.locationTrack:
-                onPreviewSelect &&
-                    onPreviewSelect({ ...defaultSelectedPublishChange, locationTrack: id });
-                break;
-            case PreviewSelectType.switch:
-                onPreviewSelect && onPreviewSelect({ ...defaultSelectedPublishChange, switch: id });
-                break;
-            case PreviewSelectType.kmPost:
-                onPreviewSelect && onPreviewSelect({ ...defaultSelectedPublishChange, kmPost: id });
-                break;
-            default:
-                onPreviewSelect && onPreviewSelect(defaultSelectedPublishChange);
-        }
-    }
 
     const changesToPublicationEntries = (previewChanges: PreviewCandidates): PreviewTableEntry[] =>
         previewChanges.trackNumbers
@@ -220,21 +187,12 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                         <React.Fragment key={`${entry.type}_${entry.id}`}>
                             {
                                 <PreviewTableItem
-                                    onPublishItemSelect={() =>
-                                        handlePreviewSelect(entry.id, entry.type)
-                                    }
-                                    onRevert={() => onRevert(entry)}
-                                    itemName={entry.uiName}
-                                    trackNumber={entry.trackNumber}
-                                    errors={entry.errors}
-                                    changeTime={entry.changeTime}
-                                    userName={entry.userName}
-                                    pendingValidation={entry.pendingValidation}
-                                    operation={entry.operation}
+                                    tableEntry={entry}
                                     publish={staged}
                                     changesBeingReverted={changesBeingReverted}
-                                    boundingBox={entry.boundingBox}
                                     onShowOnMap={onShowOnMap}
+                                    previewOperations={previewOperations}
+                                    publicationAssetChangeAmounts={publicationAssetChangeAmounts}
                                 />
                             }
                         </React.Fragment>

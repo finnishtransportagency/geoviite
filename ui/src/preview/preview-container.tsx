@@ -12,10 +12,12 @@ export const PreviewContainer: React.FC = () => {
     const props: PreviewProps = {
         changeTimes: changeTimes,
         selectedPublishCandidateIds: trackLayoutState.stagedPublicationRequestIds,
+        showOnlyOwnUnstagedChanges: trackLayoutState.previewState.showOnlyOwnUnstagedChanges,
+        setShowOnlyOwnUnstagedChanges: delegates.setShowOnlyOwnUnstagedChanges,
         onSelect: delegates.onSelect,
         onClosePreview: () => delegates.onLayoutModeChange('DEFAULT'),
         onPublish: delegates.onPublish,
-        onPreviewSelect: delegates.onPreviewSelect,
+        onPublishPreviewSelect: delegates.onPublishPreviewSelect,
         onPublishPreviewRemove: delegates.onPublishPreviewRemove,
         onShowOnMap: delegates.showArea,
     };

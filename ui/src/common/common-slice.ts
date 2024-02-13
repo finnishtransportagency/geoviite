@@ -16,6 +16,7 @@ export type ChangeTimes = {
     publication: TimeStamp;
     ratkoPush: TimeStamp;
     pvDocument: TimeStamp;
+    split: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -31,6 +32,7 @@ export const initialChangeTimes: ChangeTimes = {
     publication: initialChangeTime,
     ratkoPush: initialChangeTime,
     pvDocument: initialChangeTime,
+    split: initialChangeTime,
 };
 
 export type CommonState = {
@@ -128,6 +130,9 @@ const commonSlice = createSlice({
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.ratkoPush) < toDate(payload)) changeTimes.ratkoPush = payload;
+        },
+        setSplitChangeTime: function ({ changeTimes }, { payload }) {
+            updateChangeTime(changeTimes, 'split', payload);
         },
         setUserPrivileges: (
             state: CommonState,

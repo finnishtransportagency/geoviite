@@ -27,6 +27,7 @@ import {
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
+    splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
 };
 
@@ -73,6 +74,7 @@ export const MAX_LISTED_PUBLICATIONS = 8;
 const PublicationCard: React.FC<PublishListProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
+    splitChangeTime,
     ratkoStatus,
 }) => {
     const { t } = useTranslation();
@@ -90,7 +92,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
         () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount),
-        [publicationChangeTime, ratkoPushChangeTime, pageCount],
+        [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
 
     const allPublications =

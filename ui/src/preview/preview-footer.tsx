@@ -23,9 +23,9 @@ import {
     PublishValidationError,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
-import { PreviewCandidates } from 'preview/preview-view';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
+import { PreviewCandidates } from 'preview/preview-view-data';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;

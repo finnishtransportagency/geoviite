@@ -100,6 +100,14 @@ export function updatePVDocumentsChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updateSplitChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/splits`,
+        delegates.setSplitChangeTime,
+        getChangeTimes().split,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,
