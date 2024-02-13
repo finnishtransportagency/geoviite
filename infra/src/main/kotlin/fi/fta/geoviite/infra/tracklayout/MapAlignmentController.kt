@@ -126,7 +126,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getLocationTrackEnds(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): List<AlignmentPoint> {
+    ): MapAlignmentEndPoints {
         logger.apiCall("getLocationTrackEnds", "publishType" to publishType, "id" to id)
         return mapAlignmentService.getLocationTrackEnds(publishType, id)
     }
@@ -136,7 +136,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getReferenceLineEnds(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<ReferenceLine>,
-    ): List<AlignmentPoint> {
+    ): MapAlignmentEndPoints {
         logger.apiCall("getReferenceLineEnds", "publishType" to publishType, "id" to id)
         return mapAlignmentService.getReferenceLineEnds(publishType, id)
     }

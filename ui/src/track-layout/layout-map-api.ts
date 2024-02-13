@@ -18,7 +18,7 @@ import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'm
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
 import { PublishType, RowVersion, TimeStamp, TrackMeter } from 'common/common-model';
-import { LinkInterval, LinkPoint } from 'linking/linking-model';
+import { LinkInterval, LinkPoint, MapAlignmentEndPoints } from 'linking/linking-model';
 import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
@@ -68,14 +68,8 @@ const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefi
 const locationTrackSegmentMCache = asyncCache<string, number[]>();
 const referenceLineSegmentMCache = asyncCache<string, number[]>();
 
-const locationTrackEndsCache = asyncCache<
-    string,
-    [AlignmentPoint, AlignmentPoint, AlignmentPoint, AlignmentPoint]
->();
-const referenceLineEndsCache = asyncCache<
-    string,
-    [AlignmentPoint, AlignmentPoint, AlignmentPoint, AlignmentPoint]
->();
+const locationTrackEndsCache = asyncCache<string, MapAlignmentEndPoints>();
+const referenceLineEndsCache = asyncCache<string, MapAlignmentEndPoints>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
 const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
@@ -329,21 +323,23 @@ export async function getEndLinkPoints(
     type: MapAlignmentType,
     changeTime: TimeStamp,
 ): Promise<LinkInterval> {
+    const alignmentEndpointsToLinkPoint = (end: AlignmentPoint, next: AlignmentPoint) =>
+        alignmentPointToLinkPoint(type, id, end, directionBetweenPoints(end, next), true, true);
+
     return (type === 'LOCATION_TRACK' ? locationTrackEndsCache : referenceLineEndsCache)
         .get(changeTime, cacheKey(id, publishType), () =>
-            // FIXME this endpoint actually returns 0-4 points but this function always expects 4
-            getNonNull<[AlignmentPoint, AlignmentPoint, AlignmentPoint, AlignmentPoint]>(
-                mapAlignmentUri(publishType, type, `${id}/ends`),
-            ),
+            getNonNull<MapAlignmentEndPoints>(mapAlignmentUri(publishType, type, `${id}/ends`)),
         )
-        .then(([start, startPlusOne, endMinusOne, end]) => {
-            const startDir = directionBetweenPoints(start, startPlusOne);
-            const endDir = directionBetweenPoints(endMinusOne, end);
-            return {
-                start: alignmentPointToLinkPoint(type, id, start, startDir, true, true),
-                end: alignmentPointToLinkPoint(type, id, end, endDir, true, true),
-            };
-        });
+        .then(({ start: startPoints, end: endPoints }) => ({
+            start:
+                startPoints[0] === undefined || startPoints[1] === undefined
+                    ? undefined
+                    : alignmentEndpointsToLinkPoint(startPoints[0], startPoints[1]),
+            end:
+                endPoints[0] === undefined || endPoints[1] === undefined || endPoints.length != 2
+                    ? undefined
+                    : alignmentEndpointsToLinkPoint(endPoints[1], endPoints[0]),
+        }));
 }
 
 export async function getLinkPointsByTiles(
