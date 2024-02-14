@@ -22,6 +22,7 @@ import {
     SuggestedSwitch,
     SuggestedSwitchCreateParams,
     SwitchLinkingParameters,
+    SwitchRelinkingResult,
 } from 'linking/linking-model';
 import {
     getChangeTimes,
@@ -45,6 +46,7 @@ const LINKING_URI = `${API_URI}/linking`;
 
 const geometryElementsLinkedStatusCache = asyncCache<GeometryPlanId, GeometryPlanLinkStatus>();
 const suggestedSwitchesCache = asyncCache<string, SuggestedSwitch[]>();
+const relinkingSwitchValidationCache = asyncCache<LocationTrackId, SwitchRelinkingResult[]>();
 
 type LinkingDataType = 'reference-lines' | 'location-tracks' | 'switches' | 'km-posts';
 type LinkingType = 'geometry' | 'empty-geometry' | 'suggested';
@@ -283,4 +285,17 @@ export async function linkKmPost(params: KmPostLinkingParameters): Promise<Layou
     await updatePlanChangeTime();
 
     return result;
+}
+
+export async function validateLocationTrackSwitchRelinking(
+    locationTrackId: LocationTrackId,
+): Promise<SwitchRelinkingResult[]> {
+    return relinkingSwitchValidationCache.get(
+        getMaxTimestamp(getChangeTimes().layoutSwitch, getChangeTimes().layoutLocationTrack),
+        locationTrackId,
+        () =>
+            getNonNull<SwitchRelinkingResult[]>(
+                `${LINKING_URI}/validate-relinking-track/${locationTrackId}`,
+            ),
+    );
 }

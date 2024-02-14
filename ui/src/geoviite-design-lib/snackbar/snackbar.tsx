@@ -1,19 +1,14 @@
 import * as React from 'react';
-import { toast } from 'react-toastify';
+import { Id, toast, ToastOptions } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.minimal.css';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import './snackbar.scss';
 import styles from './snackbar.scss';
-import i18n from 'i18next';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { useTranslation } from 'react-i18next';
 import { ApiErrorResponse } from 'api/api-fetch';
-import i18next from 'i18next';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Override } from 'utils/type-utils';
 
-type ToastId = string | number;
-
-const COPY_CONFIRM_AUTO_CLOSE_TIMEOUT = 2000;
-
-let snacksInQueue: ToastId[] = [];
 let blockToasts = false;
 
 type SnackbarButtonOptions = {
@@ -21,130 +16,101 @@ type SnackbarButtonOptions = {
     onClick: () => void;
 };
 
-type ToastOpts = {
-    toastId?: ToastId;
+type SnackbarOptions = {
+    id?: Id;
     className?: string;
-    autoClose?: number;
+    replace?: boolean;
 };
 
-function addToQueue(toastId: ToastId): (() => void) | undefined {
-    const similarExists = snacksInQueue.includes(toastId);
+type SnackbarToastOptions = Override<SnackbarOptions, { id: Id }>;
 
-    if (!similarExists) {
-        snacksInQueue.push(toastId);
-        return () => {
-            snacksInQueue = snacksInQueue.filter((id) => id !== toastId);
-        };
-    }
-}
+type ToastContentProps = {
+    children: React.ReactNode;
+};
 
-const isApiErrorResponse = (
-    allegedApiErrorResponse: unknown,
-): allegedApiErrorResponse is ApiErrorResponse =>
-    typeof allegedApiErrorResponse === 'object' &&
-    allegedApiErrorResponse !== null &&
-    allegedApiErrorResponse !== undefined &&
-    'timestamp' in allegedApiErrorResponse &&
-    'correlationId' in allegedApiErrorResponse;
+type ToastTextContentProps = {
+    header: string;
+    body?: string;
+};
 
-function getToastId(header: string, body?: string): string {
-    return `toast-${header}${body ? '-' + body : ''}`;
-}
+type ToastButtonContentProps = {
+    button: SnackbarButtonOptions;
+};
 
-function getToast(headerKey: string, bodyKey?: string, button?: SnackbarButtonOptions) {
-    const t = i18n.t;
+type ApiErrorSnackbarProps = {
+    header: string;
+    path: string;
+    apiError: ApiErrorResponse;
+};
 
-    const header = t(headerKey);
-    const body = bodyKey ? t(bodyKey) : undefined;
-    const buttonText = button ? t(button.text) : undefined;
+const ToastTextContent: React.FC<ToastTextContentProps> = ({ header, body }) => {
+    const { t } = useTranslation();
+    const translatedHeader = t(header);
+    const translatedBody = body ? t(body) : undefined;
 
     return (
-        <div className={styles['Toastify__toast-content']}>
-            <div className={styles['Toastify__toast-text']}>
-                <span className={styles['Toastify__toast-header']} title={header}>
-                    {header}
-                </span>
-                {body && (
-                    <p className={styles['Toastify__toast-text-body']} title={body}>
-                        {body}
-                    </p>
-                )}
-            </div>
-            {button && (
-                <div
-                    className={styles['Toastify__button']}
-                    onClick={button.onClick}
-                    title={buttonText}>
-                    {buttonText}
-                </div>
+        <div className={styles['Toastify__toast-text']}>
+            <span className={styles['Toastify__toast-header']} title={translatedHeader}>
+                {translatedHeader}
+            </span>
+            {translatedBody && (
+                <p className={styles['Toastify__toast-text-body']} title={translatedBody}>
+                    {translatedBody}
+                </p>
             )}
         </div>
     );
-}
+};
 
-function getErrorToast(headerKey: string, errorObj?: unknown, button?: SnackbarButtonOptions) {
-    const t = i18n.t;
+const ToastButtonContent: React.FC<ToastButtonContentProps> = ({ button }) => {
+    const { t } = useTranslation();
+    const buttonText = t(button.text);
 
-    const validError = isApiErrorResponse(errorObj);
+    return (
+        <div className={styles['Toastify__button']} onClick={button.onClick} title={buttonText}>
+            {buttonText}
+        </div>
+    );
+};
 
-    const header = t(headerKey);
-    const buttonText = button ? t(button.text) : undefined;
-    const date =
-        validError && errorObj
-            ? new Date(errorObj.timestamp).toLocaleString(i18next.language)
-            : undefined;
+const ToastContent: React.FC<ToastContentProps> = ({ children }) => (
+    <div className={styles['Toastify__toast-content']}>{children}</div>
+);
+
+const ApiErrorToast: React.FC<ApiErrorSnackbarProps> = ({ header, path, apiError }) => {
+    const { t, i18n } = useTranslation();
+
+    const date = new Date(apiError.timestamp).toLocaleString(i18n.language);
+
     const copyToClipboard = () => {
-        if (errorObj) {
-            navigator.clipboard
-                .writeText(JSON.stringify(errorObj))
-                .then(() =>
-                    success(t('error.copied-to-clipboard'), undefined, {
-                        autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
-                    }),
-                )
-                .catch(() =>
-                    error(t('error.copy-to-clipboard-failed'), undefined, undefined, {
-                        autoClose: COPY_CONFIRM_AUTO_CLOSE_TIMEOUT,
-                    }),
-                );
-        }
+        navigator.clipboard
+            .writeText(JSON.stringify({ path: path, error: apiError }))
+            .then(() => success(t('error.copied-to-clipboard')))
+            .catch(() => info(t('error.copy-to-clipboard-failed')));
     };
 
     return (
-        <div className={styles['Toastify__toast-content']}>
+        <ToastContent>
             <div className={styles['Toastify__toast-text']}>
                 <span className={styles['Toastify__toast-header-container']}>
                     <span className={styles['Toastify__toast-header']} title={header}>
                         {header}
                     </span>
-                    {validError && errorObj && (
-                        <Button
-                            title={t('error.copy-details-to-clipboard')}
-                            onClick={copyToClipboard}
-                            variant={ButtonVariant.GHOST}
-                            size={ButtonSize.SMALL}
-                            icon={Icons.Copy}
-                        />
-                    )}
+                    <Button
+                        title={t('error.copy-details-to-clipboard')}
+                        onClick={copyToClipboard}
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SMALL}
+                        icon={Icons.Copy}
+                    />
                 </span>
-                {validError && errorObj && (
-                    <div
-                        className={
-                            styles['Toastify__toast-footer']
-                        }>{`${date} | ${errorObj.correlationId}`}</div>
-                )}
+                <span className={styles['Toastify__toast-footer']}>
+                    {date} | {apiError.correlationId}
+                </span>
             </div>
-            {button && (
-                <div
-                    className={styles['Toastify__button']}
-                    onClick={button.onClick}
-                    title={buttonText}>
-                    {buttonText}
-                </div>
-            )}
-        </div>
+        </ToastContent>
     );
-}
+};
 
 const CloseButton = ({ closeToast }: never) => (
     <button className={styles['Toastify__close-button']} onClick={closeToast}>
@@ -152,79 +118,157 @@ const CloseButton = ({ closeToast }: never) => (
     </button>
 );
 
-export function info(header: string, body?: string, opts?: ToastOpts) {
-    const { toastId: id, ...options } = opts ?? {};
+function getToastId(header: string, body?: string): Id {
+    return `toast-${header}${body ? '-' + body : ''}`;
+}
 
-    const toastId = id ?? getToastId(header, body);
-    const removeFunction = addToQueue(toastId);
+export function info(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
+    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
-    if (removeFunction && !blockToasts) {
-        toast.warn(getToast(header, body), {
+    return showInfoToast(
+        <ToastContent>
+            <ToastTextContent header={header} body={body} />
+        </ToastContent>,
+        toastOptions,
+    );
+}
+
+function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+    const { id: toastId, replace, ...options } = opts;
+
+    if (!blockToasts) {
+        const exists = toast.isActive(toastId);
+
+        const toastOptions: ToastOptions = {
             toastId: toastId,
-            onClose: removeFunction,
             icon: <Icons.Info />,
             ...options,
-        });
+        };
+
+        if (exists && replace) {
+            toast.update(toastId, {
+                render: toastContent,
+                ...toastOptions,
+            });
+
+            return toastId;
+        } else if (!exists) {
+            return toast.warn(toastContent, toastOptions);
+        }
     }
 }
 
-export function success(header: string, body?: string, opts?: ToastOpts) {
-    const { toastId: id, ...options } = opts ?? {};
+export function success(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
+    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
-    const toastId = id ?? getToastId(header, body);
-    const removeFunction = addToQueue(toastId);
+    return showSuccessToast(
+        <ToastContent>
+            <ToastTextContent header={header} body={body} />
+        </ToastContent>,
+        toastOptions,
+    );
+}
 
-    if (removeFunction && !blockToasts) {
-        toast.success(getToast(header, body), {
+function showSuccessToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+    const { id: toastId, replace, ...options } = opts;
+
+    if (!blockToasts) {
+        const exists = toast.isActive(toastId);
+
+        const toastOptions = {
             toastId: toastId,
-            onClose: removeFunction,
             icon: <Icons.Selected />,
             ...options,
-        });
+        };
+
+        if (exists && replace) {
+            toast.update(toastId, {
+                render: toastContent,
+                ...toastOptions,
+            });
+
+            return toastId;
+        } else if (!exists) {
+            return toast.success(toastContent, toastOptions);
+        }
     }
 }
 
-export function error(
-    header: string,
-    path?: string,
-    errorResponse?: ApiErrorResponse,
-    options?: ToastOpts,
-) {
-    const toastId = getToastId(header);
-    const removeFunction = addToQueue(toastId);
+export function error(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
+    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
-    if (removeFunction && !blockToasts) {
-        toast.error(getErrorToast(header, { path, ...errorResponse }), {
+    return showErrorToast(
+        <ToastContent>
+            <ToastTextContent header={header} body={body} />
+        </ToastContent>,
+        toastOptions,
+    );
+}
+
+function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+    const { id: toastId, replace, ...options } = opts;
+
+    if (!blockToasts) {
+        const exists = toast.isActive(toastId);
+
+        const toastOptions: ToastOptions = {
             toastId: toastId,
             autoClose: false,
             closeOnClick: false,
             closeButton: CloseButton,
-            onClose: removeFunction,
             icon: <Icons.StatusError />,
             ...options,
-        });
+        };
+
+        if (exists && replace) {
+            toast.update(toastId, {
+                render: toastContent,
+                ...toastOptions,
+            });
+
+            return toastId;
+        } else if (!exists) {
+            return toast.error(toastContent, toastOptions);
+        }
     }
 }
 
 export function sessionExpired() {
     if (!blockToasts) {
-        snacksInQueue = [];
         blockToasts = true;
 
-        toast.dismiss();
         toast.clearWaitingQueue();
+        toast.dismiss();
+
+        const buttonOptions = {
+            text: 'unauthorized-request.button',
+            onClick: () => location.reload(),
+        };
+
+        const toastOptions: ToastOptions = {
+            autoClose: false,
+            closeButton: false,
+            closeOnClick: false,
+            icon: <Icons.StatusError />,
+        };
 
         toast.error(
-            getToast('unauthorized-request.title', undefined, {
-                text: 'unauthorized-request.button',
-                onClick: () => location.reload(),
-            }),
-            {
-                autoClose: false,
-                closeButton: false,
-                closeOnClick: false,
-                icon: <Icons.StatusError />,
-            },
+            <ToastContent>
+                <ToastTextContent header="unauthorized-request.title" />
+                <ToastButtonContent button={buttonOptions} />
+            </ToastContent>,
+            toastOptions,
         );
     }
+}
+
+export function apiError(header: string, path: string, apiError: ApiErrorResponse): Id | undefined {
+    return showErrorToast(
+        <ToastContent>
+            <ApiErrorToast header={header} apiError={apiError} path={path} />
+        </ToastContent>,
+        {
+            id: getToastId(header, path),
+        },
+    );
 }

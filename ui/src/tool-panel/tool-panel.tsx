@@ -43,6 +43,7 @@ import { GeometryKmPostInfoboxContainer } from 'tool-panel/km-post/geometry-km-p
 import { SwitchInfoboxContainer } from 'tool-panel/switch/switch-infobox-container';
 import { SuggestedSwitchInfoboxContainer } from 'tool-panel/switch/dialog/suggested-switch-infobox-container';
 import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometry-switch-infobox-container';
+import { LocationTrackTaskListContainer } from 'tool-panel/location-track/location-track-task-list/location-track-task-list-container';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -485,6 +486,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             {anyTabSelected
                 ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
                 : tabs[0]?.element}
+            <LocationTrackTaskListContainer />
         </div>
     );
 };
