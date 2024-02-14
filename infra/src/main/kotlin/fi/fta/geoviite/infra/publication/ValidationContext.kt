@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -64,9 +62,9 @@ class ValidationContext(
     private val trackDuplicateLinks: NullableCache<IntId<LocationTrack>, List<IntId<LocationTrack>>> = NullableCache()
     private val geocodingContextKeys: NullableCache<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey> = NullableCache()
 
-    val switchNameCache: NullableCache<SwitchName, List<IntId<TrackLayoutSwitch>>> = NullableCache()
-    val trackNameCache: NullableCache<AlignmentName, List<IntId<LocationTrack>>> = NullableCache()
-    val trackNumberNumberCache: NullableCache<TrackNumber, List<IntId<TrackLayoutTrackNumber>>> = NullableCache()
+    private val switchNameCache: NullableCache<SwitchName, List<IntId<TrackLayoutSwitch>>> = NullableCache()
+    private val trackNameCache: NullableCache<AlignmentName, List<IntId<LocationTrack>>> = NullableCache()
+    private val trackNumberNumberCache: NullableCache<TrackNumber, List<IntId<TrackLayoutTrackNumber>>> = NullableCache()
 
     fun getTrackNumber(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber? =
         getObject(id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)
@@ -128,7 +126,9 @@ class ValidationContext(
         val track = getLocationTrack(trackId)
         val draftLinks = track?.switchIds ?: emptyList()
         val officialLinks = if (track == null || track.isDraft()) {
-            getOfficialLocationTrack(trackId)?.switchIds ?: emptyList()
+            locationTrackVersionCache
+                .get(trackId, locationTrackDao::fetchOfficialVersion)
+                ?.let(locationTrackDao::fetch)?.switchIds ?: emptyList()
         } else emptyList()
         return (officialLinks + draftLinks).distinct()
     }
@@ -145,7 +145,7 @@ class ValidationContext(
         .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
         .map { (switchId, segments) ->
             val switch = getSwitch(switchId)
-            val name = switch?.name ?: getDraftSwitch(switchId).name
+            val name = switch?.name ?: getDraftSwitch(switchId)?.name
             val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
             SegmentSwitch(switchId, name, switch, structure, segments)
         }
@@ -153,7 +153,8 @@ class ValidationContext(
     fun getTopologicallyConnectedSwitches(track: LocationTrack): List<Pair<SwitchName, TrackLayoutSwitch?>> =
         listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
             val switch = getSwitch(switchId)
-            val name = switch?.name ?: getDraftSwitch(switchId).name
+            // If there's no draft either, we have a referential integrity error
+            val name = switch?.name ?: requireNotNull(getDraftSwitch(switchId)).name
             name to switch
         }
 
@@ -176,14 +177,6 @@ class ValidationContext(
         geocodingContextKeys.get(trackNumberId) { tnId ->
             geocodingService.getGeocodingContextCacheKey(tnId, publicationSet)
         }
-
-    // TODO: GVT-2442 track-switch validation wants the official ones to validate that no switch was left trackless. Include caching?
-    fun getOfficialLocationTrack(id: IntId<LocationTrack>) = locationTrackDao.get(OFFICIAL, id)
-
-    // TODO: GVT-2442 Draft searches that ignore context, for logging reference errors when the item doesn't exist in the context. Include caching?
-    fun getDraftTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumberDao.getOrThrow(DRAFT, id)
-    fun getDraftSwitch(id: IntId<TrackLayoutSwitch>) = switchDao.getOrThrow(DRAFT, id)
-    fun getDraftLocationTrack(id: IntId<LocationTrack>) = locationTrackDao.getOrThrow(DRAFT, id)
 
     fun preloadByPublicationSet() {
         preloadAssociatedTrackNumberAndReferenceLineVersions(publicationSet)
@@ -208,7 +201,19 @@ class ValidationContext(
     }
 
     fun preloadTrackNumberVersions(ids: List<IntId<TrackLayoutTrackNumber>>) =
-        preloadOfficialVersions(ids, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)
+        preloadOfficialVersions(ids, trackNumberDao, trackNumberVersionCache)
+
+    fun preloadReferenceLineVersions(ids: List<IntId<ReferenceLine>>) =
+        preloadOfficialVersions(ids, referenceLineDao, referenceLineVersionCache)
+
+    fun preloadKmPostVersions(ids: List<IntId<TrackLayoutKmPost>>) =
+        preloadOfficialVersions(ids, kmPostDao, kmPostVersionCache)
+
+    fun preloadLocationTrackVersions(ids: List<IntId<LocationTrack>>) =
+        preloadOfficialVersions(ids, locationTrackDao, locationTrackVersionCache)
+
+    fun preloadSwitchVersions(ids: List<IntId<TrackLayoutSwitch>>) =
+        preloadOfficialVersions(ids, switchDao, switchVersionCache)
 
     fun preloadKmPostsByTrackNumbers(tnIds: List<IntId<TrackLayoutTrackNumber>>) =
         trackNumberKmPosts.preload(tnIds, ::fetchKmPostIdsByTrackNumbers)
@@ -238,18 +243,6 @@ class ValidationContext(
             val referenceLineIds = ids.mapNotNull(::getTrackNumber).mapNotNull(TrackLayoutTrackNumber::referenceLineId)
             preloadReferenceLineVersions(referenceLineIds)
         }
-
-    fun preloadReferenceLineVersions(ids: List<IntId<ReferenceLine>>) =
-        preloadOfficialVersions(ids, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
-
-    fun preloadKmPostVersions(ids: List<IntId<TrackLayoutKmPost>>) =
-        preloadOfficialVersions(ids, publicationSet.kmPosts, kmPostDao, kmPostVersionCache)
-
-    fun preloadLocationTrackVersions(ids: List<IntId<LocationTrack>>) =
-        preloadOfficialVersions(ids, publicationSet.locationTracks, locationTrackDao, locationTrackVersionCache)
-
-    fun preloadSwitchVersions(ids: List<IntId<TrackLayoutSwitch>>) =
-        preloadOfficialVersions(ids, publicationSet.switches, switchDao, switchVersionCache)
 
     fun preloadSwitchTrackLinks(switchIds: List<IntId<TrackLayoutSwitch>>): Unit =
         switchTrackLinks.preload(switchIds, ::fetchSwitchTrackLinks)
@@ -281,27 +274,50 @@ class ValidationContext(
         trackNumberNumberCache.putAll(nameIndex)
     }
 
+    // Draft searches that ignore context, for logging reference errors when the item doesn't exist in the context
+    // Versions are fetched lazily once, if needed
+    fun getDraftTrackNumber(id: IntId<TrackLayoutTrackNumber>) = allDraftTrackNumbers[id]?.let(trackNumberDao::fetch)
+    private val allDraftTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, RowVersion<TrackLayoutTrackNumber>> by lazy {
+        trackNumberDao.fetchPublicationVersions().associate { v -> v.officialId to v.validatedAssetVersion }
+    }
+
+    fun getDraftSwitch(id: IntId<TrackLayoutSwitch>) = allDraftSwitches[id]?.let(switchDao::fetch)
+    private val allDraftSwitches: Map<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>> by lazy {
+        switchDao.fetchPublicationVersions().associate { v -> v.officialId to v.validatedAssetVersion }
+    }
+
+    fun getDraftLocationTrack(id: IntId<LocationTrack>) = allDraftLocationTracks[id]?.let(locationTrackDao::fetch)
+    private val allDraftLocationTracks: Map<IntId<LocationTrack>, RowVersion<LocationTrack>> by lazy {
+        locationTrackDao.fetchPublicationVersions().associate { v -> v.officialId to v.validatedAssetVersion }
+    }
+
     private fun fetchKmPostIdsByTrackNumbers(
         tnIds: List<IntId<TrackLayoutTrackNumber>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<IntId<TrackLayoutKmPost>>> = kmPostDao
-        // TODO: GVT-2442 The sql behind this could be simplified at the cost of making this more complex:
-        //  - fetch the official version with links
-        //  - override by publication set, noting their respective links
         .fetchVersionsForPublication(tnIds, publicationSet.kmPosts.map { v -> v.officialId })
         .mapValues { (_, versions) ->
-            cacheOfficialValidationVersions(versions, kmPostVersionCache)
+            val officialVersions = versions.filterNot { v -> publicationSet.containsKmPost(v.officialId) }
+            cacheOfficialVersions(officialVersions.map { v -> v.validatedAssetVersion }, kmPostVersionCache)
             versions.map { v -> v.officialId }
         }
 
     private fun fetchLocationTrackIdsByTrackNumbers(
         tnIds: List<IntId<TrackLayoutTrackNumber>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<IntId<LocationTrack>>> = locationTrackDao
-        // TODO: GVT-2442 The sql behind this could be simplified at the cost of making this more complex:
-        //  - fetch the official version with links
-        //  - override by publication set, noting their respective links
         .fetchVersionsForPublication(tnIds, publicationSet.locationTracks.map { v -> v.officialId })
         .mapValues { (_, versions) ->
-            cacheOfficialValidationVersions(versions, locationTrackVersionCache)
+            val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.officialId) }
+            cacheOfficialVersions(officialVersions.map { v -> v.validatedAssetVersion }, locationTrackVersionCache)
+            versions.map { v -> v.officialId }
+        }
+
+    private fun fetchSwitchTrackLinks(
+        ids: List<IntId<TrackLayoutSwitch>>,
+    ): Map<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> = publicationDao
+        .fetchLinkedLocationTracks(ids, publicationSet.locationTracks.map { v -> v.officialId })
+        .mapValues { (_, versions) ->
+            val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.officialId) }
+            cacheOfficialVersions(officialVersions.map { v -> v.validatedAssetVersion }, locationTrackVersionCache)
             versions.map { v -> v.officialId }
         }
 
@@ -316,24 +332,6 @@ class ValidationContext(
         kmPostIds.mapNotNull { id -> getKmPost(id)?.trackNumberId },
         trackIds.mapNotNull { id -> getLocationTrack(id)?.trackNumberId },
     ).flatten().distinct()
-
-    private fun fetchSwitchTrackLinks(
-        ids: List<IntId<TrackLayoutSwitch>>,
-    ): Map<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> {
-        val draftTrackIds = publicationSet.locationTracks.map { v -> v.officialId }
-        // TODO: GVT-2442 The sql behind this could be simplified at the cost of making this more complex:
-        //  - fetch the official version with links
-        //  - override by publication set
-        //  - filter (using LocationTrack.switchIds) to drop tracks where links are removed in draft
-        return publicationDao.fetchLinkedLocationTracks(ids, draftTrackIds).mapValues { (_, trackVersions) ->
-            // We get the versions on the same fetch, so cache those as well
-            val firstSeenVersions = trackVersions
-                .filterNot { v -> publicationSet.containsLocationTrack(v.officialId) || locationTrackVersionCache.contains(v.officialId) }
-                .associate { v -> v.officialId to v.validatedAssetVersion }
-            locationTrackVersionCache.putAll(firstSeenVersions)
-            trackVersions.map { v -> v.officialId }
-        }
-    }
 
     private fun fetchLocationTrackDuplicateLinks(
         ids: List<IntId<LocationTrack>>
@@ -363,23 +361,9 @@ class ValidationContext(
 
     private fun <T : Draftable<T>> preloadOfficialVersions(
         ids: List<IntId<T>>,
-        publicationVersions: List<ValidationVersion<T>>,
         dao: IDraftableObjectDao<T>,
         versionCache: RowVersionCache<T>,
-    ) {
-        val missingIds = ids.filterNot { id ->
-            publicationVersions.any { v -> v.officialId == id } || versionCache.contains(id)
-        }
-        cacheOfficialVersions(dao.fetchOfficialVersions(missingIds), versionCache)
-    }
-
-    private fun <T : Draftable<T>> cacheOfficialValidationVersions(
-        versions: List<ValidationVersion<T>>,
-        cache: RowVersionCache<T>,
-    ) = cacheOfficialVersions(
-        versions = versions.filter { v -> v.isOfficial() }.map { v -> v.validatedAssetVersion },
-        cache = cache,
-    )
+    ) = cacheOfficialVersions(dao.fetchOfficialVersions(ids), versionCache)
 
     private fun <T : Draftable<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) {
         cache.putAll(versions.filterNot { (id) -> cache.contains(id) }.distinct().associateBy { v -> v.id })

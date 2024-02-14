@@ -145,7 +145,7 @@ fun validateSwitchNameDuplication(
 
 fun validateLocationTrackNameDuplication(
     track: LocationTrack,
-    trackNumber: TrackNumber,
+    trackNumber: TrackNumber?,
     duplicates: List<LocationTrack>,
 ): List<PublishValidationError> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
@@ -416,7 +416,7 @@ fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<Publish
 
 fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
-    trackNumberNumber: TrackNumber,
+    trackNumberNumber: TrackNumber?,
     trackNumber: TrackLayoutTrackNumber?,
 ): List<PublishValidationError> {
     val numberParams = localizationParams("trackNumber" to trackNumberNumber)
@@ -433,7 +433,7 @@ fun validateReferenceLineReference(
 fun validateLocationTrackReference(
     locationTrack: LocationTrack,
     trackNumber: TrackLayoutTrackNumber?,
-    trackNumberName: TrackNumber,
+    trackNumberName: TrackNumber?,
 ): List<PublishValidationError> {
     return if (trackNumber == null) listOf(
         validationError("$VALIDATION_LOCATION_TRACK.track-number.not-published", "trackNumber" to trackNumberName),
@@ -453,7 +453,7 @@ fun validateLocationTrackReference(
 
 data class SegmentSwitch(
     val switchId: IntId<TrackLayoutSwitch>,
-    val switchName: SwitchName,
+    val switchName: SwitchName?,
     val switch: TrackLayoutSwitch?,
     val switchStructure: SwitchStructure?,
     val segments: List<LayoutSegment>,

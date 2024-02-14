@@ -590,7 +590,7 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError>? = context.getKmPost(id)?.let { kmPost ->
         val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
         // TODO: GVT-2442 This needs to be cached
-        val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getTrackNumber))?.number
+        val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getDraftTrackNumber))?.number
         val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
 
         val fieldErrors = validateDraftKmPostFields(kmPost)
@@ -631,7 +631,7 @@ class PublicationService @Autowired constructor(
             val referenceErrors = validateReferenceLineReference(
                 referenceLine = referenceLine,
                 trackNumber = trackNumber,
-                trackNumberNumber = validationContext.getDraftTrackNumber(referenceLine.trackNumberId).number,
+                trackNumberNumber = validationContext.getDraftTrackNumber(referenceLine.trackNumberId)?.number,
             )
             val alignmentErrors = if (trackNumber?.exists == true) validateReferenceLineAlignment(alignment) else listOf()
             val geocodingErrors: List<PublishValidationError> = if (trackNumber?.exists == true) {
@@ -654,7 +654,7 @@ class PublicationService @Autowired constructor(
         validationContext: ValidationContext,
     ): List<PublishValidationError>? = validationContext.getLocationTrackWithAlignment(id)?.let { (track, alignment) ->
         val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
-        val trackNumberName = (trackNumber ?: validationContext.getDraftTrackNumber(track.trackNumberId)).number
+        val trackNumberName = (trackNumber ?: validationContext.getDraftTrackNumber(track.trackNumberId))?.number
         val fieldErrors = validateDraftLocationTrackFields(track)
 
         val referenceErrors = validateLocationTrackReference(track, trackNumber, trackNumberName)
@@ -1219,7 +1219,7 @@ class PublicationService @Autowired constructor(
             list
         }.sortedBy { it.propKey.key }
 
-        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it?.first?.name?.toString() }.sorted()
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it.first.name?.toString() }.sorted()
         val newLinkedTrackNames = changes.locationTracks.map { it.name.toString() }.sorted()
 
         return listOfNotNull(

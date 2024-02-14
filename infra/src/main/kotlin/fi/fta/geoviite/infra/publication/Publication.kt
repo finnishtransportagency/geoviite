@@ -237,9 +237,7 @@ data class PublicationGroup(
     val id: IntId<Split>,
 )
 
-data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>) {
-    fun isOfficial() = officialId == validatedAssetVersion.id
-}
+data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
 
 data class PublishRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
