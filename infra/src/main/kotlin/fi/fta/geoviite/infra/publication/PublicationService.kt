@@ -425,7 +425,7 @@ class PublicationService @Autowired constructor(
 
     data class SwitchTrackLinks(
         val switchIdsByTrackBeforeOrAfterPublication: Map<IntId<LocationTrack>, List<IntId<TrackLayoutSwitch>>>,
-        val trackVersionsBySwitchAfterPublication:  Map<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>>,
+        val trackVersionsBySwitchAfterPublication: Map<IntId<TrackLayoutSwitch>, Set<RowVersion<LocationTrack>>>,
     )
 
     private fun collectSwitchTrackLinks(
@@ -802,8 +802,14 @@ class PublicationService @Autowired constructor(
             getTopologicallyConnectedSwitches(locationTrack, validationVersions),
             validationVersions.switches.map { it.officialId },
         )
-        val trackNetworkTopologyErrors =
-            validateLocationTrackTopologicalConnectivity(version, locationTrack, validationVersions, switchTrackLinks)
+        val trackNetworkTopologyErrors = validateLocationTrackTopologicalConnectivity(
+            version,
+            locationTrack,
+            alignment,
+            validationVersions,
+            switchTrackLinks,
+        )
+
         val duplicateErrors = validateDuplicateOf(version, locationTrack, validationVersions)
         val alignmentErrors = if (locationTrack.exists) validateLocationTrackAlignment(alignment)
         else listOf()
@@ -830,10 +836,12 @@ class PublicationService @Autowired constructor(
     private fun validateLocationTrackTopologicalConnectivity(
         version: ValidationVersion<LocationTrack>,
         validatingTrack: LocationTrack,
+        trackAlignment: LayoutAlignment,
         validationVersions: ValidationVersions,
         switchTrackLinks: SwitchTrackLinks,
     ): List<PublishValidationError> {
-        return switchTrackLinks.switchIdsByTrackBeforeOrAfterPublication
+        val switchConnectivityErrors = validateLocationTrackSwitchConnectivity(validatingTrack, trackAlignment)
+        val switchTopologicalErrors = switchTrackLinks.switchIdsByTrackBeforeOrAfterPublication
             .getOrDefault(version.officialId, listOf())
             .map { switchId -> getSwitchForValidation(switchId, validationVersions) }
             .filter(TrackLayoutSwitch::exists)
@@ -845,8 +853,11 @@ class PublicationService @Autowired constructor(
                         val track = locationTrackDao.fetch(locationTrackVersion)
                         track.alignmentVersion?.let(alignmentDao::fetch)?.let { track to it }
                     }
+
                 validateSwitchTopologicalConnectivity(switch, structure, locationTracks, validatingTrack)
             }
+
+        return switchConnectivityErrors + switchTopologicalErrors
     }
 
     @Transactional(readOnly = true)

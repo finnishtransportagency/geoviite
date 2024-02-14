@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.Test
 import kotlin.math.PI
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 class PublicationValidationTest {
@@ -672,6 +673,277 @@ class PublicationValidationTest {
                 RowVersion(IntId(17), 1),
             ),
             combineVersions(officialVersions, validationVersions),
+        )
+    }
+
+    @Test
+    fun `should return validation warning if location track end is linked to switch a but connectivity type is set to NONE`() {
+        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.NONE),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
+            )
+        )
+
+        assertEquals(1, noneConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+    }
+
+    @Test
+    fun `should return validation warnings if location track start is not linked to a switch but connectivity type is set to START`() {
+        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.START),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
+            )
+        )
+
+        assertEquals(2, startConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "start-switch-missing")
+        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+    }
+
+    @Test
+    fun `should not return any validation warnings if location track end is linked to a switch and connectivity type is set to END`() {
+        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.END),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
+            )
+        )
+
+        assertEquals(0, endConnectivityTypeWarnings.size)
+    }
+
+    @Test
+    fun `should return validation warning if only location track end is linked to a switch but connectivity type is set to START AND END`() {
+        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.START_AND_END),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0), switchId = IntId(100), endJointNumber = JointNumber(1))
+            )
+        )
+
+        assertEquals(1, startEndConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "start-switch-missing")
+    }
+
+    @Test
+    fun `should return validation warning if location track start is linked to a switch but connectivity type is set to NONE`() {
+        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.NONE),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(1, noneConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "start-switch-is-topologically-connected")
+    }
+
+    @Test
+    fun `should not return validation warning if location track start is linked to a switch and connectivity type is set to START`() {
+        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.START),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(0, startConnectivityTypeWarnings.size)
+    }
+
+    @Test
+    fun `should return validation warnings if location start is linked to a switch but connectivity type is set to END`() {
+        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.END),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(2, endConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "start-switch-is-topologically-connected")
+        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "end-switch-missing")
+    }
+
+    @Test
+    fun `should return validation warning if location start is linked to a switch but connectivity type is set to START AND END`() {
+        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(IntId(100), topologicalConnectivity = TopologicalConnectivityType.START_AND_END),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(1, startEndConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "end-switch-missing")
+    }
+
+    @Test
+    fun `should return validation warning if location track end is topologically connected but connectivity type is set to NONE`() {
+        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.NONE,
+                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(1, noneConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+    }
+
+    @Test
+    fun `should return validation warnings if location track end is topologically connected but connectivity type is set to START`() {
+        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.START,
+                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(2, startConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "start-switch-missing")
+        assertContainsConnectivityWarning(startConnectivityTypeWarnings, "end-switch-is-topologically-connected")
+    }
+
+    @Test
+    fun `should not return any validation warnings if location track end is topologically connected and connectivity type is set to END`() {
+        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.END,
+                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(0, endConnectivityTypeWarnings.size)
+    }
+
+    @Test
+    fun `should return validation warning if location track end is topologically connected but connectivity type is set to START AND END`() {
+        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                topologyEndSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(1, startEndConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "start-switch-missing")
+    }
+
+    @Test
+    fun `should return validation warning if location track start is topologically connected but connectivity type is set to NONE`() {
+        val noneConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.NONE,
+                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(1, noneConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(noneConnectivityTypeWarnings, "start-switch-is-topologically-connected")
+    }
+
+    @Test
+    fun `should not return any validation warnings if location track start is topologically connected and connectivity type is set to START`() {
+        val startConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.START,
+                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(0, startConnectivityTypeWarnings.size)
+
+    }
+
+    @Test
+    fun `should return validation warnings if location track start is topologically connected but connectivity type is set to END`() {
+        val endConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.END,
+                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(2, endConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "start-switch-is-topologically-connected")
+        assertContainsConnectivityWarning(endConnectivityTypeWarnings, "end-switch-missing")
+
+    }
+
+    @Test
+    fun `should return validation warning if location start is topologically connceted but connectivity type is set to START AND END`() {
+        val startEndConnectivityTypeWarnings = validateLocationTrackSwitchConnectivity(
+            locationTrack(
+                IntId(100),
+                topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                topologyStartSwitch = TopologyLocationTrackSwitch(IntId(100), JointNumber(1))
+            ),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                segment(Point(0.0, 1.0), Point(0.0, 2.0))
+            )
+        )
+
+        assertEquals(1, startEndConnectivityTypeWarnings.size)
+        assertContainsConnectivityWarning(startEndConnectivityTypeWarnings, "end-switch-missing")
+    }
+
+    private fun assertContainsConnectivityWarning(
+        warnings: Collection<PublishValidationError>,
+        translationKey: String,
+    ) {
+        assertContains(
+            warnings,
+            PublishValidationError(
+                PublishValidationErrorType.WARNING,
+                "validation.layout.location-track.topological-connectivity.$translationKey"
+            )
         )
     }
 

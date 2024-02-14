@@ -1252,7 +1252,13 @@
                     "multiple-tracks-through-joint": "Joistain vaihteen {{switch}} pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"
                 },
                 "duplicate-name-official": "Sijaintiraiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} sijaintiraiteella",
-                "duplicate-name-draft": "Muutosjoukossa on monta sijaintiraidetta nimellä {{locationTrack}} ratanumerolla {{trackNumber}}"
+                "duplicate-name-draft": "Muutosjoukossa on monta sijaintiraidetta nimellä {{locationTrack}} ratanumerolla {{trackNumber}}",
+                "topological-connectivity": {
+                    "start-switch-is-topologically-connected": "Raiteen alku on kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen ei pitäisi olla kytketty",
+                    "end-switch-is-topologically-connected": "Raiteen loppu on kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen ei pitäisi olla kytketty",
+                    "start-switch-missing": "Raiteen alku ei ole kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen pitäisi olla kytketty",
+                    "end-switch-missing": "Raiteen loppu ei ole kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen pitäisi olla kytketty"
+                }
             },
             "switch": {
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",

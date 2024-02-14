@@ -189,6 +189,66 @@ fun validateSwitchLocationTrackLinkStructure(
     ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks, null) else listOf()
 }
 
+fun validateLocationTrackSwitchConnectivity(
+    layoutTrack: LocationTrack,
+    alignment: LayoutAlignment,
+): List<PublishValidationError> {
+    val startSegment = alignment.segments.firstOrNull()
+    val endSegment = alignment.segments.lastOrNull()
+    val topologyStartSwitch = layoutTrack.topologyStartSwitch?.switchId
+    val topologyEndSwitch = layoutTrack.topologyEndSwitch?.switchId
+
+    val hasStartSwitch =
+        (startSegment?.switchId != null && startSegment.startJointNumber != null) || topologyStartSwitch != null
+    val hasEndSwitch = (endSegment?.switchId != null && endSegment.endJointNumber != null) || topologyEndSwitch != null
+
+    return when (layoutTrack.topologicalConnectivity) {
+        TopologicalConnectivityType.NONE -> {
+            listOfNotNull(
+                validate(!hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-is-topologically-connected"
+                },
+                validate(!hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-is-topologically-connected"
+                },
+            )
+        }
+
+        TopologicalConnectivityType.START -> {
+            listOfNotNull(
+                validate(hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-missing"
+                },
+                validate(!hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-is-topologically-connected"
+                },
+            )
+        }
+
+        TopologicalConnectivityType.END -> {
+            listOfNotNull(
+                validate(!hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-is-topologically-connected"
+                },
+                validate(hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-missing"
+                },
+            )
+        }
+
+        TopologicalConnectivityType.START_AND_END -> {
+            listOfNotNull(
+                validate(hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-missing"
+                },
+                validate(hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-missing"
+                }
+            )
+        }
+    }
+}
+
 fun validateSwitchTopologicalConnectivity(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
