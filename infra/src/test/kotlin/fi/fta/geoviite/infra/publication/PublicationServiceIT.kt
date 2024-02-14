@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.*
-import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -1892,7 +1891,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val diff = publicationService.diffSwitch(
             localizationService.getLocalization("fi"),
-            changes.getValue(switch.id as IntId),
+            changes.getValue(switch.id),
             latestPub.publicationTime,
             previousPub.publicationTime,
             Operation.MODIFY,
@@ -1964,7 +1963,8 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val validationResult = publicationService.validateAsPublicationUnit(
-            publicationService.collectPublishCandidates().filter(publishRequestIds)
+            publicationService.collectPublishCandidates().filter(publishRequestIds),
+            allowMultipleSplits = false,
         )
 
         return validationResult.locationTracks.find { lt -> lt.id == locationTrackId }!!
@@ -2591,7 +2591,7 @@ class PublicationServiceIT @Autowired constructor(
             ValidationVersion(startTargetTrack2.id, startTargetTrack2.rowVersion),
             ValidationVersion(endTargetTrack.id, endTargetTrack.rowVersion),
             ValidationVersion(endTargetTrack2.id, endTargetTrack2.rowVersion)
-        );
+        )
 
         assertContains(validateSplitContent(
             locationTrackValidationVersions,
@@ -2617,7 +2617,7 @@ class PublicationServiceIT @Autowired constructor(
             ValidationVersion(sourceTrack.id, sourceTrack.rowVersion),
             ValidationVersion(startTargetTrack.id, startTargetTrack.rowVersion),
             ValidationVersion(endTargetTrack.id, endTargetTrack.rowVersion),
-        );
+        )
 
         assertContains(validateSplitContent(
             locationTrackValidationVersions,
@@ -2653,7 +2653,7 @@ class PublicationServiceIT @Autowired constructor(
             ValidationVersion(sourceTrack.id, sourceTrack.rowVersion),
             ValidationVersion(startTargetTrack.id, startTargetTrack.rowVersion),
             ValidationVersion(endTargetTrack.id, endTargetTrack.rowVersion),
-        );
+        )
 
         assertEquals(0, validateSplitContent(
             locationTrackValidationVersions,
