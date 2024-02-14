@@ -1,7 +1,7 @@
 @use 'vayla-design-lib' as vayla-design;
 
 .location-track-task-list {
-    @include vayla-design.shadow-4dp;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
 
     position: absolute;
     overflow: hidden;
@@ -22,10 +22,11 @@
         @include vayla-design.typography-sub-heading;
 
         display: flex;
-        background-color: vayla-design.$color-white-darker;
+        background-color: vayla-design.$color-white-dark;
         justify-content: space-between;
         padding: 6px 8px 6px 16px;
         margin: 0;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
     }
 
     &__content {
@@ -50,5 +51,15 @@
 
     &__switch {
         padding: 4px 0;
+    }
+
+    &__message-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    &__message-buttons {
+        margin-top: 16px;
     }
 }

@@ -664,7 +664,8 @@
             "task-list": {
                 "title": "Tehtävälista",
                 "validation-errors-message": "Seuraavissa raiteen \"{{locationTrack}}\" vaihteissa on ongelmia",
-                "no-validation-errors-message": "Raiteen \"{{locationTrack}} vaihteissa ei ole ongelmia."
+                "no-validation-errors-message": "Raiteen \"{{locationTrack}}\" vaihteet ovat kunnossa.",
+                "close-task-list": "Sulje tehtävälista"
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken"
         },
