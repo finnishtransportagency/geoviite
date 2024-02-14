@@ -19,14 +19,7 @@ import {
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LayoutKmPostId,
-    LayoutSwitchId,
-    LayoutTrackNumberId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
@@ -35,14 +28,6 @@ import { splitReducers, SplittingState } from 'tool-panel/location-track/split-s
 import { addPublishRequestIds, subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
-
-export type SelectedPublishChange = {
-    trackNumber: LayoutTrackNumberId | undefined;
-    referenceLine: ReferenceLineId | undefined;
-    locationTrack: LocationTrackId | undefined;
-    switch: LayoutSwitchId | undefined;
-    kmPost: LayoutKmPostId | undefined;
-};
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -184,6 +169,15 @@ export const initialPublicationRequestIds: PublishRequestIds = {
     kmPosts: [],
 };
 
+export enum LocationTrackTaskListType {
+    RELINKING_SWITCH_VALIDATION,
+}
+
+type SwitchRelinkingValidationTaskList = {
+    type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
+    locationTrackId: LocationTrackId;
+};
+
 export type TrackLayoutState = {
     publishType: PublishType;
     layoutMode: LayoutMode;
@@ -196,7 +190,7 @@ export type TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
     infoboxVisibilities: InfoboxVisibilities;
-    locationTrackTaskList: LocationTrackId | undefined;
+    locationTrackTaskList?: SwitchRelinkingValidationTaskList;
     previewState: PreviewState;
 };
 
@@ -469,7 +463,7 @@ const trackLayoutSlice = createSlice({
         },
         showLocationTrackTaskList: (
             state: TrackLayoutState,
-            { payload }: PayloadAction<LocationTrackId>,
+            { payload }: PayloadAction<TrackLayoutState['locationTrackTaskList']>,
         ) => {
             state.locationTrackTaskList = payload;
         },

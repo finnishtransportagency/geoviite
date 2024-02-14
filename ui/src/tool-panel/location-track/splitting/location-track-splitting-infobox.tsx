@@ -7,6 +7,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import Infobox from 'tool-panel/infobox/infobox';
 import {
     LocationTrackInfoboxVisibilities,
+    LocationTrackTaskListType,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import {
@@ -215,7 +216,10 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     }, [locationTrack, locationTrackChangeTime]);
 
     const onShowTaskList = (locationTrack: LocationTrackId) => {
-        delegates.showLocationTrackTaskList(locationTrack);
+        delegates.showLocationTrackTaskList({
+            type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
+            locationTrackId: locationTrack,
+        });
     };
 
     return (

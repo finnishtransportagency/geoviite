@@ -123,10 +123,6 @@
         }
     }
 
-    &--with-close-button {
-        cursor: default;
-    }
-
     &--error {
         border: 1px solid vayla-design.$color-red-light;
         background: vayla-design.$color-red-lighter;

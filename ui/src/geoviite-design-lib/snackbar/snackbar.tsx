@@ -7,6 +7,7 @@ import styles from './snackbar.scss';
 import { useTranslation } from 'react-i18next';
 import { ApiErrorResponse } from 'api/api-fetch';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Override } from 'utils/type-utils';
 
 let blockToasts = false;
 
@@ -16,11 +17,12 @@ type SnackbarButtonOptions = {
 };
 
 type SnackbarOptions = {
-    toastId?: Id;
+    id?: Id;
     className?: string;
-    showCloseButton?: boolean;
     replace?: boolean;
 };
+
+type SnackbarToastOptions = Override<SnackbarOptions, { id: Id }>;
 
 type ToastContentProps = {
     children: React.ReactNode;
@@ -35,7 +37,7 @@ type ToastButtonContentProps = {
     button: SnackbarButtonOptions;
 };
 
-type ApiErrorToastProps = {
+type ApiErrorSnackbarProps = {
     header: string;
     path: string;
     apiError: ApiErrorResponse;
@@ -43,15 +45,17 @@ type ApiErrorToastProps = {
 
 const ToastTextContent: React.FC<ToastTextContentProps> = ({ header, body }) => {
     const { t } = useTranslation();
+    const translatedHeader = t(header);
+    const translatedBody = body ? t(body) : undefined;
 
     return (
         <div className={styles['Toastify__toast-text']}>
-            <span className={styles['Toastify__toast-header']} title={t(header)}>
-                {t(header)}
+            <span className={styles['Toastify__toast-header']} title={translatedHeader}>
+                {translatedHeader}
             </span>
-            {body && (
-                <p className={styles['Toastify__toast-text-body']} title={t(body)}>
-                    {t(body)}
+            {translatedBody && (
+                <p className={styles['Toastify__toast-text-body']} title={translatedBody}>
+                    {translatedBody}
                 </p>
             )}
         </div>
@@ -60,19 +64,20 @@ const ToastTextContent: React.FC<ToastTextContentProps> = ({ header, body }) => 
 
 const ToastButtonContent: React.FC<ToastButtonContentProps> = ({ button }) => {
     const { t } = useTranslation();
+    const buttonText = t(button.text);
 
     return (
-        <div className={styles['Toastify__button']} onClick={button.onClick} title={t(button.text)}>
-            {t(button.text)}
+        <div className={styles['Toastify__button']} onClick={button.onClick} title={buttonText}>
+            {buttonText}
         </div>
     );
 };
 
-const ToastContent: React.FC<ToastContentProps> = ({ children }) => {
-    return <div className={styles['Toastify__toast-content']}>{children}</div>;
-};
+const ToastContent: React.FC<ToastContentProps> = ({ children }) => (
+    <div className={styles['Toastify__toast-content']}>{children}</div>
+);
 
-const ApiErrorToast: React.FC<ApiErrorToastProps> = ({ header, path, apiError }) => {
+const ApiErrorToast: React.FC<ApiErrorSnackbarProps> = ({ header, path, apiError }) => {
     const { t, i18n } = useTranslation();
 
     const date = new Date(apiError.timestamp).toLocaleString(i18n.language);
@@ -81,7 +86,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({ header, path, apiError })
         navigator.clipboard
             .writeText(JSON.stringify({ path: path, error: apiError }))
             .then(() => success(t('error.copied-to-clipboard')))
-            .catch(() => error(t('error.copy-to-clipboard-failed')));
+            .catch(() => info(t('error.copy-to-clipboard-failed')));
     };
 
     return (
@@ -113,43 +118,32 @@ const CloseButton = ({ closeToast }: never) => (
     </button>
 );
 
-const ButtonOptions: ToastOptions = {
-    autoClose: false,
-    closeOnClick: false,
-    closeButton: CloseButton,
-    className: styles['Toastify__toast--with-close-button'],
-};
-
 function getToastId(header: string, body?: string): Id {
     return `toast-${header}${body ? '-' + body : ''}`;
 }
 
-function getToastContent(header: string, body?: string, children?: React.ReactNode) {
-    return (
-        <ToastContent>{children ?? <ToastTextContent header={header} body={body} />}</ToastContent>
+export function info(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
+    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
+
+    return showInfoToast(
+        <ToastContent>
+            <ToastTextContent header={header} body={body} />
+        </ToastContent>,
+        toastOptions,
     );
 }
 
-export function info(
-    header: string,
-    body?: string,
-    opts?: SnackbarOptions,
-    children?: React.ReactNode,
-): Id | undefined {
-    const { toastId: id, showCloseButton, replace, ...options } = opts ?? {};
-
-    const toastId = id ?? getToastId(header, body);
-    const exists = toast.isActive(toastId);
+function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+    const { id: toastId, replace, ...options } = opts;
 
     if (!blockToasts) {
+        const exists = toast.isActive(toastId);
+
         const toastOptions: ToastOptions = {
             toastId: toastId,
             icon: <Icons.Info />,
-            ...(showCloseButton ? ButtonOptions : {}),
             ...options,
         };
-
-        const toastContent = getToastContent(header, body, children);
 
         if (exists && replace) {
             toast.update(toastId, {
@@ -164,26 +158,28 @@ export function info(
     }
 }
 
-export function success(
-    header: string,
-    body?: string,
-    opts?: SnackbarOptions,
-    children?: React.ReactNode,
-): Id | undefined {
-    const { toastId: id, replace, showCloseButton, ...options } = opts ?? {};
+export function success(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
+    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
-    const toastId = id ?? getToastId(header, body);
-    const exists = toast.isActive(toastId);
+    return showSuccessToast(
+        <ToastContent>
+            <ToastTextContent header={header} body={body} />
+        </ToastContent>,
+        toastOptions,
+    );
+}
+
+function showSuccessToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+    const { id: toastId, replace, ...options } = opts;
 
     if (!blockToasts) {
+        const exists = toast.isActive(toastId);
+
         const toastOptions = {
             toastId: toastId,
             icon: <Icons.Selected />,
-            ...(showCloseButton ? ButtonOptions : {}),
             ...options,
         };
-
-        const toastContent = getToastContent(header, body, children);
 
         if (exists && replace) {
             toast.update(toastId, {
@@ -198,18 +194,23 @@ export function success(
     }
 }
 
-export function error(
-    header: string,
-    body?: string,
-    opts?: SnackbarOptions,
-    children?: React.ReactNode,
-): Id | undefined {
-    const { toastId: id, replace, showCloseButton: _, ...options } = opts ?? {};
+export function error(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
+    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
-    const toastId = id ?? getToastId(header, body);
-    const exists = toast.isActive(toastId);
+    return showErrorToast(
+        <ToastContent>
+            <ToastTextContent header={header} body={body} />
+        </ToastContent>,
+        toastOptions,
+    );
+}
+
+function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+    const { id: toastId, replace, ...options } = opts;
 
     if (!blockToasts) {
+        const exists = toast.isActive(toastId);
+
         const toastOptions: ToastOptions = {
             toastId: toastId,
             autoClose: false,
@@ -218,8 +219,6 @@ export function error(
             icon: <Icons.StatusError />,
             ...options,
         };
-
-        const toastContent = getToastContent(header, body, children);
 
         if (exists && replace) {
             toast.update(toastId, {
@@ -264,10 +263,12 @@ export function sessionExpired() {
 }
 
 export function apiError(header: string, path: string, apiError: ApiErrorResponse): Id | undefined {
-    return error(
-        '',
-        undefined,
-        undefined,
-        <ApiErrorToast header={header} apiError={apiError} path={path} />,
+    return showErrorToast(
+        <ToastContent>
+            <ApiErrorToast header={header} apiError={apiError} path={path} />
+        </ToastContent>,
+        {
+            id: getToastId(header, path),
+        },
     );
 }

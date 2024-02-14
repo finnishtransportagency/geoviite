@@ -9,7 +9,10 @@ import {
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchStructures } from 'common/common-api';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    LocationTrackTaskListType,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
@@ -24,7 +27,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
-type LocationTrackTaskListProps = {
+type SwitchRelinkingValidationTaskListProps = {
     locationTrackId: LocationTrackId;
     onShowSwitch: (layoutSwitch: LayoutSwitch, point?: Point) => void;
     onClose: () => void;
@@ -33,7 +36,7 @@ type LocationTrackTaskListProps = {
 
 export const LocationTrackTaskListContainer: React.FC = () => {
     const delegates = createDelegates(TrackLayoutActions);
-    const locationTrackId = useTrackLayoutAppSelector((state) => state.locationTrackTaskList);
+    const locationTrackList = useTrackLayoutAppSelector((state) => state.locationTrackTaskList);
     const selectedSwitches = useTrackLayoutAppSelector(
         (state) => state.selection.selectedItems.switches,
     );
@@ -51,9 +54,9 @@ export const LocationTrackTaskListContainer: React.FC = () => {
     };
 
     return createPortal(
-        locationTrackId ? (
-            <LocationTrackTaskList
-                locationTrackId={locationTrackId}
+        locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
+            <SwitchRelinkingValidationTaskList
+                locationTrackId={locationTrackList.locationTrackId}
                 onClose={onClose}
                 onShowSwitch={onShowSwitch}
                 selectedSwitches={selectedSwitches}
@@ -65,7 +68,7 @@ export const LocationTrackTaskListContainer: React.FC = () => {
     );
 };
 
-const LocationTrackTaskList: React.FC<LocationTrackTaskListProps> = ({
+const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskListProps> = ({
     locationTrackId,
     onShowSwitch,
     onClose,
@@ -123,16 +126,16 @@ const LocationTrackTaskList: React.FC<LocationTrackTaskListProps> = ({
                             })}
                         </span>
                         <ul className={styles['location-track-task-list__switches']}>
-                            {switches.map((r) => {
-                                const selected = selectedSwitches.some((sid) => sid == r.id);
+                            {switches.map((lSwitch) => {
+                                const selected = selectedSwitches.some((sId) => sId == lSwitch.id);
 
                                 return (
                                     <li
-                                        key={r.id}
+                                        key={lSwitch.id}
                                         className={styles['location-track-task-list__switch']}>
                                         <SwitchBadge
-                                            onClick={() => onClick(r)}
-                                            switchItem={r}
+                                            onClick={() => onClick(lSwitch)}
+                                            switchItem={lSwitch}
                                             status={
                                                 selected
                                                     ? SwitchBadgeStatus.SELECTED
