@@ -3,19 +3,19 @@ import * as React from 'react';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { MapContext } from 'map/map-store';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
 import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { BoundingBox } from 'model/geometry';
 import { LayoutMode, PublishType } from 'common/common-model';
-import { LinkingState, LinkingType } from 'linking/linking-model';
+import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { MapViewContainer } from 'map/map-view-container';
 import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geometry-diagram-container';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { ToolBarContainer } from 'tool-bar/tool-bar-container';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
@@ -36,20 +36,7 @@ export type TrackLayoutViewProps = {
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
-    publishType,
-    linkingState,
-    splittingState,
-    onSelect,
-    onUnselect,
-    onPublishTypeChange,
-    onLayoutModeChange,
-    showArea,
-    onLayerMenuItemChange,
-    mapLayerMenuGroups,
-    changeTimes,
-    onStopLinking,
     showVerticalGeometryDiagram,
-    visibleMapLayers,
 }) => {
     const className = createClassName(
         styles['track-layout'],
@@ -61,28 +48,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     return (
         <div className={className} qa-id="track-layout-content">
-            <ToolBar
-                disableNewMenu={
-                    linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-                    linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
-                    !!splittingState
-                }
-                publishType={publishType}
-                showArea={showArea}
-                onSelect={onSelect}
-                onUnselect={onUnselect}
-                onPublishTypeChange={(publishType: PublishType) => {
-                    onPublishTypeChange(publishType);
-                }}
-                onOpenPreview={() => onLayoutModeChange('PREVIEW')}
-                changeTimes={changeTimes}
-                onStopLinking={onStopLinking}
-                onMapLayerChange={onLayerMenuItemChange}
-                mapLayerMenuGroups={mapLayerMenuGroups}
-                visibleLayers={visibleMapLayers}
-                splittingState={splittingState}
-                linkingState={linkingState}
-            />
+            <ToolBarContainer />
 
             <div className={styles['track-layout__main-view']}>
                 <div className={styles['track-layout__navi']}>

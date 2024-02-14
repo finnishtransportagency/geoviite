@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -9,9 +11,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -215,12 +215,17 @@ fun getLengthChangedRemarkOrNull(translation: Translation, length1: Double?, len
         }
     }
 
-fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
+fun getPointMovedRemarkOrNull(
+    translation: Translation,
+    oldPoint: Point?,
+    newPoint: Point?,
+    translationKey: String = "moved-x-meters",
+) = oldPoint?.let { p1 ->
     newPoint?.let { p2 ->
         if (!pointsAreSame(p1, p2)) {
             val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
             if (distance > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
-                translation, "moved-x-meters", formatDistance(distance)
+                translation, translationKey, formatDistance(distance)
             )
             else null
         } else null
@@ -470,6 +475,26 @@ fun addChangeClarification(
             publicationChange.copy(
                 remark = "${publicationChange.remark}, $displayedClarification"
             )
+        }
+    }
+}
+
+fun findJointPoint(
+    locationTrack: LocationTrack,
+    alignment: LayoutAlignment,
+    switchId: IntId<TrackLayoutSwitch>,
+    jointNumber: JointNumber,
+): SegmentPoint? {
+    val asTopoSwitch = TopologyLocationTrackSwitch(switchId, jointNumber)
+    return if (locationTrack.topologyStartSwitch == asTopoSwitch) alignment.firstSegmentStart
+    else if (locationTrack.topologyEndSwitch == asTopoSwitch) alignment.lastSegmentEnd
+    else {
+        val segment = alignment.segments.find { segment ->
+            segment.switchId == switchId && (segment.startJointNumber == jointNumber || segment.endJointNumber == jointNumber)
+        }
+        if (segment == null) null else {
+            if (segment.startJointNumber == jointNumber) segment.segmentStart
+            else segment.segmentEnd
         }
     }
 }

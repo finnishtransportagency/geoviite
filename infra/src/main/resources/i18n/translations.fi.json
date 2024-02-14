@@ -630,6 +630,7 @@
             "splitting": {
                 "title": "Raiteen jakaminen osiin",
                 "confirm-split": "Suorita jako",
+                "splitting-success": "Sijaintiraide {{locationTrackName}} jaettu {{count}} osaan",
                 "splitting-guide": "Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan.",
                 "start-address": "Alkusijainti (km + m)",
                 "split-address": "Katkaisukohta (km + m)",
@@ -1069,9 +1070,9 @@
         "cluster-overlay-choose-layout": "Valitse paikannuspohjan piste"
     },
     "preview-view": {
-        "unstaged-changes-title": "Muutokset",
-        "staged-changes-title": "Julkaistavat muutokset",
-        "show-only-mine": "Näytä vain omat muutokset",
+        "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
+        "staged-changes-title": "Julkaistavat muutokset ({{amount}} kpl)",
+        "show-only-mine": "Näytä vain omat muutokset ({{amount}} kpl)",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
         "track-number": "Ratanumero {{number}} {{disabled}}",
@@ -1112,8 +1113,16 @@
             "confirm": "Julkaise muutokset ({{candidates}} kpl)"
         },
         "revert-confirm": {
-            "title": "Muutoksen hylkääminen",
-            "description": "Haluatko hylätä muutoksen",
+            "title": {
+                "stage-changes": "Kaikkien listan muutosten hylkääminen",
+                "changes-with-dependencies": "Muutoksen hylkääminen",
+                "publication-group": "Kokonaisuuden hylkääminen"
+            },
+            "description": {
+                "stage-changes": "Haluatko hylätä kaikki listatut muutokset ({{amount}} kpl)?",
+                "changes-with-dependencies": "Haluatko hylätä muutoksen",
+                "publication-group": "Haluatko hylätä kokonaisuuden ({{amount}} kpl)?"
+            },
             "dependencies": "Tämän muutoksen hylkääminen aiheuttaa myös seuraavien riippuvien muutosten hylkäämisen:",
             "cancel": "Peruuta",
             "confirm": "Hylkää",
@@ -1140,7 +1149,11 @@
         "km-posts": "Tasakilometripisteitä",
         "reference-lines": "Pituusmittauslinjoja",
         "location-tracks": "Sijaintiraiteita",
-        "switches": "Vaihteita"
+        "switches": "Vaihteita",
+        "move-publication-group": "Siirrä kokonaisuus ({{amount}} kpl)",
+        "revert-publication-group": "Hylkää kokonaisuus  ({{amount}} kpl)",
+        "move-stage-changes": "Siirrä kaikki listan muutokset ({{amount}} kpl)",
+        "revert-stage-changes": "Hylkää kaikki listan muutokset ({{amount}} kpl)"
     },
     "validation": {
         "layout": {
@@ -1331,6 +1344,7 @@
             "shortened-x-meters": "Lyhentynyt {{value}} m",
             "lengthened-x-meters": "Pidentynyt {{value}} m",
             "moved-x-meters": "Siirtynyt {{value}} m",
+            "moved-x-meters-on-reference-line": "Siirtynyt pituusmittauslinjalla {{value}} m",
             "geometry-change-info-not-calculated": "Geometriamuutostietoja ei vielä laskettu",
             "changed-km-number": "Muuttunut kilometriltä {{value}}",
             "changed-km-numbers": "Muuttunut kilometreiltä {{value}}",

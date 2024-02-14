@@ -54,6 +54,7 @@ import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { postSplitLocationTrack } from 'publication/split/split-api';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { createDelegates } from 'store/store-utils';
+import { success } from 'geoviite-design-lib/snackbar/snackbar';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -445,7 +446,15 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 duplicateTracksInCurrentSplits,
             ),
         )
-            .then(() => stopSplitting())
+            .then(() => {
+                stopSplitting();
+                success(
+                    t('tool-panel.location-track.splitting.splitting-success', {
+                        locationTrackName: locationTrack.name,
+                        count: allValidated.length,
+                    }),
+                );
+            })
             .catch(() => returnToSplitting());
     };
 

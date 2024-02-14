@@ -19,6 +19,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class SplitService(
@@ -46,6 +47,11 @@ class SplitService(
         )
 
         return splitDao.saveSplit(locationTrackId, splitTargets, relinkedSwitches)
+    }
+
+    fun getChangeTime(): Instant {
+        logger.serviceCall("getChangeTime")
+        return splitDao.fetchChangeTime()
     }
 
     fun findPendingSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>) =
@@ -217,7 +223,9 @@ class SplitService(
     @Transactional
     fun split(request: SplitRequest): IntId<Split> {
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(sourceTrack))
+        val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(sourceTrack)).sortedBy(
+            sortingSuggestionsByReverseMOrderOnTrack(request.sourceTrackId)
+        )
         val relinkedSwitches = suggestions.map { (id, suggestion) ->
             switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestion, id)).id
         }
@@ -234,6 +242,11 @@ class SplitService(
         locationTrackService.updateState(request.sourceTrackId, LayoutState.DELETED)
         return splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
     }
+
+    private fun sortingSuggestionsByReverseMOrderOnTrack(locationTrackId: IntId<LocationTrack>): (s: Pair<*, SuggestedSwitch>) -> Double =
+        { (_, suggestion) ->
+            -suggestion.joints.firstNotNullOf { sj -> sj.matches.firstOrNull { match -> match.locationTrackId == locationTrackId }?.m }
+        }
 
     private fun saveTargetTrack(target: SplitTargetResult): SplitTarget{
         val id = locationTrackService.saveDraft(

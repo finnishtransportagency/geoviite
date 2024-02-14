@@ -18,6 +18,8 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { PreviewSelectType } from 'preview/preview-table';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { ChangesBeingReverted } from 'preview/preview-view';
 
 const publicationRequestSize = (req: PublishRequestIds): number =>
@@ -124,8 +126,8 @@ export const publicationRequestTypeTranslationKey = (type: PreviewSelectType) =>
 
 export const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): PublishRequestIds => {
     const allChanges = changesBeingReverted.changeIncludingDependencies;
-    const reqType = changesBeingReverted.requestedRevertChange.type;
-    const reqId = changesBeingReverted.requestedRevertChange.id;
+    const reqType = changesBeingReverted.requestedRevertChange.source.type;
+    const reqId = changesBeingReverted.requestedRevertChange.source.id;
     return {
         trackNumbers: allChanges.trackNumbers.filter(
             (tn) => reqType != PreviewSelectType.trackNumber || tn !== reqId,
@@ -145,20 +147,46 @@ export const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): Pu
     };
 };
 
+const filterDisplayedDependencies = (
+    changesBeingReverted: ChangesBeingReverted,
+): PublishRequestIds => {
+    const revertRequestType = changesBeingReverted.requestedRevertChange.type;
+
+    switch (revertRequestType) {
+        case RevertRequestType.STAGE_CHANGES:
+        case RevertRequestType.PUBLICATION_GROUP:
+            return changesBeingReverted.changeIncludingDependencies;
+
+        case RevertRequestType.CHANGES_WITH_DEPENDENCIES:
+            return onlyDependencies(changesBeingReverted);
+
+        default:
+            return exhaustiveMatchingGuard(revertRequestType);
+    }
+};
+
 export interface PublicationRequestDependencyListProps {
-    dependencies: PublishRequestIds;
+    changesBeingReverted: ChangesBeingReverted;
     changeTimes: ChangeTimes;
 }
 
 export const PublicationRequestDependencyList: React.FC<PublicationRequestDependencyListProps> = ({
-    dependencies,
+    changesBeingReverted,
     changeTimes,
 }) => {
     const { t } = useTranslation();
+    const dependencies = filterDisplayedDependencies(changesBeingReverted);
+
+    const displayExtraDependencyInformation =
+        changesBeingReverted.requestedRevertChange.type ===
+        RevertRequestType.CHANGES_WITH_DEPENDENCIES;
+
     return (
         publicationRequestSize(dependencies) > 0 && (
             <>
-                <div>{t(`publish.revert-confirm.dependencies`)}</div>
+                <div>
+                    {displayExtraDependencyInformation && t(`publish.revert-confirm.dependencies`)}
+                </div>
                 <ul>
                     {dependencies.trackNumbers.map((tn) => (
                         <TrackNumberItem

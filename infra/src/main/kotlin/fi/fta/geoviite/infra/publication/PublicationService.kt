@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
@@ -101,6 +102,46 @@ class PublicationService @Autowired constructor(
             referenceLines = publicationDao.fetchReferenceLinePublishCandidates(),
             switches = publicationDao.fetchSwitchPublishCandidates(),
             kmPosts = publicationDao.fetchKmPostPublishCandidates(),
+        ).let(::assignPublicationGroups)
+    }
+
+    fun assignPublicationGroups(
+        publishCandidates: PublishCandidates,
+    ): PublishCandidates {
+        val locationTrackIdToPublicationGroup = mutableMapOf<IntId<LocationTrack>, PublicationGroup>()
+        val switchIdToPublicationGroup = mutableMapOf<IntId<TrackLayoutSwitch>, PublicationGroup>()
+
+        publishCandidates.locationTracks
+            .map { locationTrack -> locationTrack.id }
+            .let { locationTrackIds -> splitService.findUnfinishedSplitsForLocationTracks(locationTrackIds) }
+            .map { unfinishedSplit ->
+                val publicationGroup = PublicationGroup(unfinishedSplit.id)
+
+                unfinishedSplit.locationTracks.forEach { locationTrackId ->
+                    locationTrackIdToPublicationGroup[locationTrackId] = publicationGroup
+                }
+
+                unfinishedSplit.relinkedSwitches.forEach { switchId ->
+                    switchIdToPublicationGroup[switchId] = publicationGroup
+                }
+            }
+
+        return publishCandidates.copy(
+            locationTracks = publishCandidates.locationTracks.map { locationTrackPublishCandidate ->
+                locationTrackIdToPublicationGroup[locationTrackPublishCandidate.id]?.let { assignedPublicationGroup ->
+                    locationTrackPublishCandidate.copy(
+                        publicationGroup = assignedPublicationGroup
+                    )
+                } ?: locationTrackPublishCandidate
+            },
+
+            switches = publishCandidates.switches.map { switchPublishCandidate ->
+                switchIdToPublicationGroup[switchPublishCandidate.id]?.let { assignedPublicationGroup ->
+                    switchPublishCandidate.copy(
+                        publicationGroup = assignedPublicationGroup
+                    )
+                } ?: switchPublishCandidate
+            },
         )
     }
 
@@ -1329,23 +1370,41 @@ class PublicationService @Autowired constructor(
     fun diffKmPost(
         translation: Translation,
         changes: KmPostChanges,
-        publicationTime: Instant,
+        newTimestamp: Instant,
+        oldTimestamp: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
+        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ) = listOfNotNull(
         compareChangeValues(
             changes.trackNumberId,
-            { tnIdFromChange -> trackNumberCache.findLast { tn -> tn.id == tnIdFromChange && tn.changeTime <= publicationTime }?.number },
+            { tnIdFromChange -> trackNumberCache.findLast { tn -> tn.id == tnIdFromChange && tn.changeTime <= newTimestamp }?.number },
             PropKey("track-number"),
         ),
         compareChangeValues(changes.kmNumber, { it }, PropKey("km-post")),
         compareChangeValues(changes.state, { it }, PropKey("state"), null, "layout-state"),
         compareChangeValues(
-            changes.location,
-            ::formatLocation,
-            PropKey("location"),
-            remark = getPointMovedRemarkOrNull(translation, changes.location.old, changes.location.new)
+            changes.location, ::formatLocation, PropKey("location"), remark = getPointMovedRemarkOrNull(
+                translation, projectPointToReferenceLineAtTime(
+                    oldTimestamp, changes.location.old, changes.trackNumberId.old, geocodingContextGetter
+                ), projectPointToReferenceLineAtTime(
+                    newTimestamp, changes.location.new, changes.trackNumberId.new, geocodingContextGetter
+                ), "moved-x-meters-on-reference-line"
+            )
         ),
     )
+
+    private fun projectPointToReferenceLineAtTime(
+        timestamp: Instant,
+        location: Point?,
+        trackNumberId: IntId<TrackLayoutTrackNumber>?,
+        geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+    ) = location?.let {
+        trackNumberId?.let {
+            geocodingContextGetter(trackNumberId, timestamp)?.let { context ->
+                context.getM(location)?.let { (m) -> context.referenceLineGeometry.getPointAtM(m)?.toPoint() }
+            }
+        }
+    }
 
     fun diffSwitch(
         translation: Translation,
@@ -1357,9 +1416,19 @@ class PublicationService @Autowired constructor(
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
     ): List<PublicationChange<*>> {
         val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
-        val oldSwitch = if (relatedJoints.any()) switchService.getOfficialAtMoment(changes.id, oldTimestamp) else null
+
+        val oldLinkedLocationTracks = changes.locationTracks.associate { lt ->
+            lt.oldVersion.id to locationTrackService.getWithAlignment(lt.oldVersion)
+        }
         val jointLocationChanges = relatedJoints.flatMap { joint ->
-            val oldLocation = oldSwitch?.joints?.find { it.number == joint.jointNumber }?.location
+            val oldLocation = oldLinkedLocationTracks[joint.locationTrackId]?.let { (track, alignment) ->
+                findJointPoint(
+                    track,
+                    alignment,
+                    changes.id,
+                    joint.jointNumber
+                )
+            }?.toPoint()
             val distance = if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) calculateDistance(
                 listOf(joint.point, oldLocation), LAYOUT_SRID
             ) else 0.0
@@ -1391,6 +1460,10 @@ class PublicationService @Autowired constructor(
             )
             list
         }.sortedBy { it.propKey.key }
+
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it?.first?.name?.toString() }.sorted()
+        val newLinkedTrackNames = changes.locationTracks.map { it.name.toString() }.sorted()
+
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
             compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "layout-state-category"),
@@ -1400,11 +1473,9 @@ class PublicationService @Autowired constructor(
             ),
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
             compareChange(
-                { changes.locationTracks.any() },
-                if (operation != Operation.CREATE) listOf(
-                    translation.t("publication-details-table.not-calculated")
-                ) else null,
-                changes.locationTracks.map { it.name },
+                { oldLinkedTrackNames != newLinkedTrackNames },
+                oldLinkedTrackNames,
+                newLinkedTrackNames,
                 { list -> list.joinToString(", ") { it } },
                 PropKey("location-track-connectivity"),
             ),
@@ -1626,7 +1697,9 @@ class PublicationService @Autowired constructor(
                         error("KM Post changes not found: version=${kp.version}")
                     },
                     publication.publicationTime,
+                    previousComparisonTime,
                     trackNumberNamesCache,
+                    geocodingContextGetter,
                 ),
             )
         }

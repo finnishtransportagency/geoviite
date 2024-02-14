@@ -157,7 +157,7 @@ class PublicationDao(
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
-                group = rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublishGroup)
+                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
@@ -962,9 +962,18 @@ class PublicationDao(
             location_tracks as (
               select switch_id,
                 array_agg(lt.track_number_id order by location_track_id) as lt_track_number_ids,
-                array_agg(lt.name order by location_track_id) as lt_names
+                array_agg(lt.name order by location_track_id) as lt_names,
+                array_agg(lt.id order by location_track_id) as lt_location_track_ids,
+                array_agg(
+                  lt.version - case when plt.direct_change is true then 1 else 0 end order by location_track_id
+                ) as lt_location_track_old_versions
                 from publication.switch_location_tracks
                   left join layout.location_track_version lt on lt.id = location_track_id and lt.version = location_track_version
+                  left join lateral
+                    (select direct_change
+                    from publication.location_track plt
+                    where plt.publication_id = :publication_id
+                      and plt.location_track_id = switch_location_tracks.location_track_id) plt on (true)
                 where publication_id = :publication_id
                 group by switch_id
             )
@@ -991,7 +1000,9 @@ class PublicationDao(
               joints.track_number_ids,
               switch_structure.presentation_joint_number,
               location_tracks.lt_track_number_ids,
-              location_tracks.lt_names
+              location_tracks.lt_names,
+              location_tracks.lt_location_track_ids,
+              location_tracks.lt_location_track_old_versions
               from publication.switch
                 left join layout.switch_version switch_version
                           on switch.switch_id = switch_version.id and switch.switch_version = switch_version.version
@@ -1051,10 +1062,14 @@ class PublicationDao(
             val locationTrackNames = rs.getListOrNull<String>("lt_names")?.map(::AlignmentName) ?: emptyList()
             val trackNumberIds =
                 rs.getListOrNull<Int>("lt_track_number_ids")?.map { IntId<TrackLayoutTrackNumber>(it) } ?: emptyList()
+            val locationTrackIds =
+                rs.getListOrNull<Int>("lt_location_track_ids")?.map { IntId<LocationTrack>(it) } ?: emptyList()
+            val locationTrackOldVersions = rs.getListOrNull<Int>("lt_location_track_old_versions") ?: emptyList()
             val lts = locationTrackNames.indices.map { index ->
                 SwitchLocationTrack(
                     trackNumberId = trackNumberIds[index],
                     name = locationTrackNames[index],
+                    oldVersion = RowVersion(locationTrackIds[index], locationTrackOldVersions[index]),
                 )
             }
             val id = rs.getIntId<TrackLayoutSwitch>("switch_id")

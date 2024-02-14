@@ -11,9 +11,14 @@ import { TimeStamp } from 'common/common-model';
 type FrontPageProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
+    splitChangeTime: TimeStamp;
 };
 
-const Frontpage: React.FC<FrontPageProps> = ({ publicationChangeTime, ratkoPushChangeTime }) => {
+const Frontpage: React.FC<FrontPageProps> = ({
+    publicationChangeTime,
+    ratkoPushChangeTime,
+    splitChangeTime,
+}) => {
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
 
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
@@ -24,6 +29,7 @@ const Frontpage: React.FC<FrontPageProps> = ({ publicationChangeTime, ratkoPushC
                 <PublicationCard
                     publicationChangeTime={publicationChangeTime}
                     ratkoPushChangeTime={ratkoPushChangeTime}
+                    splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
                 />
                 <UserCardContainer />

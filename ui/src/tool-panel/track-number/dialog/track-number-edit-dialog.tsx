@@ -37,9 +37,9 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
-import { ChangesBeingReverted } from 'preview/preview-view';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { getChangeTimes } from 'common/change-time-api';
+import { ChangesBeingReverted } from 'preview/preview-view';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -246,7 +246,9 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             }
                             errors={numberErrors.map(({ reason }) => t(mapError(reason)))}>
                             {otherTrackNumber && (
-                                <Link className={dialogStyles['dialog__alert']} onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
+                                <Link
+                                    className={dialogStyles['dialog__alert']}
+                                    onClick={() => onEditTrackNumber(otherTrackNumber.id)}>
                                     {moveToEditLinkText(otherTrackNumber)}
                                 </Link>
                             )}
