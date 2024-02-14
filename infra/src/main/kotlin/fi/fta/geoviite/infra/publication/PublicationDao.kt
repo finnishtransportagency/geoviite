@@ -6,10 +6,10 @@ import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.INSERT
+import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
@@ -109,6 +109,16 @@ class PublicationDao(
 
     fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
+            with splits as (
+                select
+                    split.id as split_id,
+                    split.source_location_track_id as source_track_id,
+                    array_agg(stlt.location_track_id) as target_track_ids
+                from publication.split
+                    inner join publication.split_target_location_track stlt on stlt.split_id = split.id
+                where split.bulk_transfer_state = 'PENDING' and split.publication_id is null
+                group by split.id, split.source_location_track_id
+            )
             select 
               draft_location_track.row_id,
               draft_location_track.row_version,
@@ -122,14 +132,18 @@ class PublicationDao(
                 official_location_track.state,
                 draft_location_track.state
               ) as operation,
-              postgis.st_astext(alignment_version.bounding_box) as bounding_box
+              postgis.st_astext(alignment_version.bounding_box) as bounding_box,
+              splits.split_id
             from layout.location_track_publication_view draft_location_track
-              left join layout.location_track_publication_view official_location_track
-                on official_location_track.official_id = draft_location_track.official_id
-                  and 'OFFICIAL' = any(official_location_track.publication_states)
-              left join layout.alignment_version alignment_version
-                on draft_location_track.alignment_id = alignment_version.id
-                  and draft_location_track.alignment_version = alignment_version.version
+                left join layout.location_track_publication_view official_location_track
+                    on official_location_track.official_id = draft_location_track.official_id
+                        and 'OFFICIAL' = any(official_location_track.publication_states)
+                left join layout.alignment_version alignment_version
+                    on draft_location_track.alignment_id = alignment_version.id
+                        and draft_location_track.alignment_version = alignment_version.version
+                left join splits 
+                    on splits.source_track_id = draft_location_track.official_id 
+                        or draft_location_track.official_id = any(splits.target_track_ids)
             where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -142,7 +156,8 @@ class PublicationDao(
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
-                boundingBox = rs.getBboxOrNull("bounding_box")
+                boundingBox = rs.getBboxOrNull("bounding_box"),
+                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
@@ -947,9 +962,18 @@ class PublicationDao(
             location_tracks as (
               select switch_id,
                 array_agg(lt.track_number_id order by location_track_id) as lt_track_number_ids,
-                array_agg(lt.name order by location_track_id) as lt_names
+                array_agg(lt.name order by location_track_id) as lt_names,
+                array_agg(lt.id order by location_track_id) as lt_location_track_ids,
+                array_agg(
+                  lt.version - case when plt.direct_change is true then 1 else 0 end order by location_track_id
+                ) as lt_location_track_old_versions
                 from publication.switch_location_tracks
                   left join layout.location_track_version lt on lt.id = location_track_id and lt.version = location_track_version
+                  left join lateral
+                    (select direct_change
+                    from publication.location_track plt
+                    where plt.publication_id = :publication_id
+                      and plt.location_track_id = switch_location_tracks.location_track_id) plt on (true)
                 where publication_id = :publication_id
                 group by switch_id
             )
@@ -976,7 +1000,9 @@ class PublicationDao(
               joints.track_number_ids,
               switch_structure.presentation_joint_number,
               location_tracks.lt_track_number_ids,
-              location_tracks.lt_names
+              location_tracks.lt_names,
+              location_tracks.lt_location_track_ids,
+              location_tracks.lt_location_track_old_versions
               from publication.switch
                 left join layout.switch_version switch_version
                           on switch.switch_id = switch_version.id and switch.switch_version = switch_version.version
@@ -1036,10 +1062,14 @@ class PublicationDao(
             val locationTrackNames = rs.getListOrNull<String>("lt_names")?.map(::AlignmentName) ?: emptyList()
             val trackNumberIds =
                 rs.getListOrNull<Int>("lt_track_number_ids")?.map { IntId<TrackLayoutTrackNumber>(it) } ?: emptyList()
+            val locationTrackIds =
+                rs.getListOrNull<Int>("lt_location_track_ids")?.map { IntId<LocationTrack>(it) } ?: emptyList()
+            val locationTrackOldVersions = rs.getListOrNull<Int>("lt_location_track_old_versions") ?: emptyList()
             val lts = locationTrackNames.indices.map { index ->
                 SwitchLocationTrack(
                     trackNumberId = trackNumberIds[index],
                     name = locationTrackNames[index],
+                    oldVersion = RowVersion(locationTrackIds[index], locationTrackOldVersions[index]),
                 )
             }
             val id = rs.getIntId<TrackLayoutSwitch>("switch_id")

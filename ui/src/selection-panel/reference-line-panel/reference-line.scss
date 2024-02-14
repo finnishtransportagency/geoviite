@@ -31,5 +31,10 @@
         &--can-select {
             cursor: pointer;
         }
+
+        &--disabled {
+            pointer-events: none;
+            color: vayla-design.$color-black-lighter;
+        }
     }
 }

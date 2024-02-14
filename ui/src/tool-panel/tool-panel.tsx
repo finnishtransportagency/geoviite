@@ -7,25 +7,15 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     DraftType,
     LayoutKmPostId,
-    LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
-import SwitchInfobox from 'tool-panel/switch/switch-infobox';
-import GeometrySwitchInfobox from 'tool-panel/switch/geometry-switch-infobox';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
-import {
-    OnSelectOptions,
-    OptionalUnselectableItemCollections,
-    SelectedGeometryItem,
-} from 'selection/selection-model';
-import { BoundingBox, Point } from 'model/geometry';
+import { SelectedGeometryItem } from 'selection/selection-model';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUnique } from 'utils/array-utils';
@@ -33,7 +23,6 @@ import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/loca
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
 import { useLoader } from 'utils/react-utils';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
@@ -43,11 +32,17 @@ import { ChangeTimes } from 'common/common-slice';
 import {
     GeometryKmPostInfoboxVisibilities,
     InfoboxVisibilities,
+    KmPostInfoboxVisibilities,
 } from 'track-layout/track-layout-slice';
-import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { createClassName } from 'vayla-design-lib/utils';
+import { KmPostInfoboxContainer } from 'tool-panel/km-post/km-post-infobox-container';
+import { GeometryKmPostInfoboxContainer } from 'tool-panel/km-post/geometry-km-post-infobox-container';
+import { SwitchInfoboxContainer } from 'tool-panel/switch/switch-infobox-container';
+import { SuggestedSwitchInfoboxContainer } from 'tool-panel/switch/dialog/suggested-switch-infobox-container';
+import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometry-switch-infobox-container';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -61,22 +56,16 @@ type ToolPanelProps = {
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
-    showArea: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
     publishType: PublishType;
     onDataChange: () => void;
-    onSelect: (items: OnSelectOptions) => void;
-    onUnselect: (items: OptionalUnselectableItemCollections) => void;
     selectedAsset: ToolPanelAsset | undefined;
     setSelectedAsset: (id: ToolPanelAsset | undefined) => void;
-    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
     infoboxVisibilities: InfoboxVisibilities;
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
-    stopSwitchLinking: () => void;
     verticalGeometryDiagramVisible: boolean;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
-    onSelectLocationTrackBadge: (locationTrackId: LocationTrackId) => void;
 };
 
 export type ToolPanelAsset = {
@@ -114,30 +103,19 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     suggestedSwitches,
     linkingState,
     splittingState,
-    showArea,
     changeTimes,
     publishType,
     onDataChange,
-    onSelect,
-    onUnselect,
     selectedAsset,
     setSelectedAsset,
-    startSwitchPlacing,
     viewport,
     infoboxVisibilities,
     onInfoboxVisibilityChange,
-    stopSwitchLinking,
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
-    onSelectLocationTrackBadge,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
-
-    const onShowMapLocation = React.useCallback(
-        (location: Point) => showArea(calculateBoundingBoxToShowAroundLocation(location)),
-        [],
-    );
 
     const tracksSwitchesKmPostsPlans = useLoader(() => {
         const trackNumbersPromise = getTrackNumbers(
@@ -240,18 +218,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     title: t.number,
                     element: (
                         <TrackNumberInfoboxLinkingContainer
+                            trackNumber={t}
                             visibilities={infoboxVisibilities.trackNumber}
                             onVisibilityChange={(visibilities) =>
                                 infoboxVisibilityChange('trackNumber', visibilities)
                             }
-                            trackNumber={t}
-                            publishType={publishType}
-                            linkingState={linkingState}
-                            onSelect={onSelect}
-                            onUnselect={onUnselect}
-                            changeTimes={changeTimes}
-                            viewport={viewport}
-                            onHoverOverPlanSection={onHoverOverPlanSection}
+                            setHoveredOverItem={onHoverOverPlanSection}
                         />
                     ),
                 } as ToolPanelTab;
@@ -262,22 +234,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 asset: { type: 'KM_POST', id: k.id },
                 title: k.kmNumber,
                 element: (
-                    <KmPostInfobox
-                        changeTimes={changeTimes}
+                    <KmPostInfoboxContainer
                         visibilities={infoboxVisibilities.kmPost}
-                        onVisibilityChange={(visibilities) =>
+                        onVisibilityChange={(visibilities: KmPostInfoboxVisibilities) =>
                             infoboxVisibilityChange('kmPost', visibilities)
                         }
-                        publishType={publishType}
-                        kmPostChangeTime={changeTimes.layoutKmPost}
                         onDataChange={onDataChange}
                         kmPost={k}
-                        onSelect={onSelect}
-                        onUnselect={onUnselect}
-                        onShowOnMap={() =>
-                            k.location &&
-                            showArea(calculateBoundingBoxToShowAroundLocation(k.location))
-                        }
                     />
                 ),
             } as ToolPanelTab;
@@ -290,15 +253,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },
                     title: kmPost?.kmNumber ?? '...',
                     element: kmPost ? (
-                        <GeometryKmPostInfobox
-                            geometryKmPost={kmPost}
+                        <GeometryKmPostInfoboxContainer
+                            kmPost={kmPost}
                             planId={k.planId}
-                            onShowOnMap={() =>
-                                kmPost.location &&
-                                showArea(calculateBoundingBoxToShowAroundLocation(kmPost.location))
-                            }
-                            visibilities={infoboxVisibilities.geometryKmPost}
-                            onVisibilityChange={(visibilities: GeometryKmPostInfoboxVisibilities) =>
+                            visibility={infoboxVisibilities.geometryKmPost}
+                            onVisiblityChange={(visibilities: GeometryKmPostInfoboxVisibilities) =>
                                 infoboxVisibilityChange('geometryKmPost', visibilities)
                             }
                         />
@@ -314,26 +273,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 asset: { type: 'SWITCH', id: s.id },
                 title: s.name,
                 element: (
-                    <SwitchInfobox
+                    <SwitchInfoboxContainer
                         visibilities={infoboxVisibilities.switch}
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('switch', visibilities)
                         }
                         switchId={s.id}
-                        showArea={showArea}
-                        publishType={publishType}
-                        changeTimes={changeTimes}
                         onDataChange={onDataChange}
-                        onSelect={onSelect}
-                        onUnselect={onUnselect}
-                        placingSwitchLinkingState={
-                            linkingState?.type == LinkingType.PlacingSwitch
-                                ? linkingState
-                                : undefined
-                        }
-                        startSwitchPlacing={startSwitchPlacing}
-                        stopLinking={stopSwitchLinking}
-                        onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                     />
                 ),
             } as ToolPanelTab;
@@ -344,19 +290,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 asset: { type: 'GEOMETRY_SWITCH', id: ss.id },
                 title: ss.name ?? '...',
                 element: (
-                    <GeometrySwitchInfobox
+                    <SuggestedSwitchInfoboxContainer
                         visibilities={infoboxVisibilities.geometrySwitch}
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('geometrySwitch', visibilities)
                         }
-                        switchId={ss.geometrySwitchId ?? undefined}
                         layoutSwitch={switches ? switches[0] : undefined}
                         suggestedSwitch={ss}
-                        linkingState={linkingState}
-                        planId={ss.geometryPlanId ?? undefined}
-                        switchChangeTime={changeTimes.layoutSwitch}
-                        locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                        onShowOnMap={onShowMapLocation}
                     />
                 ),
             };
@@ -371,19 +311,14 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     asset: { type: 'GEOMETRY_SWITCH', id: s.geometryId },
                     title: geomSwitch?.name ?? '...',
                     element: (
-                        <GeometrySwitchInfobox
+                        <GeometrySwitchInfoboxContainer
                             visibilities={infoboxVisibilities.geometrySwitch}
                             onVisibilityChange={(visibilities) =>
                                 infoboxVisibilityChange('geometrySwitch', visibilities)
                             }
                             switchId={s.geometryId}
                             layoutSwitch={switches ? switches[0] : undefined}
-                            suggestedSwitch={undefined}
-                            linkingState={linkingState}
                             planId={s.planId ?? undefined}
-                            switchChangeTime={changeTimes.layoutSwitch}
-                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                            onShowOnMap={onShowMapLocation}
                         />
                     ),
                 };
@@ -402,15 +337,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                                 infoboxVisibilityChange('locationTrack', visibilities)
                             }
                             locationTrackId={track.id}
-                            linkingState={linkingState}
-                            splittingState={splittingState}
-                            publishType={publishType}
-                            locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                            switchChangeTime={changeTimes.layoutSwitch}
-                            trackNumberChangeTime={changeTimes.layoutTrackNumber}
                             onDataChange={onDataChange}
-                            viewport={viewport}
-                            verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                             onHoverOverPlanSection={onHoverOverPlanSection}
                         />
                     ),
@@ -434,9 +361,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         selectedLocationTrackId={locationTrackIds[0]}
                         selectedTrackNumberId={trackNumberIds[0]}
                         planId={aId.planId}
-                        linkingState={linkingState}
-                        publishType={publishType}
-                        verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                     />
                 ) : (
                     <Spinner />
@@ -534,29 +458,33 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         setSelectedAsset(lockToAsset ? lockToAsset : tab);
     }
 
+    const anyTabSelected = tabs.some((t) => isSameAsset(t.asset, selectedAsset));
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (
-                <div className="infobox-tabs" qa-id="tool-panel-tabs">
-                    {tabs.map((t) => {
+                <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
+                    {tabs.map((t, tabIndex) => {
+                        const selected = anyTabSelected
+                            ? isSameAsset(t.asset, selectedAsset)
+                            : tabIndex === 0;
+                        const className = createClassName(
+                            'tool-panel__tab',
+                            selected && 'tool-panel__tab--selected',
+                        );
                         return (
-                            <Button
+                            <button
+                                className={className}
                                 key={t.asset.type + '_' + t.asset.id}
-                                variant={
-                                    isSameAsset(t.asset, selectedAsset)
-                                        ? ButtonVariant.PRIMARY
-                                        : ButtonVariant.SECONDARY
-                                }
-                                size={ButtonSize.SMALL}
-                                onClick={() => changeTab(t.asset)}
-                                isPressed={isSameAsset(t.asset, selectedAsset)}>
+                                onClick={() => changeTab(t.asset)}>
                                 {t.title}
-                            </Button>
+                            </button>
                         );
                     })}
                 </div>
             )}
-            {tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element || tabs[0]?.element}
+            {anyTabSelected
+                ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
+                : tabs[0]?.element}
         </div>
     );
 };

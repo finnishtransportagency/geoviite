@@ -172,7 +172,7 @@ class InfraModelService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         overrideParameters: OverrideParameters?,
         extraInfoParameters: ExtraInfoParameters?,
-    ): GeometryPlan {
+    ): RowVersion<GeometryPlan> {
         logger.serviceCall(
             "updateInfraModel",
             "planId" to planId,

@@ -123,6 +123,28 @@ fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationErr
         "$VALIDATION_SWITCH.no-location"
     })
 
+fun validateSwitchNameDuplication(
+    switch: TrackLayoutSwitch,
+    draftsBySameName: List<TrackLayoutSwitch>,
+    officialsBySameName: List<TrackLayoutSwitch>,
+): List<PublishValidationError> {
+    return if (switch.exists) {
+        val officialDuplicateExists = officialsBySameName.any { official -> official.id != switch.id }
+        val stagedDuplicateExists = draftsBySameName.any { draft -> draft.id != switch.id }
+
+        listOfNotNull(
+            validateWithParams(stagedDuplicateExists || !officialDuplicateExists) {
+                "$VALIDATION_SWITCH.duplicate-name-official" to localizationParams("switch" to switch.name)
+            },
+            validateWithParams(!stagedDuplicateExists) {
+                "$VALIDATION_SWITCH.duplicate-name-draft" to localizationParams("switch" to switch.name)
+            },
+        )
+    } else {
+        emptyList()
+    }
+}
+
 fun validateSwitchLocationTrackLinkStructure(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
@@ -626,7 +648,7 @@ fun validateAddressPoints(
         PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()),
     )
 } catch (e: ClientException) {
-    listOf(PublishValidationError(ERROR, e.localizedMessageKey))
+    listOf(PublishValidationError(ERROR, e.localizationKey))
 }
 
 fun validateAddressPoints(
@@ -775,8 +797,8 @@ private fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boole
     else if (address1.kmNumber != address2.kmNumber) true
     else (address2.meters - address1.meters).toDouble() in 0.0..MAX_LAYOUT_METER_LENGTH
 
-private fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
-    validateWithParams(valid, type) { error() to LocalizationParams.empty() }
+fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
+    validateWithParams(valid, type) { error() to LocalizationParams.empty }
 
 private fun validateWithParams(
     valid: Boolean,

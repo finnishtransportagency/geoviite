@@ -39,6 +39,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { LinkingState, LinkingType } from 'linking/linking-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -49,11 +50,11 @@ export type ToolbarParams = {
     publishType: PublishType;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
-    disableNewMenu: boolean;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
+    linkingState: LinkingState | undefined;
 };
 
 type LocationTrackItemValue = {
@@ -137,20 +138,25 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     publishType,
     changeTimes,
     onStopLinking,
-    disableNewMenu,
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayers,
     splittingState,
+    linkingState,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
-    const [showAddMenu, setShowAddMenu] = React.useState(false);
+    const [showNewAssetMenu, setShowNewAssetMenu] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
     const menuRef = React.useRef(null);
+
+    const disableNewAssetMenu =
+        linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+        linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
+        !!splittingState;
 
     enum NewMenuItems {
         'trackNumber' = 1,
@@ -246,12 +252,12 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 return exhaustiveMatchingGuard(dialog);
         }
 
-        setShowAddMenu(false);
+        setShowNewAssetMenu(false);
     }
 
     function moveToOfficialPublishType() {
         onPublishTypeChange('OFFICIAL');
-        setShowAddMenu(false);
+        setShowNewAssetMenu(false);
     }
 
     function openPreviewAndStopLinking() {
@@ -263,6 +269,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
     const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
+
+    const modeNavigationButtonsDisabledReason = () => {
+        if (splittingState) {
+            return t('tool-bar.splitting-in-progress');
+        } else if (linkingState?.state === 'allSet' || linkingState?.state === 'setup') {
+            return t('tool-bar.linking-in-progress');
+        } else {
+            return undefined;
+        }
+    };
 
     return (
         <div className={`tool-bar tool-bar--${publishType.toLowerCase()}`}>
@@ -289,8 +305,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             title={t('tool-bar.new')}
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
-                            disabled={publishType !== 'DRAFT' || disableNewMenu}
-                            onClick={() => setShowAddMenu(!showAddMenu)}
+                            disabled={publishType !== 'DRAFT' || disableNewAssetMenu}
+                            onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
                         />
                     </WriteAccessRequired>
                 </div>
@@ -314,17 +330,25 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {publishType === 'DRAFT' && (
                     <React.Fragment>
                         <Button
-                            disabled={!!splittingState}
+                            disabled={
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
                             variant={ButtonVariant.SECONDARY}
-                            title={t('tool-bar.splitting-in-progress')}
+                            title={modeNavigationButtonsDisabledReason()}
                             onClick={() => moveToOfficialPublishType()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
                         <Button
-                            disabled={!!splittingState}
+                            disabled={
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
                             icon={Icons.VectorRight}
                             variant={ButtonVariant.PRIMARY}
-                            title={t('tool-bar.splitting-in-progress')}
+                            title={modeNavigationButtonsDisabledReason()}
                             qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
                             {t('tool-bar.preview-mode.enable')}
@@ -333,12 +357,12 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 )}
             </div>
 
-            {showAddMenu && (
+            {showNewAssetMenu && (
                 <Menu
                     positionRef={menuRef}
                     items={newMenuItems}
                     onSelect={(item) => item && handleNewMenuItemChange(item)}
-                    onClickOutside={() => setShowAddMenu(false)}
+                    onClickOutside={() => setShowNewAssetMenu(false)}
                 />
             )}
 

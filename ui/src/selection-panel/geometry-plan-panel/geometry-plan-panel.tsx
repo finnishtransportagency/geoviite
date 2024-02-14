@@ -58,6 +58,7 @@ type GeometryPlanProps = {
     planLayout?: GeometryPlanLayout;
     linkStatus?: GeometryPlanLinkStatus;
     planBeingLoaded: boolean;
+    disabled: boolean;
 };
 
 type Visibilities = {
@@ -88,6 +89,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     planLayout,
     linkStatus,
     planBeingLoaded,
+    disabled,
 }: GeometryPlanProps) => {
     const { t } = useTranslation();
     const openPlanLayout = openPlans.find((p) => p.id === planHeader.id);
@@ -206,12 +208,15 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 header={planHeader.project.name}
                 subheader={subHeader}
                 onToggle={onPlanToggle}
-                open={isPlanOpen || openingAccordion}
+                open={!disabled && (isPlanOpen || openingAccordion)}
                 onVisibilityToggle={onPlanVisibilityToggle}
                 visibility={visibilities.planHeader}
                 onHeaderClick={() => onPlanHeaderSelection(planHeader)}
                 headerSelected={selectedItems.geometryPlans?.some((id) => id === planHeader.id)}
-                fetchingContent={openingAccordion || planBeingLoaded}>
+                fetchingContent={openingAccordion || planBeingLoaded}
+                eyeHidden={disabled}
+                disabled={disabled}
+                className={disabled ? styles['geometry-plan-panel--disabled'] : ''}>
                 {planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
                         <Accordion
@@ -341,7 +346,6 @@ function createKmPostRow(
                 onClick={() => onKmPostSelect(planKmPost, kmPostStatus)}>
                 <KmPostBadge kmPost={planKmPost} status={kmPostStatus} />
             </span>
-
             <span
                 className={createClassName(
                     styles['geometry-plan-panel__kmpost-visibility'],
@@ -395,7 +399,6 @@ function createAlignmentRow(
                 onClick={() => onAlignmentSelect(alignment.header, alignmentStatus)}>
                 <LocationTrackBadge locationTrack={alignment.header} status={alignmentStatus} />
             </span>
-
             <span
                 className={createClassName(
                     styles['geometry-plan-panel__alignment-visibility'],
@@ -451,7 +454,6 @@ function createSwitchRow(
                 onClick={() => onSwitchSelect(planSwitch, switchStatus)}>
                 <SwitchBadge switchItem={planSwitch} status={switchStatus} />
             </span>
-
             <span
                 className={createClassName(
                     styles['geometry-plan-panel__switch-visibility'],

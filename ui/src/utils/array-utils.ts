@@ -153,13 +153,10 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce(
-        (acc, item) => {
-            (acc[getKey(item)] ||= []).push(item);
-            return acc;
-        },
-        {} as Record<K, T[]>,
-    );
+    return array.reduce((acc, item) => {
+        (acc[getKey(item)] ||= []).push(item);
+        return acc;
+    }, {} as Record<K, T[]>);
 }
 
 /**
@@ -274,3 +271,6 @@ export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B
     }
     return -1;
 }
+
+export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>
+    objs.find((obj) => obj.id == id);

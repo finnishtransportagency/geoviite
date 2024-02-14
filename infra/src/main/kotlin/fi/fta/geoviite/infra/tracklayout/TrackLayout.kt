@@ -41,7 +41,17 @@ enum class LayoutStateCategory {
 
 enum class TopologicalConnectivityType {
     NONE, START, END, START_AND_END;
+
+    fun isStartConnected() = this == START || this == START_AND_END
+
+    fun isEndConnected() = this == END || this == START_AND_END
 }
+
+fun topologicalConnectivityTypeOf(startConnected: Boolean, endConnected: Boolean): TopologicalConnectivityType =
+    if (startConnected && endConnected) TopologicalConnectivityType.START_AND_END
+    else if (startConnected) TopologicalConnectivityType.START
+    else if (endConnected) TopologicalConnectivityType.END
+    else TopologicalConnectivityType.NONE
 
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
@@ -132,6 +142,7 @@ data class LocationTrackInfoboxExtras(
     val duplicates: List<LocationTrackDuplicate>,
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
+    val partOfUnfinishedSplit: Boolean?,
 )
 
 data class SwitchValidationWithSuggestedSwitch(

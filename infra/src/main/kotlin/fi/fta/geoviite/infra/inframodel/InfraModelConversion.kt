@@ -104,7 +104,7 @@ fun toGvtPlan(
             manufacturer = MetaDataName(application.manufacturer),
             version = MetaDataName(application.version),
         ),
-        author = author.company?.let(::tryParseMetaDataName)?.let(::Author),
+        author = author.company?.let(::tryParseCompanyName)?.let(::Author),
         planTime = author.timeStamp?.let(::parseTime),
         units = units,
         trackNumberId = layoutTrackNumberId,
@@ -189,6 +189,7 @@ fun toGvtAlignment(
         name = tryParseAlignmentName(alignment.name) ?: throw InputValidationException(
             message = "Invalid alignment name: ${formatForException(alignment.name)}",
             type = AlignmentName::class,
+            value = alignment.name,
         ),
         description = alignment.desc?.let(::tryParseFreeText),
         oidPart = alignment.oid?.let(::tryParseFreeText),
@@ -338,14 +339,15 @@ fun toGvtVerticalIntersection(profileElement: InfraModelProfileElement): Vertica
             description = profileElement.desc?.let(::tryParsePlanElementName) ?: emptyName(),
             point = xmlPointToPoint("$name x/z", profileElement.point),
             radius = parseOptionalBigDecimal("$name curve radius", profileElement.radius)?.let { r ->
-                    if (r.compareTo(ZERO) == 0) null else r
-                },
+                if (r.compareTo(ZERO) == 0) null else r
+            },
             length = parseOptionalBigDecimal("$name curve length", profileElement.length),
         )
 
         else -> throw InputValidationException(
             message = "${formatForException(name)} has unknown type: ${profileElement::class.simpleName}",
             type = InfraModelProfileElement::class,
+            value = profileElement::class.simpleName ?: "null",
         )
     }
 }
@@ -359,8 +361,9 @@ fun toGvtCant(cant: InfraModelCant): GeometryCant {
             "center" -> CantRotationPoint.CENTER
             "" -> null
             else -> throw InputValidationException(
-                message = "XML Cant rotation point unrecognized: ${formatForException(cant.rotationPoint ?: "")}",
+                message = "XML Cant rotation point unrecognized: ${formatForException(cant.rotationPoint)}",
                 type = CantRotationPoint::class,
+                value = cant.rotationPoint,
             )
         },
         points = cant.stations.map { s -> toGvtCantPoint(s) })
@@ -378,6 +381,7 @@ fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
             else -> throw InputValidationException(
                 message = "Unknown XML Cant transition type: ${station.transitionType?.let(::formatForException)}",
                 type = CantTransitionType::class,
+                value = station.transitionType ?: "null",
             )
         }
     )
@@ -404,6 +408,7 @@ fun xmlPointToPoint(name: String, xmlPoint: String): Point {
     if (pieces.size != 2) throw InputValidationException(
         message = "Cannot parse ${formatForException(name)} from string: ${formatForException(xmlPoint)}",
         type = Point::class,
+        value = xmlPoint,
     )
     return parsePoint(name, pieces[0], pieces[1])
 }
@@ -414,6 +419,7 @@ fun xmlCoordinateToPoint(name: String, xmlCoordinate: String): Point {
     if (pieces.size !in 2..3) throw InputValidationException(
         message = "Cannot parse ${formatForException(name)} from string: ${formatForException(xmlCoordinate)}",
         type = Point::class,
+        value = xmlCoordinate,
     )
     // Geodetic coordinates: Northing = Latitude = Y, Easting = Longitude = X
     return parsePoint(name, pieces[1], pieces[0])
@@ -424,6 +430,7 @@ fun switchTypeHand(switchHand: String): SwitchHand {
         ?: throw InputValidationException(
             message = "Can't recognize switch hand type from value: ${formatForException(switchHand)}",
             type = SwitchHand::class,
+            value = switchHand,
         )
 }
 
@@ -486,6 +493,7 @@ fun collectGeometrySwitches(
                 name = tryParseSwitchName(switchName.trim()) ?: throw InputValidationException(
                     message = "Could not parse name for switch: name=${formatForException(switchName)}",
                     type = SwitchName::class,
+                    value = switchName,
                 ),
                 state = combineSwitchState(xmlSwitches.mapNotNull(TempSwitch::state)),
                 joints = deduplicatedJoints,
@@ -612,7 +620,7 @@ fun tryParseKmNumber(text: String): KmNumber? = if (text == "AKM" || text == "AP
     null
 }
 
-fun tryParseMetaDataName(text: String): MetaDataName? = tryParseText(text, ::MetaDataName)
+fun tryParseCompanyName(text: String): CompanyName? = tryParseText(text, ::CompanyName)
 fun tryParseAlignmentName(text: String): AlignmentName? = tryParseText(text, ::AlignmentName)
 fun tryParseSwitchName(text: String): SwitchName? = tryParseText(text, ::SwitchName)
 fun tryParsePlanElementName(text: String): PlanElementName? = tryParseText(text, ::PlanElementName)

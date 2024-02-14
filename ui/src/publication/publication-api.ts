@@ -15,6 +15,7 @@ import {
     PublishRequest,
     PublishRequestIds,
     PublishResult,
+    SplitInPublication,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import i18next from 'i18next';
@@ -44,8 +45,13 @@ export const getLatestPublications = (count: number) => {
         count,
     });
 
-    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`).then(
+        (page) => page.items,
+    );
 };
+
+export const getPublication = (id: PublicationId) =>
+    getNonNull<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
 export const getPublicationAsTableItems = (id: PublicationId) =>
     getNonNull<PublicationTableItem[]>(
@@ -102,3 +108,8 @@ export const getRevertRequestDependencies = (request: PublishRequestIds) =>
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );
+
+export const getSplitDetails = (id: string) =>
+    getNonNull<SplitInPublication>(`${PUBLICATION_URL}/${id}/split-details`);
+
+export const splitDetailsCsvUri = (id: string) => `${PUBLICATION_URL}/${id}/split-details/csv`;

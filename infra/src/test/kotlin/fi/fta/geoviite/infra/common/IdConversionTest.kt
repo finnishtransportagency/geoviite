@@ -73,7 +73,7 @@ class IdConversionTest @Autowired constructor(
     fun getWithUnparseableIdInPathIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/id-test-path/asdf", HttpStatus.BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithIdPath' parameter 0",
+            "Argument type mismatch: id (type DomainId) method 'requestWithIdPath' parameter 0",
             "Conversion failed for value \"asdf\": [String] -> [DomainId]",
         )
     }
@@ -82,7 +82,7 @@ class IdConversionTest @Autowired constructor(
     fun getWithUnparseableOidInPathIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/oid-test-path/123.asdf", HttpStatus.BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithOidPath' parameter 0",
+            "Argument type mismatch: id (type Oid) method 'requestWithOidPath' parameter 0",
             "Conversion failed for value \"123.asdf\": [String] -> [Oid]",
         )
     }
@@ -91,7 +91,7 @@ class IdConversionTest @Autowired constructor(
     fun getWithUnparseableSridInPathIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/srid-test-path/123asdf", HttpStatus.BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithSridPath' parameter 0",
+            "Argument type mismatch: id (type Srid) method 'requestWithSridPath' parameter 0",
             "Conversion failed for value \"123asdf\": [String] -> [Srid]",
         )
     }
@@ -140,7 +140,7 @@ class IdConversionTest @Autowired constructor(
     fun getWithUnparseableIdInArgumentIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/id-test-arg?id=asdf", HttpStatus.BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithIdArgument' parameter 0",
+            "Argument type mismatch: id (type DomainId) method 'requestWithIdArgument' parameter 0",
             "Conversion failed for value \"asdf\": [String] -> [DomainId]",
         )
     }
@@ -149,7 +149,7 @@ class IdConversionTest @Autowired constructor(
     fun getWithUnparseableOidInArgumentIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/oid-test-arg?id=234.asdf.567", HttpStatus.BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithOidArgument' parameter 0",
+            "Argument type mismatch: id (type Oid) method 'requestWithOidArgument' parameter 0",
             "Conversion failed for value \"234.asdf.567\": [String] -> [Oid]",
         )
     }
@@ -158,7 +158,7 @@ class IdConversionTest @Autowired constructor(
     fun getWithUnparseableSrdInArgumentIs400() {
         testApi.assertErrorResult(
             testApi.doGet("/srid-test-arg?id=234asdf", HttpStatus.BAD_REQUEST),
-            "Argument type mismatch: method 'requestWithSridArgument' parameter 0",
+            "Argument type mismatch: id (type Srid) method 'requestWithSridArgument' parameter 0",
             "Conversion failed for value \"234asdf\": [String] -> [Srid]",
         )
     }
@@ -237,7 +237,7 @@ class IdConversionTest @Autowired constructor(
             testApi.doPostWithString("/srid-test-body", "{\"id\":\"1a\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/Srid;",
-            "Invalid string prefix: prefix=EPSG: value=\"1a\"",
+            "Input validation failed: Invalid string prefix: prefix=EPSG: value=\"1a\"",
         )
     }
 

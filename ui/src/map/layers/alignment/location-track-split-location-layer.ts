@@ -51,7 +51,7 @@ export const createLocationTrackSplitLocationLayer = (
             if (layerId !== newestLayerId) return;
 
             const firstAndLast: SwitchIdAndLocation[] = [
-                { location: splittingState.initialSplit.location, switchId: undefined },
+                { location: splittingState.firstSplit.location, switchId: undefined },
                 { location: splittingState.endLocation, switchId: undefined },
             ];
             const splits: SwitchIdAndLocation[] = splittingState.splits.map((split) => ({

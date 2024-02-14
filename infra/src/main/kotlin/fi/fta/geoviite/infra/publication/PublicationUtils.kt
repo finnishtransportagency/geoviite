@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -9,9 +11,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -105,27 +105,27 @@ private fun formatInstant(time: Instant, timeZone: ZoneId) =
 private fun formatOperation(translation: Translation, operation: Operation) = when (operation) {
     Operation.CREATE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "CREATE"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.MODIFY -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "MODIFY"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.DELETE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "DELETE"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.RESTORE -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "RESTORE"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 
     Operation.CALCULATED -> translation.t(
         enumTranslationKey(LocalizationKey("publish-operation"), "CALCULATED"),
-        LocalizationParams.empty(),
+        LocalizationParams.empty,
     )
 }
 
@@ -215,12 +215,17 @@ fun getLengthChangedRemarkOrNull(translation: Translation, length1: Double?, len
         }
     }
 
-fun getPointMovedRemarkOrNull(translation: Translation, oldPoint: Point?, newPoint: Point?) = oldPoint?.let { p1 ->
+fun getPointMovedRemarkOrNull(
+    translation: Translation,
+    oldPoint: Point?,
+    newPoint: Point?,
+    translationKey: String = "moved-x-meters",
+) = oldPoint?.let { p1 ->
     newPoint?.let { p2 ->
         if (!pointsAreSame(p1, p2)) {
             val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
             if (distance > DISTANCE_CHANGE_THRESHOLD) publicationChangeRemark(
-                translation, "moved-x-meters", formatDistance(distance)
+                translation, translationKey, formatDistance(distance)
             )
             else null
         } else null
@@ -357,13 +362,13 @@ fun getKmNumbersChangedRemarkOrNull(
         if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
         formatChangedKmNumbers(changedKmNumbers.toList())
     )
-} else summaries.joinToString(".") { summary ->
+} else summaries.joinToString(". ") { summary ->
     translation.t(
         "publication-details-table.remark.geometry-changed", LocalizationParams(
             mapOf(
                 "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
                 "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
-                "addressRange" to "${summary.startAddress}-${summary.endAddress}"
+                "addressRange" to "${summary.startAddress.round(0)}-${summary.endAddress.round(0)}"
             )
         )
     )
@@ -378,6 +383,8 @@ private data class ComparisonPoints(
     val roughDistance = hypot(oldPoint.x - newPoint.x, oldPoint.y - newPoint.y)
     fun distance() = calculateDistance(LAYOUT_SRID, oldPoint, newPoint)
 }
+
+const val MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES = 10.0
 
 fun summarizeAlignmentChanges(
     geocodingContext: GeocodingContext,
@@ -395,20 +402,28 @@ fun summarizeAlignmentChanges(
                 }?.let { comparison -> if (comparison.roughDistance < changeThreshold) null else comparison }
             }
         }
+        val changedPointsRangesFirstIndices =
+            changedPoints
+                .zipWithNext { a, b -> b.mOnReferenceLine - a.mOnReferenceLine > MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES }
+                .mapIndexedNotNull { index, jump -> (index + 1).takeIf { jump } }
+        val changedPointsRanges =
+            (listOf(0) + changedPointsRangesFirstIndices + changedPoints.size).zipWithNext { a, b -> a to b}
 
-        if (changedPoints.isEmpty()) null else {
-            val startAddress = geocodingContext.getAddress(oldPoints[changedPoints.first().oldPointIndex])?.first
-            val endAddress = geocodingContext.getAddress(oldPoints[changedPoints.last().oldPointIndex])?.first
+        if (changedPoints.isEmpty()) null else changedPointsRanges.mapNotNull { (from, to) ->
+            val start = changedPoints[from]
+            val end = changedPoints[to - 1]
+            val startAddress = geocodingContext.getAddress(oldPoints[start.oldPointIndex])?.first
+            val endAddress = geocodingContext.getAddress(oldPoints[end.oldPointIndex])?.first
 
             if (startAddress == null || endAddress == null) null
             else GeometryChangeSummary(
-                changedPoints.last().mOnReferenceLine - changedPoints.first().mOnReferenceLine,
-                changedPoints.maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
+                end.mOnReferenceLine - start.mOnReferenceLine,
+                changedPoints.subList(from, to).maxByOrNull { it.roughDistance }?.distance() ?: 0.0,
                 startAddress,
                 endAddress,
             )
         }
-    }
+    }.flatten()
 }
 
 private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment): List<List<LayoutSegment>> {
@@ -422,5 +437,64 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
     }
 }
 
-fun publicationChangeRemark(translation: Translation, key: String, value: String?) =
+fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
     translation.t("publication-details-table.remark.$key", localizationParams("value" to value))
+
+fun addOperationClarificationsToPublicationTableItem(
+    translation: Translation,
+    publicationTableItem: PublicationTableItem,
+): PublicationTableItem {
+    return when (publicationTableItem.operation) {
+        Operation.CALCULATED -> publicationTableItem.copy(
+            propChanges = publicationTableItem.propChanges.map { publicationChange ->
+                addChangeClarification(
+                    publicationChange,
+                    translation.t("publication-table.calculated-change"),
+                    translation.t("publication-table.calculated-change-lowercase")
+                )
+            }
+        )
+
+        else -> publicationTableItem
+    }
+}
+
+fun addChangeClarification(
+    publicationChange: PublicationChange<*>,
+    clarification: String,
+    clarificationInSentenceBody: String? = null,
+): PublicationChange<*> {
+    return when (publicationChange.remark) {
+        null -> publicationChange.copy(
+            remark = clarification
+        )
+
+        else -> {
+            val displayedClarification = clarificationInSentenceBody ?: clarification
+
+            publicationChange.copy(
+                remark = "${publicationChange.remark}, $displayedClarification"
+            )
+        }
+    }
+}
+
+fun findJointPoint(
+    locationTrack: LocationTrack,
+    alignment: LayoutAlignment,
+    switchId: IntId<TrackLayoutSwitch>,
+    jointNumber: JointNumber,
+): SegmentPoint? {
+    val asTopoSwitch = TopologyLocationTrackSwitch(switchId, jointNumber)
+    return if (locationTrack.topologyStartSwitch == asTopoSwitch) alignment.firstSegmentStart
+    else if (locationTrack.topologyEndSwitch == asTopoSwitch) alignment.lastSegmentEnd
+    else {
+        val segment = alignment.segments.find { segment ->
+            segment.switchId == switchId && (segment.startJointNumber == jointNumber || segment.endJointNumber == jointNumber)
+        }
+        if (segment == null) null else {
+            if (segment.startJointNumber == jointNumber) segment.segmentStart
+            else segment.segmentEnd
+        }
+    }
+}

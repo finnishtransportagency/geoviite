@@ -1,7 +1,8 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
 import { Privilege } from 'user/user-model';
+import { PURGE } from 'redux-persist';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -15,6 +16,7 @@ export type ChangeTimes = {
     publication: TimeStamp;
     ratkoPush: TimeStamp;
     pvDocument: TimeStamp;
+    split: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -30,6 +32,7 @@ export const initialChangeTimes: ChangeTimes = {
     publication: initialChangeTime,
     ratkoPush: initialChangeTime,
     pvDocument: initialChangeTime,
+    split: initialChangeTime,
 };
 
 export type CommonState = {
@@ -51,6 +54,11 @@ const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time
 const commonSlice = createSlice({
     name: 'common',
     initialState: initialCommonState,
+    extraReducers: (builder: ActionReducerMapBuilder<CommonState>) => {
+        builder.addCase(PURGE, (_state, _action) => {
+            return initialCommonState;
+        });
+    },
     reducers: {
         setVersion: (state: CommonState, { payload: version }: PayloadAction<string>): void => {
             state.version = version;
@@ -122,6 +130,9 @@ const commonSlice = createSlice({
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.ratkoPush) < toDate(payload)) changeTimes.ratkoPush = payload;
+        },
+        setSplitChangeTime: function ({ changeTimes }, { payload }) {
+            updateChangeTime(changeTimes, 'split', payload);
         },
         setUserPrivileges: (
             state: CommonState,

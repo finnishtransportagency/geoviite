@@ -8,6 +8,7 @@ import editSvg from './glyphs/action/edit.svg';
 import searchSvg from './glyphs/action/search.svg';
 import switchDirectionSvg from './glyphs/action/switch-direction.svg';
 import setDateSvg from './glyphs/action/set-date.svg';
+import setTimeSvg from './glyphs/action/set-time.svg';
 import ascending from './glyphs/action/ascending.svg';
 import descending from './glyphs/action/descending.svg';
 import targetSvg from './glyphs/action/target.svg';
@@ -20,6 +21,7 @@ import navigationDownSvg from './glyphs/navigation/down.svg';
 import statusErrorSvg from './glyphs/status/error.svg';
 import kmPostSvg from './glyphs/misc/kmpost.svg';
 import kmPostSelectedSvg from './glyphs/misc/kmpost-selected.svg';
+import kmPostDisabledSvg from './glyphs/misc/kmpost-disabled.svg';
 import switchSvg from './glyphs/misc/switch.svg';
 import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
@@ -101,6 +103,7 @@ const iconNameToSvgMap = {
     Descending: descending,
     Redo: redoSvg,
     SetDate: setDateSvg,
+    SetTime: setTimeSvg,
     Measure: measureSvg,
     Select: selectSvg,
     Target: targetSvg,
@@ -115,6 +118,7 @@ const iconNameToSvgMapStaticColor = {
     // Misc
     KmPost: kmPostSvg,
     KmPostSelected: kmPostSelectedSvg,
+    KmPostDisabled: kmPostDisabledSvg,
 };
 
 export enum IconSize {

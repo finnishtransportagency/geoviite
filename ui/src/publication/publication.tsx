@@ -20,20 +20,18 @@ import { useAppNavigate } from 'common/navigate';
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
     setSelectedPublicationId: (publicationId: PublicationId | undefined) => void;
-    anyFailed: boolean;
     changeTime: TimeStamp;
 };
 
 const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     publication,
     setSelectedPublicationId,
-    anyFailed,
     changeTime,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
 
-    const waitingAfterFail = !publication.ratkoPushStatus && anyFailed;
+    const unpublishedToRatko = !publication.ratkoPushStatus;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
@@ -79,7 +77,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                 </div>
                 <PublicationTable isLoading={isLoading} items={publicationItems} />
             </div>
-            {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (
+            {(ratkoPushFailed(publication.ratkoPushStatus) || unpublishedToRatko) && (
                 <footer className={styles['publication-details__footer']}>
                     {ratkoPushFailed(publication.ratkoPushStatus) && (
                         <div className={styles['publication-details__failure-notification']}>
@@ -100,7 +98,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                             </span>
                         </div>
                     )}
-                    {waitingAfterFail && (
+                    {unpublishedToRatko && (
                         <div className={styles['publication-details__failure-notification']}>
                             <span
                                 className={

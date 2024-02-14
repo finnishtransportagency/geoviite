@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
+import fi.fta.geoviite.infra.error.HasLocalizedMessage
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -15,11 +15,6 @@ data class ValidationResponse(
     val geometryPlan: GeometryPlan?,
     val planLayout: GeometryPlanLayout?,
     val source: PlanSource,
-)
-
-data class InsertResponse(
-    val message: String,
-    val planId: IntId<GeometryPlan>,
 )
 
 data class ExtraInfoParameters(
@@ -41,18 +36,19 @@ data class OverrideParameters(
     val source: PlanSource?,
 )
 
-fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse =
-    try {
-        op()
-    } catch (e: Exception) {
-        logger.warn("Failed to parse InfraModel", e)
-        ValidationResponse(
-            validationErrors = listOf(ParsingError(
-                if (e is HasLocalizeMessageKey) e.localizedMessageKey
+fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse = try {
+    op()
+} catch (e: Exception) {
+    logger.warn("Failed to parse InfraModel", e)
+    ValidationResponse(
+        validationErrors = listOf(
+            ParsingError(
+                if (e is HasLocalizedMessage) e.localizationKey
                 else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)
-            )),
-            geometryPlan = null,
-            planLayout = null,
-            source = source ?: PlanSource.GEOMETRIAPALVELU
-        )
-    }
+            ),
+        ),
+        geometryPlan = null,
+        planLayout = null,
+        source = source ?: PlanSource.GEOMETRIAPALVELU,
+    )
+}

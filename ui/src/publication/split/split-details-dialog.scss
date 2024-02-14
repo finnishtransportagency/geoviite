@@ -1,0 +1,13 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.split-details-dialog__table {
+    height: 250px;
+    overflow: auto;
+    margin-bottom: 20px;
+
+    &-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+}

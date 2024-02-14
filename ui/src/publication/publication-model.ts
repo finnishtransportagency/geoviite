@@ -11,6 +11,7 @@ import {
 } from 'common/common-model';
 import {
     LayoutKmPostId,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -36,12 +37,30 @@ export enum DraftChangeType {
 
 export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'CALCULATED';
 
+export type PublicationGroupId = string;
+export type PublicationGroup = {
+    id: PublicationGroupId;
+};
+
+export enum PublicationStage {
+    UNSTAGED = 'UNSTAGED',
+    STAGED = 'STAGED',
+}
+
 export type PublicationId = string;
+
+export type PublishCandidateId =
+    | LayoutTrackNumberId
+    | ReferenceLineId
+    | LocationTrackId
+    | LayoutSwitchId
+    | LayoutKmPostId;
 
 export type PublishCandidate = {
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;
+    publicationGroup?: PublicationGroup;
     errors: PublishValidationError[];
 };
 
@@ -51,6 +70,10 @@ export type WithBoundingBox = {
 
 export type WithLocation = {
     location?: Point;
+};
+
+export type WithId = {
+    id: PublishCandidateId;
 };
 
 export type TrackNumberPublishCandidate = PublishCandidate &
@@ -109,6 +132,24 @@ export type ValidatedPublishCandidates = {
     allChangesValidated: PublishCandidates;
 };
 
+export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
+
+export type SplitHeader = {
+    id: string;
+    locationTrackId: LocationTrackId;
+    bulkTransferState: BulkTransferState;
+    publicationId?: PublicationId;
+};
+
+export type SplitTarget = {
+    locationTrackId: LocationTrackId;
+};
+
+export type Split = SplitHeader & {
+    targetLocationTracks: SplitTarget[];
+    relinkedSwitches: LayoutSwitchId[];
+};
+
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
@@ -122,6 +163,7 @@ export type PublicationDetails = {
     ratkoPushTime?: TimeStamp;
     calculatedChanges: PublishedCalculatedChanges;
     message?: string;
+    split?: SplitHeader;
 };
 
 export type PublishedTrackNumber = {
@@ -284,4 +326,20 @@ export type PublicationTableItem = {
 export type PublicationSearch = {
     startDate: TimeStamp | undefined;
     endDate: TimeStamp | undefined;
+};
+
+export type SplitInPublication = {
+    id: PublicationId;
+    splitId: string;
+    locationTrack: LayoutLocationTrack;
+    targetLocationTracks: SplitTargetInPublication[];
+};
+
+export type SplitTargetInPublication = {
+    id: LocationTrackId;
+    name: string;
+    oid: Oid;
+    startAddress: TrackMeter;
+    endAddress: TrackMeter;
+    newlyCreated: boolean;
 };

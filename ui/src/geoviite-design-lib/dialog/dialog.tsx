@@ -12,6 +12,11 @@ export enum DialogVariant {
 export enum DialogWidth {
     NORMAL = 'dialog__popup--normal',
     TWO_COLUMNS = 'dialog__popup--two-columns',
+    THREE_COLUMNS = 'dialog__popup--three-columns',
+}
+
+export enum DialogHeight {
+    RESTRICTED_TO_HALF_OF_VIEWPORT = 'dialog__popup--height-restricted-to-half',
 }
 
 export type DialogProps = {
@@ -22,6 +27,7 @@ export type DialogProps = {
     onClose?: () => void;
     variant?: DialogVariant;
     width?: DialogWidth;
+    height?: DialogHeight;
     allowClose?: boolean;
     className?: string;
 } & Pick<React.HTMLProps<HTMLElement>, 'style'>;
@@ -72,6 +78,7 @@ export const Dialog: React.FC<DialogProps> = ({
                 className={createClassName(
                     styles['dialog__popup'],
                     styles[width],
+                    props.height && styles[props.height],
                     props.className,
                     props.variant && styles[props.variant],
                     dialogDragParams && styles['dialog__popup--moving'],

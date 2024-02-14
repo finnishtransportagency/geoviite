@@ -1,7 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocationTrack } from 'track-layout/track-layout-react-utils';
-import { getChangeTimes } from 'common/change-time-api';
 import { ValidationError } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -12,11 +10,15 @@ import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import {
     AddressPoint,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { InitialSplit, Split } from 'tool-panel/location-track/split-store';
+import {
+    FirstSplitTargetCandidate,
+    SplitTargetCandidate,
+} from 'tool-panel/location-track/split-store';
 import { MAP_POINT_NEAR_BBOX_OFFSET } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 
@@ -26,17 +28,19 @@ type EndpointProps = {
 };
 
 type SplitProps = EndpointProps & {
-    split: Split | InitialSplit;
+    split: SplitTargetCandidate | FirstSplitTargetCandidate;
     onRemove?: (switchId: LayoutSwitchId) => void;
-    duplicateLocationTracks?: LocationTrackDuplicate[];
-    updateSplit: (updateSplit: Split | InitialSplit) => void;
+    updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     duplicateOf: LocationTrackId | undefined;
-    nameErrors: ValidationError<Split>[];
-    descriptionErrors: ValidationError<Split>[];
-    switchErrors: ValidationError<Split>[];
+    nameErrors: ValidationError<SplitTargetCandidate>[];
+    descriptionErrors: ValidationError<SplitTargetCandidate>[];
+    switchErrors: ValidationError<SplitTargetCandidate>[];
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
+    allDuplicateLocationTracks: LocationTrackDuplicate[];
+    duplicateLocationTrack: LayoutLocationTrack | undefined;
+    underlyingAssetExists: boolean;
 };
 
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
@@ -72,14 +76,16 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     nameErrors,
     descriptionErrors,
     switchErrors,
-    duplicateLocationTracks = [],
     editingDisabled,
     deletingDisabled,
     nameRef,
     descriptionBaseRef,
+    allDuplicateLocationTracks,
+    duplicateLocationTrack,
+    underlyingAssetExists,
 }) => {
     const { t } = useTranslation();
-    const switchId = 'switchId' in split ? split.switchId : undefined;
+    const switchId = split.type === 'SPLIT' ? split.switchId : undefined;
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
@@ -95,12 +101,6 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         }
     });
 
-    const duplicateLocationTrack = useLocationTrack(
-        duplicateOf,
-        'DRAFT',
-        getChangeTimes().layoutLocationTrack,
-    );
-
     const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;
 
@@ -109,13 +109,15 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             <div
                 className={createClassName(
                     styles['location-track-infobox__split-item-line'],
-                    editingDisabled && styles['location-track-infobox__split-item-line--disabled'],
+                    !underlyingAssetExists &&
+                        styles['location-track-infobox__split-item-line--disabled'],
                 )}
             />
             <div
                 className={createClassName(
                     styles['location-track-infobox__split-item-ball'],
-                    editingDisabled && styles['location-track-infobox__split-item-ball--disabled'],
+                    !underlyingAssetExists &&
+                        styles['location-track-infobox__split-item-ball--disabled'],
                 )}
             />
             <div className={styles['location-track-infobox__split-fields-container']}>
@@ -123,7 +125,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                     <div className={styles['location-track-infobox__split-row-with-close-button']}>
                         <InfoboxField
                             label={
-                                'switchId' in split
+                                split.type === 'SPLIT'
                                     ? t('tool-panel.location-track.splitting.split-address')
                                     : t('tool-panel.location-track.splitting.start-address')
                             }>
@@ -172,7 +174,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasError={nameErrorsVisible}
                             disabled={editingDisabled}
                             onChange={(e) => {
-                                const duplicateId = duplicateLocationTracks.find(
+                                const duplicateId = allDuplicateLocationTracks.find(
                                     (lt) => lt.name === e.target.value,
                                 )?.id;
                                 updateSplit({

@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
@@ -29,6 +29,7 @@ import {
 } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
 import { LocalizationParams } from 'i18n/config';
+import { PURGE } from 'redux-persist';
 
 export enum InfraModelViewType {
     UPLOAD,
@@ -88,6 +89,7 @@ export type ErrorType =
     | 'VALIDATION_ERROR'
     | 'OBSERVATION_MAJOR'
     | 'OBSERVATION_MINOR';
+
 export interface CustomValidationError extends LocalizationParams {
     localizationKey: LocalizationKey;
     errorType: ErrorType;
@@ -144,6 +146,11 @@ export const initialInfraModelState: InfraModelState = {
 const infraModelSlice = createSlice({
     name: 'infraModel',
     initialState: initialInfraModelState,
+    extraReducers: (builder: ActionReducerMapBuilder<InfraModelState>) => {
+        builder.addCase(PURGE, (_state, _action) => {
+            return initialInfraModelState;
+        });
+    },
     reducers: {
         onPlanValidated: (
             state: InfraModelState,
@@ -302,5 +309,6 @@ function validateParams(
 
     return errors;
 }
+
 export const infraModelReducer = infraModelSlice.reducer;
 export const infraModelActionCreators = infraModelSlice.actions;

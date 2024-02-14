@@ -15,14 +15,16 @@ Luonnos paikannuspohja on työtila jossa paikannuspohjaan voidaan tehdä muutoks
 olemassaolevien muokkauksia. Koska luonnos on oma kontekstinsa, mikään muutos siellä ei vaikuta viralliseen
 paikannuspohjaan suoraan.
 
-Luonnosmuutokset voidaan viedä viralliseen paikannuspohjaan julkaisu-toiminnon (Publication) kautta. Luonnostilassa on
-mahdollista olla tilapäistä / osittaista dataa koska sitä ollaan vasta luomassa, mutta sellaista ei voi olla
-virallisessa paikannuspohjassa. Tästä johtuen, julkaisuun sisältyy joukko validointeja (julkaisuvalidointi, publication
-validation), jonka avulla varmistetaan että julkaistavat tiedot muodostavat eheän kokonaisuuden.
+Jos luonnosmuutosta ei haluta viedä viralliseen paikannuspohjaan, se voidaan myös perua (Revert). Tämä tapahtuu
+yksinkertaisesti poistamalla luonnosolio, jolloin voimaan jää sen virallinen versio, jos sellaista on. Jos luonnos on
+uusi luonti, sen peruminen poistaa koko käsitteen, mikä tarkoittaa että myös siihen viittaavat käsitteet täytyy poistaa
+tai muuttaa niin että viittaus poistuu.
 
-Koska virallisessa paikannuspohjassa olevan käsitteen poisto tehdään vain tilamuutoksella, sekin on oliotasolla vain
-muokkaus. Luonnos kontekstista voidaan kuitenkin poistaa oikeasti sellaisia luonnoskäsitteitä, joita ole vielä julkaistu
-viralliseen paikannuspohjaan. Tätä sanotaan luonnosmuutoksen perumiseksi (Revert).
+Luonnosmuutokset voidaan viedä viralliseen paikannuspohjaan julkaisu-toiminnon (Publication) kautta. Luonnostilassa on
+mahdollista olla tilapäistä / osittaista dataa, koska sitä ollaan vasta luomassa, mutta sellaista ei voi olla
+virallisessa paikannuspohjassa. Tästä johtuen, julkaisuun sisältyy joukko validointeja (julkaisuvalidointi, publication
+validation), jonka avulla varmistetaan että julkaistavat tiedot muodostavat eheän kokonaisuuden. Tässä varmistetaan myös
+että virallisesta paikannustpohjasta ei voida viitata pelkästään luonnoksena olevaan käsitteeseen.
 
 ## Suunniteltu paikannupohja (Planned Layout)
 

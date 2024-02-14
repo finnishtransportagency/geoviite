@@ -10,7 +10,10 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
-import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
+import {
+    createGeometrySwitchFeatures,
+    findMatchingSwitches,
+} from 'map/layers/utils/switch-layer-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -19,6 +22,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapTile } from 'map/map-model';
 
 let newestLayerId = 0;
+
 export function createGeometrySwitchLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
@@ -69,25 +73,14 @@ export function createGeometrySwitchLayer(
             if (layerId !== newestLayerId) return;
 
             const features = planStatuses.flatMap(({ status, plan }) => {
-                const switchLinkedStatus = status
-                    ? new Map(
-                          status.switches
-                              .filter((s) => visibleSwitches.includes(s.id))
-                              .map((switchItem) => [switchItem.id, switchItem.isLinked]),
-                      )
-                    : undefined;
-
-                const isSwitchLinked = (switchItem: LayoutSwitch) =>
-                    (switchItem.sourceId && switchLinkedStatus?.get(switchItem.sourceId)) || false;
-
-                return createSwitchFeatures(
-                    plan.switches.filter((s) => s.sourceId && visibleSwitches.includes(s.sourceId)),
+                return createGeometrySwitchFeatures(
+                    status,
+                    visibleSwitches,
+                    plan,
                     isSelected,
                     isHighlighted,
-                    isSwitchLinked,
                     showLargeSymbols,
                     showLabels,
-                    plan.id,
                     switchStructures,
                 );
             });

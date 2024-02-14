@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -202,5 +203,23 @@ class PublicationController @Autowired constructor(
     fun getPublicationDetails(@PathVariable("id") id: IntId<Publication>): PublicationDetails {
         logger.apiCall("getPublicationDetails", "id" to id)
         return publicationService.getPublicationDetails(id)
+    }
+
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/{id}/split-details")
+    fun getSplitDetails(@PathVariable("id") id: IntId<Publication>): ResponseEntity<SplitInPublication> {
+        logger.apiCall("getLocationTrackDetails", "id" to id)
+        return publicationService.getSplitInPublication(id).let(::toResponse)
+    }
+
+    @PreAuthorize(AUTH_PUBLICATION_DOWNLOAD)
+    @GetMapping("/{id}/split-details/csv")
+    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>): ResponseEntity<ByteArray> {
+        logger.apiCall("getSplitDetailsAsCsv", "id" to id)
+        return publicationService
+            .getSplitInPublicationCsv(id)
+            .let { (csv, ltName) ->
+                getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv"))
+            }
     }
 }

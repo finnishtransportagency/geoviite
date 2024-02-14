@@ -224,12 +224,22 @@ fun <T> compareByDistanceNullsFirst(
     }
 }
 
+private fun <T> mapCopyOnWrite(originalList: List<T>, f: (v: T) -> T): List<T> {
+    var changed = false
+    val newList = originalList.map { entry ->
+        val newEntry = f(entry)
+        if (newEntry !== entry) changed = true
+        newEntry
+    }
+    return if (changed) newList else originalList
+}
+
 fun clearLinksToSwitch(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     layoutSwitchId: IntId<TrackLayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> {
-    val newSegments = alignment.segments.map { segment ->
+    val newSegments = mapCopyOnWrite(alignment.segments) { segment ->
         if (segment.switchId == layoutSwitchId) segment.withoutSwitch()
         else segment
     }
@@ -238,7 +248,7 @@ fun clearLinksToSwitch(
         topologyStartSwitch = locationTrack.topologyStartSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
         topologyEndSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
     )
-    return newLocationTrack to newAlignment
+    return newLocationTrack to (if (newSegments === alignment.segments) alignment else newAlignment)
 }
 
 private fun getTopologyPoints(
@@ -276,7 +286,7 @@ private fun structureMatchesType(structure: SwitchStructure, searchString: Strin
     structure.type.typeName.contains(t, ignoreCase = true)
 } ?: true
 
-private fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
+fun switchMatchesBbox(switch: TrackLayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
     (includeSwitchesWithNoJoints && switch.joints.isEmpty()) || (bbox?.let { bb ->
         (switch.joints.any { joint -> bb.contains(joint.location) })
     } ?: true)

@@ -53,9 +53,13 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
 private const val METERS_MAX_INTEGER_DIGITS = 4
 private const val METERS_MAX_DECIMAL_DIGITS = 6
 private fun limitScale(meters: BigDecimal) =
-    if (meters.scale() < 0) meters.setScale(0)
-    else if (meters.scale() > METERS_MAX_DECIMAL_DIGITS) meters.setScale(METERS_MAX_DECIMAL_DIGITS, HALF_UP)
-    else meters
+    if (meters.scale() < 0) {
+        meters.setScale(0)
+    } else if (meters.scale() > METERS_MAX_DECIMAL_DIGITS) {
+        meters.setScale(METERS_MAX_DECIMAL_DIGITS, HALF_UP)
+    } else {
+        meters
+    }
 
 private val maxMeter = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
 private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
@@ -84,6 +88,8 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
     override val kmNumber: KmNumber,
     override val meters: BigDecimal,
 ) : ITrackMeter {
+    val hasZeroMillimeters by lazy { meters == metersFloor() }
+
     private constructor(values: Pair<KmNumber, BigDecimal>) : this(values.first, values.second)
 
     @JsonCreator(mode = DELEGATING)

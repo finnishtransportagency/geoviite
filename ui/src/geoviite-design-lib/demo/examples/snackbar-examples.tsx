@@ -16,7 +16,7 @@ export const SnackbarExamples: React.FC = () => {
     };
 
     const errorSnackbar = () => {
-        Snackbar.error(header, body);
+        Snackbar.error(header);
     };
 
     return (

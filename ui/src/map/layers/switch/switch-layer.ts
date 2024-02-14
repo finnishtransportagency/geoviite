@@ -2,13 +2,21 @@ import { Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
 import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
-import { getSwitches, getSwitchesByTile } from 'track-layout/layout-switch-api';
+import { LayoutSwitchId } from 'track-layout/track-layout-model';
+import {
+    getSwitches,
+    getSwitchesByTile,
+    getSwitchesValidation,
+    getSwitchesValidationByTile,
+} from 'track-layout/layout-switch-api';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { createSwitchFeatures, findMatchingSwitches } from 'map/layers/utils/switch-layer-utils';
-import { PublishType } from 'common/common-model';
+import {
+    createLayoutSwitchFeatures,
+    findMatchingSwitches,
+} from 'map/layers/utils/switch-layer-utils';
+import { PublishType, TimeStamp } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
 import { filterUniqueById } from 'utils/array-utils';
@@ -17,9 +25,19 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 let shownSwitchesCompare: string;
 let newestLayerId = 0;
+
+const getTiledSwitchValidation = (
+    mapTiles: MapTile[],
+    publishType: PublishType,
+    switchChangeTime: TimeStamp,
+) =>
+    Promise.all(
+        mapTiles.map((tile) => getSwitchesValidationByTile(switchChangeTime, tile, publishType)),
+    ).then((results) => results.flat());
 
 export function createSwitchLayer(
     mapTiles: MapTile[],
@@ -51,6 +69,25 @@ export function createSwitchLayer(
         }
     };
 
+    const getSwitchValidation = () => {
+        if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
+            const switchIds =
+                splittingState?.allowedSwitches
+                    .map((sw) => sw.switchId)
+                    .concat(splittingState?.startAndEndSwitches) || [];
+
+            return getSwitchesValidation(publishType, switchIds);
+        } else if (resolution <= Limits.SWITCH_SHOW) {
+            return getTiledSwitchValidation(
+                mapTiles,
+                publishType,
+                getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.layoutLocationTrack),
+            ).then((tile) => tile.flat());
+        } else {
+            return getSwitchesValidation(publishType, selection.selectedItems.switches);
+        }
+    };
+
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
@@ -66,29 +103,15 @@ export function createSwitchLayer(
     let inFlight = true;
     const resolution = olView.getResolution() || 0;
 
-    Promise.all([getSwitchesFromApi(), getSwitchStructures()])
-        .then(([switches, switchStructures]) => {
+    Promise.all([getSwitchesFromApi(), getSwitchStructures(), getSwitchValidation()])
+        .then(([switches, switchStructures, validationResult]) => {
             if (layerId !== newestLayerId) return;
-
-            const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-            const showLabels = resolution <= Limits.SWITCH_LABELS;
-            const isSelected = (switchItem: LayoutSwitch) => {
-                return selection.selectedItems.switches.some((s) => s === switchItem.id);
-            };
-
-            const isHighlighted = (switchItem: LayoutSwitch) => {
-                return selection.highlightedItems.switches.some((s) => s === switchItem.id);
-            };
-
-            const features = createSwitchFeatures(
+            const features = createLayoutSwitchFeatures(
+                resolution,
+                selection,
                 switches,
-                isSelected,
-                isHighlighted,
-                () => false,
-                largeSymbols,
-                showLabels,
-                undefined,
                 switchStructures,
+                validationResult,
             );
 
             clearFeatures(vectorSource);

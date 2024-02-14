@@ -14,27 +14,19 @@ import {
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
 import { OnSelectFunction } from 'selection/selection-model';
-import { SelectedPublishChange } from 'track-layout/track-layout-slice';
-import { AssetId, PublishType } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
-    KmPostPublishCandidate,
-    LocationTrackPublishCandidate,
-    PublicationId,
-    PublishCandidate,
-    PublishCandidates,
+    PublicationGroup,
+    PublicationStage,
     PublishRequestIds,
-    ReferenceLinePublishCandidate,
-    SwitchPublishCandidate,
-    TrackNumberPublishCandidate,
 } from 'publication/publication-model';
-import PreviewTable, { PreviewSelectType, PreviewTableEntry } from 'preview/preview-table';
+import PreviewTable from 'preview/preview-table';
 import { updateAllChangeTimes } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
 import { ChangeTimes } from 'common/common-slice';
 import { debounceAsync } from 'utils/async-utils';
@@ -46,221 +38,72 @@ import {
     dropIdsFromPublishCandidates,
     intersectPublishRequestIds,
 } from 'publication/publication-utils';
-
-type Candidate = {
-    id: AssetId;
-};
-
-type PendingValidation = {
-    pendingValidation: boolean;
-};
-
-type PreviewCandidate = PublishCandidate & PendingValidation;
-
-export type PreviewCandidates = {
-    trackNumbers: (TrackNumberPublishCandidate & PendingValidation)[];
-    referenceLines: (ReferenceLinePublishCandidate & PendingValidation)[];
-    locationTracks: (LocationTrackPublishCandidate & PendingValidation)[];
-    switches: (SwitchPublishCandidate & PendingValidation)[];
-    kmPosts: (KmPostPublishCandidate & PendingValidation)[];
-};
-
-export type ChangesBeingReverted = {
-    requestedRevertChange: { type: PreviewSelectType; name: string; id: string };
-    changeIncludingDependencies: PublishRequestIds;
-};
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import {
+    RevertRequest,
+    RevertRequestSource,
+    RevertRequestType,
+} from 'preview/preview-view-revert-request';
+import {
+    getStagedChanges,
+    getUnstagedChanges,
+    idsByPublicationGroup,
+    previewCandidatesByUser,
+    previewChanges,
+    publishCandidateIds,
+} from 'preview/preview-view-filters';
+import {
+    countPublicationGroupAmounts,
+    countPublishCandidates,
+    emptyChanges,
+    nonPendingCandidate,
+    PreviewCandidates,
+    PublicationAssetChangeAmounts,
+} from 'preview/preview-view-data';
 
 export type PreviewProps = {
     changeTimes: ChangeTimes;
     selectedPublishCandidateIds: PublishRequestIds;
+    showOnlyOwnUnstagedChanges: boolean;
+    setShowOnlyOwnUnstagedChanges: (checked: boolean) => void;
     onSelect: OnSelectFunction;
     onPublish: () => void;
     onClosePreview: () => void;
-    onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
+    onPublishPreviewSelect: (selectedChanges: PublishRequestIds) => void;
     onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequestIds) => void;
     onShowOnMap: (bbox: BoundingBox) => void;
 };
 
-const publishCandidateIds = (candidates: PublishCandidates): PublishRequestIds => ({
-    trackNumbers: candidates.trackNumbers.map((tn) => tn.id),
-    locationTracks: candidates.locationTracks.map((lt) => lt.id),
-    referenceLines: candidates.referenceLines.map((rl) => rl.id),
-    switches: candidates.switches.map((s) => s.id),
-    kmPosts: candidates.kmPosts.map((s) => s.id),
-});
+export type PreviewOperations = {
+    setPublicationStage: {
+        forSpecificChanges: (
+            publishRequestIds: PublishRequestIds,
+            newStage: PublicationStage,
+        ) => void;
+        forAllStageChanges: (currentStage: PublicationStage, newStage: PublicationStage) => void;
+        forPublicationGroup: (
+            publicationGroup: PublicationGroup,
+            newStage: PublicationStage,
+        ) => void;
+    };
 
-const emptyChanges = {
-    trackNumbers: [],
-    locationTracks: [],
-    referenceLines: [],
-    switches: [],
-    kmPosts: [],
-};
-
-const filterStaged = (stagedIds: AssetId[], candidate: Candidate) =>
-    stagedIds.includes(candidate.id);
-const filterUnstaged = (stagedIds: AssetId[], candidate: Candidate) =>
-    !stagedIds.includes(candidate.id);
-
-const getStagedChanges = (
-    publishCandidates: PublishCandidates,
-    stagedChangeIds: PublishRequestIds,
-) => ({
-    trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
-        filterStaged(stagedChangeIds.trackNumbers, trackNumber),
-    ),
-    locationTracks: publishCandidates.locationTracks.filter((locationTrack) =>
-        filterStaged(stagedChangeIds.locationTracks, locationTrack),
-    ),
-    switches: publishCandidates.switches.filter((layoutSwitch) =>
-        filterStaged(stagedChangeIds.switches, layoutSwitch),
-    ),
-    kmPosts: publishCandidates.kmPosts.filter((kmPost) =>
-        filterStaged(stagedChangeIds.kmPosts, kmPost),
-    ),
-    referenceLines: publishCandidates.referenceLines.filter((referenceLine) =>
-        filterStaged(stagedChangeIds.referenceLines, referenceLine),
-    ),
-});
-
-const getUnstagedChanges = (
-    publishCandidates: PublishCandidates,
-    stagedChangeIds: PublishRequestIds,
-) => ({
-    trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
-        filterUnstaged(stagedChangeIds.trackNumbers, trackNumber),
-    ),
-    locationTracks: publishCandidates.locationTracks.filter((locationTrack) =>
-        filterUnstaged(stagedChangeIds.locationTracks, locationTrack),
-    ),
-    switches: publishCandidates.switches.filter((layoutSwitch) =>
-        filterUnstaged(stagedChangeIds.switches, layoutSwitch),
-    ),
-    kmPosts: publishCandidates.kmPosts.filter((kmPost) =>
-        filterUnstaged(stagedChangeIds.kmPosts, kmPost),
-    ),
-    referenceLines: publishCandidates.referenceLines.filter((referenceLine) =>
-        filterUnstaged(stagedChangeIds.referenceLines, referenceLine),
-    ),
-});
-
-// Validating the change set takes time. After a change is staged, it should be regarded as staged, but pending
-// validation until validation is complete
-const pendingValidation = (allStaged: AssetId[], allValidated: AssetId[], id: AssetId) =>
-    allStaged.includes(id) && !allValidated.includes(id);
-
-const previewChanges = (
-    stagedValidatedChanges: PublishCandidates,
-    allSelectedChanges: PublishRequestIds,
-    entireChangeset: PublishCandidates,
-) => {
-    const validatedIds = publishCandidateIds(stagedValidatedChanges);
-
-    return {
-        trackNumbers: [
-            ...stagedValidatedChanges.trackNumbers.map(nonPendingCandidate),
-            ...entireChangeset.trackNumbers
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.trackNumbers,
-                        validatedIds.trackNumbers,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        referenceLines: [
-            ...stagedValidatedChanges.referenceLines.map(nonPendingCandidate),
-            ...entireChangeset.referenceLines
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.referenceLines,
-                        validatedIds.referenceLines,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        locationTracks: [
-            ...stagedValidatedChanges.locationTracks.map(nonPendingCandidate),
-            ...entireChangeset.locationTracks
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.locationTracks,
-                        validatedIds.locationTracks,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        switches: [
-            ...stagedValidatedChanges.switches.map(nonPendingCandidate),
-            ...entireChangeset.switches
-                .filter((change) =>
-                    pendingValidation(
-                        allSelectedChanges.switches,
-                        validatedIds.switches,
-                        change.id,
-                    ),
-                )
-                .map(pendingCandidate),
-        ],
-        kmPosts: [
-            ...stagedValidatedChanges.kmPosts.map(nonPendingCandidate),
-            ...entireChangeset.kmPosts
-                .filter((change) =>
-                    pendingValidation(allSelectedChanges.kmPosts, validatedIds.kmPosts, change.id),
-                )
-                .map(pendingCandidate),
-        ],
+    revert: {
+        stageChanges: (stage: PublicationStage, revertRequestSource: RevertRequestSource) => void;
+        changesWithDependencies: (
+            publishRequestIds: PublishRequestIds,
+            revertRequestSource: RevertRequestSource,
+        ) => void;
+        publicationGroup: (
+            publicationGroup: PublicationGroup,
+            revertRequestSource: RevertRequestSource,
+        ) => void;
     };
 };
 
-const nonPendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
-    ...candidate,
-    pendingValidation: false,
-});
-const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
-    ...candidate,
-    pendingValidation: true,
-});
-
-const singleRowPublishRequestOfPreviewTableEntry = (
-    id: PublicationId,
-    type: PreviewSelectType,
-): PublishRequestIds => ({
-    trackNumbers: type === 'trackNumber' ? [id] : [],
-    referenceLines: type === 'referenceLine' ? [id] : [],
-    locationTracks: type === 'locationTrack' ? [id] : [],
-    switches: type === 'switch' ? [id] : [],
-    kmPosts: type === 'kmPost' ? [id] : [],
-});
-
-const singleRowPublishRequestOfSelectedPublishChange = (
-    change: SelectedPublishChange,
-): PublishRequestIds => ({
-    trackNumbers: change.trackNumber ? [change.trackNumber] : [],
-    referenceLines: change.referenceLine ? [change.referenceLine] : [],
-    locationTracks: change.locationTrack ? [change.locationTrack] : [],
-    switches: change.switch ? [change.switch] : [],
-    kmPosts: change.kmPost ? [change.kmPost] : [],
-});
-
-const filterPreviewCandidateArrayByUser = <T extends PreviewCandidate>(
-    user: User,
-    candidates: T[],
-) => candidates.filter((candidate) => candidate.userName === user.details.userName);
-
-const previewCandidatesByUser = (
-    user: User,
-    publishCandidates: PreviewCandidates,
-): PreviewCandidates => ({
-    trackNumbers: filterPreviewCandidateArrayByUser(user, publishCandidates.trackNumbers),
-    referenceLines: filterPreviewCandidateArrayByUser(user, publishCandidates.referenceLines),
-    locationTracks: filterPreviewCandidateArrayByUser(user, publishCandidates.locationTracks),
-    switches: filterPreviewCandidateArrayByUser(user, publishCandidates.switches),
-    kmPosts: filterPreviewCandidateArrayByUser(user, publishCandidates.kmPosts),
-});
+export type ChangesBeingReverted = {
+    requestedRevertChange: { source: RevertRequestSource } & RevertRequest;
+    changeIncludingDependencies: PublishRequestIds;
+};
 
 const validateDebounced = debounceAsync(
     (request: PublishRequestIds) => validatePublishCandidates(request),
@@ -275,8 +118,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
     const revertedCandidatesSoFar = useRef(publishCandidateIds(emptyChanges));
-
-    const [onlyShowMine, setOnlyShowMine] = React.useState(false);
     const user = useLoader(getOwnUser, []);
 
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
@@ -314,7 +155,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
           )
         : undefined;
 
-    const unstagedPreviewChanges: PreviewCandidates = (() => {
+    const unstagedPreviewChanges = ((): PreviewCandidates => {
         const allUnstagedChangesValidated = unstagedChanges
             ? {
                   trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
@@ -324,7 +165,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                   kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
               }
             : emptyChanges;
-        return user && onlyShowMine
+        return user && props.showOnlyOwnUnstagedChanges
             ? previewCandidatesByUser(user, allUnstagedChangesValidated)
             : allUnstagedChangesValidated;
     })();
@@ -345,24 +186,22 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
-    const onRequestRevert = (requestedRevertChange: PreviewTableEntry) => {
-        getRevertRequestDependencies(
-            singleRowPublishRequestOfPreviewTableEntry(
-                requestedRevertChange.id,
-                requestedRevertChange.type,
-            ),
-        ).then((changeIncludingDependencies) => {
-            setChangesBeingReverted({
-                requestedRevertChange,
-                changeIncludingDependencies,
-            });
-        });
+    const publicationAssetChangeAmounts: PublicationAssetChangeAmounts = {
+        total: countPublishCandidates(entireChangeset),
+        staged: countPublishCandidates(stagedPreviewChanges),
+        unstaged: countPublishCandidates(unstagedPreviewChanges),
+        groupAmounts: countPublicationGroupAmounts(entireChangeset),
+        ownUnstaged:
+            user && entireChangeset
+                ? countPublishCandidates(previewCandidatesByUser(user, unstagedPreviewChanges))
+                : 0,
     };
 
     const onConfirmRevert = () => {
         if (changesBeingReverted === undefined) {
             return;
         }
+
         revertCandidates(changesBeingReverted.changeIncludingDependencies)
             .then((r) => {
                 if (r.isOk()) {
@@ -380,14 +219,136 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             });
     };
 
-    const onPublishPreviewRemove = (selectedChange: SelectedPublishChange): void => {
-        props.onPublishPreviewRemove(
-            singleRowPublishRequestOfSelectedPublishChange(selectedChange),
-        );
+    const setStageForSpecificChanges = (
+        publishRequestIds: PublishRequestIds,
+        publicationStage: PublicationStage,
+    ) => {
+        switch (publicationStage) {
+            case PublicationStage.STAGED:
+                return props.onPublishPreviewSelect(publishRequestIds);
+
+            case PublicationStage.UNSTAGED:
+                return props.onPublishPreviewRemove(publishRequestIds);
+
+            default:
+                exhaustiveMatchingGuard(publicationStage);
+        }
     };
 
-    const onPreviewSelect = (selectedChange: SelectedPublishChange): void => {
-        props.onPreviewSelect(selectedChange);
+    const setPublicationGroupStage = (
+        publicationGroup: PublicationGroup,
+        stage: PublicationStage,
+    ) => {
+        if (!entireChangeset) {
+            return;
+        }
+
+        const groupedChanges = idsByPublicationGroup(entireChangeset, publicationGroup);
+        setStageForSpecificChanges(groupedChanges, stage);
+    };
+
+    const revertChangesWithDependencies = (
+        publishRequestIds: PublishRequestIds,
+        revertRequestSource: RevertRequestSource,
+    ) => {
+        getRevertRequestDependencies(publishRequestIds).then((changeIncludingDependencies) => {
+            setChangesBeingReverted({
+                requestedRevertChange: {
+                    type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
+                    source: revertRequestSource,
+                },
+                changeIncludingDependencies,
+            });
+        });
+    };
+
+    const getStageCandidates = (stage: PublicationStage): [PreviewCandidates, number] => {
+        switch (stage) {
+            case PublicationStage.UNSTAGED:
+                return [unstagedPreviewChanges, publicationAssetChangeAmounts.unstaged];
+
+            case PublicationStage.STAGED:
+                return [stagedPreviewChanges, publicationAssetChangeAmounts.staged];
+
+            default: {
+                return exhaustiveMatchingGuard(stage);
+            }
+        }
+    };
+
+    const revertStageChanges = (
+        stage: PublicationStage,
+        revertRequestSource: RevertRequestSource,
+    ) => {
+        const [stageCandidates, amountOfCandidates] = getStageCandidates(stage);
+        if (!stageCandidates) {
+            return;
+        }
+
+        setChangesBeingReverted({
+            requestedRevertChange: {
+                type: RevertRequestType.STAGE_CHANGES,
+                source: revertRequestSource,
+                amount: amountOfCandidates,
+                stage: stage,
+            },
+            changeIncludingDependencies: publishCandidateIds(stageCandidates),
+        });
+    };
+
+    const revertPublicationGroup = (
+        publicationGroup: PublicationGroup,
+        revertRequestSource: RevertRequestSource,
+    ) => {
+        if (!entireChangeset) {
+            return;
+        }
+
+        setChangesBeingReverted({
+            requestedRevertChange: {
+                type: RevertRequestType.PUBLICATION_GROUP,
+                source: revertRequestSource,
+                amount: publicationAssetChangeAmounts.groupAmounts[publicationGroup.id],
+                publicationGroup: publicationGroup,
+            },
+            changeIncludingDependencies: idsByPublicationGroup(entireChangeset, publicationGroup),
+        });
+    };
+
+    const setNewStageForStageChanges = (
+        currentStage: PublicationStage,
+        newStage: PublicationStage,
+    ) => {
+        switch (currentStage) {
+            case PublicationStage.STAGED:
+                return setStageForSpecificChanges(
+                    publishCandidateIds(stagedPreviewChanges),
+                    newStage,
+                );
+
+            case PublicationStage.UNSTAGED:
+                return setStageForSpecificChanges(
+                    publishCandidateIds(unstagedPreviewChanges),
+                    newStage,
+                );
+
+            default:
+                exhaustiveMatchingGuard(currentStage);
+        }
+    };
+
+    const previewOperations: PreviewOperations = {
+        setPublicationStage: {
+            forSpecificChanges: setStageForSpecificChanges,
+            forAllStageChanges: setNewStageForStageChanges,
+            forPublicationGroup: setPublicationGroupStage,
+        },
+
+        revert: {
+            stageChanges: revertStageChanges,
+            changesWithDependencies: revertChangesWithDependencies,
+            publicationGroup: revertPublicationGroup,
+        },
     };
 
     return (
@@ -401,38 +362,48 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 qa-id={'unstaged-changes'}
                                 className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <h3>{t('preview-view.unstaged-changes-title')}</h3>
+                                    <h3>
+                                        {t('preview-view.unstaged-changes-title', {
+                                            amount: publicationAssetChangeAmounts.unstaged,
+                                        })}
+                                    </h3>
                                     <Checkbox
-                                        checked={onlyShowMine}
+                                        checked={props.showOnlyOwnUnstagedChanges}
                                         onChange={(e) => {
-                                            setOnlyShowMine(e.target.checked);
+                                            props.setShowOnlyOwnUnstagedChanges(e.target.checked);
                                         }}>
-                                        {t('preview-view.show-only-mine')}
+                                        {t('preview-view.show-only-mine', {
+                                            amount: publicationAssetChangeAmounts.ownUnstaged,
+                                        })}
                                     </Checkbox>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={onPreviewSelect}
-                                    onRevert={onRequestRevert}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                     onShowOnMap={props.onShowOnMap}
                                     changeTimes={props.changeTimes}
+                                    publicationAssetChangeAmounts={publicationAssetChangeAmounts}
+                                    previewOperations={previewOperations}
                                 />
                             </section>
 
                             <section qa-id={'staged-changes'} className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <h3>{t('preview-view.staged-changes-title')}</h3>
+                                    <h3>
+                                        {t('preview-view.staged-changes-title', {
+                                            amount: publicationAssetChangeAmounts.staged,
+                                        })}
+                                    </h3>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={onPublishPreviewRemove}
-                                    onRevert={onRequestRevert}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                     onShowOnMap={props.onShowOnMap}
                                     changeTimes={props.changeTimes}
+                                    publicationAssetChangeAmounts={publicationAssetChangeAmounts}
+                                    previewOperations={previewOperations}
                                 />
                             </section>
 

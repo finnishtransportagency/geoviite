@@ -109,9 +109,7 @@ class LayoutTrackNumberService(
         )
 
         return geocodingService.getGeocodingContextCreateResult(publishType, trackNumberId)?.let { contextResult ->
-            contextResult.geocodingContext?.let { context ->
-                extractTrackKmLengths(context, contextResult)
-            }
+            extractTrackKmLengths(contextResult.geocodingContext, contextResult)
         }
     }
 

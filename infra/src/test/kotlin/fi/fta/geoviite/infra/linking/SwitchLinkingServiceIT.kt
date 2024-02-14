@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
@@ -41,6 +42,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchLibraryService: SwitchLibraryService,
+    private val locationTrackDao: LocationTrackDao,
     ) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
@@ -826,7 +828,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private fun shiftSegmentGeometry(source: LayoutSegment, switchId: DomainId<TrackLayoutSwitch>?, shiftVector: Point) = source.copy(
         geometry = SegmentGeometry(source.geometry.resolution,
             source.geometry.segmentPoints.map { sp -> sp.copy(x = sp.x + shiftVector.x, y = sp.y + shiftVector.y) }),
-        switchId = switchId
+        switchId = switchId,
+        startJointNumber = if (switchId == null) null else JointNumber(1),
+        endJointNumber = null,
     )
 
     private fun shiftSwitch(source: TrackLayoutSwitch, name: String, shiftVector: Point) = source.copy(
@@ -946,8 +950,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrack(trackNumberId, name = "new branching track"),
             alignment(shiftTrack(branchingTrackSegments, switch.id, Point(134.321, 0.0)))
         )
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(134.321, 0.0), templateSwitch.switchStructureId)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(134.321, 0.0), switch.id)!!
+        switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestedSwitch, switch.id))
         assertTrackDraftVersionSwitchLinks(originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null))
         assertTrackDraftVersionSwitchLinks(
             newBranchingTrack.id,
@@ -960,6 +964,15 @@ class SwitchLinkingServiceIT @Autowired constructor(
             null,
             null,
             listOf(0.0..134.4 to null, 134.5 .. 168.8 to switch.id, 168.9 .. 268.86 to null)
+        )
+    }
+
+    @Test
+    fun `null is suggested when no switch is applicable`() {
+        assertNull(
+            switchLinkingService.getSuggestedSwitch(
+                Point(123.0, 456.0), switchDao.insert(switch()).id
+            )
         )
     }
 
@@ -1004,12 +1017,158 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignment(setSwitchId(templateFourThreeTrackSegments, switch.id))
         )
 
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), templateSwitch.switchStructureId)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)!!
+        switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestedSwitch, switch.id))
 
         assertTrackDraftVersionSwitchLinks(oneFiveTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(fiveTwoTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(threeFourTrack.id, null, null, listOf(0.0..10.4 to switch.id))
+    }
+
+    @Test
+    fun `mislinked track with wrong alignment link gets replaced with topology link`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+            )
+        )
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
+        val templateThroughTrackSegments = templateTrackSections[0].second.segments
+        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
+        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val shift =
+            templateThroughTrackSegments.last().segmentEnd.toPoint() - templateThroughTrackSegments.first().segmentStart.toPoint()
+        val fullShift = shift + Point(100.0, 0.0)
+
+        val throughTrackStart = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "through track start"), alignment(
+                setSwitchId(templateThroughTrackSegments + listOf(segment(shift, fullShift)), switch.id),
+            )
+        )
+        val throughTrackSwitchAndEnd = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "through track switch and end"), alignment(
+                shiftTrack(templateThroughTrackSegments, switch.id, fullShift)
+            )
+        )
+        val originallyLinkedBranchingTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "originally linked branching track"),
+            alignment(setSwitchId(templateBranchingTrackSegments, switch.id))
+        )
+        val newBranchingTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "new branching track"),
+            alignment(shiftTrack(templateBranchingTrackSegments, switch.id, fullShift))
+        )
+
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)!!
+        switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestedSwitch, switch.id))
+
+        assertTrackDraftVersionSwitchLinks(
+            throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null)
+        )
+
+        assertTrackDraftVersionSwitchLinks(
+            throughTrackSwitchAndEnd.id, null, null, listOf(0.0..34.4 to switch.id)
+        )
+
+        assertTrackDraftVersionSwitchLinks(
+            originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null)
+        )
+
+        assertTrackDraftVersionSwitchLinks(
+            newBranchingTrack.id, null, null, listOf(0.0..34.3 to switch.id)
+        )
+    }
+
+    @Test
+    fun `relinking moves mislinked topo link to correct switch and does not pointlessly update alignments or tracks`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+            )
+        )
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
+        val templateThroughTrackSegments = templateTrackSections[0].second.segments
+        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
+        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val someOtherSwitch = switchDao.insert(switch(123))
+
+        val shift =
+            templateThroughTrackSegments.last().segmentEnd.toPoint() - templateThroughTrackSegments.first().segmentStart.toPoint()
+        val fullShift = shift + Point(100.0, 0.0)
+
+        val throughTrackStart = locationTrackService.saveDraft(
+            locationTrack(
+                trackNumberId,
+                name = "through track start",
+                topologyEndSwitch = TopologyLocationTrackSwitch(someOtherSwitch.id, JointNumber(1))
+            ), alignment(
+                setSwitchId(templateThroughTrackSegments + listOf(segment(shift, fullShift)), null),
+            )
+        )
+        locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "through track switch and end"), alignment(
+                shiftTrack(templateThroughTrackSegments, switch.id, fullShift)
+            )
+        )
+        locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "branching track"),
+            alignment(setSwitchId(templateBranchingTrackSegments, switch.id))
+        )
+        val uninvolvedTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "uninvolved track"),
+            alignment(shiftTrack(templateThroughTrackSegments, null, fullShift - Point(1.0, 1.0))),
+        )
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)!!
+        switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestedSwitch, switch.id))
+
+        assertTrackDraftVersionSwitchLinks(
+            throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null)
+        )
+        assertEquals(
+            locationTrackDao.fetch(throughTrackStart.rowVersion).alignmentVersion!!,
+            locationTrackDao.fetch(
+                locationTrackDao.fetchVersion(
+                    throughTrackStart.id,
+                    PublishType.DRAFT
+                )!!
+            ).alignmentVersion!!
+        )
+        assertEquals(uninvolvedTrack.rowVersion, locationTrackDao.fetchVersion(uninvolvedTrack.id, PublishType.DRAFT))
+    }
+
+    @Test
+    fun `relinking removes misplaced topological switch link`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+            )
+        )
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
+        val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
+        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        templateTrackSections.forEach { (_, a) ->
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId),
+                alignment(setSwitchId(a.segments, null))
+            )
+        }
+        val otherLocationTrackWithTopoSwitchLink = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, topologyEndSwitch = TopologyLocationTrackSwitch(switch.id, JointNumber(1))),
+            alignment(segment(Point(456.7, 345.5), Point(457.8, 346.9)))
+        )
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)!!
+        switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        assertTrackDraftVersionSwitchLinks(
+            otherLocationTrackWithTopoSwitchLink.id, null, null, listOf(0.0..1.7 to null)
+        )
     }
 
     private fun assertTrackDraftVersionSwitchLinks(
@@ -1069,7 +1228,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     private fun setSwitchId(segments: List<LayoutSegment>, switchId: IntId<TrackLayoutSwitch>?) =
         segments.map { segment ->
-            segment.copy(switchId = switchId)
+            segment.copy(switchId = switchId, startJointNumber = if (switchId == null) null else JointNumber(1), endJointNumber = null)
         }
 
     private fun createDraftLocationTrackFromLayoutSegments(layoutSegments: List<LayoutSegment>): Pair<LocationTrack, LayoutAlignment> {

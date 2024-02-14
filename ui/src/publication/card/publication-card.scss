@@ -27,4 +27,16 @@
         text-transform: none;
         margin-bottom: 12px;
     }
+
+    &__waiting-text {
+        font-size: 12px;
+        color: vayla-design.$color-black-lighter;
+        display: inline-flex;
+        align-items: center;
+
+        > .icon {
+            fill: vayla-design.$color-black-lighter;
+            margin-right: 6px;
+        }
+    }
 }

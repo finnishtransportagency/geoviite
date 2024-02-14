@@ -2,6 +2,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.publication.*
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.WARNING
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 
@@ -48,8 +50,12 @@ fun publish(publicationService: PublicationService, request: PublishRequestIds):
     return publicationService.publishChanges(versions, calculatedChanges, "Test")
 }
 
-fun validationError(localizationKey: String, vararg params: Pair<String, String>) = PublishValidationError(
-    type = PublishValidationErrorType.ERROR,
-    localizationKey = LocalizationKey(localizationKey),
-    params = LocalizationParams(mapOf(*params))
-)
+fun validationError(
+    localizationKey: String,
+    vararg params: Pair<String, Any?>,
+) = PublishValidationError(ERROR, localizationKey, params.associate { it })
+
+fun validationWarning(
+    localizationKey: String,
+    vararg params: Pair<String, Any?>,
+) = PublishValidationError(WARNING, localizationKey, params.associate { it })

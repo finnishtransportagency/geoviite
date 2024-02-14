@@ -8,8 +8,10 @@ Kuvaus j채rjestelm채n tarkoituksesta kannattaa katsoa Confluencesta vaatimusm채�
 * [Tietomalli](tietomalli.md)
 * [Tietokanta](tietokanta.md)
 * [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
+* [Julkaisut](julkaisut.md)
 * [Autentikaatio ja autorisaatio](autentikaatio_ja_autorisaatio.md)
 * [Virhek채sittely](virhekasittely.md)
+* [Projektivelho](projektivelho.md)
 
 Kehitt채jien ohjeet s채ilytet채채n versionhallinnassa, koodin rinnalla markdown-formaatissa
 

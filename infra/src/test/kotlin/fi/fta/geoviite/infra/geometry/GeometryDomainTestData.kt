@@ -527,7 +527,7 @@ fun geometryAlignment(
     cant: GeometryCant? = null,
     name: String = "001",
     id: DomainId<GeometryAlignment> = StringId(),
-    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111"),
+    featureTypeCode: FeatureTypeCode = FeatureTypeCode("281"),
 ): GeometryAlignment = GeometryAlignment(
     id = id,
     name = AlignmentName(name),
@@ -600,7 +600,7 @@ fun geometryUnits(
 fun project(name: String = "TEST Project", description: String? = null) =
     Project(ProjectName(name), description?.let(::FreeText))
 
-fun author(companyName: String = "TEST Company") = Author(MetaDataName(companyName))
+fun author(companyName: String = "TEST Company") = Author(CompanyName(companyName))
 
 fun application(
     name: String = "TEST Application",

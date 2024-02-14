@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -39,6 +40,7 @@ class LinkingService @Autowired constructor(
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
     private val coordinateTransformationService: CoordinateTransformationService,
+    private val splitService: SplitService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -74,16 +76,18 @@ class LinkingService @Autowired constructor(
 
     @Transactional
     fun saveLocationTrackLinking(parameters: LinkingParameters<LocationTrack>): IntId<LocationTrack> {
-        verifyPlanNotHidden(parameters.geometryPlanId)
-
         val locationTrackId = parameters.layoutInterval.alignmentId
+        val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+
+        verifyLocationTrackNotDeleted(locationTrack)
+        verifyPlanNotHidden(parameters.geometryPlanId)
+        verifyAllSplitsDone(parameters.layoutInterval.alignmentId)
+
         logger.serviceCall(
             "saveLocationTrackLinking",
             "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
             "locationTrackId" to locationTrackId,
         )
-
-        val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
 
         val newAlignment = linkGeometry(layoutAlignment, parameters)
         val newLocationTrack = updateTopology(locationTrack, layoutAlignment, newAlignment)
@@ -202,6 +206,7 @@ class LinkingService @Autowired constructor(
             "updateLocationTrackGeometry", "locationTrackId" to locationTrackId, "mRange" to mRange
         )
 
+        verifyAllSplitsDone(locationTrackId)
         val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
         val updatedLocationTrack = updateTopology(locationTrack, alignment, updatedAlignment)
@@ -249,6 +254,18 @@ class LinkingService @Autowired constructor(
     fun verifyPlanNotHidden(id: IntId<GeometryPlan>) {
         if (geometryService.getPlanHeader(id).isHidden) throw LinkingFailureException(
             message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
+        )
+    }
+
+    fun verifyAllSplitsDone(id: IntId<LocationTrack>) {
+        if (splitService.findUnfinishedSplitsForLocationTracks(listOf(id)).isNotEmpty()) throw LinkingFailureException(
+            message = "Cannot link a location track that has unfinished splits", localizedMessageKey = "unfinished-splits"
+        )
+    }
+
+    fun verifyLocationTrackNotDeleted(locationTrack: LocationTrack) {
+        if (!locationTrack.exists) throw LinkingFailureException(
+            message = "Cannot link a location track that is deleted", localizedMessageKey = "location-track-deleted"
         )
     }
 }
