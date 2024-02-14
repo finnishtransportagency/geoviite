@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.createSwitchLinkingParameters
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
@@ -227,7 +228,7 @@ class SplitService(
             sortingSuggestionsByReverseMOrderOnTrack(request.sourceTrackId)
         )
         val relinkedSwitches = suggestions.map { (id, suggestion) ->
-            switchLinkingService.saveSwitchLinking(switchLinkingService.createSwitchLinkingParameters(suggestion, id)).id
+            switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestion, id)).id
         }
 
         // Fetch post-re-linking track & alignment
