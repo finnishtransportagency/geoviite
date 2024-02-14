@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.*
-import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -3041,16 +3040,19 @@ private fun getTopologicalSwitchConnectionTestCases(
 
         locationTrack(
             trackNumberId = trackNumberGenerator(),
+            topologicalConnectivity = TopologicalConnectivityType.START,
             topologyStartSwitch = topologyStartSwitch,
         ),
 
         locationTrack(
             trackNumberId = trackNumberGenerator(),
+            topologicalConnectivity = TopologicalConnectivityType.END,
             topologyEndSwitch = topologyEndSwitch,
         ),
 
         locationTrack(
             trackNumberId = trackNumberGenerator(),
+            topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
             topologyStartSwitch = topologyStartSwitch,
             topologyEndSwitch = topologyEndSwitch,
         )

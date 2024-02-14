@@ -193,13 +193,14 @@ fun validateLocationTrackSwitchConnectivity(
     layoutTrack: LocationTrack,
     alignment: LayoutAlignment,
 ): List<PublishValidationError> {
-    val segmentStartSwitch = alignment.segments.first().switchId
-    val segmentEndSwitch = alignment.segments.last().switchId
+    val startSegment = alignment.segments.firstOrNull()
+    val endSegment = alignment.segments.lastOrNull()
     val topologyStartSwitch = layoutTrack.topologyStartSwitch?.switchId
     val topologyEndSwitch = layoutTrack.topologyEndSwitch?.switchId
 
-    val hasStartSwitch = segmentStartSwitch != null || topologyStartSwitch != null
-    val hasEndSwitch = segmentEndSwitch != null || topologyEndSwitch != null
+    val hasStartSwitch =
+        (startSegment?.switchId != null && startSegment.startJointNumber != null) || topologyStartSwitch != null
+    val hasEndSwitch = (endSegment?.switchId != null && endSegment.endJointNumber != null) || topologyEndSwitch != null
 
     return when (layoutTrack.topologicalConnectivity) {
         TopologicalConnectivityType.NONE -> {
