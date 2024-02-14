@@ -589,7 +589,6 @@ class PublicationService @Autowired constructor(
         context: ValidationContext,
     ): List<PublishValidationError>? = context.getKmPost(id)?.let { kmPost ->
         val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
-        // TODO: GVT-2442 This needs to be cached
         val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getDraftTrackNumber))?.number
         val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
 
@@ -1219,7 +1218,7 @@ class PublicationService @Autowired constructor(
             list
         }.sortedBy { it.propKey.key }
 
-        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it.first.name?.toString() }.sorted()
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it.first.name.toString() }.sorted()
         val newLinkedTrackNames = changes.locationTracks.map { it.name.toString() }.sorted()
 
         return listOfNotNull(

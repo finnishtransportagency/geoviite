@@ -276,7 +276,6 @@ class PublicationDao(
      * null to have all draft location tracks considered in the publication unit.
      * @param includeDeleted Filters location tracks, not switches
      */
-    // TODO: GVT-2442 This can probably be simplified now (only one use-place)
     fun fetchLinkedLocationTracks(
         switchIds: List<IntId<TrackLayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
