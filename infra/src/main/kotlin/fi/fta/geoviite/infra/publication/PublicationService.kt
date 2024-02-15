@@ -576,7 +576,9 @@ class PublicationService @Autowired constructor(
         val geocodingErrors = if (trackNumber.exists && referenceLine != null) {
             val geocodingContextCacheKey = validationContext.getGeocodingContextCacheKey(id)
             validateGeocodingContext(geocodingContextCacheKey, VALIDATION_TRACK_NUMBER, trackNumber.number)
-        } else listOf()
+        } else {
+            listOf()
+        }
         val duplicateNameErrors = validateTrackNumberNumberDuplication(
             trackNumber = trackNumber,
             duplicates = validationContext.getTrackNumbersByNumber(trackNumber.number),

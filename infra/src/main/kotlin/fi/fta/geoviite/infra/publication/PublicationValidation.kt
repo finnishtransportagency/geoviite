@@ -384,7 +384,7 @@ fun validateDuplicateOfState(
     val duplicateNameParams = localizationParams(
         "duplicateTrack" to (duplicateOfLocationTrack?.name ?: duplicateOfLocationTrackDraftName)
     )
-    return if (duplicateOfLocationTrack == null) {
+    val ownDuplicateOfErrors = if (duplicateOfLocationTrack == null) {
         listOfNotNull(
             // Non-null reference, but the duplicateOf track doesn't exist in validation context
             validateWithParams(locationTrack.duplicateOf == null) {
@@ -408,6 +408,19 @@ fun validateDuplicateOfState(
             },
         )
     }
+    val otherDuplicateReferenceErrors = if (!locationTrack.exists) {
+        val existingDuplicates = duplicates.filter { d -> d.exists }
+        listOfNotNull(
+            validateWithParams(existingDuplicates.isEmpty()) {
+                "$VALIDATION_LOCATION_TRACK.deleted-duplicated-by-existing" to localizationParams(
+                    "duplicates" to existingDuplicates.joinToString(",") { track -> track.name },
+                )
+            },
+        )
+    } else {
+        emptyList()
+    }
+    return ownDuplicateOfErrors + otherDuplicateReferenceErrors
 }
 
 fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<PublishValidationError> = listOfNotNull(

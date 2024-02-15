@@ -33,7 +33,10 @@ class NameCache<Field, T : Draftable<T>>(val fetch: (List<Field>) -> Map<Field, 
 
     fun get(name: Field) = map.computeIfAbsent(name) { n -> fetch(listOf(n))[n] ?: emptyList() }
 
-    fun preload(names: List<Field>) = map.putAll(fetch(names))
+    fun preload(names: List<Field>) {
+        val missing = names.filterNot(map::containsKey)
+        if (missing.isNotEmpty()) map.putAll(fetch(missing))
+    }
 }
 
 typealias RowVersionCache<T> = NullableCache<IntId<T>, RowVersion<T>>
@@ -376,7 +379,7 @@ private fun <T : Draftable<T>> preloadOfficialVersions(
 ) = cacheOfficialVersions(dao.fetchOfficialVersions(ids), versionCache)
 
 private fun <T : Draftable<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) {
-    cache.putAll(versions.filterNot { (id) -> cache.contains(id) }.distinct().associateBy { v -> v.id })
+    cache.putAll(versions.filterNot { (id) -> cache.contains(id) }.associateBy { v -> v.id })
 }
 
 private fun <T : Draftable<T>, Field> mapIdsByField(
