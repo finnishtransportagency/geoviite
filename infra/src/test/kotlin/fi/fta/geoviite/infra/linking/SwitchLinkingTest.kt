@@ -1197,8 +1197,7 @@ private fun assertJointMatchExists(
     matchType: SuggestedSwitchJointMatchType?,
 ) {
     assertEquals(tracks.size, tracks.map { it.first.id }.distinct().size)
-    val trackLookup = tracks.associate { it.first.id to it.second }
-    val switchLinkingParams = createSwitchLinkingParameters(suggestedSwitch, trackLookup)
+    val switchLinkingParams = createSwitchLinkingParameters(suggestedSwitch)
 
     val joint = getJoint(suggestedSwitch, jointNumber)
     val match = joint.matches.find { it.locationTrackId == locationTrackId }!!
