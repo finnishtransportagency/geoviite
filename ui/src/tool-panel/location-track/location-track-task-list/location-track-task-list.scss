@@ -1,6 +1,6 @@
 @use 'vayla-design-lib' as vayla-design;
 
-.location-track-task-list {
+.switch-relinking-validation-task-list {
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
 
     position: absolute;
@@ -61,5 +61,12 @@
 
     &__message-buttons {
         margin-top: 16px;
+    }
+
+    &__loading {
+        height: 72px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 }

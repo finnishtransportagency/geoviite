@@ -108,31 +108,40 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
         switchesLoadingStatus == LoaderStatus.Loading;
 
     return (
-        <div className={styles['location-track-task-list']}>
-            <h1 className={styles['location-track-task-list__title']}>
-                {t('tool-panel.location-track.task-list.title')}
-                <span className={styles['location-track-task-list__close']}>
+        <div className={styles['switch-relinking-validation-task-list']}>
+            <h1 className={styles['switch-relinking-validation-task-list__title']}>
+                {t('tool-panel.location-track.task-list.switch-relinking.title')}
+                <span className={styles['switch-relinking-validation-task-list__close']}>
                     <Icons.Close size={IconSize.SMALL} onClick={onClose} />
                 </span>
             </h1>
-            <section className={styles['location-track-task-list__content']}>
-                {loadingInProgress && <Spinner />}
+            <section className={styles['switch-relinking-validation-task-list__content']}>
+                {loadingInProgress && (
+                    <div className={styles['switch-relinking-validation-task-list__loading']}>
+                        <Spinner />
+                    </div>
+                )}
 
                 {!loadingInProgress && switches && switches.length > 0 && (
                     <React.Fragment>
                         <span>
-                            {t('tool-panel.location-track.task-list.validation-errors-message', {
-                                locationTrack: locationTrack?.name,
-                            })}
+                            {t(
+                                'tool-panel.location-track.task-list.switch-relinking.validation-errors-message',
+                                {
+                                    locationTrack: locationTrack?.name,
+                                },
+                            )}
                         </span>
-                        <ul className={styles['location-track-task-list__switches']}>
+                        <ul className={styles['switch-relinking-validation-task-list__switches']}>
                             {switches.map((lSwitch) => {
                                 const selected = selectedSwitches.some((sId) => sId == lSwitch.id);
 
                                 return (
                                     <li
                                         key={lSwitch.id}
-                                        className={styles['location-track-task-list__switch']}>
+                                        className={
+                                            styles['switch-relinking-validation-task-list__switch']
+                                        }>
                                         <SwitchBadge
                                             onClick={() => onClick(lSwitch)}
                                             switchItem={lSwitch}
@@ -149,18 +158,29 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                     </React.Fragment>
                 )}
                 {!loadingInProgress && switches && switches.length == 0 && (
-                    <div className={styles['location-track-task-list__message-container']}>
+                    <div
+                        className={
+                            styles['switch-relinking-validation-task-list__message-container']
+                        }>
                         <span>
-                            {t('tool-panel.location-track.task-list.no-validation-errors-message', {
-                                locationTrack: locationTrack?.name,
-                            })}
+                            {t(
+                                'tool-panel.location-track.task-list.switch-relinking.no-validation-errors-message',
+                                {
+                                    locationTrack: locationTrack?.name,
+                                },
+                            )}
                         </span>
-                        <div className={styles['location-track-task-list__message-buttons']}>
+                        <div
+                            className={
+                                styles['switch-relinking-validation-task-list__message-buttons']
+                            }>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
                                 onClick={onClose}>
-                                {t('tool-panel.location-track.task-list.close-task-list')}
+                                {t(
+                                    'tool-panel.location-track.task-list.switch-relinking.close-task-list',
+                                )}
                             </Button>
                         </div>
                     </div>
