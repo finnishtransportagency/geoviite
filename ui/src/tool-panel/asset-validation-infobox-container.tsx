@@ -2,13 +2,12 @@ import * as React from 'react';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
 import { AssetId, PublishType, TimeStamp } from 'common/common-model';
-import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
 import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
-type AssetType = 'TRACK_NUMBER' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
+type AssetType = 'TRACK_NUMBER' | 'SWITCH' | 'KM_POST';
 
 type AssetValidationInfoboxProps = {
     id: AssetId;
@@ -29,8 +28,6 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
 }) => {
     const [validation, validationLoaderStatus] = useLoaderWithStatus(() => {
         switch (type) {
-            case 'LOCATION_TRACK':
-                return getLocationTrackValidation(publishType, id);
             case 'TRACK_NUMBER':
                 return getTrackNumberValidation(publishType, id);
             case 'KM_POST':

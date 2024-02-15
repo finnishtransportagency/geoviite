@@ -335,7 +335,7 @@ export type SuggestedSwitchCreateParams = {
     alignmentMappings: SuggestedSwitchCreateParamsAlignmentMapping[];
 };
 
-export type SwitchRelinkingResult = {
+export type SwitchRelinkingValidationResult = {
     id: LayoutSwitchId;
     successfulSuggestion: SwitchRelinkingSuggestion;
     validationErrors: PublishValidationError[];
@@ -344,4 +344,10 @@ export type SwitchRelinkingResult = {
 export type SwitchRelinkingSuggestion = {
     location: Point;
     address: TrackMeter;
+};
+
+export type TrackSwitchRelinkingResultType = 'RELINKED' | 'NOT_AUTOMATICALLY_LINKABLE';
+export type TrackSwitchRelinkingResult = {
+    id: LayoutSwitchId;
+    outcome: TrackSwitchRelinkingResultType;
 };

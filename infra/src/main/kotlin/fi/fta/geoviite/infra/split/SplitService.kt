@@ -224,9 +224,7 @@ class SplitService(
     @Transactional
     fun split(request: SplitRequest): IntId<Split> {
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(sourceTrack)).sortedBy(
-            sortingSuggestionsByReverseMOrderOnTrack(request.sourceTrackId)
-        )
+        val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = suggestions.map { (id, suggestion) ->
             switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestion, id)).id
         }
@@ -243,11 +241,6 @@ class SplitService(
         locationTrackService.updateState(request.sourceTrackId, LayoutState.DELETED)
         return splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
     }
-
-    private fun sortingSuggestionsByReverseMOrderOnTrack(locationTrackId: IntId<LocationTrack>): (s: Pair<*, SuggestedSwitch>) -> Double =
-        { (_, suggestion) ->
-            -suggestion.joints.firstNotNullOf { sj -> sj.matches.firstOrNull { match -> match.locationTrackId == locationTrackId }?.m }
-        }
 
     private fun saveTargetTrack(target: SplitTargetResult): SplitTarget{
         val id = locationTrackService.saveDraft(

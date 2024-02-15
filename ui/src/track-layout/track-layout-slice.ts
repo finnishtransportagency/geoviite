@@ -173,7 +173,7 @@ export enum LocationTrackTaskListType {
     RELINKING_SWITCH_VALIDATION,
 }
 
-type SwitchRelinkingValidationTaskList = {
+export type SwitchRelinkingValidationTaskList = {
     type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
     locationTrackId: LocationTrackId;
 };
