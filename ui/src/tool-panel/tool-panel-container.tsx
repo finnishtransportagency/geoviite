@@ -32,6 +32,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
         delegates.onSelect({
             switches: [layoutSwitch.id],
         });
+        delegates.showLayers(['switch-linking-layer']);
     }, []);
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
