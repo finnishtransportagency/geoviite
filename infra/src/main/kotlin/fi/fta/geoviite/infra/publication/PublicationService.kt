@@ -167,6 +167,7 @@ class PublicationService @Autowired constructor(
             "trackNumberIds" to trackNumberIds,
              "publishType" to publishType,
         )
+        if (trackNumberIds.isEmpty()) return emptyList()
 
         // Switches don't affect tracknumber validity, so they are ignored
         val validationContext = when (publishType) {
@@ -203,6 +204,7 @@ class PublicationService @Autowired constructor(
         logger.serviceCall(
             "validateLocationTrack", "locationTrackId" to trackIds, "publishType" to publishType
         )
+        if (trackIds.isEmpty()) return emptyList()
 
         val validationContext = when (publishType) {
             DRAFT -> createValidationContext(
@@ -234,6 +236,7 @@ class PublicationService @Autowired constructor(
         publishType: PublishType,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
         logger.serviceCall("validateSwitches", "switchIds" to switchIds, "publishType" to publishType)
+        if (switchIds.isEmpty()) return emptyList()
 
         // Only tracks and switches affect switch validation, so we can ignore the other types in the publication unit
         val validationContext = when (publishType) {
@@ -259,6 +262,7 @@ class PublicationService @Autowired constructor(
         publishType: PublishType,
     ): List<ValidatedAsset<TrackLayoutKmPost>> {
         logger.serviceCall("validateKmPost", "kmPostIds" to kmPostIds, "publishType" to publishType)
+        if (kmPostIds.isEmpty()) return emptyList()
 
         // We can ignore switches and locationtracks, as they don't affect km-post validity
         val validationContext = when (publishType) {
