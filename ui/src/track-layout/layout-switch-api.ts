@@ -158,7 +158,7 @@ export const getSwitchValidation = async (
 export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
     const changeTimes = getChangeTimes();
     const maxTime = getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutSwitch);
-    const fetch = (fetchIds: LayoutSwitchId[]) =>
+    const fetchOperation = (fetchIds: LayoutSwitchId[]) =>
         getNonNull<ValidatedAsset[]>(
             `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
         ).then((switches) => {
@@ -166,7 +166,7 @@ export const getSwitchesValidation = async (publishType: PublishType, ids: Layou
             return (id: LayoutSwitchId) => switchValidationMap.get(id) as ValidatedAsset;
         });
     return switchValidationCache
-        .getMany(maxTime, ids, (id) => id, fetch)
+        .getMany(maxTime, ids, (id) => id, fetchOperation)
         .then((switches) => switches.filter(filterNotEmpty));
 };
 

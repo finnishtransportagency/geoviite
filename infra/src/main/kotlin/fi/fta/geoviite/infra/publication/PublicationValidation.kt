@@ -62,13 +62,13 @@ fun validateTrackNumberNumberDuplication(
 ): List<PublishValidationError> {
     return if (trackNumber.exists) {
         val officialDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isOfficial() }
-        val stagedDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft() }
+        val draftDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft() }
 
         listOfNotNull(
-            if (!stagedDuplicateExists && officialDuplicateExists) PublishValidationError(
+            if (!draftDuplicateExists && officialDuplicateExists) PublishValidationError(
                 ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-official", mapOf("trackNumber" to trackNumber.number)
             ) else null,
-            if (stagedDuplicateExists) PublishValidationError(
+            if (draftDuplicateExists) PublishValidationError(
                 ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-draft", mapOf("trackNumber" to trackNumber.number)
             ) else null,
         )
@@ -128,13 +128,13 @@ fun validateSwitchNameDuplication(
 ): List<PublishValidationError> {
     return if (switch.exists) {
         val officialDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isOfficial() }
-        val stagedDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft() }
+        val draftDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft() }
 
         listOfNotNull(
-            validateWithParams(stagedDuplicateExists || !officialDuplicateExists) {
+            validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
                 "$VALIDATION_SWITCH.duplicate-name-official" to localizationParams("switch" to switch.name)
             },
-            validateWithParams(!stagedDuplicateExists) {
+            validateWithParams(!draftDuplicateExists) {
                 "$VALIDATION_SWITCH.duplicate-name-draft" to localizationParams("switch" to switch.name)
             },
         )
@@ -150,16 +150,16 @@ fun validateLocationTrackNameDuplication(
 ): List<PublishValidationError> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
         val officialDuplicateExists = duplicates.any { d -> d.id != track.id && d.isOfficial() }
-        val stagedDuplicateExists = duplicates.any { d -> d.id != track.id && d.isDraft() }
+        val draftDuplicateExists = duplicates.any { d -> d.id != track.id && d.isDraft() }
         val localizationParams = localizationParams(
             "locationTrack" to track.name,
             "trackNumber" to trackNumber,
         )
         return listOfNotNull(
-            validateWithParams(stagedDuplicateExists || !officialDuplicateExists) {
+            validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-official" to localizationParams
             },
-            validateWithParams(!stagedDuplicateExists) {
+            validateWithParams(!draftDuplicateExists) {
                 "$VALIDATION_LOCATION_TRACK.duplicate-name-draft" to localizationParams
             },
         )
