@@ -94,16 +94,16 @@ class LayoutSwitchController(
         @RequestParam("ids") ids: List<IntId<TrackLayoutSwitch>>?,
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
-        logger.apiCall("validateSwitches", "publishType" to publishType, "ids" to ids)
-        val switches = if (ids != null) switchService.getMany(publishType, ids) else switchService.list(
-            publishType,
-            false
-        )
-        return publicationService.validateSwitches(
-            switches
-                .filter { switch -> switchMatchesBbox(switch, bbox, false) }
-                .map { sw -> sw.id as IntId }, publishType
-        )
+        logger.apiCall("validateSwitches", "publishType" to publishType, "ids" to ids, "bbox" to bbox)
+        val switches = if (ids != null) {
+            switchService.getMany(publishType, ids)
+        } else {
+            switchService.list(publishType, false)
+        }
+        val switchIds = switches
+            .filter { switch -> switchMatchesBbox(switch, bbox, false) }
+            .map { sw -> sw.id as IntId }
+        return publicationService.validateSwitches(switchIds, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

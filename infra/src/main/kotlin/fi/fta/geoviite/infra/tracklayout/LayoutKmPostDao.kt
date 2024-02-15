@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_KM_POST
 import org.springframework.beans.factory.annotation.Value
@@ -66,27 +67,35 @@ class LayoutKmPostDao(
     }
 
     fun fetchVersionsForPublication(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
-    ): List<RowVersion<TrackLayoutKmPost>> {
+    ): Map<IntId<TrackLayoutTrackNumber>, List<ValidationVersion<TrackLayoutKmPost>>> {
+        if (trackNumberIds.isEmpty()) return emptyMap()
         val sql = """
-            select km_post.row_id, km_post.row_version
+            select km_post.track_number_id, km_post.official_id, km_post.row_id, km_post.row_version
             from layout.km_post_publication_view km_post
             where (('DRAFT' = any(km_post.publication_states)
                      and km_post.official_id in (:km_post_ids_to_publish))
                    or ('OFFICIAL' = any(km_post.publication_states)
                          and (km_post.official_id in (:km_post_ids_to_publish) is distinct from true)))
-              and track_number_id = :track_number_id
+              and track_number_id in (:track_number_ids)
               and km_post.state != 'DELETED'
             order by km_post.track_number_id, km_post.km_number
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("track_number_id" to trackNumberId.intValue,
+        val params = mapOf(
+            "track_number_ids" to trackNumberIds.map { id -> id.intValue },
             // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
             // explicitly for false or null, since "foo in (null)" in SQL is null
-            "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) })
+            "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
         )
-        ) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
+        val versions = jdbcTemplate.query(sql, params) { rs, _ ->
+            val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
+            val officialId = rs.getIntId<TrackLayoutKmPost>("official_id")
+            val rowVersion = rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")
+            trackNumberId to ValidationVersion(officialId, rowVersion)
+        }
+        return trackNumberIds.associateWith { trackNumberId ->
+            versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, kmPostVersions) -> kmPostVersions }
         }
     }
 

@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -117,9 +117,9 @@ class LayoutKmPostController(
     fun validateKmPost(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
-    ): ValidatedAsset<TrackLayoutKmPost> {
+    ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
         logger.apiCall("validateKmPost", "publishType" to publishType, "id" to id)
-        return publicationService.validateKmPost(id, publishType)
+        return publicationService.validateKmPosts(listOf(id), publishType).firstOrNull().let(::toResponse)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

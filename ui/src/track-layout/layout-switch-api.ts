@@ -22,6 +22,7 @@ import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
@@ -149,30 +150,23 @@ export async function deleteDraftSwitch(
 export const getSwitchValidation = async (
     publishType: PublishType,
     id: LayoutSwitchId,
-): Promise<ValidatedAsset> =>
-    getSwitchesValidation(publishType, [id]).then((switches) => switches[0]);
+): Promise<ValidatedAsset | undefined> =>
+    getSwitchesValidation(publishType, [id]).then((switches) =>
+        switches.length > 0 ? switches[0] : undefined,
+    );
 
 export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
     const changeTimes = getChangeTimes();
-    const maxTime =
-        changeTimes.layoutSwitch > changeTimes.layoutLocationTrack
-            ? changeTimes.layoutSwitch
-            : changeTimes.layoutLocationTrack;
+    const maxTime = getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutSwitch);
+    const fetchOperation = (fetchIds: LayoutSwitchId[]) =>
+        getNonNull<ValidatedAsset[]>(
+            `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
+        ).then((switches) => {
+            const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(switches);
+            return (id: LayoutSwitchId) => switchValidationMap.get(id) as ValidatedAsset;
+        });
     return switchValidationCache
-        .getMany(
-            maxTime,
-            ids,
-            (id) => id,
-            (fetchIds) =>
-                getNonNull<ValidatedAsset[]>(
-                    `${layoutUri('switches', publishType)}/validation?ids=${fetchIds}`,
-                ).then((switches) => {
-                    const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(
-                        switches,
-                    );
-                    return (id) => switchValidationMap.get(id) as ValidatedAsset;
-                }),
-        )
+        .getMany(maxTime, ids, (id) => id, fetchOperation)
         .then((switches) => switches.filter(filterNotEmpty));
 };
 

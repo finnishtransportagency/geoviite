@@ -23,7 +23,6 @@ import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -32,46 +31,6 @@ class LocationTrackDaoIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
-
-    @Test
-    fun `Fetching duplicates across layout contexts works`() {
-        val tnId = insertOfficialTrackNumber()
-        val trackId = insertLocationTrack(locationTrackAndAlignment(tnId)).id
-
-        // Official track that is duplicate + draft version that is not
-        val track1Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = trackId)).id
-        assertEquals(
-            track1Id,
-            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track1Id)).copy(duplicateOf = null)).id,
-        )
-
-        // Official track that is not duplicate + draft version that is
-        val track2Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = null)).id
-        assertEquals(
-            track2Id,
-            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track2Id)).copy(duplicateOf = trackId)).id,
-        )
-
-        // Official track and draft, neither of which is duplicate
-        val track3Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = null)).id
-        assertEquals(
-            track3Id,
-            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track3Id)).copy(duplicateOf = null)).id,
-        )
-
-        // Official track and draft, both of which are duplicate
-        val track4Id = insertLocationTrack(locationTrackAndAlignment(tnId, duplicateOf = trackId)).id
-        assertEquals(
-            track4Id,
-            locationTrackDao.insert(draft(locationTrackDao.getOrThrow(DRAFT, track4Id)).copy(duplicateOf = trackId)).id,
-        )
-
-        // Find all but 3 (which isn't duplicate) and don't double-report 4
-        assertEquals(
-            listOf(track1Id, track2Id, track4Id).sortedBy { id -> id.intValue },
-            locationTrackDao.fetchDuplicateIdsInAnyLayoutContext(trackId).sortedBy { id -> id.intValue },
-        )
-    }
 
     @Test
     fun locationTrackSaveAndLoadWorks() {
@@ -264,27 +223,6 @@ class LocationTrackDaoIT @Autowired constructor(
     }
 
     @Test
-    fun findingLocationTracksByTrackNumberAndMomentWorks() {
-        val tnId = insertOfficialTrackNumber()
-
-        val firstVersion = insertOfficialLocationTrack(tnId).rowVersion
-        val firstVersionTime = locationTrackDao.fetchChangeTime()
-        Thread.sleep(1) // Ensure that they get different timestamps
-        val secondVersion = insertOfficialLocationTrack(tnId).rowVersion
-        val secondVersionTime = locationTrackDao.fetchChangeTime()
-        assertTrue { firstVersionTime < secondVersionTime }
-
-        assertEquals(
-            listOf(firstVersion),
-            locationTrackDao.fetchOfficialVersionsAtMoment(tnId, firstVersionTime),
-        )
-        assertEquals(
-            listOf(firstVersion, secondVersion).toSet(),
-            locationTrackDao.fetchOfficialVersionsAtMoment(tnId, secondVersionTime).toSet(),
-        )
-    }
-
-    @Test
     fun `Fetching official location tracks with empty id list works`() {
         val expected = locationTrackDao.fetchOfficialVersions(emptyList())
         assertEquals(expected.size, 0)
@@ -329,9 +267,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val entirelyMissing = IntId<LocationTrack>(0)
 
         val res = locationTrackDao.fetchOfficialVersions(
-            listOf(
-                locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing
-            )
+            listOf(locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing)
         )
         assertEquals(res.size, 2)
         assertContains(res, locationTrack1)

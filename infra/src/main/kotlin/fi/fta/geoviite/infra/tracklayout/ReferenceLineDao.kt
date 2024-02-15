@@ -71,7 +71,8 @@ class ReferenceLineDao(
               left join layout.alignment_version av on rl.alignment_id = av.id and rl.alignment_version = av.version
         """.trimIndent()
 
-        val referenceLines = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getReferenceLine(rs) }
+        val referenceLines = jdbcTemplate
+            .query(sql, mapOf<String, Any>()) { rs, _ -> getReferenceLine(rs) }
             .associateBy(ReferenceLine::version)
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
         cache.putAll(referenceLines)
