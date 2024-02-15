@@ -1168,7 +1168,7 @@
                     "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
                 },
                 "location-track": {
-                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia raiteita: {{locationTracks}}"
+                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen raiteita: {{locationTracks}}"
                 },
                 "km-post": {
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{kmPosts}}"
@@ -1273,7 +1273,7 @@
                 },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
                 "location-track": {
-                    "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen poistamattomia raiteita: {{locationTracks}}",
+                    "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{locationTracks}}",
                     "not-published": "Vaihteeseen liittyvä sijaintiraide ei ole mukana julkaisussa: {{locationTrack}}",
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja sijaintiraiteen vaihdepisteiden sijainnit eivät kohtaa: {{locationTracks}}",
