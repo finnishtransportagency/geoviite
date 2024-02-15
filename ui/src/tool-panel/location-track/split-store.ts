@@ -12,7 +12,7 @@ import { Point } from 'model/geometry';
 import { SplitDuplicate } from 'track-layout/layout-location-track-api';
 import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
 import liikennepaikat from 'liikennepaikat.json';
-import { pointInsidePolygon } from 'utils/math-utils';
+import { minOf } from 'utils/array-utils';
 
 const DUPLICATE_MAX_DISTANCE = 1.0;
 
@@ -99,11 +99,19 @@ type Station = {
     oid: string;
     name: string;
     abbr: string;
-    coordinates: number[][][];
+    location: Point;
 };
 
 function findStation(point: Point, stations: Station[]): Station | undefined {
-    return stations.find((station) => pointInsidePolygon(point, station.coordinates[0]));
+    const stationAndDistance = stations.map((s) => ({
+        station: s,
+        distance: getPlanarDistanceUnwrapped(point.x, point.y, s.location.x, s.location.y),
+    }));
+    const closest = minOf(
+        stationAndDistance,
+        ({ distance: dist1 }, { distance: dist2 }) => dist1 - dist2,
+    );
+    return closest?.station;
 }
 
 function getLocationTrackName(
@@ -183,11 +191,12 @@ function getTargetsWithUpdatedNames(
 }
 
 const stations = liikennepaikat.features.map((feature) => {
+    const coordinates = feature.geometry.geometries[0].coordinates as unknown as number[];
     const station: Station = {
         oid: feature.properties.tunniste,
         name: feature.properties.nimi,
         abbr: feature.properties.lyhenne.toUpperCase(),
-        coordinates: feature.geometry.geometries[1].coordinates as unknown as number[][][],
+        location: { x: coordinates[0], y: coordinates[1] },
     };
     return station;
 });

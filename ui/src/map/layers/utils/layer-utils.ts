@@ -47,7 +47,7 @@ export function centroid(polygon: Polygon): OlPoint {
  * @param pointA
  * @param pointB
  */
-function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
+export function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
     const pointACoords = pointA.getCoordinates();
     const pointBCoords = pointB.getCoordinates();
 
