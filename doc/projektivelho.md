@@ -1,5 +1,28 @@
 # Projektivelho
 
+## Yleistä
+
+ProjektiVelho-integraatio on tiedostojen käsin uploadaamisen ohella toinen tapa tuoda rata-aineistoja Geoviitteeseen.
+Tätä tarkoitusta varten on toteutettu integraatio, jossa Geoviite kyselee periodisesti ProjektiVelholta
+listauksen uusimmista sinne syötetyistä InfraModel-tiedostoista ja suodattaa niistä pois valistuneella arvauksella
+kaikki ei-rata-aineistot. Koska koneellinen suodatus ei ole pomminvarma, haettuja aineistoja ei lisätä käytettäviksi
+inframalleiksi, vaan ne ainoastaan listataan operaattoreille manuaalista läpikäyntiä varten. Lopullinen valta
+aineistojen hyväksymiseen ja hylkäämiseen on siis Geoviite-operaattorilla. 
+
+## Tekninen yleiskuvaus
+
+ProjektiVelho-integraatio on pull-tyyppinen integraatio, jossa Geoviite käy periodisesti hakemassa ProjektiVelhosta 
+kaikki sinne viimeisimmän onnistuneesti Geoviitteeseen tallennetun aineiston jälkeen lisätyt aineistot. Koska aineistoja on potentiaalisesti paljon, haku tehdään batcheissa (max. 100 aineistoa.) Prosessi menee jotakuinkin seuraavasti:
+- Geoviite käynnistää ProjektiVelhoon haun. Haku itsessään on async, ja ProjektiVelho palauttaa tässä vaiheessa 
+Geoviittelle haun id:n, jonka se tallentaa kantaan.
+- Haun suorittumista seurataan periodisesti. Tässä yhteydessä päivitetään myös ProjektiVelhon nimikkeistö.
+- Kun haku on valmis, haetaan sen tulokset erillisellä kutsulla.
+- Tämän jälkeen jokaisesta aineistosta haetaan metadatat (toimeksianto, projekti ja projektijoukko) sekä itse tiedosto.
+- Tiedosto koitetaan parsia IM-tiedostoksi. Jos parsinta epäonnistuu kokonaan, tiedosto hylätään.
+- Kaikista tiedostoista tallennetaan kantaan vähintään metadatat, paitsi tilanteessa jossa tiedoston tai sen metadatan hakemisessa menee jotain vikaan. Tätä käytetään
+
+Insert kaavio here
+
 ## Tietomalli
 
 Geooviitteeseen tallennetaan erikseen Projektivelhosta tuodut dokumentit sekä niihin liittyvät toimeksiannot, projektit
