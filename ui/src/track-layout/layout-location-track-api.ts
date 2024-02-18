@@ -87,6 +87,7 @@ export async function getLocationTrackInfoboxExtras(
     changeTime: TimeStamp = getMaxTimestamp(
         getChangeTimes().layoutLocationTrack,
         getChangeTimes().layoutSwitch,
+        getChangeTimes().split,
     ),
 ): Promise<LocationTrackInfoboxExtras | undefined> {
     return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, publishType), () =>

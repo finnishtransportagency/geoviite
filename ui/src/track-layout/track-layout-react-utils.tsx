@@ -220,12 +220,11 @@ export function useLocationTrackStartAndEnd(
 export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
     publishType: PublishType,
-    locationTrackChangeTime: TimeStamp,
-    switchChangeTime: TimeStamp,
+    ...changeTimes: TimeStamp[]
 ): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
-        [id, publishType, locationTrackChangeTime, switchChangeTime],
+        [id, publishType, getMaxTimestampFromArray(changeTimes)],
     );
 }
 export function useConflictingTracks(

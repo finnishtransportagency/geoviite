@@ -83,6 +83,7 @@ type LocationTrackInfoboxProps = {
     locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     switchChangeTime: TimeStamp;
+    splitChangeTime: TimeStamp;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
@@ -105,6 +106,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     locationTrackChangeTime,
     trackNumberChangeTime,
     switchChangeTime,
+    splitChangeTime,
     onSelect,
     onUnselect,
     viewport,
@@ -208,6 +210,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         publishType,
         locationTrackChangeTime,
         switchChangeTime,
+        splitChangeTime,
     );
 
     const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
