@@ -1,6 +1,9 @@
 import { TimeStamp } from 'common/common-model';
 import { getUnsafe } from 'utils/type-utils';
 
+export const head = <T>(arr: T[]) => arr[0];
+export const last = <T>(arr: T[]) => arr[arr.length - 1];
+
 export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
 }
@@ -234,14 +237,14 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
-    let min = getUnsafe(values[0]);
+    let min = head(values);
     let minIndex = 0;
-    for (let i = 1; i < values.length; i++) {
-        if (getUnsafe(values[i]) < min) {
-            min = getUnsafe(values[i]);
-            minIndex = i;
+    values.forEach((value, index) => {
+        if (value < getUnsafe(min)) {
+            min = value;
+            minIndex = index;
         }
-    }
+    });
     return minIndex;
 }
 

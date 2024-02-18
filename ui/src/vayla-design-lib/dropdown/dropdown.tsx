@@ -5,7 +5,7 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { useImmediateLoader } from 'utils/react-utils';
-import { getUnsafe } from 'utils/type-utils';
+import { head } from 'utils/array-utils';
 
 export enum DropdownSize {
     SMALL = 'dropdown--small',
@@ -73,7 +73,7 @@ export const Dropdown = function <TItemValue>({
     const { isLoading, load: loadOptions } = useImmediateLoader((options: Item<TItemValue>[]) => {
         const activeOptions = options.filter((option) => !option.disabled);
         if (earlySelect.current && activeOptions.length === 1) {
-            select(getUnsafe(activeOptions[0]).value);
+            select(head(activeOptions)?.value);
         } else {
             setLoadedOptions(options);
         }

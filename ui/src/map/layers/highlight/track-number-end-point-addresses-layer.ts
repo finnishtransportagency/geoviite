@@ -33,7 +33,7 @@ import {
     indicatorTextBackgroundHeight,
     indicatorTextPadding,
 } from 'map/layers/utils/dashed-line-indicator-utils';
-import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
+import { getCoordsUnsafe } from 'utils/type-utils';
 
 let newestLayerId = 0;
 
@@ -134,28 +134,17 @@ function createAddressFeatures(
 
         const features: Feature<OlPoint>[] = [];
         const points = referenceLine.points;
+        const [startPoint, startControlPoint] = [points[0], points[1]];
 
-        if (startAddress && color) {
+        if (startAddress && startPoint && startControlPoint && color) {
             features.push(
-                createAddressFeature(
-                    getUnsafe(points[0]),
-                    getUnsafe(points[1]),
-                    startAddress,
-                    false,
-                    color,
-                ),
+                createAddressFeature(startPoint, startControlPoint, startAddress, false, color),
             );
         }
 
-        if (endAddress && color) {
-            const lastIndex = points.length - 1;
-            const f = createAddressFeature(
-                getUnsafe(points[lastIndex - 1]),
-                getUnsafe(points[lastIndex]),
-                endAddress,
-                true,
-                color,
-            );
+        const [endPoint, endControlPoint] = [points[points.length - 1], points[points.length - 2]];
+        if (endAddress && endPoint && endControlPoint && color) {
+            const f = createAddressFeature(endPoint, endControlPoint, endAddress, true, color);
 
             features.push(f);
         }

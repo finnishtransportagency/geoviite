@@ -56,10 +56,11 @@ export function getMatchingLocationTrackIdsForJoints(
         .flatMap((joint) => joint.accurateMatches.map((m) => m.locationTrackId))
         .filter(filterUnique);
     return locationTrackIds.filter((locationTrackId) => {
-        return [
-            getUnsafe(jointsOfAlignment[0]),
-            getUnsafe(jointsOfAlignment[jointsOfAlignment.length - 1]),
-        ].every((joint) => joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId));
+        return [jointsOfAlignment[0], jointsOfAlignment[jointsOfAlignment.length - 1]]
+            .filter(filterNotEmpty)
+            .every((joint) =>
+                joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId),
+            );
     });
 }
 

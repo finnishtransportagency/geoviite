@@ -44,7 +44,7 @@ export const exhaustiveMatchingGuard = (_: never): never => {
     throw new Error('Should not have reached this code');
 };
 
-export const isNil = <T>(object: T) => object === undefined || object === null;
+export const isNil = <T>(object: T | undefined | null) => object === undefined || object === null;
 
 // Prefer actual nil checks, only use this if you KNOW the index exists
 export const getUnsafe = <T>(thing: T): NonNullable<T> => {

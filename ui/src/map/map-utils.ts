@@ -3,23 +3,26 @@ import OlView from 'ol/View';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import { BoundingBox, Point } from 'model/geometry';
 import { getUnsafe } from 'utils/type-utils';
+import { head } from 'utils/array-utils';
 
 // offset used for defining a suitable boundingBox around a single location (Point)
 export const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
 export const MAP_POINT_NEAR_BBOX_OFFSET = 78;
 export const MAP_POINT_CLOSEUP_BBOX_OFFSET = 38;
+const LAST_RESOLUTION_INDEX = 21;
 
 // Resolutions to use to load stuff from backend
 const tileResolutions: number[] = [];
-for (let i = 0; i < 22; i++) {
+for (let i = 0; i <= LAST_RESOLUTION_INDEX; i++) {
     tileResolutions[i] = 200000 / Math.pow(2, i);
 }
 
 export function calculateMapTiles(view: OlView, tileSizePx: number | undefined): MapTile[] {
     // Find a resolution that corresponds to the resolution in the view
-    const actualResolution = view.getResolution() || getUnsafe(tileResolutions[0]);
+    const actualResolution = view.getResolution() || head(tileResolutions);
     const tileResolutionIndex = tileResolutions.findIndex(
-        (resolution, index) => resolution < actualResolution || index == tileResolutions.length - 1,
+        (resolution, index) =>
+            (actualResolution && resolution < actualResolution) || index == LAST_RESOLUTION_INDEX,
     );
     // Use OL tile grid to calc tiles
     const tileGrid = new TileGrid({

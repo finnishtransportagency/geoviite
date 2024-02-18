@@ -13,7 +13,7 @@ import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
-import { exhaustiveMatchingGuard, getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, getCoordsUnsafe } from 'utils/type-utils';
 
 const tickImageCache = cache<string, RegularShape>();
 
@@ -60,7 +60,9 @@ export function getTickStyles(
     length: number,
     style: Style,
 ): Style[] {
-    if (points.length < 2) {
+    const last = points[points.length - 1];
+    const secondToLast = points[points.length - 2];
+    if (!last || !secondToLast) {
         return [];
     }
     return mValues
@@ -68,9 +70,8 @@ export function getTickStyles(
             const coordinate = getCoordinate(points, m);
             if (!coordinate) {
                 return undefined;
-            } else if (m >= getUnsafe(points[points.length - 1]).m) {
-                const prev = getUnsafe(points[points.length - 2]);
-                return getTickStyle(pointToCoords(prev), coordinate, length, 'end', style);
+            } else if (m >= last.m) {
+                return getTickStyle(pointToCoords(secondToLast), coordinate, length, 'end', style);
             } else {
                 const next = points.find((p) => p.m > m);
                 return next
@@ -85,14 +86,14 @@ function getCoordinate(points: AlignmentPoint[], m: number): number[] | undefine
     const nextIndex = points.findIndex((p) => p.m >= m);
     const next = points[nextIndex];
     const prev = points[nextIndex - 1];
-    if (nextIndex < 0 || nextIndex >= points.length) {
+    if (!next) {
         return undefined;
     } else if (next?.m === m) {
         return pointToCoords(next);
-    } else if (nextIndex === 0) {
+    } else if (!prev) {
         return undefined;
     } else {
-        return interpolateXY(getUnsafe(prev), getUnsafe(next), m);
+        return interpolateXY(prev, next, m);
     }
 }
 
@@ -177,12 +178,13 @@ export function createEndPointTicks(
     tickStyle: Style,
 ): Feature<OlPoint>[] {
     const ticks: Feature<OlPoint>[] = [];
-    const points = alignment.points;
+    const first = alignment.points[0];
+    const second = alignment.points[1];
 
-    if (points.length >= 2) {
-        if (points[0]?.m === 0) {
-            const fP = pointToCoords(points[0]);
-            const sP = pointToCoords(getUnsafe(points[1]));
+    if (first && second) {
+        if (first.m === 0) {
+            const fP = pointToCoords(first);
+            const sP = pointToCoords(second);
 
             const startF = new Feature({ geometry: new OlPoint(fP) });
 
@@ -191,10 +193,11 @@ export function createEndPointTicks(
             ticks.push(startF);
         }
 
-        const lastIdx = points.length - 1;
-        if (points[lastIdx]?.m === alignment.header.length) {
-            const lP = pointToCoords(getUnsafe(points[lastIdx]));
-            const sLP = pointToCoords(getUnsafe(points[lastIdx - 1]));
+        const last = alignment.points[alignment.points.length - 1];
+        const secondToLast = alignment.points[alignment.points.length - 2];
+        if (last?.m === alignment.header.length && secondToLast) {
+            const lP = pointToCoords(last);
+            const sLP = pointToCoords(secondToLast);
 
             const endF = new Feature({ geometry: new OlPoint(lP) });
 

@@ -40,7 +40,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
+import { getCoordsUnsafe } from 'utils/type-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -353,12 +353,11 @@ function getPointsByOrder(
     orderStart?: number,
     orderEnd?: number,
 ): LinkPoint[] {
-    if (points.length === 0 || orderStart === undefined || orderEnd === undefined) return [];
-    else if (
-        orderEnd < getUnsafe(points[0]).m ||
-        orderStart > getUnsafe(points[points.length - 1]).m
-    )
-        return [];
+    const first = points[0];
+    const last = points[points.length - 1];
+
+    if (!first || !last || orderStart === undefined || orderEnd === undefined) return [];
+    else if (orderEnd < first.m || orderStart > last.m) return [];
     else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
@@ -925,10 +924,10 @@ export function createAlignmentLinkingLayer(
                             highlightedItems: {
                                 ...selection.highlightedItems,
                                 layoutLinkPoints: linkPointAddresses.layoutHighlight
-                                    ? [getUnsafe(linkPointAddresses.layoutHighlight)]
+                                    ? [linkPointAddresses.layoutHighlight]
                                     : [],
                                 geometryLinkPoints: linkPointAddresses.geometryHighlight
-                                    ? [getUnsafe(linkPointAddresses.geometryHighlight)]
+                                    ? [linkPointAddresses.geometryHighlight]
                                     : [],
                             },
                         },
@@ -996,12 +995,12 @@ export function createAlignmentLinkingLayer(
                 const onGeometryLine = containsType(features, FeatureType.GeometryLine);
 
                 if (onLayoutLine && onGeometryLine) {
-                    const closestPoint = getUnsafe(linkPointFeatures[0]);
+                    const closestPoint = linkPointFeatures[0];
                     const closestPointType = getFeatureType(closestPoint);
 
-                    if (closestPointType === FeatureType.GeometryPoint) {
+                    if (closestPoint && closestPointType === FeatureType.GeometryPoint) {
                         geometryLinkPoint = getFeatureData(closestPoint);
-                    } else if (closestPointType === FeatureType.LayoutPoint) {
+                    } else if (closestPoint && closestPointType === FeatureType.LayoutPoint) {
                         layoutLinkPoint = getFeatureData(closestPoint);
                     }
                 } else if (onGeometryLine) {

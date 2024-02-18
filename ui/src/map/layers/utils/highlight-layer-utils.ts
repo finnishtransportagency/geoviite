@@ -3,10 +3,9 @@ import { AlignmentHighlight } from 'map/map-model';
 import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
 import { getPartialPolyLine } from 'utils/math-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, head, last } from 'utils/array-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-import { getUnsafe } from 'utils/type-utils';
 
 export function createHighlightFeatures(
     alignments: AlignmentDataHolder[],
@@ -17,12 +16,9 @@ export function createHighlightFeatures(
         return linkingInfo
             .filter((h) => h.id === header.id && h.type == header.alignmentType)
             .flatMap(({ ranges }) => {
+                const [first, lst] = [head(points), last(points)];
                 return ranges
-                    .filter(
-                        (r) =>
-                            r.max > getUnsafe(points[0]).m &&
-                            r.min < getUnsafe(points[points.length - 1]).m,
-                    )
+                    .filter((r) => first && lst && r.max > first.m && r.min < lst.m)
                     .map((r) => {
                         const pointsWithinRange = getPartialPolyLine(points, r.min, r.max);
                         return pointsWithinRange.length > 1
