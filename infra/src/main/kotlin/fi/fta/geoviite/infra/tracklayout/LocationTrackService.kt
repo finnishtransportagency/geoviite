@@ -168,6 +168,12 @@ class LocationTrackService(
     }
 
     @Transactional
+    fun fetchDuplicatesWithAlignments(id: IntId<LocationTrack>) = dao
+        .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
+        .map(dao::fetch)
+        .let(::associateWithAlignments)
+
+    @Transactional
     fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
         .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
         .map(dao::fetch)
