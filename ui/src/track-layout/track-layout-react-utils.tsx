@@ -58,7 +58,8 @@ import {
 } from 'common/change-time-api';
 import { deduplicate } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
-import { getMaxTimestampFromArray } from 'utils/date-utils';
+import { getMaxTimestamp } from 'utils/date-utils';
+import { ChangeTimes } from 'common/common-slice';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -202,29 +203,33 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
-    ...changeTimes: TimeStamp[]
+    changeTimes: ChangeTimes,
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+    );
     return useLoaderWithStatus(
         () =>
             id && publishType
-                ? getLocationTrackStartAndEnd(
-                      id,
-                      publishType,
-                      getMaxTimestampFromArray(changeTimes),
-                  )
+                ? getLocationTrackStartAndEnd(id, publishType, changeTime)
                 : undefined,
-        [id, publishType, ...changeTimes],
+        [id, publishType, changeTime],
     );
 }
 
 export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
     publishType: PublishType,
-    ...changeTimes: TimeStamp[]
+    changeTimes: ChangeTimes,
 ): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
     return useLoaderWithStatus(
-        () => (id === undefined ? undefined : getLocationTrackInfoboxExtras(id, publishType)),
-        [id, publishType, getMaxTimestampFromArray(changeTimes)],
+        () =>
+            id === undefined
+                ? undefined
+                : getLocationTrackInfoboxExtras(id, publishType, changeTimes),
+        [id, publishType, changeTimes],
     );
 }
 export function useConflictingTracks(

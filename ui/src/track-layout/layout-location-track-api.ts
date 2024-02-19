@@ -31,6 +31,7 @@ import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
+import { ChangeTimes } from 'common/common-slice';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
 const locationTrackInfoboxExtrasCache = asyncCache<
@@ -84,12 +85,13 @@ export async function getLocationTrack(
 export async function getLocationTrackInfoboxExtras(
     id: LocationTrackId,
     publishType: PublishType,
-    changeTime: TimeStamp = getMaxTimestamp(
-        getChangeTimes().layoutLocationTrack,
-        getChangeTimes().layoutSwitch,
-        getChangeTimes().split,
-    ),
+    changeTimes: ChangeTimes,
 ): Promise<LocationTrackInfoboxExtras | undefined> {
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.split,
+    );
     return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, publishType), () =>
         getNullable<LocationTrackInfoboxExtras>(
             `${layoutUri('location-tracks', publishType, id)}/infobox-extras`,

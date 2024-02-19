@@ -54,10 +54,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 }}
                 showArea={delegates.showArea}
                 publishType={trackLayoutState.publishType}
-                locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                switchChangeTime={changeTimes.layoutSwitch}
-                trackNumberChangeTime={changeTimes.layoutTrackNumber}
-                splitChangeTime={changeTimes.split}
+                changeTimes={changeTimes}
                 onSelect={delegates.onSelect}
                 onUnselect={delegates.onUnselect}
                 viewport={trackLayoutState.map.viewport}

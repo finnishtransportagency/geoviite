@@ -12,7 +12,6 @@ import {
     useLocationTrack,
     useTrackNumberReferenceLine,
 } from 'track-layout/track-layout-react-utils';
-import { getMaxTimestamp } from 'utils/date-utils';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 type GeometryAlignmentLinkingContainerProps = {
@@ -55,12 +54,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             selectedLayoutLocationTrack={locationTrack}
             selectedLayoutReferenceLine={referenceLine}
             planId={planId}
-            locationTrackChangeTime={getMaxTimestamp(
-                changeTimes.layoutReferenceLine,
-                changeTimes.layoutLocationTrack,
-            )}
-            switchChangeTime={changeTimes.layoutSwitch}
-            trackNumberChangeTime={changeTimes.layoutTrackNumber}
+            changeTimes={changeTimes}
             linkingState={trackLayoutState.linkingState}
             onLinkingStart={(params) => {
                 delegates.showLayers(['alignment-linking-layer']);

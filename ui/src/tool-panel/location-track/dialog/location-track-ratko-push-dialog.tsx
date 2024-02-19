@@ -10,14 +10,15 @@ import {
 import styles from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { KmNumber, TimeStamp } from 'common/common-model';
+import { KmNumber } from 'common/common-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { pushLocationTracksToRatko } from 'ratko/ratko-api';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import { ChangeTimes } from 'common/common-slice';
 
 export type LocationTrackRatkoPushDialogProps = {
     locationTrackId: LocationTrackId;
-    locationTrackChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     onClose: () => void;
 };
 
@@ -51,13 +52,13 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
     const locationTrack = useLocationTrack(
         props.locationTrackId,
         'OFFICIAL',
-        props.locationTrackChangeTime,
+        props.changeTimes.layoutLocationTrack,
     );
 
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         'OFFICIAL',
-        props.locationTrackChangeTime,
+        props.changeTimes,
     );
     const [startKm, setStartKm] = React.useState<KmNumber>();
     const [endKm, setEndKm] = React.useState<KmNumber>();
