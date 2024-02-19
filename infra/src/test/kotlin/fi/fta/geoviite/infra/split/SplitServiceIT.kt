@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -24,6 +25,47 @@ class SplitServiceIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
 
+    // The run order of the tests in this test suite matters if the database is not cleaned before each test.
+    // This gave false positive results for tests.
+    //
+    // This cleanup code can be removed after GVT-2484 has been implemented.
+    @BeforeEach
+    fun clear() {
+        deleteFromTables(
+            schema = "layout",
+            tables = arrayOf(
+                "alignment",
+                "alignment_version",
+                "km_post",
+                "km_post_version",
+                "location_track",
+                "location_track_version",
+                "reference_line",
+                "reference_line_version",
+                "switch",
+                "switch_version",
+                "switch_joint",
+                "switch_joint_version",
+                "track_number",
+                "track_number_version",
+                "segment_version",
+                "segment_geometry",
+            )
+        )
+
+        deleteFromTables(
+            schema = "publication",
+            tables = arrayOf(
+                "split",
+                "split_version",
+                "split_relinked_switch",
+                "split_relinked_switch_version",
+                "split_target_location_track",
+                "split_Target_location_track_version",
+            )
+        )
+    }
+
     @Test
     fun `location track split should work based on request`() {
         val switchStart = Point(0.0, 0.0)
@@ -35,8 +77,10 @@ class SplitServiceIT @Autowired constructor(
             segment(switchStart + Point(-20.0, 0.0), switchStart + Point(-10.0, 0.0)),
             segment(switchStart + Point(-10.0, 0.0), switchStart + Point(0.0, 0.0)),
         )
-        // Create segments that match the switch structure for re-linking to work
+        // Create segments & branching track that match the switch structure for re-linking to work
         val switchSegments = segmentsFromSwitchStructure(switchStart, switchId, structure, listOf(1, 5, 2))
+        insertBranchingSwitchAlignment(switchStart, switchId, structure, listOf(1, 3))
+
         val switchEnd = switchSegments.last().segmentPoints.last()
         // Some segments in the end
         val postSwitchSegments = listOf(
@@ -114,6 +158,137 @@ class SplitServiceIT @Autowired constructor(
         assertEquals(splitId, foundSplits.first().id)
     }
 
+    @Test
+    fun `Duplicate tracks should be reassigned to most overlapping tracks if left unused`() {
+        val trackNumberId = insertOfficialTrackNumber()
+        insertReferenceLine(
+            referenceLine(trackNumberId = trackNumberId),
+            alignment(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
+        )
+
+        val switchStartPoints = listOf(
+            Point(100.0, 0.0),
+            Point(200.0, 0.0),
+            Point(300.0, 0.0),
+            Point(400.0, 0.0),
+            Point(500.0, 0.0),
+        )
+
+        val (
+            switchesAndSegments,
+            alignment
+        ) = alignmentWithMultipleSwitches(switchStartPoints)
+
+        val sourceTrack = insertLocationTrack(
+            locationTrack(trackNumberId = trackNumberId),
+            alignment,
+        )
+
+        val duplicateIds = listOf(
+            insertLocationTrack(
+                locationTrack(
+                    name = "Used duplicate between first and second switch",
+                    trackNumberId = trackNumberId,
+                    duplicateOf = sourceTrack.id,
+                ),
+                alignment(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
+            ),
+
+            insertLocationTrack(
+                locationTrack(
+                    name = "Unused dupe with full overlap",
+                    trackNumberId = trackNumberId,
+                    duplicateOf = sourceTrack.id,
+                ),
+                alignment(segment(Point(250.0, 0.0), Point(275.0, 0.0))),
+            ),
+
+            insertLocationTrack(
+                locationTrack(
+                    name = "Unused dupe with partial overlap of two new tracks",
+                    trackNumberId = trackNumberId,
+                    duplicateOf = sourceTrack.id,
+                ),
+                alignment(segment(Point(275.0, 0.0), Point(350.0, 0.0))),
+            ),
+
+            insertLocationTrack(
+                locationTrack(
+                    name = "Unused dupe with flipped partial overlap",
+                    trackNumberId = trackNumberId,
+                    duplicateOf = sourceTrack.id,
+                ),
+                alignment(segment(Point(370.0, 0.0), Point(410.0, 0.0))),
+            ),
+        ).map { daoResponse -> daoResponse.id }
+
+        val splitRequest = SplitRequest(
+            sourceTrack.id,
+            listOf(
+                targetRequest(
+                    null,
+                    "track start"
+                ),
+                targetRequest(
+                    switchesAndSegments.switchIds[0],
+                    "used dupe track between switch 0 and 1",
+                    duplicateTrackId = duplicateIds[0]
+                ),
+                targetRequest(
+                    switchesAndSegments.switchIds[1],
+                    "track with full dupe overlap after split",
+                ),
+                targetRequest(
+                    switchesAndSegments.switchIds[2],
+                    "track with partial dupe overlap after split",
+                ),
+                targetRequest(
+                    switchesAndSegments.switchIds[3],
+                    "track with flipped partial overlap",
+                ),
+                targetRequest(
+                    switchesAndSegments.switchIds[4],
+                    "track end",
+                ),
+            ),
+        )
+        val splitResult = splitDao.getOrThrow(splitService.split(splitRequest))
+
+        val usedDuplicateTrackAfterSplit = locationTrackService.getOrThrow(DRAFT, splitResult.targetLocationTracks[1].locationTrackId)
+        val unusedDuplicateFullyOverlappingNewTrack = locationTrackService.getOrThrow(DRAFT, duplicateIds[1])
+        val unusedDuplicatePartiallyOverlappingNewTrack = locationTrackService.getOrThrow(DRAFT, duplicateIds[2])
+        val unusedDuplicateWithFlippedPartialOverlap = locationTrackService.getOrThrow(DRAFT, duplicateIds[3])
+
+        assertEquals(null, usedDuplicateTrackAfterSplit.duplicateOf)
+
+        assertEquals(
+            splitResult.targetLocationTracks[2].locationTrackId,
+            unusedDuplicateFullyOverlappingNewTrack.duplicateOf
+        )
+
+        assertEquals(
+            splitResult.targetLocationTracks[3].locationTrackId,
+            unusedDuplicatePartiallyOverlappingNewTrack.duplicateOf
+        )
+
+        assertEquals(
+            // Same target location track index as above on purpose.
+            splitResult.targetLocationTracks[3].locationTrackId,
+            unusedDuplicateWithFlippedPartialOverlap.duplicateOf
+        )
+    }
+
+    private fun insertBranchingSwitchAlignment(
+        start: Point,
+        switchId: IntId<TrackLayoutSwitch>,
+        structure: SwitchStructure,
+        line: List<Int>,
+    ): IntId<LocationTrack> {
+        val alignment = alignment(segmentsFromSwitchStructure(start, switchId, structure, line))
+        val trackNumberId = insertOfficialTrackNumber()
+        return insertLocationTrack(locationTrack(trackNumberId), alignment).id
+    }
+
     private fun getYvStructure(): SwitchStructure =
         requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })
 
@@ -141,5 +316,68 @@ class SplitServiceIT @Autowired constructor(
             listOf(SplitTarget(endTrack.id, 0..0)),
             listOf(relinkedSwitchId),
         )
+    }
+
+    private data class SwitchesAndSegments(
+        val switchIds: List<IntId<TrackLayoutSwitch>> = emptyList(),
+        val switchStartPoints: List<Point> = emptyList(),
+        val segments: List<LayoutSegment> = emptyList(),
+    )
+
+    private fun alignmentWithMultipleSwitches(
+        startPoints: List<Point>,
+        structure: SwitchStructure = getYvStructure(),
+    ): Pair<SwitchesAndSegments, LayoutAlignment> {
+        val segmentsBeforeFirstSwitch = startPoints.first().toPoint().let { firstSwitchStart ->
+            listOf(
+                segment(
+                    Point(firstSwitchStart.x - 20.0, firstSwitchStart.y),
+                    Point(firstSwitchStart.x - 10.0, firstSwitchStart.y)
+                ),
+                segment(
+                    Point(firstSwitchStart.x - 10.0, firstSwitchStart.y),
+                    Point(firstSwitchStart.x, firstSwitchStart.y)
+                )
+            )
+        }
+
+        val initialSwitchesAndSegments = SwitchesAndSegments(
+            segments = segmentsBeforeFirstSwitch,
+        )
+
+        return startPoints.zip(
+            startPoints.drop(1) + null
+        ).fold(initialSwitchesAndSegments) { switchesAndSegments, (startPoint, nextStartPoint) ->
+            val switchId = insertSwitch(
+                switchFromDbStructure(getUnusedSwitchName().toString(), startPoint, structure)
+            ).id
+
+            val switchSegments = segmentsFromSwitchStructure(startPoint, switchId, structure, listOf(1, 5, 2))
+
+            // For the switch relinking to have another track to find near the start of every switch.
+            insertBranchingSwitchAlignment(startPoint, switchId, structure, listOf(1, 3))
+
+            val switchEnd = switchSegments.last().segmentPoints.last()
+            val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)
+            val segmentAfterSwitch = segment(switchEnd, pointAfterSwitch)
+
+            val postSwitchSegments = nextStartPoint?.let { actualNextStartPoint ->
+                listOf(
+                    segmentAfterSwitch,
+                    segment(pointAfterSwitch, actualNextStartPoint)
+                )
+            } ?: listOf(
+                segmentAfterSwitch,
+                segment(pointAfterSwitch, Point(pointAfterSwitch.x + 10.0, pointAfterSwitch.y))
+            )
+
+            SwitchesAndSegments(
+                switchIds = switchesAndSegments.switchIds + switchId,
+                switchStartPoints = switchesAndSegments.switchStartPoints + startPoint,
+                segments = switchesAndSegments.segments + switchSegments + postSwitchSegments
+            )
+        }.let { switchesAndSegments ->
+            switchesAndSegments to alignment(switchesAndSegments.segments)
+        }
     }
 }

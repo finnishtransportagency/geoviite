@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.SplitFailureException
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
@@ -234,14 +235,63 @@ class SplitService(
             alignment = alignment,
             targets = collectSplitTargetParams(request.targetTracks, suggestions),
         )
-        val splitTargets = targetTracks.map(::saveTargetTrack)
+
+        val savedSplitTargetLocationTracks = targetTracks.map { targetTrack ->
+            targetTrack.copy(
+                locationTrack = targetTrack.locationTrack.copy(
+                    id = saveTargetTrack(targetTrack)
+                ),
+            )
+        }
+
+        geocodingService.getGeocodingContext(DRAFT, sourceTrack.trackNumberId)?.let { geocodingContext ->
+            val splitTargetTracksWithAlignments = savedSplitTargetLocationTracks.map { splitTargetResult ->
+                splitTargetResult.locationTrack to splitTargetResult.alignment
+            }
+
+            updateUnusedDuplicateReferencesToSplitTargetTracks(
+                geocodingContext,
+                request,
+                splitTargetTracksWithAlignments,
+            )
+        }
 
         locationTrackService.updateState(request.sourceTrackId, LayoutState.DELETED)
-        return splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
+
+        return savedSplitTargetLocationTracks.map { splitTargetResult ->
+            SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices)
+        }.let { splitTargets ->
+            splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
+        }
     }
 
-    private fun saveTargetTrack(target: SplitTargetResult): SplitTarget{
-        val id = locationTrackService.saveDraft(
+    private fun updateUnusedDuplicateReferencesToSplitTargetTracks(
+        geocodingContext: GeocodingContext,
+        splitRequest: SplitRequest,
+        splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    ) {
+        val unusedDuplicates = locationTrackService.fetchDuplicates(splitRequest.sourceTrackId)
+            .filter { locationTrackDuplicate  ->
+                !splitRequest.targetTracks.any { targetTrack ->
+                    targetTrack.duplicateTrackId == locationTrackDuplicate.id
+                }
+            }
+            .map { unusedDuplicateTrack -> unusedDuplicateTrack.id as IntId }
+            .let { unusedDuplicateIds ->
+                locationTrackService.getManyWithAlignments(DRAFT, unusedDuplicateIds)
+            }
+
+        findNewLocationTracksForUnusedDuplicates(
+            geocodingContext,
+            unusedDuplicates,
+            splitTargetLocationTracks,
+        ).forEach { updatedDuplicate ->
+            locationTrackService.saveDraft(updatedDuplicate)
+        }
+    }
+
+    private fun saveTargetTrack(target: SplitTargetResult): IntId<LocationTrack> {
+        return locationTrackService.saveDraft(
             draft = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 track = target.locationTrack,
                 alignment = target.alignment,
@@ -250,7 +300,6 @@ class SplitService(
             ),
             alignment = target.alignment,
         ).id
-        return SplitTarget(id, target.indices)
     }
 
     private fun collectSplitTargetParams(
@@ -441,5 +490,97 @@ private fun verifySwitchSuggestions(
         )
     } else {
         id to suggestion
+    }
+}
+
+private fun findNewLocationTracksForUnusedDuplicates(
+    geocodingContext: GeocodingContext,
+    unusedDuplicates: List<Pair<LocationTrack, LayoutAlignment>>,
+    splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): List<LocationTrack> {
+
+    data class MostOverlappingLocationTrackReference(
+        val locationTrack: LocationTrack? = null,
+        val overlapPercentage: Double = 0.0,
+    )
+
+    val geocodedUnusedDuplicates = unusedDuplicates
+        .mapNotNull { (unusedDuplicate, alignment) ->
+            getAlignmentStartAndEndM(geocodingContext, alignment)?.let { startAndEnd ->
+                unusedDuplicate to startAndEnd
+            }
+        }
+
+    val geocodedSplitTargets = splitTargetLocationTracks
+        .mapNotNull { (locationTrack, alignment) ->
+            getAlignmentStartAndEndM(geocodingContext, alignment)?.let { startEnd ->
+                locationTrack to startEnd
+            }
+        }
+
+    return geocodedUnusedDuplicates.map { (duplicate, duplicateStartAndEnd) ->
+        geocodedSplitTargets
+            .fold(
+                MostOverlappingLocationTrackReference()
+            ) { currentBest, (splitTarget, splitTargetStartEnd) ->
+
+                if (currentBest.overlapPercentage > 99.9) {
+                    currentBest
+                } else {
+                    val overlapStart = maxOf(duplicateStartAndEnd.start, splitTargetStartEnd.start)
+                    val overlapEnd = minOf(duplicateStartAndEnd.end, splitTargetStartEnd.end)
+
+                    val overlap = maxOf(0.0, overlapEnd - overlapStart)
+                    val intervalLength = duplicateStartAndEnd.end - duplicateStartAndEnd.start
+
+                    val overlapPercentage = overlap / intervalLength * 100
+                    if (overlapPercentage > currentBest.overlapPercentage) {
+                        MostOverlappingLocationTrackReference(
+                            locationTrack = splitTarget,
+                            overlapPercentage = overlapPercentage,
+                        )
+                    } else {
+                        currentBest
+                    }
+                }
+
+            }.let { bestNewLocationTrackReference ->
+                val newReferenceTrackId = bestNewLocationTrackReference.locationTrack?.id as IntId?
+                checkNotNull(newReferenceTrackId) {
+                    "Could not find a new location track reference for an unused duplicate!"
+                }
+
+                duplicate.copy(duplicateOf = newReferenceTrackId)
+            }
+    }
+}
+
+private data class AlignmentStartAndEndMeters(
+    val start: Double,
+    val end: Double,
+)
+
+private fun getAlignmentStartAndEndM(
+    geocodingContext: GeocodingContext,
+    alignment: LayoutAlignment
+): AlignmentStartAndEndMeters? {
+    val alignmentStart = alignment.start
+    val alignmentEnd = alignment.end
+
+    return if (alignmentStart != null && alignmentEnd != null) {
+        val startMeters = geocodingContext.getM(alignmentStart)?.first
+        val endMeters = geocodingContext.getM(alignmentEnd)?.first
+
+        when {
+            startMeters == null -> null
+            endMeters == null -> null
+
+            else -> AlignmentStartAndEndMeters(
+                start = startMeters,
+                end = endMeters,
+            )
+        }
+    } else {
+        null
     }
 }
