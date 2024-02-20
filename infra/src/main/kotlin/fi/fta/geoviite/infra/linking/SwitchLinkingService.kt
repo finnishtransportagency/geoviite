@@ -1174,7 +1174,7 @@ class SwitchLinkingService @Autowired constructor(
         val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(trackId)
         val track = trackVersion.let(locationTrackDao::fetch)
         val switchSuggestions = getTrackSwitchSuggestions(DRAFT, track)
-        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)) {
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(DRAFT, track.trackNumberId)) {
             "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
         }
         return switchSuggestions.map { (switchId, suggestedSwitch) ->
