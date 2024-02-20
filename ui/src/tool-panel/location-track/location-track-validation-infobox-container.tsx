@@ -15,6 +15,7 @@ type LocationTrackValidationInfoboxProps = {
     onContentVisibilityChange: () => void;
     linkedSwitchesCount: number;
     showLinkedSwitchesRelinkingDialog: () => void;
+    editingDisabled: boolean;
 };
 
 export const LocationTrackValidationInfoboxContainer: React.FC<
@@ -26,6 +27,7 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
     contentVisible,
     onContentVisibilityChange,
     showLinkedSwitchesRelinkingDialog,
+    editingDisabled,
 }) => {
     const { t } = useTranslation();
     const [validation, validationLoaderStatus] = useLoaderWithStatus(
@@ -44,11 +46,13 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
             errors={errors}
             warnings={warnings}
             validationLoaderStatus={validationLoaderStatus}>
-            <div>
-                <Button onClick={showLinkedSwitchesRelinkingDialog}>
-                    {t('tool-panel.location-track.open-switch-relinking-dialog')}
-                </Button>
-            </div>
+            {publishType === 'OFFICIAL' || (
+                <div>
+                    <Button disabled={editingDisabled} onClick={showLinkedSwitchesRelinkingDialog}>
+                        {t('tool-panel.location-track.open-switch-relinking-dialog')}
+                    </Button>
+                </div>
+            )}
         </AssetValidationInfobox>
     );
 };

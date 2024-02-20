@@ -622,6 +622,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     changeTime={locationTrackChangeTime}
                     linkedSwitchesCount={extraInfo.linkedSwitchesCount}
                     showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
+                    editingDisabled={editingDisabled}
                 />
             )}
             {changeTimes && (

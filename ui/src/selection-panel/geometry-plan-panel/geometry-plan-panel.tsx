@@ -202,6 +202,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         planHeader.source == 'PAIKANNUSPALVELU'
             ? t(`enum.plan-source.${planHeader.source}`)
             : undefined;
+    console.log({ s: planLayout?.switches });
     return (
         <div className={styles['geometry-plan-panel']}>
             <Accordion
