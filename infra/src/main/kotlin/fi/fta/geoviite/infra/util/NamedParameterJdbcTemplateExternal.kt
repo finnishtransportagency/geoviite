@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.util
 
+import currentUser
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -30,7 +30,7 @@ inline fun <reified T> NamedParameterJdbcTemplate.queryOne(
     noinline mapper: (rs: ResultSet, index: Int) -> T,
 ): T = queryOptional(sql, params, mapper) ?: throw NoSuchEntityException(T::class, identifier)
 
-fun NamedParameterJdbcTemplate.setUser() = setUser(getCurrentUserName())
+fun NamedParameterJdbcTemplate.setUser() = setUser(currentUser.get())
 
 fun NamedParameterJdbcTemplate.setUser(userName: UserName) {
     // set doesn't work with parameters, but it's validated in UserName constructor

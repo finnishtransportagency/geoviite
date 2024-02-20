@@ -1,9 +1,8 @@
 package fi.fta.geoviite.infra.util
 
-import fi.fta.geoviite.infra.configuration.CORRELATION_ID_HEADER
+import correlationId
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -14,7 +13,7 @@ val logger: Logger = LoggerFactory.getLogger(Timer::class.java)
 fun <T> measureAndPrintLength(function: () -> T, title: String): T =
     measureLength({ duration -> printDuration(title, duration) }, function)
 
-fun operationId() = MDC.get(CORRELATION_ID_HEADER) ?: "DEFAULT"
+fun operationId() = correlationId.getOrNull() ?: "DEFAULT"
 val collectedTimes: MutableMap<String, MutableMap<String, Duration>> = ConcurrentHashMap()
 fun logAndResetCollected() {
     val map = collectedTimes.remove(operationId())
