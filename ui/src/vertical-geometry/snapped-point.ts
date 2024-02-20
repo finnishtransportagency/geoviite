@@ -10,7 +10,7 @@ import { filterNotEmpty, minimumIndexBy } from 'utils/array-utils';
 import { Coordinates, heightToY, mToX, xToM } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
 import { approximateHeightAt } from 'vertical-geometry/util';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export type SnapTarget =
     | 'trackMeterRulerTick'
@@ -219,7 +219,7 @@ function approximateTrackAddressAt(
     kmHeights: TrackKmHeights[],
 ): TrackMeter | undefined {
     const [leftMeter, rightMeter] = getTrackMeterPairAroundIndex(index, kmHeights);
-    const leftKm = getUnsafe(kmHeights[index.left.kmIndex]);
+    const leftKm = expectDefined(kmHeights[index.left.kmIndex]);
     const proportion = (m - leftMeter.m) / (rightMeter.m - leftMeter.m);
     return {
         kmNumber: leftKm.kmNumber,

@@ -1,6 +1,6 @@
 import { Point } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 import { first, last } from 'utils/array-utils';
 
 export function directionBetweenPoints(p1: Point, p2: Point): number {
@@ -75,7 +75,7 @@ export function findOrInterpolateXY(
     let high = lastIndex;
     while (low < high - 1) {
         const midIndex = Math.floor((low + high) / 2);
-        const mid = getUnsafe(points[midIndex]);
+        const mid = expectDefined(points[midIndex]);
         if (mid.m > mValue) high = midIndex;
         else if (mid.m < mValue) low = midIndex;
         else
@@ -89,7 +89,7 @@ export function findOrInterpolateXY(
     return {
         low: low,
         high: high,
-        point: interpolateXY(getUnsafe(points[low]), getUnsafe(points[high]), mValue),
+        point: interpolateXY(expectDefined(points[low]), expectDefined(points[high]), mValue),
     };
 }
 

@@ -1,5 +1,5 @@
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export type TrackNumberColorKey = keyof typeof TrackNumberColor;
 export enum TrackNumberColor {
@@ -26,5 +26,5 @@ export const getColors = () => {
 
 export const getDefaultColorKey = (id: LayoutTrackNumberId): TrackNumberColorKey => {
     const colors = getColors();
-    return getUnsafe(colors[parseInt(id.replace(/^\D+/g, '')) % colors.length])[0];
+    return expectDefined(colors[parseInt(id.replace(/^\D+/g, '')) % colors.length])[0];
 };

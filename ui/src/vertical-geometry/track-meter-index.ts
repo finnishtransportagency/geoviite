@@ -1,6 +1,6 @@
 import { TrackMeter } from 'common/common-model';
 import { TrackKmHeights, TrackMeterHeight } from 'geometry/geometry-api';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export interface SingleTrackMeterIndex {
     kmIndex: number;
@@ -25,7 +25,7 @@ export function findTrackMeterIndexContainingM(
         return undefined;
     }
     const kmIndex = nextKmIndex === -1 ? kmHeights.length - 1 : nextKmIndex - 1;
-    const km = getUnsafe(kmHeights[kmIndex]);
+    const km = expectDefined(kmHeights[kmIndex]);
     const meterIndex = km.trackMeterHeights.findIndex((trackM) => trackM.m >= m);
     // if this the last track km on the alignment, then the last track meter is a sentinel sent by the backend to mark
     // the alignment's end, and can be considered to have zero length; hence, if we're past it, we've fallen past the
@@ -50,7 +50,7 @@ function previousSingleTrackMeterIndex(
     } else if (meterIndex == 0) {
         return {
             kmIndex: kmIndex - 1,
-            meterIndex: getUnsafe(kmHeights[kmIndex - 1]).trackMeterHeights.length - 1,
+            meterIndex: expectDefined(kmHeights[kmIndex - 1]).trackMeterHeights.length - 1,
         };
     } else {
         return { kmIndex, meterIndex: meterIndex - 1 };
@@ -61,7 +61,7 @@ export function getTrackAddressAtSingleIndex(
     index: SingleTrackMeterIndex,
     kmHeights: TrackKmHeights[],
 ): TrackMeter {
-    const kmNumber = getUnsafe(kmHeights[index.kmIndex]).kmNumber;
+    const kmNumber = expectDefined(kmHeights[index.kmIndex]).kmNumber;
     const meters = getTrackMeterAtSingleIndex(index, kmHeights).meter;
     return { kmNumber, meters };
 }
@@ -70,7 +70,7 @@ export function getTrackMeterAtSingleIndex(
     { kmIndex, meterIndex }: SingleTrackMeterIndex,
     kmHeights: TrackKmHeights[],
 ) {
-    return getUnsafe(getUnsafe(kmHeights[kmIndex]).trackMeterHeights[meterIndex]);
+    return expectDefined(expectDefined(kmHeights[kmIndex]).trackMeterHeights[meterIndex]);
 }
 
 export function getTrackMeterPairAroundIndex(

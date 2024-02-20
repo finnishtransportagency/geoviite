@@ -9,7 +9,7 @@ import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { TrackMeter } from 'common/common-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 const minimumSpacePxForPviPointSideLabels = 14;
 const minimumSpacePxForPviPointTopLabel = 16;
@@ -344,7 +344,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
 
     geometry.every((geo, index) => {
         if (index === geometry.length - 1) return false;
-        const nextGeo = getUnsafe(geometry[index + 1]);
+        const nextGeo = expectDefined(geometry[index + 1]);
 
         if (!geo.point || !geo.end || !nextGeo.point) {
             return true;

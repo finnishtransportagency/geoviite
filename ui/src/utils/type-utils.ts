@@ -47,7 +47,7 @@ export const exhaustiveMatchingGuard = (_: never): never => {
 export const isNil = <T>(object: T | undefined | null) => object === undefined || object === null;
 
 // Prefer actual nil checks, only use this if you KNOW the index exists
-export const getUnsafe = <T>(thing: T): NonNullable<T> => {
+export const expectDefined = <T>(thing: T): NonNullable<T> => {
     if (!isNil(thing)) {
         return thing!;
     } else {
@@ -56,6 +56,6 @@ export const getUnsafe = <T>(thing: T): NonNullable<T> => {
 };
 
 export const getCoordsUnsafe = (coord: Coordinate): [number, number] => [
-    getUnsafe(coord[0]),
-    getUnsafe(coord[1]),
+    expectDefined(coord[0]),
+    expectDefined(coord[1]),
 ];

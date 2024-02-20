@@ -7,7 +7,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export enum SwitchTypeMatch {
     Exact,
@@ -128,7 +128,7 @@ export function combineLocationTrackIds(
                 if (acc[jointNumber]) {
                     acc[jointNumber] = {
                         jointNumber: jointNumber,
-                        locationTrackIds: getUnsafe(
+                        locationTrackIds: expectDefined(
                             acc[jointNumber]?.locationTrackIds
                                 .concat(locationTrack.locationTrackIds)
                                 .filter(filterUnique),

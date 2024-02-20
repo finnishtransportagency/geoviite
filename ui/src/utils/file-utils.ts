@@ -1,4 +1,4 @@
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export type SerializableFile = {
     name: string;
@@ -26,7 +26,7 @@ export function convertToNativeFile(serializableFile: SerializableFile): File {
     const arr = dataUrl.split(','),
         mimeMatch = arr[0]?.match(/:(.*?);/),
         mime = mimeMatch && mimeMatch[1],
-        bstr = atob(getUnsafe(arr[1]));
+        bstr = atob(expectDefined(arr[1]));
     if (!mime) {
         throw new Error('Invalid data URL');
     }

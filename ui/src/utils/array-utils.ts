@@ -1,5 +1,5 @@
 import { TimeStamp } from 'common/common-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export const first = <T>(arr: readonly T[]) => arr[0];
 export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
@@ -240,7 +240,7 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
     let min = first(values);
     let minIndex = 0;
     values.forEach((value, index) => {
-        if (value < getUnsafe(min)) {
+        if (value < expectDefined(min)) {
             min = value;
             minIndex = index;
         }

@@ -2,7 +2,7 @@ import { MapTile } from 'map/map-model';
 import OlView from 'ol/View';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import { BoundingBox, Point } from 'model/geometry';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 import { first } from 'utils/array-utils';
 
 // offset used for defining a suitable boundingBox around a single location (Point)
@@ -44,7 +44,7 @@ export function calculateMapTiles(view: OlView, tileSizePx: number | undefined):
                 x: { min: tileExtent[0], max: tileExtent[2] },
                 y: { min: tileExtent[1], max: tileExtent[3] },
             },
-            resolution: getUnsafe(tileResolutions[tileResolutionIndex]),
+            resolution: expectDefined(tileResolutions[tileResolutionIndex]),
         };
         tiles.push(tile);
     });
@@ -57,7 +57,7 @@ const tileSizeOptions = [256, 512, 1024, 2048, 4096];
  * Picks a tile size where the given amount of tiles will fill the screen
  */
 export function calculateTileSize(tileCount: number): number {
-    const maxSize = getUnsafe(tileSizeOptions[tileSizeOptions.length - 1]);
+    const maxSize = expectDefined(tileSizeOptions[tileSizeOptions.length - 1]);
     if (tileCount >= 1) {
         const optimalTileSize = Math.max(window.screen.width, window.screen.height) / tileCount;
         return tileSizeOptions.find((opt) => opt > optimalTileSize) || maxSize;
