@@ -6,6 +6,7 @@ import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { VerticalGeometryDiagramHolder } from './vertical-geometry-diagram-holder';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
+import { first } from 'utils/array-utils';
 
 export const VerticalGeometryDiagramContainer: React.FC = () => {
     const state = useTrackLayoutAppSelector((s) => s);
@@ -20,8 +21,8 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
     const [alignmentId, setAlignmentId] = React.useState<VerticalGeometryDiagramAlignmentId>();
 
     React.useEffect(() => {
-        const selectedGeometryAlignment = state.selection.selectedItems.geometryAlignmentIds[0];
-        const selectedLocationTrack = state.selection.selectedItems.locationTracks[0];
+        const selectedGeometryAlignment = first(state.selection.selectedItems.geometryAlignmentIds);
+        const selectedLocationTrack = first(state.selection.selectedItems.locationTracks);
 
         if (
             state.selectedToolPanelTab?.type === 'GEOMETRY_ALIGNMENT' &&

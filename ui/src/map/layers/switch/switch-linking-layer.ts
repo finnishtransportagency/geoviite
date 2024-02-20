@@ -9,7 +9,7 @@ import { clearFeatures, findMatchingEntities, pointToCoords } from 'map/layers/u
 import { Selection } from 'selection/selection-model';
 import { getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -67,7 +67,7 @@ export function createSwitchLinkingLayer(
             .then((suggestedSwitches) =>
                 [
                     ...suggestedSwitches.flat(),
-                    selectedSwitches[0], // add selected suggested switch into collection
+                    first(selectedSwitches), // add selected suggested switch into collection
                 ].filter(filterNotEmpty),
             )
             .then((suggestedSwitches) => {

@@ -1,7 +1,7 @@
 import { Point } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { getUnsafe } from 'utils/type-utils';
-import { head, last } from 'utils/array-utils';
+import { first, last } from 'utils/array-utils';
 
 export function directionBetweenPoints(p1: Point, p2: Point): number {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
@@ -54,12 +54,12 @@ export function findOrInterpolateXY(
 ): SeekResult | undefined {
     if (points.length < 2) return undefined;
 
-    const first = head(points);
-    if (first && first.m >= mValue)
+    const firstPoint = first(points);
+    if (firstPoint && firstPoint.m >= mValue)
         return {
             low: 0,
             high: 0,
-            point: [first.x, first.y],
+            point: [firstPoint.x, firstPoint.y],
         };
 
     const lastIndex = points.length - 1;

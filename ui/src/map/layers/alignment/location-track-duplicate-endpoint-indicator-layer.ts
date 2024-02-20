@@ -171,8 +171,7 @@ function createFeatures(
 
             // The 'points'-array may only include a subset of the actual points of the alignment.
             // Features should only be rendered to the real ends of a given duplicate.
-            const startPoint = points[0];
-            const startControlPoint = points[1];
+            const [startPoint, startControlPoint] = [points[0], points[1]];
             const startFeature =
                 startPoint &&
                 startControlPoint &&
@@ -189,8 +188,10 @@ function createFeatures(
                       )
                     : undefined;
 
-            const endPoint = points[points.length - 1];
-            const endControlPoint = points[points.length - 2];
+            const [endPoint, endControlPoint] = [
+                points[points.length - 1],
+                points[points.length - 2],
+            ];
             const endFeature =
                 endPoint &&
                 endControlPoint &&

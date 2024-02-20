@@ -27,7 +27,7 @@ import {
 import { BoundingBox, Point } from 'model/geometry';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -350,7 +350,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             infoboxVisibilityChange('geometrySwitch', visibilities)
                         }
                         switchId={ss.geometrySwitchId ?? undefined}
-                        layoutSwitch={switches ? switches[0] : undefined}
+                        layoutSwitch={switches ? first(switches) : undefined}
                         suggestedSwitch={ss}
                         linkingState={linkingState}
                         planId={ss.geometryPlanId ?? undefined}
@@ -377,7 +377,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                                 infoboxVisibilityChange('geometrySwitch', visibilities)
                             }
                             switchId={s.geometryId}
-                            layoutSwitch={switches ? switches[0] : undefined}
+                            layoutSwitch={switches ? first(switches) : undefined}
                             suggestedSwitch={undefined}
                             linkingState={linkingState}
                             planId={s.planId ?? undefined}
@@ -431,8 +431,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             infoboxVisibilityChange('geometryAlignment', visibilities)
                         }
                         geometryAlignment={header}
-                        selectedLocationTrackId={locationTrackIds[0]}
-                        selectedTrackNumberId={trackNumberIds[0]}
+                        selectedLocationTrackId={first(locationTrackIds)}
+                        selectedTrackNumberId={first(trackNumberIds)}
                         planId={aId.planId}
                         linkingState={linkingState}
                         publishType={publishType}
@@ -481,7 +481,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             (t) => !previousTabs.some((pt) => isSameAsset(t.asset, pt.asset)),
         );
 
-        const firstTab = newTabs[0];
+        const firstTab = first(newTabs);
         if (firstTab) {
             if (selectedAsset && newTabs.some((nt) => isSameAsset(nt.asset, selectedAsset))) {
                 changeTab(selectedAsset);
@@ -561,7 +561,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             )}
             {anyTabSelected
                 ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
-                : tabs[0]?.element}
+                : first(tabs)?.element}
         </div>
     );
 };

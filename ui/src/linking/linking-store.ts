@@ -1,6 +1,6 @@
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty, first, last } from 'utils/array-utils';
 import {
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
@@ -275,8 +275,8 @@ export function createUpdatedInterval(
             .filter(filterNotEmpty)
             .sort(fieldComparator((p) => p.m));
         return {
-            start: points.length > 0 ? points[0] : undefined,
-            end: points.length > 0 ? points[points.length - 1] : undefined,
+            start: points.length > 0 ? first(points) : undefined,
+            end: points.length > 0 ? last(points) : undefined,
         };
     }
 }

@@ -8,6 +8,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { PublicationTableDetails } from 'publication/table/publication-table-details';
+import { first } from 'utils/array-utils';
 
 type PublicationTableRowProps = {
     propChanges: PublicationChange[];
@@ -75,7 +76,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                         onClick={() => setMessageExpanded(!messageExpanded)}
                     />
                     <div className={contentClassNames}>
-                        {messageExpanded ? message : messageRows[0]}
+                        {messageExpanded ? message : first(messageRows)}
                     </div>
                 </td>
                 <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>

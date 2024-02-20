@@ -51,7 +51,7 @@ export const getUnsafe = <T>(thing: T): NonNullable<T> => {
     if (!isNil(thing)) {
         return thing!;
     } else {
-        throw Error('We can has nil!');
+        throw Error('Encountered an unexpected nil!');
     }
 };
 

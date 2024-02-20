@@ -39,7 +39,7 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
 import { BoundingBox, Point } from 'model/geometry';
-import { filterNotEmpty, head, indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -268,7 +268,7 @@ export async function createSuggestedSwitch(
         linkingUri('switches', 'suggested'),
         params,
     ).then((switches) => {
-        const s = head(switches);
+        const s = first(switches);
         return s ? { ...s, id: getSuggestedSwitchId(s) } : undefined;
     });
 }

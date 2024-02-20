@@ -4,7 +4,7 @@ import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 
 import { Coordinates, heightToY, mToX } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
@@ -305,9 +305,9 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     coordinates,
     drawTangentArrows,
 }) => {
-    const first = geometry[0];
-    const last = geometry[geometry.length - 1];
-    if (!first) {
+    const firstItem = first(geometry);
+    const lastItem = last(geometry);
+    if (!firstItem) {
         return <React.Fragment />;
     }
     const pvis: JSX.Element[] = [];
@@ -322,22 +322,22 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     );
     const rightPviI = pastRightmostPviInViewR == -1 ? geometry.length - 1 : pastRightmostPviInViewR;
 
-    if (leftPviI === 0 && first.start && first.point) {
+    if (leftPviI === 0 && firstItem.start && firstItem.point) {
         pvis.push(
             <LeftMostStartingLine
                 key={pviKey++}
                 coordinates={coordinates}
-                verticalGeometryItem={first}
+                verticalGeometryItem={firstItem}
             />,
         );
     }
 
-    if (rightPviI == geometry.length - 1 && last) {
+    if (rightPviI == geometry.length - 1 && lastItem) {
         pvis.push(
             <RightMostEndingLine
                 key={pviKey++}
                 coordinates={coordinates}
-                verticalGeometryItem={last}
+                verticalGeometryItem={lastItem}
             />,
         );
     }

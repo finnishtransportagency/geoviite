@@ -34,7 +34,7 @@ import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infr
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import {
@@ -93,7 +93,7 @@ function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
         .filter(filterNotEmpty)
         .sort((a, b) => a.localeCompare(b));
     if (sorted.length == 0) return '';
-    else return `${sorted[0]} - ${sorted[sorted.length - 1]}`;
+    else return `${first(sorted)} - ${last(sorted)}`;
 }
 
 function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {

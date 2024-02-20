@@ -28,7 +28,7 @@ import { ValidatedAsset } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getCoordsUnsafe } from 'utils/type-utils';
-import { head } from 'utils/array-utils';
+import { first } from 'utils/array-utils';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -377,7 +377,7 @@ function createSwitchFeature(
     presentationJointNumber?: string | undefined,
     validationResult?: ValidatedAsset | undefined,
 ): Feature<OlPoint>[] {
-    const firstJoint = head(layoutSwitch.joints);
+    const firstJoint = first(layoutSwitch.joints);
     if (!firstJoint) return [];
 
     const presentationJoint = layoutSwitch.joints.find(

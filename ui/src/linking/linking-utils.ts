@@ -1,4 +1,4 @@
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
 import { SuggestedSwitch, SuggestedSwitchJoint } from 'linking/linking-model';
 import { JointNumber, PublishType } from 'common/common-model';
 import {
@@ -56,7 +56,7 @@ export function getMatchingLocationTrackIdsForJoints(
         .flatMap((joint) => joint.accurateMatches.map((m) => m.locationTrackId))
         .filter(filterUnique);
     return locationTrackIds.filter((locationTrackId) => {
-        return [jointsOfAlignment[0], jointsOfAlignment[jointsOfAlignment.length - 1]]
+        return [first(jointsOfAlignment), last(jointsOfAlignment)]
             .filter(filterNotEmpty)
             .every((joint) =>
                 joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId),

@@ -10,7 +10,7 @@ import { getMaxTimestamp, toDate } from 'utils/date-utils';
 import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 import { TimeStamp } from 'common/common-model';
 import { getUnsafe } from 'utils/type-utils';
-import { head } from 'utils/array-utils';
+import { first } from 'utils/array-utils';
 
 type HeightCacheKey = string;
 type HeightCacheItem = {
@@ -168,7 +168,7 @@ function getQueryableRange(
     endM: number,
 ): [number, number] | undefined {
     return getMissingCoveringRange(
-        resolved.map((r) => [getUnsafe(head(r.trackMeterHeights)).m, r.endM]),
+        resolved.map((r) => [getUnsafe(first(r.trackMeterHeights)).m, r.endM]),
         startM,
         endM,
     );
@@ -195,7 +195,7 @@ export function useAlignmentHeights(
         if (cacheItem) {
             setLoadedHeights(
                 cacheItem.resolved.filter(
-                    (item) => getUnsafe(item.trackMeterHeights[0]).m <= eM && item.endM >= sM,
+                    (item) => getUnsafe(first(item.trackMeterHeights)).m <= eM && item.endM >= sM,
                 ),
             );
         }
@@ -231,7 +231,7 @@ export function useAlignmentHeights(
                 );
 
                 loadedCacheItem.resolved = weaveKms(
-                    (kms) => getUnsafe(kms.trackMeterHeights[0]).m,
+                    (kms) => getUnsafe(first(kms.trackMeterHeights)).m,
                     loadedCacheItem.resolved,
                     loadedKms,
                 );

@@ -21,7 +21,7 @@ import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
 import { createSuggestedSwitch } from 'linking/linking-api';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import {
     asTrackLayoutSwitchJointConnection,
     getMatchingLocationTrackIdsForJointNumbers,
@@ -94,10 +94,12 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                 const locationTrackId = alignmentConfig
                     ? alignmentConfig.locationTrackId
                     : jointConnections
-                    ? getMatchingLocationTrackIdsForJointNumbers(
-                          switchAlignment.jointNumbers,
-                          jointConnections,
-                      )[0]
+                    ? first(
+                          getMatchingLocationTrackIdsForJointNumbers(
+                              switchAlignment.jointNumbers,
+                              jointConnections,
+                          ),
+                      )
                     : undefined;
 
                 const jointPlainNumbers =

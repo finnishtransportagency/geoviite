@@ -9,7 +9,7 @@ import CircleStyle from 'ol/style/Circle';
 import { LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
 import { getPlanarDistanceUnwrapped, pointToCoords } from 'map/layers/utils/layer-utils';
-import { filterNotEmpty, head, last } from 'utils/array-utils';
+import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
@@ -31,7 +31,7 @@ function findClosestPoints(
     points: AlignmentPoint[],
     targetCoordinate: Coordinate,
 ): AlignmentPoint[] {
-    const firstPoint = head(points);
+    const firstPoint = first(points);
     const lastPoint = last(points);
     if (!firstPoint || !lastPoint || points.length <= MAX_POINTS) {
         return points;

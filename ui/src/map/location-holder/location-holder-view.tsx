@@ -10,6 +10,7 @@ import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getTrackNumberById } from 'track-layout/layout-track-number-api';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
+import { first } from 'utils/array-utils';
 
 type LocationHolderProps = {
     hoveredCoordinate: Point | undefined;
@@ -86,10 +87,10 @@ export const LocationHolderView: React.FC<LocationHolderProps> = ({
     publishType,
 }: LocationHolderProps) => {
     const debouncedCoordinate = useDebouncedState(hoveredCoordinate, 100);
+    const trackNumber = first(trackNumbers);
+    const locationTrack = first(locationTracks);
 
     const hovered = useLoader(() => {
-        const trackNumber = trackNumbers[0];
-        const locationTrack = locationTracks[0];
         if (trackNumber && hoveredCoordinate) {
             return getReferenceLineHoverLocation(trackNumber, publishType, hoveredCoordinate);
         } else if (locationTrack && hoveredCoordinate) {
@@ -97,7 +98,7 @@ export const LocationHolderView: React.FC<LocationHolderProps> = ({
         } else {
             return Promise.resolve(emptyHoveredLocation(hoveredCoordinate));
         }
-    }, [debouncedCoordinate, trackNumbers[0], locationTracks[0]]);
+    }, [debouncedCoordinate, trackNumber, locationTrack]);
 
     return (
         <div className={styles['location-holder-view']}>

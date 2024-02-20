@@ -34,6 +34,7 @@ import {
     indicatorTextPadding,
 } from 'map/layers/utils/dashed-line-indicator-utils';
 import { getCoordsUnsafe } from 'utils/type-utils';
+import { first, last } from 'utils/array-utils';
 
 let newestLayerId = 0;
 
@@ -225,8 +226,8 @@ const getEndPointAddresses = (
             .flatMap((referenceLine) => {
                 const trackNumberId = referenceLine.header.trackNumberId as LayoutTrackNumberId;
 
-                const firstPoint = referenceLine.points[0];
-                const lastPoint = referenceLine.points[referenceLine.points.length - 1];
+                const firstPoint = first(referenceLine.points);
+                const lastPoint = last(referenceLine.points);
 
                 return Promise.all([
                     firstPoint?.m === 0

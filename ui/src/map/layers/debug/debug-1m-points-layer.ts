@@ -9,6 +9,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { first } from 'utils/array-utils';
 
 type DebugLayerPoint = {
     x: number;
@@ -83,7 +84,7 @@ export function createDebug1mPointsLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const selected = selection.selectedItems.locationTracks[0];
+    const selected = first(selection.selectedItems.locationTracks);
     let inFlight = false;
     if (selected && resolution <= DEBUG_1M_POINTS) {
         inFlight = true;

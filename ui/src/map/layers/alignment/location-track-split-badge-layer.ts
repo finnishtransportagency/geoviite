@@ -20,6 +20,7 @@ import {
 import { sortSplitsByDistance, SplittingState } from 'tool-panel/location-track/split-store';
 import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
+import { first } from 'utils/array-utils';
 
 let newestLayerId = 0;
 
@@ -51,7 +52,7 @@ const calculateSplitBounds = (
     return [
         {
             start: originalStartAndEnd.start?.point.m || 0,
-            end: splitsSorted[0]?.distance || originalStartAndEnd.end?.point?.m || 0,
+            end: first(splitsSorted)?.distance || originalStartAndEnd.end?.point?.m || 0,
             name: splittingState.firstSplit.name,
         },
         ...splitsSorted.map((split, index) => ({

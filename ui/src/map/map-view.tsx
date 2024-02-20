@@ -10,7 +10,7 @@ import { defaults as defaultInteractions } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import { HELSINKI_COORDS, Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
@@ -48,7 +48,7 @@ import { createBackgroundMapLayer } from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import { mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
@@ -111,7 +111,7 @@ const defaultScaleLine: ScaleLine = new ScaleLine({
 
 function getOlViewByDomainViewport(viewport: MapViewport): OlView {
     return new OlView({
-        center: [viewport.center?.x ?? 0, viewport.center?.y ?? 0],
+        center: [viewport.center?.x ?? HELSINKI_COORDS.x, viewport.center?.y ?? HELSINKI_COORDS.y],
         resolution: viewport.resolution,
         maxZoom: 32,
         minZoom: 6,
@@ -172,7 +172,7 @@ const MapView: React.FC<MapViewProps> = ({
     const mapLayers = [...map.visibleLayers].sort().join();
 
     const handleClusterPointClick = (clickType: ClickType) => {
-        const clusterPoint = selection.selectedItems.clusterPoints[0];
+        const clusterPoint = first(selection.selectedItems.clusterPoints);
         if (clusterPoint) {
             switch (clickType) {
                 case 'all':
@@ -248,11 +248,10 @@ const MapView: React.FC<MapViewProps> = ({
         };
     }, [olMap]);
 
+    const firstClusterPoint = first(selection.selectedItems.clusterPoints);
     React.useEffect(() => {
-        const clusterPoint = selection.selectedItems.clusterPoints[0];
-
-        if (!olMap || !clusterPoint) return;
-        const pos = pointToCoords(clusterPoint);
+        if (!olMap || !firstClusterPoint) return;
+        const pos = pointToCoords(firstClusterPoint);
         const popupElement = document.getElementById('clusteroverlay') || undefined;
         const popup = new Overlay({
             position: pos,
@@ -260,7 +259,7 @@ const MapView: React.FC<MapViewProps> = ({
             element: popupElement,
         });
         olMap.addOverlay(popup);
-    }, [olMap, selection.selectedItems.clusterPoints[0]]);
+    }, [olMap, firstClusterPoint]);
 
     // Update the view"port" of the map
     React.useEffect(() => {
@@ -641,7 +640,7 @@ const MapView: React.FC<MapViewProps> = ({
             />
 
             <div id="clusteroverlay">
-                {selection.selectedItems.clusterPoints[0] && (
+                {first(selection.selectedItems.clusterPoints) && (
                     <div className={styles['map__popup-menu']}>
                         <div
                             className={styles['map__popup-item']}
