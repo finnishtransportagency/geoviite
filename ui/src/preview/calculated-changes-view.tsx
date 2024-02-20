@@ -14,7 +14,6 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { CalculatedChanges } from 'publication/publication-model';
-import { getUnsafe } from 'utils/type-utils';
 
 const calculatedChangesIsEmpty = (calculatedChanges: GroupedCalculatedChanges) => {
     return calculatedChanges.switches.length == 0 && calculatedChanges.locationTracks.length == 0;
@@ -143,7 +142,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                                 disabled: disabledMessage,
                             })}
                             onToggle={() => toggle(trackNumberId)}
-                            open={getUnsafe(openTrackNumbers[trackNumberId])}
+                            open={openTrackNumbers[trackNumberId] ?? false}
                             disabled={!hasCalculatedChanges}>
                             <React.Fragment>
                                 <ul

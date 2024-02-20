@@ -2,7 +2,6 @@ import * as React from 'react';
 import { FileInput } from 'vayla-design-lib/file-input/file-input';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getUnsafe } from 'utils/type-utils';
 
 export const FileInputExamples: React.FC = () => {
     return (
@@ -12,7 +11,7 @@ export const FileInputExamples: React.FC = () => {
             <h3>Text as a visualization</h3>
             <FileInput
                 onChange={(e) =>
-                    alert(e.target.files ? getUnsafe(e.target.files[0]).name : 'no file chosen')
+                    alert(e.target.files?.[0] ? e.target.files[0].name : 'no file chosen')
                 }>
                 Upload
             </FileInput>
@@ -20,7 +19,7 @@ export const FileInputExamples: React.FC = () => {
             <h3>Button as a visualization</h3>
             <FileInput
                 onChange={(e) =>
-                    alert(e.target.files ? getUnsafe(e.target.files[0]).name : 'no file chosen')
+                    alert(e.target.files?.[0] ? e.target.files[0].name : 'no file chosen')
                 }>
                 <Button icon={Icons.Download}>Upload a file</Button>
             </FileInput>

@@ -13,7 +13,7 @@ import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
 import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
-import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
+import { getCoordsUnsafe } from 'utils/type-utils';
 
 type MapAlignmentBadgePoint = {
     point: number[];
@@ -166,10 +166,11 @@ export function getBadgePoints(
     points: AlignmentPoint[],
     drawDistance: number,
 ): MapAlignmentBadgePoint[] {
-    if (points.length < 3) return [];
+    const [second, last] = [points[1], points[points.length - 1]];
+    if (!second || !last) return [];
 
-    const start = Math.ceil(getUnsafe(points[1]).m / drawDistance);
-    const end = Math.floor(getUnsafe(points[points.length - 1]).m / drawDistance);
+    const start = Math.ceil(second.m / drawDistance);
+    const end = Math.floor(last.m / drawDistance);
 
     if (start > end) return [];
 
@@ -190,7 +191,7 @@ export function getBadgePoints(
 }
 
 export function getBadgeDrawDistance(resolution: number): number | undefined {
-    const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < getUnsafe(d[0]));
+    const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < d[0]);
     return distance?.[1];
 }
 

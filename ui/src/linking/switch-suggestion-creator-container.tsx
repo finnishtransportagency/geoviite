@@ -5,6 +5,7 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { LocationTrackEndpoint, SuggestedSwitch } from 'linking/linking-model';
 import { PublishTypeHandlingDialog } from 'linking/publish-type-handling-dialog';
+import { first } from 'utils/array-utils';
 
 type SuggestionCreatorData = {
     locationTrackEndPoint: LocationTrackEndpoint;
@@ -20,8 +21,8 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
     );
     const state = useTrackLayoutAppSelector((state) => ({
         publishType: state.publishType,
-        locationTrackEndPoint: state.selection.selectedItems.locationTrackEndPoints[0],
-        locationTrack: state.selection.selectedItems.locationTracks[0],
+        locationTrackEndPoint: first(state.selection.selectedItems.locationTrackEndPoints),
+        locationTrack: first(state.selection.selectedItems.locationTracks),
         locationTrackChangeTime: locationTrackChangeTime,
     }));
 

@@ -1,5 +1,8 @@
 import { TimeStamp } from 'common/common-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
+
+export const first = <T>(arr: readonly T[]) => arr[0];
+export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
 
 export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
@@ -234,14 +237,14 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
-    let min = getUnsafe(values[0]);
+    let min = first(values);
     let minIndex = 0;
-    for (let i = 1; i < values.length; i++) {
-        if (getUnsafe(values[i]) < min) {
-            min = getUnsafe(values[i]);
-            minIndex = i;
+    values.forEach((value, index) => {
+        if (value < expectDefined(min)) {
+            min = value;
+            minIndex = index;
         }
-    }
+    });
     return minIndex;
 }
 
@@ -256,10 +259,8 @@ export function partitionBy<T>(list: T[], by: (item: T) => boolean): [T[], T[]] 
 }
 
 export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B): number {
-    for (let i = objs.length - 1; i >= 0; i--) {
-        if (predicate(getUnsafe(objs[i]))) return i;
-    }
-    return -1;
+    const reverseIndex = [...objs].reverse().findIndex(predicate);
+    return reverseIndex >= 0 ? objs.length - 1 - reverseIndex : -1;
 }
 
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>

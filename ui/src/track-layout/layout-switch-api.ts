@@ -20,9 +20,9 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
-import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
@@ -151,7 +151,7 @@ export const getSwitchValidation = async (
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset> =>
-    getSwitchesValidation(publishType, [id]).then((switches) => getUnsafe(switches[0]));
+    getSwitchesValidation(publishType, [id]).then((switches) => expectDefined(first(switches)));
 
 export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
     const changeTimes = getChangeTimes();

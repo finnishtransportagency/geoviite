@@ -9,7 +9,8 @@ import { ChangeTimes } from 'common/common-slice';
 import { getMaxTimestamp, toDate } from 'utils/date-utils';
 import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 import { TimeStamp } from 'common/common-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
+import { first } from 'utils/array-utils';
 
 type HeightCacheKey = string;
 type HeightCacheItem = {
@@ -89,14 +90,14 @@ export function weaveKms<T>(getFirstM: (km: T) => number, left: T[], right: T[])
         rightI = 0;
 
     while (leftI < left.length && rightI < right.length) {
-        const leftM = getFirstM(getUnsafe(left[leftI]));
-        const rightM = getFirstM(getUnsafe(right[rightI]));
+        const leftM = getFirstM(expectDefined(left[leftI]));
+        const rightM = getFirstM(expectDefined(right[rightI]));
         if (leftM < rightM) {
-            rv.push(getUnsafe(left[leftI++]));
+            rv.push(expectDefined(left[leftI++]));
         } else if (rightM < leftM) {
-            rv.push(getUnsafe(right[rightI++]));
+            rv.push(expectDefined(right[rightI++]));
         } else {
-            rv.push(getUnsafe(left[leftI++]));
+            rv.push(expectDefined(left[leftI++]));
             rightI++;
         }
     }
@@ -167,7 +168,7 @@ function getQueryableRange(
     endM: number,
 ): [number, number] | undefined {
     return getMissingCoveringRange(
-        resolved.map((r) => [getUnsafe(r.trackMeterHeights[0]).m, r.endM]),
+        resolved.map((r) => [expectDefined(first(r.trackMeterHeights)).m, r.endM]),
         startM,
         endM,
     );
@@ -194,7 +195,8 @@ export function useAlignmentHeights(
         if (cacheItem) {
             setLoadedHeights(
                 cacheItem.resolved.filter(
-                    (item) => getUnsafe(item.trackMeterHeights[0]).m <= eM && item.endM >= sM,
+                    (item) =>
+                        expectDefined(first(item.trackMeterHeights)).m <= eM && item.endM >= sM,
                 ),
             );
         }
@@ -230,7 +232,7 @@ export function useAlignmentHeights(
                 );
 
                 loadedCacheItem.resolved = weaveKms(
-                    (kms) => getUnsafe(kms.trackMeterHeights[0]).m,
+                    (kms) => expectDefined(first(kms.trackMeterHeights)).m,
                     loadedCacheItem.resolved,
                     loadedKms,
                 );

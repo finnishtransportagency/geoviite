@@ -24,12 +24,18 @@ import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { createLinkPoints, alignmentPointToLinkPoint } from 'linking/linking-store';
-import { deduplicate, filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
+import {
+    deduplicate,
+    filterNotEmpty,
+    first,
+    indexIntoMap,
+    last,
+    partitionBy,
+} from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getTrackNumbers } from './layout-track-number-api';
 import { directionBetweenPoints } from 'utils/math-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { getUnsafe } from 'utils/type-utils';
 
 export type AlignmentDataHolder = {
     trackNumber?: LayoutTrackNumber;
@@ -356,13 +362,10 @@ export async function getLinkPointsByTiles(
         .flat()
         .filter((a) => a.alignmentType === alignmentType && a.id === alignmentId);
     const allPoints = combineAlignmentPoints(allPieces.map((a) => a.points));
-    return createLinkPoints(
-        alignmentType,
-        alignmentId,
-        getUnsafe(segmentEndMs[segmentEndMs.length - 1]),
-        segmentEndMs,
-        allPoints,
-    );
+    const lastSegmentEndM = last(segmentEndMs);
+    return lastSegmentEndM
+        ? createLinkPoints(alignmentType, alignmentId, lastSegmentEndM, segmentEndMs, allPoints)
+        : [];
 }
 
 export async function getGeometryLinkPointsByTiles(
@@ -372,9 +375,10 @@ export async function getGeometryLinkPointsByTiles(
     alwaysIncludePoints: LinkPoint[] = [],
     changeTime: TimeStamp = getChangeTimes().geometryPlan,
 ): Promise<LinkPoint[]> {
-    if (!mapTiles[0]) return [];
+    const firstMapTile = first(mapTiles);
+    if (!firstMapTile) return [];
 
-    const resolution = toMapAlignmentResolution(mapTiles[0].resolution);
+    const resolution = toMapAlignmentResolution(firstMapTile.resolution);
     const bounds = combineBoundingBoxes(mapTiles.map((tile) => tile.area));
     const plan = await getTrackLayoutPlan(geometryPlanId, changeTime, true);
     const alignment = plan?.alignments?.find((a) => a.header.id === geometryAlignmentId);

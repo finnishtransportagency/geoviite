@@ -1,6 +1,7 @@
 import { Point } from 'model/geometry';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
+import { first, last } from 'utils/array-utils';
 
 export function directionBetweenPoints(p1: Point, p2: Point): number {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
@@ -53,26 +54,28 @@ export function findOrInterpolateXY(
 ): SeekResult | undefined {
     if (points.length < 2) return undefined;
 
-    const lastIndex = points.length - 1;
-    const first = getUnsafe(points[0]);
-    const last = getUnsafe(points[lastIndex]);
-    if (first.m >= mValue)
+    const firstPoint = first(points);
+    if (firstPoint && firstPoint.m >= mValue)
         return {
             low: 0,
             high: 0,
-            point: [first.x, first.y],
+            point: [firstPoint.x, firstPoint.y],
         };
-    if (last.m <= mValue)
+
+    const lastIndex = points.length - 1;
+    const lastPoint = last(points);
+    if (lastPoint && lastPoint.m <= mValue)
         return {
             low: lastIndex,
             high: lastIndex,
-            point: [last.x, last.y],
+            point: [lastPoint.x, lastPoint.y],
         };
+
     let low = 0;
     let high = lastIndex;
     while (low < high - 1) {
         const midIndex = Math.floor((low + high) / 2);
-        const mid = getUnsafe(points[midIndex]);
+        const mid = expectDefined(points[midIndex]);
         if (mid.m > mValue) high = midIndex;
         else if (mid.m < mValue) low = midIndex;
         else
@@ -82,10 +85,11 @@ export function findOrInterpolateXY(
                 point: [mid.x, mid.y],
             };
     }
+
     return {
         low: low,
         high: high,
-        point: interpolateXY(getUnsafe(points[low]), getUnsafe(points[high]), mValue),
+        point: interpolateXY(expectDefined(points[low]), expectDefined(points[high]), mValue),
     };
 }
 

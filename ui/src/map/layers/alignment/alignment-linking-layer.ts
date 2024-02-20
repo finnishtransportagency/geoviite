@@ -24,7 +24,7 @@ import {
     LinkPoint,
 } from 'linking/linking-model';
 import { createUpdatedInterval } from 'linking/linking-store';
-import { filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
+import { filterNotEmpty, first, last, nonEmptyArray } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
@@ -40,7 +40,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
+import { getCoordsUnsafe } from 'utils/type-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -353,12 +353,11 @@ function getPointsByOrder(
     orderStart?: number,
     orderEnd?: number,
 ): LinkPoint[] {
-    if (points.length === 0 || orderStart === undefined || orderEnd === undefined) return [];
-    else if (
-        orderEnd < getUnsafe(points[0]).m ||
-        orderStart > getUnsafe(points[points.length - 1]).m
-    )
-        return [];
+    const firstPoint = first(points);
+    const lastPoint = last(points);
+
+    if (!firstPoint || !lastPoint || orderStart === undefined || orderEnd === undefined) return [];
+    else if (orderEnd < firstPoint.m || orderStart > lastPoint.m) return [];
     else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
@@ -420,8 +419,8 @@ function createPointTagFeature(
         ctx.moveTo(x + arrowSpacing + arrowShapePolygon[0][0], y + arrowShapePolygon[0][1]);
         arrowShapePolygon
             .slice(1)
-            .forEach((coordinate) =>
-                ctx.lineTo(x + arrowSpacing + coordinate[0], y + coordinate[1]),
+            .forEach(([coordinateX, coordinateY]) =>
+                ctx.lineTo(x + arrowSpacing + coordinateX, y + coordinateY),
             );
         ctx.closePath();
         ctx.fill();
@@ -622,8 +621,8 @@ function createLinkingGeometryWithAlignmentFeatures(
 ): Feature<OlPoint | LineString>[] {
     const features: Feature<OlPoint | LineString>[] = [];
     const [clusterPoints, overlappingPoints] = getClusterPoints(layoutPoints, geometryPoints);
-    const highlightedLayoutPoint = selection.highlightedItems.layoutLinkPoints[0];
-    const highlightedGeometryPoint = selection.highlightedItems.geometryLinkPoints[0];
+    const highlightedLayoutPoint = first(selection.highlightedItems.layoutLinkPoints);
+    const highlightedGeometryPoint = first(selection.highlightedItems.geometryLinkPoints);
 
     if (showDots) {
         features.push(
@@ -798,7 +797,7 @@ export function createAlignmentLinkingLayer(
                     {
                         layoutStart: linkingState.layoutAlignmentInterval.start,
                         layoutEnd: linkingState.layoutAlignmentInterval.end,
-                        layoutHighlight: selection.highlightedItems.layoutLinkPoints[0],
+                        layoutHighlight: first(selection.highlightedItems.layoutLinkPoints),
                     },
                 ),
             ])
@@ -842,7 +841,7 @@ export function createAlignmentLinkingLayer(
                     {
                         geometryStart: linkingState.geometryAlignmentInterval.start,
                         geometryEnd: linkingState.geometryAlignmentInterval.end,
-                        geometryHighlight: selection.highlightedItems.geometryLinkPoints[0],
+                        geometryHighlight: first(selection.highlightedItems.geometryLinkPoints),
                     },
                 ),
             ])
@@ -908,10 +907,10 @@ export function createAlignmentLinkingLayer(
                 {
                     layoutStart: linkingState.layoutAlignmentInterval.start,
                     layoutEnd: linkingState.layoutAlignmentInterval.end,
-                    layoutHighlight: selection.highlightedItems.layoutLinkPoints[0],
+                    layoutHighlight: first(selection.highlightedItems.layoutLinkPoints),
                     geometryStart: linkingState.geometryAlignmentInterval.start,
                     geometryEnd: linkingState.geometryAlignmentInterval.end,
-                    geometryHighlight: selection.highlightedItems.geometryLinkPoints[0],
+                    geometryHighlight: first(selection.highlightedItems.geometryLinkPoints),
                 },
             );
 
@@ -925,10 +924,10 @@ export function createAlignmentLinkingLayer(
                             highlightedItems: {
                                 ...selection.highlightedItems,
                                 layoutLinkPoints: linkPointAddresses.layoutHighlight
-                                    ? [getUnsafe(linkPointAddresses.layoutHighlight)]
+                                    ? [linkPointAddresses.layoutHighlight]
                                     : [],
                                 geometryLinkPoints: linkPointAddresses.geometryHighlight
-                                    ? [getUnsafe(linkPointAddresses.geometryHighlight)]
+                                    ? [linkPointAddresses.geometryHighlight]
                                     : [],
                             },
                         },
@@ -996,12 +995,12 @@ export function createAlignmentLinkingLayer(
                 const onGeometryLine = containsType(features, FeatureType.GeometryLine);
 
                 if (onLayoutLine && onGeometryLine) {
-                    const closestPoint = getUnsafe(linkPointFeatures[0]);
+                    const closestPoint = first(linkPointFeatures);
                     const closestPointType = getFeatureType(closestPoint);
 
-                    if (closestPointType === FeatureType.GeometryPoint) {
+                    if (closestPoint && closestPointType === FeatureType.GeometryPoint) {
                         geometryLinkPoint = getFeatureData(closestPoint);
-                    } else if (closestPointType === FeatureType.LayoutPoint) {
+                    } else if (closestPoint && closestPointType === FeatureType.LayoutPoint) {
                         layoutLinkPoint = getFeatureData(closestPoint);
                     }
                 } else if (onGeometryLine) {

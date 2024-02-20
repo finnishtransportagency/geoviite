@@ -1,6 +1,6 @@
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty, first, last } from 'utils/array-utils';
 import {
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
@@ -24,7 +24,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
-import { exhaustiveMatchingGuard, getUnsafe } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -275,8 +275,8 @@ export function createUpdatedInterval(
             .filter(filterNotEmpty)
             .sort(fieldComparator((p) => p.m));
         return {
-            start: points.length > 0 ? points[0] : undefined,
-            end: points.length > 0 ? points[points.length - 1] : undefined,
+            start: points.length > 0 ? first(points) : undefined,
+            end: points.length > 0 ? last(points) : undefined,
         };
     }
 }
@@ -462,8 +462,8 @@ export function createLinkPoints(
         // Create the linkpoint from layout point
         const direction =
             pIdx === 0
-                ? directionBetweenPoints(point, getUnsafe(points[pIdx + 1]))
-                : directionBetweenPoints(getUnsafe(points[pIdx - 1]), point);
+                ? directionBetweenPoints(point, expectDefined(points[pIdx + 1]))
+                : directionBetweenPoints(expectDefined(points[pIdx - 1]), point);
         const segmentEnd = segmentEndMs.includes(point.m);
         const alignmentEnd = point.m === 0 || point.m === alignmentLength;
         linkPoints.push(

@@ -158,3 +158,5 @@ export type VerticalAlignmentVisibleExtentChange = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
     extent: [number, number];
 };
+
+export const HELSINKI_RAILWAY_STATION_COORDS: Point = { x: 385782.89, y: 6672277.83 };

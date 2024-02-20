@@ -1,5 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
+    HELSINKI_RAILWAY_STATION_COORDS,
     Map,
     MapLayerMenuChange,
     MapLayerMenuItem,
@@ -149,10 +150,7 @@ export const initialMapState: Map = {
     },
     shownItems: getEmptyShownItems(),
     viewport: {
-        center: {
-            x: 385782.89,
-            y: 6672277.83,
-        },
+        center: HELSINKI_RAILWAY_STATION_COORDS,
         resolution: 20,
     },
     verticalGeometryDiagramState: initialVerticalGeometryDiagramState,

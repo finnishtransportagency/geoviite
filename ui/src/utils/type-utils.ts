@@ -44,18 +44,18 @@ export const exhaustiveMatchingGuard = (_: never): never => {
     throw new Error('Should not have reached this code');
 };
 
-export const isNil = <T>(object: T) => object === undefined || object === null;
+export const isNil = <T>(object: T | undefined | null) => object === undefined || object === null;
 
 // Prefer actual nil checks, only use this if you KNOW the index exists
-export const getUnsafe = <T>(thing: T): NonNullable<T> => {
+export const expectDefined = <T>(thing: T): NonNullable<T> => {
     if (!isNil(thing)) {
         return thing!;
     } else {
-        throw Error('We can has nil!');
+        throw Error('Encountered an unexpected nil!');
     }
 };
 
 export const getCoordsUnsafe = (coord: Coordinate): [number, number] => [
-    getUnsafe(coord[0]),
-    getUnsafe(coord[1]),
+    expectDefined(coord[0]),
+    expectDefined(coord[1]),
 ];

@@ -28,7 +28,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addIfExists } from 'utils/array-utils';
+import { addIfExists, first } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
@@ -350,7 +350,7 @@ const trackLayoutSlice = createSlice({
                     }
                     break;
                 case LinkingType.LinkingSwitch: {
-                    const selectedSwitch = state.selection.selectedItems.switches[0];
+                    const selectedSwitch = first(state.selection.selectedItems.switches);
                     linkingReducers.lockSwitchSelection(state, {
                         type: '',
                         payload: selectedSwitch,

@@ -1,4 +1,4 @@
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
 import { SuggestedSwitch, SuggestedSwitchJoint } from 'linking/linking-model';
 import { JointNumber, PublishType } from 'common/common-model';
 import {
@@ -7,7 +7,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
-import { getUnsafe } from 'utils/type-utils';
+import { expectDefined } from 'utils/type-utils';
 
 export enum SwitchTypeMatch {
     Exact,
@@ -56,10 +56,11 @@ export function getMatchingLocationTrackIdsForJoints(
         .flatMap((joint) => joint.accurateMatches.map((m) => m.locationTrackId))
         .filter(filterUnique);
     return locationTrackIds.filter((locationTrackId) => {
-        return [
-            getUnsafe(jointsOfAlignment[0]),
-            getUnsafe(jointsOfAlignment[jointsOfAlignment.length - 1]),
-        ].every((joint) => joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId));
+        return [first(jointsOfAlignment), last(jointsOfAlignment)]
+            .filter(filterNotEmpty)
+            .every((joint) =>
+                joint.accurateMatches.some((m) => m.locationTrackId == locationTrackId),
+            );
     });
 }
 
@@ -127,7 +128,7 @@ export function combineLocationTrackIds(
                 if (acc[jointNumber]) {
                     acc[jointNumber] = {
                         jointNumber: jointNumber,
-                        locationTrackIds: getUnsafe(
+                        locationTrackIds: expectDefined(
                             acc[jointNumber]?.locationTrackIds
                                 .concat(locationTrack.locationTrackIds)
                                 .filter(filterUnique),

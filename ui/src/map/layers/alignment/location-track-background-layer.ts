@@ -19,6 +19,7 @@ import {
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
+import { first } from 'utils/array-utils';
 
 let newestLayerId = 0;
 
@@ -40,7 +41,7 @@ export function createLocationTrackBackgroundLayer(
     );
 
     let inFlight = true;
-    const selectedTrack = selection.selectedItems.locationTracks[0];
+    const selectedTrack = first(selection.selectedItems.locationTracks);
 
     const alignmentPromise = getMapAlignments(
         changeTimes,

@@ -15,7 +15,7 @@ import { PublishType } from 'common/common-model';
 import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { MapTile } from 'map/map-model';
-import { getCoordsUnsafe, getUnsafe } from 'utils/type-utils';
+import { getCoordsUnsafe } from 'utils/type-utils';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -72,11 +72,11 @@ export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): num
         .map((coordinate) => coordsToPoint(coordinate))
         .map((point, index, points) => {
             const nextPoint = points[index + 1];
-            return nextPoint ? [point, nextPoint] : undefined;
+            return (nextPoint ? [point, nextPoint] : undefined) as [Point, Point] | undefined;
         })
         .filter(filterNotEmpty);
     const squaredDistances = segments.map((segment) =>
-        distToSegmentSquared(point, getUnsafe(segment[0]), getUnsafe(segment[1])),
+        distToSegmentSquared(point, segment[0], segment[1]),
     );
     const minSquaredDistance = Math.min(...squaredDistances);
     return Math.sqrt(minSquaredDistance);

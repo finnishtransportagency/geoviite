@@ -11,7 +11,7 @@ import { getSelectedReferenceLineMapAlignmentByTiles } from 'track-layout/layout
 import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-import { getUnsafe } from 'utils/type-utils';
+import { first } from 'utils/array-utils';
 
 let newestLayerId = 0;
 
@@ -36,7 +36,7 @@ export function createSelectedReferenceLineAlignmentLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     let inFlight = true;
-    const selectedTrackNumber = selection.selectedItems.trackNumbers[0];
+    const selectedTrackNumber = first(selection.selectedItems.trackNumbers);
     const alignmentPromise = selectedTrackNumber
         ? getSelectedReferenceLineMapAlignmentByTiles(
               changeTimes,
@@ -50,8 +50,14 @@ export function createSelectedReferenceLineAlignmentLayer(
         .then((referenceLines) => {
             if (layerId !== newestLayerId) return;
 
+            const referenceLine = first(referenceLines);
+            if (!referenceLine) {
+                clearFeatures(vectorSource);
+                return;
+            }
+
             const alignmentFeatures = createAlignmentFeature(
-                getUnsafe(referenceLines[0]),
+                referenceLine,
                 false,
                 selectedReferenceLineStyle,
             );
