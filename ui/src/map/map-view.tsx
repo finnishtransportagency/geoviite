@@ -10,7 +10,12 @@ import { defaults as defaultInteractions } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import { HELSINKI_COORDS, Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import {
+    HELSINKI_RAILWAY_STATION_COORDS,
+    Map,
+    MapViewport,
+    OptionalShownItems,
+} from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
@@ -111,7 +116,10 @@ const defaultScaleLine: ScaleLine = new ScaleLine({
 
 function getOlViewByDomainViewport(viewport: MapViewport): OlView {
     return new OlView({
-        center: [viewport.center?.x ?? HELSINKI_COORDS.x, viewport.center?.y ?? HELSINKI_COORDS.y],
+        center: [
+            viewport.center?.x ?? HELSINKI_RAILWAY_STATION_COORDS.x,
+            viewport.center?.y ?? HELSINKI_RAILWAY_STATION_COORDS.y,
+        ],
         resolution: viewport.resolution,
         maxZoom: 32,
         minZoom: 6,
