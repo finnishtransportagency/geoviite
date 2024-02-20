@@ -1009,31 +1009,39 @@ class SwitchLinkingService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>): List<SuggestedSwitch?> {
         logger.serviceCall("getSuggestedSwitches", "points" to points)
-        return points.map { (location, switchId) ->
-            Triple(
-                location,
-                switchLibraryService.getSwitchStructure(switchService.getOrThrow(DRAFT, switchId).switchStructureId),
-                locationTrackService.getLocationTracksNear(location, DRAFT)
-            )
-        }.parallelStream().map { (location, switchStructure, nearbyLocationTracks) ->
-            createSuggestedSwitchByPoint(
-                location, switchStructure, nearbyLocationTracks
-            )
+        val switchStructures = points.map { (_, switchId) ->
+            switchLibraryService.getSwitchStructure(switchService.getOrThrow(DRAFT, switchId).switchStructureId)
         }
-            .collect(Collectors.toList())
-            .zip(points) { suggestedSwitch, (_, switchId) ->
-                adjustSuggestedSwitchForNearbyOverlaps(
-                    suggestedSwitch,
-                    switchId
-                )
-            }
+        val nearbyLocationTracks =
+            points.map { (location) -> locationTrackService.getLocationTracksNear(location, DRAFT) }
+        return points.mapIndexed { index, point ->
+            index to point
+        }.parallelStream().map { (index, point) ->
+            val location = point.first
+            adjustSuggestedSwitchForNearbyOverlaps(
+                createSuggestedSwitchByPoint(
+                    location, switchStructures[index], nearbyLocationTracks[index]
+                ),
+                points[index].second,
+                nearbyLocationTracks[index],
+                switchStructures[index],
+            )
+        }.collect(Collectors.toList())
     }
 
     private fun adjustSuggestedSwitchForNearbyOverlaps(
         suggestedSwitch: SuggestedSwitch?,
         switchId: IntId<TrackLayoutSwitch>,
-    ) = suggestedSwitch?.let { ss -> createSwitchLinkingParameters(ss, switchId) }
-        ?.let(::calculateModifiedLocationTracksAndAlignments)
+        nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+        switchStructure: SwitchStructure,
+    ) = suggestedSwitch?.let { ss ->
+        val parameters = createSwitchLinkingParameters(ss, switchId)
+        getLocationTrackChangesFromLinkingSwitch(parameters,
+            nearbyLocationTracks.associateBy { it.first.id as IntId<LocationTrack> },
+            switchStructure,
+            logger
+        ).allChanges()
+    }
         ?.let(::assignNewSwitchLinkingToLocationTracksAndAlignments)
         ?.asSequence()
         ?.filter(::locationTrackHasTemporaryTopologicalSwitchConnection)
@@ -1239,11 +1247,6 @@ class SwitchLinkingService @Autowired constructor(
             switchService.saveDraft(modifiedLayoutSwitch)
         }
     }
-
-    private fun calculateModifiedLocationTracksAndAlignments(
-        linkingParameters: SwitchLinkingParameters
-    ): List<Pair<LocationTrack, LayoutAlignment>> =
-        getLocationTrackChangesFromLinkingSwitch(linkingParameters).allChanges()
 
     private fun getMeasurementMethod(id: IntId<GeometrySwitch>): MeasurementMethod? =
         geometryDao.getMeasurementMethodForSwitch(id)
