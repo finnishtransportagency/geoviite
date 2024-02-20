@@ -1011,6 +1011,7 @@
                 "duplicate-name": "Vaihdenimeä {{switchName}} on käytetty useammalla eri vaihteella",
                 "type-unrecognized": "Vaihteen {{switchName}} tyyppi {{switchType}} on tuntematon",
                 "incorrect-joints": "Vaihteella {{switchName}} on määritelty pääosia jotka eivät kuulu vaihdetyyppiin: vaihteella ({{jointNumbers}}), tyypillä ({{structureJointNumbers}})",
+                "insufficient-joints": "Vaihteella {{switchName}} on määritelty vähemmän kuin kaksi pääosaa, joten sitä ei voi linkittää paikannuspohjaan",
                 "location-difference": "Vaihteen {{switchName}} suunnitellut päämitat eivät vastaa teoreettista",
                 "incorrect-joint-locations": "Vaihteen {{switchName}} pääosien sijainnit eivät vastaa laskennallisia",
                 "inaccurate-joint-locations": "Vaihteen {{switchName}} pääosien sijainnit epätarkkoja",
