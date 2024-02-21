@@ -13,7 +13,7 @@ import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { ALIGNMENT_FEATURE_DATA_PROPERTY } from 'map/layers/utils/alignment-layer-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 const MAX_POINTS = 8;
 
@@ -36,7 +36,7 @@ function findClosestPoints(
     if (!firstPoint || !lastPoint || points.length <= MAX_POINTS) {
         return points;
     } else {
-        const [targetX, targetY] = getCoordsUnsafe(targetCoordinate);
+        const [targetX, targetY] = expectCoordinate(targetCoordinate);
         const firstPointDistance = getPlanarDistanceUnwrapped(
             targetX,
             targetY,

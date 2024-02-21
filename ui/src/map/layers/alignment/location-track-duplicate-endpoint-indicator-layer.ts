@@ -31,7 +31,7 @@ import {
     getManyStartsAndEnds,
 } from 'track-layout/layout-location-track-api';
 import { Point } from 'model/geometry';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 type EndpointType = 'START' | 'END';
 const BLACK = '#000000';
@@ -69,7 +69,7 @@ function createDuplicateTrackEndpointAddressFeature(
         (endpointType === 'END' && !positiveXOffset);
 
     const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
-        const [x, y] = getCoordsUnsafe(coord);
+        const [x, y] = expectCoordinate(coord);
         const ctx = context;
 
         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${

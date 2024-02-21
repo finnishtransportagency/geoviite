@@ -27,7 +27,7 @@ import { Rectangle } from 'model/geometry';
 import { ValidatedAsset } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 import { first } from 'utils/array-utils';
 
 const switchImage: HTMLImageElement = new Image();
@@ -62,7 +62,7 @@ export function getSelectedSwitchLabelRenderer(
         },
         [
             ({ name }, coord, ctx, { pixelRatio }) => {
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillStyle = isGeometrySwitch
                     ? linked
                         ? styles.linkedSwitchLabel
@@ -86,7 +86,7 @@ export function getSelectedSwitchLabelRenderer(
                 );
             },
             (_, coord, ctx, { pixelRatio }) => {
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -101,7 +101,7 @@ export function getSelectedSwitchLabelRenderer(
             },
 
             ({ name }, coord, ctx, { pixelRatio }) => {
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillStyle = styles.switchTextColor;
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
@@ -150,7 +150,7 @@ export function getSwitchRenderer(
                     : styles.errorBright;
                 ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
             ({ name }, coord, ctx, { pixelRatio }) => {
@@ -158,7 +158,7 @@ export function getSwitchRenderer(
                     ctx.fillStyle = styles.switchBackground;
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
-                    const [x, y] = getCoordsUnsafe(coord);
+                    const [x, y] = expectCoordinate(coord);
 
                     const textWidth = ctx.measureText(name).width;
                     const textX = x + (circleRadius + textCirclePadding) * pixelRatio;
@@ -206,7 +206,7 @@ export function getJointRenderer(
                     ? styles.switchMainJointBorder
                     : styles.switchJointBorder;
 
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
 
@@ -217,7 +217,7 @@ export function getJointRenderer(
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillText(switchJointNumberToString(number), x, y);
             },
         ],
@@ -251,7 +251,7 @@ export function getLinkingJointRenderer(
                         : styles.unlinkedSwitchJointBorder
                     : styles.switchJointBorder;
 
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
 
@@ -260,7 +260,7 @@ export function getLinkingJointRenderer(
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                const [x, y] = getCoordsUnsafe(coord);
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillText(switchJointNumberToString(number), x, y);
             },
         ],

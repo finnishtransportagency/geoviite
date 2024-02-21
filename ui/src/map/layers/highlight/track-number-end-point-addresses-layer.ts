@@ -33,7 +33,7 @@ import {
     indicatorTextBackgroundHeight,
     indicatorTextPadding,
 } from 'map/layers/utils/dashed-line-indicator-utils';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 import { first, last } from 'utils/array-utils';
 
 let newestLayerId = 0;
@@ -70,7 +70,7 @@ function createAddressFeature(
     );
 
     const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
-        const [x, y] = getCoordsUnsafe(coord);
+        const [x, y] = expectCoordinate(coord);
         const ctx = context;
 
         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
