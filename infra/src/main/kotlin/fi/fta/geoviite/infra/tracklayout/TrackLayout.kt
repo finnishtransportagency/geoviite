@@ -144,6 +144,7 @@ data class LocationTrackInfoboxExtras(
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
+    val linkedSwitchesCount: Int,
 )
 
 data class SwitchValidationWithSuggestedSwitch(

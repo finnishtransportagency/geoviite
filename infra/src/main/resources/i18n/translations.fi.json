@@ -609,6 +609,7 @@
             },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
+            "open-switch-relinking-dialog": "Linkitä raiteen vaihteet...",
             "ratko-push-dialog": {
                 "title": "Vie sijaintiraiteen tiedot ratkoon",
                 "title-done": "Sijaintiraiteen tiedot viety ratkoon",
@@ -627,6 +628,15 @@
             "end-switch": "Vaihde raiteen lopussa",
             "no-start-or-end-switch": "Ei vaihdetta",
             "unset": "Ei asetettu",
+            "switch-relinking-dialog": {
+                "title": "Linkitä raiteen vaihteet",
+                "confirm-relinking": "Haluatko linkittää kaikki \"{{name}}\" raiteen vaihteet ({{linkedSwitchesCount}} kpl)?",
+                "confirm-relinking-clarification": "Automaattinen linkitys ei välttämättä korjaa kaikkia vaihteiden ongelmia. Linkityksen jälkeen ongelmalliset vaihteet näytetään tehtävälistassa ja ongelmat voi korjata manuaalisesti.",
+                "confirm-button": "Linkitä vaihteet ({{linkedSwitchesCount}} kpl)",
+                "relinking-finished-title": "Vaihteiden uudelleenlinkitys",
+                "relinking-finished-with-no-errors": "{{relinkedCount}} vaihdetta linkitetty.",
+                "relinking-finished-with-errors": "{{relinkedCount}} vaihdetta linkitetty. Ongelmia sisältävät vaihteet ({{invalidCount}} kpl) näytetään tehtävälistassa."
+            },
             "start-splitting": "Aloita raiteen jakaminen",
             "splitting": {
                 "title": "Raiteen jakaminen osiin",
