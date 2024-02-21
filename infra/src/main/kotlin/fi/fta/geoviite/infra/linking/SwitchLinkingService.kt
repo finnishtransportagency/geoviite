@@ -1585,9 +1585,13 @@ private fun getLocationTrackChangesFromLinkingSwitch(
         }
         .map { (_, track) -> track }
     return LocationTrackChangesFromLinkingSwitch(
-        onlyDelinked, onlyTopoLinkChanged.values.toList(), alignmentLinksChanged.values.toList()
+        draft(onlyDelinked), draft(onlyTopoLinkChanged.values.toList()), draft(alignmentLinksChanged.values.toList())
     )
 }
+
+// some validation logic depends on draftness state, so we need to pre-draft tracks for online validation
+private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
+    tracks.map { (track, alignment) -> draft(track) to alignment }
 
 private fun addTopologicalLink(
     locationTrack: LocationTrack,
