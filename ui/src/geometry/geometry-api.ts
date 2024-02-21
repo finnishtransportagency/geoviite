@@ -340,7 +340,7 @@ export function getGeometryPlanLinkingSummaries(
     planIds: GeometryPlanId[],
 ): Promise<{ [key: GeometryPlanId]: GeometryPlanLinkingSummary } | undefined> {
     return postNullable<GeometryPlanId[], { [key: GeometryPlanId]: GeometryPlanLinkingSummary }>(
-        `${GEOMETRY_URI}/plans/linking-summaries/`,
+        `${GEOMETRY_URI}/plans/linking-summaries`,
         planIds,
     );
 }
