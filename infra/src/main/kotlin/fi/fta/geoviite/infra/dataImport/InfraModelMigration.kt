@@ -21,7 +21,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
     private val importEnabled: Boolean by lazy { SpringContextUtility.getProperty("geoviite.data.import") }
 
-    override fun migrate(context: Context?) = withUser(ImportUser.IM_IMPORT) {
+    override fun migrate(context: Context?) = withImportUser(ImportUser.IM_IMPORT) {
         if (importEnabled) {
             throw NotImplementedError("Initial inframodel migration not supported in this version.")
         } else {

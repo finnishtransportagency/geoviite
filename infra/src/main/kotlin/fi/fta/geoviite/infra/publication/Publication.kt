@@ -165,8 +165,8 @@ data class ValidatedPublishCandidates(
 )
 
 data class ValidatedAsset<T>(
-    val errors: List<PublishValidationError>,
     val id: IntId<T>,
+    val errors: List<PublishValidationError>,
 )
 
 data class PublishCandidates(
@@ -225,9 +225,15 @@ data class ValidationVersions(
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
     fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
+
+    fun getTrackNumberIds() = trackNumbers.map { v -> v.officialId }
+    fun getReferenceLineIds() = referenceLines.map { v -> v.officialId }
+    fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
+    fun getSwitchIds() = switches.map { v -> v.officialId }
+    fun getKmPostIds() = kmPosts.map { v -> v.officialId }
 }
 
-data class SplitPublishGroup(
+data class PublicationGroup(
     val id: IntId<Split>,
 )
 
@@ -284,6 +290,7 @@ interface PublishCandidate<T> {
     val userName: UserName
     val errors: List<PublishValidationError>
     val operation: Operation?
+    val publicationGroup: PublicationGroup?
 
     fun getPublicationVersion() = ValidationVersion(id, rowVersion)
 }
@@ -296,6 +303,7 @@ data class TrackNumberPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
 ) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
@@ -310,6 +318,7 @@ data class ReferenceLinePublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation?,
+    override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
 ) : PublishCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
@@ -325,7 +334,7 @@ data class LocationTrackPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
-    val group: SplitPublishGroup?,
+    override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
@@ -340,6 +349,7 @@ data class SwitchPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
 ) : PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
@@ -354,6 +364,7 @@ data class KmPostPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST

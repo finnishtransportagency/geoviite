@@ -37,12 +37,30 @@ export enum DraftChangeType {
 
 export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'CALCULATED';
 
+export type PublicationGroupId = string;
+export type PublicationGroup = {
+    id: PublicationGroupId;
+};
+
+export enum PublicationStage {
+    UNSTAGED = 'UNSTAGED',
+    STAGED = 'STAGED',
+}
+
 export type PublicationId = string;
+
+export type PublishCandidateId =
+    | LayoutTrackNumberId
+    | ReferenceLineId
+    | LocationTrackId
+    | LayoutSwitchId
+    | LayoutKmPostId;
 
 export type PublishCandidate = {
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;
+    publicationGroup?: PublicationGroup;
     errors: PublishValidationError[];
 };
 
@@ -52,6 +70,10 @@ export type WithBoundingBox = {
 
 export type WithLocation = {
     location?: Point;
+};
+
+export type WithId = {
+    id: PublishCandidateId;
 };
 
 export type TrackNumberPublishCandidate = PublishCandidate &

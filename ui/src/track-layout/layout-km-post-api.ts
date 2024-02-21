@@ -161,8 +161,8 @@ export const deleteDraftKmPost = async (
 export async function getKmPostValidation(
     publishType: PublishType,
     id: LayoutKmPostId,
-): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(`${layoutUri('km-posts', publishType, id)}/validation`);
+): Promise<ValidatedAsset | undefined> {
+    return getNullable<ValidatedAsset>(`${layoutUri('km-posts', publishType, id)}/validation`);
 }
 
 export async function getKmPostsOnTrackNumber(

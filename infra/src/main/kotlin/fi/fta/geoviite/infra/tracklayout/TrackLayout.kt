@@ -74,6 +74,7 @@ data class TrackLayoutTrackNumber(
     override val dataType: DataType = DataType.TEMP,
     override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore override val draft: Draft<TrackLayoutTrackNumber>? = null,
+    @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null
 ) : Draftable<TrackLayoutTrackNumber> {
     @JsonIgnore
     val exists = !state.isRemoved()
@@ -143,6 +144,7 @@ data class LocationTrackInfoboxExtras(
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
+    val linkedSwitchesCount: Int,
 )
 
 data class SwitchValidationWithSuggestedSwitch(
@@ -194,10 +196,16 @@ data class LocationTrack(
     val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val draft: Draft<LocationTrack>? = null,
+    @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
 ) : Draftable<LocationTrack> {
 
     @JsonIgnore
     val exists = !state.isRemoved()
+
+    @get:JsonIgnore
+    val switchIds: List<IntId<TrackLayoutSwitch>> by lazy {
+        (segmentSwitchIds + listOfNotNull(topologyStartSwitch?.switchId, topologyEndSwitch?.switchId)).distinct()
+    }
 
     init {
         require(descriptionBase.length in locationTrackDescriptionLength) {

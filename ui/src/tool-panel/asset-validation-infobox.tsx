@@ -22,6 +22,7 @@ type AssetValidationInfoboxProps = {
     validationLoaderStatus: LoaderStatus;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
+    children?: React.ReactNode;
 };
 
 const typePrefix = (type: AssetType) => {
@@ -48,6 +49,7 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
     type,
     contentVisible,
     onContentVisibilityChange,
+    children,
 }) => {
     const { t } = useTranslation();
 
@@ -105,6 +107,7 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
                         </React.Fragment>
                     )}
                 </ProgressIndicatorWrapper>
+                {children}
             </InfoboxContent>
         </Infobox>
     );

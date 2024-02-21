@@ -1,0 +1,72 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.switch-relinking-validation-task-list {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+
+    position: absolute;
+    overflow: hidden;
+    z-index: 10;
+
+    top: 106px;
+    right: 388px;
+    width: 246px;
+
+    background-color: rgba(vayla-design.$color-white-default, 0.85);
+    border-radius: 4px;
+
+    &__close {
+        cursor: pointer;
+    }
+
+    &__title {
+        @include vayla-design.typography-sub-heading;
+
+        display: flex;
+        background-color: vayla-design.$color-white-dark;
+        justify-content: space-between;
+        padding: 6px 8px 6px 16px;
+        margin: 0;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+    }
+
+    &__content {
+        @include vayla-design.typography-caption;
+
+        padding: 8px 16px 16px 16px;
+    }
+
+    &__switches {
+        padding: 10px 20px 10px 12px;
+        margin: 8px 0 0 0;
+        max-height: 200px;
+        overflow: auto;
+        list-style: none;
+        border: 1px solid vayla-design.$color-white-darker;
+        border-radius: 4px;
+    }
+
+    .switch-badge {
+        cursor: pointer;
+    }
+
+    &__switch {
+        padding: 4px 0;
+    }
+
+    &__message-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    &__message-buttons {
+        margin-top: 16px;
+    }
+
+    &__loading {
+        height: 72px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}

@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -26,11 +26,11 @@ import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
@@ -38,8 +38,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
-const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
-const val VERTICAL_GEOMETRY_LISTING_GENERATION_USER = "VERT_GEOM_LIST_GEN"
+val elementListingGenerationUser = UserName("ELEMENT_LIST_GEN")
+val verticalGeometryListingGenerationUser = UserName("VERT_GEOM_LIST_GEN")
 
 @Service
 class GeometryService @Autowired constructor(
@@ -61,25 +61,19 @@ class GeometryService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private fun runElementListGeneration(op: () -> Unit) =
-        runWithLock(ELEMENT_LISTING_GENERATION_USER, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
+        runWithLock(elementListingGenerationUser, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
             val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
             if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
         }
 
     private fun runVerticalGeometryListGeneration(op: () -> Unit) =
-        runWithLock(VERTICAL_GEOMETRY_LISTING_GENERATION_USER, VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
+        runWithLock(verticalGeometryListingGenerationUser, VERTICAL_GEOMETRY_LIST_GEN, Duration.ofHours(1L)) {
             val lastFileUpdate = verticalGeometryListingFileDao.getLastFileListingTime()
             if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
         }
 
-    private fun runWithLock(userName: String, lock: DatabaseLock, timeout: Duration, op: () -> Unit) {
-        MDC.put(USER_HEADER, userName)
-        try {
-            lockDao.runWithLock(lock, timeout) { op() }
-        } finally {
-            MDC.remove(USER_HEADER)
-        }
-    }
+    private fun runWithLock(userName: UserName, lock: DatabaseLock, timeout: Duration, op: () -> Unit) =
+        withUser(userName) { lockDao.runWithLock(lock, timeout) { op() } }
 
     fun getGeometryPlanAreas(boundingBox: BoundingBox): List<GeometryPlanArea> {
         logger.serviceCall("getGeometryPlanAreas", "bbox" to boundingBox)

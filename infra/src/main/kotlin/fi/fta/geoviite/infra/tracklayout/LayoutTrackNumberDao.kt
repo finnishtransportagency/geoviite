@@ -66,19 +66,25 @@ class LayoutTrackNumberDao(
 
     override fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
-            select 
-              id as row_id,
-              version as row_version,
-              coalesce(draft_of_track_number_id, id) as official_id, 
-              case when draft then id end as draft_id,
-              external_id, 
-              number, 
-              description,
-              state 
-            from layout.track_number_version
-            where id = :id
-              and version = :version
-              and deleted = false
+            -- Draft vs Official reference line might duplicate the row, but results will be the same. Just pick one.
+            select distinct on (tn.id, tn.version)
+              tn.id as row_id,
+              tn.version as row_version,
+              coalesce(tn.draft_of_track_number_id, tn.id) as official_id,
+              case when tn.draft then tn.id end as draft_id,
+              tn.external_id,
+              tn.number,
+              tn.description,
+              tn.state,
+              coalesce(rl.draft_of_reference_line_id, rl.id) reference_line_id
+            from layout.track_number_version tn
+              -- TrackNumber reference line identity should never change, so we can join version 1
+              left join layout.reference_line_version rl on 
+                rl.track_number_id = coalesce(tn.draft_of_track_number_id, tn.id) and rl.version = 1
+            where tn.id = :id
+              and tn.version = :version
+              and tn.deleted = false
+            order by tn.id, tn.version, rl.id
         """.trimIndent()
         val params = mapOf(
             "id" to version.id.intValue,
@@ -91,16 +97,20 @@ class LayoutTrackNumberDao(
 
     override fun preloadCache() {
         val sql = """
-            select 
-              id as row_id,
-              version as row_version,
-              coalesce(draft_of_track_number_id, id) as official_id, 
-              case when draft then id end as draft_id,
-              external_id, 
-              number, 
-              description,
-              state 
-            from layout.track_number
+            -- Draft vs Official reference line might duplicate the row, but results will be the same. Just pick one.
+            select distinct on (tn.id)
+              tn.id as row_id,
+              tn.version as row_version,
+              coalesce(tn.draft_of_track_number_id, tn.id) as official_id, 
+              case when tn.draft then tn.id end as draft_id,
+              tn.external_id, 
+              tn.number, 
+              tn.description,
+              tn.state,
+              coalesce(rl.draft_of_reference_line_id, rl.id) as reference_line_id
+            from layout.track_number tn
+              left join layout.reference_line rl on rl.track_number_id = coalesce(tn.draft_of_track_number_id, tn.id)
+            order by tn.id, rl.id
         """.trimIndent()
         val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
             .associateBy(TrackLayoutTrackNumber::version)
@@ -117,6 +127,8 @@ class LayoutTrackNumberDao(
         dataType = DataType.STORED,
         draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
         version = rs.getRowVersion("row_id", "row_version"),
+        // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
+        referenceLineId = rs.getIntIdOrNull("reference_line_id"),
     )
 
     @Transactional
@@ -210,5 +222,30 @@ class LayoutTrackNumberDao(
                 rs.getInstant("change_time"),
             )
         }.also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
+    }
+
+    fun findOfficialNumberDuplicates(
+        numbers: List<TrackNumber>,
+    ): Map<TrackNumber, List<RowVersion<TrackLayoutTrackNumber>>> {
+        return if (numbers.isEmpty()) {
+            emptyMap()
+        } else {
+            val sql = """
+                select id, version, number
+                from layout.track_number
+                where number in (:numbers)
+                  and draft = false
+                  and state != 'DELETED'
+            """.trimIndent()
+            val params = mapOf("numbers" to numbers)
+            val found =
+                jdbcTemplate.query<Pair<TrackNumber, RowVersion<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
+                    val version = rs.getRowVersion<TrackLayoutTrackNumber>("id", "version")
+                    val name = rs.getString("number").let(::TrackNumber)
+                    name to version
+                }
+            // Ensure that the result contains all asked-for numbers, even if there are no matches
+            numbers.associateWith { n -> found.filter { (number, _) -> number == n }.map { (_, v) -> v } }
+        }
     }
 }

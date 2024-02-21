@@ -22,6 +22,8 @@ import {
     SuggestedSwitch,
     SuggestedSwitchCreateParams,
     SwitchLinkingParameters,
+    SwitchRelinkingValidationResult,
+    TrackSwitchRelinkingResult,
 } from 'linking/linking-model';
 import {
     getChangeTimes,
@@ -45,6 +47,10 @@ const LINKING_URI = `${API_URI}/linking`;
 
 const geometryElementsLinkedStatusCache = asyncCache<GeometryPlanId, GeometryPlanLinkStatus>();
 const suggestedSwitchesCache = asyncCache<string, SuggestedSwitch[]>();
+const relinkingSwitchValidationCache = asyncCache<
+    LocationTrackId,
+    SwitchRelinkingValidationResult[]
+>();
 
 type LinkingDataType = 'reference-lines' | 'location-tracks' | 'switches' | 'km-posts';
 type LinkingType = 'geometry' | 'empty-geometry' | 'suggested';
@@ -283,4 +289,28 @@ export async function linkKmPost(params: KmPostLinkingParameters): Promise<Layou
     await updatePlanChangeTime();
 
     return result;
+}
+
+export async function validateLocationTrackSwitchRelinking(
+    locationTrackId: LocationTrackId,
+): Promise<SwitchRelinkingValidationResult[]> {
+    return relinkingSwitchValidationCache.get(
+        getMaxTimestamp(getChangeTimes().layoutSwitch, getChangeTimes().layoutLocationTrack),
+        locationTrackId,
+        () =>
+            getNonNull<SwitchRelinkingValidationResult[]>(
+                `${LINKING_URI}/validate-relinking-track/${locationTrackId}`,
+            ),
+    );
+}
+
+export async function relinkTrackSwitches(
+    id: LocationTrackId,
+): Promise<TrackSwitchRelinkingResult[]> {
+    const rv = await postNonNull<null, TrackSwitchRelinkingResult[]>(
+        `${LINKING_URI}/relink-track-switches/${id}`,
+        null,
+    );
+    await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
+    return rv;
 }

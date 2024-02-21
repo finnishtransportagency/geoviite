@@ -137,3 +137,16 @@
         margin-top: 10px;
     }
 }
+
+.location-track-infobox__relink-link {
+    margin-top: 4px;
+}
+
+.location-track-infobox__validate-switch-relinking {
+    display: flex;
+    align-items: center;
+
+    .spinner {
+        margin-left: 12px;
+    }
+}

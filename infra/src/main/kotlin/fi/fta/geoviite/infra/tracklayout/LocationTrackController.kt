@@ -148,9 +148,9 @@ class LocationTrackController(
     fun validateLocationTrack(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ValidatedAsset<LocationTrack> {
+    ): ResponseEntity<ValidatedAsset<LocationTrack>> {
         logger.apiCall("validateLocationTrack", "publishType" to publishType, "id" to id)
-        return publicationService.validateLocationTrack(id, publishType)
+        return publicationService.validateLocationTracks(listOf(id), publishType).firstOrNull().let(::toResponse)
     }
 
     @PreAuthorize(AUTH_UI_READ)

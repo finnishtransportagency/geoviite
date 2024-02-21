@@ -21,18 +21,18 @@ class SecurityConfiguration {
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         logger.info("Configuring HTTP Security")
         return http
-            .httpBasic().disable()
+            .httpBasic { it.disable() }
             // Disable CORS: Not sharing anything with other domains
-            .cors().disable()
+            .cors { it.disable() }
             // Disable CSRF: JWT is stored in ALB -> session not configured here
-            .csrf().disable()
+            .csrf { it.disable() }
             // Disable SecurityContextPersistenceFilter which by default would replace the security context set up in
             // RequestFilter with an empty one
-            .securityContext().disable()
+            .securityContext { it.disable() }
             // Set session management to stateless
-            .sessionManagement().sessionCreationPolicy(STATELESS).and()
+            .sessionManagement { it.sessionCreationPolicy(STATELESS) }
             // Set permissions on endpoints
-            .authorizeHttpRequests().anyRequest().authenticated().and()
+            .authorizeHttpRequests { it.anyRequest().authenticated() }
             .build()
     }
 }

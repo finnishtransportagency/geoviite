@@ -49,13 +49,15 @@ module.exports = (env) => {
         devServer: {
             port: 9000,
             compress: false,
-            proxy: {
-                '/api': {
+            proxy: [
+                {
+                    context: '/api',
                     target: 'http://127.0.0.1:8080',
                     logLevel: 'debug',
                     pathRewrite: { '^/api': '' },
                 },
-                '/redirect/projektivelho/files': {
+                {
+                    context: '/redirect/projektivelho/files',
                     target: process.env.PROJEKTIVELHO_REDIRECT_URL,
                     logLevel: 'debug',
                     changeOrigin: true,
@@ -86,22 +88,25 @@ module.exports = (env) => {
                         return '';
                     },
                 },
-                ...(process.env.MML_MAP_IN_USE === 'true' && {
-                    '/location-map/': {
-                        target: process.env.MML_MAP_URL,
-                        logLevel: 'debug',
-                        pathRewrite: { '^/location-map': '' },
-                        changeOrigin: true,
-                        headers: {
-                            'X-API-Key': process.env.MML_MAP_API_KEY,
-                        },
-                        onProxyRes: (proxyRes) => {
-                            proxyRes.headers['Cache-Control'] =
-                                'public, max-age=86400, no-transform';
-                        },
-                    },
-                }),
-            },
+                ...(process.env.MML_MAP_IN_USE === 'true'
+                    ? [
+                          {
+                              context: '/location-map/',
+                              target: process.env.MML_MAP_URL,
+                              logLevel: 'debug',
+                              pathRewrite: { '^/location-map': '' },
+                              changeOrigin: true,
+                              headers: {
+                                  'X-API-Key': process.env.MML_MAP_API_KEY,
+                              },
+                              onProxyRes: (proxyRes) => {
+                                  proxyRes.headers['Cache-Control'] =
+                                      'public, max-age=86400, no-transform';
+                              },
+                          },
+                      ]
+                    : []),
+            ],
         },
         output: {
             path: path.join(__dirname, '/dist'),

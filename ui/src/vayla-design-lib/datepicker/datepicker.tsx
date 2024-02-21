@@ -88,9 +88,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...prop
                 popperModifiers={[
                     {
                         name: 'offset',
-                        options: {
-                            offset: [0, 6],
-                        },
+                        fn: (state) => ({
+                            ...state,
+                            x: state.x + 14,
+                        }),
                     },
                 ]}
                 customInput={<DatePickerInput {...props} />}

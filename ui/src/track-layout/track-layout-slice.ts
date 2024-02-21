@@ -19,31 +19,16 @@ import {
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LayoutKmPostId,
-    LayoutSwitchId,
-    LayoutTrackNumberId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addIfExists, first } from 'utils/array-utils';
+import { first } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
-import { subtractPublishRequestIds } from 'publication/publication-utils';
+import { addPublishRequestIds, subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
-
-export type SelectedPublishChange = {
-    trackNumber: LayoutTrackNumberId | undefined;
-    referenceLine: ReferenceLineId | undefined;
-    locationTrack: LocationTrackId | undefined;
-    switch: LayoutSwitchId | undefined;
-    kmPost: LayoutKmPostId | undefined;
-};
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -185,6 +170,15 @@ export const initialPublicationRequestIds: PublishRequestIds = {
     kmPosts: [],
 };
 
+export enum LocationTrackTaskListType {
+    RELINKING_SWITCH_VALIDATION,
+}
+
+export type SwitchRelinkingValidationTaskList = {
+    type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
+    locationTrackId: LocationTrackId;
+};
+
 export type TrackLayoutState = {
     publishType: PublishType;
     layoutMode: LayoutMode;
@@ -197,6 +191,7 @@ export type TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
     infoboxVisibilities: InfoboxVisibilities;
+    locationTrackTaskList?: SwitchRelinkingValidationTaskList;
     previewState: PreviewState;
 };
 
@@ -210,6 +205,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
     infoboxVisibilities: initialInfoboxVisibilities,
+    locationTrackTaskList: undefined,
     previewState: {
         showOnlyOwnUnstagedChanges: false,
     },
@@ -359,38 +355,15 @@ const trackLayoutSlice = createSlice({
                 }
             }
         },
-        onPreviewSelect: function (
-            state: TrackLayoutState,
-            action: PayloadAction<SelectedPublishChange>,
-        ): void {
-            const trackNumbers = addIfExists(
-                state.stagedPublicationRequestIds.trackNumbers,
-                action.payload.trackNumber,
-            );
-            const referenceLines = addIfExists(
-                state.stagedPublicationRequestIds.referenceLines,
-                action.payload.referenceLine,
-            );
-            const locationTracks = addIfExists(
-                state.stagedPublicationRequestIds.locationTracks,
-                action.payload.locationTrack,
-            );
-            const switches = addIfExists(
-                state.stagedPublicationRequestIds.switches,
-                action.payload.switch,
-            );
-            const kmPosts = addIfExists(
-                state.stagedPublicationRequestIds.kmPosts,
-                action.payload.kmPost,
-            );
 
-            state.stagedPublicationRequestIds = {
-                trackNumbers: trackNumbers,
-                referenceLines: referenceLines,
-                locationTracks: locationTracks,
-                switches: switches,
-                kmPosts: kmPosts,
-            };
+        onPublishPreviewSelect: function (
+            state: TrackLayoutState,
+            action: PayloadAction<PublishRequestIds>,
+        ): void {
+            const stateCandidates = state.stagedPublicationRequestIds;
+            const toAdd = action.payload;
+
+            state.stagedPublicationRequestIds = addPublishRequestIds(stateCandidates, toAdd);
         },
 
         onPublishPreviewRemove: function (
@@ -494,6 +467,15 @@ const trackLayoutSlice = createSlice({
             { payload }: PayloadAction<ToolPanelAsset | undefined>,
         ): void => {
             state.selectedToolPanelTab = payload;
+        },
+        showLocationTrackTaskList: (
+            state: TrackLayoutState,
+            { payload }: PayloadAction<TrackLayoutState['locationTrackTaskList']>,
+        ) => {
+            state.locationTrackTaskList = payload;
+        },
+        hideLocationTrackTaskList: (state: TrackLayoutState) => {
+            state.locationTrackTaskList = undefined;
         },
     },
 });

@@ -34,6 +34,7 @@ import {
     SwitchStructureId,
     TrackMeter,
 } from 'common/common-model';
+import { PublishValidationError } from 'publication/publication-model';
 
 export type LocationTrackSaveRequest = {
     name: string;
@@ -338,4 +339,21 @@ export type SuggestedSwitchCreateParams = {
     locationTrackEndpoint: LocationTrackEndpoint;
     switchStructureId: SwitchStructureId;
     alignmentMappings: SuggestedSwitchCreateParamsAlignmentMapping[];
+};
+
+export type SwitchRelinkingValidationResult = {
+    id: LayoutSwitchId;
+    successfulSuggestion: SwitchRelinkingSuggestion;
+    validationErrors: PublishValidationError[];
+};
+
+export type SwitchRelinkingSuggestion = {
+    location: Point;
+    address: TrackMeter;
+};
+
+export type TrackSwitchRelinkingResultType = 'RELINKED' | 'NOT_AUTOMATICALLY_LINKABLE';
+export type TrackSwitchRelinkingResult = {
+    id: LayoutSwitchId;
+    outcome: TrackSwitchRelinkingResultType;
 };

@@ -4,11 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.util.Code
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.assertSanitized
-import org.slf4j.MDC
 import org.springframework.security.core.GrantedAuthority
 
 data class User(val details: UserDetails, val role: Role)
@@ -27,15 +25,6 @@ data class Privilege(val code: Code, val name: AuthName, val description: FreeTe
     override fun getAuthority(): String = code.toString()
 }
 
-fun getCurrentUserName() = MDC.get(USER_HEADER)?.let(::UserName) ?: throw IllegalStateException("No user in context")
-fun <T> withUser(user: UserName, op: () -> T): T {
-    MDC.put(USER_HEADER, user.toString())
-    return try {
-        op()
-    } finally {
-        MDC.remove(USER_HEADER)
-    }
-}
 
 val userNameLength = 3..20
 val userNameRegex = Regex("^[A-Za-z0-9_]+\$")

@@ -417,4 +417,22 @@ class LayoutGeometryTest {
         )
         assertEquals(0.0, alignment.getMaxDirectionDeltaRads())
     }
+
+    @Test
+    fun `takeLast(n) with smaller last segment than n points`() {
+        val alignment = alignment(
+            segment(Point(0.0, 0.0), Point(3.0, 0.0)),
+            segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0))
+        )
+        assertEquals(listOf(1.0, 2.0, 3.0001, 4.0001, 5.0001), alignment.takeLast(5).map { it.x })
+    }
+
+    @Test
+    fun `takeFirst(n) with smaller first segment than n points`() {
+        val alignment = alignment(
+            segment(Point(0.0, 0.0), Point(3.0, 0.0)),
+            segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0))
+        )
+        assertEquals(listOf(0.0, 1.0, 2.0, 3.0001, 4.0001), alignment.takeFirst(5).map { it.x })
+    }
 }
