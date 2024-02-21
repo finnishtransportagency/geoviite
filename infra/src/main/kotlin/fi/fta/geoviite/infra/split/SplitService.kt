@@ -225,9 +225,7 @@ class SplitService(
     fun split(request: SplitRequest): IntId<Split> {
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
-        val relinkedSwitches = suggestions.map { (id, suggestion) ->
-            switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestion, id)).id
-        }
+        val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
 
         // Fetch post-re-linking track & alignment
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, request.sourceTrackId)
