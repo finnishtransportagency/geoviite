@@ -3,7 +3,7 @@ import OlMap from 'ol/Map';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { mergePartialItemSearchResults } from 'map/layers/utils/layer-utils';
 import { Rectangle } from 'model/geometry';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 /**
  * Returns a simple shape that has consistent size in pixels and can be used to search items from layers.
@@ -11,7 +11,7 @@ import { getCoordsUnsafe } from 'utils/type-utils';
  */
 export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 10): Rectangle {
     const pixel = map.getPixelFromCoordinate(coordinate);
-    const [x, y] = getCoordsUnsafe(pixel);
+    const [x, y] = expectCoordinate(pixel);
     return new Polygon([
         [
             map.getCoordinateFromPixel([x - tolerance, y - tolerance]),

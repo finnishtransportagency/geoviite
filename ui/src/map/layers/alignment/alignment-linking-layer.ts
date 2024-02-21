@@ -40,7 +40,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -379,7 +379,7 @@ function createPointTagFeature(
     const rotation = rotationByPointDirection + (showAtLeftSide ? Math.PI : 0);
 
     const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
-        const [x, y] = getCoordsUnsafe(coord);
+        const [x, y] = expectCoordinate(coord);
         const fontSize = 12;
         const textPadding = 3 * pixelRatio;
         const textBackgroundHeight = (fontSize + 4) * pixelRatio;

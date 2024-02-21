@@ -13,7 +13,7 @@ import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
 import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 type MapAlignmentBadgePoint = {
     point: number[];
@@ -42,7 +42,7 @@ export function createBadgeFeatures(
         const badgeNoseWidth = 4;
 
         const renderer = (coord: Coordinate, state: State) => {
-            const [x, y] = getCoordsUnsafe(coord);
+            const [x, y] = expectCoordinate(coord);
             const ctx = state.context;
             ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
                 state.pixelRatio * fontSize
@@ -137,8 +137,8 @@ function getBadgeStyle(badgeColor: AlignmentBadgeColor, contrast: boolean) {
 }
 
 function getBadgeRotation(startCoord: Coordinate, endCoord: Coordinate) {
-    const [startX, startY] = getCoordsUnsafe(startCoord);
-    const [endX, endY] = getCoordsUnsafe(endCoord);
+    const [startX, startY] = expectCoordinate(startCoord);
+    const [endX, endY] = expectCoordinate(endCoord);
 
     const dx = endX - startX;
     const dy = endY - startY;

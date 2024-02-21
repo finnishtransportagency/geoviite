@@ -55,7 +55,7 @@ export const expectDefined = <T>(thing: T): NonNullable<T> => {
     }
 };
 
-export const getCoordsUnsafe = (coord: Coordinate): [number, number] => [
+export const expectCoordinate = (coord: Coordinate): [number, number] => [
     expectDefined(coord[0]),
     expectDefined(coord[1]),
 ];

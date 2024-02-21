@@ -2,7 +2,7 @@ import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
 import { debounce } from 'ts-debounce';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 export const pointLocationTool: MapTool = {
     activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions) => {
@@ -19,7 +19,7 @@ export const pointLocationTool: MapTool = {
             },
         );
         const clickEvent = map.on('click', ({ coordinate }) => {
-            const [x, y] = getCoordsUnsafe(coordinate);
+            const [x, y] = expectCoordinate(coordinate);
             options.onClickLocation({
                 x,
                 y,

@@ -15,7 +15,7 @@ import { PublishType } from 'common/common-model';
 import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { MapTile } from 'map/map-model';
-import { getCoordsUnsafe } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -49,8 +49,8 @@ export function centroid(polygon: Polygon): OlPoint {
  * @param pointB
  */
 function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
-    const [aX, aY] = getCoordsUnsafe(pointA.getCoordinates());
-    const [bX, bY] = getCoordsUnsafe(pointB.getCoordinates());
+    const [aX, aY] = expectCoordinate(pointA.getCoordinates());
+    const [bX, bY] = expectCoordinate(pointB.getCoordinates());
 
     return getPlanarDistanceUnwrapped(aX, aY, bX, bY);
 }

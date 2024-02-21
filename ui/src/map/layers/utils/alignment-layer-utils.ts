@@ -13,7 +13,7 @@ import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
-import { exhaustiveMatchingGuard, getCoordsUnsafe } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectCoordinate } from 'utils/type-utils';
 
 const tickImageCache = cache<string, RegularShape>();
 
@@ -29,8 +29,8 @@ export function getTickStyle(
 ): Style {
     const numberOfDifferentAngles = 128;
     const angleStep = (Math.PI * 2) / numberOfDifferentAngles;
-    const [x1, y1] = getCoordsUnsafe(point1);
-    const [x2, y2] = getCoordsUnsafe(point2);
+    const [x1, y1] = expectCoordinate(point1);
+    const [x2, y2] = expectCoordinate(point2);
     const actualAngle = Math.atan2(x1 - x2, y1 - y2) + Math.PI / 2;
     const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
 
