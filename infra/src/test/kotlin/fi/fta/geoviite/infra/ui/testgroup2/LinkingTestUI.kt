@@ -131,13 +131,10 @@ class LinkingTestUI @Autowired constructor(
         val geometryTrackEndPoint = geometryAlignment.elements.last().end
 
         val (locationTrackStartPoint, locationTrackEndPoint) = alignmentDao.fetch(
-            locationTrackDao.fetch(
-                originalLocationTrack
-            ).alignmentVersion!!
-        ).let { alignment ->
-            alignment.start!! to alignment.end!!
-        }
+            locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!
+        ).let { alignment -> alignment.start!! to alignment.end!! }
 
+        E2ETrackLayoutPage.finishLoading()
         trackLayoutPage.clickAtCoordinates(geometryTrackStartPoint)
         trackLayoutPage.clickAtCoordinates(geometryTrackEndPoint)
 
@@ -193,12 +190,13 @@ class LinkingTestUI @Autowired constructor(
 
         val newEndPoint = locationTrackAlignment.segments.last().alignmentStart
 
+        E2ETrackLayoutPage.finishLoading()
         trackLayoutPage.clickAtCoordinates(locationTrackAlignment.segments.last().alignmentEnd)
         trackLayoutPage.clickAtCoordinates(newEndPoint)
 
         locationInfoBox.save()
 
-        locationInfoBox.waitForStartCoordinatesChange(pointToCoordinateString(locationTrackAlignment.segments.first().alignmentStart))
+        locationInfoBox.waitForStartCoordinatesChange(pointToCoordinateString(locationTrackAlignment.start!!))
         locationInfoBox.waitForEndCoordinatesChange(pointToCoordinateString(newEndPoint))
     }
 
@@ -435,7 +433,8 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkinInfobox.linkTo("lt-track to extend")
         alignmentLinkinInfobox.lock()
 
-        trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().alignmentStart)
+        E2ETrackLayoutPage.finishLoading()
+        trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.start!!)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.last().end)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
 
@@ -631,6 +630,7 @@ class LinkingTestUI @Autowired constructor(
         val pointNearLocationTrackJStart = locationTrackJ.plus(Point(x = 2.0, y = 2.0))
 
         //Click at empty point and info box should be empty
+        E2ETrackLayoutPage.finishLoading()
         trackLayoutPage.clickAtCoordinates(pointNearLocationTrackJStart)
 
         trackLayoutPage.toolPanel.locationTrackGeneralInfo.waitUntilInvisible()
@@ -676,6 +676,7 @@ class LinkingTestUI @Autowired constructor(
         //Click near deleted element point to clear tool panels
         //and then try to select deleted element to confirm it disappeared
         val switchPoint = DEFAULT_BASE_POINT + Point(1.0, 1.0)
+        E2ETrackLayoutPage.finishLoading()
         trackLayoutPage.clickAtCoordinates(switchPoint + Point(x = 1.0, y = 1.0))
         trackLayoutPage.clickAtCoordinates(switchPoint)
 
@@ -709,6 +710,7 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkingInfoBox.linkTo(locationTrackName)
         alignmentLinkingInfoBox.lock()
 
+        E2ETrackLayoutPage.finishLoading()
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.last().end)
         alignmentLinkingInfoBox.link()
