@@ -4,7 +4,7 @@ import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
 import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
-import { Button } from 'vayla-design-lib/button/button';
+import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 
 type LocationTrackValidationInfoboxProps = {
@@ -48,7 +48,10 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
             validationLoaderStatus={validationLoaderStatus}>
             {publishType === 'OFFICIAL' || (
                 <div>
-                    <Button disabled={editingDisabled} onClick={showLinkedSwitchesRelinkingDialog}>
+                    <Button
+                        size={ButtonSize.SMALL}
+                        disabled={editingDisabled}
+                        onClick={showLinkedSwitchesRelinkingDialog}>
                         {t('tool-panel.location-track.open-switch-relinking-dialog')}
                     </Button>
                 </div>
