@@ -886,17 +886,22 @@ fun getSuggestedSwitchScore(
     maxFarthestJointDistance: Double,
     desiredLocation: IPoint,
 ): Double {
-    return suggestedSwitch.joints.sumOf { joint ->
+    val alignmentJointNumbers = suggestedSwitch.switchStructure.alignmentJoints.map { joint -> joint.number }
+    val suggestedAlignmentJoints =
+        suggestedSwitch.joints.filter { joint -> alignmentJointNumbers.contains(joint.number) }
+    return suggestedAlignmentJoints.sumOf { joint ->
         // Select best of each joint
-        (joint.matches.maxOfOrNull { match ->
+        val jointScore = (joint.matches.maxOfOrNull { match ->
             // Smaller the match distance, better the score
             max(1.0 - match.distanceToAlignment, 0.0)
-        } ?: 0.0) + if (joint.number == farthestJoint.number && maxFarthestJointDistance > 0) {
+        } ?: 0.0)
+        val farthestJointExtraScore = if (joint.number == farthestJoint.number && maxFarthestJointDistance > 0) {
             val distanceToFarthestJoint = lineLength(desiredLocation, joint.location)
             val maxExtraScore = 0.5
             val extraScore = (distanceToFarthestJoint / maxFarthestJointDistance) * maxExtraScore
             extraScore
         } else 0.0
+        jointScore + farthestJointExtraScore
     }
 }
 

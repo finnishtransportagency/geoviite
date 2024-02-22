@@ -1235,7 +1235,7 @@
                     "publishing-duplicate-while-duplicated": "Raide on merkitty duplikaatiksi, mutta raide {{otherDuplicates}} on tämän raiteen duplikaatti",
                     "publishing-duplicate-while-duplicated-multiple": "Raide on merkitty duplikaatiksi, mutta raiteet {{otherDuplicates}} ovat tämän raiteen duplikaatteja"
                 },
-                "deleted-duplicated-by-existing": "Poistettavaan raiteeseen viittaa edelleen poistamattomia duplikaattiraiteita: {{duplicates}}",
+                "deleted-duplicated-by-existing": "Poistettavaan raiteeseen viittaa edelleen duplikaattiraiteita: {{duplicates}}",
                 "empty-segments": "Sijaintiraiteella ei ole geometriaa",
                 "points": {
                     "not-continuous": "Sijaintiraiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
