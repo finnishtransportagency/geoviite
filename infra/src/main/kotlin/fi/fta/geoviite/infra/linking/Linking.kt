@@ -166,7 +166,7 @@ data class KmPostLinkingParameters(
     val layoutKmPostId: IntId<TrackLayoutKmPost>,
 )
 
-data class SwitchRelinkingResult(
+data class SwitchRelinkingValidationResult(
     val id: IntId<TrackLayoutSwitch>,
     val successfulSuggestion: SwitchRelinkingSuggestion?,
     val validationErrors: List<PublishValidationError>,
@@ -174,4 +174,10 @@ data class SwitchRelinkingResult(
 data class SwitchRelinkingSuggestion(
     val location: Point,
     val address: TrackMeter,
+)
+
+enum class TrackSwitchRelinkingResultType { RELINKED, NOT_AUTOMATICALLY_LINKABLE }
+data class TrackSwitchRelinkingResult(
+    val id: IntId<TrackLayoutSwitch>,
+    val outcome: TrackSwitchRelinkingResultType
 )

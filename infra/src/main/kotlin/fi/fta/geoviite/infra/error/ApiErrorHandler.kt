@@ -1,9 +1,8 @@
 package fi.fta.geoviite.infra.error
 
-import fi.fta.geoviite.infra.configuration.CORRELATION_ID_HEADER
+import correlationId
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
@@ -30,7 +29,7 @@ class ApiErrorHandler {
 }
 
 fun createErrorResponse(log: Logger, ex: Exception): ResponseEntity<ApiErrorResponse> {
-    val correlationId: String = MDC.get(CORRELATION_ID_HEADER) ?: "N/A"
+    val correlationId: String = correlationId.getOrNull() ?: "N/A"
     val response = createResponse(ex, correlationId) ?: run {
         log.warn(
             "Error handling failed. Defaulting to \"Internal server error\": " +

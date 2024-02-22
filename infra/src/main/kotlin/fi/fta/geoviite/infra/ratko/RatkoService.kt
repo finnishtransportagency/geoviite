@@ -1,10 +1,9 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.authorization.withUser
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -17,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import withUser
 import java.time.Duration
 import java.time.Instant
 

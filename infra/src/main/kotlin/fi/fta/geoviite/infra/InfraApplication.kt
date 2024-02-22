@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServic
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.annotation.EnableScheduling
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 
 @SpringBootApplication(
     exclude = [
@@ -15,7 +15,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
         UserDetailsServiceAutoConfiguration::class,
     ]
 )
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 class InfraApplication
 
 @Configuration

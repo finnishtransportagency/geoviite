@@ -743,6 +743,15 @@ fun validateSwitch(
                 type = OBSERVATION_MAJOR,
             )
         },
+        validate(jointNumbers.size >= 2) {
+            SwitchDefinitionError(
+                key = "insufficient-joints",
+                switchName = switch.name,
+                jointNumbers = jointNumbers,
+                structureJointNumbers = structureJointNumbers,
+                type = OBSERVATION_MINOR,
+            )
+        }
     )
 
     val geometryErrors = structure?.let { s -> validateSwitchGeometry(switch, s) } ?: emptyList()

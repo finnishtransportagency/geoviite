@@ -1152,16 +1152,38 @@ class SwitchLinkingService @Autowired constructor(
         logger
     )
 
-    @Transactional(readOnly = true)
-    fun validateRelinkingTrack(trackId: IntId<LocationTrack>): List<SwitchRelinkingResult> {
+    @Transactional
+    fun relinkTrack(trackId: IntId<LocationTrack>): List<TrackSwitchRelinkingResult> {
         val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(trackId)
         val track = trackVersion.let(locationTrackDao::fetch)
-        val switchSuggestions = getTrackSwitchSuggestions(track)
-        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)) {
+        val suggestions = getTrackSwitchSuggestions(DRAFT, track)
+        val unlinkableIds =
+            suggestions.mapNotNull { (switchId, suggestion) -> if (suggestion === null) switchId else null }
+        val linkedIds = suggestions.mapNotNull { (switchId, suggestion) ->
+            suggestion?.let {
+                saveSwitchLinking(
+                    createSwitchLinkingParameters(
+                        suggestion, switchId
+                    )
+                ).id
+            }
+        }
+        return listOf(linkedIds.map { id -> TrackSwitchRelinkingResult(id, TrackSwitchRelinkingResultType.RELINKED) },
+            unlinkableIds.map { id ->
+                TrackSwitchRelinkingResult(id, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
+            }).flatten()
+    }
+
+    @Transactional(readOnly = true)
+    fun validateRelinkingTrack(trackId: IntId<LocationTrack>): List<SwitchRelinkingValidationResult> {
+        val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(trackId)
+        val track = trackVersion.let(locationTrackDao::fetch)
+        val switchSuggestions = getTrackSwitchSuggestions(DRAFT, track)
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(DRAFT, track.trackNumberId)) {
             "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
         }
         return switchSuggestions.map { (switchId, suggestedSwitch) ->
-            if (suggestedSwitch == null) SwitchRelinkingResult(switchId, null, listOf())
+            if (suggestedSwitch == null) SwitchRelinkingValidationResult(switchId, null, listOf())
             else {
                 val (validationResults, presentationJointLocation) = validateSwitchLinkingParametersForSplit(
                     createSwitchLinkingParameters(suggestedSwitch).copy(
@@ -1171,7 +1193,7 @@ class SwitchLinkingService @Autowired constructor(
                 val address = requireNotNull(geocodingContext.getAddress(presentationJointLocation)) {
                     "Could not geocode relinked location for switch $switchId on track $track"
                 }
-                SwitchRelinkingResult(
+                SwitchRelinkingValidationResult(
                     switchId,
                     SwitchRelinkingSuggestion(presentationJointLocation, address.first),
                     validationResults,
@@ -1182,10 +1204,13 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(publishType: PublishType, trackId: IntId<LocationTrack>) =
-        getTrackSwitchSuggestions(locationTrackDao.getOrThrow(publishType, trackId))
+        getTrackSwitchSuggestions(publishType, locationTrackDao.getOrThrow(publishType, trackId))
 
     @Transactional(readOnly = true)
-    fun getTrackSwitchSuggestions(track: LocationTrack): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
+    fun getTrackSwitchSuggestions(
+        publishType: PublishType,
+        track: LocationTrack
+    ): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
         logger.serviceCall("getTrackSwitchSuggestions", "track" to track)
 
         val alignment = requireNotNull(track.alignmentVersion) {
@@ -1194,12 +1219,26 @@ class SwitchLinkingService @Autowired constructor(
 
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
-            val switch = switchService.getOrThrow(OFFICIAL, switchId)
+            val switch = switchService.getOrThrow(publishType, switchId)
             switchService.getPresentationJointOrThrow(switch).location to switchId
         }
         val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
-        return switchIds.mapIndexed { index, id -> id to switchSuggestions[index] }
+        return switchIds
+            .mapIndexed { index, id -> id to switchSuggestions[index] }
+            // sort suggestions going down the track, so that if we save them in order, one suggestion's changes to
+            // segment indices don't break another
+            .sortedBy(sortingSuggestionsByReverseMOrderOnTrack(track.id))
     }
+
+    private fun sortingSuggestionsByReverseMOrderOnTrack(locationTrackId: DomainId<LocationTrack>): (s: Pair<*, SuggestedSwitch?>) -> Double =
+        { (_, suggestion) ->
+            if (suggestion == null) 1.0 else
+            suggestion.joints.firstNotNullOfOrNull { sj -> sj.matches.firstOrNull { match -> match.locationTrackId == locationTrackId }?.m }
+                ?.let { -it }
+                // if the original linking was so messed that the suggested switch ended up completely disconnected,
+                // its ordering is clearly immaterial (so it can go last), but we do want to detach it to clean up
+                ?: 1.0
+        }
 
     fun validateSwitchLinkingParametersForSplit(
         linkingParameters: SwitchLinkingParameters,

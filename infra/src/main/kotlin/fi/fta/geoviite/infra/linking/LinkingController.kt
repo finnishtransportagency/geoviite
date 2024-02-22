@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -168,7 +167,15 @@ class LinkingController @Autowired constructor(
 
     @PreAuthorize(AUTH_UI_READ)
     @GetMapping("/validate-relinking-track/{id}")
-    fun validateRelinkingTrack(@PathVariable("id") id: IntId<LocationTrack>): List<SwitchRelinkingResult> {
+    fun validateRelinkingTrack(@PathVariable("id") id: IntId<LocationTrack>): List<SwitchRelinkingValidationResult> {
+        logger.apiCall("validateRelinkingTrack", "id" to id)
         return switchLinkingService.validateRelinkingTrack(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/relink-track-switches/{id}")
+    fun relinkTrackSwitches(@PathVariable("id") id: IntId<LocationTrack>): List<TrackSwitchRelinkingResult> {
+        logger.apiCall("relinkTrackSwitches", "id" to id)
+        return switchLinkingService.relinkTrack(id)
     }
 }

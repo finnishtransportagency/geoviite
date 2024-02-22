@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.Point
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.locationtech.jts.geom.Coordinate
-import org.opengis.referencing.crs.CoordinateReferenceSystem
 
 val KKJ0 = Srid(3386)
 val KKJ1 = Srid(2391)

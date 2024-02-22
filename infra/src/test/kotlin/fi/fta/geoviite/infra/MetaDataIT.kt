@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra
 
-import fi.fta.geoviite.infra.configuration.USER_HEADER
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.slf4j.MDC
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import withUser
 import kotlin.test.assertTrue
 
 const val TEST_ROLE_CODE = "it_tst"
@@ -37,16 +37,13 @@ class MetaDataIT: DBTestBase() {
         updateRole(TEST_ROLE_CODE, "IT_test_name_2")
         assertEquals("IT_test_name_2", getName(TEST_ROLE_CODE))
 
-        MDC.put(USER_HEADER, "TST_USER_2")
-        updateRole(TEST_ROLE_CODE, "IT_test_name_3")
+        withUser(UserName("TST_USER_2")) { updateRole(TEST_ROLE_CODE, "IT_test_name_3") }
         assertEquals("IT_test_name_3", getName(TEST_ROLE_CODE))
 
-        MDC.put(USER_HEADER, "TST_USER_3")
-        deleteRole(TEST_ROLE_CODE)
+        withUser(UserName("TST_USER_3")) { deleteRole(TEST_ROLE_CODE) }
         assertEquals(null, getName(TEST_ROLE_CODE))
 
-        MDC.put(USER_HEADER, "TST_USER_4")
-        insertRole(TEST_ROLE_CODE, "IT_test_restored")
+        withUser(UserName("TST_USER_4")) { insertRole(TEST_ROLE_CODE, "IT_test_restored") }
         assertEquals("IT_test_restored", getName(TEST_ROLE_CODE))
 
         assertEquals(
@@ -57,7 +54,7 @@ class MetaDataIT: DBTestBase() {
                 4 to VersionData("IT_test_name_3", "TST_USER_3", true),
                 5 to VersionData("IT_test_restored", "TST_USER_4", false),
             ),
-            getRoleVersionData(TEST_ROLE_CODE)
+            getRoleVersionData(TEST_ROLE_CODE),
         )
     }
 

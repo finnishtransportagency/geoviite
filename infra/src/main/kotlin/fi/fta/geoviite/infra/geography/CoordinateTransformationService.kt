@@ -7,10 +7,10 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem
+import org.geotools.api.referencing.operation.MathTransform
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
-import org.opengis.referencing.crs.CoordinateReferenceSystem
-import org.opengis.referencing.operation.MathTransform
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap

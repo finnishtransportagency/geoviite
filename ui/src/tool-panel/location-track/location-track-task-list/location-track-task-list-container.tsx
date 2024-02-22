@@ -85,7 +85,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
 
     const [switches, switchesLoadingStatus] = useLoaderWithStatus(async () => {
         const switchIds = (await validateLocationTrackSwitchRelinking(locationTrackId))
-            .filter((r) => r.validationErrors.length > 0)
+            .filter((r) => r.validationErrors.length > 0 || r.successfulSuggestion == null)
             .map((s) => s.id);
 
         return await getSwitches(switchIds, 'DRAFT');

@@ -100,7 +100,7 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNonNull<AlignmentPlanSection[]>(
-        `${layoutUri('track-numbers', publishType, id)}/plan-geometry/${params}`,
+        `${layoutUri('track-numbers', publishType, id)}/plan-geometry${params}`,
     );
 };
 

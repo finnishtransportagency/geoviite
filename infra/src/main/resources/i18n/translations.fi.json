@@ -480,6 +480,7 @@
                 "linking-header": "Linkitys",
                 "is-linked": "Linkitetty",
                 "cannot-start-switch-linking-related-tracks-not-linked-msg": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
+                "cannot-start-switch-linking-insufficient-geometry-switch-joints": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
                 "start-setup": "Aloita linkitys",
                 "select-switch-msg": "Valitse vaihde, johon linkitetään",
                 "cannot-link-invalid-switch-type": "Valitun vaihteen tyyppi:\n{{selectedType}}\n\neroaa liikaa oletetusta vaihteen tyyppistä:\n{{suggestedType}}\n\nVaihdetta ei voi linkittää.",
@@ -608,6 +609,7 @@
             },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
+            "open-switch-relinking-dialog": "Linkitä raiteen vaihteet...",
             "ratko-push-dialog": {
                 "title": "Vie sijaintiraiteen tiedot ratkoon",
                 "title-done": "Sijaintiraiteen tiedot viety ratkoon",
@@ -626,6 +628,15 @@
             "end-switch": "Vaihde raiteen lopussa",
             "no-start-or-end-switch": "Ei vaihdetta",
             "unset": "Ei asetettu",
+            "switch-relinking-dialog": {
+                "title": "Linkitä raiteen vaihteet",
+                "confirm-relinking": "Haluatko linkittää kaikki \"{{name}}\" raiteen vaihteet ({{linkedSwitchesCount}} kpl)?",
+                "confirm-relinking-clarification": "Automaattinen linkitys ei välttämättä korjaa kaikkia vaihteiden ongelmia. Linkityksen jälkeen ongelmalliset vaihteet näytetään tehtävälistassa ja ongelmat voi korjata manuaalisesti.",
+                "confirm-button": "Linkitä vaihteet ({{linkedSwitchesCount}} kpl)",
+                "relinking-finished-title": "Vaihteiden uudelleenlinkitys",
+                "relinking-finished-with-no-errors": "{{relinkedCount}} vaihdetta linkitetty.",
+                "relinking-finished-with-errors": "{{relinkedCount}} vaihdetta linkitetty. Ongelmia sisältävät vaihteet ({{invalidCount}} kpl) näytetään tehtävälistassa."
+            },
             "start-splitting": "Aloita raiteen jakaminen",
             "splitting": {
                 "title": "Raiteen jakaminen osiin",
@@ -1010,6 +1021,7 @@
                 "duplicate-name": "Vaihdenimeä {{switchName}} on käytetty useammalla eri vaihteella",
                 "type-unrecognized": "Vaihteen {{switchName}} tyyppi {{switchType}} on tuntematon",
                 "incorrect-joints": "Vaihteella {{switchName}} on määritelty pääosia jotka eivät kuulu vaihdetyyppiin: vaihteella ({{jointNumbers}}), tyypillä ({{structureJointNumbers}})",
+                "insufficient-joints": "Vaihteella {{switchName}} on määritelty vähemmän kuin kaksi pääosaa, joten sitä ei voi linkittää paikannuspohjaan",
                 "location-difference": "Vaihteen {{switchName}} suunnitellut päämitat eivät vastaa teoreettista",
                 "incorrect-joint-locations": "Vaihteen {{switchName}} pääosien sijainnit eivät vastaa laskennallisia",
                 "inaccurate-joint-locations": "Vaihteen {{switchName}} pääosien sijainnit epätarkkoja",
