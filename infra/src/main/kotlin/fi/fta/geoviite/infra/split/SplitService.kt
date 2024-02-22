@@ -41,15 +41,22 @@ class SplitService(
         locationTrackId: IntId<LocationTrack>,
         splitTargets: Collection<SplitTarget>,
         relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
+        updatedDuplicates: Collection<IntId<LocationTrack>>,
     ): IntId<Split> {
         logger.serviceCall(
             "saveSplit",
             "locationTrackId" to locationTrackId,
             "splitTargets" to splitTargets,
             "relinkedSwitches" to relinkedSwitches,
+            "updatedDuplicates" to updatedDuplicates,
         )
 
-        return splitDao.saveSplit(locationTrackId, splitTargets, relinkedSwitches)
+        return splitDao.saveSplit(
+            locationTrackId,
+            splitTargets,
+            relinkedSwitches,
+            updatedDuplicates
+        )
     }
 
     fun getChangeTime(): Instant {
@@ -225,6 +232,16 @@ class SplitService(
 
     @Transactional
     fun split(request: SplitRequest): IntId<Split> {
+
+        // Original duplicate ids to be stored in split data before updating the location track
+        // references which they referenced before the split (request source track).
+        // If the references are not updated, the duplicate-of reference will be removed entirely when the
+        // source track's layout state is set to "DELETED".
+        val sourceTrackDuplicateIds = locationTrackService.fetchDuplicates(request.sourceTrackId)
+            .map { duplicateTrack ->
+                duplicateTrack.id as IntId
+            }
+
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
@@ -266,7 +283,7 @@ class SplitService(
         return savedSplitTargetLocationTracks.map { splitTargetResult ->
             SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices)
         }.let { splitTargets ->
-            splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches)
+            splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
         }
     }
 
