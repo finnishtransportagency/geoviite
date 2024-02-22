@@ -336,6 +336,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         }
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={editingDisabled}
+                        iconHidden={!locationTrack.duplicateOf}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
