@@ -126,6 +126,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
 
     const [switchTypeDifferenceIsConfirmed, setSwitchTypeDifferenceIsConfirmed] =
         React.useState(false);
+    const isValidGeometrySwitch = (geometrySwitchLayout?.joints.length ?? 0) >= 2;
     const isValidLayoutSwitch =
         suggestedSwitch != undefined &&
         selectedLayoutSwitch &&
@@ -214,6 +215,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                             {suggestedSwitchFetchStatus === LoaderStatus.Ready ? (
                                 <GeometrySwitchLinkingInitiation
                                     onStartLinking={startLinking}
+                                    isValidGeometrySwitch={isValidGeometrySwitch}
                                     hasSuggestedSwitch={!!suggestedSwitch}
                                     linkingState={linkingState}
                                 />

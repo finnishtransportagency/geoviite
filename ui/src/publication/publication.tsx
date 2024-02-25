@@ -8,7 +8,6 @@ import {
 import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
@@ -114,7 +113,6 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                             </span>
                         </div>
                     )}
-                    <RatkoPublishButton />
                 </footer>
             )}
         </div>

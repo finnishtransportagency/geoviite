@@ -10,6 +10,7 @@ import { WriteAccessRequired } from 'user/write-access-required';
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
     hasSuggestedSwitch: boolean;
+    isValidGeometrySwitch: boolean;
     onStartLinking: () => void;
 };
 
@@ -17,12 +18,21 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
     linkingState,
     hasSuggestedSwitch,
     onStartLinking,
+    isValidGeometrySwitch,
 }) => {
     const { t } = useTranslation();
     return (
         <WriteAccessRequired>
             {linkingState === undefined &&
-                (hasSuggestedSwitch ? (
+                (!isValidGeometrySwitch ? (
+                    <InfoboxContentSpread>
+                        <MessageBox>
+                            {t(
+                                'tool-panel.switch.geometry.cannot-start-switch-linking-insufficient-geometry-switch-joints',
+                            )}
+                        </MessageBox>
+                    </InfoboxContentSpread>
+                ) : hasSuggestedSwitch ? (
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}

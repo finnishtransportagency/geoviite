@@ -48,10 +48,10 @@ import TopologicalConnectivityLabel from 'tool-panel/location-track/topological-
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
-import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import {
     LocationTrackInfoboxVisibilities,
+    SwitchRelinkingValidationTaskList,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
@@ -71,6 +71,8 @@ import { EnvRestricted } from 'environment/env-restricted';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { LocationTrackValidationInfoboxContainer } from 'tool-panel/location-track/location-track-validation-infobox-container';
+import { LocationTrackSwitchRelinkingDialog } from 'tool-panel/location-track/dialog/location-track-switch-relinking-dialog';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -90,6 +92,7 @@ type LocationTrackInfoboxProps = {
     onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
     verticalGeometryDiagramVisible: boolean;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    showLocationTrackTaskList: (taskList: SwitchRelinkingValidationTaskList | undefined) => void;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -110,6 +113,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     verticalGeometryDiagramVisible,
     onVerticalGeometryDiagramVisibilityChange,
     onHighlightItem,
+    showLocationTrackTaskList,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const delegates = createDelegates(TrackLayoutActions);
@@ -140,6 +144,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
+    const [confirmingSwitchRelinking, setConfirmingSwitchRelinking] = React.useState(false);
 
     const editingDisabled = publishType === 'OFFICIAL' || !!linkingState || !!splittingState;
 
@@ -326,6 +331,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         }
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={editingDisabled}
+                        iconHidden={!locationTrack.duplicateOf}
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
@@ -602,14 +608,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 }
                 verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
             />
-            {locationTrack.draftType !== 'NEW_DRAFT' && (
-                <AssetValidationInfoboxContainer
+            {locationTrack.draftType !== 'NEW_DRAFT' && extraInfo !== undefined && (
+                <LocationTrackValidationInfoboxContainer
                     contentVisible={visibilities.validation}
                     onContentVisibilityChange={() => visibilityChange('validation')}
                     id={locationTrack.id}
-                    type={'LOCATION_TRACK'}
                     publishType={publishType}
                     changeTime={changeTimes.layoutLocationTrack}
+                    linkedSwitchesCount={extraInfo.linkedSwitchesCount}
+                    showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
+                    editingDisabled={editingDisabled}
                 />
             )}
             {locationTrackChangeInfo && (
@@ -690,6 +698,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onSave={handleLocationTrackSave}
                     locationTrackId={locationTrack.id}
                     changeTimes={changeTimes}
+                />
+            )}
+
+            {confirmingSwitchRelinking && extraInfo && (
+                <LocationTrackSwitchRelinkingDialog
+                    locationTrackId={locationTrack.id}
+                    name={locationTrack.name}
+                    linkedSwitchesCount={extraInfo.linkedSwitchesCount}
+                    closeDialog={() => setConfirmingSwitchRelinking(false)}
+                    showLocationTrackTaskList={showLocationTrackTaskList}
                 />
             )}
         </React.Fragment>

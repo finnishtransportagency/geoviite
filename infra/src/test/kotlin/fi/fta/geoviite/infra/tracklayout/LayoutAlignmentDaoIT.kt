@@ -33,7 +33,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     @BeforeEach
     fun setUp() {
-        initUserMdc()
+        initUser()
         jdbc.execute("truncate layout.alignment cascade") { it.execute() }
     }
 

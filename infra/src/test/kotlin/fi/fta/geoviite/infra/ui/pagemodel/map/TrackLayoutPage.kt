@@ -65,7 +65,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
     companion object {
         fun finishLoading() {
-            waitUntilNotExist(By.className(".map__loading-spinner"))
+            waitUntilNotExist(byQaId("map-loading-spinner"))
         }
     }
 
@@ -119,13 +119,13 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     private fun zoomOut() {
-        val oldScale = resolution;
+        val oldScale = resolution
         clickChild(By.className("ol-zoom-out"))
         waitUntilScaleChanges(oldScale)
     }
 
     private fun zoomIn() {
-        val oldScale = resolution;
+        val oldScale = resolution
         clickChild(By.className("ol-zoom-in"))
         waitUntilScaleChanges(oldScale)
     }

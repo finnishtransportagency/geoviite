@@ -106,7 +106,7 @@ class AuthorizationIT @Autowired constructor(
     fun callWithNokPrivilegeFailsWith403() {
         testApi.assertErrorResult(
             testApi.doGet(getRequest("/test-auth/write"), HttpStatus.FORBIDDEN),
-            "Access is denied",
+            "Access Denied",
         )
     }
 
@@ -114,7 +114,7 @@ class AuthorizationIT @Autowired constructor(
     fun callWithNonexistingPrivilegeFailsWith403() {
         testApi.assertErrorResult(
             testApi.doGet(getRequest("/test-auth/fail"), HttpStatus.FORBIDDEN),
-            "Access is denied",
+            "Access Denied",
         )
     }
 

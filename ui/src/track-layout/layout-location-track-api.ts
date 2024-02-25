@@ -133,7 +133,7 @@ export function getLocationTrackDescriptions(
 ): Promise<LocationTrackDescription[] | undefined> {
     const params = queryParams({ ids: locationTrackIds.join(',') });
     return getNullable<LocationTrackDescription[]>(
-        `${layoutUri('location-tracks', publishType)}/description/${params}`,
+        `${layoutUri('location-tracks', publishType)}/description${params}`,
     );
 }
 
@@ -279,7 +279,7 @@ export const getLocationTrackSectionsByPlan = async (
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNullable<AlignmentPlanSection[]>(
-        `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+        `${layoutUri('location-tracks', publishType, id)}/plan-geometry${params}`,
     );
 };
 

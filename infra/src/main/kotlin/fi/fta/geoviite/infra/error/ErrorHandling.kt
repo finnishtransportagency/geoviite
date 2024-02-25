@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
-import org.opengis.referencing.operation.TransformException
+import org.geotools.api.referencing.operation.TransformException
 import org.springframework.beans.ConversionNotSupportedException
 import org.springframework.beans.TypeMismatchException
 import org.springframework.boot.context.properties.bind.BindException

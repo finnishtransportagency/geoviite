@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geography
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.geotools.geometry.jts.JTS
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.referencing.CRS
@@ -12,8 +13,6 @@ import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.Polygon
 import org.locationtech.jts.geom.PrecisionModel
-import org.opengis.referencing.crs.CoordinateReferenceSystem
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.getOrSet
 
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
@@ -36,8 +35,8 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
     return coordinates
         .mapIndexedNotNull { index, coordinate -> if (index == 0) null else listOf(coordinates[index - 1], coordinate) }
         .fold(0.0) { sum, coordinate ->
-            gc.setStartingPosition(JTS.toDirectPosition(coordinate[0], ref))
-            gc.setDestinationPosition(JTS.toDirectPosition(coordinate[1], ref))
+            gc.startingPosition = JTS.toDirectPosition(coordinate[0], ref)
+            gc.destinationPosition = JTS.toDirectPosition(coordinate[1], ref)
             sum + gc.orthodromicDistance
         }
 }

@@ -140,7 +140,7 @@ val inframodelAliases = mapOf(
 class V10_03_06__SwitchLibraryDataMigration : BaseJavaMigration() {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    override fun migrate(context: Context?) = withUser(ImportUser.SWITCH_LIB_IMPORT) {
+    override fun migrate(context: Context?) = withImportUser(ImportUser.SWITCH_LIB_IMPORT) {
         logger.info("Add switch structures into library")
 
         val connection = context?.connection
@@ -164,7 +164,7 @@ class V53__add_rr54_4x_switch_structure : BaseJavaMigration() {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     override fun migrate(context: Context?) {
-        withUser(ImportUser.SWITCH_LIB_IMPORT) {
+        withImportUser(ImportUser.SWITCH_LIB_IMPORT) {
             logger.info("Add RR54-4x1:9 structure into library")
 
             val connection =

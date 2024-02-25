@@ -33,7 +33,7 @@ fun findXmlCharset(name: String): Charset? =
     XmlCharset.values().find { cs -> cs.charset.name() == name }?.charset
 
 fun getEncodingAndBom(bytes: ByteArray): Pair<Charset, Boolean> {
-    BOMInputStream(ByteArrayInputStream(bytes)).use { stream ->
+    BOMInputStream.builder().setInputStream(ByteArrayInputStream(bytes)).get().use { stream ->
         val encodingFromBOM = stream.bom?.let { bom -> mapBomToCharset(bom) }
         val (fileEncoding, encodingFromXMLDeclaration) = encodingsFromXmlStream(stream)
         val encoding = encodingFromBOM

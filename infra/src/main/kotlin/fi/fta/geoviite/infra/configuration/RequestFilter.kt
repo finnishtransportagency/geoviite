@@ -6,6 +6,9 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.TokenExpiredException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.fasterxml.jackson.databind.ObjectMapper
+import correlationId
+import currentUser
+import currentUserRole
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
@@ -14,9 +17,11 @@ import fi.fta.geoviite.infra.logging.apiRequest
 import fi.fta.geoviite.infra.logging.apiResponse
 import fi.fta.geoviite.infra.util.Code
 import fi.fta.geoviite.infra.util.isValidCode
+import jakarta.servlet.FilterChain
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -34,14 +39,7 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
 import java.time.Instant
 import java.util.*
-import javax.servlet.FilterChain
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 
-
-const val CORRELATION_ID_HEADER = "correlationId"
-const val USER_HEADER = "user"
-const val ROLE_HEADER = "role"
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
@@ -106,11 +104,10 @@ class RequestFilter @Autowired constructor(
         val requestIP = extractRequestIP(request)
 
         try {
-            MDC.put(CORRELATION_ID_HEADER, extractRequestCorrelationId(request))
-
+            correlationId.set(extractRequestCorrelationId(request))
             val user = getUser(request)
-            MDC.put(USER_HEADER, user.details.userName.toString())
-            MDC.put(ROLE_HEADER, user.role.code.toString())
+            currentUser.set(user.details.userName)
+            currentUserRole.set(user.role.code)
 
             log.apiRequest(request, requestIP)
             val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)
@@ -124,9 +121,9 @@ class RequestFilter @Autowired constructor(
             response.writer.flush()
         } finally {
             log.apiResponse(request, response, requestIP, startTime)
-            MDC.remove(CORRELATION_ID_HEADER)
-            MDC.remove(USER_HEADER)
-            MDC.remove(ROLE_HEADER)
+            currentUserRole.clear()
+            currentUser.clear()
+            correlationId.clear()
         }
     }
 

@@ -7,8 +7,6 @@ spring:
     filter:
       # Set security filter to be after our own request filter that sets authorization
       order: 2
-  mvc:
-    throw-exception-if-no-handler-found: true
   web:
     resources:
       add-mappings: false

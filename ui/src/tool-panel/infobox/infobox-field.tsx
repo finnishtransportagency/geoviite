@@ -14,6 +14,7 @@ type InfoboxFieldProps = {
     onEdit?: () => void;
     className?: string;
     iconDisabled?: boolean;
+    iconHidden?: boolean;
     hasErrors?: boolean;
 };
 
@@ -25,6 +26,7 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
     qaId,
     inEditMode = false,
     iconDisabled = false,
+    iconHidden = false,
     hasErrors = false,
     ...props
 }: InfoboxFieldProps) => {
@@ -47,14 +49,14 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                 )}>
                 {children || value}
             </div>
-            {!inEditMode && props.onEdit && !iconDisabled && (
+            {!inEditMode && props.onEdit && !iconDisabled && !iconHidden && (
                 <div
                     className={styles['infobox__edit-icon']}
                     onClick={() => props.onEdit && props.onEdit()}>
                     <Icons.Edit size={IconSize.SMALL} />
                 </div>
             )}
-            {iconDisabled && (
+            {iconDisabled && !iconHidden && (
                 <WriteAccessRequired>
                     <div className={styles['infobox__edit-icon']}>
                         <span title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>

@@ -65,6 +65,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                     trackLayoutState.map.verticalGeometryDiagramState.visible
                 }
                 onHighlightItem={onHoverOverPlanSection}
+                showLocationTrackTaskList={delegates.showLocationTrackTaskList}
             />
         );
 };
