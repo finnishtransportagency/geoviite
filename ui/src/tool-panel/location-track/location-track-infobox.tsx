@@ -697,7 +697,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onClose={closeEditLocationTrackDialog}
                     onSave={handleLocationTrackSave}
                     locationTrackId={locationTrack.id}
-                    changeTimes={changeTimes}
                 />
             )}
 

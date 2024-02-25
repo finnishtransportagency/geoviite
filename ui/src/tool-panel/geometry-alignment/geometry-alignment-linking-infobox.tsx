@@ -59,7 +59,6 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { ChangeTimes } from 'common/common-slice';
-import { getMaxTimestamp } from 'utils/date-utils';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -301,10 +300,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         <ReferenceLineNames
                             linkedReferenceLines={linkedReferenceLines}
                             publishType={publishType}
-                            alignmentChangeTime={getMaxTimestamp(
-                                changeTimes.layoutLocationTrack,
-                                changeTimes.layoutReferenceLine,
-                            )}
+                            changeTimes={changeTimes}
                         />
                     )}
 
@@ -444,7 +440,6 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 <LocationTrackEditDialogContainer
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
-                    changeTimes={changeTimes}
                 />
             )}
             {showAddTrackNumberDialog && (

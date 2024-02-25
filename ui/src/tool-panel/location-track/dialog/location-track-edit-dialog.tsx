@@ -58,12 +58,12 @@ import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { ChangeTimes } from 'common/common-slice';
 import { getChangeTimes } from 'common/change-time-api';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
-    changeTimes: ChangeTimes;
 };
 
 export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogContainerProps> = (
@@ -72,11 +72,9 @@ export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogConta
     const [editTrackId, setEditTrackId] = React.useState<LocationTrackId | undefined>(
         props.locationTrackId,
     );
-    const locationTrack = useLocationTrack(
-        editTrackId,
-        'DRAFT',
-        props.changeTimes.layoutLocationTrack,
-    );
+
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+    const locationTrack = useLocationTrack(editTrackId, 'DRAFT', changeTimes.layoutLocationTrack);
     return (
         <LocationTrackEditDialog
             locationTrack={locationTrack}
