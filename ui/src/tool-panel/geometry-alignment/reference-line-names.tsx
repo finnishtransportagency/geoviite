@@ -5,17 +5,19 @@ import { useTranslation } from 'react-i18next';
 import { LayoutReferenceLine, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { useLoader } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
+import { ChangeTimes } from 'common/common-slice';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 type ReferenceLineNamesProps = {
     linkedReferenceLines: LayoutReferenceLine[];
     publishType: PublishType;
-    alignmentChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
 };
 
 function createSelectAction() {
@@ -30,9 +32,14 @@ function createSelectAction() {
 const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
     linkedReferenceLines,
     publishType,
-    alignmentChangeTime,
+    changeTimes,
 }) => {
     const { t } = useTranslation();
+
+    const alignmentChangeTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutReferenceLine,
+    );
     const trackNumbers = useLoader(
         () => getTrackNumbers(publishType, alignmentChangeTime),
         [alignmentChangeTime, linkedReferenceLines, publishType],

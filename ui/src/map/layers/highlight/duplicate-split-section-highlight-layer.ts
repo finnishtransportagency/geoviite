@@ -60,7 +60,11 @@ export function createDuplicateSplitSectionHighlightLayer(
         const linkedDuplicates = splittingState.splits
             .map((split) => split.duplicateOf)
             .concat(splittingState.firstSplit.duplicateOf);
-        getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType)
+        getLocationTrackInfoboxExtras(
+            splittingState.originLocationTrack.id,
+            publishType,
+            changeTimes,
+        )
             .then((extras) => {
                 getMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then((alignments) => {
                     if (layerId === newestLayerId) {

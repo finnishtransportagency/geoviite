@@ -46,7 +46,6 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { Link } from 'vayla-design-lib/link/link';
-import { TimeStamp } from 'common/common-model';
 import { getChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
@@ -56,6 +55,7 @@ import { postSplitLocationTrack } from 'publication/split/split-api';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { createDelegates } from 'store/store-utils';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
+import { ChangeTimes } from 'common/common-slice';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
@@ -63,11 +63,10 @@ type LocationTrackSplittingInfoboxContainerProps = {
     firstSplit: FirstSplitTargetCandidate;
     splits: SplitTargetCandidate[];
     allowedSwitches: SwitchOnLocationTrack[];
-    switchChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     disabled: boolean;
     removeSplit: (switchId: LayoutSwitchId) => void;
     locationTrackId: string;
-    locationTrackChangeTime: TimeStamp;
     stopSplitting: () => void;
     updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     setSplittingDisabled: (disabled: boolean) => void;
@@ -174,13 +173,12 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
 > = ({
     locationTrackId,
-    locationTrackChangeTime,
+    changeTimes,
     firstSplit,
     splits,
     visibilities,
     visibilityChange,
     allowedSwitches,
-    switchChangeTime,
     removeSplit,
     stopSplitting,
     updateSplit,
@@ -192,13 +190,13 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     markSplitOld,
 }) => {
     const delegates = createDelegates(TrackLayoutActions);
-    const locationTrack = useLocationTrack(locationTrackId, 'DRAFT', locationTrackChangeTime);
-
-    const [startAndEnd, _] = useLocationTrackStartAndEnd(
+    const locationTrack = useLocationTrack(
         locationTrackId,
         'DRAFT',
-        locationTrackChangeTime,
+        changeTimes.layoutLocationTrack,
     );
+
+    const [startAndEnd, _] = useLocationTrackStartAndEnd(locationTrackId, 'DRAFT', changeTimes);
     const conflictingTracks = useConflictingTracks(
         locationTrack?.trackNumberId,
         [firstSplit, ...splits].map((s) => s.name),
@@ -209,11 +207,11 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         () => allowedSwitches.map((sw) => sw.switchId),
         [allowedSwitches],
     );
-    const switches = useSwitches(allowedSwitchIds, 'DRAFT', switchChangeTime);
+    const switches = useSwitches(allowedSwitchIds, 'DRAFT', changeTimes.layoutSwitch);
 
     React.useEffect(() => {
         locationTrack && setSplittingDisabled(locationTrack?.draftType !== 'OFFICIAL');
-    }, [locationTrack, locationTrackChangeTime]);
+    }, [locationTrack, changeTimes.layoutLocationTrack]);
 
     const onShowTaskList = (locationTrack: LocationTrackId) => {
         delegates.showLocationTrackTaskList({
@@ -379,8 +377,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const [locationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
         locationTrack.id,
         'DRAFT',
-        getChangeTimes().layoutLocationTrack,
-        getChangeTimes().layoutSwitch,
+        getChangeTimes(),
     );
 
     const allErrors = allValidated.flatMap((validated) => [

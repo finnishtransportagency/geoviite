@@ -226,33 +226,36 @@ export function createDuplicateTrackEndpointAddressLayer(
     if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
         inFlight = true;
 
-        getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType).then(
-            (extras) =>
-                getManyStartsAndEnds(
-                    extras?.duplicates.map((duplicate) => duplicate.id) || [],
-                    publishType,
-                    changeTimes.layoutLocationTrack,
-                ).then((startsAndEnds) =>
-                    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-                        .then((alignments) => {
-                            if (layerId === newestLayerId) {
-                                const features = createFeatures(
-                                    alignments,
-                                    extras?.duplicates || [],
-                                    startsAndEnds,
-                                );
+        getLocationTrackInfoboxExtras(
+            splittingState.originLocationTrack.id,
+            publishType,
+            changeTimes,
+        ).then((extras) =>
+            getManyStartsAndEnds(
+                extras?.duplicates.map((duplicate) => duplicate.id) || [],
+                publishType,
+                changeTimes.layoutLocationTrack,
+            ).then((startsAndEnds) =>
+                getMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+                    .then((alignments) => {
+                        if (layerId === newestLayerId) {
+                            const features = createFeatures(
+                                alignments,
+                                extras?.duplicates || [],
+                                startsAndEnds,
+                            );
 
-                                clearFeatures(vectorSource);
-                                vectorSource.addFeatures(features);
-                            }
-                        })
-                        .catch(() => {
-                            if (layerId === newestLayerId) clearFeatures(vectorSource);
-                        })
-                        .finally(() => {
-                            inFlight = false;
-                        }),
-                ),
+                            clearFeatures(vectorSource);
+                            vectorSource.addFeatures(features);
+                        }
+                    })
+                    .catch(() => {
+                        if (layerId === newestLayerId) clearFeatures(vectorSource);
+                    })
+                    .finally(() => {
+                        inFlight = false;
+                    }),
+            ),
         );
     } else {
         clearFeatures(vectorSource);

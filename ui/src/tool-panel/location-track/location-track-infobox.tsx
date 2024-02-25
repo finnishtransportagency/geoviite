@@ -32,7 +32,7 @@ import 'i18n/config';
 import { useTranslation } from 'react-i18next';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { LocationTrackOwnerId, PublishType, TimeStamp } from 'common/common-model';
+import { LocationTrackOwnerId, PublishType } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
@@ -70,6 +70,7 @@ import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track
 import { EnvRestricted } from 'environment/env-restricted';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { filterNotEmpty } from 'utils/array-utils';
+import { ChangeTimes } from 'common/common-slice';
 import { LocationTrackValidationInfoboxContainer } from 'tool-panel/location-track/location-track-validation-infobox-container';
 import { LocationTrackSwitchRelinkingDialog } from 'tool-panel/location-track/dialog/location-track-switch-relinking-dialog';
 
@@ -82,9 +83,7 @@ type LocationTrackInfoboxProps = {
     showArea: (area: BoundingBox) => void;
     onDataChange: () => void;
     publishType: PublishType;
-    locationTrackChangeTime: TimeStamp;
-    trackNumberChangeTime: TimeStamp;
-    switchChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
@@ -105,9 +104,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     splittingState,
     onDataChange,
     publishType,
-    locationTrackChangeTime,
-    trackNumberChangeTime,
-    switchChangeTime,
+    changeTimes,
     onSelect,
     onUnselect,
     viewport,
@@ -124,22 +121,21 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         publishType,
-        locationTrackChangeTime,
-        trackNumberChangeTime,
+        changeTimes,
     );
-    const changeTimes = useLocationTrackChangeTimes(locationTrack?.id, publishType);
+    const locationTrackChangeInfo = useLocationTrackChangeTimes(locationTrack?.id, publishType);
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const officialLocationTrack = useLocationTrack(
         locationTrack.id,
         'OFFICIAL',
-        locationTrackChangeTime,
+        changeTimes.layoutLocationTrack,
     );
     const description = useLoader(
         () =>
             getLocationTrackDescriptions([locationTrack.id], publishType).then(
                 (value) => (value && value[0].description) ?? undefined,
             ),
-        [locationTrack?.id, publishType, locationTrackChangeTime],
+        [locationTrack?.id, publishType, changeTimes.layoutLocationTrack],
     );
     const locationTrackOwners = useLoader(() => getLocationTrackOwners(), []);
 
@@ -211,8 +207,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
         publishType,
-        locationTrackChangeTime,
-        switchChangeTime,
+        changeTimes,
     );
 
     const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
@@ -330,7 +325,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 existingDuplicate={extraInfo?.duplicateOf}
                                 duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
                                 publishType={publishType}
-                                changeTime={locationTrackChangeTime}
+                                changeTime={changeTimes.layoutLocationTrack}
                                 currentTrackNumberId={trackNumber?.id}
                             />
                         }
@@ -389,14 +384,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         firstSplit={splittingState.firstSplit}
                         splits={splittingState.splits || []}
                         locationTrackId={splittingState.originLocationTrack.id}
-                        locationTrackChangeTime={locationTrackChangeTime}
+                        changeTimes={changeTimes}
                         removeSplit={delegates.removeSplit}
                         stopSplitting={() => {
                             delegates.stopSplitting();
                             delegates.hideLayers(['location-track-split-location-layer']);
                         }}
                         allowedSwitches={splittingState.allowedSwitches}
-                        switchChangeTime={switchChangeTime}
                         updateSplit={delegates.updateSplit}
                         setSplittingDisabled={delegates.setDisabled}
                         disabled={splittingState.disabled}
@@ -481,7 +475,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                                         locationTrack.id,
                                                         publishType,
                                                         'LOCATION_TRACK',
-                                                        locationTrackChangeTime,
+                                                        changeTimes.layoutLocationTrack,
                                                     ).then(onStartLocationTrackGeometryChange);
                                                 }}>
                                                 {t('tool-panel.location-track.modify-start-or-end')}
@@ -620,13 +614,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onContentVisibilityChange={() => visibilityChange('validation')}
                     id={locationTrack.id}
                     publishType={publishType}
-                    changeTime={locationTrackChangeTime}
+                    changeTime={changeTimes.layoutLocationTrack}
                     linkedSwitchesCount={extraInfo.linkedSwitchesCount}
                     showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
                     editingDisabled={editingDisabled}
                 />
             )}
-            {changeTimes && (
+            {locationTrackChangeInfo && (
                 <Infobox
                     contentVisible={visibilities.log}
                     onContentVisibilityChange={() => visibilityChange('log')}
@@ -636,12 +630,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         <InfoboxField
                             qaId="location-track-created-date"
                             label={t('tool-panel.created')}
-                            value={formatDateShort(changeTimes.created)}
+                            value={formatDateShort(locationTrackChangeInfo.created)}
                         />
                         <InfoboxField
                             qaId="location-track-changed-date"
                             label={t('tool-panel.changed')}
-                            value={changeTimes.changed && formatDateShort(changeTimes.changed)}
+                            value={
+                                locationTrackChangeInfo.changed &&
+                                formatDateShort(locationTrackChangeInfo.changed)
+                            }
                         />
                         {officialLocationTrack === undefined && (
                             <InfoboxButtons>
@@ -683,7 +680,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 <LocationTrackRatkoPushDialog
                     locationTrackId={locationTrack.id}
                     onClose={() => setShowRatkoPushDialog(false)}
-                    locationTrackChangeTime={locationTrackChangeTime}
+                    changeTimes={changeTimes}
                 />
             )}
 
@@ -700,8 +697,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onClose={closeEditLocationTrackDialog}
                     onSave={handleLocationTrackSave}
                     locationTrackId={locationTrack.id}
-                    locationTrackChangeTime={locationTrackChangeTime}
-                    switchChangeTime={switchChangeTime}
                 />
             )}
 

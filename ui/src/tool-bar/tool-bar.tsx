@@ -24,7 +24,6 @@ import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
-import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
@@ -48,7 +47,6 @@ export type ToolbarParams = {
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
     publishType: PublishType;
-    changeTimes: ChangeTimes;
     onStopLinking: () => void;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
@@ -136,7 +134,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     onOpenPreview,
     showArea,
     publishType,
-    changeTimes,
     onStopLinking,
     onMapLayerChange,
     mapLayerMenuGroups,
@@ -376,8 +373,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <LocationTrackEditDialogContainer
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
-                    locationTrackChangeTime={changeTimes.layoutLocationTrack}
-                    switchChangeTime={changeTimes.layoutSwitch}
                 />
             )}
 

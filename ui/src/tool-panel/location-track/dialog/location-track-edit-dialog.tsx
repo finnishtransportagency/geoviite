@@ -46,7 +46,6 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
@@ -57,13 +56,14 @@ import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description
 import { getLocationTrackOwners } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
+import { ChangeTimes } from 'common/common-slice';
+import { getChangeTimes } from 'common/change-time-api';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
-    locationTrackChangeTime: TimeStamp;
-    switchChangeTime: TimeStamp;
 };
 
 export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogContainerProps> = (
@@ -72,14 +72,15 @@ export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogConta
     const [editTrackId, setEditTrackId] = React.useState<LocationTrackId | undefined>(
         props.locationTrackId,
     );
-    const locationTrack = useLocationTrack(editTrackId, 'DRAFT', props.locationTrackChangeTime);
+
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+    const locationTrack = useLocationTrack(editTrackId, 'DRAFT', changeTimes.layoutLocationTrack);
     return (
         <LocationTrackEditDialog
             locationTrack={locationTrack}
             onClose={props.onClose}
             onSave={props.onSave}
-            locationTrackChangeTime={props.locationTrackChangeTime}
-            switchChangeTime={props.switchChangeTime}
+            changeTimes={getChangeTimes()}
             onEditTrack={(id) => setEditTrackId(id)}
         />
     );
@@ -89,8 +90,7 @@ type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
     onClose: () => void;
     onSave?: (locationTrackId: LocationTrackId) => void;
-    locationTrackChangeTime: TimeStamp;
-    switchChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     onEditTrack: (id: LocationTrackId) => void;
 };
 
@@ -120,14 +120,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         state.existingLocationTrack?.id,
         'DRAFT',
-        props.locationTrackChangeTime,
+        props.changeTimes,
     );
 
     const [extraInfo] = useLocationTrackInfoboxExtras(
         props.locationTrack?.id,
         'DRAFT',
-        props.locationTrackChangeTime,
-        props.switchChangeTime,
+        props.changeTimes,
     );
 
     const stateOptions = layoutStates
@@ -145,7 +144,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const duplicate = useLocationTrack(
         props.locationTrack?.duplicateOf,
         'DRAFT',
-        props.locationTrackChangeTime,
+        props.changeTimes.layoutLocationTrack,
     );
     React.useEffect(() => {
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
@@ -182,17 +181,19 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     React.useEffect(() => {
         if (props.locationTrack) {
             stateActions.onStartLoadingLocationTrack();
-            getLocationTrack(props.locationTrack.id, 'DRAFT', props.locationTrackChangeTime).then(
-                (locationTrack) => {
-                    if (locationTrack) {
-                        stateActions.onLocationTrackLoaded(locationTrack);
-                        firstInputRef.current?.focus();
-                    } else {
-                        Snackbar.error('location-track-dialog.cant-open-deleted');
-                        props.onClose();
-                    }
-                },
-            );
+            getLocationTrack(
+                props.locationTrack.id,
+                'DRAFT',
+                props.changeTimes.layoutLocationTrack,
+            ).then((locationTrack) => {
+                if (locationTrack) {
+                    stateActions.onLocationTrackLoaded(locationTrack);
+                    firstInputRef.current?.focus();
+                } else {
+                    Snackbar.error('location-track-dialog.cant-open-deleted');
+                    props.onClose();
+                }
+            });
         } else {
             stateActions.initWithNewLocationTrack(locationTrackOwners);
             firstInputRef.current?.focus();
