@@ -1184,9 +1184,10 @@ class SwitchLinkingService @Autowired constructor(
                 TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
             } else {
                 val linkingParameters = createSwitchLinkingParameters(suggestedSwitch, switchId)
+                val nearbyTracksByParams = findLocationTracksAndAlignmentsForSwitchLinking(linkingParameters)
                 getLocationTrackChangesFromLinkingSwitch(
                     linkingParameters,
-                    findLocationTracksAndAlignmentsForSwitchLinking(linkingParameters),
+                    nearbyTracksByParams + changedLocationTracks.filterKeys(nearbyTracksByParams::containsKey),
                     switchStructure,
                     logger,
                 ).allChanges().forEach { track -> changedLocationTracks[track.first.id as IntId] = track }
