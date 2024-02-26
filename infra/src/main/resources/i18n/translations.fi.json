@@ -15,7 +15,9 @@
         "split": {
             "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
-            "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui"
+            "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui",
+            "geocoding-failed": "Jakamista ei voitu suorittaa, koska jaettavan raiteen {{trackName}} geokoodaus epäonnistui",
+            "new-duplicate-reference-assignment-failed": "Jakamista ei voitu suorittaa, koska käyttämättömälle duplikaattiraiteelle {{duplicate}} ei löydetty päällekkäisyyttä jakamisen seurauksena syntyvistä raiteista"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",

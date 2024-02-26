@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.createSwitchLinkingParameters
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublishValidationError
@@ -254,7 +255,11 @@ class SplitService(
                 request,
                 splitTargetTracksWithAlignments,
             )
-        }
+        } ?: throw SplitFailureException(
+            message = "Geocoding context creation failed: trackNumber=${sourceTrack.trackNumberId}",
+            localizedMessageKey = "geocoding-failed",
+            localizationParams = localizationParams("trackName" to sourceTrack.name)
+        )
 
         locationTrackService.updateState(request.sourceTrackId, LayoutState.DELETED)
 
@@ -499,7 +504,7 @@ private fun findNewLocationTracksForUnusedDuplicates(
     splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<LocationTrack> {
 
-    data class MostOverlappingLocationTrackReference(
+    data class LocationTrackOverlapReference(
         val locationTrack: LocationTrack? = null,
         val overlapPercentage: Double = 0.0,
     )
@@ -519,9 +524,8 @@ private fun findNewLocationTracksForUnusedDuplicates(
         }
 
     return geocodedUnusedDuplicates.map { (duplicate, duplicateStartAndEnd) ->
-        geocodedSplitTargets
-            .fold(
-                MostOverlappingLocationTrackReference()
+        geocodedSplitTargets.fold(
+                LocationTrackOverlapReference()
             ) { currentBest, (splitTarget, splitTargetStartEnd) ->
 
                 if (currentBest.overlapPercentage > 99.9) {
@@ -535,7 +539,7 @@ private fun findNewLocationTracksForUnusedDuplicates(
 
                     val overlapPercentage = overlap / intervalLength * 100
                     if (overlapPercentage > currentBest.overlapPercentage) {
-                        MostOverlappingLocationTrackReference(
+                        LocationTrackOverlapReference(
                             locationTrack = splitTarget,
                             overlapPercentage = overlapPercentage,
                         )
@@ -545,13 +549,14 @@ private fun findNewLocationTracksForUnusedDuplicates(
                 }
 
             }.let { bestNewLocationTrackReference ->
-                val newReferenceTrackId = bestNewLocationTrackReference.locationTrack?.id as IntId?
-                checkNotNull(newReferenceTrackId) {
-                    "Could not find a new location track reference for an unused duplicate!"
-                }
-
+                bestNewLocationTrackReference.locationTrack?.id as IntId?
+            }?.let { newReferenceTrackId ->
                 duplicate.copy(duplicateOf = newReferenceTrackId)
-            }
+            } ?: throw SplitFailureException(
+                message = "Could not find a new reference for duplicate location track: duplicateId=${duplicate.id}",
+                localizedMessageKey = "new-duplicate-reference-assignment-failed",
+                localizationParams = localizationParams("duplicate" to duplicate.name)
+            )
     }
 }
 
