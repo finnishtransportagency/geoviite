@@ -6,9 +6,10 @@ import { AddressPoint, PublishType } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
 import { DEBUG_1M_POINTS } from '../utils/layer-visibility-limits';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { MapLayerName } from 'map/map-model';
 
 type DebugLayerPoint = {
     x: number;
@@ -74,35 +75,26 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
     });
 }
 
+const layerName: MapLayerName = 'debug-1m-points-layer';
+
 export function createDebug1mPointsLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     resolution: number,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const selected = selection.selectedItems.locationTracks[0];
-    let inFlight = false;
-    if (selected && resolution <= DEBUG_1M_POINTS) {
-        inFlight = true;
-        getAddressPoints(selected, publishType)
-            .then((addresses) => {
-                clearFeatures(vectorSource);
-                addresses && vectorSource.addFeatures(createAddressPointFeatures(addresses));
-            })
-            .catch(() => clearFeatures(vectorSource))
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
 
-    return {
-        name: 'debug-1m-points-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    const dataPromise: Promise<AlignmentAddresses | undefined> =
+        selected && resolution <= DEBUG_1M_POINTS
+            ? getAddressPoints(selected, publishType)
+            : Promise.resolve(undefined);
+    const createFeatures = (addresses: AlignmentAddresses | undefined) =>
+        addresses ? createAddressPointFeatures(addresses) : [];
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    return { name: layerName, layer: layer };
 }

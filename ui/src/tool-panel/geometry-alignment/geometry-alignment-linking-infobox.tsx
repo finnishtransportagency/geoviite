@@ -125,7 +125,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     onContentVisibilityChange: () => void;
 };
 
-const isNotPreliminary = (state: LinkingPhase) => state === 'allSet' || state === 'setup';
+const isNotPreliminary = (state: LinkingPhase) => state !== 'preliminary';
 
 const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxProps> = ({
     onSelect,

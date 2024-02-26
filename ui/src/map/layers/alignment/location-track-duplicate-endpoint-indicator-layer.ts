@@ -1,10 +1,10 @@
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { PublishType, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
@@ -207,7 +207,37 @@ function createFeatures(
         .flat();
 }
 
-let newestLayerId = 0;
+type DuplicateTrackEndpointAddressData = {
+    duplicates: LocationTrackDuplicate[];
+    startsAndEnds: AlignmentStartAndEnd[];
+    alignments: AlignmentDataHolder[];
+};
+
+async function getData(
+    mapTiles: MapTile[],
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+    resolution: number,
+    splittingState: SplittingState | undefined,
+): Promise<DuplicateTrackEndpointAddressData> {
+    if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
+        const [alignments, extras] = await Promise.all([
+            getMapAlignmentsByTiles(changeTimes, mapTiles, publishType),
+            getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType, changeTimes),
+        ]);
+        const duplicates = extras?.duplicates || [];
+        const startsAndEnds = await getManyStartsAndEnds(
+            duplicates.map((duplicate) => duplicate.id),
+            publishType,
+            changeTimes.layoutLocationTrack,
+        );
+        return { duplicates, startsAndEnds, alignments };
+    } else {
+        return { duplicates: [], startsAndEnds: [], alignments: [] };
+    }
+}
+
+const layerName: MapLayerName = 'location-track-duplicate-endpoint-address-layer';
 
 export function createDuplicateTrackEndpointAddressLayer(
     mapTiles: MapTile[],
@@ -216,54 +246,16 @@ export function createDuplicateTrackEndpointAddressLayer(
     changeTimes: ChangeTimes,
     resolution: number,
     splittingState: SplittingState | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise = getData(mapTiles, publishType, changeTimes, resolution, splittingState);
 
-    let inFlight = false;
-    if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
-        inFlight = true;
+    const createOlFeatures = (data: DuplicateTrackEndpointAddressData) =>
+        createFeatures(data.alignments, data.duplicates, data.startsAndEnds);
 
-        getLocationTrackInfoboxExtras(
-            splittingState.originLocationTrack.id,
-            publishType,
-            changeTimes,
-        ).then((extras) =>
-            getManyStartsAndEnds(
-                extras?.duplicates.map((duplicate) => duplicate.id) || [],
-                publishType,
-                changeTimes.layoutLocationTrack,
-            ).then((startsAndEnds) =>
-                getMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-                    .then((alignments) => {
-                        if (layerId === newestLayerId) {
-                            const features = createFeatures(
-                                alignments,
-                                extras?.duplicates || [],
-                                startsAndEnds,
-                            );
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createOlFeatures);
 
-                            clearFeatures(vectorSource);
-                            vectorSource.addFeatures(features);
-                        }
-                    })
-                    .catch(() => {
-                        if (layerId === newestLayerId) clearFeatures(vectorSource);
-                    })
-                    .finally(() => {
-                        inFlight = false;
-                    }),
-            ),
-        );
-    } else {
-        clearFeatures(vectorSource);
-    }
-
-    return {
-        name: 'location-track-duplicate-endpoint-address-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    return { name: layerName, layer: layer };
 }

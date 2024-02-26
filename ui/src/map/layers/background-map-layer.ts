@@ -40,7 +40,5 @@ export function createBackgroundMapLayer(existingOlLayer: Tile<TileSource>): Map
     return {
         name: 'background-map-layer',
         layer: layer,
-        // the background map uses OL's native loading, so we don't need to worry about it
-        requestInFlight: () => false,
     };
 }

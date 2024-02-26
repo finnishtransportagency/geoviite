@@ -9,7 +9,12 @@ import {
     AlignmentPoint,
     PlanLayoutAlignment,
 } from 'track-layout/track-layout-model';
-import { clearFeatures, getVisiblePlans, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    getVisiblePlans,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
@@ -27,7 +32,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 
 const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
 
@@ -135,12 +140,13 @@ function getAlignmentsWithLinking(
     });
 }
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'geometry-alignment-layer';
 
 type PlanAlignments = {
     planId: GeometryPlanId;
     alignments: AlignmentWithLinking[];
 };
+
 export function createGeometryAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
@@ -148,17 +154,14 @@ export function createGeometryAlignmentLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
-    manuallySetPlan?: GeometryPlanLayout,
+    manuallySetPlan: GeometryPlanLayout | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const visibleAlignmentIds = manuallySetPlan
         ? manuallySetPlan.alignments.map((a) => a.header.id)
         : selection.visiblePlans.flatMap((p) => p.alignments);
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const olLayer = existingOlLayer || new VectorLayer({ source: vectorSource });
-
-    let inFlight = true;
 
     const plansPromise: Promise<GeometryPlanLayout[]> = manuallySetPlan
         ? Promise.resolve([manuallySetPlan])
@@ -183,32 +186,20 @@ export function createGeometryAlignmentLayer(
         ),
     );
 
-    planAlignmentsPromise
-        .then((plans) =>
-            plans.map((plan) =>
-                plan.alignments.map((alignment) =>
-                    createAlignmentFeature(plan.planId, alignment, selection, resolution),
-                ),
+    const createFeatures = (plans: PlanAlignments[]) =>
+        plans.flatMap((plan) =>
+            plan.alignments.map((alignment) =>
+                createAlignmentFeature(plan.planId, alignment, selection, resolution),
             ),
-        )
-        .then((f) => {
-            if (layerId === newestLayerId) {
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(f.flat());
-            }
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) clearFeatures(vectorSource);
-        })
-        .finally(() => {
-            inFlight = false;
-        });
+        );
+
+    loadLayerData(source, isLatest, onLoadingData, planAlignmentsPromise, createFeatures);
 
     return {
-        name: 'geometry-alignment-layer',
-        layer: olLayer,
+        name: layerName,
+        layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
-            const features = findMatchingAlignments(hitArea, vectorSource, options);
+            const features = findMatchingAlignments(hitArea, source, options);
 
             const geometryAlignmentIds = features
                 .filter(filterUniqueById(({ header }) => header.id)) // pick unique alignments
@@ -224,6 +215,5 @@ export function createGeometryAlignmentLayer(
 
             return { geometryAlignmentIds };
         },
-        requestInFlight: () => inFlight,
     };
 }
