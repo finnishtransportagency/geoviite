@@ -349,7 +349,8 @@ class PublicationService @Autowired constructor(
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map(RowVersion<LocationTrack>::id)
 
-        val revertSplitTracks = splitService.findUnfinishedSplitsForLocationTracks(revertLocationTrackIds).flatMap { it.locationTracks }
+        val revertSplitTracks = splitService.findUnpublishedSplitsForLocationTracks(revertLocationTrackIds)
+            .flatMap { split -> split.locationTracks }
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
             kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
@@ -372,8 +373,8 @@ class PublicationService @Autowired constructor(
     fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
 
-        splitService.findUnfinishedSplitsForLocationTracks(toDelete.locationTracks)
-            .map { it.id }
+        splitService.findUnpublishedSplitsForLocationTracks(toDelete.locationTracks)
+            .map { split -> split.id }
             .distinct()
             .forEach(splitService::deleteSplit)
 
