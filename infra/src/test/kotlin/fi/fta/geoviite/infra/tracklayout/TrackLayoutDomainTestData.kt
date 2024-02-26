@@ -105,13 +105,60 @@ fun segmentsFromSwitchAlignment(
     start: Point,
     switchId: IntId<TrackLayoutSwitch>,
     alignment: SwitchAlignment,
-): List<LayoutSegment> = alignment.elements.mapIndexed { i, e ->
-    segment(
-        points = toSegmentPoints(start + e.start, start + e.end),
-        switchId = switchId,
-        startJointNumber = alignment.jointNumbers[i],
-        endJointNumber = alignment.jointNumbers[i + 1],
-    )
+): List<LayoutSegment> {
+    val jointNumbers = alignment.jointNumbers
+    val elements = alignment.elements
+
+    // There are 5 possibilities of switch line structures at the time of typing:
+    // The start character * means one of the special cases where not every start/end joint number
+    // is defined for all segments.
+    //
+    // 2 joints to one, two (*) or three (*) switch elements;
+    // 3 joints to two elements;
+    // 4 joints to three elements.
+    return when (alignment.jointNumbers.size to alignment.elements.size) {
+        2 to 2 -> listOf(
+            segment(
+                points = toSegmentPoints(start + elements[0].start, start + elements[0].end),
+                switchId = switchId,
+                startJointNumber = jointNumbers[0],
+            ),
+
+            segment(
+                points = toSegmentPoints(start + elements[1].start, start + elements[1].end),
+                switchId = switchId,
+                endJointNumber = jointNumbers[1],
+            ),
+        )
+
+        2 to 3 -> listOf(
+            segment(
+                points = toSegmentPoints(start + elements[0].start, start + elements[0].end),
+                switchId = switchId,
+                startJointNumber = jointNumbers[0],
+            ),
+
+            segment(
+                points = toSegmentPoints(start + elements[1].start, start + elements[1].end),
+                switchId = switchId,
+            ),
+
+            segment(
+                points = toSegmentPoints(start + elements[2].start, start + elements[2].end),
+                switchId = switchId,
+                endJointNumber = jointNumbers[1],
+            ),
+        )
+
+        else -> alignment.elements.mapIndexed { i, e ->
+            segment(
+                points = toSegmentPoints(start + e.start, start + e.end),
+                switchId = switchId,
+                startJointNumber = alignment.jointNumbers[i],
+                endJointNumber = alignment.jointNumbers[i + 1],
+            )
+        }
+    }
 }
 
 fun switchOwnerVayla(): SwitchOwner {
