@@ -33,7 +33,7 @@ export function createGeometryKmPostLayer(
     manuallySetPlan: GeometryPlanLayout | undefined,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, false);
 
     const step = getKmPostStepByResolution(resolution);
 

@@ -166,15 +166,20 @@ const MapView: React.FC<MapViewProps> = ({
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
-        if (isLoading && !layersLoadingData.includes(name)) {
-            setLayersLoadingData(layersLoadingData.concat(name));
-        } else if (!isLoading && layersLoadingData.includes(name)) {
-            setLayersLoadingData(layersLoadingData.filter((n) => n !== name));
-        }
+        setLayersLoadingData((prevLoadingLayers) => {
+            if (isLoading && !prevLoadingLayers.includes(name)) {
+                return [...prevLoadingLayers, name];
+            } else if (!isLoading && prevLoadingLayers.includes(name)) {
+                return prevLoadingLayers.filter((n) => n !== name);
+            } else {
+                return prevLoadingLayers;
+            }
+        });
     };
     const isLoading = () => [...map.visibleLayers].some((l) => layersLoadingData.includes(l));
-    console.log('loading', isLoading());
+
     const mapLayers = [...map.visibleLayers].sort().join();
 
     const handleClusterPointClick = (clickType: ClickType) => {

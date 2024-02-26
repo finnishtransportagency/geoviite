@@ -32,7 +32,7 @@ export function createKmPostLayer(
     onViewContentChanged: (items: OptionalShownItems) => void,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, false);
 
     const resolution = olView.getResolution() || 0;
     const getKmPostsFromApi = (step: number) =>

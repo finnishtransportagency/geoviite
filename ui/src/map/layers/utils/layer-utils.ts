@@ -166,10 +166,12 @@ export type LayerResult<FeatureType extends Geometry> = {
 export function createLayer<FeatureType extends Geometry>(
     name: MapLayerName,
     existingLayer: VectorLayer<VectorSource<FeatureType>> | undefined,
+    allowDefaultStyle: boolean = true,
 ): LayerResult<FeatureType> {
     const id = getId(name);
     const source = existingLayer?.getSource() || new VectorSource();
-    const layer = existingLayer || new VectorLayer({ source: source });
+    const options = allowDefaultStyle ? { source: source } : { source: source, style: null };
+    const layer = existingLayer || new VectorLayer(options);
     return {
         layer,
         source,
