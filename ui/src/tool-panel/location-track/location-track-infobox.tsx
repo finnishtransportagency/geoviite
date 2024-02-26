@@ -14,13 +14,9 @@ import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
-import {
-    LocationTrackInfoboxVisibilities,
-    trackLayoutActionCreators as TrackLayoutActions,
-} from 'track-layout/track-layout-slice';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
-import { createDelegates } from 'store/store-utils';
 import { LocationTrackSplittingInfoboxContainer } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { EnvRestricted } from 'environment/env-restricted';
@@ -66,7 +62,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onVerticalGeometryDiagramVisibilityChange,
     onHighlightItem,
 }: LocationTrackInfoboxProps) => {
-    const delegates = createDelegates(TrackLayoutActions);
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -109,23 +104,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     <LocationTrackSplittingInfoboxContainer
                         visibilities={visibilities}
                         visibilityChange={visibilityChange}
-                        firstSplit={splittingState.firstSplit}
-                        splits={splittingState.splits || []}
-                        locationTrackId={splittingState.originLocationTrack.id}
-                        changeTimes={changeTimes}
-                        removeSplit={delegates.removeSplit}
-                        stopSplitting={() => {
-                            delegates.stopSplitting();
-                            delegates.hideLayers(['location-track-split-location-layer']);
-                        }}
-                        allowedSwitches={splittingState.allowedSwitches}
-                        updateSplit={delegates.updateSplit}
-                        setSplittingDisabled={delegates.setDisabled}
-                        disabled={splittingState.disabled}
-                        isPostingSplit={splittingState.state === 'POSTING'}
-                        startPostingSplit={delegates.startPostingSplit}
-                        returnToSplitting={delegates.returnToSplitting}
-                        markSplitOld={delegates.markSplitOld}
                     />
                 </EnvRestricted>
             )}
