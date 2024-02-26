@@ -2,18 +2,17 @@ import * as React from 'react';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
 import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type LocationTrackValidationInfoboxProps = {
     id: LocationTrackId;
     publishType: PublishType;
-    changeTime: TimeStamp;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
-    linkedSwitchesCount: number;
     showLinkedSwitchesRelinkingDialog: () => void;
     editingDisabled: boolean;
 };
@@ -23,16 +22,17 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
 > = ({
     id,
     publishType,
-    changeTime,
     contentVisible,
     onContentVisibilityChange,
     showLinkedSwitchesRelinkingDialog,
     editingDisabled,
 }) => {
     const { t } = useTranslation();
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+
     const [validation, validationLoaderStatus] = useLoaderWithStatus(
         () => getLocationTrackValidation(publishType, id),
-        [id, publishType, changeTime],
+        [id, publishType, changeTimes.layoutLocationTrack],
     );
 
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];

@@ -45,7 +45,7 @@ export type SplittingState = {
     disabled: boolean;
 };
 
-type SplitStart = {
+export type SplitStart = {
     locationTrack: LayoutLocationTrack;
     allowedSwitches: SwitchOnLocationTrack[];
     startAndEndSwitches: LayoutSwitchId[];
