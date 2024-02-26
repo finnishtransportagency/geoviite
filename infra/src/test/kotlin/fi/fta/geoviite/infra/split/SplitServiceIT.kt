@@ -89,7 +89,11 @@ class SplitServiceIT @Autowired constructor(
         )
 
         val alignment = alignment(preSwitchSegments + switchSegments + postSwitchSegments)
-        val trackId = insertLocationTrack(locationTrack(insertOfficialTrackNumber()), alignment).id
+
+        val trackNumberId = insertOfficialTrackNumber()
+        insertReferenceLine(referenceLine(trackNumberId), alignment)
+
+        val trackId = insertLocationTrack(locationTrack(trackNumberId), alignment).id
 
         val request = SplitRequest(
             trackId,
