@@ -854,7 +854,7 @@ async function getLinkingData(
                 pointAddresses,
             };
         } else if (state?.type === LinkingType.LinkingGeometryWithAlignment) {
-            const [layoutPoints, geometryPoints, pointAddresses] = await Promise.all([
+            const [geometryPoints, layoutPoints, pointAddresses] = await Promise.all([
                 getGeometryLinkPointsByTiles(
                     state.geometryPlanId,
                     state.geometryAlignmentId,

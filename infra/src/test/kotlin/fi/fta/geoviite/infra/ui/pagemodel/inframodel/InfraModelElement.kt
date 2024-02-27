@@ -103,7 +103,7 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         toggleEdit()
     }
 
-    fun selectNewValue(newValues: List<String>) = apply {
+    fun selectNewValue(newValues: List<String>, toastId: String) = apply {
         logger.info("Create new dropdown option with values $newValues")
 
         toggleEdit()
@@ -115,6 +115,7 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         E2EDialogWithTextField()
             .inputValues(newValues)
             .clickPrimaryButton()
+            .also { waitAndClearToast(toastId) }
 
         toggleEdit()
     }

@@ -161,7 +161,7 @@ const MapView: React.FC<MapViewProps> = ({
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
-    const visibleLayers = React.useRef<MapLayer[]>([]);
+    const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
@@ -297,9 +297,7 @@ const MapView: React.FC<MapViewProps> = ({
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = visibleLayers.current.find(
-                    (l) => l.name === layerName,
-                )?.layer;
+                const existingOlLayer = visibleLayers.find((l) => l.name === layerName)?.layer;
 
                 switch (layerName) {
                     case 'background-map-layer':
@@ -586,11 +584,11 @@ const MapView: React.FC<MapViewProps> = ({
 
         updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
 
-        visibleLayers.current
+        visibleLayers
             .filter((vl) => !updatedLayers.some((ul) => ul.name === vl.name))
             .forEach((l) => l.onRemove && l.onRemove());
 
-        visibleLayers.current = updatedLayers;
+        setVisibleLayers(updatedLayers);
 
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
@@ -621,16 +619,16 @@ const MapView: React.FC<MapViewProps> = ({
         };
 
         const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers.current, toolActivateOptions),
+            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
             deactivateCallbacks.push(
-                selectTool.activate(olMap, visibleLayers.current, toolActivateOptions),
+                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
             );
 
             deactivateCallbacks.push(
-                highlightTool.activate(olMap, visibleLayers.current, toolActivateOptions),
+                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
             );
         }
 
@@ -638,7 +636,7 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, visibleLayers.current, measurementToolActive]);
+    }, [olMap, visibleLayers, measurementToolActive]);
 
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
