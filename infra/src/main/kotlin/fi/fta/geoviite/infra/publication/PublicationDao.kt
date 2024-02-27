@@ -285,7 +285,7 @@ class PublicationDao(
 
         val draftTrackIncludedCondition = if (locationTrackIdsInPublicationUnit == null) "true"
         else if (locationTrackIdsInPublicationUnit.isEmpty()) "false"
-        else "official_id in (:location_track_ids)"
+        else "lt.official_id in (:location_track_ids)"
 
         val sql = """
             select
