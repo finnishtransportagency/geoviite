@@ -13,6 +13,16 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
+private fun ResultSet.toSplit(targetLocationTracks: List<SplitTarget>) = Split(
+    id = getIntId("id"),
+    locationTrackId = getIntId("source_location_track_id"),
+    bulkTransferState = getEnum("bulk_transfer_state"),
+    publicationId = getIntIdOrNull("publication_id"),
+    targetLocationTracks = targetLocationTracks,
+    relinkedSwitches = getIntIdArray("switch_ids"),
+    updatedDuplicates = getIntIdArray("updated_duplicate_ids"),
+)
+
 @Transactional(readOnly = true)
 @Component
 class SplitDao(
@@ -135,7 +145,7 @@ class SplitDao(
 
     fun get(splitId: IntId<Split>): Split? {
         return jdbcTemplate.queryOptional(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
-            splitFromResultSet(rs)
+            rs.toSplit(getSplitTargets(splitId))
         }.also {
             logger.daoAccess(AccessType.FETCH, Split::class, splitId)
         }
@@ -143,7 +153,7 @@ class SplitDao(
 
     fun getOrThrow(splitId: IntId<Split>): Split {
         return jdbcTemplate.queryOne(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
-            splitFromResultSet(rs)
+            rs.toSplit(getSplitTargets(splitId))
         }.also {
             logger.daoAccess(AccessType.FETCH, Split::class, splitId)
         }
@@ -200,21 +210,6 @@ class SplitDao(
         }
     }
 
-    private fun splitFromResultSet(rs: ResultSet): Split {
-        val splitId = rs.getIntId<Split>("id")
-        val targetLocationTracks = getSplitTargets(splitId)
-
-        return Split(
-            id = splitId,
-            locationTrackId = rs.getIntId("source_location_track_id"),
-            bulkTransferState = rs.getEnum("bulk_transfer_state"),
-            publicationId = rs.getIntIdOrNull("publication_id"),
-            targetLocationTracks = targetLocationTracks,
-            relinkedSwitches = rs.getIntIdArray("switch_ids"),
-            updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
-        )
-    }
-
     private fun getSplitTargets(splitId: IntId<Split>): List<SplitTarget> {
         val sql = """
           select
@@ -250,7 +245,8 @@ class SplitDao(
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
-            splitFromResultSet(rs)
+            val splitId = rs.getIntId<Split>("id")
+            rs.toSplit(getSplitTargets(splitId))
         }.also { ids ->
             logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id })
         }
