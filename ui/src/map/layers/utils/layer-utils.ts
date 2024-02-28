@@ -150,7 +150,7 @@ export function sortFeaturesByDistance<T extends Geometry>(features: Feature<T>[
 }
 
 const latestLayerIds: Map<MapLayerName, number> = new Map();
-const getId = (name: MapLayerName) => {
+const incrementAndGetLayerId = (name: MapLayerName) => {
     const id = (latestLayerIds.get(name) ?? 0) + 1;
     latestLayerIds.set(name, id);
     return id;
@@ -168,7 +168,7 @@ export function createLayer<FeatureType extends Geometry>(
     existingLayer: VectorLayer<VectorSource<FeatureType>> | undefined,
     allowDefaultStyle: boolean = true,
 ): LayerResult<FeatureType> {
-    const id = getId(name);
+    const id = incrementAndGetLayerId(name);
     const source = existingLayer?.getSource() || new VectorSource();
     const options = allowDefaultStyle ? { source: source } : { source: source, style: null };
     const layer = existingLayer || new VectorLayer(options);

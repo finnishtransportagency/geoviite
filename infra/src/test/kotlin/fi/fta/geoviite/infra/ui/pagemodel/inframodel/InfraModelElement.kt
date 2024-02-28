@@ -103,7 +103,7 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         toggleEdit()
     }
 
-    fun selectNewValue(newValues: List<String>, toastId: String) = apply {
+    fun createAndSelectNewValue(newValues: List<String>, toastId: String) = apply {
         logger.info("Create new dropdown option with values $newValues")
 
         toggleEdit()

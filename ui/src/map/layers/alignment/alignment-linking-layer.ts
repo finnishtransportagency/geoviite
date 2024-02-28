@@ -808,89 +808,86 @@ async function getLinkingData(
     state: LinkingState | undefined,
     changeTimes: ChangeTimes,
 ): Promise<LinkingData> {
-    if (state?.state === 'setup' || state?.state === 'allSet') {
-        const changeTime = getMaxTimestamp(
-            changeTimes.layoutReferenceLine,
-            changeTimes.layoutLocationTrack,
-        );
-        const { highlightedItems } = selection;
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutLocationTrack,
+    );
+    const { highlightedItems } = selection;
 
-        if (state.type === LinkingType.LinkingAlignment) {
-            const [points, pointAddresses] = await Promise.all([
-                getLinkPointsByTiles(
-                    changeTime,
-                    mapTiles,
-                    state.layoutAlignmentId,
-                    state.layoutAlignmentType,
+    if (state === undefined || state.state === 'preliminary') {
+        return { type: 'empty' };
+    } else if (state.type === LinkingType.LinkingAlignment) {
+        const [points, pointAddresses] = await Promise.all([
+            getLinkPointsByTiles(
+                changeTime,
+                mapTiles,
+                state.layoutAlignmentId,
+                state.layoutAlignmentType,
+            ),
+            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+                layoutStart: state.layoutAlignmentInterval.start,
+                layoutEnd: state.layoutAlignmentInterval.end,
+                layoutHighlight: highlightedItems.layoutLinkPoints[0],
+            }),
+        ]);
+        return { type: LinkingType.LinkingAlignment, state, points, pointAddresses };
+    } else if (state.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
+        const [points, pointAddresses] = await Promise.all([
+            getGeometryLinkPointsByTiles(
+                state.geometryPlanId,
+                state.geometryAlignmentId,
+                mapTiles,
+                [state.geometryAlignmentInterval.start, state.geometryAlignmentInterval.end].filter(
+                    filterNotEmpty,
                 ),
-                getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
-                    layoutStart: state.layoutAlignmentInterval.start,
-                    layoutEnd: state.layoutAlignmentInterval.end,
-                    layoutHighlight: highlightedItems.layoutLinkPoints[0],
-                }),
-            ]);
-            return { type: LinkingType.LinkingAlignment, state, points, pointAddresses };
-        } else if (state.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
-            const [points, pointAddresses] = await Promise.all([
-                getGeometryLinkPointsByTiles(
-                    state.geometryPlanId,
-                    state.geometryAlignmentId,
-                    mapTiles,
-                    [
-                        state.geometryAlignmentInterval.start,
-                        state.geometryAlignmentInterval.end,
-                    ].filter(filterNotEmpty),
-                ),
-                getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
-                    geometryStart: state.geometryAlignmentInterval.start,
-                    geometryEnd: state.geometryAlignmentInterval.end,
-                    geometryHighlight: highlightedItems.geometryLinkPoints[0],
-                }),
-            ]);
-            return {
-                type: LinkingType.LinkingGeometryWithEmptyAlignment,
-                state,
-                points,
-                pointAddresses,
-            };
-        } else if (state?.type === LinkingType.LinkingGeometryWithAlignment) {
-            const [geometryPoints, layoutPoints, pointAddresses] = await Promise.all([
-                getGeometryLinkPointsByTiles(
-                    state.geometryPlanId,
-                    state.geometryAlignmentId,
-                    mapTiles,
-                    [
-                        state.geometryAlignmentInterval.start,
-                        state.geometryAlignmentInterval.end,
-                        state.layoutAlignmentInterval.start,
-                        state.layoutAlignmentInterval.end,
-                    ].filter(filterNotEmpty),
-                ),
-                getLinkPointsByTiles(
-                    changeTime,
-                    mapTiles,
-                    state.layoutAlignmentId,
-                    state.layoutAlignmentType,
-                ),
-                getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
-                    layoutStart: state.layoutAlignmentInterval.start,
-                    layoutEnd: state.layoutAlignmentInterval.end,
-                    layoutHighlight: highlightedItems.layoutLinkPoints[0],
-                    geometryStart: state.geometryAlignmentInterval.start,
-                    geometryEnd: state.geometryAlignmentInterval.end,
-                    geometryHighlight: highlightedItems.geometryLinkPoints[0],
-                }),
-            ]);
-            return {
-                type: LinkingType.LinkingGeometryWithAlignment,
-                state: state,
-                layoutPoints,
-                geometryPoints,
-                pointAddresses,
-            };
-        } else {
-            return { type: 'empty' };
-        }
+            ),
+            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+                geometryStart: state.geometryAlignmentInterval.start,
+                geometryEnd: state.geometryAlignmentInterval.end,
+                geometryHighlight: highlightedItems.geometryLinkPoints[0],
+            }),
+        ]);
+        return {
+            type: LinkingType.LinkingGeometryWithEmptyAlignment,
+            state,
+            points,
+            pointAddresses,
+        };
+    } else if (state.type === LinkingType.LinkingGeometryWithAlignment) {
+        const [geometryPoints, layoutPoints, pointAddresses] = await Promise.all([
+            getGeometryLinkPointsByTiles(
+                state.geometryPlanId,
+                state.geometryAlignmentId,
+                mapTiles,
+                [
+                    state.geometryAlignmentInterval.start,
+                    state.geometryAlignmentInterval.end,
+                    state.layoutAlignmentInterval.start,
+                    state.layoutAlignmentInterval.end,
+                ].filter(filterNotEmpty),
+            ),
+            getLinkPointsByTiles(
+                changeTime,
+                mapTiles,
+                state.layoutAlignmentId,
+                state.layoutAlignmentType,
+            ),
+            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+                layoutStart: state.layoutAlignmentInterval.start,
+                layoutEnd: state.layoutAlignmentInterval.end,
+                layoutHighlight: highlightedItems.layoutLinkPoints[0],
+                geometryStart: state.geometryAlignmentInterval.start,
+                geometryEnd: state.geometryAlignmentInterval.end,
+                geometryHighlight: highlightedItems.geometryLinkPoints[0],
+            }),
+        ]);
+        return {
+            type: LinkingType.LinkingGeometryWithAlignment,
+            state: state,
+            layoutPoints,
+            geometryPoints,
+            pointAddresses,
+        };
     } else {
         return { type: 'empty' };
     }
