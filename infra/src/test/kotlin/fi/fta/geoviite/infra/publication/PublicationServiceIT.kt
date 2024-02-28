@@ -2369,8 +2369,8 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             PublishValidationError(
                 PublishValidationErrorType.ERROR,
-                LocalizationKey("validation.layout.split.duplicate-on-different-track-number"),
-                LocalizationParams(mapOf("duplicateTrack" to startTarget.name.toString())),
+                LocalizationKey("validation.layout.split.source-and-target-track-numbers-are-different"),
+                LocalizationParams(mapOf("trackName" to startTarget.name.toString())),
             ),
         )
     }
