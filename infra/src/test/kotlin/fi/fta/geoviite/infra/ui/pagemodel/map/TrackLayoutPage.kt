@@ -109,28 +109,27 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     fun zoomToScale(targetScale: MapScale): E2ETrackLayoutPage = apply {
         logger.info("Zoom map to scale $targetScale")
 
-        if (targetScale.ordinal >= mapScale.ordinal) {
-            while (targetScale != mapScale) zoomOut()
-        } else {
-            while (targetScale != mapScale) zoomIn()
+        var oldResolution = resolution
+        while (targetScale != mapScale) {
+            if (targetScale.ordinal > mapScale.ordinal) zoomOut(oldResolution)
+            if (targetScale.ordinal < mapScale.ordinal) zoomIn(oldResolution)
+            oldResolution = resolution
         }
 
         finishLoading()
     }
 
-    private fun zoomOut() {
-        val oldScale = resolution
+    private fun zoomOut(oldResolution: Double) {
         clickChild(By.className("ol-zoom-out"))
-        waitUntilScaleChanges(oldScale)
+        waitUntilResolutionChanges(oldResolution)
     }
 
-    private fun zoomIn() {
-        val oldScale = resolution
+    private fun zoomIn(oldResolution: Double) {
         clickChild(By.className("ol-zoom-in"))
-        waitUntilScaleChanges(oldScale)
+        waitUntilResolutionChanges(oldResolution)
     }
 
-    private fun waitUntilScaleChanges(oldScale: Double) {
-        tryWait({ resolution != oldScale }) { "Map scale did not change from $oldScale" }
+    private fun waitUntilResolutionChanges(oldResolution: Double) {
+        tryWait({ resolution != oldResolution }) { "Map scale did not change from $oldResolution" }
     }
 }

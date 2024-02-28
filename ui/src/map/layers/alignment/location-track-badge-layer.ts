@@ -1,5 +1,5 @@
 import { Point as OlPoint } from 'ol/geom';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
@@ -10,12 +10,15 @@ import {
     createAlignmentBadgeFeatures,
     getBadgeDrawDistance,
 } from 'map/layers/utils/badge-layer-utils';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
-import { getLocationTrackMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    getLocationTrackMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'location-track-badge-layer';
 
 export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
@@ -25,44 +28,26 @@ export function createLocationTrackBadgeLayer(
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise: Promise<AlignmentDataHolder[]> =
+        resolution <= Limits.SHOW_LOCATION_TRACK_BADGES
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            : Promise.resolve([]);
 
-    let inFlight = false;
-    if (resolution <= Limits.SHOW_LOCATION_TRACK_BADGES) {
+    const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
-
-        inFlight = true;
-        getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-            .then((locationTracks) => {
-                if (layerId !== newestLayerId) return;
-
-                const features = createAlignmentBadgeFeatures(
-                    locationTracks,
-                    selection,
-                    linkingState,
-                    badgeDrawDistance,
-                );
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
-
-    return {
-        name: 'location-track-badge-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
+        return createAlignmentBadgeFeatures(
+            locationTracks,
+            selection,
+            linkingState,
+            badgeDrawDistance,
+        );
     };
+
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    return { name: layerName, layer: layer };
 }

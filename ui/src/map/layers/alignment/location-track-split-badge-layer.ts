@@ -1,5 +1,5 @@
 import { Point as OlPoint } from 'ol/geom';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
@@ -10,7 +10,7 @@ import {
     getBadgeDrawDistance,
     getBadgePoints,
 } from 'map/layers/utils/badge-layer-utils';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import {
@@ -20,8 +20,6 @@ import {
 import { sortSplitsByDistance, SplittingState } from 'tool-panel/location-track/split-store';
 import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
-
-let newestLayerId = 0;
 
 type SplitBoundsAndName = {
     start: number;
@@ -65,6 +63,40 @@ const calculateSplitBounds = (
     ].filter((split) => split.name);
 };
 
+type LocationTrackSplitBadgeData = {
+    locationTracks: AlignmentDataHolder[];
+    startAndEnd: AlignmentStartAndEnd | undefined;
+};
+
+async function getLocationTrackSplitBadgeData(
+    publishType: PublishType,
+    splittingState: SplittingState | undefined,
+    changeTimes: ChangeTimes,
+    resolution: number,
+    mapTiles: MapTile[],
+): Promise<LocationTrackSplitBadgeData> {
+    if (resolution <= Limits.SHOW_LOCATION_TRACK_BADGES && splittingState) {
+        const [locationTracks, startAndEnd] = await Promise.all([
+            getSelectedLocationTrackMapAlignmentByTiles(
+                changeTimes,
+                mapTiles,
+                publishType,
+                splittingState.originLocationTrack.id,
+            ),
+            getLocationTrackStartAndEnd(
+                splittingState.originLocationTrack.id,
+                publishType,
+                changeTimes.layoutLocationTrack,
+            ),
+        ]);
+        return { locationTracks, startAndEnd };
+    } else {
+        return { locationTracks: [], startAndEnd: undefined };
+    }
+}
+
+const layerName: MapLayerName = 'location-track-split-badge-layer';
+
 export function createLocationTrackSplitBadgeLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
@@ -72,56 +104,36 @@ export function createLocationTrackSplitBadgeLayer(
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise = getLocationTrackSplitBadgeData(
+        publishType,
+        splittingState,
+        changeTimes,
+        resolution,
+        mapTiles,
+    );
 
-    let inFlight = false;
-    if (resolution <= Limits.SHOW_LOCATION_TRACK_BADGES && splittingState) {
-        const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
+    const createFeatures = (data: LocationTrackSplitBadgeData) => {
+        if (splittingState && data.startAndEnd) {
+            const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
-        inFlight = true;
-        getSelectedLocationTrackMapAlignmentByTiles(
-            changeTimes,
-            mapTiles,
-            publishType,
-            splittingState.originLocationTrack.id,
-        )
-            .then((locationTracks) => {
-                getLocationTrackStartAndEnd(
-                    splittingState.originLocationTrack.id,
-                    publishType,
-                    changeTimes.layoutLocationTrack,
-                ).then((startAndEnd) => {
-                    if (layerId !== newestLayerId || !startAndEnd) return;
+            const alignmentDataHolders = data.locationTracks.filter(
+                ({ header }) => header.id === splittingState.originLocationTrack.id,
+            );
 
-                    const alignmentDataHolders = locationTracks.filter(
-                        ({ header }) => header.id === splittingState.originLocationTrack.id,
-                    );
-
-                    const splitBounds = calculateSplitBounds(splittingState, startAndEnd);
-                    const features = alignmentDataHolders.flatMap((alignment) =>
-                        createSplitBadgeFeatures(alignment, splitBounds, badgeDrawDistance),
-                    );
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                });
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
-
-    return {
-        name: 'location-track-split-badge-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
+            const splitBounds = calculateSplitBounds(splittingState, data.startAndEnd);
+            return alignmentDataHolders.flatMap((alignment) =>
+                createSplitBadgeFeatures(alignment, splitBounds, badgeDrawDistance),
+            );
+        } else {
+            return [];
+        }
     };
+
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    return { name: layerName, layer: layer };
 }

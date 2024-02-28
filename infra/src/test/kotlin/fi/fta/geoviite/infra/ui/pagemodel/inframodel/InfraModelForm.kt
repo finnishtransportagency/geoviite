@@ -55,8 +55,7 @@ class E2EMetaFormGroup(formBy: By) : E2EFormGroup(formBy) {
         logger.info("Select new project $newProject")
 
         projectField
-            .selectNewValue(listOf(newProject))
-            .also { waitAndClearToast("new-project-created") }
+            .createAndSelectNewValue(listOf(newProject), "new-project-created")
             .waitUntilFieldIs(newProject)
     }
 
@@ -64,8 +63,7 @@ class E2EMetaFormGroup(formBy: By) : E2EFormGroup(formBy) {
         logger.info("Select new author $newAuthor")
 
         authorField
-            .selectNewValue(listOf(newAuthor))
-            .also { waitAndClearToast("new-author-created") }
+            .createAndSelectNewValue(listOf(newAuthor), "new-author-created")
             .waitUntilFieldIs(newAuthor)
     }
 }
@@ -88,12 +86,11 @@ class E2ELocationFormGroup(formBy: By) : E2EFormGroup(formBy) {
         trackNumberField.selectValue(trackNumber)
     }
 
-    fun selectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
+    fun createAndSelectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
         logger.info("Select new track number $trackNumber with description $description")
 
         trackNumberField
-            .selectNewValue(listOf(trackNumber, description))
-            .also { waitAndClearToast("track-number-edit.result.succeeded") }
+            .createAndSelectNewValue(listOf(trackNumber, description), "track-number-edit.result.succeeded")
             .waitUntilFieldIs(trackNumber)
     }
 

@@ -134,7 +134,6 @@ export type Map = {
     shownItems: ShownItems;
     clickLocation?: Point;
     verticalGeometryDiagramState: VerticalGeometryDiagramState;
-    loadingIndicatorVisible: boolean;
 };
 
 export type MapTile = {

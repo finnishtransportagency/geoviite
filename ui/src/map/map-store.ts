@@ -31,11 +31,10 @@ export const isLayerInProxyLayerCollection = (
     proxyLayerCollection: LayerCollection,
 ): boolean => {
     const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
-    const key = Object.keys(proxyLayerCollection).find(
-        (key) =>
-            proxyLayerCollection[key as MapLayerName]?.find((layer) =>
-                layersFromMenuItem.includes(layer),
-            ),
+    const key = Object.keys(proxyLayerCollection).find((key) =>
+        proxyLayerCollection[key as MapLayerName]?.find((layer) =>
+            layersFromMenuItem.includes(layer),
+        ),
     );
     return visibleLayers.some((layer) => layer === key);
 };
@@ -156,7 +155,6 @@ export const initialMapState: Map = {
         resolution: 20,
     },
     verticalGeometryDiagramState: initialVerticalGeometryDiagramState,
-    loadingIndicatorVisible: false,
 };
 
 export const mapReducers = {
@@ -180,7 +178,6 @@ export const mapReducers = {
                   1.2
                 : state.viewport.resolution,
         };
-        state.loadingIndicatorVisible = true;
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         const newVisibleLayers = deduplicate([
@@ -193,7 +190,6 @@ export const mapReducers = {
         state.visibleLayers = newVisibleLayers.filter(
             (layer) => !layersHiddenByProxy.includes(layer),
         );
-        state.loadingIndicatorVisible = true;
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         const relatedLayers = collectRelatedLayers(layers);
@@ -260,9 +256,6 @@ export const mapReducers = {
                 action.alignmentId.locationTrackId
             ] = action.extent;
         }
-    },
-    onDoneLoading: (state: Map): void => {
-        state.loadingIndicatorVisible = false;
     },
 };
 

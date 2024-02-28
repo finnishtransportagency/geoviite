@@ -103,7 +103,7 @@ export async function getMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     publishType: PublishType,
-) {
+): Promise<AlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
             getPolyLines(tile, changeTimes.layoutReferenceLine, publishType, 'ALL'),
@@ -126,7 +126,7 @@ export async function getSelectedReferenceLineMapAlignmentByTiles(
     mapTiles: MapTile[],
     publishType: PublishType,
     trackNumberId: LayoutTrackNumberId,
-) {
+): Promise<AlignmentDataHolder[]> {
     return getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then(
         (alignments) => {
             const alignment = alignments.find(
@@ -143,7 +143,7 @@ export async function getReferenceLineMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     publishType: PublishType,
-) {
+): Promise<AlignmentDataHolder[]> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutReferenceLine,
         changeTimes.layoutTrackNumber,

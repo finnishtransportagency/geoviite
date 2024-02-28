@@ -3,9 +3,10 @@ import { Point as OlPoint } from 'ol/geom';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { clearFeatures, createLayer, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { MapLayerName } from 'map/map-model';
 
 type DebugLayerPoint = {
     type: 'point';
@@ -66,15 +67,16 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
         .filter(filterNotEmpty);
 }
 
+const layerName: MapLayerName = 'debug-layer';
+
 export function createDebugLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
 ): MapLayer {
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const { layer, source } = createLayer(layerName, existingOlLayer);
 
     function updateFeatures(features: Feature<OlPoint>[]) {
-        clearFeatures(vectorSource);
-        vectorSource.addFeatures(features);
+        clearFeatures(source);
+        source.addFeatures(features);
     }
 
     updateLayerFunc = () => {
@@ -83,9 +85,5 @@ export function createDebugLayer(
 
     updateLayerFunc();
 
-    return {
-        name: 'debug-layer',
-        layer: layer,
-        requestInFlight: () => false,
-    };
+    return { name: layerName, layer: layer };
 }

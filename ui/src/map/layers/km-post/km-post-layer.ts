@@ -1,11 +1,11 @@
 import { Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
-import { MapTile, OptionalShownItems } from 'map/map-model';
+import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
@@ -19,7 +19,8 @@ import VectorSource from 'ol/source/Vector';
 import { filterUniqueById } from 'utils/array-utils';
 
 let shownKmPostsCompare: string;
-let newestLayerId = 0;
+
+const layerName: MapLayerName = 'km-post-layer';
 
 export function createKmPostLayer(
     mapTiles: MapTile[],
@@ -29,20 +30,22 @@ export function createKmPostLayer(
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, false);
+
     const resolution = olView.getResolution() || 0;
     const getKmPostsFromApi = (step: number) =>
-        Promise.all(
-            mapTiles.map(({ area }) =>
-                getKmPostsByTile(publishType, changeTimes.layoutKmPost, area, step),
-            ),
-        ).then((kmPostGroups) =>
-            kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
-        );
-
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
+        // Fetch every nth
+        step === 0
+            ? Promise.resolve([])
+            : Promise.all(
+                  mapTiles.map(({ area }) =>
+                      getKmPostsByTile(publishType, changeTimes.layoutKmPost, area, step),
+                  ),
+              ).then((kmPostGroups) =>
+                  kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
+              );
 
     function updateShownKmPosts(kmPostIds: LayoutKmPostId[]) {
         const compare = kmPostIds.sort().join();
@@ -53,57 +56,31 @@ export function createKmPostLayer(
         }
     }
 
-    let inFlight = false;
     const step = getKmPostStepByResolution(resolution);
-    if (step == 0) {
-        clearFeatures(vectorSource);
-        updateShownKmPosts([]);
-    } else {
-        inFlight = true;
-        // Fetch every nth
-        getKmPostsFromApi(step)
-            .then((kmPosts) => {
-                // Handle latest fetch only
-                if (layerId !== newestLayerId) return;
+    const dataPromise: Promise<LayoutKmPost[]> = getKmPostsFromApi(step);
 
-                const isSelected = (kmPost: LayoutKmPost) => {
-                    return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
-                };
+    const createFeatures = (kmPosts: LayoutKmPost[]) => {
+        const isSelected = (kmPost: LayoutKmPost) => {
+            return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
+        };
+        return createKmPostFeatures(kmPosts, isSelected, 'layoutKmPost', resolution);
+    };
 
-                const features = createKmPostFeatures(
-                    kmPosts,
-                    isSelected,
-                    'layoutKmPost',
-                    resolution,
-                );
+    const onLoadingChange = (loading: boolean, kmPosts: LayoutKmPost[] | undefined) => {
+        if (!loading) {
+            updateShownKmPosts(kmPosts?.map((kmp) => kmp.id) ?? []);
+        }
+        onLoadingData(loading);
+    };
 
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-
-                updateShownKmPosts(kmPosts.map((k) => k.id));
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) {
-                    clearFeatures(vectorSource);
-                    updateShownKmPosts([]);
-                }
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    }
+    loadLayerData(source, isLatest, onLoadingChange, dataPromise, createFeatures);
 
     return {
-        name: 'km-post-layer',
+        name: layerName,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
-            return {
-                kmPosts: findMatchingKmPosts(hitArea, vectorSource, options).map(
-                    ({ kmPost }) => kmPost.id,
-                ),
-            };
-        },
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
+            kmPosts: findMatchingKmPosts(hitArea, source, options).map(({ kmPost }) => kmPost.id),
+        }),
         onRemove: () => updateShownKmPosts([]),
-        requestInFlight: () => inFlight,
     };
 }

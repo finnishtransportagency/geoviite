@@ -1,11 +1,14 @@
 import { LineString } from 'ol/geom';
-import { MapTile } from 'map/map-model';
-import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import { MapLayerName, MapTile } from 'map/map-model';
+import {
+    AlignmentDataHolder,
+    getReferenceLineMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import {
@@ -13,7 +16,7 @@ import {
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'reference-line-background-layer';
 
 export function createReferenceLineBackgroundLayer(
     mapTiles: MapTile[],
@@ -21,35 +24,24 @@ export function createReferenceLineBackgroundLayer(
     isSplitting: boolean,
     publishType: PublishType,
     changeTimes: ChangeTimes,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     layer.setOpacity(
         isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
     );
 
-    let inFlight = true;
-    getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-        .then((referenceLines) => {
-            if (layerId === newestLayerId) {
-                const features = createAlignmentBackgroundFeatures(referenceLines);
+    const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        publishType,
+    );
 
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            }
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) clearFeatures(vectorSource);
-        })
-        .finally(() => {
-            inFlight = false;
-        });
+    const createFeatures = (referenceLines: AlignmentDataHolder[]) =>
+        createAlignmentBackgroundFeatures(referenceLines);
 
-    return {
-        name: 'reference-line-background-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    return { name: layerName, layer: layer };
 }
