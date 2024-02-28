@@ -317,8 +317,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             locationTrack.duplicateOf
                                 ? t('tool-panel.location-track.duplicate-of')
                                 : extraInfo?.duplicates?.length ?? 0 > 0
-                                ? t('tool-panel.location-track.has-duplicates')
-                                : t('tool-panel.location-track.not-a-duplicate')
+                                  ? t('tool-panel.location-track.has-duplicates')
+                                  : t('tool-panel.location-track.not-a-duplicate')
                         }
                         value={
                             <LocationTrackInfoboxDuplicateOf
@@ -377,7 +377,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {splittingState && (
-                <EnvRestricted restrictTo="dev">
+                <EnvRestricted restrictTo="test">
                     <LocationTrackSplittingInfoboxContainer
                         visibilities={visibilities}
                         visibilityChange={visibilityChange}
