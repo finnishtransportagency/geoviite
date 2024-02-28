@@ -3029,10 +3029,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val someDuplicates = (0..4).map { i ->
             insertLocationTrack(
-                draft(locationTrack(
-                    trackNumberId = trackNumberId,
-                    duplicateOf = sourceTrack.id,
-                )),
+                draft(
+                    locationTrack(
+                        trackNumberId = trackNumberId,
+                        duplicateOf = sourceTrack.id,
+                    )
+                ),
                 alignment(segment(Point(i.toDouble(), 0.0), Point(i + 0.75, 0.0))),
             ).id
         }
@@ -3041,7 +3043,7 @@ class PublicationServiceIT @Autowired constructor(
             sourceTrack.id,
             listOf(
                 SplitTarget(middleTrack.id, 0..0),
-                SplitTarget(endTrack.id, 0..0)
+                SplitTarget(endTrack.id, 0..0),
             ),
             relinkedSwitches = someSwitches,
             updatedDuplicates = someDuplicates,
@@ -3060,6 +3062,96 @@ class PublicationServiceIT @Autowired constructor(
             switchIds = someSwitches,
             duplicateLocationTrackIds = someDuplicates,
         )
+    }
+
+    @Test
+    fun `Published split should not be deleted when a target location track is later modified and reverted`() {
+        val (
+            sourceTrack,
+            startTargetTrack,
+            endTargetTrack
+        ) = simpleSplitSetup()
+
+        val splitId = saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        splitDao.get(splitId).let { split ->
+            assertNotNull(split)
+            assertEquals(null, split.publicationId)
+        }
+
+        val publishId = publicationService.getValidationVersions(
+            publishRequest(locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id))
+        ).let { versions ->
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
+        }
+
+        splitDao.get(splitId).let { split ->
+            assertNotNull(split)
+            assertEquals(publishId, split.publicationId)
+        }
+
+        val (targetTrackToModify, targetAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, startTargetTrack.id)
+        locationTrackService.saveDraft(
+            draft = targetTrackToModify.copy(
+                name = AlignmentName("Some other draft name"),
+            ),
+            alignment = targetAlignment
+        )
+
+        publicationService.revertPublishCandidates(
+            publishRequestIds(
+                locationTracks = listOf(targetTrackToModify.id as IntId)
+            )
+        )
+
+        // Split should be found and not be deleted even after reverting the draft change to the modified locationTrack.
+        assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `Published split should not be deleted when a relinked switch is later modified and reverted`() {
+        val (
+            sourceTrack,
+            startTargetTrack,
+            endTargetTrack
+        ) = simpleSplitSetup()
+
+        val someSwitch = insertUniqueDraftSwitch()
+
+       val splitId = saveSplit(
+            sourceTrackId = sourceTrack.id,
+            targetTrackIds = listOf(startTargetTrack.id, endTargetTrack.id),
+            switches = listOf(someSwitch.id)
+       )
+
+        publicationService.getValidationVersions(
+            publishRequest(
+                locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id),
+                switches = listOf(someSwitch.id),
+            )
+        ).let { versions ->
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
+        }
+
+        switchService.get(DRAFT, someSwitch.id).let { publishedSwitch ->
+            assertNotNull(publishedSwitch)
+            assertEquals(true, publishedSwitch.isOfficial())
+
+            switchService.saveDraft(
+                draft = publishedSwitch.copy(
+                    name = SwitchName("some other switch name"),
+                )
+            )
+        }
+
+        publicationService.revertPublishCandidates(
+            publishRequestIds(
+                switches = listOf(someSwitch.id)
+            )
+        )
+
+        // Split should be found and not be deleted even after reverting the draft change to the modified switch.
+        assertNotNull(splitDao.get(splitId))
     }
 }
 

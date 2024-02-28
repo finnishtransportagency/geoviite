@@ -67,10 +67,27 @@ class SplitService(
     fun findPendingSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>) =
         findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
 
+    fun findUnpublishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
+        logger.serviceCall("findUnpublishedSplitsForLocationTracks", "locationTracks" to locationTracks)
+
+        return findUnfinishedSplitsForLocationTracks(locationTracks)
+            .filter { split -> split.publicationId == null }
+    }
+
     fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
         logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
 
-        return splitDao.locationTracksPartOfAnyUnfinishedSplit(locationTracks)
+        return splitDao.fetchUnfinishedSplits()
+            .filter { split ->
+                locationTracks.any { lt -> split.containsLocationTrack(lt) }
+            }
+    }
+
+    fun findUnpublishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
+        logger.serviceCall("findUnpublishedSplitsForSwitches", "switches" to switches)
+
+        return findUnfinishedSplitsForSwitches(switches)
+            .filter { split -> split.publicationId == null }
     }
 
     fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
@@ -98,8 +115,14 @@ class SplitService(
     }
 
     fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublishValidationErrors {
-        val splitsByLocationTracks = findUnfinishedSplitsForLocationTracks(candidates.locationTracks.map { it.officialId })
-        val splitsBySwitches = findUnfinishedSplitsForSwitches(candidates.switches.map { it.officialId })
+        val splitsByLocationTracks = candidates.locationTracks.map { locationTrackValidationVersion ->
+            locationTrackValidationVersion.officialId
+        }.let(::findUnpublishedSplitsForLocationTracks)
+
+        val splitsBySwitches = candidates.switches.map { switchValidationVersion ->
+            switchValidationVersion.officialId
+        }.let(::findUnpublishedSplitsForSwitches)
+
         val splits = (splitsByLocationTracks + splitsBySwitches).distinctBy { it.id }
         val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits, allowMultipleSplits)
 
