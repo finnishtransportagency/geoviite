@@ -74,17 +74,21 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val canvas = childElement(By.cssSelector("div.map"))
 
         Actions(browser()).dragAndDropBy(canvas, xOffset, yOffset).build().perform()
+        finishLoading()
     }
 
     fun clickAtCoordinates(point: Point, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
     fun clickAtCoordinates(point: AlignmentPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
     fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         val pxlCoordinates =
             javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])").toString()
                 .replace("[^0-9.,]".toRegex(), "").split(",").map { doubleStr -> doubleStr.toDouble().roundToInt() }
@@ -94,6 +98,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     fun clickAtCoordinates(pixelX: Int, pixelY: Int, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         logger.info("Click map at ($pixelX,$pixelY)")
         val canvas = childElement(By.cssSelector("div.map"))
         clickElementAtPoint(canvas, pixelX, pixelY, doubleClick)
