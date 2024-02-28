@@ -102,46 +102,6 @@ class PublicationService @Autowired constructor(
             referenceLines = publicationDao.fetchReferenceLinePublishCandidates(),
             switches = publicationDao.fetchSwitchPublishCandidates(),
             kmPosts = publicationDao.fetchKmPostPublishCandidates(),
-        ).let(::assignPublicationGroups)
-    }
-
-    fun assignPublicationGroups(
-        publishCandidates: PublishCandidates,
-    ): PublishCandidates {
-        val locationTrackIdToPublicationGroup = mutableMapOf<IntId<LocationTrack>, PublicationGroup>()
-        val switchIdToPublicationGroup = mutableMapOf<IntId<TrackLayoutSwitch>, PublicationGroup>()
-
-        publishCandidates.locationTracks
-            .map { locationTrack -> locationTrack.id }
-            .let { locationTrackIds -> splitService.findUnfinishedSplitsForLocationTracks(locationTrackIds) }
-            .map { unfinishedSplit ->
-                val publicationGroup = PublicationGroup(unfinishedSplit.id)
-
-                unfinishedSplit.locationTracks.forEach { locationTrackId ->
-                    locationTrackIdToPublicationGroup[locationTrackId] = publicationGroup
-                }
-
-                unfinishedSplit.relinkedSwitches.forEach { switchId ->
-                    switchIdToPublicationGroup[switchId] = publicationGroup
-                }
-            }
-
-        return publishCandidates.copy(
-            locationTracks = publishCandidates.locationTracks.map { locationTrackPublishCandidate ->
-                locationTrackIdToPublicationGroup[locationTrackPublishCandidate.id]?.let { assignedPublicationGroup ->
-                    locationTrackPublishCandidate.copy(
-                        publicationGroup = assignedPublicationGroup
-                    )
-                } ?: locationTrackPublishCandidate
-            },
-
-            switches = publishCandidates.switches.map { switchPublishCandidate ->
-                switchIdToPublicationGroup[switchPublishCandidate.id]?.let { assignedPublicationGroup ->
-                    switchPublishCandidate.copy(
-                        publicationGroup = assignedPublicationGroup
-                    )
-                } ?: switchPublishCandidate
-            },
         )
     }
 
@@ -389,7 +349,8 @@ class PublicationService @Autowired constructor(
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
         }.map(RowVersion<LocationTrack>::id)
 
-        val revertSplitTracks = splitService.findUnfinishedSplitsForLocationTracks(revertLocationTrackIds).flatMap { it.locationTracks }
+        val revertSplitTracks = splitService.findUnpublishedSplitsForLocationTracks(revertLocationTrackIds)
+            .flatMap { split -> split.locationTracks }
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
             kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
@@ -412,8 +373,8 @@ class PublicationService @Autowired constructor(
     fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
 
-        splitService.findUnfinishedSplitsForLocationTracks(toDelete.locationTracks)
-            .map { it.id }
+        splitService.findUnpublishedSplitsForLocationTracks(toDelete.locationTracks)
+            .map { split -> split.id }
             .distinct()
             .forEach(splitService::deleteSplit)
 

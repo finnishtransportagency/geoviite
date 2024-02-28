@@ -222,7 +222,12 @@ class LinkingServiceIT @Autowired constructor(
             mRange = Range(0.0, 0.0),
         )
 
-        splitDao.saveSplit(locationTrackId, listOf(SplitTarget(locationTrackId, 0..1)), emptyList())
+        splitDao.saveSplit(
+            locationTrackId,
+            listOf(SplitTarget(locationTrackId, 0..1)),
+            relinkedSwitches = emptyList(),
+            updatedDuplicates = emptyList(),
+        )
 
         val ex = assertThrows<LinkingFailureException> {
             linkingService.saveLocationTrackLinking(
@@ -290,7 +295,8 @@ class LinkingServiceIT @Autowired constructor(
             splitDao.saveSplit(
                 locationTrackId,
                 listOf(SplitTarget(locationTrackId, 0..1)),
-                emptyList(),
+                relinkedSwitches = emptyList(),
+                updatedDuplicates = emptyList(),
             )
         )
         splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)

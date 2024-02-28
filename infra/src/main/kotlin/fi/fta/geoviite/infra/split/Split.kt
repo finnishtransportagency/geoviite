@@ -37,6 +37,7 @@ data class Split(
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
+    val updatedDuplicates: List<IntId<LocationTrack>>,
 ) {
     @get:JsonIgnore
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + locationTrackId }

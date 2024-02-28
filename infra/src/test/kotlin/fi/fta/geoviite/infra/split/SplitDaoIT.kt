@@ -43,6 +43,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack.id, 0..0)),
             listOf(relinkedSwitchId),
+            updatedDuplicates = emptyList(),
         ).let(splitDao::getOrThrow)
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
@@ -70,6 +71,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack.id, 0..0)),
             listOf(relinkedSwitchId),
+            updatedDuplicates = emptyList(),
         ).let(splitDao::getOrThrow)
 
         val publicationId = publicationDao.createPublication("SPLIT PUBLICATION")
@@ -107,6 +109,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack1.id, 0..0)),
             listOf(relinkedSwitchId1),
+            updatedDuplicates = emptyList(),
         ).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
@@ -116,6 +119,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack2.id, 0..0)),
             listOf(relinkedSwitchId2),
+            updatedDuplicates = emptyList(),
         )
 
         val splits = splitDao.fetchUnfinishedSplits()
@@ -132,6 +136,10 @@ class SplitDaoIT @Autowired constructor(
             locationTrack(trackNumberId = trackNumberId) to alignment
         )
 
+        val someDuplicateTrack = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+        )
+
         val targetTrack1 = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
@@ -142,6 +150,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack1.id, 0..0)),
             listOf(relinkedSwitchId),
+            updatedDuplicates = listOf(someDuplicateTrack.id)
         )
 
         assertTrue { splitDao.fetchUnfinishedSplits().any { it.id == splitId } }
@@ -169,6 +178,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack1.id, 0..0)),
             listOf(relinkedSwitchId),
+            updatedDuplicates = emptyList(),
         )
 
         val splitHeader = splitDao.getSplitHeader(splitId)
@@ -196,6 +206,10 @@ class SplitDaoIT @Autowired constructor(
             locationTrack(trackNumberId = trackNumberId) to alignment
         )
 
+        val someDuplicateTrack = insertLocationTrack(
+            locationTrack(trackNumberId = trackNumberId) to alignment
+        )
+
         val targetTrack = insertLocationTrack(
             draft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
@@ -206,6 +220,7 @@ class SplitDaoIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(targetTrack.id, 0..0)),
             listOf(relinkedSwitchId),
+            updatedDuplicates = listOf(someDuplicateTrack.id),
         )
     }
 }
