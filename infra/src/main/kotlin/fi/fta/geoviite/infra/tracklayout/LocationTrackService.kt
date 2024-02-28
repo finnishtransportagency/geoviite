@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
@@ -169,9 +168,14 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun fetchDuplicates(id: IntId<LocationTrack>) = dao
-        .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
-        .map(dao::fetch)
+    fun fetchDuplicates(publishType: PublishType, id: IntId<LocationTrack>): List<LocationTrack> {
+        logger.serviceCall(
+            "fetchDuplicates",
+            "publishType" to publishType,
+            "locationTrackId" to id,
+        )
+        return dao.fetchDuplicateVersions(id, publishType).map(dao::fetch)
+    }
 
     @Transactional
     fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
@@ -564,6 +568,16 @@ class LocationTrackService(
         return getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
             collectAllSwitches(track, alignment)
         } ?: emptyList()
+    }
+
+    @Transactional(readOnly = true)
+    fun getAlignmentsForTracks(tracks: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
+        return tracks.map { track ->
+            val alignment = track.alignmentVersion?.let(alignmentDao::fetch)
+                ?: error("All location tracks should have an alignment. Alignment was not found for track=${track.id}")
+
+            track to alignment
+        }
     }
 }
 
