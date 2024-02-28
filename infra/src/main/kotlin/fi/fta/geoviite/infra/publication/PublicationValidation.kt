@@ -172,8 +172,7 @@ fun validateSwitchLocationTrackLinkStructure(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<PublishValidationError> {
     val existingTracks = locationTracks.filter { (track, _) -> track.exists }
-    val segmentGroups = locationTracks
-        .filter { (track, _) -> track.exists } // Only consider the non-deleted tracks for switch alignments
+    val segmentGroups = existingTracks // Only consider the non-deleted tracks for switch alignments
         .map { (track, alignment) -> track to alignment.segments.filter { segment -> segment.switchId == switch.id } }
         .filter { (_, segments) -> segments.isNotEmpty() }
 
@@ -289,11 +288,11 @@ fun validateSwitchTopologicalConnectivity(
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
     if (validatingTrack != null) "$VALIDATION_LOCATION_TRACK.switch-linkage" else "$VALIDATION_SWITCH.track-linkage"
 
-private fun <T> getTracksThroughJoints(
+private fun getTracksThroughJoints(
     structure: SwitchStructure,
-    tracks: List<Pair<T, LayoutAlignment>>,
+    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switch: TrackLayoutSwitch,
-): Map<JointNumber, List<T>> {
+): Map<JointNumber, List<LocationTrack>> {
     val tracksThroughJoint = structure.joints.map { it.number }.associateWith { jointNumber ->
         tracks.filter { (_, alignment) ->
             val jointLinkedIndexRange = alignment.segments.mapIndexedNotNull { i, segment ->
@@ -347,7 +346,7 @@ private fun validateExcessTracksThroughJoint(
     validatingTrack: LocationTrack?,
 ): PublishValidationError? {
     val excesses = tracksThroughJoint.filter { (joint, tracks) ->
-        joint != connectivityType.sharedJoint && tracks.count(LocationTrack::isDraft) > 1
+        joint != connectivityType.sharedPassThroughJoint && tracks.size > 1
     }
     val someoneElseIsResponsible = validatingTrack?.let {
         excesses.values.flatten().none { excess -> excess.id == validatingTrack.id }
