@@ -2,13 +2,14 @@ import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { GeometryPlanLayout, LayoutSwitch, PlanAndStatus } from 'track-layout/track-layout-model';
 import {
-    clearFeatures,
+    createLayer,
     getManualPlanWithStatus,
     getVisiblePlansWithStatus,
+    loadLayerData,
 } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { PublishType } from 'common/common-model';
+import { PublishType, SwitchStructure } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import {
     createGeometrySwitchFeatures,
@@ -19,9 +20,9 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'geometry-switch-layer';
 
 export function createGeometrySwitchLayer(
     mapTiles: MapTile[],
@@ -30,12 +31,10 @@ export function createGeometrySwitchLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
-    manuallySetPlan?: GeometryPlanLayout,
+    manuallySetPlan: GeometryPlanLayout | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
-
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const shownSwitches = () => {
         if (resolution <= Limits.SWITCH_SHOW) {
@@ -49,7 +48,6 @@ export function createGeometrySwitchLayer(
 
     const visibleSwitches = shownSwitches();
 
-    let inFlight = true;
     const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
     const showLabels = resolution <= Limits.SWITCH_LABELS;
     const isSelected = (switchItem: LayoutSwitch) => {
@@ -67,51 +65,43 @@ export function createGeometrySwitchLayer(
     const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
         ? getManualPlanWithStatus(manuallySetPlan, publishType)
         : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes);
+    const dataPromise = Promise.all([getSwitchStructures(), plansPromise]);
 
-    Promise.all([getSwitchStructures(), plansPromise])
-        .then(([switchStructures, planStatuses]) => {
-            if (layerId !== newestLayerId) return;
-
-            const features = planStatuses.flatMap(({ status, plan }) => {
-                return createGeometrySwitchFeatures(
-                    status,
-                    visibleSwitches,
-                    plan,
-                    isSelected,
-                    isHighlighted,
-                    showLargeSymbols,
-                    showLabels,
-                    switchStructures,
-                );
-            });
-
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(features);
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) clearFeatures(vectorSource);
-        })
-        .finally(() => {
-            inFlight = false;
-        });
-
-    return {
-        name: 'geometry-switch-layer',
-        layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
-            return {
-                geometrySwitchIds: findMatchingSwitches(hitArea, vectorSource, options)
-                    .map((s) =>
-                        s.planId && s.switch.sourceId
-                            ? {
-                                  geometryId: s.switch.sourceId,
-                                  planId: s.planId,
-                              }
-                            : undefined,
-                    )
-                    .filter(filterNotEmpty),
-            };
-        },
-        requestInFlight: () => inFlight,
+    const createFeatures = ([switchStructures, planStatuses]: [
+        SwitchStructure[],
+        PlanAndStatus[],
+    ]) => {
+        return planStatuses.flatMap(({ status, plan }) =>
+            createGeometrySwitchFeatures(
+                status,
+                visibleSwitches,
+                plan,
+                isSelected,
+                isHighlighted,
+                showLargeSymbols,
+                showLabels,
+                switchStructures,
+            ),
+        );
     };
+
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    const searchItems = (
+        hitArea: Rectangle,
+        options: SearchItemsOptions,
+    ): LayerItemSearchResult => ({
+        geometrySwitchIds: findMatchingSwitches(hitArea, source, options)
+            .map((s) =>
+                s.planId && s.switch.sourceId
+                    ? {
+                          geometryId: s.switch.sourceId,
+                          planId: s.planId,
+                      }
+                    : undefined,
+            )
+            .filter(filterNotEmpty),
+    });
+
+    return { name: layerName, layer: layer, searchItems: searchItems };
 }

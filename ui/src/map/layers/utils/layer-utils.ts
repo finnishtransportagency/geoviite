@@ -14,7 +14,9 @@ import { getPlanLinkStatus, getPlanLinkStatuses } from 'linking/linking-api';
 import { PublishType } from 'common/common-model';
 import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
+import VectorLayer from 'ol/layer/Vector';
+import BaseLayer from 'ol/layer/Base';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -145,6 +147,61 @@ export function sortFeaturesByDistance<T extends Geometry>(features: Feature<T>[
         else if (geometryB) return 1;
         else return 0;
     });
+}
+
+const latestLayerIds: Map<MapLayerName, number> = new Map();
+const incrementAndGetLayerId = (name: MapLayerName) => {
+    const id = (latestLayerIds.get(name) ?? 0) + 1;
+    latestLayerIds.set(name, id);
+    return id;
+};
+const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(name) === id;
+
+export type LayerResult<FeatureType extends Geometry> = {
+    layer: BaseLayer;
+    source: VectorSource<FeatureType>;
+    isLatest: () => boolean;
+};
+
+export function createLayer<FeatureType extends Geometry>(
+    name: MapLayerName,
+    existingLayer: VectorLayer<VectorSource<FeatureType>> | undefined,
+    allowDefaultStyle: boolean = true,
+): LayerResult<FeatureType> {
+    const id = incrementAndGetLayerId(name);
+    const source = existingLayer?.getSource() || new VectorSource();
+    const options = allowDefaultStyle ? { source: source } : { source: source, style: null };
+    const layer = existingLayer || new VectorLayer(options);
+    return {
+        layer,
+        source,
+        isLatest: () => isLatestLayerId(name, id),
+    };
+}
+
+export function loadLayerData<Data, FeatureType extends Geometry>(
+    source: VectorSource<FeatureType>,
+    isLatest: () => boolean,
+    onLoadingData: (loading: boolean, loadedData: Data | undefined) => void,
+    dataPromise: Promise<Data>,
+    createFeatures: (data: Data) => Feature<FeatureType>[],
+) {
+    onLoadingData(true, undefined);
+    dataPromise
+        .then((data) => {
+            if (isLatest()) {
+                clearFeatures(source);
+                const features = createFeatures(data);
+                if (features.length > 0) source.addFeatures(features);
+                onLoadingData(false, data);
+            }
+        })
+        .catch(() => {
+            if (isLatest()) {
+                clearFeatures(source);
+                onLoadingData(false, undefined);
+            }
+        });
 }
 
 export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();

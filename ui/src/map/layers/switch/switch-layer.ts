@@ -1,22 +1,22 @@
 import { Point as OlPoint } from 'ol/geom';
 import OlView from 'ol/View';
-import { MapTile, OptionalShownItems } from 'map/map-model';
+import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { LayoutSwitchId } from 'track-layout/track-layout-model';
+import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import {
     getSwitches,
     getSwitchesByTile,
     getSwitchesValidation,
     getSwitchesValidationByTile,
 } from 'track-layout/layout-switch-api';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
     createLayoutSwitchFeatures,
     findMatchingSwitches,
 } from 'map/layers/utils/switch-layer-utils';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType, SwitchStructure, TimeStamp } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
 import { filterUniqueById } from 'utils/array-utils';
@@ -26,9 +26,9 @@ import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { ValidatedAsset } from 'publication/publication-model';
 
 let shownSwitchesCompare: string;
-let newestLayerId = 0;
 
 const getTiledSwitchValidation = (
     mapTiles: MapTile[],
@@ -39,6 +39,14 @@ const getTiledSwitchValidation = (
         mapTiles.map((tile) => getSwitchesValidationByTile(switchChangeTime, tile, publishType)),
     ).then((results) => results.flat());
 
+type SwitchLayerData = {
+    switches: LayoutSwitch[];
+    structures: SwitchStructure[];
+    validationResult: ValidatedAsset[];
+};
+
+const layerName: MapLayerName = 'switch-layer';
+
 export function createSwitchLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
@@ -48,8 +56,12 @@ export function createSwitchLayer(
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const resolution = olView.getResolution() || 0;
+
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
+
     const getSwitchesFromApi = async () => {
         if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
             const switchIds =
@@ -88,8 +100,15 @@ export function createSwitchLayer(
         }
     };
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise: Promise<SwitchLayerData> = Promise.all([
+        getSwitchesFromApi(),
+        getSwitchStructures(),
+        getSwitchValidation(),
+    ]).then(([switches, structures, validationResult]) => ({
+        switches,
+        structures,
+        validationResult,
+    }));
 
     function updateShownSwitches(switchIds: LayoutSwitchId[]) {
         const compare = switchIds.sort().join();
@@ -100,51 +119,35 @@ export function createSwitchLayer(
         }
     }
 
-    let inFlight = true;
-    const resolution = olView.getResolution() || 0;
-
-    Promise.all([getSwitchesFromApi(), getSwitchStructures(), getSwitchValidation()])
-        .then(([switches, switchStructures, validationResult]) => {
-            if (layerId !== newestLayerId) return;
-            const features = createLayoutSwitchFeatures(
-                resolution,
-                selection,
-                switches,
-                switchStructures,
-                validationResult,
-            );
-
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(features);
-
+    const createFeatures = (data: SwitchLayerData) =>
+        createLayoutSwitchFeatures(
+            resolution,
+            selection,
+            data.switches,
+            data.structures,
+            data.validationResult,
+        );
+    const onLoadingChange = (loading: boolean) => {
+        if (!loading) {
+            // The filtering should be as tight as possible for busy track-yards.
+            // This only shows switches whose presentation joint is in the view.
             const visibleSwitches = findMatchingSwitches(
                 fromExtent(olView.calculateExtent()),
-                vectorSource,
+                source,
                 {},
             ).map((s) => s.switch.id);
             updateShownSwitches(visibleSwitches);
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) {
-                clearFeatures(vectorSource);
-                updateShownSwitches([]);
-            }
-        })
-        .finally(() => {
-            inFlight = false;
-        });
+        }
+        onLoadingData(loading);
+    };
+    loadLayerData(source, isLatest, onLoadingChange, dataPromise, createFeatures);
 
     return {
-        name: 'switch-layer',
+        name: layerName,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => {
-            const switches = findMatchingSwitches(hitArea, vectorSource, options).map(
-                (d) => d.switch.id,
-            );
-
-            return { switches };
-        },
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => ({
+            switches: findMatchingSwitches(hitArea, source, options).map((d) => d.switch.id),
+        }),
         onRemove: () => updateShownSwitches([]),
-        requestInFlight: () => inFlight,
     };
 }

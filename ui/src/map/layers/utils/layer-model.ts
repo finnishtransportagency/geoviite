@@ -14,5 +14,4 @@ export type MapLayer = {
     layer: BaseLayer;
     searchItems?: (hitArea: Rectangle, options: SearchItemsOptions) => LayerItemSearchResult;
     onRemove?: () => void;
-    requestInFlight: () => boolean;
 };

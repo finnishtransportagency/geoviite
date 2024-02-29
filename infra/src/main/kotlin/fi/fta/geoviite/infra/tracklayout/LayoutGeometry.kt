@@ -187,6 +187,12 @@ interface IAlignment : Loggable {
     fun getMaxDirectionDeltaRads(): Double =
         allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
 
+    fun isWithinDistanceOfPoint(point: Point, distance: Double): Boolean =
+        (boundingBox?.intersects(boundingBoxAroundPoint(point, distance))
+            ?: false) && getClosestPoint(point)?.let { closestPoint ->
+            lineLength(point, closestPoint.first.toPoint()) <= distance
+        } ?: false
+
     override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
 

@@ -3,9 +3,10 @@ import { Selection } from 'selection/selection-model';
 import { GeometryPlanLayout, LayoutKmPost, PlanAndStatus } from 'track-layout/track-layout-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
-    clearFeatures,
+    createLayer,
     getManualPlanWithStatus,
     getVisiblePlansWithStatus,
+    loadLayerData,
 } from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
 import {
@@ -18,9 +19,9 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'geometry-km-post-layer';
 
 export function createGeometryKmPostLayer(
     mapTiles: MapTile[],
@@ -29,18 +30,20 @@ export function createGeometryKmPostLayer(
     selection: Selection,
     publishType: PublishType,
     changeTimes: ChangeTimes,
-    manuallySetPlan?: GeometryPlanLayout,
+    manuallySetPlan: GeometryPlanLayout | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
-
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, false);
 
     const step = getKmPostStepByResolution(resolution);
 
-    let inFlight = false;
-    if (step) {
-        inFlight = true;
+    const dataPromise = step
+        ? manuallySetPlan
+            ? getManualPlanWithStatus(manuallySetPlan, publishType)
+            : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes)
+        : Promise.resolve([]);
+
+    const createFeatures = (planStatuses: PlanAndStatus[]) => {
         const isSelected = (kmPost: LayoutKmPost) => {
             return selection.selectedItems.geometryKmPostIds.some(
                 ({ geometryId }) => geometryId === kmPost.sourceId,
@@ -51,72 +54,51 @@ export function createGeometryKmPostLayer(
             ? manuallySetPlan.kmPosts.map((p) => p.sourceId)
             : selection.visiblePlans.flatMap((p) => p.kmPosts);
 
-        const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
-            ? getManualPlanWithStatus(manuallySetPlan, publishType)
-            : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes);
+        return planStatuses.flatMap(({ plan, status }) => {
+            const kmPosts: LayoutKmPost[] = plan.kmPosts.filter(
+                ({ sourceId, kmNumber }) =>
+                    sourceId &&
+                    visibleKmPosts.includes(sourceId) &&
+                    Number.parseInt(kmNumber) % step === 0,
+            );
 
-        plansPromise
-            .then((planStatuses) => {
-                if (layerId !== newestLayerId) return;
+            const kmPostLinkedStatus = status
+                ? new Map(
+                      status.kmPosts.map((kmPosts) => [
+                          kmPosts.id,
+                          kmPosts.linkedKmPosts?.length > 0,
+                      ]),
+                  )
+                : undefined;
 
-                const features = planStatuses.flatMap(({ plan, status }) => {
-                    const kmPosts: LayoutKmPost[] = plan.kmPosts.filter(
-                        ({ sourceId, kmNumber }) =>
-                            sourceId &&
-                            visibleKmPosts.includes(sourceId) &&
-                            Number.parseInt(kmNumber) % step === 0,
-                    );
-
-                    const kmPostLinkedStatus = status
-                        ? new Map(
-                              status.kmPosts.map((kmPosts) => [
-                                  kmPosts.id,
-                                  kmPosts.linkedKmPosts?.length > 0,
-                              ]),
-                          )
-                        : undefined;
-
-                    return createKmPostFeatures(
-                        kmPosts,
-                        isSelected,
-                        'geometryKmPost',
-                        resolution,
-                        plan.id,
-                        (kmPost) =>
-                            (kmPost.sourceId && kmPostLinkedStatus?.get(kmPost.sourceId)) || false,
-                    );
-                });
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
-
-    return {
-        name: 'geometry-km-post-layer',
-        layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
-            return {
-                geometryKmPostIds: findMatchingKmPosts(hitArea, vectorSource, options)
-                    .map((kp) =>
-                        kp.kmPost.sourceId && kp.planId
-                            ? {
-                                  geometryId: kp.kmPost.sourceId,
-                                  planId: kp.planId,
-                              }
-                            : undefined,
-                    )
-                    .filter(filterNotEmpty),
-            };
-        },
-        requestInFlight: () => inFlight,
+            return createKmPostFeatures(
+                kmPosts,
+                isSelected,
+                'geometryKmPost',
+                resolution,
+                plan.id,
+                (kmPost) => (kmPost.sourceId && kmPostLinkedStatus?.get(kmPost.sourceId)) || false,
+            );
+        });
     };
+
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    const searchItems = (
+        hitArea: Rectangle,
+        options: SearchItemsOptions,
+    ): LayerItemSearchResult => ({
+        geometryKmPostIds: findMatchingKmPosts(hitArea, source, options)
+            .map((kp) =>
+                kp.kmPost.sourceId && kp.planId
+                    ? {
+                          geometryId: kp.kmPost.sourceId,
+                          planId: kp.planId,
+                      }
+                    : undefined,
+            )
+            .filter(filterNotEmpty),
+    });
+
+    return { name: layerName, layer: layer, searchItems: searchItems };
 }
