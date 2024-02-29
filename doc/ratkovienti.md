@@ -2,8 +2,8 @@
 Täällä on kuvattuna ratkoviennin prosessi sekä sen tietomalli.  
 Ratkoviennillä tarkoitetaan ratanumeroiden, sijaintiraiteiden sekä vaihteiden geometrioiden päivittämistä Ratkoon.
 
-Geoviitteen ja Ratkon välinen integraatio on toteutettu yksisuuntaisena eli Ratko ei pyydä Geoviitteestä mitään.  
-Itse integraatio toimii REST-rajapinnoilla sekä ns. push-tyyppisenä. 
+Geoviitteen ja Ratkon välinen integraatio on toteutettu push-tyyppisenä eli yksisuuntaisena.  
+Järjestelmien välinen kommunikaatio tapahtuu REST-rajapinnoilla. 
 
 Ratkovienti tapahtuu erillisellä asynkronisella prosessilla ja ylätasolla se koostuu seuraavista vaiheista:
 - Haetaan kaikki julkaisut, joita ei vielä ole viety Ratkoon
@@ -33,7 +33,7 @@ classDiagram
     class RatkoPushContent
     
     class RatkoPushError {
-        errorType: PROPERTIES | LOCATION | GEOMETRY| STATE
+        errorType: PROPERTIES | LOCATION | GEOMETRY | STATE
         operation: CREATE | UPDATE | DELETE
     }
     
@@ -46,7 +46,7 @@ classDiagram
 
 ## OIDien hakeminen
 Geoviitteessä luoduille uusille käsiteille (ratanumeroille, raiteille sekä vaihteille) haetaan Ratkosta OID-tunniste osana paikannuspohjan julkaisua.  
-OIDeilla pystytään varmistamaan yksittäisen käsitteen uniikkiuden paikannuspohjassa.
+OIDIt ovat globaalisti uniikkeja ja niitä käytetään käsitteiden tunnistamiseen eri järjestelmien välillä.
 
 
 ## Ratanumeroiden, sijaintiraiteiden sekä vaihteiden vienti
@@ -64,7 +64,7 @@ Tällöin Ratkoon päivitetään halutut raiteen ratakilometrit, sekä niille v�
 
 ### Vaihteen vienti, erikoistilanne
 Ratkossa vaihteet kytkeytyvät raiteisiin rataosoitteen perusteella, mikä tarkoittaa siis sitä, että vaihteen kautta kulkevilla raiteilla on oltava sopivat (epä-)tasametripisteet ennen kuin vaihteen linjoja voidaan päivittää.  
-Ja koska Geoviitteen ja Ratkon rataosoitteisto poikkeavat hieman toisistaan (historiallisista syistä), niin Geoviite päivittää ainoastaan ne vaihteen linjat, joiden geometriat on juuri päivitetty.
+Koska historiallisista syistä Geoviitteen ja Ratkon rataosoitteistot poikkeavat hieman, Geoviite päivittää ainoastaan ne vaihteen linjat, joiden geometriat on juuri päivitetty.
 
 
 ## Hyvä tietää integraatiosta
