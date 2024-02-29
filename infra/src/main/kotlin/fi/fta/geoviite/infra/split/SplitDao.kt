@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.split
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
