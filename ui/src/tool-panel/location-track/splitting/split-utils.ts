@@ -162,7 +162,9 @@ export const getSplitAddressPoint = (
     if (split.type === 'SPLIT') {
         const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
 
-        if (switchAtSplit?.location && switchAtSplit?.address) {
+        if (!switchAtSplit?.location || !switchAtSplit?.address) {
+            return undefined;
+        } else {
             return {
                 point: { ...switchAtSplit.location, m: -1 },
                 address: switchAtSplit.address,
@@ -174,6 +176,4 @@ export const getSplitAddressPoint = (
             address: originLocationTrackStart.address,
         };
     }
-
-    return undefined;
 };
