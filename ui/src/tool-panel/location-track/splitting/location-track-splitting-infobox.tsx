@@ -46,10 +46,10 @@ import { success } from 'geoviite-design-lib/snackbar/snackbar';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { ChangeTimes } from 'common/common-slice';
 import {
-    LocationTrackSplittingDraftExistsError,
+    LocationTrackSplittingDraftExistsErrorNotice,
     LocationTrackSplittingGuideNotice,
     NoticeWithNavigationLink,
-    LocationTrackSplittingDuplicateTrackNotPublishedNotice,
+    LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice,
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
 import {
@@ -322,7 +322,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         addressPoint={sourceEnd}
                         editingDisabled={splittingState.disabled}
                     />
-                    {splittingState.disabled && <LocationTrackSplittingDraftExistsError />}
+                    {splittingState.disabled && <LocationTrackSplittingDraftExistsErrorNotice />}
                     {!splittingState.disabled && (
                         <LocationTrackSplitRelinkingNotice
                             splittingState={splittingState}
@@ -352,8 +352,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         />
                     )}
                     {firstChangedDuplicateInSplits && (
-                        <LocationTrackSplittingDuplicateTrackNotPublishedNotice
-                            draftDuplicate={firstChangedDuplicateInSplits}
+                        <LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice
+                            draftDuplicateName={firstChangedDuplicateInSplits.name}
                         />
                     )}
                     <InfoboxButtons>
