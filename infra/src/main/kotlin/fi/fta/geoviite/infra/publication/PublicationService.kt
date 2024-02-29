@@ -373,7 +373,11 @@ class PublicationService @Autowired constructor(
     fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
 
-        splitService.findUnpublishedSplitsForLocationTracks(toDelete.locationTracks)
+        listOf(
+            splitService.findUnpublishedSplitsForLocationTracks(toDelete.locationTracks),
+            splitService.findUnpublishedSplitsForSwitches(toDelete.switches),
+        )
+            .flatten()
             .map { split -> split.id }
             .distinct()
             .forEach(splitService::deleteSplit)
