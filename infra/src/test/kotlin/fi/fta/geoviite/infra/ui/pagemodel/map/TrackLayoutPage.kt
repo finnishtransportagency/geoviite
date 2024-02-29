@@ -74,17 +74,21 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val canvas = childElement(By.cssSelector("div.map"))
 
         Actions(browser()).dragAndDropBy(canvas, xOffset, yOffset).build().perform()
+        finishLoading()
     }
 
     fun clickAtCoordinates(point: Point, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
     fun clickAtCoordinates(point: AlignmentPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
     fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         val pxlCoordinates =
             javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])").toString()
                 .replace("[^0-9.,]".toRegex(), "").split(",").map { doubleStr -> doubleStr.toDouble().roundToInt() }
@@ -94,6 +98,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     }
 
     fun clickAtCoordinates(pixelX: Int, pixelY: Int, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+        finishLoading()
         logger.info("Click map at ($pixelX,$pixelY)")
         val canvas = childElement(By.cssSelector("div.map"))
         clickElementAtPoint(canvas, pixelX, pixelY, doubleClick)
@@ -109,28 +114,27 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     fun zoomToScale(targetScale: MapScale): E2ETrackLayoutPage = apply {
         logger.info("Zoom map to scale $targetScale")
 
-        if (targetScale.ordinal >= mapScale.ordinal) {
-            while (targetScale != mapScale) zoomOut()
-        } else {
-            while (targetScale != mapScale) zoomIn()
+        var oldResolution = resolution
+        while (targetScale != mapScale) {
+            if (targetScale.ordinal > mapScale.ordinal) zoomOut(oldResolution)
+            if (targetScale.ordinal < mapScale.ordinal) zoomIn(oldResolution)
+            oldResolution = resolution
         }
 
         finishLoading()
     }
 
-    private fun zoomOut() {
-        val oldScale = resolution
+    private fun zoomOut(oldResolution: Double) {
         clickChild(By.className("ol-zoom-out"))
-        waitUntilScaleChanges(oldScale)
+        waitUntilResolutionChanges(oldResolution)
     }
 
-    private fun zoomIn() {
-        val oldScale = resolution
+    private fun zoomIn(oldResolution: Double) {
         clickChild(By.className("ol-zoom-in"))
-        waitUntilScaleChanges(oldScale)
+        waitUntilResolutionChanges(oldResolution)
     }
 
-    private fun waitUntilScaleChanges(oldScale: Double) {
-        tryWait({ resolution != oldScale }) { "Map scale did not change from $oldScale" }
+    private fun waitUntilResolutionChanges(oldResolution: Double) {
+        tryWait({ resolution != oldResolution }) { "Map scale did not change from $oldResolution" }
     }
 }

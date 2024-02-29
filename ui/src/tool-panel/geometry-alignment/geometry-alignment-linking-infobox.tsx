@@ -19,7 +19,7 @@ import {
     linkGeometryWithReferenceLine,
 } from 'linking/linking-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
@@ -58,6 +58,7 @@ import {
     useLocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-react-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
+import { ChangeTimes } from 'common/common-slice';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -110,9 +111,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
-    locationTrackChangeTime: TimeStamp;
-    trackNumberChangeTime: TimeStamp;
-    switchChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     linkingState?:
         | LinkingGeometryWithAlignment
         | LinkingGeometryWithEmptyAlignment
@@ -126,7 +125,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     onContentVisibilityChange: () => void;
 };
 
-const isNotPreliminary = (state: LinkingPhase) => state === 'allSet' || state === 'setup';
+const isNotPreliminary = (state: LinkingPhase) => state !== 'preliminary';
 
 const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxProps> = ({
     onSelect,
@@ -135,9 +134,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     selectedLayoutLocationTrack,
     selectedLayoutReferenceLine,
     planId,
-    locationTrackChangeTime,
-    switchChangeTime,
-    trackNumberChangeTime,
+    changeTimes,
     linkingState,
     onLinkingStart,
     onLockAlignment,
@@ -160,7 +157,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
     const planStatus = useLoader(
         () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
-        [planId, locationTrackChangeTime, publishType],
+        [planId, changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine, publishType],
     );
 
     const linkedReferenceLines = useLoader(() => {
@@ -185,8 +182,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const [selectedLocationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
         selectedLayoutLocationTrack?.id,
         publishType,
-        locationTrackChangeTime,
-        switchChangeTime,
+        changeTimes,
     );
 
     const canLink =
@@ -204,7 +200,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
             setLinkedAlignmentIds(linkedIds);
         });
-    }, [planId, publishType, locationTrackChangeTime]);
+    }, [planId, publishType, changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine]);
 
     const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
     const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
@@ -304,7 +300,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         <ReferenceLineNames
                             linkedReferenceLines={linkedReferenceLines}
                             publishType={publishType}
-                            alignmentChangeTime={locationTrackChangeTime}
+                            changeTimes={changeTimes}
                         />
                     )}
 
@@ -333,7 +329,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 <GeometryAlignmentLinkingReferenceLineCandidates
                                     geometryAlignment={geometryAlignment}
                                     publishType={publishType}
-                                    trackNumberChangeTime={trackNumberChangeTime}
+                                    trackNumberChangeTime={changeTimes.layoutTrackNumber}
                                     onSelect={onSelect}
                                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}
                                     disableAddButton={
@@ -347,7 +343,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                 <GeometryAlignmentLinkingLocationTrackCandidates
                                     geometryAlignment={geometryAlignment}
                                     publishType={publishType}
-                                    locationTrackChangeTime={locationTrackChangeTime}
+                                    locationTrackChangeTime={changeTimes.layoutLocationTrack}
                                     onSelect={onSelect}
                                     selectedLayoutLocationTrack={selectedLayoutLocationTrack}
                                     disableAddButton={
@@ -444,8 +440,6 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 <LocationTrackEditDialogContainer
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onSave={handleLocationTrackSave}
-                    locationTrackChangeTime={locationTrackChangeTime}
-                    switchChangeTime={switchChangeTime}
                 />
             )}
             {showAddTrackNumberDialog && (

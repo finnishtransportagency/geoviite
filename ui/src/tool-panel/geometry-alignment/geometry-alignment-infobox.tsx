@@ -8,7 +8,7 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { usePlanHeader } from 'track-layout/track-layout-react-utils';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
 import GeometryAlignmentLinkingInfobox from 'tool-panel/geometry-alignment/geometry-alignment-linking-infobox';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { PublishType } from 'common/common-model';
 import {
     GeometryLinkingAlignmentLockParameters,
     GeometryPreliminaryLinkingParameters,
@@ -22,6 +22,7 @@ import { BoundingBox } from 'model/geometry';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { GeometryAlignmentVerticalGeometryInfobox } from 'tool-panel/geometry-alignment/geometry-alignment-vertical-geometry-infobox';
+import { ChangeTimes } from 'common/common-slice';
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
@@ -30,9 +31,7 @@ type GeometryAlignmentInfoboxProps = {
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
-    locationTrackChangeTime: TimeStamp;
-    switchChangeTime: TimeStamp;
-    trackNumberChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     linkingState?: LinkingState;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onLockAlignment: (lockParameters: GeometryLinkingAlignmentLockParameters) => void;
@@ -53,9 +52,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     selectedLayoutLocationTrack,
     selectedLayoutReferenceLine,
     planId,
-    locationTrackChangeTime,
-    switchChangeTime,
-    trackNumberChangeTime,
+    changeTimes,
     linkingState,
     onLinkingStart,
     onStopLinking,
@@ -122,9 +119,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     selectedLayoutLocationTrack={selectedLayoutLocationTrack}
                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}
                     planId={planId}
-                    locationTrackChangeTime={locationTrackChangeTime}
-                    switchChangeTime={switchChangeTime}
-                    trackNumberChangeTime={trackNumberChangeTime}
+                    changeTimes={changeTimes}
                     linkingState={linkingState}
                     onLinkingStart={onLinkingStart}
                     onStopLinking={onStopLinking}

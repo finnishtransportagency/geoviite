@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
+import fi.fta.geoviite.infra.ui.testdata.switchJoint
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -896,6 +897,11 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertEqualsRounded(
             listOf(
                 SwitchRelinkingValidationResult(
+                    id = okSwitch.id,
+                    successfulSuggestion = SwitchRelinkingSuggestion(Point(0.0, 0.0), TrackMeter("0000+0000.000")),
+                    validationErrors = listOf(),
+                ),
+                SwitchRelinkingValidationResult(
                     id = okButValidationErrorSwitch.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(shift1, TrackMeter("0000+0044.430")),
                     validationErrors = listOf(
@@ -905,11 +911,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
                             params = LocalizationParams(mapOf("locationTracks" to "1-3", "switch" to "ok but val"))
                         )
                     ),
-                ),
-                SwitchRelinkingValidationResult(
-                    id = okSwitch.id,
-                    successfulSuggestion = SwitchRelinkingSuggestion(Point(0.0, 0.0), TrackMeter("0000+0000.000")),
-                    validationErrors = listOf(),
                 ), SwitchRelinkingValidationResult(
                     id = unsaveableSwitch.id,
                     successfulSuggestion = null,
@@ -1248,6 +1249,69 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertTrackDraftVersionSwitchLinks(
             otherLocationTrackWithTopoSwitchLink.id, null, null, listOf(0.0..1.7 to null)
         )
+    }
+
+    @Test
+    fun `nearby track end not within bounding box of switch joints still gets topologically connected when linking single switch`() {
+        val (_, branchingTrackContinuation, switchId) = setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox()
+        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(
+            switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switchId)!!, switchId
+        ))
+        val expected = TopologyLocationTrackSwitch(switchId, JointNumber(3))
+        val actual = locationTrackDao.fetch(
+            locationTrackDao.fetchVersion(branchingTrackContinuation, PublishType.DRAFT)!!
+        ).topologyStartSwitch
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `nearby track end not within bounding box of switch joints still gets topologically connected when linking track`() {
+        val (throughTrack, branchingTrackContinuation, switchId) = setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox()
+        switchLinkingService.relinkTrack(throughTrack)
+        val expected = TopologyLocationTrackSwitch(switchId, JointNumber(3))
+        val actual = locationTrackDao.fetch(
+            locationTrackDao.fetchVersion(branchingTrackContinuation, PublishType.DRAFT)!!
+        ).topologyStartSwitch
+        assertEquals(expected, actual)
+    }
+
+
+    private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox(): Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<TrackLayoutSwitch>> {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+            )
+        )
+        // switch structure YV60_300_1_9_O's rightmost joints are at x-coords:
+        // - 34.430 (through track)
+        // - 34.321 (branching track)
+        // so with the branching track's continuation starting at 35, it doesn't fall within the switch's bounding box
+        val switchStructureId = switchLibraryService
+            .getSwitchStructures()
+            .find { it.type.typeName == "YV60-300-1:9-O" }!!.id as IntId
+        val switchId = switchDao.insert(switch(123, switchStructureId, listOf(switchJoint(Point(0.0, 0.0))))).id
+        val throughTrackId = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "through track"),
+            alignment(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(40.0, 0.0),
+                    switchId = switchId,
+                    startJointNumber = JointNumber(1)
+                )
+            )
+        ).id
+        locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "branching track start"),
+            alignment(segment(Point(0.0, 0.0), Point(34.9, -2.0)))
+        )
+        val branchingTrackContinuationId = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "branching track continuation"),
+            alignment(segment(Point(35.0, -2.0), Point(50.0, -3.0)))
+        ).id
+        return Triple(throughTrackId, branchingTrackContinuationId, switchId)
     }
 
     private fun assertTrackDraftVersionSwitchLinks(

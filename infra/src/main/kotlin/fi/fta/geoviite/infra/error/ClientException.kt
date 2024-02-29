@@ -48,7 +48,14 @@ class SplitFailureException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "generic",
-) : ClientException(BAD_REQUEST, "Split failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(
+    BAD_REQUEST,
+    "Split failed: $message",
+    cause,
+    "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+    localizationParams,
+) {
     companion object {
         const val LOCALIZATION_KEY_BASE = "error.split"
     }

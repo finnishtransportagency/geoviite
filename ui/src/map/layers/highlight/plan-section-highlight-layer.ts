@@ -1,4 +1,4 @@
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
@@ -9,7 +9,7 @@ import {
     getSelectedLocationTrackMapAlignmentByTiles,
     getSelectedReferenceLineMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
@@ -50,7 +50,35 @@ function createFeatures(
         });
 }
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'plan-section-highlight-layer';
+
+function getAlignments(
+    mapTiles: MapTile[],
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+    resolution: number,
+    hoveredOverItem: HighlightedAlignment | undefined,
+): Promise<AlignmentDataHolder[]> {
+    if (resolution <= HIGHLIGHTS_SHOW && hoveredOverItem) {
+        if (hoveredOverItem.type === 'REFERENCE_LINE') {
+            return getSelectedReferenceLineMapAlignmentByTiles(
+                changeTimes,
+                mapTiles,
+                publishType,
+                hoveredOverItem.id,
+            );
+        } else {
+            return getSelectedLocationTrackMapAlignmentByTiles(
+                changeTimes,
+                mapTiles,
+                publishType,
+                hoveredOverItem.id,
+            );
+        }
+    } else {
+        return Promise.resolve([]);
+    }
+}
 
 export function createPlanSectionHighlightLayer(
     mapTiles: MapTile[],
@@ -59,49 +87,22 @@ export function createPlanSectionHighlightLayer(
     changeTimes: ChangeTimes,
     resolution: number,
     hoveredOverItem: HighlightedAlignment | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise: Promise<AlignmentDataHolder[]> = getAlignments(
+        mapTiles,
+        publishType,
+        changeTimes,
+        resolution,
+        hoveredOverItem,
+    );
 
-    let inFlight = false;
-    if (resolution <= HIGHLIGHTS_SHOW && hoveredOverItem) {
-        inFlight = true;
-        hoveredOverItem.type === 'REFERENCE_LINE'
-            ? getSelectedReferenceLineMapAlignmentByTiles(
-                  changeTimes,
-                  mapTiles,
-                  publishType,
-                  hoveredOverItem.id,
-              )
-            : getSelectedLocationTrackMapAlignmentByTiles(
-                  changeTimes,
-                  mapTiles,
-                  publishType,
-                  hoveredOverItem.id,
-              )
-                  .then((alignments) => {
-                      if (layerId === newestLayerId) {
-                          const features = createFeatures(alignments, hoveredOverItem);
+    const createOlFeatures = (alignments: AlignmentDataHolder[]) =>
+        createFeatures(alignments, hoveredOverItem);
 
-                          clearFeatures(vectorSource);
-                          vectorSource.addFeatures(features);
-                      }
-                  })
-                  .catch(() => {
-                      if (layerId === newestLayerId) clearFeatures(vectorSource);
-                  })
-                  .finally(() => {
-                      inFlight = false;
-                  });
-    } else {
-        clearFeatures(vectorSource);
-    }
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createOlFeatures);
 
-    return {
-        name: 'plan-section-highlight-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    return { name: layerName, layer: layer };
 }

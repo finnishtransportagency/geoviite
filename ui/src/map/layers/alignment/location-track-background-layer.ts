@@ -1,5 +1,5 @@
 import { LineString } from 'ol/geom';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import {
     AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
@@ -10,7 +10,7 @@ import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Selection } from 'selection/selection-model';
@@ -21,7 +21,7 @@ import {
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { first } from 'utils/array-utils';
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'location-track-background-layer';
 
 export function createLocationTrackBackgroundLayer(
     mapTiles: MapTile[],
@@ -31,19 +31,17 @@ export function createLocationTrackBackgroundLayer(
     resolution: number,
     selection: Selection,
     isSplitting: boolean,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     layer.setOpacity(
         isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
     );
 
-    let inFlight = true;
     const selectedTrack = first(selection.selectedItems.locationTracks);
 
-    const alignmentPromise = getMapAlignments(
+    const alignmentPromise: Promise<AlignmentDataHolder[]> = getMapAlignments(
         changeTimes,
         mapTiles,
         resolution,
@@ -51,27 +49,12 @@ export function createLocationTrackBackgroundLayer(
         selectedTrack,
     );
 
-    alignmentPromise
-        .then((locationTracks) => {
-            if (layerId === newestLayerId) {
-                const features = createAlignmentBackgroundFeatures(locationTracks);
+    const createFeatures = (locationTracks: AlignmentDataHolder[]) =>
+        createAlignmentBackgroundFeatures(locationTracks);
 
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            }
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) clearFeatures(vectorSource);
-        })
-        .finally(() => {
-            inFlight = false;
-        });
+    loadLayerData(source, isLatest, onLoadingData, alignmentPromise, createFeatures);
 
-    return {
-        name: 'location-track-background-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    return { name: layerName, layer: layer };
 }
 
 function getMapAlignments(

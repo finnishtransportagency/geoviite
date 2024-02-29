@@ -1,11 +1,16 @@
 import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
 import { Point as OlPoint } from 'ol/geom';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
-import { clearFeatures, findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    findMatchingEntities,
+    loadLayerData,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
 import { getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -13,8 +18,6 @@ import { filterNotEmpty, first } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-
-let newestLayerId = 0;
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
@@ -42,69 +45,49 @@ function createSwitchFeatures(
     return features;
 }
 
+const layerName: MapLayerName = 'switch-linking-layer';
+
 export function createSwitchLinkingLayer(
     mapTiles: MapTile[],
     resolution: number,
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const selectedSwitches = selection.selectedItems.suggestedSwitches;
 
-    let inFlight = false;
-    if (resolution <= SUGGESTED_SWITCH_SHOW) {
-        inFlight = true;
-        const selectedSwitches = selection.selectedItems.suggestedSwitches;
-
-        const getSuggestedSwitchesPromises = linkingState
+    const getSuggestedSwitchesPromises =
+        resolution <= SUGGESTED_SWITCH_SHOW && linkingState
             ? []
             : mapTiles.map((tile) => getSuggestedSwitchesByTile(tile));
 
-        Promise.all(getSuggestedSwitchesPromises)
-            .then((suggestedSwitches) =>
-                [
-                    ...suggestedSwitches.flat(),
-                    first(selectedSwitches), // add selected suggested switch into collection
-                ].filter(filterNotEmpty),
-            )
-            .then((suggestedSwitches) => {
-                // Handle latest fetch only
-                if (layerId !== newestLayerId) return;
+    const dataPromise: Promise<SuggestedSwitch[]> = Promise.all(getSuggestedSwitchesPromises).then(
+        (suggestedSwitches) =>
+            [
+                ...suggestedSwitches.flat(),
+                first(selectedSwitches), // add selected suggested switch into collection
+            ].filter(filterNotEmpty),
+    );
 
-                const features = suggestedSwitches.flatMap((suggestedSwitch) =>
-                    createSwitchFeatures(
-                        suggestedSwitch,
-                        selectedSwitches.some(
-                            (switchToCheck) => switchToCheck.id == suggestedSwitch.id,
-                        ),
-                    ),
-                );
+    const createFeatures = (suggestedSwitches: SuggestedSwitch[]) =>
+        suggestedSwitches.flatMap((suggestedSwitch) =>
+            createSwitchFeatures(
+                suggestedSwitch,
+                selectedSwitches.some((switchToCheck) => switchToCheck.id == suggestedSwitch.id),
+            ),
+        );
 
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
 
     return {
-        name: 'switch-linking-layer',
-        layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
-            return {
-                suggestedSwitches: findMatchingSwitches(hitArea, vectorSource, options),
-            };
-        },
-        requestInFlight: () => inFlight,
+        name: layerName,
+        layer,
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
+            suggestedSwitches: findMatchingSwitches(hitArea, source, options),
+        }),
     };
 }
 

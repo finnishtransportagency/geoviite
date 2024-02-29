@@ -160,6 +160,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         kmPostIds,
         changeTimes.layoutKmPost,
         changeTimes.layoutTrackNumber,
+        changeTimes.split,
         planIds,
         geometryKmPostIds,
         geometrySwitchIds,
