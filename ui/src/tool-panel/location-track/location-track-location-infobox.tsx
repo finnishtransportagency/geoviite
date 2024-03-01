@@ -118,14 +118,17 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         changeTimes,
     );
 
-    const isDraft = locationTrack.draftType !== 'OFFICIAL';
+    const publishTypeIsDraft = publishType === 'DRAFT';
+    const locationTrackIsDraft = locationTrack.draftType !== 'OFFICIAL';
     const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
         (dupe) => dupe.trackNumberId !== trackNumber?.id,
     );
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons = [];
-        if (isDraft)
+        if (!publishTypeIsDraft)
+            reasons.push(t('tool-panel.disabled.activity-disabled-in-official-mode'));
+        if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         if (duplicatesOnOtherTracks)
             reasons.push(
@@ -134,6 +137,15 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 ),
             );
         return reasons.join('\n\n');
+    };
+
+    const getModifyStartOrEndDisabledReasonTranslated = () => {
+        if (!publishTypeIsDraft) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
+            return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        }
+        return undefined;
     };
 
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -224,7 +236,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
                             {linkingState === undefined && (
                                 <WriteAccessRequired>
-                                    {extraInfo?.partOfUnfinishedSplit && (
+                                    {publishTypeIsDraft && extraInfo?.partOfUnfinishedSplit && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
                                                 {t(
@@ -241,14 +253,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             variant={ButtonVariant.SECONDARY}
                                             size={ButtonSize.SMALL}
                                             qa-id="modify-start-or-end"
-                                            title={
-                                                splittingState || extraInfo?.partOfUnfinishedSplit
-                                                    ? t(
-                                                          'tool-panel.location-track.splitting-blocks-geometry-changes',
-                                                      )
-                                                    : ''
-                                            }
+                                            title={getModifyStartOrEndDisabledReasonTranslated()}
                                             disabled={
+                                                publishType !== 'DRAFT' ||
                                                 !!splittingState ||
                                                 extraInfo?.partOfUnfinishedSplit ||
                                                 !startAndEndPoints.start?.point ||
@@ -298,16 +305,19 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <WriteAccessRequired>
-                                    {isDraft && !extraInfo?.partOfUnfinishedSplit && (
-                                        <InfoboxContentSpread>
-                                            <MessageBox>
-                                                {t(
-                                                    'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                )}
-                                            </MessageBox>
-                                        </InfoboxContentSpread>
-                                    )}
-                                    {duplicatesOnOtherTracks &&
+                                    {publishTypeIsDraft &&
+                                        locationTrackIsDraft &&
+                                        !extraInfo?.partOfUnfinishedSplit && (
+                                            <InfoboxContentSpread>
+                                                <MessageBox>
+                                                    {t(
+                                                        'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                    )}
+                                                </MessageBox>
+                                            </InfoboxContentSpread>
+                                        )}
+                                    {publishTypeIsDraft &&
+                                        duplicatesOnOtherTracks &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
                                                 <MessageBox>
@@ -323,7 +333,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 disabled={
-                                                    locationTrack.draftType !== 'OFFICIAL' ||
+                                                    !publishTypeIsDraft ||
+                                                    locationTrackIsDraft ||
                                                     duplicatesOnOtherTracks
                                                 }
                                                 title={getSplittingDisabledReasonsTranslated()}
