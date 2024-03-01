@@ -37,7 +37,7 @@ import {
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
 import { filterNotEmpty, findById } from 'utils/array-utils';
-import { getChangeTimes } from 'common/change-time-api';
+import { getChangeTimes, updateAllChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { postSplitLocationTrack } from 'publication/split/split-api';
@@ -269,7 +269,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 duplicateTracksInCurrentSplits,
             ),
         )
-            .then(() => {
+            .then(async () => {
+                await updateAllChangeTimes();
                 stopSplitting();
                 success(
                     t('tool-panel.location-track.splitting.splitting-success', {
