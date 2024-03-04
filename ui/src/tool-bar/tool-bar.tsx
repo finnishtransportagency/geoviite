@@ -23,7 +23,7 @@ import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dial
 import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
@@ -71,13 +71,13 @@ type TrackNumberItemValue = {
 };
 
 function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<TrackNumberItemValue> {
-    return {
-        name: layoutTrackNumber.number,
-        value: {
+    return menuValueOption(
+        {
             type: 'trackNumberSearchItem',
             trackNumber: layoutTrackNumber,
         },
-    };
+        layoutTrackNumber.number,
+    );
 }
 
 type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberItemValue;
@@ -98,26 +98,30 @@ async function getOptions(
     );
 
     const locationTracks: Item<LocationTrackItemValue>[] = searchResult.locationTracks.map(
-        (locationTrack) => ({
-            name: `${locationTrack.name}, ${
-                (locationTrackDescriptions &&
-                    locationTrackDescriptions.find((d) => d.id == locationTrack.id)?.description) ??
-                ''
-            }`,
-            value: {
-                type: 'locationTrackSearchItem',
-                locationTrack: locationTrack,
-            },
-        }),
+        (locationTrack) =>
+            menuValueOption(
+                {
+                    type: 'locationTrackSearchItem',
+                    locationTrack: locationTrack,
+                },
+                `${locationTrack.name}, ${
+                    (locationTrackDescriptions &&
+                        locationTrackDescriptions.find((d) => d.id == locationTrack.id)
+                            ?.description) ??
+                    ''
+                }`,
+            ),
     );
 
-    const switches: Item<SwitchItemValue>[] = searchResult.switches.map((layoutSwitch) => ({
-        name: `${layoutSwitch.name}`,
-        value: {
-            type: 'switchSearchItem',
-            layoutSwitch: layoutSwitch,
-        },
-    }));
+    const switches: Item<SwitchItemValue>[] = searchResult.switches.map((layoutSwitch) =>
+        menuValueOption(
+            {
+                type: 'switchSearchItem',
+                layoutSwitch: layoutSwitch,
+            },
+            `${layoutSwitch.name}`,
+        ),
+    );
 
     const trackNumbers: Item<TrackNumberItemValue>[] =
         searchResult.trackNumbers.map(createTrackNumberItem);
@@ -162,15 +166,19 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         'kmPost' = 4,
     }
 
-    const newMenuItems = [
-        { value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number') },
-        {
-            value: NewMenuItems.locationTrack,
-            name: t('tool-bar.new-location-track'),
-            qaId: 'tool-bar.new-location-track',
-        },
-        { value: NewMenuItems.switch, name: t('tool-bar.new-switch') },
-        { value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post') },
+    const newMenuItems: MenuOption<NewMenuItems>[] = [
+        menuValueOption(
+            NewMenuItems.trackNumber,
+            t('tool-bar.new-track-number'),
+            'tool-bar.new-track-number',
+        ),
+        menuValueOption(
+            NewMenuItems.locationTrack,
+            t('tool-bar.new-location-track'),
+            'tool-bar.new-location-track',
+        ),
+        menuValueOption(NewMenuItems.switch, t('tool-bar.new-switch'), 'tool-bar.new-switch'),
+        menuValueOption(NewMenuItems.kmPost, t('tool-bar.new-km-post'), 'tool-bar.new-km-post'),
     ];
 
     const handleNewMenuItemChange = (item: NewMenuItems) => {
