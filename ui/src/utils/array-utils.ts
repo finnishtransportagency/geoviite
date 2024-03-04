@@ -157,10 +157,13 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce((acc, item) => {
-        (acc[getKey(item)] ||= []).push(item);
-        return acc;
-    }, {} as Record<K, T[]>);
+    return array.reduce(
+        (acc, item) => {
+            (acc[getKey(item)] ||= []).push(item);
+            return acc;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 /**
@@ -234,11 +237,11 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
-    let min = first(values);
+    let min = expectDefined(first(values));
     let minIndex = 0;
     values.forEach((value, index) => {
-        if (value < expectDefined(min)) {
-            min = value;
+        if (value < min) {
+            min = expectDefined(value);
             minIndex = index;
         }
     });

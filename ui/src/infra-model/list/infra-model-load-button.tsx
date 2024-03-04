@@ -17,7 +17,7 @@ const InfraModelLoadButton: React.FC<InframodelLoadButtonProps> = ({
     const navigate = useAppNavigate();
     const { t } = useTranslation();
     async function handleFileInputEvent(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
+        const file = e.target.files?.item(0);
         if (file) {
             const serializableFile = await convertToSerializableFile(file);
             onFileSelected(serializableFile);

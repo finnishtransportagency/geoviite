@@ -57,7 +57,7 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
                             }}
                             title={t('selection-panel.color-selector.transparent')}
                         />
-                        {getColors().map(([key, value]) => (
+                        {getColors().map(({ key, color }) => (
                             <li
                                 className={styles['color-square']}
                                 key={key}
@@ -65,7 +65,7 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor }) =
                                     setShowSelector(false);
                                     onSelectColor(key);
                                 }}
-                                style={{ backgroundColor: value + colorOpacity }}
+                                style={{ backgroundColor: color + colorOpacity }}
                             />
                         ))}
                     </ol>

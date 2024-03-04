@@ -7,13 +7,13 @@ import mapStyles from 'map/map.module.scss';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { findOrInterpolateXY } from 'utils/math-utils';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, last } from 'utils/array-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
 import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
-import { expectCoordinate } from 'utils/type-utils';
+import { expectCoordinate, ifDefined } from 'utils/type-utils';
 
 type MapAlignmentBadgePoint = {
     point: number[];
@@ -192,7 +192,7 @@ export function getBadgePoints(
 
 export function getBadgeDrawDistance(resolution: number): number | undefined {
     const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < d[0]);
-    return distance?.[1];
+    return ifDefined(distance, last);
 }
 
 export function createAlignmentBadgeFeatures(

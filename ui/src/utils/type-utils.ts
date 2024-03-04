@@ -12,9 +12,10 @@ export type ValueOf<T> = T[keyof T];
 export type GetElementType<T> = T extends (infer TItem)[] ? TItem : never;
 
 type GetStringKeyTypes<TKeys> = TKeys extends string ? TKeys : never;
-type EnsureAllKeys<TAllKeys, TGivenKeys> = Exclude<TAllKeys, TGivenKeys> extends never
-    ? TGivenKeys
-    : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
+type EnsureAllKeys<TAllKeys, TGivenKeys> =
+    Exclude<TAllKeys, TGivenKeys> extends never
+        ? TGivenKeys
+        : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
 
 /**
  * This function provides type checking to make sure that the given
@@ -59,3 +60,18 @@ export const expectCoordinate = (coord: Coordinate): [number, number] => [
     expectDefined(coord[0]),
     expectDefined(coord[1]),
 ];
+
+export const ifDefined = <T, S>(value: T | undefined, callback: (value: T) => S) =>
+    !isNil(value) ? callback(value!) : undefined;
+
+function assertIsDefined<T>(val: T): asserts val is NonNullable<T> {
+    if (val === undefined || val === null) {
+        throw new Error(`Expected 'val' to be defined, but received ${val}`);
+    }
+}
+
+export const tuple = <T>(value1: T, value2: T): [NonNullable<T>, NonNullable<T>] => {
+    assertIsDefined(value1);
+    assertIsDefined(value2);
+    return [value1, value2];
+};
