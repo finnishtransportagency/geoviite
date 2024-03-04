@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, MenuSelectOption, menuSelectOption } from 'vayla-design-lib/menu/menu';
 import styles from 'app-bar/app-bar.scss';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -15,21 +15,23 @@ const AppBarMoreMenu: React.FC = () => {
     const menuRef = React.useRef(null);
     const navigate = useNavigate();
 
-    const moreActions = [
-        {
-            onSelect: () => {
+    const moreActions: MenuSelectOption[] = [
+        menuSelectOption(
+            () => {
                 setShowMenu(false);
                 navigate('licenses');
             },
-            name: t('app-bar.licenses'),
-        },
-        {
-            onSelect: () => {
+            t('app-bar.licenses'),
+            'licenses',
+        ),
+        menuSelectOption(
+            () => {
                 setShowMenu(false);
                 setShowLogoutConfirmation(true);
             },
-            name: t('app-bar.logout'),
-        },
+            t('app-bar.logout'),
+            'logout',
+        ),
     ];
 
     return (

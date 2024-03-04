@@ -28,7 +28,7 @@ import {
     sortPVTableColumns,
 } from 'infra-model/projektivelho/pv-file-list-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, MenuSelectOption, menuSelectOption } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PrivilegedLink } from 'user/privileged-link';
@@ -276,10 +276,9 @@ const PVFileListRow = ({
 
     const dialogTranslationPrefix = `confirm-dialog.${suggestedList ? 'reject' : 'restore'}`;
 
-    const fileActions = [
-        {
-            disabled: !item.assignment?.oid,
-            onSelect: () => {
+    const fileActions: MenuSelectOption[] = [
+        menuSelectOption(
+            () => {
                 dialogParams.current = {
                     title: t(`${dialogTranslationPrefix}.by-assignment-title`),
                     message: {
@@ -303,13 +302,14 @@ const PVFileListRow = ({
                 setShowConfirmDialog(true);
                 setFileActionMenuVisible(false);
             },
-            name: t(`${dialogTranslationPrefix}.by-assignment`, {
+            t(`${dialogTranslationPrefix}.by-assignment`, {
                 assignmentCount: itemCounts.assignment ?? '-',
             }),
-        },
-        {
-            disabled: !item.project?.oid,
-            onSelect: () => {
+            'pv-reject-or-restore-by-assignment',
+            !item.assignment?.oid,
+        ),
+        menuSelectOption(
+            () => {
                 dialogParams.current = {
                     title: t(`${dialogTranslationPrefix}.by-project-title`),
                     message: {
@@ -333,13 +333,14 @@ const PVFileListRow = ({
                 setShowConfirmDialog(true);
                 setFileActionMenuVisible(false);
             },
-            name: t(`${dialogTranslationPrefix}.by-project`, {
+            t(`${dialogTranslationPrefix}.by-project`, {
                 projectCount: itemCounts.project ?? '-',
             }),
-        },
-        {
-            disabled: !item.projectGroup?.oid,
-            onSelect: () => {
+            'pv-reject-or-restore-by-project',
+            !item.project?.oid,
+        ),
+        menuSelectOption(
+            () => {
                 dialogParams.current = {
                     title: t(`${dialogTranslationPrefix}.by-project-group-title`),
                     message: {
@@ -363,10 +364,12 @@ const PVFileListRow = ({
                 setShowConfirmDialog(true);
                 setFileActionMenuVisible(false);
             },
-            name: t(`${dialogTranslationPrefix}.by-project-group`, {
+            t(`${dialogTranslationPrefix}.by-project-group`, {
                 groupCount: itemCounts.projectGroup ?? '-',
             }),
-        },
+            'pv-reject-or-restore-by-project-group',
+            !item.projectGroup?.oid,
+        ),
     ];
 
     const confirmDialog = () => {

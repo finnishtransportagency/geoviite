@@ -30,10 +30,6 @@
     cursor: pointer;
     user-select: none;
 
-    &:not(:last-child) {
-        border-bottom: 1px solid colors.$color-white-darker;
-    }
-
     &--disabled {
         color: colors.$color-black-lighter;
         cursor: default;
@@ -42,4 +38,9 @@
     &:hover:not(.menu__item--disabled) {
         background: colors.$color-blue-lighter;
     }
+}
+
+.menu__divider {
+    height: 1px;
+    background-color: colors.$color-white-darker;
 }
