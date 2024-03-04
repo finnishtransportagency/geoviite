@@ -64,7 +64,7 @@ data class IndexedId<T>(val parentId: Int, val index: Int) : DomainId<T>() {
     override fun toString(): String = indexedIdToString(this)
 }
 
-private fun getType(source: String): IdType? = IdType.values().firstOrNull { t -> t.typeMatches(source) }
+private fun getType(source: String): IdType? = IdType.entries.firstOrNull { t -> t.typeMatches(source) }
 
 private fun joinInts(vararg ints: Int): String = ints.joinToString(SEPARATOR)
 
