@@ -17,7 +17,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import VectorLayer from 'ol/layer/Vector';
 import BaseLayer from 'ol/layer/Base';
-import { expectCoordinate } from 'utils/type-utils';
+import { expectCoordinate, tuple } from 'utils/type-utils';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -74,7 +74,7 @@ export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): num
         .map((coordinate) => coordsToPoint(coordinate))
         .map((point, index, points) => {
             const nextPoint = points[index + 1];
-            return (nextPoint ? [point, nextPoint] : undefined) as [Point, Point] | undefined;
+            return nextPoint ? tuple(point, nextPoint) : undefined;
         })
         .filter(filterNotEmpty);
     const squaredDistances = segments.map((segment) =>

@@ -27,7 +27,7 @@ import { Rectangle } from 'model/geometry';
 import { ValidatedAsset } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { expectCoordinate } from 'utils/type-utils';
+import { expectCoordinate, expectDefined } from 'utils/type-utils';
 import { first } from 'utils/array-utils';
 
 const switchImage: HTMLImageElement = new Image();
@@ -146,8 +146,8 @@ export function getSwitchRenderer(
                         ? styles.linkedSwitchJointBorder
                         : styles.unlinkedSwitchJointBorder
                     : valid
-                    ? styles.switchJointBorder
-                    : styles.errorBright;
+                      ? styles.switchJointBorder
+                      : styles.errorBright;
                 ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
                 const [x, y] = expectCoordinate(coord);
@@ -203,8 +203,8 @@ export function getJointRenderer(
                 ctx.strokeStyle = showErrorStyle
                     ? styles.errorBright
                     : mainJoint
-                    ? styles.switchMainJointBorder
-                    : styles.switchJointBorder;
+                      ? styles.switchMainJointBorder
+                      : styles.switchJointBorder;
 
                 const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
@@ -377,8 +377,7 @@ function createSwitchFeature(
     presentationJointNumber?: string | undefined,
     validationResult?: ValidatedAsset | undefined,
 ): Feature<OlPoint>[] {
-    const firstJoint = first(layoutSwitch.joints);
-    if (!firstJoint) return [];
+    const firstJoint = expectDefined(first(layoutSwitch.joints));
 
     const presentationJoint = layoutSwitch.joints.find(
         (joint) => joint.number == presentationJointNumber,

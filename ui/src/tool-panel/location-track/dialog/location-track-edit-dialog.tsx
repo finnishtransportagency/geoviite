@@ -51,7 +51,7 @@ import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { getLocationTrackOwners } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
@@ -59,6 +59,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { ChangeTimes } from 'common/common-slice';
 import { getChangeTimes } from 'common/change-time-api';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { first } from 'utils/array-utils';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
@@ -153,12 +154,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const validTrackName = !state.validationErrors.some((e) => e.field === 'name')
         ? state.locationTrack.name
         : '';
-    const trackWithSameName = useConflictingTracks(
-        state.locationTrack.trackNumberId,
-        [validTrackName],
-        props.locationTrack?.id ? [props.locationTrack.id] : [],
-        'DRAFT',
-    )?.[0];
+    const trackWithSameName = ifDefined(
+        useConflictingTracks(
+            state.locationTrack.trackNumberId,
+            [validTrackName],
+            props.locationTrack?.id ? [props.locationTrack.id] : [],
+            'DRAFT',
+        ),
+        first,
+    );
     React.useEffect(() => {
         if (
             locationTrackOwners !== undefined &&

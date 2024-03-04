@@ -14,17 +14,24 @@ export enum TrackNumberColor {
     EGGPLANT = '#a050a0',
 }
 
+type IndexedColor = { key: TrackNumberColorKey; color: TrackNumberColor };
+
+const colorIndexForId = (colors: IndexedColor[], id: LayoutTrackNumberId) =>
+    parseInt(id.replace(/^\D+/g, '')) % colors.length;
+
 export const getColor = (key: TrackNumberColorKey): TrackNumberColor | undefined => {
     return TrackNumberColor[key];
 };
 
-export const getColors = () => {
-    return Object.entries(TrackNumberColor).filter(
-        ([_, v]) => v !== TrackNumberColor.TRANSPARENT,
-    ) as [TrackNumberColorKey, TrackNumberColor][];
-};
+export const getColors = (): IndexedColor[] =>
+    Object.entries(TrackNumberColor)
+        .map(([key, color]) => ({
+            key: key as TrackNumberColorKey,
+            color,
+        }))
+        .filter(({ color }) => color !== TrackNumberColor.TRANSPARENT);
 
 export const getDefaultColorKey = (id: LayoutTrackNumberId): TrackNumberColorKey => {
     const colors = getColors();
-    return expectDefined(colors[parseInt(id.replace(/^\D+/g, '')) % colors.length])[0];
+    return expectDefined(colors[colorIndexForId(colors, id)]).key;
 };
