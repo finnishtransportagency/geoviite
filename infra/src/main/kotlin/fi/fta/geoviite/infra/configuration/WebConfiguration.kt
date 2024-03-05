@@ -73,9 +73,9 @@ class WebConfig : WebMvcConfigurer {
         registry.addConverter(IndexedIdToStringConverter<Any>())
 
         logger.info("Registering LayoutContext converters")
-        registry.addStringConstructorConverter(LayoutContext::parse)
-        registry.addStringConstructorConverter(MainLayoutContext::parse)
-        registry.addStringConstructorConverter(DesignLayoutContext::parse)
+        registry.addStringConstructorConverter(LayoutBranch::parse)
+        registry.addStringConstructorConverter(MainBranch::parse)
+        registry.addStringConstructorConverter(DesignBranch::parse)
 
         logger.info("Registering OID converters")
         registry.addStringConstructorConverter { Oid<Any>(it) }
