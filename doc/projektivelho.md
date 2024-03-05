@@ -12,16 +12,19 @@ aineistojen hyväksymiseen ja hylkäämiseen on siis Geoviite-operaattorilla.
 ## Tekninen yleiskuvaus
 
 ProjektiVelho-integraatio on pull-tyyppinen integraatio, jossa Geoviite käy periodisesti hakemassa ProjektiVelhosta 
-kaikki sinne viimeisimmän onnistuneesti Geoviitteeseen tallennetun aineiston jälkeen lisätyt aineistot. Koska aineistoja on potentiaalisesti paljon, haku tehdään batcheissa (max. 100 aineistoa.) Prosessi menee jotakuinkin seuraavasti:
+kaikki sinne viimeisimmän onnistuneesti Geoviitteeseen tallennetun aineiston jälkeen lisätyt aineistot. Koska aineistoja 
+on potentiaalisesti paljon, haku tehdään batcheissa (batchin koko konfiguroitavissa, toistaiseksi max. 100 aineistoa.) 
+Prosessi menee jotakuinkin seuraavasti:
 - Geoviite käynnistää ProjektiVelhoon haun. Haku itsessään on async, ja ProjektiVelho palauttaa tässä vaiheessa 
-Geoviittelle haun id:n, jonka se tallentaa kantaan.
-- Haun suorittumista seurataan periodisesti. Tässä yhteydessä päivitetään myös ProjektiVelhon nimikkeistö.
-- Kun haku on valmis, haetaan sen tulokset erillisellä kutsulla.
+Geoviittelle haun id:n, jonka Geoviite tallentaa kantaan.
+- Haun suorittumista seurataan periodisesti. Tässä yhteydessä päivitetään myös ProjektiVelhon nimikkeistö mikäli siihen 
+on muutoksia.
+- Kun haku on valmis, haetaan sen tulokset ProjektiVelhosta.
 - Tämän jälkeen jokaisesta aineistosta haetaan metadatat (toimeksianto, projekti ja projektijoukko) sekä itse tiedosto.
 - Tiedosto koitetaan parsia IM-tiedostoksi. Jos parsinta epäonnistuu kokonaan, tiedosto hylätään.
-- Kaikista tiedostoista tallennetaan kantaan vähintään metadatat, paitsi tilanteessa jossa tiedoston tai sen metadatan hakemisessa menee jotain vikaan. Tätä käytetään
-
-Insert kaavio here
+- Kaikista tiedostoista tallennetaan kantaan vähintään metadatat, paitsi tilanteessa jossa tiedoston tai sen metadatan 
+hakemisessa menee jotain vikaan. Tällöin tiedosto jätetään käsittelemättä ja integraatio koittaa jatkaa siitä uudestaan
+seuraavalla ajokerralla. Tällä pyritään varmistumaan siitä, että mikään tiedosto ei jää käsittelemättä
 
 ## Tietomalli
 
@@ -77,3 +80,11 @@ classDiagram
     class MaterialGroup
     class MaterialCategory
 ```
+
+## Käsitteistön yhdistyminen Geoviitteen muuhun tietomalliin
+
+Projektivelhosta ladattavat tiedostot ovat InfraModel-tiedostoja, jotka sisältävät tietoa täsmälleen samassa muodossa 
+kuin Geoviitteeseen käsinkin tuotavat inframallit, ja täten ne myös tallennetaan Geoviitteeseen täysin samalla tavalla. 
+ProjektiVelhosta haetaan kuitenkin kullekin sieltä tuotavalle tiedostolle myös metatietoa sen projektirakenteesta, jota 
+ei ole saatavilla käsin tuotavista tiedostoista. Tämä metatieto tallennetaan `projektivelho`-schemaan 
+`document`- tauluun
