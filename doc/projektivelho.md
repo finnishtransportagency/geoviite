@@ -11,18 +11,20 @@ aineistojen hyväksymiseen ja hylkäämiseen on siis Geoviite-operaattorilla.
 
 ## Tekninen yleiskuvaus
 
-ProjektiVelho-integraatio on pull-tyyppinen integraatio, jossa Geoviite käy periodisesti pollaamassa 
+ProjektiVelho-integraatio on pull-tyyppinen integraatio, jossa Geoviite käy periodisesti kyselemässä 
 ProjektiVelholta uusia aineistoja. Haku koostuu kahdesta osasta, jotka on ajastettu bäkkärille erillisinä: 
 
 1. Uusien aineistojen pollaus, jossa projektivelhosta kysellään mitä uusia aineistoja olisi saatavilla
 2. Aineistohaku, jossa aineistot metatietoineen ladataan Geoviitteeseen
 
 Pollaus kysyy ProjektiVelholta viimeistä onnistuneesti tallennettua aineistoa seuraavat N aineistoa (defaulttina 
-N=100, mutta N on konfiguroitavissa.) Tämä haku on jo itsessään async.
+N=100, mutta N on konfiguroitavissa.) Tämä haku kestää pitkään, joten sen tuloksia ei jäädä odottelemaan tässä
+osassa.
 
 Aineistohaku kyselee käynnissä olevan pollauksen tilan Velholta ja jos se on valmis, niin se suorittaa varsinaisen
-aineistojen haun ja tallentamisen Geoviitteeseen. Kukin aineisto käsitellään yksitellen. Jos käsittely epäonnistuu,
-niin nostetaan kädet ilmaan ja koitetaan seuraavalla pollauskierroksella uudelleen.
+aineistojen haun ja tallentamisen Geoviitteeseen. Tässä yhteydessä päivitetään myös Geoviitteen käsitys Projektivelhon
+koodistosta. Kukin aineisto käsitellään yksitellen. Jos käsittely epäonnistuu, niin nostetaan kädet ilmaan. Seuraavalla 
+kierroksella aloitetaan uudestaan epäonnistuneesta aineistosta.
 
 Yksityiskohtaisempi sekvenssikaavio aiheesta:
 
@@ -139,13 +141,13 @@ classDiagram
 
 ## Aineistojen metatiedotus (koodisto ja projektihierarkia)
 
-Projektivelhosta tuotavat inframallit sisältävät InfraModel-tiedostojen ulkopuolista metatietoa. Osa tästä 
-metatiedosta tallennetaan Geoviitteeseen. Aineiston projektihierarkia (projektijoukko,- projekti- ja 
+Projektivelhosta tuotavat inframallit sisältävät InfraModel-tiedostojen ulkopuolista metatietoa, josta 
+osa tallennetaan Geoviitteeseen. Aineiston projektihierarkia (projektijoukko,- projekti- ja 
 toimeksiantoviittaukset) tallennetaan siksi, että se voidaan näyttää operaattorille. Operaattorin on näiden 
 avulla mahdollista navigoida niiden kautta Projektivelhoon tutkimaan suurempaa kokonaisuutta aineiston ympäriltä. 
-Tämä informaatio on saatavilla vain projektivelhon kautta tuoduille aineistoille. Osa metatiedoista tallennetaan 
-siksi, että siitä on mahdollisesti hyötyä tulevaisuudessa ja ne vievät melko vähän tilaa (tiedoston versio- ja 
-koodistotiedot.)
+Tämä informaatio on saatavilla vain projektivelhon kautta tuoduille aineistoille. Loput metatiedot (tiedoston 
+versio- ja koodistotiedot.) tallennetaan siksi, että siitä on mahdollisesti hyötyä tulevaisuudessa ja ne 
+vievät melko vähän tilaa.
 
 ## Muuta teknistä
 
